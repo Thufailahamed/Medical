@@ -1,22 +1,17 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Mail, Lock, ArrowRight, Sparkles } from "lucide-react-native";
+import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   Hero,
-  Card,
   Button,
   TextInput,
   FormField,
@@ -35,35 +30,50 @@ export default function LoginScreen() {
   const { colors, spacing, typography } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const toast = useToast();
+  const setUser = useAuthStore((s) => s.setUser);
 
   const {
     control,
     handleSubmit,
     setError,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
     mode: "onBlur",
   });
+  const emailValue = watch("email");
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
-    setSubmitting(false);
-    if (error) {
-      const msg = error.message.toLowerCase().includes("invalid")
-        ? "Email or password is incorrect."
-        : error.message;
+    try {
+      const res = await api<{ user: any; session: any }>("/auth/login", {
+        method: "POST",
+        body: { email: data.email, password: data.password },
+      });
+
+      if (res.session?.access_token && res.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: res.session.access_token,
+          refresh_token: res.session.refresh_token,
+        });
+      }
+
+      setUser(res.user);
+      toast.show("Welcome back", "success");
+    } catch (err: any) {
+      const msg = err?.message || "Could not sign in.";
       setError("root", { message: msg });
       toast.show(msg, "danger");
-    } else {
-      toast.show("Welcome back", "success");
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  async function handleForgotPassword() {
+    router.push("/(auth)/forgot-password");
+  }
 
   return (
     <Screen
@@ -85,22 +95,22 @@ export default function LoginScreen() {
               paddingHorizontal: spacing.md,
               paddingVertical: spacing.sm,
               borderRadius: 999,
-              backgroundColor: pressed ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.18)",
+              backgroundColor: pressed ? colors.glassOnPrimary : "transparent",
+              borderWidth: 1,
+              borderColor: colors.glassOnPrimarySoft,
             })}
           >
             <Text
               style={[
                 typography.label.md,
-                { color: colors.onPrimary },
+                { color: colors.onPrimary, fontWeight: "700" },
               ]}
             >
               Sign up
             </Text>
           </Pressable>
         }
-        status={[
-          { icon: Sparkles, label: "Care that listens", tone: "accent2" },
-        ]}
+        status={[{ icon: Sparkles, label: "Care that listens", tone: "accent2" }]}
       />
 
       <View
@@ -159,7 +169,6 @@ export default function LoginScreen() {
                 label="Password"
                 required
                 error={errors.password?.message}
-                helper="At least 6 characters"
               >
                 <TextInput
                   value={value}
@@ -198,13 +207,10 @@ export default function LoginScreen() {
           />
 
           <Pressable
-            onPress={() => toast.show("Password reset coming soon", "info")}
+            onPress={handleForgotPassword}
             accessibilityRole="link"
             hitSlop={8}
-            style={{
-              alignItems: "center",
-              paddingVertical: spacing.sm,
-            } as StyleProp<ViewStyle>}
+            style={{ alignItems: "center", paddingVertical: spacing.sm }}
           >
             <Text
               style={[
@@ -233,10 +239,7 @@ export default function LoginScreen() {
             onPress={() => router.push("/(auth)/register" as any)}
             accessibilityRole="link"
             hitSlop={8}
-            style={{
-              alignItems: "center",
-              paddingVertical: spacing.sm,
-            }}
+            style={{ alignItems: "center", paddingVertical: spacing.sm }}
           >
             <Text style={[typography.body.md, { color: colors.textMuted }]}>
               New here?{" "}

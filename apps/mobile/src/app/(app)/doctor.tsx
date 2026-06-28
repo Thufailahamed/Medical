@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { View, Text } from "react-native";
 import {
-  Search,
+  Save,
+  FileText,
   Stethoscope,
   Pill as PillIcon,
-  ClipboardList,
-  CalendarDays,
-  FileText,
-  Save,
   ChevronRight,
-  Activity,
   Users,
-  X,
+  Search,
+  Clock,
 } from "lucide-react-native";
 import {
   useDoctorDashboard,
@@ -23,10 +20,9 @@ import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
-  StatCard,
   TextInput,
   Card,
-  Pill,
+  Pill as PillCmp,
   ChipGroup,
   FormField,
   Button,
@@ -67,7 +63,7 @@ export default function DoctorScreen() {
     }
     try {
       await createPrescription.mutateAsync({
-        patientId: selectedPatient.patients.id,
+        patientId: selectedPatient.id,
         diagnosis,
         notes,
         medicines: [
@@ -97,7 +93,7 @@ export default function DoctorScreen() {
           back
           onBack={() => setSelectedPatient(null)}
           title="New prescription"
-          right={<Pill label="Draft" tone="warning" size="sm" />}
+          right={<PillCmp label="Draft" tone="warning" size="sm" />}
         />
 
         <View
@@ -112,14 +108,14 @@ export default function DoctorScreen() {
           }}
         >
           <Avatar
-            name={selectedPatient.users?.name}
+            name={selectedPatient.name}
             size="lg"
             tone="primary"
             ring
           />
           <View style={{ flex: 1 }}>
             <Text style={[typography.title.md, { color: colors.text }]}>
-              {selectedPatient.users?.name}
+              {selectedPatient.name || "Patient"}
             </Text>
             <Text
               style={[
@@ -127,7 +123,7 @@ export default function DoctorScreen() {
                 { color: colors.textMuted, marginTop: 2 },
               ]}
             >
-              {selectedPatient.users?.phone || "No phone on file"}
+              {selectedPatient.phone || "No phone on file"}
             </Text>
           </View>
         </View>
@@ -170,17 +166,13 @@ export default function DoctorScreen() {
                 />
               </FormField>
 
-              <View style={{ flexDirection: "row", gap: spacing.md }}>
-                <View style={{ flex: 1 }}>
-                  <FormField label="Dosage" required>
-                    <TextInput
-                      value={medDosage}
-                      onChangeText={setMedDosage}
-                      placeholder="e.g., 500mg"
-                    />
-                  </FormField>
-                </View>
-              </View>
+              <FormField label="Dosage" required>
+                <TextInput
+                  value={medDosage}
+                  onChangeText={setMedDosage}
+                  placeholder="e.g., 500mg"
+                />
+              </FormField>
 
               <FormField label="Frequency">
                 <ChipGroup
@@ -216,9 +208,10 @@ export default function DoctorScreen() {
     );
   }
 
-  const queue = dashboard?.todaysAppointments || [];
+  const queue: any[] = dashboard?.todaysAppointments || [];
   const todayCount = dashboard?.stats?.todayAppointments ?? 0;
   const totalPatients = dashboard?.stats?.totalPatients ?? 0;
+  const results: any[] = searchResults?.patients || [];
 
   return (
     <Screen scroll tabBarOffset bottomInset={false}>
@@ -323,17 +316,22 @@ export default function DoctorScreen() {
             />
           </View>
 
-          {searchResults?.patients && searchResults.patients.length > 0 ? (
+          {results.length > 0 ? (
             <View style={{ gap: spacing.sm }}>
-              {searchResults.patients.map((p: any) => (
+              {results.map((p) => (
                 <ListItem
-                  key={p.patients.id}
+                  key={p.id}
                   variant="contact"
                   iconTone="primary"
-                  title={p.users?.name || "Patient"}
-                  subtitle={p.users?.phone || "Tap to prescribe"}
+                  title={p.name || "Patient"}
+                  subtitle={p.phone || "Tap to prescribe"}
                   mediaSlot={
-                    <Avatar name={p.users?.name} size="md" tone="primary" />
+                    <Avatar
+                      name={p.name}
+                      size="md"
+                      tone="primary"
+                      source={p.photo ? { uri: p.photo } : undefined}
+                    />
                   }
                   pill={{ label: "Prescribe", tone: "primary" }}
                   trailing={
@@ -380,13 +378,17 @@ export default function DoctorScreen() {
               <Timeline
                 data={queue}
                 groupBy={(q: any) => {
-                  const status = q.appointments?.status?.toLowerCase();
-                  if (status === "completed") return "done";
-                  if (status === "cancelled") return "done";
-                  const now = new Date();
-                  const t = q.appointments?.time;
+                  const status = q.status?.toLowerCase();
+                  if (status === "completed" || status === "cancelled") {
+                    return "done";
+                  }
+                  const t = q.time;
                   if (!t) return "later";
-                  const [hh, mm] = t.split(":").map((n: string) => parseInt(n, 10));
+                  const [hh, mm] = t.split(":").map((n: string) =>
+                    parseInt(n, 10)
+                  );
+                  if (Number.isNaN(hh) || Number.isNaN(mm)) return "later";
+                  const now = new Date();
                   const slot = new Date(now);
                   slot.setHours(hh, mm, 0, 0);
                   const diff = (slot.getTime() - now.getTime()) / (1000 * 60);
@@ -399,14 +401,13 @@ export default function DoctorScreen() {
                   later: { label: "Later today", tone: "primary" },
                   done: { label: "Done", tone: "neutral" },
                 }}
-                keyExtractor={(q: any) => q.appointments.id}
+                keyExtractor={(q: any) => q.id}
                 flush
                 renderItem={(item: any) => {
-                  const a = item.appointments;
                   const tone =
-                    a.status === "completed"
+                    item.status === "completed"
                       ? "success"
-                      : a.status === "cancelled"
+                      : item.status === "cancelled"
                       ? "danger"
                       : "primary";
                   return (
@@ -414,9 +415,12 @@ export default function DoctorScreen() {
                       icon={Clock}
                       iconTone={tone as any}
                       variant="timeline"
-                      title={`${a.time} · Queue #${a.queueNumber ?? "—"}`}
-                      subtitle={a.status}
-                      pill={{ label: a.status, tone: tone as any }}
+                      title={`${item.time || "—"} · Queue #${item.queueNumber ?? "—"}`}
+                      subtitle={item.reason || item.status || ""}
+                      pill={{
+                        label: item.status,
+                        tone: tone as any,
+                      }}
                     />
                   );
                 }}
@@ -428,5 +432,3 @@ export default function DoctorScreen() {
     </Screen>
   );
 }
-
-import { Clock } from "lucide-react-native";

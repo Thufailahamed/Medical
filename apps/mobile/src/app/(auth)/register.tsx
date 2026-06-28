@@ -3,9 +3,6 @@ import {
   View,
   Text,
   Pressable,
-  StyleSheet,
-  type StyleProp,
-  type ViewStyle,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -19,8 +16,11 @@ import {
   ArrowRight,
   HeartPulse,
   ChevronLeft,
+  IdCard,
 } from "lucide-react-native";
 import { api } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -37,7 +37,8 @@ const schema = z
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Enter a valid email").optional().or(z.literal("")),
     phone: z.string().optional(),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    nic: z.string().optional(),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirm: z.string(),
   })
   .refine((d) => !!d.email || !!d.phone, {
@@ -56,6 +57,7 @@ export default function RegisterScreen() {
   const { colors, spacing, typography } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const toast = useToast();
+  const setUser = useAuthStore((s) => s.setUser);
 
   const {
     control,
@@ -64,25 +66,42 @@ export default function RegisterScreen() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", phone: "", password: "", confirm: "" },
+    defaultValues: { name: "", email: "", phone: "", nic: "", password: "", confirm: "" },
     mode: "onBlur",
   });
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
     try {
-      await api("/auth/register", {
-        method: "POST",
-        body: {
-          name: data.name,
-          email: data.email || undefined,
-          phone: data.phone || undefined,
-          password: data.password,
-          role: "patient",
-        },
-      });
-      toast.show("Account created. Please sign in.", "success");
-      router.replace("/(auth)/login" as any);
+      const res = await api<{ user: any; session?: any; message?: string }>(
+        "/auth/register",
+        {
+          method: "POST",
+          body: {
+            name: data.name,
+            email: data.email || undefined,
+            phone: data.phone || undefined,
+            nic: data.nic || undefined,
+            password: data.password,
+            role: "patient",
+          },
+        }
+      );
+
+      if (res.session?.access_token && res.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: res.session.access_token,
+          refresh_token: res.session.refresh_token,
+        });
+        setUser(res.user);
+        toast.show("Account created", "success");
+      } else {
+        toast.show(
+          res.message || "Account created. Please sign in.",
+          "success"
+        );
+        router.replace("/(auth)/login" as any);
+      }
     } catch (err: any) {
       const msg = err?.message || "Could not create account.";
       setError("root", { message: msg });
@@ -94,7 +113,6 @@ export default function RegisterScreen() {
 
   return (
     <Screen padded={false} keyboard scroll edges={["bottom"]}>
-      {/* Compact identity strip with back affordance */}
       <View
         style={{
           paddingHorizontal: spacing.lg,
@@ -150,14 +168,9 @@ export default function RegisterScreen() {
         </Text>
 
         <Card padded={false}>
-          <View
-            style={{
-              padding: spacing.lg,
-              paddingBottom: spacing.sm,
-            }}
-          >
-            <Text style={[typography.label.lg, { color: colors.textMuted }]}>
-              ACCOUNT
+          <View style={{ padding: spacing.lg, paddingBottom: spacing.sm }}>
+            <Text style={[typography.label.lg, { color: colors.textMuted, letterSpacing: 0.6 }]}>
+              IDENTITY
             </Text>
           </View>
           <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, paddingBottom: spacing.lg }}>
@@ -224,17 +237,29 @@ export default function RegisterScreen() {
                 </FormField>
               )}
             />
+
+            <Controller
+              control={control}
+              name="nic"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <FormField label="National ID (optional)" helper="Used for verification">
+                  <TextInput
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="200012345678"
+                    autoCapitalize="characters"
+                    leadingIcon={IdCard}
+                  />
+                </FormField>
+              )}
+            />
           </View>
         </Card>
 
         <Card padded={false}>
-          <View
-            style={{
-              padding: spacing.lg,
-              paddingBottom: spacing.sm,
-            }}
-          >
-            <Text style={[typography.label.lg, { color: colors.textMuted }]}>
+          <View style={{ padding: spacing.lg, paddingBottom: spacing.sm }}>
+            <Text style={[typography.label.lg, { color: colors.textMuted, letterSpacing: 0.6 }]}>
               SECURITY
             </Text>
           </View>
@@ -248,7 +273,7 @@ export default function RegisterScreen() {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="At least 6 characters"
+                    placeholder="At least 8 characters"
                     secureTextEntry
                     autoComplete="password-new"
                     textContentType="newPassword"
@@ -311,10 +336,7 @@ export default function RegisterScreen() {
           onPress={() => router.push("/(auth)/login" as any)}
           accessibilityRole="link"
           hitSlop={8}
-          style={{
-            alignItems: "center",
-            paddingVertical: spacing.sm,
-          } as StyleProp<ViewStyle>}
+          style={{ alignItems: "center", paddingVertical: spacing.sm }}
         >
           <Text style={[typography.body.md, { color: colors.textMuted }]}>
             Already have an account?{" "}
@@ -327,5 +349,3 @@ export default function RegisterScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({});

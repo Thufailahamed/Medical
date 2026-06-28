@@ -9,12 +9,15 @@ import {
   Siren,
   CheckCheck,
 } from "lucide-react-native";
-import { useNotifications, useMarkNotificationRead } from "@/hooks/useApi";
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllRead,
+} from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
-  Card,
   EmptyState,
   Skeleton,
   ListItem,
@@ -22,10 +25,7 @@ import {
 } from "@/components/ui";
 import type { Tone } from "@/theme/tone";
 
-const TYPE_META: Record<
-  string,
-  { icon: any; tone: Tone }
-> = {
+const TYPE_META: Record<string, { icon: any; tone: Tone }> = {
   medicine: { icon: Pill, tone: "primary" },
   appointment: { icon: CalendarDays, tone: "info" },
   lab_ready: { icon: FlaskConical, tone: "warning" },
@@ -39,8 +39,10 @@ const FILTERS = [
   { value: "unread", label: "Unread" },
 ];
 
-function timeAgo(ts: string) {
+function timeAgo(ts?: string | null) {
+  if (!ts) return "";
   const d = new Date(ts);
+  if (isNaN(d.getTime())) return "";
   const diff = Date.now() - d.getTime();
   const m = Math.floor(diff / 60000);
   if (m < 1) return "Just now";
@@ -52,8 +54,10 @@ function timeAgo(ts: string) {
   return d.toLocaleDateString();
 }
 
-function groupByTime(ts: string) {
+function groupByTime(ts?: string | null) {
+  if (!ts) return "older";
   const d = new Date(ts);
+  if (isNaN(d.getTime())) return "older";
   const now = new Date();
   const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
   if (diff < 1) return "today";
@@ -65,17 +69,23 @@ export default function NotificationsScreen() {
   const { spacing, colors, typography } = useTheme();
   const { data, isLoading } = useNotifications();
   const markRead = useMarkNotificationRead();
-  const [filter, setFilter] = useState("all");
+  const markAll = useMarkAllRead();
+  const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const all = data?.notifications || [];
+  // API returns FLAT notification objects
+  const all: any[] = data?.notifications || [];
+
   const filtered =
-    filter === "unread" ? all.filter((n: any) => !n.notifications.read) : all;
-  const unreadCount = all.filter((n: any) => !n.notifications.read).length;
+    filter === "unread" ? all.filter((n) => !n.read) : all;
 
-  function markAllRead() {
-    all
-      .filter((n: any) => !n.notifications.read)
-      .forEach((n: any) => markRead.mutate(n.notifications.id));
+  const unreadCount = all.filter((n) => !n.read).length;
+
+  async function handleMarkAll() {
+    try {
+      await markAll.mutateAsync();
+    } catch {
+      // Already surfaces via query invalidation; nothing to do
+    }
   }
 
   return (
@@ -86,20 +96,20 @@ export default function NotificationsScreen() {
         right={
           unreadCount > 0 ? (
             <Pressable
-              onPress={markAllRead}
+              onPress={handleMarkAll}
+              disabled={markAll.isPending}
               accessibilityRole="button"
               accessibilityLabel="Mark all as read"
               hitSlop={8}
-              style={({ pressed }: any) => ({
+              style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 4,
                 paddingHorizontal: spacing.sm + 2,
                 paddingVertical: spacing.xs + 1,
                 borderRadius: 999,
-                backgroundColor: pressed
-                  ? colors.primarySoft
-                  : "transparent",
+                backgroundColor: pressed ? colors.primarySoft : "transparent",
+                opacity: markAll.isPending ? 0.5 : 1,
               })}
             >
               <CheckCheck size={16} color={colors.primary} strokeWidth={2.5} />
@@ -129,7 +139,7 @@ export default function NotificationsScreen() {
             key={f.value}
             label={f.label}
             active={filter === f.value}
-            onPress={() => setFilter(f.value)}
+            onPress={() => setFilter(f.value as any)}
           />
         ))}
       </View>
@@ -155,27 +165,26 @@ export default function NotificationsScreen() {
         <View style={{ paddingHorizontal: spacing.lg }}>
           <Timeline
             data={filtered}
-            groupBy={(n: any) => groupByTime(n.notifications.createdAt)}
+            groupBy={(n: any) => groupByTime(n.createdAt)}
             groupMeta={{
               today: { label: "Today", tone: "primary" },
               week: { label: "Earlier this week", tone: "info" },
               older: { label: "Older", tone: "neutral" },
             }}
-            keyExtractor={(n: any) => n.notifications.id}
+            keyExtractor={(n: any) => n.id}
             flush
             renderItem={(item: any) => {
-              const n = item.notifications;
-              const meta = TYPE_META[n.type] || TYPE_META.general;
+              const meta = TYPE_META[item.type] || TYPE_META.general;
               return (
                 <ListItem
                   icon={meta.icon}
                   iconTone={meta.tone}
                   variant="default"
-                  title={n.title}
-                  subtitle={`${n.body ? n.body + " · " : ""}${timeAgo(n.createdAt)}`}
+                  title={item.title || "Notification"}
+                  subtitle={`${item.body ? item.body + " · " : ""}${timeAgo(item.createdAt)}`}
                   subtitleMaxLines={2}
                   trailing={
-                    n.read ? null : (
+                    item.read ? null : (
                       <View
                         style={{
                           width: 10,
@@ -187,10 +196,10 @@ export default function NotificationsScreen() {
                     )
                   }
                   showChevron
-                  onPress={() => !n.read && markRead.mutate(n.id)}
-                  accessibilityLabel={`${n.title}, ${n.read ? "read" : "unread"}`}
+                  onPress={() => !item.read && markRead.mutate(item.id)}
+                  accessibilityLabel={`${item.title}, ${item.read ? "read" : "unread"}`}
                   style={
-                    n.read
+                    item.read
                       ? undefined
                       : { borderColor: colors.primary, borderWidth: 1.5 }
                   }
@@ -215,11 +224,11 @@ function FilterPill({
 }) {
   const { colors, spacing, typography } = useTheme();
   return (
-    <View
+    <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
-      onTouchEnd={onPress}
+      onPress={onPress}
       style={{
         paddingHorizontal: spacing.md,
         paddingVertical: 6,
@@ -240,6 +249,6 @@ function FilterPill({
       >
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
 }

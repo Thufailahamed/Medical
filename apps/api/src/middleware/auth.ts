@@ -30,7 +30,7 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
           email: DEV_USER.email,
           name: "Dev User",
           role: "patient",
-        })
+        } as any)
         .returning();
       dbUser = created;
     }

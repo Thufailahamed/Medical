@@ -6,10 +6,14 @@ interface AuthState {
   patient: Patient | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  // Bumped whenever the token chain reports a 401 we can't recover from.
+  // The root layout listens to this and signs the user out.
+  authFailureCount: number;
   setUser: (user: User | null) => void;
   setPatient: (patient: Patient | null) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
+  onAuthError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -17,10 +21,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   patient: null,
   isLoading: true,
   isAuthenticated: false,
+  authFailureCount: 0,
   setUser: (user) =>
     set({ user, isAuthenticated: !!user, isLoading: false }),
   setPatient: (patient) => set({ patient }),
   setLoading: (isLoading) => set({ isLoading }),
   logout: () =>
-    set({ user: null, patient: null, isAuthenticated: false, isLoading: false }),
+    set({
+      user: null,
+      patient: null,
+      isAuthenticated: false,
+      isLoading: false,
+    }),
+  onAuthError: () =>
+    set((state) => ({ authFailureCount: state.authFailureCount + 1 })),
 }));

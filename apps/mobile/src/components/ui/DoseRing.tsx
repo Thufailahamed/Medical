@@ -3,12 +3,14 @@ import { View, Text, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedProps,
   withTiming,
   withSpring,
   withSequence,
   Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
 import { useMotionEnabled } from "@/hooks/useMotionEnabled";
@@ -24,12 +26,12 @@ type Props = {
   /** Render the ring clickable. */
   onPress?: () => void;
   accessibilityLabel?: string;
+  centerColor?: string;
 };
 
-/**
- * Circular progress ring built from rotated, clipped Views — no SVG dep.
- * Visually mimics a stroke by rotating a half-arc into position.
- */
+// Create an animated circle using reanimated
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 export function DoseRing({
   value,
   size = 64,
@@ -38,6 +40,7 @@ export function DoseRing({
   sublabel,
   onPress,
   accessibilityLabel,
+  centerColor,
 }: Props) {
   const { colors, motion: motionTokens, typography } = useTheme();
   const motionEnabled = useMotionEnabled();
@@ -57,24 +60,15 @@ export function DoseRing({
       : clamped;
   }, [clamped, motionEnabled, arc, motionTokens.duration.slow]);
 
-  const halfSize = size / 2;
-  const trackWidth = Math.max(4, size * 0.08);
-  const radius = halfSize - trackWidth / 2 - 2;
+  const strokeWidth = Math.max(4, size * 0.08);
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
 
-  // Render two halves of the ring, masked via opacity + rotation.
-  const halfAStyle = useAnimatedStyle(() => {
-    const rotation = arc.value * 360;
+  // Animated props for SVG strokeDashoffset
+  const animatedProps = useAnimatedProps(() => {
+    const strokeDashoffset = circumference - arc.value * circumference;
     return {
-      transform: [{ rotate: `${rotation}deg` }],
-      opacity: arc.value > 0 ? 1 : 0,
-    };
-  });
-
-  const halfBStyle = useAnimatedStyle(() => {
-    const rotate = (Math.max(arc.value, 0.5) - 0.5) * 360;
-    return {
-      transform: [{ rotate: `${rotate}deg` }],
-      opacity: arc.value > 0.5 ? 1 : 0,
+      strokeDashoffset,
     };
   });
 
@@ -117,124 +111,30 @@ export function DoseRing({
       accessibilityLabel={accessibilityLabel ?? `${Math.round(clamped * 100)} percent`}
       accessibilityValue={{ min: 0, max: 1, now: clamped }}
     >
-      {/* track ring (two halves) */}
-      <View style={[styles.ring, { width: size, height: size }]}>
-        <View
-          style={[
-            styles.halfClip,
-            { left: 0, width: halfSize, height: size },
-          ]}
-        >
-          <View
-            style={[
-              styles.half,
-              {
-                width: size,
-                height: size,
-                borderRadius: halfSize,
-                borderWidth: trackWidth,
-                borderColor: colors.border,
-                borderRightColor: "transparent",
-                borderBottomColor: "transparent",
-              },
-            ]}
+      <View style={{ width: size, height: size, transform: [{ rotate: "-90deg" }] }}>
+        <Svg width={size} height={size}>
+          {/* Background Track Circle */}
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={colors.border}
+            strokeWidth={strokeWidth}
+            fill={centerColor ?? "transparent"}
           />
-        </View>
-        <View
-          style={[
-            styles.halfClip,
-            { right: 0, width: halfSize, height: size },
-          ]}
-        >
-          <View
-            style={[
-              styles.half,
-              {
-                width: size,
-                height: size,
-                borderRadius: halfSize,
-                borderWidth: trackWidth,
-                borderColor: colors.border,
-                borderLeftColor: "transparent",
-                borderTopColor: "transparent",
-                transform: [{ rotate: "180deg" }],
-              },
-            ]}
+          {/* Foreground Progress Circle */}
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={fg}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={circumference}
+            animatedProps={animatedProps}
+            strokeLinecap="round"
           />
-        </View>
-
-        {/* progress arc A (rotates 0..360) */}
-        <Animated.View
-          style={[
-            styles.halfClip,
-            {
-              left: 0,
-              width: halfSize,
-              height: size,
-              borderColor: fg,
-            },
-            halfAStyle,
-          ]}
-        >
-          <View
-            style={[
-              styles.half,
-              {
-                width: size,
-                height: size,
-                borderRadius: halfSize,
-                borderWidth: trackWidth,
-                borderColor: fg,
-                borderRightColor: "transparent",
-                borderBottomColor: "transparent",
-              },
-            ]}
-          />
-        </Animated.View>
-
-        {/* progress arc B (visible when >0.5) */}
-        <Animated.View
-          style={[
-            styles.halfClip,
-            {
-              right: 0,
-              width: halfSize,
-              height: size,
-            },
-            halfBStyle,
-          ]}
-        >
-          <View
-            style={[
-              styles.half,
-              {
-                width: size,
-                height: size,
-                borderRadius: halfSize,
-                borderWidth: trackWidth,
-                borderColor: fg,
-                borderLeftColor: "transparent",
-                borderTopColor: "transparent",
-                transform: [{ rotate: "180deg" }],
-              },
-            ]}
-          />
-        </Animated.View>
-
-        {/* center hole */}
-        <View
-          style={[
-            {
-              position: "absolute",
-              width: size - trackWidth * 2 - 4,
-              height: size - trackWidth * 2 - 4,
-              borderRadius: (size - trackWidth * 2 - 4) / 2,
-              backgroundColor: colors.surface,
-              top: trackWidth + 2,
-              left: trackWidth + 2,
-            },
-          ]}
-        />
+        </Svg>
       </View>
 
       <View style={[StyleSheet.absoluteFill, styles.center]}>
@@ -266,19 +166,6 @@ export function DoseRing({
 }
 
 const styles = StyleSheet.create({
-  ring: {
-    position: "absolute",
-  },
-  halfClip: {
-    position: "absolute",
-    top: 0,
-    overflow: "hidden",
-  },
-  half: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-  },
   center: {
     alignItems: "center",
     justifyContent: "center",

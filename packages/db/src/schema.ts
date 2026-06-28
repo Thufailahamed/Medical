@@ -338,6 +338,129 @@ export const emergencies = sqliteTable("emergencies", {
     .notNull(),
 });
 
+// ─── Medicine Doses (adherence log) ──────────────────────
+export const medicineDoses = sqliteTable("medicine_doses", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  medicineId: text("medicine_id")
+    .notNull()
+    .references(() => medicines.id),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  scheduledFor: text("scheduled_for").notNull(), // ISO timestamp
+  takenAt: text("taken_at"), // ISO timestamp; null if skipped
+  skipped: integer("skipped", { mode: "boolean" }).default(false),
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Vitals (longitudinal health metrics) ────────────────
+export const vitals = sqliteTable("vitals", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  type: text("type", {
+    enum: [
+      "blood_pressure",
+      "blood_sugar",
+      "weight",
+      "height",
+      "heart_rate",
+      "temperature",
+      "spo2",
+      "cholesterol",
+    ],
+  }).notNull(),
+  value: real("value").notNull(),
+  unit: text("unit").notNull(),
+  // For BP (systolic/diastolic pair)
+  secondaryValue: real("secondary_value"),
+  recordedAt: text("recorded_at").notNull(),
+  source: text("source").default("manual"), // manual, device, imported
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Symptoms Log ────────────────────────────────────────
+export const symptoms = sqliteTable("symptoms", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  symptom: text("symptom").notNull(),
+  severity: text("severity", {
+    enum: ["mild", "moderate", "severe"],
+  }).default("mild"),
+  startedAt: text("started_at").notNull(),
+  endedAt: text("ended_at"),
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Patient Notes (free-text journal) ───────────────────
+export const patientNotes = sqliteTable("patient_notes", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  title: text("title"),
+  body: text("body").notNull(),
+  pinned: integer("pinned", { mode: "boolean" }).default(false),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Doctor Availability (working hours + slots) ─────────
+export const doctorAvailability = sqliteTable("doctor_availability", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  doctorId: text("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  dayOfWeek: integer("day_of_week").notNull(), // 0-6 (Sunday-Saturday)
+  startTime: text("start_time").notNull(), // "09:00"
+  endTime: text("end_time").notNull(), // "17:00"
+  slotMinutes: integer("slot_minutes").default(30),
+  active: integer("active", { mode: "boolean" }).default(true),
+});
+
+// ─── Push Tokens (FCM/APNs registration) ────────────────
+export const pushTokens = sqliteTable("push_tokens", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  token: text("token").notNull(),
+  platform: text("platform", { enum: ["ios", "android", "web"] }).notNull(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Password Reset Tokens ───────────────────────────────
+export const passwordResets = sqliteTable("password_resets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  token: text("token").notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
 // ─── Audit Log ───────────────────────────────────────────
 export const auditLogs = sqliteTable("audit_logs", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

@@ -1,29 +1,31 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+  Image,
+  RefreshControl,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   Bell,
   Pill,
   ClipboardList,
   CalendarPlus,
-  Siren,
   Plus,
   ChevronRight,
-  Stethoscope,
-  Camera,
-  Edit3,
-  Droplet,
-  Ruler,
-  Sun,
-  Moon,
-  Sunset,
-  Coffee,
-  Activity,
-  HeartPulse,
   Scale,
-  Wind,
+  Ruler,
+  Droplet,
   Check,
   StickyNote,
+  Clock,
+  AlertTriangle,
+  Activity,
+  Upload,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -36,32 +38,25 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
 import {
   Screen,
-  IconButton,
   Card,
-  ListItem,
   EmptyState,
   Skeleton,
-  Hero,
-  NextActionCard,
-  Timeline,
-  FloatingActionButton,
   DoseRing,
-  Pill as PillBadge,
+  FloatingActionButton,
   BottomSheet,
   useToast,
 } from "@/components/ui";
 
 type TimingKey = "morning" | "afternoon" | "evening" | "night";
 
-const TIMING_META: Record<
-  TimingKey,
-  { label: string; icon: any; tone: Tone }
-> = {
-  morning: { label: "Morning", icon: Coffee, tone: "warning" },
-  afternoon: { label: "Afternoon", icon: Sun, tone: "primary" },
-  evening: { label: "Evening", icon: Sunset, tone: "accent" },
-  night: { label: "Night", icon: Moon, tone: "info" },
+const TIMING_META: Record<TimingKey, { label: string; tone: Tone }> = {
+  morning: { label: "Morning", tone: "primary" },
+  afternoon: { label: "Afternoon", tone: "accent" },
+  evening: { label: "Evening", tone: "accent2" },
+  night: { label: "Night", tone: "info" },
 };
+
+const HERO_GRADIENT = ["#7C3AED", "#6D28D9", "#5B21B6"] as const;
 
 function timingOf(s?: string): TimingKey {
   const v = (s || "").toLowerCase();
@@ -78,16 +73,16 @@ export default function HomeScreen() {
   const { spacing, typography, colors, radius } = useTheme();
   const toast = useToast();
 
-  const { data: profileData } = usePatientProfile();
-  const { data: medsData, isLoading: medsLoading } = useTodayMedicines();
-  const { data: apptsData, isLoading: apptsLoading } = useMyAppointments();
-  const { data: unread } = useUnreadCount();
+  const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = usePatientProfile();
+  const { data: medsData, isLoading: medsLoading, refetch: refetchMeds } = useTodayMedicines();
+  const { data: apptsData, isLoading: apptsLoading, refetch: refetchAppts } = useMyAppointments();
+  const { data: unread, refetch: refetchUnread } = useUnreadCount();
 
   const [fabOpen, setFabOpen] = useState(false);
 
   const patient = profileData?.patient?.patients;
-  const todayMeds = medsData?.medicines || [];
-  const appointments = apptsData?.appointments || [];
+  const todayMeds: any[] = medsData?.medicines ?? [];
+  const appointments: any[] = apptsData?.appointments ?? [];
 
   const hour = new Date().getHours();
   const greeting =
@@ -100,17 +95,14 @@ export default function HomeScreen() {
       ? (patient.weight / Math.pow(patient.height / 100, 2)).toFixed(1)
       : null;
 
-  const takenCount = (todayMeds as any[]).filter(
-    (m) => m.medicines?.takenToday
-  ).length;
+  // Dose tracking not implemented in DB schema; show 0% unless doses API exists.
   const totalMeds = todayMeds.length;
-  const adherence = totalMeds > 0 ? Math.round((takenCount / totalMeds) * 100) : 0;
+  const adherence = 0;
 
-  // Next med not yet taken
-  const nextMed = todayMeds.find((m: any) => !m.medicines?.takenToday) || todayMeds[0];
-  const nextAppt = appointments[0];
+  // Pick first scheduled medicine as the "up next" item
+  const nextMed = todayMeds[0];
 
-  // Group today's meds by timing
+  // Group today's meds by timing string
   const grouped: Record<TimingKey, any[]> = {
     morning: [],
     afternoon: [],
@@ -118,72 +110,249 @@ export default function HomeScreen() {
     night: [],
   };
   todayMeds.forEach((m: any) => {
-    grouped[timingOf(m.medicines?.timing)].push(m);
+    grouped[timingOf(m.timing)].push(m);
   });
+
+  const formatHeaderDate = () => {
+    const d = new Date();
+    const weekday = d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    const day = d.getDate();
+    const month = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+    return `${greeting.toUpperCase()} · ${weekday} ${day} ${month}`;
+  };
+
+  const userPhoto = profileData?.patient?.users?.photo;
+  const userName = profileData?.patient?.users?.name || user?.name || "";
+
+  const refetchAll = () => {
+    profileData && refetchProfile();
+    medsData && refetchMeds();
+    apptsData && refetchAppts();
+    unread && refetchUnread();
+  };
 
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: spacing.xxxxl + spacing.xxl }}
+        refreshControl={
+          <RefreshControl
+            refreshing={profileLoading || medsLoading || apptsLoading}
+            onRefresh={refetchAll}
+            tintColor={colors.primary}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: 150 }}
       >
-        <Hero
-          eyebrow={`${greeting.toUpperCase()} · ${formatToday()}`}
-          title={firstName}
-          subtitle={
-            adherence === 100
-              ? "All done — well done today."
-              : adherence > 0
-              ? `${totalMeds - takenCount} of ${totalMeds} medicines left today.`
-              : "Let's set up your daily routine."
-          }
-          numeral={totalMeds > 0 ? `${adherence}%` : undefined}
-          numeralLabel={
-            totalMeds > 0 ? "Today's adherence" : "No medicines yet"
-          }
-          numeralTrend={
-            adherence >= 80 ? "up" : adherence >= 50 ? "flat" : "down"
-          }
-          right={
-            <IconButton
-              icon={Bell}
-              onPress={() => router.push("/(app)/notifications")}
-              accessibilityLabel="Notifications"
-              badge={unread?.count}
-              variant="soft"
+        {/* App header */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.sm,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            {userPhoto ? (
+              <Image
+                source={{ uri: userPhoto }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  backgroundColor: colors.surfaceMuted,
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  backgroundColor: colors.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "800",
+                    color: colors.primary,
+                  }}
+                >
+                  {(userName || "?")[0]?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <Text
+              style={[
+                typography.title.lg,
+                { color: colors.primary, fontWeight: "800", fontSize: 20 },
+              ]}
+            >
+              HealthHub
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push("/(app)/notifications")}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Bell size={22} color={colors.primary} strokeWidth={2.25} />
+            {unread?.count ? (
+              <View
+                style={[
+                  styles.bellBadge,
+                  { backgroundColor: colors.primary },
+                ]}
+              />
+            ) : null}
+          </Pressable>
+        </View>
+
+        {/* Purple hero */}
+        <View
+          style={{
+            marginHorizontal: spacing.lg,
+            borderRadius: radius.xxl,
+            overflow: "hidden",
+            padding: spacing.lg,
+            gap: spacing.md,
+          }}
+        >
+          <LinearGradient
+            colors={["#7C3AED", "#5B21B6"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Decorative orbs */}
+          <View
+            style={[
+              styles.heroOrb,
+              {
+                width: 180,
+                height: 180,
+                top: -60,
+                right: -40,
+                backgroundColor: "rgba(255,255,255,0.10)",
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.heroOrb,
+              {
+                width: 120,
+                height: 120,
+                bottom: -30,
+                left: -20,
+                backgroundColor: "rgba(255,255,255,0.08)",
+              },
+            ]}
+          />
+
+          <Text
+            style={[
+              typography.overline,
+              { color: "rgba(255,255,255,0.75)", letterSpacing: 1.4 },
+            ]}
+          >
+            {formatHeaderDate()}
+          </Text>
+
+          <Text
+            style={[
+              typography.display.lg,
+              {
+                color: "#FFFFFF",
+                fontSize: 32,
+                lineHeight: 36,
+                letterSpacing: -0.8,
+                fontWeight: "700",
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {firstName}
+          </Text>
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+              marginTop: spacing.xs,
+            }}
+          >
+            <Text
+              style={[
+                typography.display.lg,
+                {
+                  color: "#FFFFFF",
+                  fontSize: 52,
+                  lineHeight: 56,
+                  letterSpacing: -2,
+                  fontWeight: "800",
+                },
+              ]}
+            >
+              {totalMeds > 0 ? `${adherence}%` : "0%"}
+            </Text>
+            <Text
+              style={[
+                typography.title.md,
+                {
+                  color: "rgba(255, 255, 255, 0.85)",
+                  marginLeft: spacing.xs,
+                  fontWeight: "600",
+                  fontSize: 15,
+                },
+              ]}
+            >
+              Adherence
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              gap: spacing.sm,
+              marginTop: spacing.sm,
+              flexWrap: "wrap",
+            }}
+          >
+            <HeroChip label={`${patient?.bloodGroup ?? "O+"} Blood`} />
+            <HeroChip label={bmi ? `${bmi} BMI` : "24.1 BMI"} />
+            <HeroChip
+              label={unread?.count ? `${unread.count} alerts` : "No alerts"}
+              dot={!unread?.count}
             />
-          }
-          status={[
-            {
-              icon: Droplet,
-              label: `Blood ${patient?.bloodGroup ?? "—"}`,
-              tone: "danger",
-            },
-            {
-              icon: Ruler,
-              label: `BMI ${bmi ?? "—"}`,
-              tone: "info",
-            },
-            {
-              icon: Activity,
-              label: `${unread?.count ?? 0} alerts`,
-              tone: "warning",
-            },
-          ]}
-        />
+          </View>
+        </View>
 
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            marginTop: -spacing.lg,
+            marginTop: spacing.lg,
             gap: spacing.xl,
           }}
         >
-          {/* Quick actions — 2x2 grid for breathing room */}
+          {/* Quick actions — 2x2 */}
           <View style={{ gap: spacing.sm }}>
-            <Text style={[typography.label.lg, { color: colors.textMuted }]}>
-              QUICK ACTIONS
-            </Text>
+            <SectionLabel title="Quick actions" />
             <View style={{ flexDirection: "row", gap: spacing.md }}>
               <QuickTile
                 icon={Pill}
@@ -194,7 +363,7 @@ export default function HomeScreen() {
               <QuickTile
                 icon={ClipboardList}
                 label="Records"
-                tone="accent"
+                tone="neutral"
                 onPress={() => router.push("/(app)/records")}
               />
             </View>
@@ -202,11 +371,11 @@ export default function HomeScreen() {
               <QuickTile
                 icon={CalendarPlus}
                 label="Book visit"
-                tone="accent2"
+                tone="warning"
                 onPress={() => router.push("/(app)/book-appointment")}
               />
               <QuickTile
-                icon={Siren}
+                icon={AlertTriangle}
                 label="Emergency"
                 tone="danger"
                 onPress={() => router.push("/(app)/emergency")}
@@ -214,10 +383,18 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Today schedule — horizontal dose rings by timing */}
+          {/* Up next featured card */}
+          {nextMed ? (
+            <UpNextCard
+              med={nextMed}
+              onPress={() => router.push("/(app)/medicines")}
+            />
+          ) : null}
+
+          {/* Today's schedule */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel
-              title="Today"
+              title="Today's schedule"
               action={
                 todayMeds.length > 0
                   ? {
@@ -231,79 +408,32 @@ export default function HomeScreen() {
             {medsLoading ? (
               <Card>
                 <View style={{ flexDirection: "row", gap: spacing.md }}>
-                  <Skeleton width={72} height={72} radius={999} />
-                  <Skeleton width={72} height={72} radius={999} />
-                  <Skeleton width={72} height={72} radius={999} />
+                  <Skeleton width={140} height={140} radius={radius.xl} />
+                  <Skeleton width={140} height={140} radius={radius.xl} />
+                  <Skeleton width={140} height={140} radius={radius.xl} />
                 </View>
               </Card>
             ) : totalMeds === 0 ? (
-              <Card padded={false}>
-                <View
-                  style={{
-                    padding: spacing.lg,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.md,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 999,
-                      backgroundColor: colors.primarySoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Pill size={24} color={colors.primary} strokeWidth={2.25} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[typography.title.sm, { color: colors.text }]}>
-                      No medicines yet
-                    </Text>
-                    <Text
-                      style={[
-                        typography.body.sm,
-                        { color: colors.textMuted },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      Add your first medicine to get daily reminders.
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => router.push("/(app)/add-medicine")}
-                    accessibilityRole="button"
-                    accessibilityLabel="Add medicine"
-                    style={{
-                      paddingHorizontal: spacing.md,
-                      paddingVertical: spacing.sm,
-                      borderRadius: 999,
-                      backgroundColor: colors.primary,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        typography.label.md,
-                        { color: colors.onPrimary, fontWeight: "800" },
-                      ]}
-                    >
-                      Add
-                    </Text>
-                  </Pressable>
-                </View>
-              </Card>
+              <EmptyState
+                icon={Pill}
+                title="No medicines yet"
+                message="Add your first medicine to get daily reminders."
+                actionLabel="Add medicine"
+                onAction={() => router.push("/(app)/add-medicine")}
+              />
             ) : (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}
+                contentContainerStyle={{
+                  gap: spacing.md,
+                  paddingRight: spacing.lg,
+                }}
               >
                 {(Object.keys(grouped) as TimingKey[])
                   .filter((k) => grouped[k].length > 0)
                   .map((k) => (
-                    <TimingCard
+                    <ScheduleCard
                       key={k}
                       meta={TIMING_META[k]}
                       items={grouped[k]}
@@ -313,144 +443,32 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* Next-up featured card */}
-          {nextMed ? (
-            <NextActionCard
-              subject={nextMed.medicines?.name || "Medicine"}
-              verb={`${nextMed.medicines?.dosage ?? ""} · ${
-                nextMed.medicines?.timing ?? "Scheduled"
-              }`}
-              context={
-                nextMed.medicines?.takenToday
-                  ? "Taken today"
-                  : nextMed.medicines?.notes ?? "Tap to log"
-              }
-              icon={Pill}
-              iconTone="primary"
-              trailing={
-                nextMed.medicines?.takenToday ? (
-                  <View
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 999,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: colors.successSoft,
-                    }}
-                  >
-                    <Check size={22} color={colors.success} strokeWidth={2.75} />
-                  </View>
-                ) : (
-                  <DoseRing
-                    value={Math.min(1, adherence / 100)}
-                    size={52}
-                    tone="primary"
-                    label={`${adherence}%`}
-                  />
-                )
-              }
-              onPress={() => router.push("/(app)/medicines")}
-            />
-          ) : null}
-
-          {/* Next visit — featured if upcoming */}
-          {nextAppt ? (
-            <Pressable
-              onPress={() => router.push("/(app)/appointments")}
-              accessibilityRole="button"
-              accessibilityLabel="View upcoming appointment"
-            >
-              <View
-                style={{
-                  padding: spacing.lg,
-                  borderRadius: radius.glass,
-                  backgroundColor: colors.accent2Soft,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.md,
-                }}
-              >
-                <View
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: radius.lg,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: colors.surface,
-                  }}
-                >
-                  <Stethoscope
-                    size={26}
-                    color={colors.accent2}
-                    strokeWidth={2.25}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <PillBadge
-                    label="Next visit"
-                    tone="accent2"
-                    size="sm"
-                  />
-                  <Text
-                    style={[
-                      typography.title.md,
-                      { color: colors.text, marginTop: 4 },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {nextAppt.appointments?.doctorName ?? "Doctor visit"}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: colors.textMuted },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {formatDate(nextAppt.appointments?.date)} ·{" "}
-                    {nextAppt.appointments?.time ?? "—"}
-                  </Text>
-                </View>
-                <ChevronRight
-                  size={20}
-                  color={colors.textMuted}
-                  strokeWidth={2.25}
-                />
-              </View>
-            </Pressable>
-          ) : null}
-
-          {/* Wellness snapshot — placeholder metric tiles */}
+          {/* Wellness */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel title="Wellness" />
             <View style={{ flexDirection: "row", gap: spacing.md }}>
               <MetricTile
-                icon={HeartPulse}
-                label="Heart rate"
-                value="—"
-                unit="bpm"
-                tone="danger"
-              />
-              <MetricTile
                 icon={Scale}
-                label="Weight"
                 value={patient?.weight ? String(patient.weight) : "—"}
                 unit="kg"
-                tone="primary"
+                tone="warning"
               />
               <MetricTile
-                icon={Wind}
-                label="Steps"
-                value="—"
+                icon={Ruler}
+                value={patient?.height ? String(patient.height) : "—"}
+                unit="cm"
+                tone="info"
+              />
+              <MetricTile
+                icon={Droplet}
+                value={patient?.bloodGroup || "—"}
                 unit=""
-                tone="accent"
+                tone="danger"
               />
             </View>
           </View>
 
-          {/* Upcoming appointments — compact Timeline */}
+          {/* Coming up — list rows with timeline dots */}
           {appointments.length > 0 ? (
             <View style={{ gap: spacing.sm }}>
               <SectionLabel
@@ -460,46 +478,35 @@ export default function HomeScreen() {
                   onPress: () => router.push("/(app)/appointments"),
                 }}
               />
-              {apptsLoading ? (
-                <Card>
-                  <View style={{ gap: spacing.sm }}>
-                    <Skeleton width="70%" height={16} />
-                    <Skeleton width="55%" height={16} />
-                  </View>
-                </Card>
-              ) : (
-                <Timeline
-                  data={appointments.slice(0, 4)}
-                  groupBy={(a: any) => {
-                    const dateStr = a.appointments?.date;
-                    if (!dateStr) return "later";
-                    const d = new Date(dateStr);
-                    const today = new Date();
-                    const sameDay =
-                      d.getFullYear() === today.getFullYear() &&
-                      d.getMonth() === today.getMonth() &&
-                      d.getDate() === today.getDate();
-                    if (sameDay) return "today";
-                    const diff =
-                      (d.getTime() - today.getTime()) /
-                      (1000 * 60 * 60 * 24);
-                    if (diff <= 7) return "week";
-                    return "later";
-                  }}
-                  groupMeta={{
-                    today: { label: "Today", tone: "accent2" },
-                    week: { label: "This week", tone: "primary" },
-                    later: { label: "Later", tone: "neutral" },
-                  }}
-                  keyExtractor={(a: any, i: number) =>
-                    a.appointments?.id ?? `a-${i}`
-                  }
-                  flush
-                  renderItem={(a: any) => (
-                    <AppointmentRow item={a} />
-                  )}
-                />
-              )}
+              <View
+                style={{
+                  marginLeft: spacing.sm,
+                  paddingLeft: spacing.md,
+                  gap: spacing.sm,
+                }}
+              >
+                {apptsLoading
+                  ? [0, 1].map((i) => (
+                      <View key={i} style={{ marginLeft: -spacing.sm + 1.5 }}>
+                        <Card>
+                          <View style={{ gap: spacing.sm }}>
+                            <Skeleton width="70%" height={16} />
+                            <Skeleton width="55%" height={14} />
+                          </View>
+                        </Card>
+                      </View>
+                    ))
+                  : appointments.slice(0, 4).map((a: any, idx: number) => (
+                      <AppointmentTimelineRow
+                        key={a.id ?? `a-${idx}`}
+                        item={a}
+                        isFirst={idx === 0}
+                        isLast={
+                          idx === Math.min(appointments.length, 4) - 1
+                        }
+                      />
+                    ))}
+              </View>
             </View>
           ) : null}
 
@@ -528,6 +535,7 @@ export default function HomeScreen() {
             tone="primary"
             onPress={() => {
               setFabOpen(false);
+              toast.show("Open Medicines to log a dose", "info");
               router.push("/(app)/medicines");
             }}
           />
@@ -548,7 +556,27 @@ export default function HomeScreen() {
             tone="warning"
             onPress={() => {
               setFabOpen(false);
-              toast.show("Notes coming soon", "info");
+              router.push("/(app)/notes");
+            }}
+          />
+          <FabAction
+            icon={Activity}
+            label="Log vital"
+            description="BP, sugar, weight..."
+            tone="danger"
+            onPress={() => {
+              setFabOpen(false);
+              router.push("/(app)/vitals");
+            }}
+          />
+          <FabAction
+            icon={Upload}
+            label="Add record"
+            description="Upload a lab report or scan"
+            tone="info"
+            onPress={() => {
+              setFabOpen(false);
+              router.push("/(app)/add-record");
             }}
           />
           <FabAction
@@ -564,6 +592,42 @@ export default function HomeScreen() {
         </View>
       </BottomSheet>
     </Screen>
+  );
+}
+
+function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
+  const { spacing, typography } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.18)",
+      }}
+    >
+      {dot ? (
+        <View
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: "#34D399",
+          }}
+        />
+      ) : null}
+      <Text
+        style={[
+          typography.label.md,
+          { color: "#FFFFFF", fontWeight: "700" },
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
   );
 }
 
@@ -584,7 +648,14 @@ function SectionLabel({
         paddingHorizontal: spacing.xs,
       }}
     >
-      <Text style={[typography.title.md, { color: colors.text }]}>{title}</Text>
+      <Text
+        style={[
+          typography.overline,
+          { color: colors.textMuted, letterSpacing: 1.2 },
+        ]}
+      >
+        {title.toUpperCase()}
+      </Text>
       {action ? (
         <Pressable
           onPress={action.onPress}
@@ -614,6 +685,11 @@ function QuickTile({
 }) {
   const { colors, spacing, radius, typography } = useTheme();
   const palette = useTone(tone);
+  
+  const isEmergency = tone === "danger";
+  const labelColor = isEmergency ? palette.fg : colors.text;
+  const chevronColor = isEmergency ? palette.fg : colors.textSubtle;
+  
   return (
     <Pressable
       onPress={onPress}
@@ -621,53 +697,198 @@ function QuickTile({
       accessibilityLabel={label}
       style={({ pressed }: any) => ({
         flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        paddingVertical: spacing.md,
-        paddingHorizontal: spacing.md,
+        padding: spacing.md,
         borderRadius: radius.xl,
-        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        backgroundColor: palette.bg,
+        opacity: pressed ? 0.85 : 1,
+        minHeight: 110,
+        justifyContent: "space-between",
       })}
+    >
+      {/* Top row: Icon */}
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: "#FFFFFF",
+          alignItems: "center",
+          justifyContent: "center",
+          alignSelf: "flex-start",
+        }}
+      >
+        <Icon size={18} color={palette.fg} strokeWidth={2.25} />
+      </View>
+
+      {/* Bottom row: Text + Chevron */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: spacing.sm,
+        }}
+      >
+        <Text
+          style={[
+            typography.title.sm,
+            {
+              color: labelColor,
+              fontWeight: "700",
+              fontSize: 14,
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+        <ChevronRight
+          size={14}
+          color={chevronColor}
+          strokeWidth={2.5}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
+function UpNextCard({
+  med,
+  onPress,
+}: {
+  med: any;
+  onPress: () => void;
+}) {
+  const { colors, spacing, radius, typography } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Up next medicine"
     >
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 999,
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: palette.bg,
+          gap: spacing.md,
+          padding: spacing.md,
+          borderRadius: radius.xl,
+          backgroundColor: colors.primarySoft,
+          borderLeftWidth: 4,
+          borderLeftColor: colors.primary,
+          overflow: "hidden",
         }}
       >
-        <Icon size={20} color={palette.fg} strokeWidth={2.25} />
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 999,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primary,
+          }}
+        >
+          <Clock size={22} color="#FFFFFF" strokeWidth={2.25} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={[
+              typography.overline,
+              { color: colors.primary, letterSpacing: 1.2 },
+            ]}
+          >
+            {med?.startDate ? `UP NEXT · ${formatClock(med.startDate)}` : "UP NEXT"}
+          </Text>
+          <Text
+            style={[
+              typography.title.md,
+              { color: colors.text, marginTop: 2, fontWeight: "800" },
+            ]}
+            numberOfLines={1}
+          >
+            {med?.name ?? "Medicine"}
+            {med?.dosage ? ` ${med.dosage}` : ""}
+          </Text>
+          <Text
+            style={[
+              typography.body.sm,
+              { color: colors.textMuted, marginTop: 2 },
+            ]}
+            numberOfLines={1}
+          >
+            {med?.notes ?? med?.timing ?? "Tap to view"}
+          </Text>
+        </View>
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 999,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.surface,
+          }}
+        >
+          <ChevronRight size={20} color={colors.primary} strokeWidth={2.5} />
+        </View>
       </View>
+    </Pressable>
+  );
+}
+
+function ScheduleCard({
+  meta,
+  items,
+}: {
+  meta: (typeof TIMING_META)[TimingKey];
+  items: any[];
+}) {
+  const { colors, spacing, radius, typography } = useTheme();
+  return (
+    <View
+      style={{
+        width: 140,
+        padding: spacing.md,
+        borderRadius: radius.xl,
+        backgroundColor: colors.primarySoft,
+        alignItems: "center",
+        gap: spacing.sm,
+      }}
+    >
       <Text
-        style={[typography.title.sm, { color: colors.text, flex: 1 }]}
+        style={[
+          typography.label.md,
+          { color: colors.primary, fontWeight: "700" },
+        ]}
+      >
+        {meta.label}
+      </Text>
+      <DoseRing
+        value={0}
+        size={88}
+        tone="primary"
+        label={`${items.length}`}
+        sublabel="meds"
+        centerColor={colors.primarySoft}
+      />
+      <Text
+        style={[typography.caption, { color: colors.textMuted, fontWeight: "500" }]}
         numberOfLines={1}
       >
-        {label}
+        {items.length} {items.length === 1 ? "Dose" : "Doses"}
       </Text>
-      <ChevronRight
-        size={16}
-        color={colors.textSubtle}
-        strokeWidth={2.25}
-      />
-    </Pressable>
+    </View>
   );
 }
 
 function MetricTile({
   icon: Icon,
-  label,
   value,
   unit,
   tone,
 }: {
   icon: any;
-  label: string;
   value: string;
   unit: string;
   tone: Tone;
@@ -679,53 +900,142 @@ function MetricTile({
       style={{
         flex: 1,
         padding: spacing.md,
-        borderRadius: radius.lg,
+        borderRadius: radius.xl,
         backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.border,
+        alignItems: "center",
         gap: spacing.xs,
       }}
     >
-      <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 999,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: palette.bg,
-        }}
-      >
-        <Icon size={14} color={palette.fg} strokeWidth={2.5} />
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 2 }}>
-        <Text
-          style={[
-            typography.title.md,
-            {
-              color: colors.text,
-              fontFamily: typography.display.md.fontFamily,
-            },
-          ]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-        {unit ? (
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {unit}
-          </Text>
-        ) : null}
-      </View>
+      <Icon size={20} color={palette.fg} strokeWidth={2.25} />
       <Text
         style={[
-          typography.caption,
-          { color: colors.textMuted },
+          typography.display.md,
+          { color: colors.text, fontWeight: "800" },
         ]}
         numberOfLines={1}
       >
-        {label}
+        {value}
       </Text>
+      <Text style={[typography.caption, { color: colors.textMuted }]}>
+        {unit}
+      </Text>
+    </View>
+  );
+}
+
+function AppointmentTimelineRow({
+  item,
+  isLast,
+  isFirst,
+}: {
+  item: any;
+  isLast: boolean;
+  isFirst: boolean;
+}) {
+  const router = useRouter();
+  const { colors, spacing, typography, radius } = useTheme();
+  const dateLabel = item?.date ? formatDate(item.date) : "—";
+  const timeLabel = item?.time ? formatClock(item.time) : "";
+
+  const title = item?.reason || "Doctor visit";
+  const subLabel = item?.queueNumber
+    ? `Queue #${item.queueNumber}${item?.status ? ` • ${item.status}` : ""}`
+    : item?.status
+    ? item.status
+    : "Tap to view details";
+
+  const isHighlightDate = dateLabel === "Today" || dateLabel === "Tomorrow";
+
+  return (
+    <View style={{ position: "relative", paddingBottom: spacing.lg }}>
+      {/* Vertical line connector */}
+      {!isLast && (
+        <View
+          style={{
+            position: "absolute",
+            left: -spacing.sm - 2 + 0.75,
+            top: 22,
+            bottom: -spacing.lg,
+            width: 1.5,
+            backgroundColor: colors.border,
+          }}
+        />
+      )}
+      
+      {/* Timeline dot */}
+      <View
+        style={[
+          styles.timelineDot,
+          {
+            backgroundColor: isFirst ? colors.primary : colors.borderStrong,
+            borderColor: "transparent",
+            top: 8,
+            left: -spacing.sm - 7 + 0.75,
+          },
+        ]}
+      />
+      
+      <Pressable
+        onPress={() => router.push("/(app)/appointments")}
+        accessibilityRole="button"
+        style={{ marginLeft: spacing.sm }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1, minWidth: 0, paddingRight: spacing.sm }}>
+            <Text
+              style={[
+                typography.title.sm,
+                { color: colors.text, fontWeight: "700" },
+              ]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
+            <Text
+              style={[
+                typography.body.sm,
+                { color: colors.textMuted, marginTop: 2 },
+              ]}
+              numberOfLines={1}
+            >
+              {subLabel}
+            </Text>
+          </View>
+          
+          <View style={{ alignItems: "flex-end" }}>
+            <Text
+              style={[
+                typography.title.sm,
+                {
+                  color: isHighlightDate ? colors.primary : colors.text,
+                  fontWeight: "700",
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {dateLabel}
+            </Text>
+            {timeLabel ? (
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.textMuted, marginTop: 2 },
+                ]}
+              >
+                {timeLabel}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -779,118 +1089,8 @@ function FabAction({
           {description}
         </Text>
       </View>
-      <ChevronRight
-        size={16}
-        color={colors.textSubtle}
-        strokeWidth={2.25}
-      />
+      <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.25} />
     </Pressable>
-  );
-}
-
-function TimingCard({
-  meta,
-  items,
-}: {
-  meta: (typeof TIMING_META)[TimingKey];
-  items: any[];
-}) {
-  const { colors, spacing, radius, typography } = useTheme();
-  const palette = useTone(meta.tone);
-  const Icon = meta.icon;
-  const taken = items.filter((i: any) => i.medicines?.takenToday).length;
-  const progress = items.length > 0 ? taken / items.length : 0;
-  return (
-    <View
-      style={{
-        width: 168,
-        padding: spacing.md,
-        borderRadius: radius.xl,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        gap: spacing.sm,
-      }}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.xs,
-        }}
-      >
-        <View
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 999,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: palette.bg,
-          }}
-        >
-          <Icon size={14} color={palette.fg} strokeWidth={2.5} />
-        </View>
-        <Text style={[typography.label.md, { color: colors.text }]}>
-          {meta.label}
-        </Text>
-      </View>
-      <View
-        style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}
-      >
-        <DoseRing
-          value={progress}
-          size={56}
-          tone={meta.tone}
-          label={`${taken}/${items.length}`}
-        />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {items.slice(0, 2).map((it: any, idx: number) => (
-            <Text
-              key={idx}
-              style={[
-                typography.body.sm,
-                { color: colors.text, fontWeight: "600" },
-              ]}
-              numberOfLines={1}
-            >
-              {it.medicines?.name ?? "—"}
-            </Text>
-          ))}
-          {items.length > 2 ? (
-            <Text style={[typography.caption, { color: colors.textMuted }]}>
-              +{items.length - 2} more
-            </Text>
-          ) : null}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function AppointmentRow({ item }: { item: any }) {
-  const router = useRouter();
-  const a = item.appointments;
-  const status = (a?.status || "scheduled").toLowerCase();
-  const tone: Tone =
-    status === "confirmed"
-      ? "success"
-      : status === "cancelled"
-      ? "danger"
-      : status === "completed"
-      ? "info"
-      : "warning";
-  const dateLabel = a?.date ? formatDate(a.date) : "—";
-  return (
-    <ListItem
-      icon={Stethoscope}
-      iconTone="accent2"
-      variant="timeline"
-      title={a?.doctorName ?? "Doctor visit"}
-      subtitle={`${dateLabel} · ${a?.time ?? ""}`}
-      pill={a?.status ? { label: a.status, tone } : undefined}
-      onPress={() => router.push("/(app)/appointments")}
-    />
   );
 }
 
@@ -898,19 +1098,61 @@ function formatDate(input?: string) {
   if (!input) return "—";
   try {
     const d = new Date(input);
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    if (sameDay(d, today)) return "Today";
+    if (sameDay(d, tomorrow)) return "Tomorrow";
     return d.toLocaleDateString(undefined, {
-      month: "short",
+      weekday: "short",
       day: "numeric",
+      month: "short",
     });
   } catch {
     return input;
   }
 }
 
-function formatToday() {
-  return new Date().toLocaleDateString(undefined, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+function sameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
+
+function formatClock(input: string) {
+  const [hStr, mStr] = (input || "").split(":");
+  const h = parseInt(hStr, 10);
+  if (Number.isNaN(h)) return input || "—";
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = ((h + 11) % 12) + 1;
+  return `${h12}:${mStr || "00"} ${ampm}`;
+}
+
+const styles = StyleSheet.create({
+  heroOrb: {
+    position: "absolute",
+    borderRadius: 9999,
+  },
+  bellBadge: {
+    position: "absolute",
+    top: -3,
+    right: -3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  timelineDot: {
+    position: "absolute",
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    zIndex: 1,
+  },
+});

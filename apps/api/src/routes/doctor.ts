@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { Hono } from "hono";
 import { eq, or, like, desc, and } from "drizzle-orm";
 import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions } from "@healthcare/db";

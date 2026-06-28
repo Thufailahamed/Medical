@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { useAuthStore } from "@/stores/auth";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
 const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === "true";
@@ -8,41 +9,89 @@ interface ApiOptions {
   body?: any;
   headers?: Record<string, string>;
   isFormData?: boolean;
+  silent401?: boolean; // suppress the auth error event
 }
 
-export async function api<T = any>(
+// ─── Internal: build headers + run a single request ───────
+async function runRequest<T>(
   endpoint: string,
-  options: ApiOptions = {}
+  options: ApiOptions,
+  token: string | null
 ): Promise<T> {
   const { method = "GET", body, headers = {}, isFormData = false } = options;
 
-  const requestHeaders: Record<string, string> = {
-    ...headers,
-  };
+  const requestHeaders: Record<string, string> = { ...headers };
+  if (token) requestHeaders["Authorization"] = `Bearer ${token}`;
 
-  if (DEV_MODE) {
-    requestHeaders["Authorization"] = "Bearer dev-token";
-  } else {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      requestHeaders["Authorization"] = `Bearer ${session.access_token}`;
-    }
-  }
-
-  if (!isFormData) {
+  if (!isFormData && body && !requestHeaders["Content-Type"]) {
     requestHeaders["Content-Type"] = "application/json";
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     method,
     headers: requestHeaders,
-    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+    body: body
+      ? isFormData
+        ? body
+        : typeof body === "string"
+        ? body
+        : JSON.stringify(body)
+      : undefined,
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "Request failed" }));
+    if (response.status === 401 && !options.silent401) {
+      // Notify the auth layer that the session is bad.
+      try {
+        useAuthStore.getState().onAuthError();
+      } catch {
+        // store not ready; ignore
+      }
+    }
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 
   return response.json();
+}
+
+// ─── Public: simple call (matches the old `api` shape) ────
+export async function api<T = any>(
+  endpoint: string,
+  options: ApiOptions = {}
+): Promise<T> {
+  let token: string | null = null;
+  if (DEV_MODE) {
+    token = "dev-token";
+  } else {
+    const { data } = await supabase.auth.getSession();
+    token = data.session?.access_token || null;
+  }
+  return runRequest<T>(endpoint, options, token);
+}
+
+// ─── Public: call with auto-refresh on 401 ────────────────
+export async function apiWithRefresh<T = any>(
+  endpoint: string,
+  options: ApiOptions = {}
+): Promise<T> {
+  try {
+    return await api<T>(endpoint, options);
+  } catch (err: any) {
+    if (!/HTTP 401/.test(err?.message || "") && !/Invalid token/i.test(err?.message || "")) {
+      throw err;
+    }
+
+    // Try to refresh once
+    if (DEV_MODE) throw err;
+
+    const { data: refreshData, error: refreshErr } =
+      await supabase.auth.refreshSession();
+    if (refreshErr || !refreshData.session) throw err;
+
+    const newToken = refreshData.session.access_token;
+    return runRequest<T>(endpoint, { ...options, silent401: true }, newToken);
+  }
 }

@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { View, Text } from "react-native";
+import { useMemo, useState } from "react";
+import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, CalendarPlus, Clock, Users } from "lucide-react-native";
+import { Plus, CalendarPlus, Clock } from "lucide-react-native";
 import { useMyAppointments } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -30,24 +30,26 @@ const FILTERS = [
   { value: "past", label: "Past" },
 ];
 
-function dateParts(date: string) {
-  const m = date?.match?.(/^(\d{4})-(\d{2})-(\d{2})/);
+function dateParts(date?: string | null) {
+  if (!date) return { day: "--", month: "—" };
+  const m = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return { day: m[3], month: monthName(+m[2]) };
-  const m2 = date?.match?.(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  const m2 = date.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
   if (m2) return { day: m2[1], month: monthName(+m2[2]) };
   return { day: "--", month: "—" };
 }
 
 function monthName(m: number) {
   const names = [
-    "JAN","FEB","MAR","APR","MAY","JUN",
-    "JUL","AUG","SEP","OCT","NOV","DEC",
+    "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
   ];
   return names[(m - 1) % 12] || "—";
 }
 
 function groupKey(a: any) {
-  const d = new Date(a.appointments?.date);
+  if (!a?.date) return "later";
+  const d = new Date(a.date);
   if (isNaN(d.getTime())) return "later";
   const now = new Date();
   const sameDay =
@@ -65,22 +67,38 @@ export default function AppointmentsScreen() {
   const router = useRouter();
   const { spacing, colors, typography, radius } = useTheme();
   const { data, isLoading } = useMyAppointments();
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
 
-  const all = data?.appointments || [];
+  // API returns FLAT appointment objects
+  const all: any[] = data?.appointments || [];
+
   const now = new Date();
-  const filtered = all.filter((a: any) => {
-    if (filter === "all") return true;
-    const d = new Date(a.appointments.date);
-    if (filter === "upcoming") return d >= new Date(now.toDateString());
-    return d < new Date(now.toDateString());
-  });
+  const todayStart = new Date(now.toDateString());
+
+  const filtered = useMemo(() => {
+    return all.filter((a) => {
+      if (filter === "all") return true;
+      const d = a.date ? new Date(a.date) : null;
+      if (!d || isNaN(d.getTime())) return filter === "upcoming";
+      if (filter === "upcoming") return d >= todayStart;
+      return d < todayStart;
+    });
+  }, [all, filter]);
+
+  const upcomingCount = all.filter((a) => {
+    if (!a.date) return false;
+    const d = new Date(a.date);
+    return !isNaN(d.getTime()) && d >= todayStart;
+  }).length;
+  const upcomingPct = all.length
+    ? Math.round((upcomingCount / all.length) * 100)
+    : 0;
 
   return (
     <Screen scroll tabBarOffset bottomInset={false}>
       <ScreenHeader
         title="Appointments"
-        subtitle={`${all.length} total · ${all.length > 0 ? Math.round((all.filter((a: any) => new Date(a.appointments.date) >= new Date(now.toDateString())).length / all.length) * 100) : 0}% upcoming`}
+        subtitle={`${all.length} total · ${upcomingPct}% upcoming`}
         right={
           <IconButton
             icon={Plus}
@@ -104,7 +122,7 @@ export default function AppointmentsScreen() {
             key={f.value}
             label={f.label}
             active={filter === f.value}
-            onPress={() => setFilter(f.value)}
+            onPress={() => setFilter(f.value as any)}
           />
         ))}
       </View>
@@ -136,12 +154,11 @@ export default function AppointmentsScreen() {
           <Timeline
             data={filtered}
             groupBy={groupKey}
-            keyExtractor={(a: any) => a.appointments.id}
+            keyExtractor={(a: any) => a.id}
             flush
             renderItem={(item: any) => {
-              const appt = item.appointments;
-              const tone = STATUS_TONE[appt.status] ?? "neutral";
-              const { day, month } = dateParts(appt.date);
+              const tone = STATUS_TONE[item.status] ?? "neutral";
+              const { day, month } = dateParts(item.date);
               return (
                 <Card padded={false}>
                   <View
@@ -179,12 +196,12 @@ export default function AppointmentsScreen() {
                         {month}
                       </Text>
                     </View>
-                    <View style={{ flex: 1, gap: 6 }}>
+                    <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
                       <Text
                         style={[typography.title.sm, { color: colors.text }]}
                         numberOfLines={1}
                       >
-                        {appt.doctorName || appt.specialty || "Doctor visit"}
+                        {item.reason || item.specialty || "Doctor visit"}
                       </Text>
                       <View
                         style={{
@@ -194,39 +211,37 @@ export default function AppointmentsScreen() {
                           flexWrap: "wrap",
                         }}
                       >
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Clock size={13} color={colors.textMuted} strokeWidth={2.25} />
-                          <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                            {appt.time}
-                          </Text>
-                        </View>
-                        <Pill label={appt.status} tone={tone} size="sm" />
-                      </View>
-                      {appt.queueNumber ? (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: spacing.xs,
-                          }}
-                        >
-                          <Users size={12} color={colors.textSubtle} strokeWidth={2.25} />
-                          <Text
-                            style={[
-                              typography.caption,
-                              { color: colors.textSubtle },
-                            ]}
+                        {item.time ? (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
                           >
-                            Queue #{appt.queueNumber}
-                          </Text>
-                        </View>
-                      ) : null}
+                            <Clock
+                              size={13}
+                              color={colors.textMuted}
+                              strokeWidth={2.25}
+                            />
+                            <Text
+                              style={[
+                                typography.body.sm,
+                                { color: colors.textMuted },
+                              ]}
+                            >
+                              {item.time}
+                            </Text>
+                          </View>
+                        ) : null}
+                        {item.status ? (
+                          <Pill
+                            label={item.status}
+                            tone={tone}
+                            size="sm"
+                          />
+                        ) : null}
+                      </View>
                     </View>
                   </View>
                 </Card>
@@ -248,13 +263,13 @@ function FilterPill({
   active: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography, radius } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   return (
-    <View
+    <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
-      onTouchEnd={onPress}
+      onPress={onPress}
       style={{
         paddingHorizontal: spacing.md,
         paddingVertical: 6,
@@ -275,6 +290,6 @@ function FilterPill({
       >
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
 }

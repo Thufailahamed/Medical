@@ -12,6 +12,13 @@ import filesRoutes from "./routes/files";
 import medicinesRouter from "./routes/medicines";
 import doctorRouter from "./routes/doctor";
 import notificationsRouter from "./routes/notifications";
+import hospitalsRouter from "./routes/hospitals";
+import vitalsRouter from "./routes/vitals";
+import notesRouter from "./routes/notes";
+import dosesRouter from "./routes/doses";
+import auditRouter from "./routes/audit";
+import insuranceRouter from "./routes/insurance";
+import labsRouter from "./routes/labs";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -54,6 +61,13 @@ app.route("/files", filesRoutes);
 app.route("/medicines", medicinesRouter);
 app.route("/doctor", doctorRouter);
 app.route("/notifications", notificationsRouter);
+app.route("/hospitals", hospitalsRouter);
+app.route("/vitals", vitalsRouter);
+app.route("/notes", notesRouter);
+app.route("/doses", dosesRouter);
+app.route("/audit", auditRouter);
+app.route("/insurance", insuranceRouter);
+app.route("/labs", labsRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {

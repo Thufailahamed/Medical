@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { View, Text, Share, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  Share,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Linking,
+} from "react-native";
+import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Share2,
@@ -11,371 +21,597 @@ import {
   Image as ImageIcon,
   ScrollText,
   Download,
-  AlertTriangle,
   CalendarDays,
   Building2,
+  ArrowLeft,
+  ClipboardList,
+  Syringe,
+  Scissors,
+  ShieldAlert,
+  Dumbbell,
+  FileBadge,
+  NotebookPen,
+  Receipt,
+  Sparkles,
+  Paperclip,
 } from "lucide-react-native";
-import { useMedicalRecord } from "@/hooks/useApi";
+import {
+  useMedicalRecord,
+  useDeleteMedicalRecord,
+  useDownloadFile,
+} from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
-  ScreenHeader,
-  Pill,
   Card,
-  Divider,
-  Skeleton,
-  EmptyState,
-  IconButton,
   BottomSheet,
   useToast,
+  Button,
+  Pill,
+  Avatar,
+  IconButton,
 } from "@/components/ui";
-import { useTone, type Tone } from "@/theme/tone";
+
+type RecordType =
+  | "lab_report"
+  | "imaging"
+  | "prescription"
+  | "hospital_visit"
+  | "vaccination"
+  | "surgery"
+  | "allergy"
+  | "insurance"
+  | "fitness"
+  | "discharge_summary"
+  | "medical_certificate"
+  | "operation_note"
+  | "invoice";
 
 const TYPE_META: Record<
-  string,
-  { label: string; icon: any; tone: Tone }
+  RecordType,
+  {
+    label: string;
+    icon: any;
+    tone: "primary" | "accent" | "warning" | "info" | "danger" | "success" | "neutral";
+  }
 > = {
-  lab_report: { label: "Lab report", icon: FlaskConical, tone: "primary" },
-  prescription: { label: "Prescription", icon: ScrollText, tone: "accent" },
-  diagnosis: { label: "Diagnosis", icon: Stethoscope, tone: "warning" },
+  lab_report: { label: "Lab Report", icon: FlaskConical, tone: "warning" },
   imaging: { label: "Imaging", icon: ImageIcon, tone: "info" },
-  discharge_summary: { label: "Discharge summary", icon: FileText, tone: "info" },
-  other: { label: "Other", icon: FileText, tone: "primary" },
+  prescription: { label: "Prescription", icon: ScrollText, tone: "primary" },
+  hospital_visit: { label: "Visit", icon: Building2, tone: "accent" },
+  vaccination: { label: "Vaccination", icon: Syringe, tone: "success" },
+  surgery: { label: "Surgery", icon: Scissors, tone: "danger" },
+  allergy: { label: "Allergy", icon: ShieldAlert, tone: "danger" },
+  insurance: { label: "Insurance", icon: FileBadge, tone: "info" },
+  fitness: { label: "Fitness", icon: Dumbbell, tone: "success" },
+  discharge_summary: { label: "Discharge", icon: NotebookPen, tone: "accent" },
+  medical_certificate: { label: "Certificate", icon: FileBadge, tone: "primary" },
+  operation_note: { label: "Op Note", icon: Scissors, tone: "danger" },
+  invoice: { label: "Invoice", icon: Receipt, tone: "warning" },
 };
+
+function formatDate(iso?: string | null) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function formatBytes(bytes?: number | null) {
+  if (!bytes) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function toneFgColor(tone: string, c: any) {
+  switch (tone) {
+    case "primary": return c.primary;
+    case "accent": return c.accent;
+    case "warning": return c.warning;
+    case "info": return c.info;
+    case "danger": return c.danger;
+    case "success": return c.success;
+    default: return c.textMuted;
+  }
+}
+
+function toneSoftColor(tone: string, c: any) {
+  return `${toneFgColor(tone, c)}1A`;
+}
+
+function toneBorderColor(tone: string, c: any) {
+  return `${toneFgColor(tone, c)}33`;
+}
 
 export default function RecordDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, spacing, typography, radius } = useTheme();
-  const { data, isLoading, error, refetch } = useMedicalRecord(id || "");
+  const { colors, spacing, typography, radius, shadow } = useTheme();
   const toast = useToast();
+  const { data, isLoading } = useMedicalRecord(id || "");
+  const deleteRecord = useDeleteMedicalRecord();
+  const downloadFile = useDownloadFile();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  async function openFile(f: any) {
+    if (!f?.r2Key) {
+      toast.show("No file key on this attachment", "warning");
+      return;
+    }
+    try {
+      setDownloadingId(f.id);
+      // For images/PDFs we want a URL the OS can open, not a Blob.
+      // Build the stream proxy URL with auth header — for PDFs the
+      // device PDF viewer accepts https URLs with Authorization if
+      // we hand it the file blob via Linking. Simpler: open the
+      // stream URL — the device passes it to the system viewer; the
+      // bearer token can't be sent by Linking, so we use Share to
+      // let the user save/export the file.
+      const res: any = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(f.r2Key)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              (await supabase.auth.getSession()).data.session?.access_token || ""
+            }`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Read body as base64 (expo) — not portable here.
+      // Fall back to Sharing the saved URL:
+      const json = await res.json();
+      const targetUrl = json.url?.startsWith("/files/")
+        ? `${process.env.EXPO_PUBLIC_API_URL}${json.url}`
+        : json.url;
+      await Linking.openURL(targetUrl);
+    } catch (err: any) {
+      toast.show(err?.message || "Could not open file", "danger");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
   const [moreOpen, setMoreOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const record = data?.record;
+  const meta = record ? TYPE_META[record.recordType as RecordType] : null;
+  const IconComponent = meta?.icon ?? FileText;
+  const tone = meta?.tone ?? "neutral";
+  const files: any[] = record?.files ?? [];
+
+  async function handleShare() {
+    if (!record) return;
+    try {
+      await Share.share({
+        title: record.title,
+        message: `${record.title}\n${formatDate(record.date)}\n\nShared from HealthHub`,
+      });
+    } catch {}
+    setMoreOpen(false);
+  }
+
+  function handleDelete() {
+    if (!record) return;
+    Alert.alert(
+      "Delete record?",
+      "This will remove the record and its attachments. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteRecord.mutateAsync(record.id);
+              toast.show("Record deleted", "success");
+              router.back();
+            } catch (err: any) {
+              toast.show(err?.message || "Failed to delete", "danger");
+            }
+          },
+        },
+      ]
+    );
+    setMoreOpen(false);
+    setConfirmDelete(false);
+  }
 
   if (isLoading) {
     return (
       <Screen padded={false} edges={["top"]}>
-        <ScreenHeader back title="Loading..." />
-        <View style={{ padding: spacing.lg, gap: spacing.md }}>
-          <Skeleton width="40%" height={20} />
-          <Skeleton height={28} radius={8} />
-          <Skeleton width="60%" height={14} />
-          <View style={{ height: spacing.md }} />
-          <Skeleton height={120} radius={20} />
-          <Skeleton height={120} radius={20} />
-        </View>
-      </Screen>
-    );
-  }
-
-  if (error || !data?.record) {
-    return (
-      <Screen edges={["top"]}>
-        <ScreenHeader back title="Not found" />
-        <EmptyState
-          icon={AlertTriangle}
-          title="Couldn't load record"
-          message="The record may have been removed or you may not have access."
-          actionLabel="Try again"
-          onAction={() => refetch()}
-          tone="accent2"
-        />
-      </Screen>
-    );
-  }
-
-  const record = data.record;
-  const meta = TYPE_META[record.recordType] || TYPE_META.other;
-  const Icon = meta.icon;
-  const { fg, bg } = useTone(meta.tone);
-
-  const fields: { label: string; value?: string; icon?: any }[] = [
-    { label: "Doctor", value: record.doctorName, icon: Stethoscope },
-    { label: "Hospital", value: record.hospitalName, icon: Building2 },
-    { label: "Diagnosis", value: record.diagnosis, icon: AlertTriangle },
-    { label: "Summary", value: record.summary },
-    { label: "Notes", value: record.notes },
-    { label: "Follow-up date", value: record.followUpDate, icon: CalendarDays },
-    { label: "Record date", value: record.date, icon: CalendarDays },
-  ].filter((f) => f.value && String(f.value).trim());
-
-  async function handleShare() {
-    try {
-      await Share.share({
-        title: record.title,
-        message: `${record.title}\n${record.date}\n\nView in HealthHub`,
-      });
-    } catch {
-      // user cancelled
-    }
-    setMoreOpen(false);
-  }
-
-  return (
-    <Screen scroll padded={false} edges={["top"]} bottomInset>
-      <ScreenHeader
-        back
-        title="Record"
-        right={
-          <IconButton
-            icon={MoreVertical}
-            onPress={() => setMoreOpen(true)}
-            accessibilityLabel="More options"
-            variant="ghost"
-          />
-        }
-      />
-
-      {/* Compact hero strip */}
-      <View
-        style={{
-          margin: spacing.lg,
-          marginTop: spacing.sm,
-          padding: spacing.lg,
-          borderRadius: radius.glass,
-          backgroundColor: bg,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.md,
-        }}
-      >
         <View
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: radius.lg,
-            backgroundColor: colors.surface,
+            flex: 1,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon size={32} color={fg} strokeWidth={2.25} />
+          <ActivityIndicator color={colors.primary} />
         </View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Pill label={meta.label} tone={meta.tone} size="sm" />
+      </Screen>
+    );
+  }
+
+  if (!record) {
+    return (
+      <Screen padded={false} edges={["top"]} bottomInset>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: spacing.xl,
+            gap: spacing.md,
+          }}
+        >
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              backgroundColor: colors.surfaceMuted,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <FileText size={28} color={colors.textMuted} strokeWidth={1.75} />
+          </View>
           <Text
-            style={[typography.title.md, { color: colors.text }]}
-            numberOfLines={2}
+            style={[
+              typography.title.md,
+              { color: colors.text, fontWeight: "800" },
+            ]}
+          >
+            Record not found
+          </Text>
+          <Text
+            style={[
+              typography.body.sm,
+              { color: colors.textMuted, textAlign: "center" },
+            ]}
+          >
+            It may have been removed or you no longer have access.
+          </Text>
+          <Button title="Go back" onPress={() => router.back()} variant="outline" />
+        </View>
+      </Screen>
+    );
+  }
+
+  const sections: { label: string; value: string; icon: any }[] = [
+    record.diagnosis
+      ? { label: "Diagnosis", value: record.diagnosis, icon: ClipboardList }
+      : null,
+    record.summary
+      ? { label: "Summary", value: record.summary, icon: FileText }
+      : null,
+    record.notes
+      ? { label: "Notes", value: record.notes, icon: NotebookPen }
+      : null,
+    record.followUpDate
+      ? {
+          label: "Next follow-up",
+          value: formatDate(record.followUpDate),
+          icon: CalendarDays,
+        }
+      : null,
+  ].filter(Boolean) as { label: string; value: string; icon: any }[];
+
+  return (
+    <Screen padded={false} edges={["top"]} bottomInset>
+      {/* App bar */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.md,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          backgroundColor: colors.surface,
+        }}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+          })}
+        >
+          <ArrowLeft size={22} color={colors.text} />
+        </Pressable>
+        <Text
+          style={[
+            typography.title.md,
+            { color: colors.text, fontWeight: "800", fontSize: 18 },
+          ]}
+          numberOfLines={1}
+        >
+          {meta?.label ?? "Record"}
+        </Text>
+        <Pressable
+          onPress={() => setMoreOpen(true)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="More options"
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+          })}
+        >
+          <MoreVertical size={22} color={colors.text} />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 60 }}
+      >
+        {/* Hero */}
+        <View
+          style={{
+            marginHorizontal: spacing.lg,
+            marginTop: spacing.lg,
+            padding: spacing.xl,
+            borderRadius: radius.xxl,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: "center",
+            gap: spacing.sm,
+            ...shadow.sm,
+          }}
+        >
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: toneSoftColor(tone, colors),
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: toneBorderColor(tone, colors),
+            }}
+          >
+            <IconComponent size={32} color={toneFgColor(tone, colors)} strokeWidth={2.25} />
+          </View>
+          <Pill label={meta?.label ?? "Record"} tone={tone as any} size="sm" />
+          <Text
+            style={[
+              typography.title.lg,
+              { color: colors.text, textAlign: "center", fontWeight: "900", marginTop: 4, fontSize: 22 },
+            ]}
           >
             {record.title}
           </Text>
           <Text
             style={[
               typography.body.sm,
-              { color: colors.textMuted },
+              { color: colors.textMuted, textAlign: "center" },
             ]}
           >
-            {record.date}
+            {formatDate(record.date)}
           </Text>
         </View>
-      </View>
 
-      <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg }}>
-        {/* Attached file */}
-        <Card padded={false}>
-          <View
-            style={{
-              padding: spacing.lg,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.md,
-            }}
-          >
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                backgroundColor: colors.primarySoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <FileText size={22} color={colors.primary} strokeWidth={2} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
-                style={[typography.title.sm, { color: colors.text }]}
-                numberOfLines={1}
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, marginTop: spacing.lg }}>
+          {/* Attachments */}
+          {files.length ? (
+            <Card padded={false}>
+              <View
+                style={{
+                  padding: spacing.md,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                }}
               >
-                {record.fileName || "Attached document"}
-              </Text>
-              <Text
-                style={[
-                  typography.body.sm,
-                  { color: colors.textMuted },
-                ]}
-              >
-                Tap to download
-              </Text>
-            </View>
-            <Pressable
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Download file"
-              onPress={() => toast.show("Download started", "info")}
-              style={({ pressed }: any) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 999,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: pressed
-                  ? colors.surfaceMuted
-                  : colors.primarySoft,
-              })}
-            >
-              <Download size={18} color={colors.primary} strokeWidth={2.5} />
-            </Pressable>
-          </View>
-        </Card>
-
-        {/* Fields */}
-        {fields.length > 0 ? (
-          <Card padded={false}>
-            {fields.map((f, i) => {
-              const FIcon = f.icon;
-              return (
-                <View key={f.label}>
-                  {i > 0 ? <Divider /> : null}
+                <Paperclip size={16} color={colors.textMuted} strokeWidth={2.25} />
+                <Text
+                  style={[
+                    typography.label.md,
+                    { color: colors.textMuted, fontWeight: "800", letterSpacing: 0.5 },
+                  ]}
+                >
+                  ATTACHMENTS
+                </Text>
+              </View>
+              {files.map((f, i) => (
+                <View
+                  key={f.id}
+                  style={{
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.md,
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: colors.border,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.md,
+                  }}
+                >
                   <View
                     style={{
-                      padding: spacing.lg,
-                      gap: 4,
-                      flexDirection: "row",
-                      alignItems: "flex-start",
+                      width: 44,
+                      height: 44,
+                      borderRadius: radius.md,
+                      backgroundColor: colors.primarySoft,
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {FIcon ? (
-                      <View
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 999,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: colors.surfaceMuted,
-                          marginRight: spacing.sm,
-                        }}
-                      >
-                        <FIcon
-                          size={15}
-                          color={colors.textMuted}
-                          strokeWidth={2.25}
-                        />
-                      </View>
-                    ) : null}
+                    <FileText size={20} color={colors.primary} strokeWidth={2} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      style={[
+                        typography.title.sm,
+                        { color: colors.text, fontWeight: "700" },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {f.fileName}
+                    </Text>
+                    <Text
+                      style={[
+                        typography.body.sm,
+                        { color: colors.textMuted, fontSize: 13 },
+                      ]}
+                    >
+                      {[f.mimeType, formatBytes(f.fileSize)].filter(Boolean).join(" • ")}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => openFile(f)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open file"
+                    style={({ pressed }) => ({
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: pressed ? colors.surfaceMuted : colors.primarySoft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    })}
+                  >
+                    {downloadingId === f.id ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Download size={18} color={colors.primary} strokeWidth={2.25} />
+                    )}
+                  </Pressable>
+                </View>
+              ))}
+            </Card>
+          ) : null}
+
+          {/* Clinical sections */}
+          {sections.length ? (
+            <Card style={{ padding: spacing.lg }}>
+              <Text
+                style={[
+                  typography.title.md,
+                  { color: colors.text, fontWeight: "900", marginBottom: spacing.md },
+                ]}
+              >
+                Details
+              </Text>
+              {sections.map((s, i) => {
+                const Icon = s.icon;
+                return (
+                  <View
+                    key={s.label}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      paddingVertical: spacing.md,
+                      borderTopWidth: i > 0 ? 1 : 0,
+                      borderTopColor: colors.border,
+                      gap: spacing.md,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: colors.surfaceMuted,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Icon size={18} color={colors.textMuted} strokeWidth={2} />
+                    </View>
                     <View style={{ flex: 1 }}>
                       <Text
                         style={[
                           typography.overline,
-                          { color: colors.textMuted, marginBottom: 2 },
+                          { color: colors.textMuted, letterSpacing: 0.5, fontWeight: "600" },
                         ]}
                       >
-                        {f.label}
+                        {s.label}
                       </Text>
                       <Text
                         style={[
                           typography.body.md,
-                          { color: colors.text, lineHeight: 22 },
+                          { color: colors.text, fontWeight: "700", marginTop: 2, lineHeight: 22 },
                         ]}
                       >
-                        {f.value}
+                        {s.value}
                       </Text>
                     </View>
                   </View>
-                </View>
-              );
-            })}
-          </Card>
-        ) : null}
-      </View>
+                );
+              })}
+            </Card>
+          ) : null}
 
+          {!files.length && !sections.length ? (
+            <Card style={{ padding: spacing.xl, alignItems: "center" }}>
+              <Sparkles size={20} color={colors.textMuted} strokeWidth={1.75} />
+              <Text
+                style={[
+                  typography.body.sm,
+                  { color: colors.textMuted, textAlign: "center", marginTop: spacing.sm },
+                ]}
+              >
+                This record has no attachments or notes yet.
+              </Text>
+            </Card>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      {/* More options */}
       <BottomSheet
         visible={moreOpen}
         onDismiss={() => setMoreOpen(false)}
-        title="Record options"
+        title="Record actions"
       >
-        <View style={{ gap: spacing.sm }}>
-          <SheetAction
+        <View style={{ gap: spacing.md, paddingBottom: spacing.lg }}>
+          <Button
+            title="Share record"
             icon={Share2}
-            label="Share"
-            tone="primary"
             onPress={handleShare}
+            variant="outline"
           />
-          <SheetAction
-            icon={Download}
-            label="Download"
-            tone="info"
-            onPress={() => {
-              setMoreOpen(false);
-              toast.show("Download started", "info");
-            }}
-          />
-          <SheetAction
+          <Button
+            title="Delete record"
             icon={Trash2}
-            label="Delete record"
-            tone="danger"
-            onPress={() => {
-              setMoreOpen(false);
-              toast.show("Delete coming soon", "danger");
-            }}
+            onPress={handleDelete}
+            variant="danger"
+            loading={deleteRecord.isPending}
+          />
+          <Button
+            title="Cancel"
+            onPress={() => setMoreOpen(false)}
+            variant="ghost"
           />
         </View>
       </BottomSheet>
     </Screen>
-  );
-}
-
-function SheetAction({
-  icon: Icon,
-  label,
-  tone,
-  onPress,
-}: {
-  icon: any;
-  label: string;
-  tone: "primary" | "info" | "danger";
-  onPress: () => void;
-}) {
-  const { colors, spacing, typography } = useTheme();
-  const palette = useTone(tone);
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }: any) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        padding: spacing.md,
-        borderRadius: 16,
-        backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-      })}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 999,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: palette.bg,
-        }}
-      >
-        <Icon size={18} color={palette.fg} strokeWidth={2.25} />
-      </View>
-      <Text
-        style={[
-          typography.title.sm,
-          {
-            color: tone === "danger" ? palette.fg : colors.text,
-            fontWeight: "700",
-          },
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }
