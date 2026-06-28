@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { View, Text, Switch } from "react-native";
 import { useRouter } from "expo-router";
 import { Save, Clock4 } from "lucide-react-native";
@@ -55,9 +55,14 @@ export default function AvailabilityScreen() {
   const update = useUpdateDoctorAvailability();
 
   const [schedule, setSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
+  // Only seed from server once — prevents a refetch mid-edit from clobbering
+  // unsaved local changes.
+  const seededRef = useRef(false);
 
   useEffect(() => {
+    if (seededRef.current) return;
     if (data?.availability && data.availability.length > 0) {
+      seededRef.current = true;
       setSchedule(
         data.availability.map((r: any) => ({
           dayOfWeek: r.dayOfWeek,

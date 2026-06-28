@@ -881,8 +881,13 @@ export function useCreateFollowUp() {
         method: "POST",
         body: data,
       }),
-    onSuccess: () => {
+    onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: ["doctor-portal", "follow-ups"] });
+      // Follow-up lands in medical_records; refresh the patient summary
+      // bundle so patient-detail shows it without a manual reload.
+      qc.invalidateQueries({
+        queryKey: ["doctor-portal", "patient", vars.patientId],
+      });
     },
   });
 }

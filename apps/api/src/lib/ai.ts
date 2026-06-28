@@ -19,31 +19,6 @@ async function sha256Hex(s: string): Promise<string> {
     .join("");
 }
 
-export async function cacheLookup(
-  db: any,
-  kind: AiKind,
-  input: unknown
-): Promise<any | null> {
-  try {
-    const hash = await sha256Hex(JSON.stringify(input));
-    const [row] = await db
-      .select()
-      .from((await import("@healthcare/db")).aiCache)
-      .where(
-        (await import("drizzle-orm")).and(
-          (await import("@healthcare/db")).aiCache ??
-            (await import("@healthcare/db")).aiCache,
-          (await import("@healthcare/db")).aiCache
-        )
-      )
-      .limit(1);
-    // simpler: just query via raw — but we use the typed builder.
-  } catch {
-    return null;
-  }
-  return null;
-}
-
 export async function cacheStore(
   db: any,
   kind: AiKind,

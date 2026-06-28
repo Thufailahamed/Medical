@@ -10,6 +10,7 @@ import {
   hospitalStaff,
   patients,
   users,
+  doctors,
   medicalRecords,
   vitals,
   notifications,
@@ -140,15 +141,21 @@ hospitalPortalRouter.get("/dashboard", async (c) => {
     )
     .orderBy(desc(bedAssignments.assignedAt));
 
+  // Doctor count from the doctors table (hospital_staff covers nurses/receptionists/techs).
+  const doctorRows = await db
+    .select({ id: doctors.id })
+    .from(doctors)
+    .where(eq(doctors.hospitalId, scopeId));
+
   return c.json({
     hospital: hospital || (await db.select().from(hospitals).where(eq(hospitals.id, scopeId)).limit(1))[0],
     occupancy,
     shift: shiftNow,
     staffOnShift,
     staffTotals: {
-      total: staffRows.length,
+      total: staffRows.length + doctorRows.length,
       nurses: staffRows.filter((s: any) => s.role === "nurse").length,
-      doctors: 0, // tracked separately via doctors table
+      doctors: doctorRows.length,
     },
     admissions: admissionRows,
   });

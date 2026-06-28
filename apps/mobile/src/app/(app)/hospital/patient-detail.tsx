@@ -42,8 +42,25 @@ export default function HospitalPatientDetail() {
 
   if (!id) {
     return (
-      <Screen padded>
-        <ScreenHeader title="Patient" back onBack={() => router.back()} />
+      <Screen padded={false} edges={["top"]} bottomInset>
+        <ScreenHeader back onBack={() => router.back()} title="Patient" />
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: spacing.lg,
+          }}
+        >
+          <EmptyState
+            icon={FileText}
+            title="Patient not found"
+            message="We couldn't load this patient. Go back and try again."
+            actionLabel="Go back"
+            onAction={() => router.back()}
+            tone="neutral"
+          />
+        </View>
       </Screen>
     );
   }
