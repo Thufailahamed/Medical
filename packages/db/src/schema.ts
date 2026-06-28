@@ -135,6 +135,9 @@ export const medicalRecords = sqliteTable("medical_records", {
       "medical_certificate",
       "operation_note",
       "invoice",
+      "clinical_note",
+      "lab_order",
+      "follow_up",
     ],
   }).notNull(),
   title: text("title").notNull(),
@@ -472,6 +475,170 @@ export const auditLogs = sqliteTable("audit_logs", {
   resourceId: text("resource_id"),
   details: text("details"), // JSON
   ip: text("ip"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── V2: Wards (Hospital ops) ─────────────────────────────
+export const wards = sqliteTable("wards", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  hospitalId: text("hospital_id")
+    .notNull()
+    .references(() => hospitals.id),
+  name: text("name").notNull(),
+  type: text("type", {
+    enum: ["general", "icu", "pediatric", "maternity", "surgical", "emergency"],
+  }).notNull(),
+  capacity: integer("capacity").notNull(),
+  floor: integer("floor"),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── V2: Beds ─────────────────────────────────────────────
+export const beds = sqliteTable("beds", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  wardId: text("ward_id")
+    .notNull()
+    .references(() => wards.id),
+  bedNumber: text("bed_number").notNull(),
+  status: text("status", {
+    enum: ["available", "occupied", "cleaning", "maintenance", "reserved"],
+  })
+    .default("available")
+    .notNull(),
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── V2: Bed Assignments ─────────────────────────────────
+export const bedAssignments = sqliteTable("bed_assignments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bedId: text("bed_id")
+    .notNull()
+    .references(() => beds.id),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  assignedAt: text("assigned_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  dischargedAt: text("discharged_at"),
+  assignedBy: text("assigned_by").references(() => users.id),
+  notes: text("notes"),
+});
+
+// ─── V2: Hospital Staff ──────────────────────────────────
+export const hospitalStaff = sqliteTable("hospital_staff", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  hospitalId: text("hospital_id")
+    .notNull()
+    .references(() => hospitals.id),
+  userId: text("user_id").references(() => users.id),
+  fullName: text("full_name").notNull(),
+  role: text("role", {
+    enum: ["nurse", "receptionist", "technician", "manager", "housekeeping", "security"],
+  }).notNull(),
+  shift: text("shift", {
+    enum: ["morning", "evening", "night", "rotating"],
+  })
+    .default("morning")
+    .notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── V2: Lab Orders (Doctor → Lab) ───────────────────────
+export const labOrders = sqliteTable("lab_orders", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  doctorId: text("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  hospitalId: text("hospital_id").references(() => hospitals.id),
+  tests: text("tests").notNull(), // JSON array of test names/codes
+  priority: text("priority", {
+    enum: ["routine", "urgent", "stat"],
+  })
+    .default("routine")
+    .notNull(),
+  status: text("status", {
+    enum: [
+      "ordered",
+      "sample_collected",
+      "in_progress",
+      "completed",
+      "cancelled",
+    ],
+  })
+    .default("ordered")
+    .notNull(),
+  notes: text("notes"),
+  orderedAt: text("ordered_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  completedAt: text("completed_at"),
+  resultUrl: text("result_url"),
+  resultSummary: text("result_summary"),
+});
+
+// ─── V2: AI Cache ────────────────────────────────────────
+export const aiCache = sqliteTable("ai_cache", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  kind: text("kind", {
+    enum: [
+      "summary",
+      "lab_explain",
+      "drug_interaction",
+      "chat",
+      "ocr",
+    ],
+  }).notNull(),
+  inputHash: text("input_hash").notNull(),
+  output: text("output").notNull(), // JSON
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  ttlAt: text("ttl_at").notNull(),
+});
+
+// ─── V2: Chat Sessions (Health Q&A) ──────────────────────
+export const chatSessions = sqliteTable("chat_sessions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  patientId: text("patient_id").references(() => patients.id),
+  title: text("title").notNull(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── V2: Chat Messages ───────────────────────────────────
+export const chatMessages = sqliteTable("chat_messages", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text("session_id")
+    .notNull()
+    .references(() => chatSessions.id),
+  role: text("role", {
+    enum: ["user", "assistant", "system"],
+  }).notNull(),
+  content: text("content").notNull(),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

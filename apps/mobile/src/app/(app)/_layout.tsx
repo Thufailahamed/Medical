@@ -137,6 +137,26 @@ export default function AppLayout() {
       <Tabs.Screen name="add-medicine" options={{ href: null }} />
       <Tabs.Screen name="add-record" options={{ href: null }} />
       <Tabs.Screen name="doctor" options={{ href: null }} />
+      <Tabs.Screen name="doctor/queue" options={{ href: null }} />
+      <Tabs.Screen name="doctor/patient-detail" options={{ href: null }} />
+      <Tabs.Screen name="doctor/clinical-note" options={{ href: null }} />
+      <Tabs.Screen name="doctor/prescription" options={{ href: null }} />
+      <Tabs.Screen name="doctor/lab-order" options={{ href: null }} />
+      <Tabs.Screen name="doctor/lab-orders" options={{ href: null }} />
+      <Tabs.Screen name="doctor/follow-ups" options={{ href: null }} />
+      <Tabs.Screen name="doctor/follow-up-new" options={{ href: null }} />
+      <Tabs.Screen name="doctor/availability" options={{ href: null }} />
+      <Tabs.Screen name="hospital/dashboard" options={{ href: null }} />
+      <Tabs.Screen name="hospital/wards" options={{ href: null }} />
+      <Tabs.Screen name="hospital/ward-detail" options={{ href: null }} />
+      <Tabs.Screen name="hospital/staff" options={{ href: null }} />
+      <Tabs.Screen name="hospital/patients" options={{ href: null }} />
+      <Tabs.Screen name="hospital/patient-detail" options={{ href: null }} />
+      <Tabs.Screen name="ai/summary" options={{ href: null }} />
+      <Tabs.Screen name="ai/lab-explain" options={{ href: null }} />
+      <Tabs.Screen name="ai/drug-check" options={{ href: null }} />
+      <Tabs.Screen name="ai/chat" options={{ href: null }} />
+      <Tabs.Screen name="ai/ocr" options={{ href: null }} />
       <Tabs.Screen name="record-detail" options={{ href: null }} />
       <Tabs.Screen name="family" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />

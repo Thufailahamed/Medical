@@ -23,6 +23,8 @@ import {
   HeartPulse,
   AlertTriangle,
   ChevronRight,
+  Building2,
+  BedDouble,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -105,6 +107,9 @@ export default function ProfileScreen() {
   const photoUri = userRow?.photo;
   const role = (user?.role || userRow?.role || "patient").toString();
   const isDoctor = role === "doctor";
+  const isHospitalAdmin = role === "hospital_admin";
+  const isHospitalStaff = role === "hospital_staff";
+  const isHospital = isHospitalAdmin || isHospitalStaff;
 
   const bmi = useMemo(() => calcBmi(patient?.height, patient?.weight), [patient]);
   const bmiInfo = bmi ? bmiCategory(bmi) : null;
@@ -212,13 +217,52 @@ export default function ProfileScreen() {
       tone: "warning" as const,
       onPress: () => router.push("/(app)/activity" as any),
     },
-    {
-      label: "Doctor portal",
-      subtitle: isDoctor ? "Manage your practice" : "Switch role if you are a provider",
-      icon: Stethoscope,
-      tone: "info" as const,
-      onPress: () => router.push("/(app)/doctor" as any),
-    },
+    ...(isDoctor
+      ? [
+          {
+            label: "Doctor portal",
+            subtitle: "Manage your practice",
+            icon: Stethoscope,
+            tone: "info" as const,
+            onPress: () => router.push("/(app)/doctor" as any),
+          },
+        ]
+      : []),
+    ...(isHospital
+      ? [
+          {
+            label: isHospitalAdmin ? "Hospital admin" : "Hospital staff",
+            subtitle: isHospitalAdmin
+              ? "Dashboard, wards, beds, staff"
+              : "Admitted patients & beds",
+            icon: Building2,
+            tone: "info" as const,
+            onPress: () => router.push("/(app)/hospital/dashboard" as any),
+          },
+          ...(isHospitalAdmin
+            ? [
+                {
+                  label: "Wards",
+                  subtitle: "Manage wards and beds",
+                  icon: BedDouble,
+                  tone: "neutral" as const,
+                  onPress: () => router.push("/(app)/hospital/wards" as any),
+                },
+              ]
+            : []),
+          ...(isHospitalAdmin
+            ? [
+                {
+                  label: "Staff roster",
+                  subtitle: "Nurses, receptionists, technicians",
+                  icon: Users,
+                  tone: "neutral" as const,
+                  onPress: () => router.push("/(app)/hospital/staff" as any),
+                },
+              ]
+            : []),
+        ]
+      : []),
   ];
 
   return (

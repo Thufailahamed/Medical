@@ -800,3 +800,589 @@ export function useCancelAppointment() {
     },
   });
 }
+
+// ─── Doctor Portal (V2) ──────────────────────────────────
+export function useDoctorQueue(date?: string) {
+  const d = date || new Date().toISOString().split("T")[0];
+  return useQuery({
+    queryKey: ["doctor-portal", "queue", d],
+    queryFn: () =>
+      api<{ date: string; count: number; queue: any[] }>(
+        `/doctor-portal/queue?date=${encodeURIComponent(d)}`
+      ),
+    refetchInterval: 30_000,
+  });
+}
+
+export function usePatientSummary(patientId: string | null) {
+  return useQuery({
+    queryKey: ["doctor-portal", "patient", patientId, "summary"],
+    queryFn: () =>
+      api<{
+        patient: any;
+        user: any;
+        records: any[];
+        activeMedicines: any[];
+        prescriptions: any[];
+        labReports: any[];
+        labOrders: any[];
+        vitals: any[];
+        pastAppointments: any[];
+      }>(`/doctor-portal/patients/${patientId}/summary`),
+    enabled: !!patientId,
+  });
+}
+
+export function useCreateClinicalNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      patientId: string;
+      hospitalId?: string;
+      title: string;
+      notes: string;
+      diagnosis?: string;
+    }) =>
+      api<{ record: any }>(`/doctor-portal/clinical-notes`, {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "patient", vars.patientId, "summary"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal"] });
+    },
+  });
+}
+
+export function useFollowUps(opts: { upcoming?: boolean } = {}) {
+  const params = new URLSearchParams();
+  if (opts.upcoming) params.set("upcoming", "true");
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["doctor-portal", "follow-ups", qs],
+    queryFn: () =>
+      api<{ followUps: any[] }>(
+        `/doctor-portal/follow-ups${qs ? `?${qs}` : ""}`
+      ),
+  });
+}
+
+export function useCreateFollowUp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      patientId: string;
+      hospitalId?: string;
+      title: string;
+      notes?: string;
+      followUpDate: string;
+    }) =>
+      api<{ record: any }>(`/doctor-portal/follow-ups`, {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "follow-ups"] });
+    },
+  });
+}
+
+export function useLabOrders(status?: string) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["doctor-portal", "lab-orders", qs],
+    queryFn: () =>
+      api<{ orders: any[] }>(`/doctor-portal/lab-orders${qs ? `?${qs}` : ""}`),
+  });
+}
+
+export function useCreateLabOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      patientId: string;
+      hospitalId?: string;
+      tests: string[];
+      priority: "routine" | "urgent" | "stat";
+      notes?: string;
+    }) =>
+      api<{ order: any }>(`/doctor-portal/lab-orders`, {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "lab-orders"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "patient", vars.patientId, "summary"] });
+    },
+  });
+}
+
+export function useUpdateLabOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      id: string;
+      status?: "ordered" | "sample_collected" | "in_progress" | "completed" | "cancelled";
+      resultSummary?: string;
+      resultUrl?: string;
+    }) =>
+      api<{ order: any }>(`/doctor-portal/lab-orders/${data.id}`, {
+        method: "PUT",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "lab-orders"] });
+    },
+  });
+}
+
+export function useDoctorAvailabilityMe() {
+  return useQuery({
+    queryKey: ["doctor-portal", "availability"],
+    queryFn: () =>
+      api<{ availability: any[] }>(`/doctor-portal/availability`),
+  });
+}
+
+export function useUpdateDoctorAvailability() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      schedule: {
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+        slotMinutes: number;
+        active: boolean;
+      }[];
+    }) =>
+      api<{ availability: any[] }>(`/doctor-portal/availability`, {
+        method: "PUT",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "availability"] });
+    },
+  });
+}
+
+export function useUpdateAppointmentStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      id: string;
+      status:
+        | "scheduled"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "no_show";
+      notes?: string;
+    }) =>
+      api<{ appointment: any }>(
+        `/doctor-portal/appointments/${data.id}/status`,
+        { method: "POST", body: { status: data.status, notes: data.notes } }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal"] });
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+// ─── Hospital Portal (V2) ────────────────────────────────
+export function useHospitalDashboard() {
+  return useQuery({
+    queryKey: ["hospital-portal", "dashboard"],
+    queryFn: () =>
+      api<{
+        hospital: any;
+        occupancy: {
+          totalBeds: number;
+          occupied: number;
+          available: number;
+          cleaning: number;
+          maintenance: number;
+          occupancyRate: number;
+        };
+        shift: "morning" | "evening" | "night";
+        staffOnShift: any[];
+        staffTotals: { total: number; nurses: number; doctors: number };
+        admissions: any[];
+      }>("/hospital-portal/dashboard"),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useWards() {
+  return useQuery({
+    queryKey: ["hospital-portal", "wards"],
+    queryFn: () => api<{ wards: any[] }>("/hospital-portal/wards"),
+  });
+}
+
+export function useCreateWard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      type: "general" | "icu" | "pediatric" | "maternity" | "surgical" | "emergency";
+      capacity: number;
+      floor?: number;
+    }) =>
+      api<{ ward: any }>("/hospital-portal/wards", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "wards"] });
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
+    },
+  });
+}
+
+export function useUpdateWard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { id: string; [k: string]: any }) =>
+      api<{ ward: any }>(`/hospital-portal/wards/${data.id}`, {
+        method: "PUT",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "wards"] });
+    },
+  });
+}
+
+export function useDeleteWard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(`/hospital-portal/wards/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "wards"] });
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
+    },
+  });
+}
+
+export function useBeds(wardId?: string) {
+  const params = wardId ? `?wardId=${encodeURIComponent(wardId)}` : "";
+  return useQuery({
+    queryKey: ["hospital-portal", "beds", wardId || "all"],
+    queryFn: () =>
+      api<{ beds: any[] }>(`/hospital-portal/beds${params}`),
+  });
+}
+
+export function useCreateBed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      wardId: string;
+      bedNumber: string;
+      status?:
+        | "available"
+        | "occupied"
+        | "cleaning"
+        | "maintenance"
+        | "reserved";
+      notes?: string;
+    }) =>
+      api<{ bed: any }>("/hospital-portal/beds", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "beds"] });
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
+    },
+  });
+}
+
+export function useUpdateBedStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      id: string;
+      status:
+        | "available"
+        | "occupied"
+        | "cleaning"
+        | "maintenance"
+        | "reserved";
+    }) =>
+      api<{ bed: any }>(`/hospital-portal/beds/${data.id}/status`, {
+        method: "PUT",
+        body: { status: data.status },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "beds"] });
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
+    },
+  });
+}
+
+export function useAssignBed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { bedId: string; patientId: string; notes?: string }) =>
+      api<{ assignment: any }>(`/hospital-portal/beds/${data.bedId}/assign`, {
+        method: "POST",
+        body: { patientId: data.patientId, notes: data.notes },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal"] });
+    },
+  });
+}
+
+export function useDischargeBed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bedId: string) =>
+      api<{ assignment: any }>(
+        `/hospital-portal/beds/${bedId}/discharge`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal"] });
+    },
+  });
+}
+
+export function useStaff() {
+  return useQuery({
+    queryKey: ["hospital-portal", "staff"],
+    queryFn: () => api<{ staff: any[] }>("/hospital-portal/staff"),
+  });
+}
+
+export function useCreateStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      fullName: string;
+      role:
+        | "nurse"
+        | "receptionist"
+        | "technician"
+        | "manager"
+        | "housekeeping"
+        | "security";
+      shift: "morning" | "evening" | "night" | "rotating";
+      phone?: string;
+      email?: string;
+      userId?: string;
+    }) =>
+      api<{ staff: any }>("/hospital-portal/staff", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "staff"] });
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
+    },
+  });
+}
+
+export function useUpdateStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { id: string; [k: string]: any }) =>
+      api<{ staff: any }>(`/hospital-portal/staff/${data.id}`, {
+        method: "PUT",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "staff"] });
+    },
+  });
+}
+
+export function useDeleteStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(`/hospital-portal/staff/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital-portal", "staff"] });
+    },
+  });
+}
+
+export function useHospitalPatients() {
+  return useQuery({
+    queryKey: ["hospital-portal", "patients"],
+    queryFn: () =>
+      api<{ patients: any[] }>("/hospital-portal/patients"),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useAdmittedPatient(patientId: string | null) {
+  return useQuery({
+    queryKey: ["hospital-portal", "patient", patientId],
+    queryFn: () =>
+      api<{
+        admission: any;
+        patient: any;
+        user: any;
+        records: any[];
+        vitals: any[];
+      }>(`/hospital-portal/patients/${patientId}`),
+    enabled: !!patientId,
+  });
+}
+
+// ─── AI Module (V2) ──────────────────────────────────────
+export type AiSummary = {
+  patientSummary: string;
+  diagnoses: string[];
+  medicines: string[];
+  history: string[];
+  risks: string[];
+  recentTests: string[];
+};
+
+export function useAiSummary() {
+  return useMutation({
+    mutationFn: (data: { patientId: string }) =>
+      api<{ summary: AiSummary; cached?: boolean }>("/ai/summary", {
+        method: "POST",
+        body: data,
+      }),
+  });
+}
+
+export type LabExplanation = {
+  explanation: string;
+  recommendations: string[];
+  abnormalValues: string[];
+};
+
+export function useAiLabExplain() {
+  return useMutation({
+    mutationFn: (data: {
+      fileUrl: string;
+      reportId?: string;
+      textHint?: string;
+    }) =>
+      api<{ explanation: LabExplanation; cached?: boolean }>(
+        "/ai/explain/lab-report",
+        { method: "POST", body: data }
+      ),
+  });
+}
+
+export type DrugInteraction = {
+  medicines: string[];
+  severity: "minor" | "moderate" | "severe";
+  note: string;
+  source: "curated" | "model";
+};
+
+export function useAiDrugCheck() {
+  return useMutation({
+    mutationFn: (data: { medicines: string[] }) =>
+      api<{
+        interactions: DrugInteraction[];
+        warnings?: string[];
+      }>("/ai/drug-interaction", {
+        method: "POST",
+        body: data,
+      }),
+  });
+}
+
+export type OcrResult = {
+  medicines: Array<{
+    name: string;
+    dosage?: string;
+    frequency?: string;
+    timing?: string;
+  }>;
+  doctor?: string;
+  date?: string;
+  diagnosis?: string;
+  note?: string;
+};
+
+export function useAiOcr() {
+  return useMutation({
+    mutationFn: (data: { fileUrl: string; textHint?: string }) =>
+      api<{ result: OcrResult; cached?: boolean }>("/ai/ocr/prescription", {
+        method: "POST",
+        body: data,
+      }),
+  });
+}
+
+export function useChatSessions() {
+  return useQuery({
+    queryKey: ["chat", "sessions"],
+    queryFn: () =>
+      api<{ sessions: any[] }>("/chat/sessions"),
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateChatSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; patientId?: string }) =>
+      api<{ session: any }>("/chat/sessions", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "sessions"] });
+    },
+  });
+}
+
+export function useChatMessages(sessionId: string | null) {
+  return useQuery({
+    queryKey: ["chat", "session", sessionId, "messages"],
+    queryFn: () =>
+      api<{ session: any; messages: any[] }>(
+        `/chat/sessions/${sessionId}/messages`
+      ),
+    enabled: !!sessionId,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useSendChat() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { sessionId: string; content: string }) =>
+      api<{ userMessage: any; assistantMessage: any }>(
+        `/chat/sessions/${data.sessionId}/messages`,
+        { method: "POST", body: { content: data.content } }
+      ),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["chat", "session", vars.sessionId, "messages"],
+      });
+      qc.invalidateQueries({ queryKey: ["chat", "sessions"] });
+    },
+  });
+}
+
+export function useDeleteChatSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(`/chat/sessions/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "sessions"] });
+    },
+  });
+}

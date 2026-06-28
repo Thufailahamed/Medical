@@ -20,6 +20,9 @@ import auditRouter from "./routes/audit";
 import insuranceRouter from "./routes/insurance";
 import labsRouter from "./routes/labs";
 import wellnessRouter from "./routes/wellness";
+import doctorPortalRouter from "./routes/doctor-portal";
+import hospitalPortalRouter from "./routes/hospital-portal";
+import chatRouter from "./routes/chat";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -70,6 +73,9 @@ app.route("/audit", auditRouter);
 app.route("/insurance", insuranceRouter);
 app.route("/labs", labsRouter);
 app.route("/wellness", wellnessRouter);
+app.route("/doctor-portal", doctorPortalRouter);
+app.route("/hospital-portal", hospitalPortalRouter);
+app.route("/chat", chatRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {

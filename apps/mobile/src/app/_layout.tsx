@@ -1,19 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import { useFonts, Lexend_600SemiBold, Lexend_700Bold } from "@expo-google-fonts/lexend";
 import {
-  SourceSans3_400Regular,
-  SourceSans3_500Medium,
-  SourceSans3_600SemiBold,
-  SourceSans3_700Bold,
-} from "@expo-google-fonts/source-sans-3";
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from "@expo-google-fonts/inter";
 import * as SplashScreen from "expo-splash-screen";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
-import { ThemeProvider } from "@/theme/ThemeProvider";
-import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -26,7 +26,10 @@ function ThemedStack() {
   const { scheme, colors } = useTheme();
   return (
     <>
-      <StatusBar style={scheme === "dark" ? "light" : "dark"} backgroundColor={colors.bg} />
+      <StatusBar
+        style={scheme === "dark" ? "light" : "dark"}
+        backgroundColor={colors.bg}
+      />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -44,12 +47,11 @@ function ThemedStack() {
 export default function RootLayout() {
   useProtectedRoute();
   const [fontsLoaded, fontError] = useFonts({
-    Lexend_600SemiBold,
-    Lexend_700Bold,
-    SourceSans3_400Regular,
-    SourceSans3_500Medium,
-    SourceSans3_600SemiBold,
-    SourceSans3_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
   });
 
   useEffect(() => {

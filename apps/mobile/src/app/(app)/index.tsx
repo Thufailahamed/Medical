@@ -29,6 +29,9 @@ import {
   TrendingDown,
   Minus,
   Sparkles,
+  MessageSquare,
+  ScanText,
+  FileSearch,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -49,6 +52,7 @@ import {
   FloatingActionButton,
   BottomSheet,
   useToast,
+  Button,
 } from "@/components/ui";
 
 type TimingKey = "morning" | "afternoon" | "evening" | "night";
@@ -59,8 +63,6 @@ const TIMING_META: Record<TimingKey, { label: string; tone: Tone }> = {
   evening: { label: "Evening", tone: "accent2" },
   night: { label: "Night", tone: "info" },
 };
-
-const HERO_GRADIENT = ["#7C3AED", "#6D28D9", "#5B21B6"] as const;
 
 function timingOf(s?: string): TimingKey {
   const v = (s || "").toLowerCase();
@@ -99,14 +101,11 @@ export default function HomeScreen() {
       ? (patient.weight / Math.pow(patient.height / 100, 2)).toFixed(1)
       : null;
 
-  // Dose tracking not implemented in DB schema; show 0% unless doses API exists.
   const totalMeds = todayMeds.length;
   const adherence = 0;
 
-  // Pick first scheduled medicine as the "up next" item
   const nextMed = todayMeds[0];
 
-  // Group today's meds by timing string
   const grouped: Record<TimingKey, any[]> = {
     morning: [],
     afternoon: [],
@@ -117,13 +116,13 @@ export default function HomeScreen() {
     grouped[timingOf(m.timing)].push(m);
   });
 
-  const formatHeaderDate = () => {
+  const headerDate = (() => {
     const d = new Date();
     const weekday = d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     const day = d.getDate();
     const month = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
     return `${greeting.toUpperCase()} · ${weekday} ${day} ${month}`;
-  };
+  })();
 
   const userPhoto = profileData?.patient?.users?.photo;
   const userName = profileData?.patient?.users?.name || user?.name || "";
@@ -146,9 +145,9 @@ export default function HomeScreen() {
             tintColor={colors.primary}
           />
         }
-        contentContainerStyle={{ paddingBottom: 150 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
       >
-        {/* App header */}
+        {/* ─── App header ─── */}
         <View
           style={{
             flexDirection: "row",
@@ -157,16 +156,25 @@ export default function HomeScreen() {
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
             paddingBottom: spacing.sm,
+            gap: spacing.sm,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+              flexShrink: 1,
+              minWidth: 0,
+            }}
+          >
             {userPhoto ? (
               <Image
                 source={{ uri: userPhoto }}
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 999,
+                  borderRadius: 18,
                   backgroundColor: colors.surfaceMuted,
                 }}
               />
@@ -175,7 +183,7 @@ export default function HomeScreen() {
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 999,
+                  borderRadius: 18,
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -193,9 +201,10 @@ export default function HomeScreen() {
               </View>
             )}
             <Text
+              numberOfLines={1}
               style={[
                 typography.title.lg,
-                { color: colors.primary, fontWeight: "800", fontSize: 20 },
+                { color: colors.primary, fontWeight: "800", fontSize: 20, flexShrink: 1 },
               ]}
             >
               HealthHub
@@ -209,31 +218,27 @@ export default function HomeScreen() {
             style={({ pressed }) => ({
               width: 40,
               height: 40,
+              borderRadius: 20,
               alignItems: "center",
               justifyContent: "center",
               opacity: pressed ? 0.7 : 1,
+              backgroundColor: pressed ? colors.surfaceMuted : "transparent",
             })}
           >
             <Bell size={22} color={colors.primary} strokeWidth={2.25} />
             {unread?.count ? (
-              <View
-                style={[
-                  styles.bellBadge,
-                  { backgroundColor: colors.primary },
-                ]}
-              />
+              <View style={[styles.bellBadge, { backgroundColor: colors.primary }]} />
             ) : null}
           </Pressable>
         </View>
 
-        {/* Purple hero */}
+        {/* ─── Purple hero ─── */}
         <View
           style={{
             marginHorizontal: spacing.lg,
             borderRadius: radius.xxl,
             overflow: "hidden",
             padding: spacing.lg,
-            gap: spacing.md,
           }}
         >
           <LinearGradient
@@ -268,85 +273,100 @@ export default function HomeScreen() {
             ]}
           />
 
-          <Text
-            style={[
-              typography.overline,
-              { color: "rgba(255,255,255,0.75)", letterSpacing: 1.4 },
-            ]}
-          >
-            {formatHeaderDate()}
-          </Text>
-
-          <Text
-            style={[
-              typography.display.lg,
-              {
-                color: "#FFFFFF",
-                fontSize: 32,
-                lineHeight: 36,
-                letterSpacing: -0.8,
-                fontWeight: "700",
-              },
-            ]}
-            numberOfLines={1}
-          >
-            {firstName}
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.xs,
-              marginTop: spacing.xs,
-            }}
-          >
+          {/* Content sits above orbs */}
+          <View style={{ gap: spacing.sm }}>
             <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              style={[
+                typography.overline,
+                { color: "rgba(255,255,255,0.85)", letterSpacing: 1.2 },
+              ]}
+            >
+              {headerDate}
+            </Text>
+
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
               style={[
                 typography.display.lg,
                 {
                   color: "#FFFFFF",
-                  fontSize: 52,
-                  lineHeight: 56,
-                  letterSpacing: -2,
-                  fontWeight: "800",
+                  fontSize: 30,
+                  lineHeight: 34,
+                  letterSpacing: -0.6,
+                  fontWeight: "700",
+                  marginTop: 2,
                 },
               ]}
             >
-              {totalMeds > 0 ? `${adherence}%` : "0%"}
+              {firstName}
             </Text>
-            <Text
-              style={[
-                typography.title.md,
-                {
-                  color: "rgba(255, 255, 255, 0.85)",
-                  marginLeft: spacing.xs,
-                  fontWeight: "600",
-                  fontSize: 15,
-                },
-              ]}
-            >
-              Adherence
-            </Text>
-          </View>
 
-          <View
-            style={{
-              flexDirection: "row",
-              gap: spacing.sm,
-              marginTop: spacing.sm,
-              flexWrap: "wrap",
-            }}
-          >
-            <HeroChip label={`${patient?.bloodGroup ?? "O+"} Blood`} />
-            <HeroChip label={bmi ? `${bmi} BMI` : "24.1 BMI"} />
-            <HeroChip
-              label={unread?.count ? `${unread.count} alerts` : "No alerts"}
-              dot={!unread?.count}
-            />
+            {/* Adherence row */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "baseline",
+                gap: spacing.sm,
+                marginTop: spacing.sm,
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                style={[
+                  typography.display.lg,
+                  {
+                    color: "#FFFFFF",
+                    fontSize: 48,
+                    lineHeight: 52,
+                    letterSpacing: -1.5,
+                    fontWeight: "800",
+                    includeFontPadding: false,
+                  },
+                ]}
+              >
+                {totalMeds > 0 ? `${adherence}%` : "0%"}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  typography.title.sm,
+                  {
+                    color: "rgba(255, 255, 255, 0.9)",
+                    fontWeight: "600",
+                  },
+                ]}
+              >
+                Adherence
+              </Text>
+            </View>
+
+            {/* Chips */}
+            <View
+              style={{
+                flexDirection: "row",
+                gap: spacing.xs,
+                marginTop: spacing.sm,
+                flexWrap: "wrap",
+              }}
+            >
+              <HeroChip label={`${patient?.bloodGroup ?? "O+"} Blood`} />
+              <HeroChip label={bmi ? `${bmi} BMI` : "24.1 BMI"} />
+              <HeroChip
+                label={unread?.count ? `${unread.count} alerts` : "No alerts"}
+                dot={!unread?.count}
+              />
+            </View>
           </View>
         </View>
 
+        {/* ─── Sections ─── */}
         <View
           style={{
             paddingHorizontal: spacing.lg,
@@ -385,6 +405,96 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(app)/emergency")}
               />
             </View>
+          </View>
+
+          {/* AI assistant */}
+          <View style={{ gap: spacing.sm }}>
+            <SectionLabel title="AI assistant" />
+            <Card padded={false}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  padding: spacing.md,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: colors.accentSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Sparkles size={20} color={colors.accent} strokeWidth={2.25} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={[typography.title.sm, { color: colors.text }]}
+                  >
+                    Health AI
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      typography.caption,
+                      { color: colors.textMuted, marginTop: 2 },
+                    ]}
+                  >
+                    Summaries, drug checks, chat & more
+                  </Text>
+                </View>
+              </View>
+              {/* Divider */}
+              <View
+                style={{ height: 1, backgroundColor: colors.border, marginHorizontal: spacing.md }}
+              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.sm,
+                  padding: spacing.md,
+                }}
+              >
+                <QuickTile
+                  icon={MessageSquare}
+                  label="Chat"
+                  tone="accent"
+                  onPress={() => router.push("/(app)/ai/chat")}
+                />
+                <QuickTile
+                  icon={Sparkles}
+                  label="Summary"
+                  tone="primary"
+                  onPress={() => router.push("/(app)/ai/summary")}
+                />
+                <QuickTile
+                  icon={ScanText}
+                  label="Lab explain"
+                  tone="info"
+                  onPress={() => router.push("/(app)/ai/lab-explain")}
+                />
+                <QuickTile
+                  icon={Pill}
+                  label="Drug check"
+                  tone="warning"
+                  onPress={() => router.push("/(app)/ai/drug-check")}
+                />
+              </View>
+            </Card>
+            <Button
+              title="Prescription OCR"
+              icon={FileSearch}
+              variant="outline"
+              size="md"
+              fullWidth
+              onPress={() => router.push("/(app)/ai/ocr")}
+            />
           </View>
 
           {/* Up next featured card */}
@@ -431,7 +541,7 @@ export default function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{
                   gap: spacing.md,
-                  paddingRight: spacing.lg,
+                  paddingRight: spacing.sm,
                 }}
               >
                 {(Object.keys(grouped) as TimingKey[])
@@ -465,14 +575,14 @@ export default function HomeScreen() {
               />
               <View
                 style={{
-                  marginLeft: spacing.sm,
+                  marginLeft: spacing.md,
                   paddingLeft: spacing.md,
-                  gap: spacing.sm,
+                  gap: spacing.xs,
                 }}
               >
                 {apptsLoading
                   ? [0, 1].map((i) => (
-                      <View key={i} style={{ marginLeft: -spacing.sm + 1.5 }}>
+                      <View key={i}>
                         <Card>
                           <View style={{ gap: spacing.sm }}>
                             <Skeleton width="70%" height={16} />
@@ -486,9 +596,7 @@ export default function HomeScreen() {
                         key={a.id ?? `a-${idx}`}
                         item={a}
                         isFirst={idx === 0}
-                        isLast={
-                          idx === Math.min(appointments.length, 4) - 1
-                        }
+                        isLast={idx === Math.min(appointments.length, 4) - 1}
                       />
                     ))}
               </View>
@@ -580,6 +688,7 @@ export default function HomeScreen() {
   );
 }
 
+// ─── Hero chip ────────────────────────────────────────────
 function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
   const { spacing, typography } = useTheme();
   return (
@@ -589,7 +698,7 @@ function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
         alignItems: "center",
         gap: 6,
         paddingHorizontal: spacing.md,
-        paddingVertical: 8,
+        paddingVertical: 6,
         borderRadius: 999,
         backgroundColor: "rgba(255,255,255,0.18)",
       }}
@@ -605,6 +714,7 @@ function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
         />
       ) : null}
       <Text
+        numberOfLines={1}
         style={[
           typography.label.md,
           { color: "#FFFFFF", fontWeight: "700" },
@@ -616,6 +726,7 @@ function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
   );
 }
 
+// ─── Section label ────────────────────────────────────────
 function SectionLabel({
   title,
   action,
@@ -634,6 +745,7 @@ function SectionLabel({
       }}
     >
       <Text
+        numberOfLines={1}
         style={[
           typography.overline,
           { color: colors.textMuted, letterSpacing: 1.2 },
@@ -657,6 +769,7 @@ function SectionLabel({
   );
 }
 
+// ─── Quick tile ───────────────────────────────────────────
 function QuickTile({
   icon: Icon,
   label,
@@ -670,27 +783,28 @@ function QuickTile({
 }) {
   const { colors, spacing, radius, typography } = useTheme();
   const palette = useTone(tone);
-  
+
   const isEmergency = tone === "danger";
   const labelColor = isEmergency ? palette.fg : colors.text;
   const chevronColor = isEmergency ? palette.fg : colors.textSubtle;
-  
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }: any) => ({
-        flex: 1,
+      style={({ pressed }) => ({
+        flexBasis: "48%",
+        flexGrow: 1,
         padding: spacing.md,
         borderRadius: radius.xl,
         backgroundColor: palette.bg,
         opacity: pressed ? 0.85 : 1,
-        minHeight: 110,
+        minHeight: 104,
         justifyContent: "space-between",
+        gap: spacing.md,
       })}
     >
-      {/* Top row: Icon */}
       <View
         style={{
           width: 36,
@@ -705,38 +819,34 @@ function QuickTile({
         <Icon size={18} color={palette.fg} strokeWidth={2.25} />
       </View>
 
-      {/* Bottom row: Text + Chevron */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          marginTop: spacing.sm,
+          gap: spacing.xs,
         }}
       >
         <Text
+          numberOfLines={1}
           style={[
             typography.title.sm,
             {
               color: labelColor,
               fontWeight: "700",
-              fontSize: 14,
+              flex: 1,
             },
           ]}
-          numberOfLines={1}
         >
           {label}
         </Text>
-        <ChevronRight
-          size={14}
-          color={chevronColor}
-          strokeWidth={2.5}
-        />
+        <ChevronRight size={14} color={chevronColor} strokeWidth={2.5} />
       </View>
     </Pressable>
   );
 }
 
+// ─── Up next card ─────────────────────────────────────────
 function UpNextCard({
   med,
   onPress,
@@ -766,9 +876,9 @@ function UpNextCard({
       >
         <View
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 999,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.primary,
@@ -778,50 +888,52 @@ function UpNextCard({
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
+            numberOfLines={1}
             style={[
               typography.overline,
               { color: colors.primary, letterSpacing: 1.2 },
             ]}
           >
-            {med?.startDate ? `UP NEXT · ${formatClock(med.startDate)}` : "UP NEXT"}
+            UP NEXT
           </Text>
           <Text
+            numberOfLines={1}
             style={[
               typography.title.md,
               { color: colors.text, marginTop: 2, fontWeight: "800" },
             ]}
-            numberOfLines={1}
           >
             {med?.name ?? "Medicine"}
             {med?.dosage ? ` ${med.dosage}` : ""}
           </Text>
           <Text
+            numberOfLines={1}
             style={[
               typography.body.sm,
               { color: colors.textMuted, marginTop: 2 },
             ]}
-            numberOfLines={1}
           >
             {med?.notes ?? med?.timing ?? "Tap to view"}
           </Text>
         </View>
         <View
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 999,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.surface,
           }}
         >
-          <ChevronRight size={20} color={colors.primary} strokeWidth={2.5} />
+          <ChevronRight size={18} color={colors.primary} strokeWidth={2.5} />
         </View>
       </View>
     </Pressable>
   );
 }
 
+// ─── Schedule card ────────────────────────────────────────
 function ScheduleCard({
   meta,
   items,
@@ -834,14 +946,16 @@ function ScheduleCard({
     <View
       style={{
         width: 140,
-        padding: spacing.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
         borderRadius: radius.xl,
         backgroundColor: colors.primarySoft,
         alignItems: "center",
-        gap: spacing.sm,
+        gap: spacing.xs,
       }}
     >
       <Text
+        numberOfLines={1}
         style={[
           typography.label.md,
           { color: colors.primary, fontWeight: "700" },
@@ -851,15 +965,18 @@ function ScheduleCard({
       </Text>
       <DoseRing
         value={0}
-        size={88}
+        size={84}
         tone="primary"
         label={`${items.length}`}
         sublabel="meds"
         centerColor={colors.primarySoft}
       />
       <Text
-        style={[typography.caption, { color: colors.textMuted, fontWeight: "500" }]}
         numberOfLines={1}
+        style={[
+          typography.caption,
+          { color: colors.textMuted, fontWeight: "600" },
+        ]}
       >
         {items.length} {items.length === 1 ? "Dose" : "Doses"}
       </Text>
@@ -867,58 +984,7 @@ function ScheduleCard({
   );
 }
 
-function MetricTile({
-  icon: Icon,
-  value,
-  unit,
-  tone,
-}: {
-  icon: any;
-  value: string;
-  unit: string;
-  tone: Tone;
-}) {
-  const { colors, spacing, radius, typography } = useTheme();
-  const palette = useTone(tone);
-  return (
-    <View
-      style={{
-        flex: 1,
-        padding: spacing.md,
-        borderRadius: radius.xl,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        alignItems: "center",
-        gap: spacing.xs,
-      }}
-    >
-      <Icon size={20} color={palette.fg} strokeWidth={2.25} />
-      <Text
-        style={[
-          typography.display.md,
-          { color: colors.text, fontWeight: "800" },
-        ]}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-      <Text style={[typography.caption, { color: colors.textMuted }]}>
-        {unit}
-      </Text>
-    </View>
-  );
-}
-
-// ─── Wellness card (composite 0-100 score) ───────────────
-const COMPONENT_TONE: Record<string, Tone> = {
-  bmi: "info",
-  adherence: "primary",
-  vitals: "accent",
-  profile: "warning",
-  engagement: "success",
-};
-
+// ─── Wellness bar ─────────────────────────────────────────
 function WellnessBar({
   label,
   score,
@@ -940,13 +1006,24 @@ function WellnessBar({
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: spacing.sm,
         }}
       >
-        <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+        <Text
+          numberOfLines={1}
+          style={[
+            typography.label.md,
+            { color: colors.text, fontWeight: "700", flex: 1 },
+          ]}
+        >
           {label}
         </Text>
         <Text
-          style={[typography.caption, { color: colors.textMuted, fontWeight: "700" }]}
+          numberOfLines={1}
+          style={[
+            typography.caption,
+            { color: colors.textMuted, fontWeight: "700" },
+          ]}
         >
           {score}/{max}
         </Text>
@@ -972,9 +1049,18 @@ function WellnessBar({
   );
 }
 
+// ─── Wellness card (composite 0-100 score) ────────────────
+const COMPONENT_TONE: Record<string, Tone> = {
+  bmi: "info",
+  adherence: "primary",
+  vitals: "accent",
+  profile: "warning",
+  engagement: "success",
+};
+
 function WellnessCard() {
   const router = useRouter();
-  const { colors, spacing, typography, radius } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const { data, isLoading } = useWellness();
 
   if (isLoading) {
@@ -999,8 +1085,7 @@ function WellnessCard() {
   const tone: Tone = data.level?.tone ?? "info";
   const palette = useTone(tone);
   const components = Array.isArray(data.components) ? data.components : [];
-  const Trend =
-    score >= 75 ? TrendingUp : score >= 45 ? Minus : TrendingDown;
+  const Trend = score >= 75 ? TrendingUp : score >= 45 ? Minus : TrendingDown;
 
   return (
     <Pressable
@@ -1018,12 +1103,18 @@ function WellnessCard() {
         }}
       >
         {/* Score hero */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
+          }}
+        >
           <View
             style={{
-              width: 84,
-              height: 84,
-              borderRadius: 42,
+              width: 80,
+              height: 80,
+              borderRadius: 40,
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: palette.bg,
@@ -1032,9 +1123,18 @@ function WellnessCard() {
             }}
           >
             <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
               style={[
                 typography.display.lg,
-                { color: palette.fg, fontWeight: "900", fontSize: 30 },
+                {
+                  color: palette.fg,
+                  fontWeight: "800",
+                  fontSize: 30,
+                  lineHeight: 34,
+                  includeFontPadding: false,
+                },
               ]}
             >
               {score}
@@ -1042,14 +1142,14 @@ function WellnessCard() {
             <Text
               style={[
                 typography.caption,
-                { color: palette.fg, marginTop: -4, fontWeight: "700" },
+                { color: palette.fg, fontWeight: "700", marginTop: -2 },
               ]}
             >
               / 100
             </Text>
           </View>
 
-          <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
             <View
               style={{
                 flexDirection: "row",
@@ -1059,18 +1159,24 @@ function WellnessCard() {
             >
               <HeartPulse size={14} color={palette.fg} strokeWidth={2.25} />
               <Text
+                numberOfLines={1}
                 style={[
                   typography.overline,
-                  { color: palette.fg, letterSpacing: 1.2, fontWeight: "700" },
+                  {
+                    color: palette.fg,
+                    letterSpacing: 1.2,
+                    fontWeight: "700",
+                  },
                 ]}
               >
                 {data.level?.label?.toUpperCase() ?? "WELLNESS"}
               </Text>
             </View>
             <Text
+              numberOfLines={2}
               style={[
                 typography.title.md,
-                { color: colors.text, fontWeight: "800", fontSize: 18 },
+                { color: colors.text, fontWeight: "800", fontSize: 17 },
               ]}
             >
               {score >= 75
@@ -1081,7 +1187,10 @@ function WellnessCard() {
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Trend size={12} color={colors.textMuted} strokeWidth={2.25} />
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
+              <Text
+                numberOfLines={1}
+                style={[typography.caption, { color: colors.textMuted, flex: 1 }]}
+              >
                 {data.bmi != null
                   ? `BMI ${data.bmi} • ${data.bmiCategory}`
                   : "Complete profile for BMI"}
@@ -1111,7 +1220,7 @@ function WellnessCard() {
               alignItems: "flex-start",
               gap: spacing.sm,
               padding: spacing.md,
-              borderRadius: radius.lg,
+              borderRadius: 14,
               backgroundColor: palette.bg,
               borderWidth: 1,
               borderColor: `${palette.fg}33`,
@@ -1121,7 +1230,7 @@ function WellnessCard() {
             <Text
               style={[
                 typography.body.sm,
-                { color: colors.text, flex: 1, lineHeight: 18 },
+                { color: colors.text, flex: 1 },
               ]}
             >
               {data.topTip}
@@ -1140,13 +1249,17 @@ function WellnessCard() {
           <MiniStat
             icon={Droplet}
             label="Blood"
-            value={data.profile.filled > 0 ? `${data.profile.filled}/${data.profile.total}` : "—"}
+            value={
+              data.profile?.filled != null && data.profile.filled > 0
+                ? `${data.profile.filled}/${data.profile.total}`
+                : "—"
+            }
           />
           <MiniStat
             icon={Pill}
             label="Doses"
             value={
-              data.adherence.scheduled > 0
+              data.adherence?.scheduled != null && data.adherence.scheduled > 0
                 ? `${data.adherence.taken}/${data.adherence.scheduled}`
                 : "—"
             }
@@ -1154,7 +1267,7 @@ function WellnessCard() {
           <MiniStat
             icon={Activity}
             label="Vitals"
-            value={String(data.vitals.readings ?? 0)}
+            value={data.vitals?.readings != null ? String(data.vitals.readings) : "—"}
           />
         </View>
       </Card>
@@ -1162,6 +1275,7 @@ function WellnessCard() {
   );
 }
 
+// ─── Mini stat ────────────────────────────────────────────
 function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   const { colors, spacing, typography, radius } = useTheme();
   return (
@@ -1172,28 +1286,29 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
         alignItems: "center",
         gap: spacing.xs,
         paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: spacing.sm,
         borderRadius: radius.md,
         backgroundColor: colors.surfaceMuted,
+        minWidth: 0,
       }}
     >
       <Icon size={14} color={colors.textMuted} strokeWidth={2.25} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
+          numberOfLines={1}
           style={[
             typography.caption,
             { color: colors.textMuted, fontWeight: "600" },
           ]}
-          numberOfLines={1}
         >
           {label}
         </Text>
         <Text
+          numberOfLines={1}
           style={[
             typography.label.md,
             { color: colors.text, fontWeight: "800" },
           ]}
-          numberOfLines={1}
         >
           {value}
         </Text>
@@ -1202,17 +1317,17 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
   );
 }
 
+// ─── Appointment timeline row ─────────────────────────────
 function AppointmentTimelineRow({
   item,
   isLast,
-  isFirst,
 }: {
   item: any;
   isLast: boolean;
   isFirst: boolean;
 }) {
   const router = useRouter();
-  const { colors, spacing, typography, radius } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const dateLabel = item?.date ? formatDate(item.date) : "—";
   const timeLabel = item?.time ? formatClock(item.time) : "";
 
@@ -1226,69 +1341,55 @@ function AppointmentTimelineRow({
   const isHighlightDate = dateLabel === "Today" || dateLabel === "Tomorrow";
 
   return (
-    <View style={{ position: "relative", paddingBottom: spacing.lg }}>
-      {/* Vertical line connector */}
-      {!isLast && (
-        <View
-          style={{
-            position: "absolute",
-            left: -spacing.sm - 2 + 0.75,
-            top: 22,
-            bottom: -spacing.lg,
-            width: 1.5,
-            backgroundColor: colors.border,
-          }}
-        />
-      )}
-      
-      {/* Timeline dot */}
-      <View
-        style={[
-          styles.timelineDot,
-          {
-            backgroundColor: isFirst ? colors.primary : colors.borderStrong,
-            borderColor: "transparent",
-            top: 8,
-            left: -spacing.sm - 7 + 0.75,
-          },
-        ]}
-      />
-      
+    <View
+      style={{
+        paddingBottom: spacing.sm,
+      }}
+    >
       <Pressable
         onPress={() => router.push("/(app)/appointments")}
         accessibilityRole="button"
-        style={{ marginLeft: spacing.sm }}
+        style={({ pressed }) => ({
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.md,
+          borderRadius: 14,
+          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+        })}
       >
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: spacing.sm,
           }}
         >
-          <View style={{ flex: 1, minWidth: 0, paddingRight: spacing.sm }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text
+              numberOfLines={1}
               style={[
                 typography.title.sm,
                 { color: colors.text, fontWeight: "700" },
               ]}
-              numberOfLines={1}
             >
               {title}
             </Text>
             <Text
+              numberOfLines={1}
               style={[
                 typography.body.sm,
                 { color: colors.textMuted, marginTop: 2 },
               ]}
-              numberOfLines={1}
             >
               {subLabel}
             </Text>
           </View>
-          
+
           <View style={{ alignItems: "flex-end" }}>
             <Text
+              numberOfLines={1}
               style={[
                 typography.title.sm,
                 {
@@ -1296,12 +1397,12 @@ function AppointmentTimelineRow({
                   fontWeight: "700",
                 },
               ]}
-              numberOfLines={1}
             >
               {dateLabel}
             </Text>
             {timeLabel ? (
               <Text
+                numberOfLines={1}
                 style={[
                   typography.caption,
                   { color: colors.textMuted, marginTop: 2 },
@@ -1313,10 +1414,22 @@ function AppointmentTimelineRow({
           </View>
         </View>
       </Pressable>
+      {!isLast ? (
+        <View
+          style={{
+            width: 2,
+            height: spacing.sm,
+            backgroundColor: colors.border,
+            alignSelf: "flex-start",
+            marginLeft: spacing.md,
+          }}
+        />
+      ) : null}
     </View>
   );
 }
 
+// ─── FAB action ───────────────────────────────────────────
 function FabAction({
   icon: Icon,
   label,
@@ -1337,7 +1450,7 @@ function FabAction({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }: any) => ({
+      style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.md,
@@ -1350,7 +1463,7 @@ function FabAction({
         style={{
           width: 44,
           height: 44,
-          borderRadius: 999,
+          borderRadius: 22,
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: palette.bg,
@@ -1358,11 +1471,17 @@ function FabAction({
       >
         <Icon size={20} color={palette.fg} strokeWidth={2.25} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[typography.title.sm, { color: colors.text }]}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={[typography.title.sm, { color: colors.text }]}
+        >
           {label}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
+        <Text
+          numberOfLines={1}
+          style={[typography.caption, { color: colors.textMuted }]}
+        >
           {description}
         </Text>
       </View>
@@ -1371,6 +1490,7 @@ function FabAction({
   );
 }
 
+// ─── Date helpers ─────────────────────────────────────────
 function formatDate(input?: string) {
   if (!input) return "—";
   try {
@@ -1414,22 +1534,12 @@ const styles = StyleSheet.create({
   },
   bellBadge: {
     position: "absolute",
-    top: -3,
-    right: -3,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    alignItems: "center",
-    justifyContent: "center",
+    top: 6,
+    right: 6,
+    minWidth: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 2,
-  },
-  timelineDot: {
-    position: "absolute",
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    zIndex: 1,
+    borderColor: "#FFFFFF",
   },
 });

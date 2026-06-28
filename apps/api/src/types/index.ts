@@ -6,6 +6,7 @@ export interface AppEnvironment {
   Bindings: {
     DB: any;
     R2: any;
+    AI: Ai;
     SUPABASE_URL: string;
     SUPABASE_ANON_KEY: string;
     SUPABASE_SERVICE_ROLE_KEY: string;
@@ -20,4 +21,9 @@ export interface AppEnvironment {
     userRole: string;
     db: DB;
   };
+}
+
+// Cloudflare Workers AI binding shape (minimal fields used).
+export interface Ai {
+  run: (model: string, options: { messages?: any[]; prompt?: string; [k: string]: any }) => Promise<any>;
 }

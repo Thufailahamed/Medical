@@ -30,8 +30,7 @@
       "name": "@healthcare/mobile",
       "version": "0.1.0",
       "dependencies": {
-        "@expo-google-fonts/lexend": "^0.2.3",
-        "@expo-google-fonts/source-sans-3": "^0.2.3",
+        "@expo-google-fonts/inter": "^0.4.2",
         "@expo/metro-runtime": "~3.2.3",
         "@gorhom/bottom-sheet": "~4.6.4",
         "@healthcare/db": "*",
@@ -451,9 +450,7 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.19.12", "", { "os": "win32", "cpu": "x64" }, "sha512-T1QyPSDCyMXaO3pzBkF96E8xMkiRYbUEZADd29SyPGabqxMViNoii+NcK7eWJAEoU6RZyEm5lVSIjTmcdoB9HA=="],
 
-    "@expo-google-fonts/lexend": ["@expo-google-fonts/lexend@0.2.3", "", {}, "sha512-GtEv1oYYAZ0+bdVbvmR640dsOuQAPAZFDgBL2p8zGDnz0oGcNxQVxwml8k8We6BnRLyJmM43WshgxZvQ4i6TeA=="],
-
-    "@expo-google-fonts/source-sans-3": ["@expo-google-fonts/source-sans-3@0.2.3", "", {}, "sha512-mip60jZRNMppMrzi9AGhODUgiWosF+V519C4ucH+/q/OePoOFhxuyNuhUPJqr4g4VTdvmM8isEKTKDfgmyYAmg=="],
+    "@expo-google-fonts/inter": ["@expo-google-fonts/inter@0.4.2", "", {}, "sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ=="],
 
     "@expo/bunyan": ["@expo/bunyan@4.0.1", "", { "dependencies": { "uuid": "^8.0.0" } }, "sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg=="],
 

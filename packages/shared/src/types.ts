@@ -48,7 +48,46 @@ export type RecordType =
   | "discharge_summary"
   | "medical_certificate"
   | "operation_note"
-  | "invoice";
+  | "invoice"
+  | "clinical_note"
+  | "lab_order"
+  | "follow_up";
+
+export type BedStatus =
+  | "available"
+  | "occupied"
+  | "cleaning"
+  | "maintenance"
+  | "reserved";
+
+export type WardType =
+  | "general"
+  | "icu"
+  | "pediatric"
+  | "maternity"
+  | "surgical"
+  | "emergency";
+
+export type StaffRole =
+  | "nurse"
+  | "receptionist"
+  | "technician"
+  | "manager"
+  | "housekeeping"
+  | "security";
+
+export type Shift = "morning" | "evening" | "night" | "rotating";
+
+export type LabOrderStatus =
+  | "ordered"
+  | "sample_collected"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+
+export type LabOrderPriority = "routine" | "urgent" | "stat";
+
+export type ChatRole = "user" | "assistant" | "system";
 
 export type BloodGroup = "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
 
