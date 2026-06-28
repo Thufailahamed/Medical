@@ -110,7 +110,10 @@ export default function BookAppointmentScreen() {
 
   const slots = useMemo(() => {
     const fromApi = availabilityData?.slots || [];
-    if (fromApi.length > 0) return fromApi;
+    if (fromApi.length > 0) {
+      // Flatten to time strings; mark unavailable by prefixing the row in future.
+      return fromApi.map((s) => s.time);
+    }
     // Fallback: derive from TIME_SLOTS based on period
     return TIME_SLOTS.filter((t) => {
       const h = parseInt(t.split(":")[0], 10);
@@ -252,9 +255,11 @@ export default function BookAppointmentScreen() {
                       }
                       onPress={() => {
                         setValue("doctorId", d.id, { shouldValidate: true });
-                        setValue("hospitalId", d.hospitalId || d.id, {
-                          shouldValidate: true,
-                        });
+                        setValue(
+                          "hospitalId",
+                          d.hospitalId || "",
+                          { shouldValidate: true }
+                        );
                       }}
                     />
                   );
@@ -380,9 +385,9 @@ export default function BookAppointmentScreen() {
                   icon={Building2}
                   label="Hospital"
                   value={
-                    selectedDoctor?.hospitalId
-                      ? `Hospital #${selectedDoctor.hospitalId.slice(-4)}`
-                      : "—"
+                    selectedDoctor?.hospitalName ||
+                    selectedDoctor?.hospitalId ||
+                    "—"
                   }
                 />
                 <SummaryRow

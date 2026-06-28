@@ -163,4 +163,49 @@ appointmentsRouter.put("/:id/status", authMiddleware, requireRole("doctor", "hos
   return c.json({ appointment: updated });
 });
 
+// ─── Patient cancels their appointment (soft cancel) ─────
+appointmentsRouter.delete("/:id", authMiddleware, requireRole("patient"), async (c) => {
+  const appointmentId = c.req.param("id");
+  if (!appointmentId) return c.json({ error: "Missing id" }, 400);
+  const userId = c.get("userId");
+  const db = c.get("db");
+
+  const [patient] = await db
+    .select()
+    .from(patients)
+    .where(eq(patients.userId, userId))
+    .limit(1);
+  if (!patient) return c.json({ error: "Patient not found" }, 404);
+
+  const [existing] = await db
+    .select()
+    .from(appointments)
+    .where(eq(appointments.id, appointmentId))
+    .limit(1);
+
+  if (!existing || existing.appointments.patientId !== patient.patients.id) {
+    return c.json({ error: "Appointment not found or access denied" }, 404);
+  }
+
+  const status = existing.appointments.status;
+  if (status === "cancelled" || status === "completed" || status === "no_show") {
+    return c.json({ error: `Cannot cancel an appointment that is ${status}` }, 409);
+  }
+
+  const [updated] = await db
+    .update(appointments)
+    .set({ status: "cancelled" })
+    .where(eq(appointments.id, appointmentId))
+    .returning();
+
+  await db.insert(notifications).values({
+    userId,
+    type: "appointment",
+    title: "Appointment cancelled",
+    body: `Your appointment on ${existing.appointments.date} at ${existing.appointments.time} was cancelled.`,
+  });
+
+  return c.json({ appointment: updated });
+});
+
 export default appointmentsRouter;

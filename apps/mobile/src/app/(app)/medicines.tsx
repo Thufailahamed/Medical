@@ -20,7 +20,6 @@ import {
   Clock,
   Calendar,
 } from "lucide-react-native";
-import { supabase } from "@/lib/supabase";
 import {
   useMyMedicines,
   useTodayMedicines,
@@ -29,6 +28,7 @@ import {
   useUnreadCount,
   useTodayDoses,
   useMarkDoseTaken,
+  useUntakeDose,
   useSkipDose,
   useScheduleTodayDoses,
 } from "@/hooks/useApi";
@@ -125,6 +125,7 @@ export default function MedicinesScreen() {
   const { data: todayDoses, refetch: refetchDoses } = useTodayDoses();
   const stopMedicine = useStopMedicine();
   const markTaken = useMarkDoseTaken();
+  const untakeDose = useUntakeDose();
   const skipDose = useSkipDose();
   const scheduleToday = useScheduleTodayDoses();
 
@@ -196,13 +197,7 @@ export default function MedicinesScreen() {
     const dose = doseMap[med.id];
     try {
       if (dose?.taken) {
-        // untake
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess.session?.access_token || "";
-        await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/doses/${dose.id}/taken`,
-          { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
-        );
+        await untakeDose.mutateAsync(dose.id);
         toast.show(`${med.name} marked as not taken`, "info");
       } else if (dose?.id) {
         await markTaken.mutateAsync({ id: dose.id });

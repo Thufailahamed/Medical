@@ -18,5 +18,10 @@ export default {
       package: "com.healthcare.app",
     },
     plugins: ["expo-router", "expo-secure-store", "expo-notifications"],
+    extra: {
+      // Pulled at build time from the shell environment.
+      apiUrl: process.env.EXPO_PUBLIC_API_URL || "",
+      devMode: process.env.EXPO_PUBLIC_DEV_MODE === "true",
+    },
   },
 };

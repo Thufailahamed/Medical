@@ -720,7 +720,7 @@ export function useDoctorSearch(opts: {
   hospitalId?: string;
 }) {
   const params = new URLSearchParams();
-  if (opts.query) params.set("q", opts.query);
+  if (opts.query) params.set("query", opts.query);
   if (opts.specialization) params.set("specialization", opts.specialization);
   if (opts.hospitalId) params.set("hospitalId", opts.hospitalId);
 
@@ -743,7 +743,7 @@ export function useDoctorAvailability(doctorId: string, date: string) {
   return useQuery({
     queryKey: ["doctor", doctorId, "availability", date],
     queryFn: () =>
-      api<{ slots: string[]; bookedTimes: string[] }>(
+      api<{ slots: { time: string; available: boolean; queueNumber?: number }[]; bookedTimes: string[] }>(
         `/doctor/${doctorId}/availability?date=${date}`
       ),
     enabled: !!doctorId && !!date,
@@ -758,20 +758,20 @@ export function useDoctor(doctorId: string) {
   });
 }
 
-// ─── Auth: forgot/reset/change password ──────────────────
+// ─── Password recovery ───────────────────────────────────
 export function useForgotPassword() {
   return useMutation({
-    mutationFn: (data: { email?: string; phone?: string }) =>
-      api<{ message: string; devToken?: string; expiresAt?: string }>(
-        "/auth/forgot-password",
-        { method: "POST", body: data }
-      ),
+    mutationFn: (data: { email: string; redirectTo?: string }) =>
+      api<{ message: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: data,
+      }),
   });
 }
 
 export function useResetPassword() {
   return useMutation({
-    mutationFn: (data: { token: string; newPassword: string }) =>
+    mutationFn: (data: { accessToken: string; newPassword: string }) =>
       api<{ message: string }>("/auth/reset-password", {
         method: "POST",
         body: data,
@@ -786,5 +786,17 @@ export function useChangePassword() {
         method: "POST",
         body: data,
       }),
+  });
+}
+
+// ─── Appointment cancel (patient) ────────────────────────
+export function useCancelAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ appointment: any }>(`/appointments/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
   });
 }

@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import { eq, or, like, desc, and } from "drizzle-orm";
-import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions } from "@healthcare/db";
+import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, hospitals, doctorAvailability } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import type { AppEnvironment } from "../types";
@@ -233,6 +233,183 @@ doctorRouter.get("/me", authMiddleware, requireRole("doctor"), async (c) => {
   }
 
   return c.json({ doctor });
+});
+
+// ─── Search doctors (public to logged-in users) ──────────
+// Used by the patient booking flow to find a doctor by name / specialization.
+doctorRouter.get("/search", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const query = (c.req.query("query") || "").trim();
+  const specialization = (c.req.query("specialization") || "").trim();
+
+  const conditions: any[] = [];
+  if (query) {
+    const safe = query.replace(/[%_]/g, "\\$&");
+    conditions.push(like(users.name, `%${safe}%`));
+  }
+  if (specialization) {
+    conditions.push(eq(doctors.specialization, specialization));
+  }
+
+  const baseQuery = db
+    .select({
+      doctorId: doctors.id,
+      userId: doctors.userId,
+      name: users.name,
+      specialization: doctors.specialization,
+      qualification: doctors.qualification,
+      experience: doctors.experience,
+      consultationFee: doctors.consultationFee,
+      rating: doctors.rating,
+      photo: users.photo,
+      hospitalId: doctors.hospitalId,
+      hospitalName: hospitals.name,
+    })
+    .from(doctors)
+    .innerJoin(users, eq(doctors.userId, users.id))
+    .leftJoin(hospitals, eq(doctors.hospitalId, hospitals.id));
+
+  const rows = conditions.length
+    ? await baseQuery.where(and(...conditions)).limit(50)
+    : await baseQuery.limit(50);
+
+  return c.json({ doctors: rows });
+});
+
+// ─── List all distinct specializations ───────────────────
+doctorRouter.get("/specialties", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const rows = await db
+    .selectDistinct({ specialization: doctors.specialization })
+    .from(doctors);
+  const specialties = rows
+    .map((r: any) => r.specialization)
+    .filter((s: string | null | undefined): s is string => !!s && s.trim().length > 0)
+    .sort((a, b) => a.localeCompare(b));
+  return c.json({ specialties });
+});
+
+// ─── Doctor detail ───────────────────────────────────────
+doctorRouter.get("/:id", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  if (!id) return c.json({ error: "Missing id" }, 400);
+  const db = c.get("db");
+
+  const [row] = await db
+    .select({
+      doctorId: doctors.id,
+      userId: doctors.userId,
+      name: users.name,
+      photo: users.photo,
+      phone: users.phone,
+      specialization: doctors.specialization,
+      qualification: doctors.qualification,
+      registrationNumber: doctors.registrationNumber,
+      experience: doctors.experience,
+      consultationFee: doctors.consultationFee,
+      rating: doctors.rating,
+      hospitalId: doctors.hospitalId,
+      hospitalName: hospitals.name,
+      hospitalAddress: hospitals.address,
+    })
+    .from(doctors)
+    .innerJoin(users, eq(doctors.userId, users.id))
+    .leftJoin(hospitals, eq(doctors.hospitalId, hospitals.id))
+    .where(eq(doctors.id, id))
+    .limit(1);
+
+  if (!row) return c.json({ error: "Doctor not found" }, 404);
+  return c.json({ doctor: row });
+});
+
+// ─── Doctor availability for a date ──────────────────────
+// Reads doctorAvailability rows and counts appointments already booked that
+// day, returning a slot list the booking UI can show.
+doctorRouter.get("/:id/availability", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const date = c.req.query("date") || new Date().toISOString().split("T")[0];
+  const db = c.get("db");
+  if (!id) return c.json({ error: "Missing id" }, 400);
+
+  const [doctor] = await db
+    .select()
+    .from(doctors)
+    .where(eq(doctors.id, id))
+    .limit(1);
+  if (!doctor) return c.json({ error: "Doctor not found" }, 404);
+
+  const day = new Date(date + "T00:00:00");
+  if (Number.isNaN(day.getTime())) {
+    return c.json({ error: "Invalid date" }, 400);
+  }
+  const dow = day.getDay();
+
+  // Doctor's working hours for that weekday, if set
+  const hours = await db
+    .select()
+    .from(doctorAvailability)
+    .where(
+      and(
+        eq(doctorAvailability.doctorId, id),
+        eq(doctorAvailability.dayOfWeek, dow),
+        eq(doctorAvailability.active, true)
+      )
+    );
+
+  // Existing booked appointments that day
+  const booked = await db
+    .select()
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.doctorId, id),
+        eq(appointments.date, date)
+      )
+    );
+
+  const bookedTimes = new Set(
+    booked
+      .filter((b: any) => b.status !== "cancelled" && b.status !== "no_show")
+      .map((b: any) => b.time)
+  );
+
+  // Build candidate slots from working hours or default 09:00-17:00
+  const slots: { time: string; available: boolean; queueNumber?: number }[] = [];
+  const MAX_PER_SLOT = 4; // 4 patients per 30-min slot by default
+
+  const ranges =
+    hours.length > 0
+      ? hours.map((h: any) => ({ start: h.startTime, end: h.endTime }))
+      : [{ start: "09:00", end: "17:00" }];
+
+  const queueCountFor = (t: string) =>
+    booked.filter(
+      (b: any) =>
+        b.time === t &&
+        b.status !== "cancelled" &&
+        b.status !== "no_show"
+    ).length;
+
+  for (const r of ranges) {
+    const [sh, sm] = r.start.split(":").map(Number);
+    const [eh, em] = r.end.split(":").map(Number);
+    let cur = sh * 60 + sm;
+    const end = eh * 60 + em;
+    while (cur + 30 <= end) {
+      const hh = String(Math.floor(cur / 60)).padStart(2, "0");
+      const mm = String(cur % 60).padStart(2, "0");
+      const t = `${hh}:${mm}`;
+      const count = queueCountFor(t);
+      slots.push({
+        time: t,
+        available: count < MAX_PER_SLOT,
+        queueNumber: count + 1,
+      });
+      cur += 30;
+    }
+  }
+
+  return c.json({ date, slots, bookedTimes: Array.from(bookedTimes) });
 });
 
 export default doctorRouter;

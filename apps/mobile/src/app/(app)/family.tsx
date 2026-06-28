@@ -80,18 +80,28 @@ export default function FamilyScreen() {
   }
 
   async function saveMember() {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       toast.show("Name is required", "warning");
+      return;
+    }
+    if (trimmedName.length > 60) {
+      toast.show("Name must be 60 characters or fewer", "warning");
+      return;
+    }
+    const cleanedPhone = phone.replace(/[^\d+]/g, "").trim();
+    if (phone.trim() && (cleanedPhone.length < 7 || cleanedPhone.length > 16)) {
+      toast.show("Phone must be 7-15 digits", "warning");
       return;
     }
     try {
       await addMember.mutateAsync({
-        name: name.trim(),
+        name: trimmedName,
         relationship,
-        phone: phone.trim() || undefined,
+        phone: cleanedPhone || undefined,
         bloodGroup: bloodGroup || undefined,
       });
-      toast.show(`${name} added`, "success");
+      toast.show(`${trimmedName} added`, "success");
       setComposing(false);
       setName("");
       setPhone("");

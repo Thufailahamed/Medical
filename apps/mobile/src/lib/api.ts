@@ -1,8 +1,24 @@
 import { supabase } from "./supabase";
 import { useAuthStore } from "@/stores/auth";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
+const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
+const FALLBACK_API_URL = "http://localhost:8787";
 const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === "true";
+
+// In production builds, never silently fall back to localhost — that would mean
+// every network call resolves to a dev machine. Warn loudly so deploys fail
+// visibly instead of silently returning "network error" to users.
+const API_URL =
+  ENV_API_URL && ENV_API_URL.length > 0
+    ? ENV_API_URL
+    : __DEV__
+    ? FALLBACK_API_URL
+    : (() => {
+        console.warn(
+          "[api] EXPO_PUBLIC_API_URL is not set; production requests will fail."
+        );
+        return FALLBACK_API_URL;
+      })();
 
 interface ApiOptions {
   method?: string;

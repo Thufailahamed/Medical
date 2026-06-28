@@ -2,12 +2,72 @@
 
 import { Hono } from "hono";
 import { eq, and, lte, gte, or, isNull } from "drizzle-orm";
-import { medicines, patients } from "@healthcare/db";
+import { medicines, medicineDoses, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import type { AppEnvironment } from "../types";
 
 const medicinesRouter = new Hono<AppEnvironment>();
+
+function slotsForFrequency(freq: string | null): string[] {
+  switch ((freq || "").toLowerCase()) {
+    case "once daily":
+      return ["09:00"];
+    case "twice daily":
+      return ["09:00", "21:00"];
+    case "three times daily":
+      return ["09:00", "15:00", "21:00"];
+    case "four times daily":
+      return ["08:00", "13:00", "18:00", "22:00"];
+    default:
+      return ["09:00"];
+  }
+}
+
+async function scheduleTodayForMedicine(
+  db: any,
+  medicineRow: any,
+  today: string
+) {
+  const start = medicineRow.startDate || today;
+  const end = medicineRow.endDate || today;
+  if (today < start || today > end) return 0;
+
+  // Don't create duplicates if doses already exist for this medicine today
+  const dayStart = `${today}T00:00:00`;
+  const dayEnd = `${today}T23:59:59`;
+  const existing = await db
+    .select()
+    .from(medicineDoses)
+    .where(
+      and(
+        eq(medicineDoses.medicineId, medicineRow.id),
+        gte(medicineDoses.scheduledFor, dayStart),
+        lte(medicineDoses.scheduledFor, dayEnd)
+      )
+    );
+  const existingTimes = new Set(
+    existing.map((e: any) =>
+      new Date(e.medicine_doses?.scheduledFor || e.scheduledFor).toTimeString().slice(0, 5)
+    )
+  );
+
+  const now = new Date();
+  let created = 0;
+  for (const time of slotsForFrequency(medicineRow.frequency)) {
+    if (existingTimes.has(time)) continue;
+    const [hh, mm] = time.split(":").map(Number);
+    const scheduled = new Date(now);
+    scheduled.setHours(hh || 9, mm || 0, 0, 0);
+    await db.insert(medicineDoses).values({
+      medicineId: medicineRow.id,
+      patientId: medicineRow.patientId,
+      scheduledFor: scheduled.toISOString(),
+    } as any);
+    created += 1;
+  }
+  return created;
+}
 
 // ─── Get my medicines ────────────────────────────────────
 medicinesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
@@ -68,7 +128,12 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor"), asyn
     })
     .returning();
 
-  return c.json({ medicine }, 201);
+  // Auto-schedule today's doses for the new medicine (no-op if out of range).
+  const today = new Date().toISOString().slice(0, 10);
+  const medRow = (medicine as any).medicines || medicine;
+  const dosesCreated = await scheduleTodayForMedicine(db, medRow, today);
+
+  return c.json({ medicine, dosesCreated }, 201);
 });
 
 // ─── Update medicine (with ownership check) ──────────────

@@ -95,6 +95,50 @@ export default function EditProfileScreen() {
   }
 
   async function handleSave() {
+    // ─── Client-side validation ──────────────────────────
+    if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+      toast.show("Date of birth must be YYYY-MM-DD", "danger");
+      return;
+    }
+    if (dateOfBirth) {
+      const d = new Date(dateOfBirth);
+      if (Number.isNaN(d.getTime()) || d.getTime() > Date.now()) {
+        toast.show("Date of birth is invalid or in the future", "danger");
+        return;
+      }
+    }
+    const heightNum = height ? parseFloat(height) : NaN;
+    const weightNum = weight ? parseFloat(weight) : NaN;
+    if (height && (Number.isNaN(heightNum) || heightNum < 50 || heightNum > 250)) {
+      toast.show("Height must be between 50 and 250 cm", "danger");
+      return;
+    }
+    if (weight && (Number.isNaN(weightNum) || weightNum < 10 || weightNum > 400)) {
+      toast.show("Weight must be between 10 and 400 kg", "danger");
+      return;
+    }
+    if (bloodGroup && !BLOOD_GROUPS.includes(bloodGroup)) {
+      toast.show("Pick a blood group from the list", "danger");
+      return;
+    }
+    const cleanedContacts = contacts
+      .map((c) => ({
+        name: c.name.trim(),
+        relationship: c.relationship.trim(),
+        phone: c.phone.replace(/[^\d+]/g, "").trim(),
+      }))
+      .filter((c) => c.name || c.phone);
+    for (const c of cleanedContacts) {
+      if (!c.name) {
+        toast.show("Each emergency contact needs a name", "danger");
+        return;
+      }
+      if (!c.phone || c.phone.length < 7) {
+        toast.show("Each emergency contact needs a valid phone", "danger");
+        return;
+      }
+    }
+
     try {
       if (photoUri && photoUri !== userRow?.photo) {
         setSavingPhoto(true);
@@ -122,13 +166,13 @@ export default function EditProfileScreen() {
 
       await updateProfile.mutateAsync({
         bloodGroup: bloodGroup || undefined,
-        height: height ? parseFloat(height) : undefined,
-        weight: weight ? parseFloat(weight) : undefined,
+        height: height ? heightNum : undefined,
+        weight: weight ? weightNum : undefined,
         gender: gender || undefined,
         dateOfBirth: dateOfBirth || undefined,
         allergies: splitList(allergies),
         medicalConditions: splitList(conditions),
-        emergencyContacts: contacts.length ? JSON.stringify(contacts) : undefined,
+        emergencyContacts: cleanedContacts.length ? JSON.stringify(cleanedContacts) : undefined,
       });
 
       toast.show("Profile updated", "success");

@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, CalendarPlus, Clock } from "lucide-react-native";
-import { useMyAppointments } from "@/hooks/useApi";
+import { Plus, CalendarPlus, Clock, X, Loader } from "lucide-react-native";
+import { useMyAppointments, useCancelAppointment } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -14,6 +14,7 @@ import {
   EmptyState,
   Skeleton,
   Timeline,
+  useToast,
 } from "@/components/ui";
 
 const STATUS_TONE: Record<string, PillTone> = {
@@ -65,9 +66,37 @@ function groupKey(a: any) {
 
 export default function AppointmentsScreen() {
   const router = useRouter();
+  const toast = useToast();
   const { spacing, colors, typography, radius } = useTheme();
   const { data, isLoading } = useMyAppointments();
+  const cancelAppointment = useCancelAppointment();
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
+
+  function confirmCancel(item: any) {
+    Alert.alert(
+      "Cancel appointment?",
+      `Your visit on ${item.date} at ${item.time || "—"} will be cancelled.`,
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Cancel appointment",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setCancellingId(item.id);
+              await cancelAppointment.mutateAsync(item.id);
+              toast.show("Appointment cancelled", "info");
+            } catch (err: any) {
+              toast.show(err?.message || "Could not cancel", "danger");
+            } finally {
+              setCancellingId(null);
+            }
+          },
+        },
+      ]
+    );
+  }
 
   // API returns FLAT appointment objects
   const all: any[] = data?.appointments || [];
@@ -243,6 +272,43 @@ export default function AppointmentsScreen() {
                         ) : null}
                       </View>
                     </View>
+                    {(item.status === "scheduled" ||
+                      item.status === "confirmed" ||
+                      item.status === "pending") ? (
+                      <Pressable
+                        onPress={() => confirmCancel(item)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Cancel appointment"
+                        hitSlop={6}
+                        disabled={cancellingId === item.id}
+                        style={({ pressed }) => ({
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: pressed
+                            ? colors.danger
+                            : colors.dangerSoft,
+                          opacity: cancellingId === item.id ? 0.6 : 1,
+                          marginRight: spacing.sm,
+                        })}
+                      >
+                        {cancellingId === item.id ? (
+                          <Loader
+                            size={16}
+                            color={colors.danger}
+                            strokeWidth={2.25}
+                          />
+                        ) : (
+                          <X
+                            size={16}
+                            color={colors.danger}
+                            strokeWidth={2.5}
+                          />
+                        )}
+                      </Pressable>
+                    ) : null}
                   </View>
                 </Card>
               );

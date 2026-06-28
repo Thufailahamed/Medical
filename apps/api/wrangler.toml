@@ -9,6 +9,11 @@ compatibility_date = "2024-09-23"
 [vars]
 ENVIRONMENT = "development"
 DEV_MODE = "false"
+# Supabase defaults — placeholders so dev mode boots without `.dev.vars`.
+# For production, override via `wrangler secret put SUPABASE_URL`, etc.
+SUPABASE_URL = "https://placeholder.supabase.co"
+SUPABASE_ANON_KEY = "placeholder"
+SUPABASE_SERVICE_ROLE_KEY = "placeholder"
 
 [[d1_databases]]
 binding = "DB"
