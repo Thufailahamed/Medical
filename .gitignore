@@ -1,0 +1,16 @@
+node_modules/
+.turbo/
+dist/
+.wrangler/
+.dev.vars
+*.tsbuildinfo
+.env
+.env.local
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/

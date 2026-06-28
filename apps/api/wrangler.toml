@@ -1,0 +1,26 @@
+name = "healthcare-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+[alias]
+"@healthcare/db" = "../../packages/db/src/index.ts"
+"@healthcare/shared" = "../../packages/shared/src/index.ts"
+
+[vars]
+ENVIRONMENT = "development"
+DEV_MODE = "false"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "healthcare-db"
+database_id = "1e38b1d5-9e17-4744-b909-b61c1b631691"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "healthcare-files"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.development]
+vars = { ENVIRONMENT = "development", DEV_MODE = "true" }

@@ -1,0 +1,22 @@
+export default {
+  expo: {
+    name: "Healthcare",
+    slug: "healthcare-mobile",
+    version: "1.0.0",
+    orientation: "portrait",
+    scheme: "healthcare",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.healthcare.app",
+    },
+    android: {
+      adaptiveIcon: {
+        backgroundColor: "#ffffff",
+      },
+      package: "com.healthcare.app",
+    },
+    plugins: ["expo-router", "expo-secure-store", "expo-notifications"],
+  },
+};

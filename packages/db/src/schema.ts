@@ -1,0 +1,355 @@
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+
+// ─── Users ───────────────────────────────────────────────
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  supabaseId: text("supabase_id").unique().notNull(),
+  role: text("role", {
+    enum: [
+      "patient",
+      "doctor",
+      "hospital_admin",
+      "hospital_staff",
+      "laboratory",
+      "pharmacy",
+      "insurance",
+      "ambulance",
+      "super_admin",
+    ],
+  }).notNull(),
+  email: text("email").unique(),
+  phone: text("phone").unique(),
+  name: text("name").notNull(),
+  nic: text("nic"),
+  photo: text("photo"),
+  verified: integer("verified", { mode: "boolean" }).default(false),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Patients ────────────────────────────────────────────
+export const patients = sqliteTable("patients", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  bloodGroup: text("blood_group"),
+  height: real("height"),
+  weight: real("weight"),
+  dateOfBirth: text("date_of_birth"),
+  gender: text("gender"),
+  allergies: text("allergies"), // JSON array
+  medicalConditions: text("medical_conditions"), // JSON array
+  emergencyContacts: text("emergency_contacts"), // JSON array
+  lifestyle: text("lifestyle"), // JSON: { smoking, alcohol, exercise }
+  insuranceId: text("insurance_id"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Family Members ──────────────────────────────────────
+export const familyMembers = sqliteTable("family_members", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  name: text("name").notNull(),
+  relationship: text("relationship").notNull(), // father, mother, child, grandparent
+  dateOfBirth: text("date_of_birth"),
+  bloodGroup: text("blood_group"),
+  allergies: text("allergies"),
+  medicalConditions: text("medical_conditions"),
+  phone: text("phone"),
+  isManagedBy: text("managed_by").references(() => patients.id), // for children managed by parents
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Hospitals ───────────────────────────────────────────
+export const hospitals = sqliteTable("hospitals", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  name: text("name").notNull(),
+  license: text("license"),
+  address: text("address"),
+  phone: text("phone"),
+  location: text("location"), // JSON: { lat, lng }
+  specializations: text("specializations"), // JSON array
+  rating: real("rating"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Doctors ─────────────────────────────────────────────
+export const doctors = sqliteTable("doctors", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  hospitalId: text("hospital_id").references(() => hospitals.id),
+  specialization: text("specialization").notNull(),
+  registrationNumber: text("registration_number"),
+  qualification: text("qualification"),
+  experience: integer("experience"), // years
+  consultationFee: real("consultation_fee"),
+  availableSlots: text("available_slots"), // JSON array
+  rating: real("rating"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Medical Records ─────────────────────────────────────
+export const medicalRecords = sqliteTable("medical_records", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  hospitalId: text("hospital_id").references(() => hospitals.id),
+  doctorId: text("doctor_id").references(() => doctors.id),
+  recordType: text("record_type", {
+    enum: [
+      "lab_report",
+      "imaging",
+      "prescription",
+      "hospital_visit",
+      "vaccination",
+      "surgery",
+      "allergy",
+      "insurance",
+      "fitness",
+      "discharge_summary",
+      "medical_certificate",
+      "operation_note",
+      "invoice",
+    ],
+  }).notNull(),
+  title: text("title").notNull(),
+  diagnosis: text("diagnosis"),
+  summary: text("summary"),
+  notes: text("notes"),
+  date: text("date").notNull(),
+  followUpDate: text("follow_up_date"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Files (Medical Attachments) ─────────────────────────
+export const files = sqliteTable("files", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  recordId: text("record_id").references(() => medicalRecords.id), // nullable for standalone uploads
+  url: text("url").notNull(),
+  r2Key: text("r2_key"), // R2 object key
+  type: text("type").notNull(), // pdf, image, mri, ct, xray, dicom, audio, video
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Medicines ───────────────────────────────────────────
+export const medicines = sqliteTable("medicines", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  prescriptionId: text("prescription_id").references(() => prescriptions.id),
+  name: text("name").notNull(),
+  dosage: text("dosage").notNull(),
+  frequency: text("frequency"), // once daily, twice daily, etc.
+  timing: text("timing"), // before food, after food
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date"),
+  refillReminder: integer("refill_reminder", { mode: "boolean" }).default(false),
+  notes: text("notes"),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Prescriptions ───────────────────────────────────────
+export const prescriptions = sqliteTable("prescriptions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  doctorId: text("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  hospitalId: text("hospital_id").references(() => hospitals.id),
+  diagnosis: text("diagnosis"),
+  notes: text("notes"),
+  date: text("date").notNull(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Lab Reports ─────────────────────────────────────────
+export const labReports = sqliteTable("lab_reports", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  labId: text("lab_id")
+    .notNull()
+    .references(() => users.id),
+  recordId: text("record_id").references(() => medicalRecords.id),
+  reportType: text("report_type").notNull(),
+  status: text("status", {
+    enum: ["pending", "sample_collected", "in_progress", "completed", "cancelled"],
+  }).default("pending"),
+  pdfUrl: text("pdf_url"),
+  aiSummary: text("ai_summary"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Appointments ────────────────────────────────────────
+export const appointments = sqliteTable("appointments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  doctorId: text("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  hospitalId: text("hospital_id")
+    .notNull()
+    .references(() => hospitals.id),
+  date: text("date").notNull(),
+  time: text("time").notNull(),
+  status: text("status", {
+    enum: ["scheduled", "confirmed", "in_progress", "completed", "cancelled", "no_show"],
+  }).default("scheduled"),
+  queueNumber: integer("queue_number"),
+  waitingTime: integer("waiting_time"), // minutes
+  reason: text("reason"),
+  notes: text("notes"),
+  paymentAmount: real("payment_amount"),
+  paymentStatus: text("payment_status", {
+    enum: ["pending", "paid", "refunded", "insurance"],
+  }).default("pending"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Insurance ───────────────────────────────────────────
+export const insurance = sqliteTable("insurance", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  providerName: text("provider_name").notNull(),
+  policyNumber: text("policy_number").notNull(),
+  coverageType: text("coverage_type"),
+  expiryDate: text("expiry_date"),
+  maxCoverage: real("max_coverage"),
+  documents: text("documents"), // JSON array of file URLs
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Insurance Claims ────────────────────────────────────
+export const insuranceClaims = sqliteTable("insurance_claims", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  insuranceId: text("insurance_id")
+    .notNull()
+    .references(() => insurance.id),
+  hospitalId: text("hospital_id").references(() => hospitals.id),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  appointmentId: text("appointment_id").references(() => appointments.id),
+  amount: real("amount").notNull(),
+  status: text("status", {
+    enum: ["submitted", "under_review", "approved", "rejected", "paid"],
+  }).default("submitted"),
+  documents: text("documents"), // JSON array
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Notifications ───────────────────────────────────────
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  type: text("type", {
+    enum: [
+      "medicine",
+      "appointment",
+      "lab_ready",
+      "prescription",
+      "insurance",
+      "hospital",
+      "emergency",
+      "vaccination",
+      "general",
+    ],
+  }).notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  data: text("data"), // JSON: additional payload
+  read: integer("read", { mode: "boolean" }).default(false),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Emergency ───────────────────────────────────────────
+export const emergencies = sqliteTable("emergencies", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  location: text("location").notNull(), // JSON: { lat, lng }
+  status: text("status", {
+    enum: ["active", "responding", "resolved", "cancelled"],
+  }).default("active"),
+  nearestHospitalId: text("nearest_hospital_id").references(() => hospitals.id),
+  ambulanceId: text("ambulance_id").references(() => users.id),
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Audit Log ───────────────────────────────────────────
+export const auditLogs = sqliteTable("audit_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  action: text("action").notNull(),
+  resource: text("resource").notNull(),
+  resourceId: text("resource_id"),
+  details: text("details"), // JSON
+  ip: text("ip"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});

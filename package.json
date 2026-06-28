@@ -1,0 +1,24 @@
+{
+  "name": "healthcare-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "bun run --filter @healthcare/api dev",
+    "dev:mobile": "bun run --filter @healthcare/mobile start",
+    "db:generate": "bun run --filter @healthcare/db generate",
+    "db:migrate": "bun run --filter @healthcare/db migrate",
+    "db:push": "bun run --filter @healthcare/db push",
+    "db:push:local": "wrangler d1 execute healthcare-db --file=schema.sql --config apps/api/wrangler.toml",
+    "db:push:remote": "wrangler d1 execute healthcare-db --file=schema.sql --config apps/api/wrangler.toml --remote",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.5.0"
+  },
+  "packageManager": "bun@1.1.0"
+}
