@@ -602,6 +602,49 @@ export function useDownloadFile() {
   });
 }
 
+// ─── Wellness ────────────────────────────────────────────
+export type WellnessLevel = {
+  label: string;
+  tone: "success" | "info" | "warning" | "danger";
+};
+
+export type WellnessComponent = {
+  key: string;
+  label: string;
+  score: number;
+  max: number;
+  tip?: string;
+};
+
+export type WellnessResponse = {
+  score: number;
+  level: WellnessLevel;
+  components: WellnessComponent[];
+  topTip?: string;
+  bmi: number | null;
+  bmiCategory: string;
+  adherence: { taken: number; scheduled: number; ratio: number | null };
+  vitals: { readings: number; recent: number };
+  profile: { filled: number; total: number; missing: string[] };
+  engagement: {
+    activeMedicines: number;
+    recentRecords: number;
+    recentVitals: number;
+    completedAppointments: number;
+    noShows: number;
+  };
+  updatedAt: string;
+};
+
+export function useWellness() {
+  return useQuery({
+    queryKey: ["wellness", "me"],
+    queryFn: () => apiWithRefresh<WellnessResponse>("/wellness/me"),
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+}
+
 // ─── Notifications ───────────────────────────────────────
 export function useNotifications() {
   return useQuery({

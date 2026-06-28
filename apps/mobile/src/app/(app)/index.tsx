@@ -17,8 +17,6 @@ import {
   CalendarPlus,
   Plus,
   ChevronRight,
-  Scale,
-  Ruler,
   Droplet,
   Check,
   StickyNote,
@@ -26,6 +24,11 @@ import {
   AlertTriangle,
   Activity,
   Upload,
+  HeartPulse,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Sparkles,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -33,6 +36,7 @@ import {
   useTodayMedicines,
   useMyAppointments,
   useUnreadCount,
+  useWellness,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
@@ -446,26 +450,7 @@ export default function HomeScreen() {
           {/* Wellness */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel title="Wellness" />
-            <View style={{ flexDirection: "row", gap: spacing.md }}>
-              <MetricTile
-                icon={Scale}
-                value={patient?.weight ? String(patient.weight) : "—"}
-                unit="kg"
-                tone="warning"
-              />
-              <MetricTile
-                icon={Ruler}
-                value={patient?.height ? String(patient.height) : "—"}
-                unit="cm"
-                tone="info"
-              />
-              <MetricTile
-                icon={Droplet}
-                value={patient?.bloodGroup || "—"}
-                unit=""
-                tone="danger"
-              />
-            </View>
+            <WellnessCard />
           </View>
 
           {/* Coming up — list rows with timeline dots */}
@@ -921,6 +906,298 @@ function MetricTile({
       <Text style={[typography.caption, { color: colors.textMuted }]}>
         {unit}
       </Text>
+    </View>
+  );
+}
+
+// ─── Wellness card (composite 0-100 score) ───────────────
+const COMPONENT_TONE: Record<string, Tone> = {
+  bmi: "info",
+  adherence: "primary",
+  vitals: "accent",
+  profile: "warning",
+  engagement: "success",
+};
+
+function WellnessBar({
+  label,
+  score,
+  max,
+  tone,
+}: {
+  label: string;
+  score: number;
+  max: number;
+  tone: Tone;
+}) {
+  const { colors, typography, spacing } = useTheme();
+  const p = useTone(tone);
+  const pct = max > 0 ? (score / max) * 100 : 0;
+  return (
+    <View style={{ gap: 4 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+          {label}
+        </Text>
+        <Text
+          style={[typography.caption, { color: colors.textMuted, fontWeight: "700" }]}
+        >
+          {score}/{max}
+        </Text>
+      </View>
+      <View
+        style={{
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: colors.surfaceMuted,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            width: `${pct}%`,
+            height: "100%",
+            backgroundColor: p.fg,
+            borderRadius: 4,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+function WellnessCard() {
+  const router = useRouter();
+  const { colors, spacing, typography, radius } = useTheme();
+  const { data, isLoading } = useWellness();
+
+  if (isLoading) {
+    return (
+      <Card style={{ padding: spacing.lg, gap: spacing.md }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+          <Skeleton width={72} height={72} radius={36} />
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <Skeleton width="60%" height={18} />
+            <Skeleton width="40%" height={14} />
+          </View>
+        </View>
+        <Skeleton width="100%" height={10} radius={5} />
+        <Skeleton width="100%" height={10} radius={5} />
+      </Card>
+    );
+  }
+
+  if (!data) return null;
+
+  const score = data.score;
+  const tone: Tone = data.level?.tone ?? "info";
+  const palette = useTone(tone);
+  const components = data.components ?? [];
+  const Trend =
+    score >= 75 ? TrendingUp : score >= 45 ? Minus : TrendingDown;
+
+  return (
+    <Pressable
+      onPress={() => router.push("/(app)/profile")}
+      accessibilityRole="button"
+      accessibilityLabel="Wellness score"
+      style={({ pressed }) => ({ opacity: pressed ? 0.95 : 1 })}
+    >
+      <Card
+        style={{
+          padding: spacing.lg,
+          gap: spacing.lg,
+          backgroundColor: colors.surface,
+          borderColor: palette.bg,
+        }}
+      >
+        {/* Score hero */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+          <View
+            style={{
+              width: 84,
+              height: 84,
+              borderRadius: 42,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: palette.bg,
+              borderWidth: 2,
+              borderColor: palette.fg,
+            }}
+          >
+            <Text
+              style={[
+                typography.display.lg,
+                { color: palette.fg, fontWeight: "900", fontSize: 30 },
+              ]}
+            >
+              {score}
+            </Text>
+            <Text
+              style={[
+                typography.caption,
+                { color: palette.fg, marginTop: -4, fontWeight: "700" },
+              ]}
+            >
+              / 100
+            </Text>
+          </View>
+
+          <View style={{ flex: 1, gap: 4 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.xs,
+              }}
+            >
+              <HeartPulse size={14} color={palette.fg} strokeWidth={2.25} />
+              <Text
+                style={[
+                  typography.overline,
+                  { color: palette.fg, letterSpacing: 1.2, fontWeight: "700" },
+                ]}
+              >
+                {data.level?.label?.toUpperCase() ?? "WELLNESS"}
+              </Text>
+            </View>
+            <Text
+              style={[
+                typography.title.md,
+                { color: colors.text, fontWeight: "800", fontSize: 18 },
+              ]}
+            >
+              {score >= 75
+                ? "You're doing great"
+                : score >= 45
+                ? "Room to improve"
+                : "Let's get back on track"}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Trend size={12} color={colors.textMuted} strokeWidth={2.25} />
+              <Text style={[typography.caption, { color: colors.textMuted }]}>
+                {data.bmi != null
+                  ? `BMI ${data.bmi} • ${data.bmiCategory}`
+                  : "Complete profile for BMI"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Component breakdown */}
+        <View style={{ gap: spacing.sm }}>
+          {components.map((c) => (
+            <WellnessBar
+              key={c.key}
+              label={c.label}
+              score={c.score}
+              max={c.max}
+              tone={COMPONENT_TONE[c.key] ?? "neutral"}
+            />
+          ))}
+        </View>
+
+        {/* Top tip */}
+        {data.topTip ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: spacing.sm,
+              padding: spacing.md,
+              borderRadius: radius.lg,
+              backgroundColor: palette.bg,
+              borderWidth: 1,
+              borderColor: `${palette.fg}33`,
+            }}
+          >
+            <Sparkles size={16} color={palette.fg} strokeWidth={2.25} />
+            <Text
+              style={[
+                typography.body.sm,
+                { color: colors.text, flex: 1, lineHeight: 18 },
+              ]}
+            >
+              {data.topTip}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Quick stats row */}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: spacing.sm,
+            paddingTop: spacing.xs,
+          }}
+        >
+          <MiniStat
+            icon={Droplet}
+            label="Blood"
+            value={data.profile.filled > 0 ? `${data.profile.filled}/${data.profile.total}` : "—"}
+          />
+          <MiniStat
+            icon={Pill}
+            label="Doses"
+            value={
+              data.adherence.scheduled > 0
+                ? `${data.adherence.taken}/${data.adherence.scheduled}`
+                : "—"
+            }
+          />
+          <MiniStat
+            icon={Activity}
+            label="Vitals"
+            value={String(data.vitals.readings ?? 0)}
+          />
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
+
+function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  const { colors, spacing, typography, radius } = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.xs,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.surfaceMuted,
+      }}
+    >
+      <Icon size={14} color={colors.textMuted} strokeWidth={2.25} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.textMuted, fontWeight: "600" },
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[
+            typography.label.md,
+            { color: colors.text, fontWeight: "800" },
+          ]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+      </View>
     </View>
   );
 }
