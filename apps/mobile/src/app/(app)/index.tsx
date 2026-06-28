@@ -998,7 +998,7 @@ function WellnessCard() {
   const score = data.score;
   const tone: Tone = data.level?.tone ?? "info";
   const palette = useTone(tone);
-  const components = data.components ?? [];
+  const components = Array.isArray(data.components) ? data.components : [];
   const Trend =
     score >= 75 ? TrendingUp : score >= 45 ? Minus : TrendingDown;
 
