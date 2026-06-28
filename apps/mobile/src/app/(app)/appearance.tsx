@@ -1,17 +1,17 @@
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  Smartphone,
-  Sun,
-  Moon,
-  Heart,
-  Pill,
-  Check,
-} from "lucide-react-native";
+import { Smartphone, Sun, Moon, Heart, Pill, Check } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Screen, Card, Button, useToast } from "@/components/ui";
+import {
+  Screen,
+  ScreenHeader,
+  Card,
+  Button,
+  SectionHeader,
+  useToast,
+} from "@/components/ui";
+import { withOpacity } from "@/constants/theme";
 
 export default function AppearanceScreen() {
   const router = useRouter();
@@ -47,79 +47,25 @@ export default function AppearanceScreen() {
   ];
 
   return (
-    <Screen padded={false} edges={["top"]} bottomInset>
-      {/* Top Header */}
+    <Screen padded={false} edges={["top"]} bottomInset scroll>
+      <ScreenHeader
+        back
+        onBack={() => router.back()}
+        title="Appearance"
+        subtitle="Customize how HealthHub looks"
+      />
+
       <View
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
           paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          backgroundColor: colors.surface,
+          paddingTop: spacing.md,
+          paddingBottom: spacing.xxxl,
+          gap: spacing.xl,
         }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-          })}
-        >
-          <ArrowLeft size={22} color={colors.text} />
-        </Pressable>
-        <Text
-          style={[
-            typography.title.md,
-            { color: colors.text, fontWeight: "800", fontSize: 18 },
-          ]}
-        >
-          Appearance
-        </Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        {/* Page Header */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.md }}>
-          <Text
-            style={[
-              typography.title.lg,
-              { color: colors.text, fontWeight: "900", fontSize: 24 },
-            ]}
-          >
-            Customize Theme
-          </Text>
-          <Text
-            style={[
-              typography.body.md,
-              { color: colors.textMuted, marginTop: 4 },
-            ]}
-          >
-            Customize how HealthHub looks on your device.
-          </Text>
-        </View>
-
-        {/* Radio Option cards */}
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md, marginBottom: spacing.xl }}>
-          <Text
-            style={[
-              typography.overline,
-              { color: colors.textMuted, letterSpacing: 0.5, fontWeight: "700", marginBottom: 4 },
-            ]}
-          >
-            APPEARANCE MODE
-          </Text>
+        {/* ─── Appearance mode ───────────────────────────── */}
+        <View style={{ gap: spacing.sm }}>
+          <SectionHeader title="Appearance mode" />
 
           {options.map((opt) => {
             const selected = scheme === opt.value;
@@ -129,65 +75,74 @@ export default function AppearanceScreen() {
               <Pressable
                 key={opt.value}
                 onPress={() => setScheme(opt.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
                 style={({ pressed }) => ({
                   flexDirection: "row",
                   alignItems: "center",
+                  gap: spacing.md,
                   padding: spacing.md,
                   borderRadius: radius.xl,
                   borderWidth: selected ? 2 : 1,
                   borderColor: selected ? colors.primary : colors.border,
-                  backgroundColor: selected ? `${colors.primarySoft}20` : colors.surface,
+                  backgroundColor: selected
+                    ? withOpacity(colors.primary, 0.06)
+                    : colors.surface,
                   opacity: pressed ? 0.95 : 1,
                 })}
               >
-                {/* Icon Container */}
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: selected ? colors.primary : colors.surfaceMuted,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: selected
+                      ? colors.primary
+                      : colors.surfaceMuted,
                     alignItems: "center",
                     justifyContent: "center",
-                    marginRight: spacing.md,
                   }}
                 >
-                  <Icon size={20} color={selected ? colors.onPrimary : colors.text} />
+                  <Icon
+                    size={20}
+                    color={selected ? colors.onPrimary : colors.text}
+                    strokeWidth={2.25}
+                  />
                 </View>
 
-                {/* Details */}
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                   <Text
+                    numberOfLines={1}
                     style={[
                       typography.title.sm,
-                      { color: selected ? colors.primary : colors.text, fontWeight: "800" },
+                      { color: selected ? colors.primary : colors.text },
                     ]}
                   >
                     {opt.label}
                   </Text>
                   <Text
+                    numberOfLines={2}
                     style={[
-                      typography.caption,
-                      { color: colors.textMuted, marginTop: 2 },
+                      typography.body.sm,
+                      { color: colors.textMuted },
                     ]}
                   >
                     {opt.description}
                   </Text>
                 </View>
 
-                {/* Radio selection circle indicator */}
                 <View
                   style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 10,
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
                     borderWidth: 2,
-                    borderColor: selected ? colors.primary : colors.textMuted,
+                    borderColor: selected ? colors.primary : colors.textSubtle,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  {selected && (
+                  {selected ? (
                     <View
                       style={{
                         width: 10,
@@ -196,25 +151,18 @@ export default function AppearanceScreen() {
                         backgroundColor: colors.primary,
                       }}
                     />
-                  )}
+                  ) : null}
                 </View>
               </Pressable>
             );
           })}
         </View>
 
-        {/* Visual Preview Card (Stitch layout copy) */}
-        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.xl }}>
-          <Text
-            style={[
-              typography.overline,
-              { color: colors.textMuted, letterSpacing: 0.5, fontWeight: "700", marginBottom: spacing.md },
-            ]}
-          >
-            PREVIEW
-          </Text>
+        {/* ─── Preview ───────────────────────────────────── */}
+        <View style={{ gap: spacing.sm }}>
+          <SectionHeader title="Preview" />
 
-          <Card padded={false} style={{ overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
+          <Card padded={false}>
             {/* Mock top bar */}
             <View
               style={{
@@ -222,40 +170,88 @@ export default function AppearanceScreen() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 paddingHorizontal: spacing.md,
-                paddingVertical: spacing.xs,
+                paddingVertical: spacing.sm,
                 backgroundColor: colors.surfaceMuted,
+                borderTopLeftRadius: radius.lg,
+                borderTopRightRadius: radius.lg,
                 borderBottomWidth: 1,
                 borderBottomColor: colors.border,
               }}
             >
-              <Heart size={14} color={colors.primary} />
-              <View style={{ flexDirection: "row", gap: 4 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.textMuted }} />
-                <View style={{ width: 14, height: 8, borderRadius: 2, backgroundColor: colors.textMuted }} />
+              <Heart size={14} color={colors.primary} strokeWidth={2.25} />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.textMuted,
+                  }}
+                />
+                <View
+                  style={{
+                    width: 14,
+                    height: 8,
+                    borderRadius: 2,
+                    backgroundColor: colors.textMuted,
+                  }}
+                />
               </View>
             </View>
 
-            {/* Mock Content */}
-            <View style={{ padding: spacing.md, gap: spacing.md, backgroundColor: colors.bg }}>
-              {/* Mock Hero card */}
+            {/* Mock content */}
+            <View
+              style={{
+                padding: spacing.md,
+                gap: spacing.md,
+                backgroundColor: colors.bg,
+                borderBottomLeftRadius: radius.lg,
+                borderBottomRightRadius: radius.lg,
+              }}
+            >
+              {/* Mock hero */}
               <View
                 style={{
-                  height: 60,
+                  height: 64,
                   backgroundColor: colors.primarySoft,
                   borderRadius: radius.md,
                   padding: spacing.sm,
                   justifyContent: "center",
                 }}
               >
-                <View style={{ width: 40, height: 8, borderRadius: 4, backgroundColor: colors.primary, opacity: 0.4 }} />
-                <View style={{ width: 80, height: 14, borderRadius: 4, backgroundColor: colors.primary, marginTop: 4 }} />
+                <View
+                  style={{
+                    width: 40,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.primary,
+                    opacity: 0.4,
+                  }}
+                />
+                <View
+                  style={{
+                    width: 96,
+                    height: 12,
+                    borderRadius: 4,
+                    backgroundColor: colors.primary,
+                    marginTop: 6,
+                    opacity: 0.7,
+                  }}
+                />
               </View>
 
-              {/* Mock list item */}
+              {/* Mock list row */}
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
+                  gap: spacing.sm,
                   padding: spacing.sm,
                   backgroundColor: colors.surface,
                   borderRadius: radius.md,
@@ -265,42 +261,53 @@ export default function AppearanceScreen() {
               >
                 <View
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
                     backgroundColor: colors.successSoft,
                     alignItems: "center",
                     justifyContent: "center",
-                    marginRight: spacing.sm,
                   }}
                 >
-                  <Pill size={14} color={colors.success} />
+                  <Pill
+                    size={16}
+                    color={colors.success}
+                    strokeWidth={2.25}
+                  />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
-                  <View style={{ width: 70, height: 8, borderRadius: 4, backgroundColor: colors.text, opacity: 0.8 }} />
-                  <View style={{ width: 40, height: 6, borderRadius: 3, backgroundColor: colors.textMuted, opacity: 0.5 }} />
+                  <View
+                    style={{
+                      width: 80,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: colors.text,
+                      opacity: 0.8,
+                    }}
+                  />
+                  <View
+                    style={{
+                      width: 48,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: colors.textMuted,
+                      opacity: 0.5,
+                    }}
+                  />
                 </View>
-                <Check size={16} color={colors.success} strokeWidth={3} />
+                <Check size={16} color={colors.success} strokeWidth={2.5} />
               </View>
             </View>
           </Card>
         </View>
-      </ScrollView>
 
-      {/* Bottom Footer Actions */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: spacing.lg,
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-        }}
-      >
-        <Button title="Apply Changes" onPress={handleApply} variant="primary" />
+        {/* ─── Apply ─────────────────────────────────────── */}
+        <Button
+          title="Apply Changes"
+          onPress={handleApply}
+          size="lg"
+          fullWidth
+        />
       </View>
     </Screen>
   );
