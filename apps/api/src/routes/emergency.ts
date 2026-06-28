@@ -277,7 +277,7 @@ emergencyRouter.put("/:id/status", authMiddleware, async (c) => {
     .where(eq(emergencies.id, emergencyId))
     .limit(1);
 
-  if (!existing || existing.emergencies.patientId !== patient.patients.id) {
+  if (!existing || (existing.emergencies?.patientId ?? existing.patientId) !== (patient.patients?.id ?? patient.id)) {
     return c.json({ error: "Access denied" }, 403);
   }
 
@@ -308,7 +308,7 @@ emergencyRouter.get("/me", authMiddleware, async (c) => {
   const history = await db
     .select()
     .from(emergencies)
-    .where(eq(emergencies.patientId, patient.patients.id));
+    .where(eq(emergencies.patientId, (patient.patients?.id ?? patient.id)));
 
   return c.json({ emergencies: history });
 });

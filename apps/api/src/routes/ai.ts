@@ -9,7 +9,8 @@ import {
   medicines,
   labReports,
   vitals,
-  notifications,
+  chatSessions,
+  chatMessages,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import {
@@ -24,8 +25,10 @@ import {
   cacheGet,
   cacheStore,
   tryParseJson,
+  hasShape,
   systemPrompt,
   findStaticInteractions,
+  fetchR2Text,
   fallbackSummary,
   fallbackLabExplain,
   fallbackDrugCheck,
@@ -33,17 +36,51 @@ import {
   fallbackOcr,
   type ChatMsg,
 } from "../lib/ai";
+import { canAccessPatient, getPatientForUser } from "../lib/access";
 import type { AppEnvironment } from "../types";
 
 const ai = new Hono<AppEnvironment>();
 
 ai.use("*", authMiddleware);
 
+// ─── helpers ─────────────────────────────────────────────
+
+// Extract a usable R2 key from a `fileUrl` (which may be a raw key, an
+// absolute URL, or a local file:// URI). Returns "" if it doesn't look
+// like a key we can fetch from our R2.
+function extractR2Key(input: string): string {
+  if (!input) return "";
+  // Raw key (no scheme)
+  if (!/^[a-z]+:\/\//i.test(input)) return input.trim();
+  try {
+    const u = new URL(input);
+    if (u.protocol === "http:" || u.protocol === "https:") {
+      // Allow only the public R2 host OR our same-origin /files path.
+      const host = u.host.toLowerCase();
+      if (host.endsWith(".r2.cloudflarestorage.com")) {
+        // path-style: /<bucket>/<key>
+        const parts = u.pathname.replace(/^\/+/, "").split("/");
+        parts.shift(); // drop bucket
+        return parts.join("/");
+      }
+      // Same-origin /files/download/<key>?stream=1
+      if (u.pathname.startsWith("/files/download/")) {
+        return decodeURIComponent(u.pathname.split("/").pop() || "");
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
 // ─── Medical Summary ─────────────────────────────────────
 // POST /ai/summary  { patientId }
 ai.post("/summary", async (c) => {
   const db = c.get("db");
   const aiBinding = c.env.AI;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
   const body = await c.req.json().catch(() => ({}));
   const parsed = aiSummarySchema.safeParse(body);
   if (!parsed.success) {
@@ -51,6 +88,12 @@ ai.post("/summary", async (c) => {
       { error: "Validation failed", details: parsed.error.flatten() },
       400
     );
+  }
+
+  // RBAC: only the patient themselves or a doctor with relationship may summarise.
+  const access = await canAccessPatient(db, userId, userRole, parsed.data.patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
   }
 
   // Cache lookup
@@ -152,7 +195,7 @@ ai.post("/summary", async (c) => {
         systemPrompt(
           "Summarize a patient's medical history in a clear, structured way."
         ) +
-        " Return JSON with keys: patientSummary (string), diagnoses (string[]), medicines (string[]), history (string[]), risks (string[]), recentTests (string[]).",
+        ' Return JSON with keys: patientSummary (string), diagnoses (string[]), medicines (string[]), history (string[]), risks (string[]), recentTests (string[]).',
     },
     {
       role: "user",
@@ -167,7 +210,15 @@ ai.post("/summary", async (c) => {
       temperature: 0.2,
     });
     const parsedJson = tryParseJson<any>(out);
-    summary = parsedJson || fallbackSummary();
+    const safe = hasShape(parsedJson, {
+      patientSummary: "string",
+      diagnoses: "string[]",
+      medicines: "string[]",
+      history: "string[]",
+      risks: "string[]",
+      recentTests: "string[]",
+    });
+    summary = safe || fallbackSummary();
   } catch (err) {
     console.error("[ai/summary] failed", err);
     summary = fallbackSummary();
@@ -182,6 +233,9 @@ ai.post("/summary", async (c) => {
 ai.post("/explain/lab-report", async (c) => {
   const db = c.get("db");
   const aiBinding = c.env.AI;
+  const r2 = c.env.R2;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
   const body = await c.req.json().catch(() => ({}));
   const parsed = aiLabExplainSchema.safeParse(body);
   if (!parsed.success) {
@@ -190,45 +244,42 @@ ai.post("/explain/lab-report", async (c) => {
       400
     );
   }
-  // Allow client-supplied text (most reliable path for now)
   const textHint: string | undefined = body.textHint;
   const fileUrl: string = parsed.data.fileUrl;
+  const reportId: string | undefined = parsed.data.reportId;
 
-  const cacheKey = { fileUrl, textHint: textHint || null };
+  // RBAC: if reportId is provided, derive patientId from the report and
+  // check access. Otherwise require the patientId in the body.
+  let patientId: string | undefined = body.patientId;
+  if (reportId) {
+    const [r] = await db
+      .select()
+      .from(labReports)
+      .where(eq(labReports.id, reportId))
+      .limit(1);
+    if (!r) return c.json({ error: "Report not found" }, 404);
+    patientId = r.patientId;
+  }
+  if (!patientId) {
+    return c.json({ error: "patientId or reportId is required" }, 400);
+  }
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const cacheKey = { fileUrl, textHint: textHint || null, reportId: reportId || null };
   const cached = await cacheGet(db, "lab_explain", cacheKey);
   if (cached) return c.json({ explanation: cached, cached: true });
 
-  // Best-effort: download from R2 (works only for objects in our bucket).
+  // Fetch the file from R2 (safe; no SSRF). Only used if the input is a
+  // raw key or our own R2 URL. If extraction fails, we fall back to hint.
   let extracted = textHint || "";
   if (!extracted) {
-    try {
-      // Try to fetch the file URL (must be publicly readable OR signed).
-      const resp = await fetch(fileUrl);
-      if (resp.ok) {
-        const ct = resp.headers.get("content-type") || "";
-        const body = await resp.text();
-        if (ct.includes("json") || body.trim().startsWith("{")) {
-          try {
-            const j = JSON.parse(body);
-            extracted =
-              j?.text ||
-              j?.content ||
-              j?.rawText ||
-              JSON.stringify(j).slice(0, 4000);
-          } catch {
-            extracted = body.slice(0, 4000);
-          }
-        } else if (ct.includes("pdf")) {
-          // Crude: pull anything that looks like text. Real PDF parsing is out
-          // of scope for v2.
-          const text = body.replace(/[^\x20-\x7E\n]/g, " ");
-          extracted = text.slice(0, 4000);
-        } else {
-          extracted = body.slice(0, 4000);
-        }
-      }
-    } catch (err) {
-      console.error("[ai/lab-explain] fetch failed", err);
+    const key = extractR2Key(fileUrl);
+    if (key) {
+      const text = await fetchR2Text(r2, key);
+      if (text) extracted = text;
     }
   }
 
@@ -264,7 +315,13 @@ ai.post("/explain/lab-report", async (c) => {
       maxTokens: 600,
       temperature: 0.2,
     });
-    explanation = tryParseJson<any>(out) || fallbackLabExplain();
+    const parsedJson = tryParseJson<any>(out);
+    const safe = hasShape(parsedJson, {
+      explanation: "string",
+      recommendations: "string[]",
+      abnormalValues: "string[]",
+    });
+    explanation = safe || fallbackLabExplain();
   } catch (err) {
     console.error("[ai/lab-explain] failed", err);
     explanation = fallbackLabExplain();
@@ -276,6 +333,7 @@ ai.post("/explain/lab-report", async (c) => {
 
 // ─── Drug Interaction Check ──────────────────────────────
 // POST /ai/drug-interaction  { medicines: string[] }
+// No RBAC: drugs are non-PHI; any logged-in user may check.
 ai.post("/drug-interaction", async (c) => {
   const db = c.get("db");
   const aiBinding = c.env.AI;
@@ -325,7 +383,14 @@ ai.post("/drug-interaction", async (c) => {
     const parsedJson = tryParseJson<{ interactions: any[] }>(out);
     if (parsedJson?.interactions && Array.isArray(parsedJson.interactions)) {
       llmHits = parsedJson.interactions
-        .filter((x) => x && x.medicines && x.severity && x.note)
+        .filter(
+          (x) =>
+            x &&
+            Array.isArray(x.medicines) &&
+            x.medicines.length >= 2 &&
+            ["minor", "moderate", "severe"].includes(x.severity) &&
+            typeof x.note === "string"
+        )
         .map((x) => ({ ...x, source: "model" as const }));
     }
   } catch (err) {
@@ -351,6 +416,7 @@ ai.post("/chat", async (c) => {
   const db = c.get("db");
   const aiBinding = c.env.AI;
   const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
   const body = await c.req.json().catch(() => ({}));
   const parsed = aiChatSchema.safeParse(body);
   if (!parsed.success) {
@@ -362,8 +428,16 @@ ai.post("/chat", async (c) => {
 
   const { message, patientId, sessionId } = parsed.data;
 
-  // Build minimal context. If a patientId is provided and the user is the
-  // patient or a doctor with access, pull a small slice of context.
+  // RBAC: if patientId is provided, only the patient or a doctor with
+  // relationship may chat with their context.
+  if (patientId) {
+    const access = await canAccessPatient(db, userId, userRole, patientId);
+    if (!access.allowed) {
+      return c.json({ error: "Access denied", reason: access.reason }, 403);
+    }
+  }
+
+  // Build minimal context. If a patientId is provided, pull a small slice.
   let context: any = null;
   if (patientId) {
     const [p] = await db
@@ -409,7 +483,6 @@ ai.post("/chat", async (c) => {
   // Pull recent chat history if sessionId provided
   let history: ChatMsg[] = [];
   if (sessionId) {
-    const { chatMessages, chatSessions } = await import("@healthcare/db");
     const [sess] = await db
       .select()
       .from(chatSessions)
@@ -460,10 +533,13 @@ ai.post("/chat", async (c) => {
 });
 
 // ─── Prescription OCR ────────────────────────────────────
-// POST /ai/ocr/prescription  { fileUrl, textHint? }
+// POST /ai/ocr/prescription  { fileUrl, textHint?, patientId? }
 ai.post("/ocr/prescription", async (c) => {
   const db = c.get("db");
   const aiBinding = c.env.AI;
+  const r2 = c.env.R2;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
   const body = await c.req.json().catch(() => ({}));
   const parsed = aiOcrSchema.safeParse(body);
   if (!parsed.success) {
@@ -474,6 +550,17 @@ ai.post("/ocr/prescription", async (c) => {
   }
   const textHint: string | undefined = body.textHint;
   const fileUrl: string = parsed.data.fileUrl;
+  const patientId: string | undefined = body.patientId;
+
+  // RBAC: if patientId is provided, only the patient or a doctor with
+  // relationship may run OCR with context. Without a patientId the result
+  // is generic (no PHI lookup) — still allowed.
+  if (patientId) {
+    const access = await canAccessPatient(db, userId, userRole, patientId);
+    if (!access.allowed) {
+      return c.json({ error: "Access denied", reason: access.reason }, 403);
+    }
+  }
 
   const cacheKey = { fileUrl, textHint: textHint || null };
   const cached = await cacheGet(db, "ocr", cacheKey);
@@ -481,13 +568,9 @@ ai.post("/ocr/prescription", async (c) => {
 
   let text = textHint || "";
   if (!text) {
-    try {
-      const resp = await fetch(fileUrl);
-      if (resp.ok) {
-        text = (await resp.text()).slice(0, 4000);
-      }
-    } catch (err) {
-      console.error("[ai/ocr] fetch failed", err);
+    const key = extractR2Key(fileUrl);
+    if (key) {
+      text = await fetchR2Text(r2, key);
     }
   }
 
@@ -516,7 +599,27 @@ ai.post("/ocr/prescription", async (c) => {
       maxTokens: 600,
       temperature: 0.1,
     });
-    result = tryParseJson<any>(out) || fallbackOcr();
+    const parsedJson = tryParseJson<any>(out);
+    const safe = hasShape(parsedJson, {
+      medicines: "object",
+      doctor: "string",
+      date: "string",
+      diagnosis: "string",
+    });
+    result = safe || fallbackOcr();
+    // Normalise medicines array shape
+    if (Array.isArray((result as any).medicines)) {
+      (result as any).medicines = (result as any).medicines
+        .filter((m: any) => m && typeof m.name === "string")
+        .map((m: any) => ({
+          name: String(m.name).trim(),
+          dosage: typeof m.dosage === "string" ? m.dosage : "",
+          frequency: typeof m.frequency === "string" ? m.frequency : "",
+          timing: typeof m.timing === "string" ? m.timing : "",
+        }));
+    } else {
+      (result as any).medicines = [];
+    }
   } catch (err) {
     console.error("[ai/ocr] failed", err);
     result = fallbackOcr();

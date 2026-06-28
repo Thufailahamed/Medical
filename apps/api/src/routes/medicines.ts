@@ -87,7 +87,7 @@ medicinesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => 
   const active = await db
     .select()
     .from(medicines)
-    .where(eq(medicines.patientId, patient.patients.id));
+    .where(eq(medicines.patientId, (patient.patients?.id ?? patient.id)));
 
   return c.json({ medicines: active });
 });
@@ -107,7 +107,7 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor"), asyn
       .where(eq(patients.userId, userId))
       .limit(1);
 
-    if (!patient || patient.patients.id !== body.patientId) {
+    if (!patient || (patient.patients?.id ?? patient.id) !== body.patientId) {
       return c.json({ error: "Cannot add medicines for other patients" }, 403);
     }
   }
@@ -162,7 +162,7 @@ medicinesRouter.put("/:id", authMiddleware, requireRole("patient", "doctor"), as
       .where(eq(medicines.id, medicineId))
       .limit(1);
 
-    if (!existing || existing.medicines.patientId !== patient.patients.id) {
+    if (!existing || (existing.medicines?.patientId ?? existing.patientId) !== (patient.patients?.id ?? patient.id)) {
       return c.json({ error: "Access denied" }, 403);
     }
   }
@@ -207,7 +207,7 @@ medicinesRouter.post("/:id/stop", authMiddleware, requireRole("patient"), async 
     .where(eq(medicines.id, medicineId))
     .limit(1);
 
-  if (!existing || existing.medicines.patientId !== patient.patients.id) {
+  if (!existing || (existing.medicines?.patientId ?? existing.patientId) !== (patient.patients?.id ?? patient.id)) {
     return c.json({ error: "Access denied" }, 403);
   }
 
@@ -244,7 +244,7 @@ medicinesRouter.delete("/:id", authMiddleware, requireRole("patient", "doctor"),
       .where(eq(medicines.id, medicineId))
       .limit(1);
 
-    if (!existing || existing.medicines.patientId !== patient.patients.id) {
+    if (!existing || (existing.medicines?.patientId ?? existing.patientId) !== (patient.patients?.id ?? patient.id)) {
       return c.json({ error: "Access denied" }, 403);
     }
   }
@@ -276,7 +276,7 @@ medicinesRouter.get("/today", authMiddleware, requireRole("patient"), async (c) 
     .from(medicines)
     .where(
       and(
-        eq(medicines.patientId, patient.patients.id),
+        eq(medicines.patientId, (patient.patients?.id ?? patient.id)),
         eq(medicines.active, true),
         lte(medicines.startDate, today),
         or(

@@ -555,6 +555,7 @@ export default function ProfileScreen() {
                     subtitle={item.subtitle}
                     onPress={item.onPress}
                     showChevron
+                    bordered={false}
                   />
                   {i < accountItems.length - 1 ? <Divider /> : null}
                 </View>
@@ -577,6 +578,7 @@ export default function ProfileScreen() {
                     subtitle={item.subtitle}
                     onPress={item.onPress}
                     showChevron
+                    bordered={false}
                   />
                   {i < healthItems.length - 1 ? <Divider /> : null}
                 </View>
@@ -597,6 +599,7 @@ export default function ProfileScreen() {
                 subtitle="FAQs and contact options"
                 onPress={() => router.push("/(app)/support" as any)}
                 showChevron
+                bordered={false}
               />
             </Card>
           </View>

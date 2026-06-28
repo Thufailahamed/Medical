@@ -55,10 +55,31 @@ export function useUpdatePatientProfile() {
 }
 
 // ─── Medical Records ─────────────────────────────────────
-export function useMedicalRecords() {
+export function useMedicalRecords(opts?: { limit?: number; offset?: number; type?: string }) {
   return useQuery({
-    queryKey: ["medical-records"],
-    queryFn: () => api<{ records: any[] }>("/medical-records/me"),
+    queryKey: ["medical-records", opts?.limit ?? 50, opts?.offset ?? 0, opts?.type ?? "all"],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.offset) params.set("offset", String(opts.offset));
+      if (opts?.type && opts.type !== "all") params.set("type", opts.type);
+      const qs = params.toString();
+      return api<{ records: any[]; total: number; limit: number; offset: number }>(
+        `/medical-records/me${qs ? `?${qs}` : ""}`
+      );
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useRecordStats() {
+  return useQuery({
+    queryKey: ["medical-records", "stats"],
+    queryFn: () =>
+      api<{ total: number; byType: Record<string, number>; lastDate: string | null }>(
+        "/medical-records/me/stats"
+      ),
+    staleTime: 60_000,
   });
 }
 
@@ -80,6 +101,21 @@ export function useCreateMedicalRecord() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+    },
+  });
+}
+
+export function useEditMedicalRecord() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; [k: string]: any }) =>
+      api<{ record: any }>(`/medical-records/${id}`, {
+        method: "PATCH",
+        body: data,
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["medical-records", vars.id] });
     },
   });
 }

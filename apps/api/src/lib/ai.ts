@@ -2,6 +2,9 @@
 // Cloudflare Workers AI helpers — text generation with JSON parsing, cache,
 // and graceful fallback. Used by /ai and /chat routes.
 
+import { aiCache } from "@healthcare/db";
+import { and, eq, gt, sql } from "drizzle-orm";
+
 export type AiKind =
   | "summary"
   | "lab_explain"
@@ -10,6 +13,11 @@ export type AiKind =
   | "ocr";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
+// Hard caps to prevent abuse / runaway costs.
+const MAX_INPUT_CHARS = 8000;        // prompt payload cap
+const MAX_R2_FETCH_BYTES = 2_000_000; // 2 MB read from R2 per AI call
+const AI_TIMEOUT_MS = 25_000;        // per-call deadline
 
 // ─── Cache helpers ───────────────────────────────────────
 async function sha256Hex(s: string): Promise<string> {
@@ -27,8 +35,6 @@ export async function cacheStore(
   ttlSeconds = 60 * 60 * 24
 ): Promise<void> {
   try {
-    const { aiCache } = await import("@healthcare/db");
-    const { sql } = await import("drizzle-orm");
     const hash = await sha256Hex(JSON.stringify(input));
     const ttlAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     await db
@@ -50,8 +56,6 @@ export async function cacheGet(
   input: unknown
 ): Promise<any | null> {
   try {
-    const { aiCache } = await import("@healthcare/db");
-    const { and, eq, gt } = await import("drizzle-orm");
     const hash = await sha256Hex(JSON.stringify(input));
     const now = new Date().toISOString();
     const [row] = await db
@@ -72,34 +76,89 @@ export async function cacheGet(
   }
 }
 
+// ─── R2 fetch helper (safe, bounded) ─────────────────────
+// Fetches an R2 object as text with a hard size cap. Strips non-printable
+// characters. Returns "" on any failure. Only used for *our* R2 bucket
+// (key provided, not URL), so no SSRF surface.
+export async function fetchR2Text(
+  r2: any,
+  key: string,
+  maxBytes = MAX_R2_FETCH_BYTES
+): Promise<string> {
+  if (!r2 || !key) return "";
+  try {
+    const obj = await r2.get(key);
+    if (!obj) return "";
+    const size = obj.size ?? 0;
+    if (size > maxBytes) {
+      // Read a bounded slice instead of failing outright
+      const stream = obj.body as ReadableStream | null;
+      if (!stream) return "";
+      const limited = stream.pipeThrough(
+        new TransformStream({
+          transform(chunk, ctrl) {
+            ctrl.enqueue(chunk);
+          },
+        })
+      );
+      const buf = await new Response(limited as any).arrayBuffer();
+      const slice = new Uint8Array(buf).slice(0, maxBytes);
+      return new TextDecoder("utf-8", { fatal: false })
+        .decode(slice)
+        .replace(/[^\x20-\x7E\n\r\t]/g, " ");
+    }
+    const text = await obj.text();
+    return (text || "").slice(0, maxBytes).replace(/[^\x20-\x7E\n\r\t]/g, " ");
+  } catch (err) {
+    console.error("[ai] fetchR2Text failed", err);
+    return "";
+  }
+}
+
 // ─── Model call ──────────────────────────────────────────
 export type ChatMsg = { role: "system" | "user" | "assistant"; content: string };
 
 export async function aiComplete(
   ai: any,
   messages: ChatMsg[],
-  opts: { maxTokens?: number; temperature?: number; model?: string } = {}
+  opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number } = {}
 ): Promise<string> {
-  const model = opts.model || TEXT_MODEL;
-  let res: any;
-  try {
-    res = await ai.run(model, {
-      messages,
-      max_tokens: opts.maxTokens ?? 800,
-      temperature: opts.temperature ?? 0.3,
-    });
-  } catch (err) {
-    console.error("[aiComplete] ai.run threw:", (err as Error)?.message || err);
+  if (!ai) {
+    console.error("[aiComplete] no AI binding");
     return "";
   }
-  // Workers AI returns { response: "..." } for chat models
-  return (
-    res?.response ??
-    res?.output_text ??
-    res?.result?.response ??
-    (typeof res === "string" ? res : "") ??
-    ""
-  );
+  const model = opts.model || TEXT_MODEL;
+
+  // Cap the prompt size to prevent abuse / token overflow.
+  const safeMessages: ChatMsg[] = messages.map((m) => ({
+    role: m.role,
+    content: (m.content || "").slice(0, MAX_INPUT_CHARS),
+  }));
+
+  const timeoutMs = opts.timeoutMs ?? AI_TIMEOUT_MS;
+  const work = (async () => {
+    try {
+      const res = await ai.run(model, {
+        messages: safeMessages,
+        max_tokens: opts.maxTokens ?? 800,
+        temperature: opts.temperature ?? 0.3,
+      });
+      // Workers AI returns { response: "..." } for chat models
+      return (
+        res?.response ??
+        res?.output_text ??
+        res?.result?.response ??
+        (typeof res === "string" ? res : "") ??
+        ""
+      );
+    } catch (err) {
+      console.error("[aiComplete] ai.run threw:", (err as Error)?.message || err);
+      return "";
+    }
+  })();
+
+  const timer = new Promise<string>((resolve) => setTimeout(() => resolve(""), timeoutMs));
+  return Promise.race([work, timer]);
 }
 
 // ─── JSON parser ─────────────────────────────────────────
@@ -125,6 +184,24 @@ export function tryParseJson<T = any>(text: string): T | null {
     }
     return null;
   }
+}
+
+// Loose shape guard: confirms the parsed object has the expected top-level
+// keys and (recursively, one level) that arrays/strings are arrays/strings.
+// Returns the input unchanged on success; returns null on mismatch.
+export function hasShape<T = any>(input: any, shape: Record<string, "string" | "string[]" | "object">): T | null {
+  if (!input || typeof input !== "object") return null;
+  for (const [k, t] of Object.entries(shape)) {
+    const v = input[k];
+    if (t === "string") {
+      if (typeof v !== "string") return null;
+    } else if (t === "string[]") {
+      if (!Array.isArray(v) || v.some((x) => typeof x !== "string")) return null;
+    } else if (t === "object") {
+      if (!v || typeof v !== "object") return null;
+    }
+  }
+  return input as T;
 }
 
 // ─── Prompt helpers ──────────────────────────────────────
@@ -262,8 +339,9 @@ export function fallbackDrugCheck() {
   };
 }
 
-export function fallbackChat(message: string) {
-  return `I'm having trouble reaching the assistant right now. If this is urgent, please contact your doctor. (You said: "${message.slice(0, 120)}")`;
+export function fallbackChat(_message: string) {
+  // Do NOT echo the user's message back — avoid leaking input verbatim.
+  return "I'm having trouble reaching the assistant right now. If this is urgent, please contact your doctor or local emergency services.";
 }
 
 export function fallbackOcr() {
@@ -275,3 +353,6 @@ export function fallbackOcr() {
     note: "OCR unavailable. Please enter medicines manually.",
   };
 }
+
+// Re-export sql to satisfy older import paths if any.
+export { sql };

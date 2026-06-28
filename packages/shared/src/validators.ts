@@ -125,8 +125,9 @@ export const aiSummarySchema = z.object({
 });
 
 export const aiLabExplainSchema = z.object({
-  fileUrl: z.string().url(),
+  fileUrl: z.string().url().or(z.string().min(1)), // accept raw R2 key OR http(s) URL
   reportId: z.string().optional(),
+  textHint: z.string().max(8000).optional(),
 });
 
 export const aiDrugInteractionSchema = z.object({
@@ -140,5 +141,6 @@ export const aiChatSchema = z.object({
 });
 
 export const aiOcrSchema = z.object({
-  fileUrl: z.string().url(),
+  fileUrl: z.string().url().or(z.string().min(1)),
+  textHint: z.string().max(8000).optional(),
 });

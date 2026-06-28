@@ -36,6 +36,7 @@ type Props = {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
+  bordered?: boolean;
 };
 
 export function ListItem({
@@ -57,6 +58,7 @@ export function ListItem({
   accessibilityLabel,
   accessibilityHint,
   style,
+  bordered,
 }: Props) {
   const { colors, spacing, radius, typography } = useTheme();
   const palette = useTone(iconTone);
@@ -64,8 +66,8 @@ export function ListItem({
   const compact = variant === "timeline";
   const padV = compact ? spacing.sm : spacing.md;
   const padH = compact ? spacing.sm : spacing.lg;
-  const radius_ = compact ? radius.lg : radius.xl;
-  const showBorder = !compact;
+  const showBorder = bordered !== undefined ? bordered : !compact;
+  const radius_ = showBorder ? (compact ? radius.lg : radius.xl) : 0;
 
   const iconBox = compact ? 36 : 44;
   const iconSize = compact ? 16 : 20;
@@ -79,7 +81,7 @@ export function ListItem({
           gap: spacing.md,
           paddingVertical: padV,
           paddingHorizontal: padH,
-          backgroundColor: colors.surface,
+          backgroundColor: showBorder ? colors.surface : "transparent",
           borderRadius: radius_,
           borderWidth: showBorder ? 1 : 0,
           borderColor: colors.border,

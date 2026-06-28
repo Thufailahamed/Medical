@@ -48,7 +48,7 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
     .insert(appointments)
     .values({
       doctorId: parsed.data.doctorId,
-      patientId: patient.patients.id,
+      patientId: (patient.patients?.id ?? patient.id),
       hospitalId: parsed.data.hospitalId,
       date: parsed.data.date,
       time: parsed.data.time,
@@ -86,7 +86,7 @@ appointmentsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) 
   const upcoming = await db
     .select()
     .from(appointments)
-    .where(eq(appointments.patientId, patient.patients.id))
+    .where(eq(appointments.patientId, (patient.patients?.id ?? patient.id)))
     .orderBy(appointments.date);
 
   return c.json({ appointments: upcoming });
@@ -183,7 +183,7 @@ appointmentsRouter.delete("/:id", authMiddleware, requireRole("patient"), async 
     .where(eq(appointments.id, appointmentId))
     .limit(1);
 
-  if (!existing || existing.appointments.patientId !== patient.patients.id) {
+  if (!existing || (existing.appointments?.patientId ?? existing.patientId) !== (patient.patients?.id ?? patient.id)) {
     return c.json({ error: "Appointment not found or access denied" }, 404);
   }
 

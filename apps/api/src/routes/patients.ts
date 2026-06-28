@@ -54,7 +54,7 @@ patientsRouter.put("/me", authMiddleware, requireRole("patient"), async (c) => {
   }
 
   // Double check: the patient record must belong to this user
-  if (patient.patients.userId !== userId) {
+  if ((patient.patients?.userId ?? patient.userId) !== userId) {
     return c.json({ error: "Access denied" }, 403);
   }
 
@@ -72,7 +72,7 @@ patientsRouter.put("/me", authMiddleware, requireRole("patient"), async (c) => {
       lifestyle: data.lifestyle ? JSON.stringify(data.lifestyle) : undefined,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(patients.id, patient.patients.id))
+    .where(eq(patients.id, (patient.patients?.id ?? patient.id)))
     .returning();
 
   return c.json({ patient: updated });
@@ -115,7 +115,7 @@ patientsRouter.get("/me/family", authMiddleware, requireRole("patient"), async (
   const family = await db
     .select()
     .from(familyMembers)
-    .where(eq(familyMembers.patientId, patient.patients.id));
+    .where(eq(familyMembers.patientId, (patient.patients?.id ?? patient.id)));
 
   return c.json({ family });
 });
@@ -138,7 +138,7 @@ patientsRouter.post("/me/family", authMiddleware, requireRole("patient"), async 
   const [member] = await db
     .insert(familyMembers)
     .values({
-      patientId: patient.patients.id,
+      patientId: (patient.patients?.id ?? patient.id),
       name: body.name,
       relationship: body.relationship,
       dateOfBirth: body.dateOfBirth,
@@ -175,7 +175,7 @@ patientsRouter.delete("/me/family/:memberId", authMiddleware, requireRole("patie
     .where(
       and(
         eq(familyMembers.id, memberId),
-        eq(familyMembers.patientId, patient.patients.id)
+        eq(familyMembers.patientId, (patient.patients?.id ?? patient.id))
       )
     )
     .limit(1);
