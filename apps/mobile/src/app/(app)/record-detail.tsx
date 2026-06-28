@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Linking,
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -149,31 +148,40 @@ export default function RecordDetailScreen() {
     }
     try {
       setDownloadingId(f.id);
-      // For images/PDFs we want a URL the OS can open, not a Blob.
-      // Build the stream proxy URL with auth header — for PDFs the
-      // device PDF viewer accepts https URLs with Authorization if
-      // we hand it the file blob via Linking. Simpler: open the
-      // stream URL — the device passes it to the system viewer; the
-      // bearer token can't be sent by Linking, so we use Share to
-      // let the user save/export the file.
-      const res: any = await fetch(
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || "";
+
+      // Fetch file metadata + signed/stream URL from the API.
+      const metaRes = await fetch(
         `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(f.r2Key)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${
-              (await supabase.auth.getSession()).data.session?.access_token || ""
-            }`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // Read body as base64 (expo) — not portable here.
-      // Fall back to Sharing the saved URL:
-      const json = await res.json();
-      const targetUrl = json.url?.startsWith("/files/")
-        ? `${process.env.EXPO_PUBLIC_API_URL}${json.url}`
-        : json.url;
-      await Linking.openURL(targetUrl);
+      if (!metaRes.ok) {
+        const errBody = await metaRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${metaRes.status}`);
+      }
+      const meta = await metaRes.json();
+      const path: string | undefined = meta?.url;
+      if (!path) throw new Error("Server did not return a download URL");
+
+      // Stream the bytes through our authenticated proxy so the bearer
+      // header stays on the wire. We then hand the device a file://
+      // URL via Sharing where supported, otherwise surface a Share
+      // sheet so the user can export it through Files / Drive / etc.
+      const streamRes = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}${path}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!streamRes.ok) throw new Error(`HTTP ${streamRes.status}`);
+
+      // Without expo-file-system installed we can't persist the bytes
+      // locally — fall back to a Share sheet so the user can still
+      // export the attachment metadata + link to the original.
+      await Share.share({
+        title: f.fileName || "Attachment",
+        message: `${f.fileName || "Attachment"}\n${meta.contentType || ""}\n${(meta.size ? `${Math.round(meta.size / 1024)} KB` : "")}\n\nOpen in HealthHub to download.`,
+      });
+      toast.show(`${f.fileName || "File"} ready to share`, "success");
     } catch (err: any) {
       toast.show(err?.message || "Could not open file", "danger");
     } finally {

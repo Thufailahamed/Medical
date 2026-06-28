@@ -4,13 +4,11 @@ import {
   Text,
   ScrollView,
   Pressable,
-  TextInput,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import * as DocumentPicker from "expo-document-picker";
 import {
   Upload,
   Search,
@@ -30,10 +28,11 @@ import {
   NotebookPen,
   Receipt,
   HeartPulse,
+  Paperclip,
 } from "lucide-react-native";
-import { useMedicalRecords, useUploadFile, usePatientProfile, useUnreadCount } from "@/hooks/useApi";
+import { useMedicalRecords, usePatientProfile, useUnreadCount } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useToast, Screen, Card, Avatar } from "@/components/ui";
+import { useToast, Screen, Card, Avatar, TextInput, Chip } from "@/components/ui";
 
 type RecordType =
   | "lab_report"
@@ -94,12 +93,10 @@ export default function RecordsScreen() {
   const toast = useToast();
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
-  const { data: recordsData, isLoading, refetch } = useMedicalRecords();
-  const uploadFile = useUploadFile();
+  const { data: recordsData, isLoading, refetch, isRefetching } = useMedicalRecords();
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | RecordType>("all");
-  const [isUploading, setIsUploading] = useState(false);
 
   const records: any[] = recordsData?.records ?? [];
 
@@ -152,30 +149,9 @@ export default function RecordsScreen() {
   }, [groups]);
 
   async function handleUpload() {
-    try {
-      setIsUploading(true);
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled || !result.assets?.[0]) {
-        setIsUploading(false);
-        return;
-      }
-      const file = result.assets[0];
-      await uploadFile.mutateAsync({
-        file: {
-          uri: file.uri,
-          name: file.name,
-          type: file.mimeType || "application/octet-stream",
-        } as any,
-      });
-      toast.show("File uploaded. Your doctor can attach it to a record.", "success");
-    } catch (err: any) {
-      toast.show(err.message || "Upload failed", "danger");
-    } finally {
-      setIsUploading(false);
-    }
+    // Patient uploads go through the dedicated add-record screen which
+    // creates a medical record row and attaches the file in one request.
+    router.push("/(app)/add-record" as any);
   }
 
   const formatItemDate = (dateStr: string) => {
@@ -189,7 +165,7 @@ export default function RecordsScreen() {
   };
 
   const subtitleFor = (rec: any) =>
-    rec.diagnosis || rec.summary || rec.notes || "Medical record";
+    rec.diagnosis || rec.summary || rec.notes || `${metaFor(rec.recordType).label} record`;
 
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
@@ -197,7 +173,7 @@ export default function RecordsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
+            refreshing={isRefetching && !isLoading}
             onRefresh={refetch}
             tintColor={colors.primary}
           />
@@ -239,25 +215,21 @@ export default function RecordsScreen() {
             </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-            {isUploading ? (
-              <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
-            ) : (
-              <Pressable
-                onPress={handleUpload}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Upload file"
-                style={({ pressed }) => ({
-                  width: 40,
-                  height: 40,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Upload size={22} color={colors.primary} strokeWidth={2.25} />
-              </Pressable>
-            )}
+            <Pressable
+              onPress={handleUpload}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Add record"
+              style={({ pressed }) => ({
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Upload size={22} color={colors.primary} strokeWidth={2.25} />
+            </Pressable>
             <Pressable
               onPress={() => router.push("/(app)/notifications")}
               hitSlop={8}
@@ -347,81 +319,41 @@ export default function RecordsScreen() {
               </Text>
 
               {/* Embedded Search Input */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: "rgba(255,255,255,0.95)",
-                  height: 48,
-                  borderRadius: radius.md,
-                  paddingHorizontal: spacing.md,
-                  marginTop: spacing.md,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 4,
-                  elevation: 2,
-                }}
-              >
-                <Search size={18} color={colors.textMuted} style={{ marginRight: spacing.xs }} />
+              <View style={{ marginTop: spacing.md }}>
                 <TextInput
                   placeholder="Search title, diagnosis, notes..."
-                  placeholderTextColor="rgba(29, 27, 32, 0.4)"
+                  placeholderTextColor="rgba(29, 27, 32, 0.5)"
                   value={search}
                   onChangeText={setSearch}
-                  style={[
-                    typography.body.md,
-                    { flex: 1, color: colors.text, height: "100%", padding: 0 },
-                  ]}
+                  leadingIcon={Search}
                   autoCorrect={false}
                   autoCapitalize="none"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.95)",
+                    borderRadius: radius.md,
+                  }}
                 />
               </View>
             </View>
           </LinearGradient>
         </View>
 
-        {/* Filter Pills (Horizontal Scroll) */}
+        {/* Filter Chips (Horizontal Scroll) */}
         <View style={{ marginTop: spacing.lg }}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}
           >
-            {FILTER_ORDER.map((f) => {
-              const active = filter === f.value;
-              return (
-                <Pressable
-                  key={f.value}
-                  onPress={() => setFilter(f.value)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Filter by ${f.label}`}
-                  accessibilityState={{ selected: active }}
-                  style={{
-                    height: 40,
-                    paddingHorizontal: spacing.lg,
-                    borderRadius: 999,
-                    backgroundColor: active ? colors.primary : colors.surfaceMuted,
-                    borderWidth: 1,
-                    borderColor: active ? colors.primary : colors.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.md,
-                      {
-                        color: active ? colors.onPrimary : colors.textMuted,
-                        fontWeight: active ? "700" : "500",
-                      },
-                    ]}
-                  >
-                    {f.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {FILTER_ORDER.map((f) => (
+              <Chip
+                key={f.value}
+                label={f.label}
+                selected={filter === f.value}
+                tone={filter === f.value ? "primary" : "neutral"}
+                onPress={() => setFilter(f.value)}
+              />
+            ))}
           </ScrollView>
         </View>
 
@@ -607,26 +539,57 @@ export default function RecordsScreen() {
                             {subtitleFor(rec)}
                           </Text>
 
-                          {rec.followUpDate && (
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: spacing.xs,
-                                marginTop: spacing.sm,
-                              }}
-                            >
-                              <Building2 size={12} color={colors.textMuted} />
-                              <Text
-                                style={[
-                                  typography.caption,
-                                  { color: colors.textMuted },
-                                ]}
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: spacing.md,
+                              marginTop: spacing.sm,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {rec.attachments?.count > 0 ? (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: spacing.xs,
+                                }}
                               >
-                                Follow-up: {formatItemDate(rec.followUpDate)}
-                              </Text>
-                            </View>
-                          )}
+                                <Paperclip size={12} color={colors.textMuted} />
+                                <Text
+                                  style={[
+                                    typography.caption,
+                                    { color: colors.textMuted },
+                                  ]}
+                                >
+                                  {rec.attachments.count}{" "}
+                                  {rec.attachments.count === 1
+                                    ? "attachment"
+                                    : "attachments"}
+                                </Text>
+                              </View>
+                            ) : null}
+                            {rec.followUpDate ? (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: spacing.xs,
+                                }}
+                              >
+                                <Building2 size={12} color={colors.textMuted} />
+                                <Text
+                                  style={[
+                                    typography.caption,
+                                    { color: colors.textMuted },
+                                  ]}
+                                >
+                                  Follow-up: {formatItemDate(rec.followUpDate)}
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
                         </View>
                       </Pressable>
                     );

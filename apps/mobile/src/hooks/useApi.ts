@@ -521,21 +521,21 @@ export function useUploadRecordWithFile() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      // Need patientId from profile
-      const profileRes = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/patients/me`,
-        {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        }
-      );
-      const profileData = await profileRes.json();
-      const patientId = profileData?.patient?.patients?.id;
+      // Pull patientId from the cached profile if available, otherwise
+      // hit the API via the shared helper (handles 401 refresh).
+      const cached = queryClient.getQueryData<any>(["patient", "me"]);
+      let patientId: string | undefined =
+        cached?.patient?.patients?.id || cached?.patient?.id;
+      if (!patientId) {
+        const profile = await api<{ patient: { patients: { id: string } } }>(
+          "/patients/me"
+        );
+        patientId = profile?.patient?.patients?.id;
+      }
       if (!patientId) throw new Error("Patient profile not found");
 
       const formData = new FormData();
-      formData.append("file", args.file);
+      formData.append("file", args.file as any);
       formData.append("recordType", args.recordType);
       formData.append("title", args.title);
       formData.append("date", args.date);
@@ -556,7 +556,9 @@ export function useUploadRecordWithFile() {
       );
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: "Upload failed" }));
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Upload failed" }));
         throw new Error(error.error || `HTTP ${response.status}`);
       }
 
@@ -564,6 +566,7 @@ export function useUploadRecordWithFile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["patient", "me"] });
     },
   });
 }

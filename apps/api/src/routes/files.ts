@@ -29,7 +29,7 @@ async function getPatientIdFromUser(db: any, userId: string): Promise<string | n
     .from(patients)
     .where(eq(patients.userId, userId))
     .limit(1);
-  return patient?.patients?.id || null;
+  return patient?.id || null;
 }
 
 // ─── Upload file to R2 ───────────────────────────────────
@@ -186,7 +186,7 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
   const [fileRecord] = await db
     .insert(files)
     .values({
-      recordId: record.medical_records.id,
+      recordId: record.id,
       url: r2Key,
       r2Key,
       type: fileType,
@@ -197,24 +197,41 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
     .returning();
 
   return c.json({
-    record: record.medical_records,
+    record,
     file: fileRecord,
   }, 201);
 });
 
-// ─── Get signed download URL ─────────────────────────────
+// ─── Get signed download URL OR stream proxy ─────────────
+// Default: return JSON `{ url, key }` for the mobile app to open.
+// `?stream=1`: stream the R2 bytes back with the original content type —
+// used when auth headers are needed or when presigned URLs aren't available.
 filesRouter.get("/download/:key", authMiddleware, async (c) => {
   const key = c.req.param("key");
+  if (!key) return c.json({ error: "Missing key" }, 400);
 
   const object = await c.env.R2.get(key);
-
   if (!object) {
     return c.json({ error: "File not found" }, 404);
   }
 
-  // R2 presigned URL via the object's presign method
-  // In production, use a proper presign utility or public bucket
-  return c.json({ key, message: "Use R2 public bucket or implement presign" });
+  if (c.req.query("stream") === "1") {
+    const contentType = object.httpMetadata?.contentType || "application/octet-stream";
+    const headers = new Headers();
+    headers.set("Content-Type", contentType);
+    headers.set("Cache-Control", "private, max-age=300");
+    if (object.size != null) headers.set("Content-Length", String(object.size));
+    return new Response(object.body as any, { headers });
+  }
+
+  // JSON response — mobile opens via Linking (auth stripped) or fetches with bearer
+  // We return a path the client can fetch with Authorization header attached.
+  return c.json({
+    key,
+    url: `/files/download/${encodeURIComponent(key)}?stream=1`,
+    contentType: object.httpMetadata?.contentType || "application/octet-stream",
+    size: object.size,
+  });
 });
 
 // ─── List files for a record ─────────────────────────────
@@ -238,6 +255,9 @@ filesRouter.delete("/:id", authMiddleware, async (c) => {
 
   // Get patient ID from user ID for ownership check
   const patientId = await getPatientIdFromUser(db, userId);
+  if (!patientId) {
+    return c.json({ error: "Patient profile not found" }, 404);
+  }
 
   const [file] = await db
     .select()
@@ -246,7 +266,7 @@ filesRouter.delete("/:id", authMiddleware, async (c) => {
     .where(
       and(
         eq(files.id, fileId),
-        eq(medicalRecords.patientId, patientId!) // ownership check using patient ID
+        eq(medicalRecords.patientId, patientId)
       )
     )
     .limit(1);
@@ -255,8 +275,12 @@ filesRouter.delete("/:id", authMiddleware, async (c) => {
     return c.json({ error: "File not found or access denied" }, 404);
   }
 
-  // Delete from R2
-  await c.env.R2.delete(file.files.r2Key);
+  // Delete from R2 (best-effort)
+  try {
+    await c.env.R2.delete(file.files.r2Key);
+  } catch {
+    // ignore — record row still gets cleaned up
+  }
 
   // Delete from DB
   await db.delete(files).where(eq(files.id, fileId));

@@ -130,15 +130,22 @@ export default function AppLayout() {
           ),
         }}
       />
-      {/* Hidden routes */}
+      {/* Hidden routes — these are sub-pages, not tabs */}
       <Tabs.Screen name="appointments" options={{ href: null }} />
       <Tabs.Screen name="book-appointment" options={{ href: null }} />
       <Tabs.Screen name="edit-profile" options={{ href: null }} />
       <Tabs.Screen name="add-medicine" options={{ href: null }} />
+      <Tabs.Screen name="add-record" options={{ href: null }} />
       <Tabs.Screen name="doctor" options={{ href: null }} />
       <Tabs.Screen name="record-detail" options={{ href: null }} />
       <Tabs.Screen name="family" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="notes" options={{ href: null }} />
+      <Tabs.Screen name="vitals" options={{ href: null }} />
+      <Tabs.Screen name="support" options={{ href: null }} />
+      <Tabs.Screen name="activity" options={{ href: null }} />
+      <Tabs.Screen name="appearance" options={{ href: null }} />
+      <Tabs.Screen name="change-password" options={{ href: null }} />
     </Tabs>
   );
 }
