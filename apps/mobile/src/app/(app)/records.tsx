@@ -1,25 +1,25 @@
 // @ts-nocheck
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   RefreshControl,
+  TextInput,
+  Image,
+  StyleSheet,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  Upload,
   Search,
   FileText,
   Bell,
-  Building2,
-  Paperclip,
   ChevronRight,
-  Share2,
+  ArrowUpDown,
+  Eye,
 } from "lucide-react-native";
 import {
   useMedicalRecords,
@@ -29,21 +29,13 @@ import {
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
-  useToast,
   Screen,
   Card,
   Avatar,
-  TextInput,
-  Chip,
-  Roadmap,
-  RoadmapSkeleton,
-  Pill,
   EmptyState,
   Button,
 } from "@/components/ui";
-import { RECORD_META, metaFor, type RecordType } from "@/lib/recordImportance";
-
-import type { ImportanceMeta } from "@/components/ui";
+import { metaFor, type RecordType } from "@/lib/recordImportance";
 
 type FilterValue = "all" | RecordType;
 
@@ -67,39 +59,9 @@ const DATE_RANGES: { value: DateRange; label: string; ms: number | null }[] = [
 
 type SortMode = "newest" | "oldest";
 
-// Local metaFor removed — `metaFor` is now imported from `@/lib/recordImportance`
-// (it includes rank alongside the original label/icon/color).
-
-// ─── Highlight helper ─────────────────────────────────────
-// Splits text around query and returns marked segments so we can bold matches.
-function highlight(text: string, q: string) {
-  if (!q) return [{ text, hit: false }];
-  const lower = text.toLowerCase();
-  const ql = q.toLowerCase();
-  if (!lower.includes(ql)) return [{ text, hit: false }];
-  const out: { text: string; hit: boolean }[] = [];
-  let i = 0;
-  while (i < text.length) {
-    const idx = lower.indexOf(ql, i);
-    if (idx < 0) {
-      out.push({ text: text.slice(i), hit: false });
-      break;
-    }
-    if (idx > i) out.push({ text: text.slice(i, idx), hit: false });
-    out.push({ text: text.slice(idx, idx + ql.length), hit: true });
-    i = idx + ql.length;
-  }
-  return out;
-}
-
-// ─── Skeleton ─────────────────────────────────────────────
-// RecordsSkeleton removed — `RoadmapSkeleton` (from `@/components/ui`) is the
-// canonical loading state and is rendered inline where needed.
-
 export default function RecordsScreen() {
   const router = useRouter();
-  const { spacing, colors, typography, radius } = useTheme();
-  const toast = useToast();
+  const { spacing, colors, typography, fontFamily, radius } = useTheme();
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
   const { data: stats } = useRecordStats();
@@ -113,9 +75,6 @@ export default function RecordsScreen() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [range, setRange] = useState<DateRange>("all");
   const [sort, setSort] = useState<SortMode>("newest");
-
-  // Ref for mini-map jumps — wraps the page ScrollView.
-  const scrollRef = useRef<any>(null);
 
   const records: any[] = recordsData?.records ?? [];
 
@@ -155,24 +114,6 @@ export default function RecordsScreen() {
     return list;
   }, [records, search, filter, range, sort]);
 
-  // ─── Group by year-month (LEGACY — Roadmap handles its own year buckets) ──
-  // Kept disabled — Roadmap component groups by year internally now.
-  // const groups = useMemo(() => { ... }, [filtered]);
-  // const groupKeys = Object.keys(groups);
-
-  // ─── Roadmap importance map (type → rank/color/label) ───
-  const importance: Record<string, ImportanceMeta> = useMemo(() => {
-    const out: Record<string, ImportanceMeta> = {};
-    for (const [type, meta] of Object.entries(RECORD_META)) {
-      out[type] = {
-        rank: meta.rank,
-        color: meta.iconColor,
-        label: meta.label,
-      };
-    }
-    return out;
-  }, []);
-
   // ─── Per-filter counts ──────────────────────────────────
   const counts = useMemo(() => {
     const base: Record<string, number> = { all: records.length };
@@ -182,141 +123,216 @@ export default function RecordsScreen() {
     return base;
   }, [records]);
 
-  const totalLabel = stats?.total != null ? `${stats.total} total` : `${records.length} shown`;
+  // ─── Group by Month-Year ────────────────────────────────
+  const groupedSections = useMemo(() => {
+    const sections: { title: string; data: any[] }[] = [];
+    const map: Record<string, any[]> = {};
 
-  // ─── Render item for Roadmap ────────────────────────────
-  function renderItem(rec: any) {
+    for (const rec of filtered) {
+      const key = getGroupKey(rec.date);
+      if (!map[key]) {
+        map[key] = [];
+        sections.push({ title: key, data: map[key] });
+      }
+      map[key].push(rec);
+    }
+    return sections;
+  }, [filtered]);
+
+  function getCategoryStyle(type: string) {
+    switch (type) {
+      case "lab_report":
+        return { bg: "#F8F3E9", text: "#9A7228" };
+      case "prescription":
+        return { bg: "#F0EDF6", text: colors.primary };
+      case "imaging":
+        return { bg: "#E6F0FA", text: "#4A90E2" };
+      default:
+        return { bg: "#F4F2F8", text: colors.primary };
+    }
+  }
+
+  function renderItemRow(rec: any) {
     const meta = metaFor(rec.recordType);
+    const catStyle = getCategoryStyle(rec.recordType);
     const IconComponent = meta.icon;
+    const dateLabel = formatItemDateLabel(rec.date);
+    const firstAttachment = rec.attachments?.first;
+
     return (
       <Pressable
+        key={rec.id}
         onPress={() =>
           router.push({
             pathname: "/(app)/record-detail",
             params: { id: rec.id },
           })
         }
-        accessibilityRole="button"
-        accessibilityLabel={`${meta.label} record: ${rec.title}`}
         style={({ pressed }) => ({
-          flex: 1,
-          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-          borderRadius: radius.xl,
-          padding: spacing.md,
-          borderLeftWidth: 4,
-          // Color the left accent with the dot color so the rail → card reads
-          // as one continuous journey line.
-          borderLeftColor: meta.iconColor,
-          borderTopWidth: 1,
-          borderRightWidth: 1,
-          borderBottomWidth: 1,
-          borderTopColor: colors.border,
-          borderRightColor: colors.border,
-          borderBottomColor: colors.border,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.03,
-          shadowRadius: 6,
-          elevation: 1,
+          flexDirection: "row",
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.md,
+          backgroundColor: pressed ? `${colors.primary}0D` : "transparent",
+          gap: spacing.md,
         })}
       >
+        {/* Left Icon */}
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: catStyle.bg,
             alignItems: "center",
-            marginBottom: spacing.xs,
+            justifyContent: "center",
+            marginTop: 2,
           }}
         >
+          <IconComponent size={20} color={catStyle.text} strokeWidth={2} />
+        </View>
+
+        {/* Right Content */}
+        <View style={{ flex: 1 }}>
+          {/* Header Line */}
           <View
             style={{
-              paddingHorizontal: spacing.sm,
-              paddingVertical: 2,
-              borderRadius: 6,
-              backgroundColor: `${meta.bgTone}80`,
-              borderWidth: 1,
-              borderColor: `${meta.iconColor}33`,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
             }}
           >
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "700",
-                color: meta.iconColor,
-                letterSpacing: 0.2,
+                fontSize: 13,
+                fontWeight: "500",
+                color: "#7F7B8C",
+                fontFamily: fontFamily.body,
               }}
             >
-              {meta.label}
+              {dateLabel}
+            </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: catStyle.text,
+                letterSpacing: 0.8,
+                fontFamily: fontFamily.displayBold,
+              }}
+            >
+              {meta.label.toUpperCase()}
             </Text>
           </View>
+
+          {/* Title */}
           <Text
-            style={[
-              typography.label.md,
-              { color: colors.textMuted, fontWeight: "500" },
-            ]}
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: "#1D1B20",
+              fontFamily: fontFamily.displayBold,
+              lineHeight: 22,
+              marginBottom: 4,
+            }}
           >
-            {formatItemDate(rec.date)}
+            {rec.title}
           </Text>
-        </View>
 
-        <HighlightedText
-          text={rec.title || ""}
-          query={search}
-          style={[
-            typography.title.sm,
-            { color: colors.text, fontWeight: "800", fontSize: 16 },
-          ]}
-        />
-
-        <HighlightedText
-          text={rec.diagnosis || rec.summary || rec.notes || `${meta.label} record`}
-          query={search}
-          numberOfLines={2}
-          style={[
-            typography.body.sm,
-            { color: colors.textMuted, marginTop: 2 },
-          ]}
-        />
-
-        {/* Doctor / hospital line */}
-        {(rec.doctor?.name || rec.hospital?.name) && (
+          {/* Subtitle / Details */}
           <Text
-            numberOfLines={1}
-            style={[
-              typography.caption,
-              { color: colors.textMuted, marginTop: spacing.xs },
-            ]}
+            style={{
+              fontSize: 14,
+              color: "#7F7B8C",
+              fontFamily: fontFamily.body,
+              lineHeight: 18,
+            }}
           >
-            {[rec.doctor?.name, rec.hospital?.name].filter(Boolean).join(" · ")}
+            {rec.doctor?.name || rec.hospital?.name
+              ? [rec.doctor?.name, rec.hospital?.name].filter(Boolean).join(" • ")
+              : rec.diagnosis || rec.summary || rec.notes || ""}
           </Text>
-        )}
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md,
-            marginTop: spacing.sm,
-            flexWrap: "wrap",
-          }}
-        >
-          {rec.attachments?.count > 0 ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-              <Paperclip size={12} color={colors.textMuted} />
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {rec.attachments.count}{" "}
-                {rec.attachments.count === 1 ? "attachment" : "attachments"}
-              </Text>
+          {/* Special Attachments */}
+          {firstAttachment && (
+            <View style={{ marginTop: 8 }}>
+              {firstAttachment.type === "pdf" ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    marginTop: 4,
+                  }}
+                >
+                  <FileText size={16} color={colors.primary} />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "700",
+                      color: colors.primary,
+                      textDecorationLine: "underline",
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    View Results (PDF)
+                  </Text>
+                </View>
+              ) : firstAttachment.type === "image" ? (
+                <View
+                  style={{
+                    position: "relative",
+                    marginTop: 10,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    borderWidth: 1,
+                    borderColor: "#E6E4EA",
+                  }}
+                >
+                  {/* Rounded thumbnail */}
+                  <Image
+                    source={{
+                      uri: `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
+                        firstAttachment.r2Key
+                      )}?stream=1`,
+                    }}
+                    style={{
+                      width: "100%",
+                      height: 180,
+                      resizeMode: "cover",
+                    }}
+                  />
+                  {/* Absolute eye icon overlay */}
+                  <View
+                    style={{
+                      ...StyleSheet.absoluteFillObject,
+                      backgroundColor: "rgba(0, 0, 0, 0.05)",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.12,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      }}
+                    >
+                      <Eye size={22} color={colors.primary} strokeWidth={2} />
+                    </View>
+                  </View>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-          {rec.followUpDate ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-              <Building2 size={12} color={colors.textMuted} />
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
-                Follow-up: {formatItemDate(rec.followUpDate)}
-              </Text>
-            </View>
-          ) : null}
+          )}
         </View>
       </Pressable>
     );
@@ -324,8 +340,57 @@ export default function RecordsScreen() {
 
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+      {/* ─── Top App Bar ─────────────────────────────────── */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: spacing.lg,
+          paddingVertical: 14,
+          backgroundColor: "#FFFFFF",
+          borderBottomWidth: 1,
+          borderBottomColor: "#F4F2F8",
+        }}
+      >
+        <Pressable onPress={() => router.push("/(app)/profile")}>
+          <Avatar
+            name={userName || "You"}
+            source={userPhoto ? { uri: userPhoto } : undefined}
+            size="sm"
+          />
+        </Pressable>
+
+        <Text
+          style={[
+            typography.title.lg,
+            { color: colors.primary, fontWeight: "800", fontSize: 22, fontFamily: fontFamily.displayBold }
+          ]}
+        >
+          HealthHub
+        </Text>
+
+        <Pressable onPress={() => router.push("/(app)/notifications")}>
+          <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <Bell size={24} color={colors.primary} strokeWidth={2} />
+            {unread?.count ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: colors.danger || "#FF3B30",
+                }}
+              />
+            ) : null}
+          </View>
+        </Pressable>
+      </View>
+
       <ScrollView
-        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -334,195 +399,80 @@ export default function RecordsScreen() {
             tintColor={colors.primary}
           />
         }
+        style={{ backgroundColor: "#FAF9FC" }}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
-        {/* ─── Top App Bar ─────────────────────────────────── */}
+        {/* ─── Title & Total Count ────────────────────────── */}
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
             justifyContent: "space-between",
+            alignItems: "baseline",
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.md,
-            paddingBottom: spacing.sm,
+            marginTop: spacing.lg,
+            marginBottom: spacing.xs,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-            <Pressable
-              onPress={() => router.push("/(app)/profile")}
-              accessibilityRole="button"
-              accessibilityLabel="Profile"
-              hitSlop={6}
-            >
-              <Avatar
-                name={userName || "You"}
-                source={userPhoto ? { uri: userPhoto } : undefined}
-                size="md"
-                tone="primary"
-              />
-            </Pressable>
-            <Text
-              style={[
-                typography.title.lg,
-                { color: colors.primary, fontWeight: "800", fontSize: 20 },
-              ]}
-            >
-              HealthHub
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-            <Pressable
-              onPress={() => router.push("/(app)/add-record" as any)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Add record"
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Upload size={22} color={colors.primary} strokeWidth={2.25} />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/(app)/share" as any)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Share with doctor"
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Share2 size={22} color={colors.primary} strokeWidth={2.25} />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/(app)/notifications")}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Bell size={22} color={colors.primary} strokeWidth={2.25} />
-              {unread?.count ? (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: colors.primary,
-                  }}
-                />
-              ) : null}
-            </Pressable>
-          </View>
-        </View>
-
-        {/* ─── Hero ────────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
-          <LinearGradient
-            colors={["#0EA5B7", "#078B9C"]}
+          <Text
+            style={[
+              typography.display.sm,
+              { color: "#1D1B20", fontWeight: "800", fontSize: 26, fontFamily: fontFamily.displayBold }
+            ]}
+          >
+            Your Records
+          </Text>
+          <Text
             style={{
-              padding: spacing.lg,
-              borderRadius: radius.xxl,
-              position: "relative",
-              overflow: "hidden",
-              shadowColor: "#0EA5B7",
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.15,
-              shadowRadius: 15,
-              elevation: 6,
+              fontSize: 14,
+              color: "#7F7B8C",
+              fontWeight: "500",
+              fontFamily: fontFamily.body,
             }}
           >
-            <View
+            {filtered.length} total
+          </Text>
+        </View>
+
+        {/* ─── Search Bar ─────────────────────────────────── */}
+        <View style={{ paddingHorizontal: spacing.lg, marginVertical: spacing.md }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#FFFFFF",
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: "#E6E4EA",
+              paddingHorizontal: spacing.md,
+              height: 48,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.02,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <Search size={20} color="#9E9AA7" style={{ marginRight: spacing.xs }} />
+            <TextInput
+              placeholder="Search records, labs, images..."
+              placeholderTextColor="#9E9AA7"
+              value={search}
+              onChangeText={setSearch}
+              autoCorrect={false}
+              autoCapitalize="none"
               style={{
-                position: "absolute",
-                top: -30,
-                right: -30,
-                width: 120,
-                height: 120,
-                borderRadius: 60,
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                flex: 1,
+                fontSize: 15,
+                color: "#1D1B20",
+                fontFamily: fontFamily.body,
+                padding: 0,
               }}
             />
-            <View
-              style={{
-                position: "absolute",
-                bottom: -50,
-                left: -50,
-                width: 160,
-                height: 160,
-                borderRadius: 80,
-                backgroundColor: "rgba(255, 255, 255, 0.08)",
-              }}
-            />
-
-            <View style={{ zIndex: 10, gap: spacing.xs }}>
-              <Text
-                style={[
-                  typography.overline,
-                  {
-                    color: "rgba(255,255,255,0.85)",
-                    letterSpacing: 1.5,
-                    fontWeight: "700",
-                  },
-                ]}
-              >
-                MEDICAL HISTORY
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={[
-                    typography.display.sm,
-                    { color: "#FFFFFF", fontWeight: "800", fontSize: 28 },
-                  ]}
-                >
-                  Your Records
-                </Text>
-                <Pill label={totalLabel} tone="neutral" size="sm" />
-              </View>
-
-              <View style={{ marginTop: spacing.md }}>
-                <TextInput
-                  placeholder="Search title, diagnosis, doctor..."
-                  placeholderTextColor="rgba(29, 27, 32, 0.5)"
-                  value={search}
-                  onChangeText={setSearch}
-                  leadingIcon={Search}
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,0.95)",
-                    borderRadius: radius.md,
-                  }}
-                />
-              </View>
-            </View>
-          </LinearGradient>
+          </View>
         </View>
 
         {/* ─── Filter chips with counts ───────────────────── */}
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginBottom: spacing.md }}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -532,15 +482,43 @@ export default function RecordsScreen() {
             }}
           >
             {FILTER_ORDER.map((f) => {
-              const c = counts[f.value] || 0;
+              const count = counts[f.value] || 0;
+              const isSelected = filter === f.value;
               return (
-                <Chip
+                <Pressable
                   key={f.value}
-                  label={`${f.label} · ${c}`}
-                  selected={filter === f.value}
-                  tone={filter === f.value ? "primary" : "neutral"}
                   onPress={() => setFilter(f.value)}
-                />
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    backgroundColor: isSelected ? colors.primary : "#F4F2F8",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: isSelected ? "#FFFFFF" : "#3F3844",
+                      fontFamily: isSelected ? fontFamily.bodySemibold : fontFamily.body,
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "500",
+                      color: isSelected ? "rgba(255,255,255,0.7)" : "#8E8A9A",
+                      fontFamily: fontFamily.body,
+                    }}
+                  >
+                    {count}
+                  </Text>
+                </Pressable>
               );
             })}
           </ScrollView>
@@ -549,57 +527,82 @@ export default function RecordsScreen() {
         {/* ─── Date range + sort row ───────────────────────── */}
         <View
           style={{
-            marginTop: spacing.md,
             paddingHorizontal: spacing.lg,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: spacing.sm,
+            marginBottom: spacing.lg,
           }}
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6 }}
-            style={{ flexGrow: 0 }}
-          >
-            {DATE_RANGES.map((r) => (
-              <Chip
-                key={r.value}
-                label={r.label}
-                selected={range === r.value}
-                tone={range === r.value ? "info" : "neutral"}
-                size="sm"
-                onPress={() => setRange(r.value)}
-              />
-            ))}
-          </ScrollView>
-          <View style={{ flexDirection: "row", gap: 6 }}>
-            {(["newest", "oldest"] as SortMode[]).map((s) => (
-              <Chip
-                key={s}
-                label={s === "newest" ? "↓ New" : "↑ Old"}
-                selected={sort === s}
-                tone={sort === s ? "primary" : "neutral"}
-                size="sm"
-                onPress={() => setSort(s)}
-              />
-            ))}
+          <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
+            {DATE_RANGES.map((r) => {
+              const isSelected = range === r.value;
+              return (
+                <Pressable
+                  key={r.value}
+                  onPress={() => setRange(r.value)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 14,
+                    backgroundColor: isSelected ? `${colors.primary}1A` : "transparent",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: isSelected ? "700" : "500",
+                      color: isSelected ? colors.primary : "#7F7B8C",
+                      fontFamily: isSelected ? fontFamily.bodyBold : fontFamily.body,
+                    }}
+                  >
+                    {r.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
+
+          <Pressable
+            onPress={() => setSort((s) => (s === "newest" ? "oldest" : "newest"))}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <ArrowUpDown size={14} color={colors.primary} />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "700",
+                color: colors.primary,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              New/Old
+            </Text>
+          </Pressable>
         </View>
 
-        {/* ─── Active filter summary / result count ────────── */}
+        {/* ─── Active filter clear trigger ─────────────────── */}
         {(search || filter !== "all" || range !== "all") && (
           <View
             style={{
               paddingHorizontal: spacing.lg,
-              marginTop: spacing.md,
+              marginBottom: spacing.md,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
             }}
           >
-            <Text style={[typography.caption, { color: colors.textMuted }]}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: "#7F7B8C",
+                fontFamily: fontFamily.body,
+              }}
+            >
               {filtered.length} {filtered.length === 1 ? "result" : "results"}
               {search ? ` for "${search}"` : ""}
             </Text>
@@ -611,31 +614,38 @@ export default function RecordsScreen() {
               }}
               hitSlop={6}
             >
-              <Text style={[typography.caption, { color: colors.primary, fontWeight: "700" }]}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.primary,
+                  fontWeight: "700",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
                 Clear filters
               </Text>
             </Pressable>
           </View>
         )}
 
-        {/* ─── Records list (Roadmap) ───────────────────────── */}
+        {/* ─── Grouped Records List ────────────────────────── */}
         {isLoading ? (
-          <View style={{ paddingHorizontal: spacing.lg }}>
-            <RoadmapSkeleton count={6} />
+          <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.xl }}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : records.length === 0 ? (
           <EmptyState
             style={{ marginTop: spacing.xl }}
             icon={FileText}
             title="No records yet"
-            message="Upload your first record, or generate an AI summary of your medical history."
+            message="Upload your first record, or log your medical notes."
             actionLabel="Add record"
             onAction={() => router.push("/(app)/add-record" as any)}
           />
         ) : filtered.length === 0 ? (
           <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
             <Card style={{ alignItems: "center", paddingVertical: spacing.xl }}>
-              <FileText size={40} color={colors.textMuted} strokeWidth={1.5} />
+              <FileText size={40} color="#9E9AA7" strokeWidth={1.5} />
               <Text
                 style={[
                   typography.title.md,
@@ -666,22 +676,51 @@ export default function RecordsScreen() {
             </Card>
           </View>
         ) : (
-          <View style={{ marginTop: spacing.lg, paddingHorizontal: spacing.lg }}>
-            <Roadmap
-              items={filtered.map((r: any) => ({
-                id: r.id,
-                date: r.date,
-                type: r.recordType,
-                data: r,
-              }))}
-              scrollRef={scrollRef}
-              // Approximate offset of the roadmap root within the page ScrollView
-              // (status bar + app bar + hero + filter row + sort row + result pill).
-              topOffset={340}
-              importance={importance}
-              gapThresholdDays={180}
-              renderItem={(rec: any) => renderItem(rec.data)}
-            />
+          <View>
+            {groupedSections.map((section) => (
+              <View key={section.title} style={{ marginBottom: spacing.md }}>
+                {/* Section Month-Year Header */}
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "700",
+                    color: "#7F7B8C",
+                    letterSpacing: 1,
+                    paddingHorizontal: spacing.lg,
+                    marginBottom: spacing.xs,
+                    marginTop: spacing.sm,
+                    fontFamily: fontFamily.displayBold,
+                  }}
+                >
+                  {section.title}
+                </Text>
+
+                {/* Section List Items */}
+                <View
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderTopWidth: 1,
+                    borderBottomWidth: 1,
+                    borderColor: "#F4F2F8",
+                  }}
+                >
+                  {section.data.map((rec, index) => (
+                    <View key={rec.id}>
+                      {renderItemRow(rec)}
+                      {index < section.data.length - 1 && (
+                        <View
+                          style={{
+                            height: 1,
+                            backgroundColor: "#F4F2F8",
+                            marginLeft: spacing.lg + 44 + spacing.md, // Align line with text start
+                          }}
+                        />
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -689,51 +728,36 @@ export default function RecordsScreen() {
   );
 }
 
-// ─── Local helpers ────────────────────────────────────────
-function formatItemDate(dateStr: string) {
+// ─── Local date formatter helpers ─────────────────────────
+function getGroupKey(dateStr: string) {
+  try {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return "UNKNOWN DATE";
+    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
+  } catch {
+    return "UNKNOWN DATE";
+  }
+}
+
+function formatItemDateLabel(dateStr: string) {
   try {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return dateStr;
+
+    // Check if today
+    const today = new Date();
+    if (d.toDateString() === today.toDateString()) {
+      return "Today";
+    }
+    // Check if yesterday
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+      return "Yesterday";
+    }
+
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   } catch {
     return dateStr;
   }
-}
-
-// groupKeyFor removed — Roadmap component groups items by year internally.
-
-// ─── Highlighted text ─────────────────────────────────────
-function HighlightedText({
-  text,
-  query,
-  style,
-  numberOfLines,
-}: {
-  text: string;
-  query: string;
-  style?: any;
-  numberOfLines?: number;
-}) {
-  const { colors } = useTheme();
-  const parts = highlight(text || "", query);
-  return (
-    <Text style={style} numberOfLines={numberOfLines}>
-      {parts.map((p, i) =>
-        p.hit ? (
-          <Text
-            key={i}
-            style={{
-              backgroundColor: `${colors.warning}55`,
-              color: colors.text,
-              fontWeight: "900",
-            }}
-          >
-            {p.text}
-          </Text>
-        ) : (
-          <Text key={i}>{p.text}</Text>
-        )
-      )}
-    </Text>
-  );
 }

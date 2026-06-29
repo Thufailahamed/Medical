@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Plus,
@@ -19,6 +20,8 @@ import {
   Check,
   Clock,
   Calendar,
+  Edit,
+  Trash2,
 } from "lucide-react-native";
 import {
   useMyMedicines,
@@ -31,6 +34,7 @@ import {
   useUntakeDose,
   useSkipDose,
   useScheduleTodayDoses,
+  useDeleteMedicine,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -120,10 +124,11 @@ export default function MedicinesScreen() {
   const toast = useToast();
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
-  const { data: allMeds, isLoading } = useMyMedicines();
-  const { data: todayMeds } = useTodayMedicines();
+  const { data: allMeds, isLoading, refetch: refetchAll } = useMyMedicines();
+  const { data: todayMeds, refetch: refetchToday } = useTodayMedicines();
   const { data: todayDoses, refetch: refetchDoses } = useTodayDoses();
   const stopMedicine = useStopMedicine();
+  const deleteMedicine = useDeleteMedicine();
   const markTaken = useMarkDoseTaken();
   const untakeDose = useUntakeDose();
   const skipDose = useSkipDose();
@@ -132,6 +137,24 @@ export default function MedicinesScreen() {
   const [tab, setTab] = useState<"today" | "all">("today");
   const [moreOpen, setMoreOpen] = useState(false);
   const [selectedMed, setSelectedMed] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchToday();
+      refetchAll();
+      refetchDoses();
+    }, [refetchToday, refetchAll, refetchDoses])
+  );
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refetchToday(), refetchAll(), refetchDoses()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   // API returns FLAT objects
   const list: any[] =
@@ -226,11 +249,34 @@ export default function MedicinesScreen() {
     }
   }
 
+  async function handleDelete() {
+    if (!selectedMed) return;
+    try {
+      await deleteMedicine.mutateAsync(selectedMed.id);
+      toast.show(`${selectedMed.name} deleted`, "success");
+      refetchToday();
+      refetchAll();
+      refetchDoses();
+    } catch (err: any) {
+      toast.show(err.message || "Failed to delete", "danger");
+    } finally {
+      setMoreOpen(false);
+      setSelectedMed(null);
+    }
+  }
+
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 150 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* App bar */}
         <View
@@ -622,7 +668,7 @@ export default function MedicinesScreen() {
                       return (
                         <Pressable
                           key={med.id}
-                          onLongPress={() => {
+                          onPress={() => {
                             setSelectedMed(med);
                             setMoreOpen(true);
                           }}
@@ -868,11 +914,37 @@ export default function MedicinesScreen() {
 
           {selectedMed ? (
             <Button
+              title="Edit medicine"
+              icon={Edit}
+              onPress={() => {
+                setMoreOpen(false);
+                router.push({
+                  pathname: "/(app)/edit-medicine",
+                  params: { id: selectedMed.id },
+                });
+                setSelectedMed(null);
+              }}
+              variant="outline"
+            />
+          ) : null}
+
+          {selectedMed ? (
+            <Button
               title="Stop medicine"
               icon={Plus}
               onPress={handleStop}
               variant="outline"
               loading={stopMedicine.isPending}
+            />
+          ) : null}
+
+          {selectedMed ? (
+            <Button
+              title="Delete medicine"
+              icon={Trash2}
+              onPress={handleDelete}
+              variant="danger"
+              loading={deleteMedicine.isPending}
             />
           ) : null}
 

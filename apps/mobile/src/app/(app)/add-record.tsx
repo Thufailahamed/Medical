@@ -124,12 +124,16 @@ export default function AddRecordScreen() {
       return;
     }
     try {
+      const fileData = pickedFile
+        ? {
+            uri: pickedFile.uri,
+            name: pickedFile.name,
+            type: pickedFile.mimeType || "application/octet-stream",
+          }
+        : undefined;
+
       const res = await upload.mutateAsync({
-        file: {
-          uri: pickedFile.uri,
-          name: pickedFile.name,
-          type: pickedFile.mimeType || "application/octet-stream",
-        } as any,
+        file: fileData as any,
         recordType,
         title: title.trim(),
         date: date.toISOString().slice(0, 10),

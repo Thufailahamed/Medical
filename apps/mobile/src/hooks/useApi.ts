@@ -1,7 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import * as SecureStore from "expo-secure-store";
 import { api, apiWithRefresh } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import { setLastAllergies, setLastMeds } from "@/lib/offline-cache";
+
+const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === "true";
+
+async function getAuthToken(): Promise<string | null> {
+  if (DEV_MODE) {
+    return "dev-token";
+  }
+  try {
+    return await SecureStore.getItemAsync("auth_token");
+  } catch {
+    return null;
+  }
+}
 import type { Patient, MedicalRecord, Appointment } from "@healthcare/shared";
 
 // ─── Patient Profile ─────────────────────────────────────
@@ -50,7 +63,8 @@ export function useUpdatePatientProfile() {
         body: data,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patient", "me"] });
+      queryClient.invalidateQueries({ queryKey: ["patient"] });
+      queryClient.invalidateQueries({ queryKey: ["wellness"] });
     },
   });
 }
@@ -596,8 +610,7 @@ export function useUploadFile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, recordId }: { file: File; recordId?: string }) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getAuthToken();
 
       const formData = new FormData();
       formData.append("file", file);
@@ -640,8 +653,7 @@ export function useUploadRecordWithFile() {
       summary?: string;
       notes?: string;
     }) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getAuthToken();
 
       // Pull patientId from the cached profile if available, otherwise
       // hit the API via the shared helper (handles 401 refresh).
@@ -699,8 +711,7 @@ export function useDownloadFile() {
     mutationFn: async (key: string) => {
       const urlData = await api<{ url: string }>(`/files/download/${encodeURIComponent(key)}`);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getAuthToken();
 
       // If the server returned our own stream proxy, attach auth.
       // If it returned a real R2 presigned URL, fetch directly.
@@ -813,12 +824,13 @@ export function useDoctorDashboard() {
   });
 }
 
-export function useDoctorMe() {
+export function useDoctorMe(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["doctor", "me"],
     queryFn: () =>
       api<{ doctor: { doctors: any; users: any } | null }>("/doctor/me"),
     staleTime: 60_000,
+    ...options,
   });
 }
 
@@ -1857,8 +1869,7 @@ export function useAddMedicineWithConfirm() {
       const headers: Record<string, string> = {};
       if (confirmOverride) headers["X-Confirm-Warning"] = "true";
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getAuthToken();
 
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_API_URL}/medicines`,

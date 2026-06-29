@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   Bell,
   Pill,
@@ -46,6 +46,7 @@ import {
   useMyAppointments,
   useUnreadCount,
   useWellness,
+  useTodayDoses,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
@@ -82,7 +83,7 @@ function timingOf(s?: string): TimingKey {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { spacing, typography, colors, radius } = useTheme();
+  const { spacing, typography, colors, radius, fontFamily } = useTheme();
   const toast = useToast();
 
   const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = usePatientProfile();
@@ -91,8 +92,21 @@ export default function HomeScreen() {
   const { data: unread, refetch: refetchUnread } = useUnreadCount();
   const { data: allergiesData } = useAllergies();
   const { data: vaccineDue } = useVaccinationsDue();
+  const { data: wellnessData, refetch: refetchWellness } = useWellness();
+  const { data: todayDoses, refetch: refetchDoses } = useTodayDoses();
 
   const [fabOpen, setFabOpen] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchProfile();
+      refetchMeds();
+      refetchAppts();
+      refetchUnread();
+      refetchWellness();
+      refetchDoses();
+    }, [refetchProfile, refetchMeds, refetchAppts, refetchUnread, refetchWellness, refetchDoses])
+  );
 
   const patient = profileData?.patient?.patients;
   const todayMeds: any[] = medsData?.medicines ?? [];
@@ -110,9 +124,23 @@ export default function HomeScreen() {
       : null;
 
   const totalMeds = todayMeds.length;
-  const adherence = 0;
+  const adherence = wellnessData?.adherence?.ratio != null
+    ? Math.round(wellnessData.adherence.ratio * 100)
+    : 0;
 
-  const nextMed = todayMeds[0];
+  const takenSet = useMemo(() => {
+    const s = new Set<string>();
+    const doses = todayDoses?.doses || [];
+    for (const d of doses) {
+      if (d.medicine_doses?.takenAt || d.takenAt) {
+        s.add(d.medicine_doses?.medicineId || d.medicineId);
+      }
+    }
+    return s;
+  }, [todayDoses]);
+
+  const untakenMeds = todayMeds.filter((m) => !takenSet.has(m.id));
+  const nextMed = untakenMeds[0];
 
   const grouped: Record<TimingKey, any[]> = {
     morning: [],
@@ -140,6 +168,8 @@ export default function HomeScreen() {
     medsData && refetchMeds();
     apptsData && refetchAppts();
     unread && refetchUnread();
+    refetchWellness();
+    refetchDoses();
   };
 
   return (
@@ -198,45 +228,7 @@ export default function HomeScreen() {
           );
         })()}
 
-        {/* V3: Overdue vaccines banner */}
-        {(() => {
-          const overdue = vaccineDue?.overdue ?? [];
-          if (overdue.length === 0) return null;
-          return (
-            <Pressable
-              onPress={() => router.push("/(app)/vaccinations" as any)}
-              accessibilityRole="button"
-              accessibilityLabel="Overdue vaccinations"
-              style={{
-                marginHorizontal: spacing.lg,
-                marginTop: spacing.sm,
-                padding: spacing.md,
-                borderRadius: radius.lg,
-                backgroundColor: colors.warning,
-                flexDirection: "row",
-                gap: spacing.sm,
-                alignItems: "flex-start",
-              }}
-            >
-              <Syringe size={20} color="#fff" strokeWidth={2.25} style={{ marginTop: 2 }} />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[typography.title.sm, { color: "#fff", fontWeight: "800" }]}
-                >
-                  {overdue.length === 1
-                    ? `Overdue: ${overdue[0].vaccine}`
-                    : `${overdue.length} overdue vaccinations`}
-                </Text>
-                <Text
-                  style={[typography.caption, { color: "#fff", opacity: 0.9, marginTop: 2 }]}
-                >
-                  Tap to view and update
-                </Text>
-              </View>
-              <ChevronRight size={18} color="#fff" />
-            </Pressable>
-          );
-        })()}
+        {/* V3: Overdue vaccines banner removed since vaccination updates are not mandatory */}
 
         {/* ─── App header ─── */}
         <View
@@ -247,18 +239,9 @@ export default function HomeScreen() {
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
             paddingBottom: spacing.sm,
-            gap: spacing.sm,
           }}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.sm,
-              flexShrink: 1,
-              minWidth: 0,
-            }}
-          >
+          <Pressable onPress={() => router.push("/(app)/profile")}>
             {userPhoto ? (
               <Image
                 source={{ uri: userPhoto }}
@@ -291,36 +274,67 @@ export default function HomeScreen() {
                 </Text>
               </View>
             )}
-            <Text
-              numberOfLines={1}
-              style={[
-                typography.title.lg,
-                { color: colors.primary, fontWeight: "800", fontSize: 20, flexShrink: 1 },
-              ]}
-            >
-              HealthHub
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => router.push("/(app)/notifications")}
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            hitSlop={8}
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: pressed ? 0.7 : 1,
-              backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-            })}
-          >
-            <Bell size={22} color={colors.primary} strokeWidth={2.25} />
-            {unread?.count ? (
-              <View style={[styles.bellBadge, { backgroundColor: colors.primary }]} />
-            ) : null}
           </Pressable>
+
+          <Text
+            style={[
+              typography.title.lg,
+              { color: colors.primary, fontWeight: "800", fontSize: 22, fontFamily: fontFamily.displayBold }
+            ]}
+          >
+            HealthHub
+          </Text>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+            <Pressable
+              onPress={() => setFabOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Quick add"
+              hitSlop={8}
+              style={({ pressed }) => ({
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.7 : 1,
+                backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+              })}
+            >
+              <Plus size={24} color={colors.primary} strokeWidth={2.25} />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/(app)/notifications")}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+              hitSlop={8}
+              style={({ pressed }) => ({
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.7 : 1,
+                backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+              })}
+            >
+              <Bell size={24} color={colors.primary} strokeWidth={2} />
+              {unread?.count ? (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.danger || "#FF3B30",
+                  }}
+                />
+              ) : null}
+            </Pressable>
+          </View>
         </View>
 
         {/* ─── Sky hero ─── */}
@@ -329,107 +343,226 @@ export default function HomeScreen() {
             marginHorizontal: spacing.lg,
             borderRadius: radius.xxl,
             overflow: "hidden",
-            padding: spacing.lg,
+            padding: spacing.xl,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 10,
           }}
         >
           <LinearGradient
-            colors={["#1E3B8B", "#0F766E"]}
+            colors={["#0B2B64", "#0C8B8C"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
 
+          {/* Decorative Background Orbs */}
+          <View
+            style={{
+              position: "absolute",
+              top: -40,
+              right: -30,
+              width: 140,
+              height: 140,
+              borderRadius: 70,
+              backgroundColor: "rgba(255, 255, 255, 0.07)",
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              bottom: -60,
+              left: -40,
+              width: 160,
+              height: 160,
+              borderRadius: 80,
+              backgroundColor: "rgba(255, 255, 255, 0.05)",
+            }}
+          />
 
-          {/* Content sits above orbs */}
-          <View style={{ gap: spacing.sm }}>
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-              style={[
-                typography.overline,
-                { color: "rgba(255,255,255,0.85)", letterSpacing: 1.2 },
-              ]}
-            >
-              {headerDate}
-            </Text>
-
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-              style={[
-                typography.display.lg,
-                {
-                  color: "#FFFFFF",
-                  fontSize: 30,
-                  lineHeight: 34,
-                  letterSpacing: -0.6,
-                  fontWeight: "700",
-                  marginTop: 2,
-                },
-              ]}
-            >
-              {firstName}
-            </Text>
-
-            {/* Adherence row */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "baseline",
-                gap: spacing.sm,
-                marginTop: spacing.sm,
-              }}
-            >
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            {/* Left Info Column */}
+            <View style={{ flex: 1, marginRight: spacing.md }}>
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                minimumFontScale={0.6}
+                minimumFontScale={0.85}
+                style={[
+                  typography.overline,
+                  { color: "rgba(255,255,255,0.75)", letterSpacing: 1.2, fontFamily: fontFamily.displayBold }
+                ]}
+              >
+                {headerDate}
+              </Text>
+
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
                 style={[
                   typography.display.lg,
                   {
                     color: "#FFFFFF",
-                    fontSize: 48,
-                    lineHeight: 52,
-                    letterSpacing: -1.5,
+                    fontSize: 36,
+                    lineHeight: 42,
+                    letterSpacing: -0.6,
                     fontWeight: "800",
-                    includeFontPadding: false,
+                    marginTop: 4,
+                    fontFamily: fontFamily.displayBold,
                   },
                 ]}
               >
-                {totalMeds > 0 ? `${adherence}%` : "0%"}
+                {firstName}
               </Text>
-              <Text
-                numberOfLines={1}
-                style={[
-                  typography.title.sm,
-                  {
-                    color: "rgba(255, 255, 255, 0.9)",
-                    fontWeight: "600",
-                  },
-                ]}
-              >
-                Adherence
-              </Text>
+
+              {wellnessData?.topTip ? (
+                <Text
+                  style={{
+                    color: "rgba(255, 255, 255, 0.85)",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    marginTop: 8,
+                    fontStyle: "italic",
+                    fontFamily: fontFamily.body,
+                  }}
+                >
+                  "{wellnessData.topTip}"
+                </Text>
+              ) : (
+                <Text
+                  style={{
+                    color: "rgba(255, 255, 255, 0.8)",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    marginTop: 8,
+                    fontFamily: fontFamily.body,
+                  }}
+                >
+                  Welcome back! Check your tasks below.
+                </Text>
+              )}
             </View>
 
-            {/* Chips */}
-            <View
-              style={{
-                flexDirection: "row",
-                gap: spacing.xs,
-                marginTop: spacing.sm,
-                flexWrap: "wrap",
-              }}
-            >
-              <HeroChip label={`${patient?.bloodGroup ?? "O+"} Blood`} />
-              <HeroChip label={bmi ? `${bmi} BMI` : "24.1 BMI"} />
-              <HeroChip
-                label={unread?.count ? `${unread.count} alerts` : "No alerts"}
-                dot={!unread?.count}
+            {/* Right Progress Ring Column */}
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <DoseRing
+                value={adherence / 100}
+                size={96}
+                tone="primary"
+                label={`${adherence}%`}
+                sublabel="Doses"
+                centerColor="rgba(255, 255, 255, 0.08)"
               />
             </View>
+          </View>
+
+          {/* Upcoming Task/Appointment Sub-Panel */}
+          {(nextMed || appointments[0]) && (
+            <View
+              style={{
+                marginTop: spacing.lg,
+                padding: spacing.md + 2,
+                borderRadius: radius.xl,
+                backgroundColor: "rgba(255, 255, 255, 0.12)",
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.12)",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "800",
+                  color: "rgba(255, 255, 255, 0.65)",
+                  letterSpacing: 1.2,
+                  marginBottom: 8,
+                  fontFamily: fontFamily.displayBold,
+                }}
+              >
+                UPCOMING TODAY
+              </Text>
+              
+              {nextMed && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: appointments[0] ? 8 : 0,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: "rgba(255, 255, 255, 0.15)",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Pill size={13} color="#FFFFFF" />
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 14,
+                      color: "#FFFFFF",
+                      fontWeight: "600",
+                      fontFamily: fontFamily.bodySemibold,
+                    }}
+                  >
+                    {nextMed.name} · {nextMed.timing}
+                  </Text>
+                </View>
+              )}
+
+              {appointments[0] && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: "rgba(255, 255, 255, 0.15)",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Clock size={13} color="#FFFFFF" />
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 14,
+                      color: "#FFFFFF",
+                      fontWeight: "600",
+                      fontFamily: fontFamily.bodySemibold,
+                    }}
+                  >
+                    Dr. {appointments[0].doctorName} at {appointments[0].time}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Health Stats Pill Chips Row */}
+          <View
+            style={{
+              flexDirection: "row",
+              gap: spacing.xs,
+              marginTop: spacing.lg,
+              flexWrap: "wrap",
+            }}
+          >
+            <HeroChip label={patient?.bloodGroup ? `${patient.bloodGroup} Blood` : "Blood —"} />
+            <HeroChip label={bmi ? `${bmi} BMI` : "24.1 BMI"} />
+            <HeroChip
+              label={unread?.count ? `${unread.count} alerts` : "No alerts"}
+              dot={!unread?.count}
+            />
           </View>
         </View>
 
@@ -673,14 +806,6 @@ export default function HomeScreen() {
           <View style={{ height: spacing.lg }} />
         </View>
       </ScrollView>
-
-      <FloatingActionButton
-        icon={Plus}
-        tone="primary"
-        onPress={() => setFabOpen(true)}
-        aboveTabBar
-        accessibilityLabel="Quick add"
-      />
 
       <BottomSheet
         visible={fabOpen}

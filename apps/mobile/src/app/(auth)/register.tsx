@@ -4,6 +4,8 @@ import {
   Text,
   Pressable,
   Keyboard,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -15,31 +17,23 @@ import {
   Phone,
   Lock,
   ArrowRight,
-  HeartPulse,
+  Heart,
   Stethoscope,
   ChevronLeft,
   IdCard,
   Search,
   X,
   ShieldCheck,
+  Eye,
+  EyeOff,
 } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useSpecialties, useHospitals } from "@/hooks/useApi";
 import { useDebounce } from "@/hooks/useDebounce";
-import {
-  Screen,
-  Button,
-  TextInput,
-  FormField,
-  IconButton,
-  Pill,
-  Skeleton,
-  useToast,
-} from "@/components/ui";
+import { Screen, Skeleton, useToast } from "@/components/ui";
 
 const schema = z
   .object({
@@ -79,11 +73,13 @@ type FormData = z.infer<typeof schema>;
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { colors, spacing, typography, radius, shadow } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, shadow } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [role, setRole] = useState<"patient" | "doctor">("patient");
   const [hospitalQuery, setHospitalQuery] = useState("");
   const [showOtherSpecialty, setShowOtherSpecialty] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const debouncedHospitalQuery = useDebounce(hospitalQuery, 300);
   const { data: specialtiesData } = useSpecialties();
   const { data: hospitalsData, isLoading: hospitalsLoading } = useHospitals(
@@ -155,7 +151,6 @@ export default function RegisterScreen() {
         await SecureStore.setItemAsync("auth_token", res.session.access_token);
         setUser(res.user);
         toast.show("Account created", "success");
-        // V3: route doctors straight to the portal.
         const home =
           (data.role as string) === "doctor" ? "/(app)/doctor" : "/(app)";
         router.replace(home as any);
@@ -198,587 +193,679 @@ export default function RegisterScreen() {
       keyboard
       scroll
       edges={["top", "bottom"]}
-      contentContainerStyle={{ flexGrow: 1 }}
+      style={{ backgroundColor: "#FFFFFF" }}
+      contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
     >
-      {/* Compact hero band */}
+      {/* Branding Header with Back button */}
       <View
         style={{
-          position: "relative",
-          overflow: "hidden",
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.xxl,
-          paddingHorizontal: spacing.lg,
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: 40,
         }}
       >
-        <LinearGradient
-          colors={["#1E3B8B", "#0F766E"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
-        />
-
-
-        {/* Top bar */}
-        <View
-          style={{
-            flexDirection: "row",
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={({ pressed }) => ({
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             alignItems: "center",
-            marginBottom: spacing.lg,
+            justifyContent: "center",
+            marginRight: 8,
+            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+            marginLeft: -8,
+          })}
+        >
+          <ChevronLeft size={24} color={colors.primary} />
+        </Pressable>
+        <Heart size={26} color={colors.primary} strokeWidth={2.25} />
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "800",
+            color: "#1D1B20",
+            letterSpacing: 3,
+            fontFamily: fontFamily.displayBold,
+            marginLeft: 8,
           }}
         >
-          <IconButton
-            icon={ChevronLeft}
-            onPress={() => router.back()}
-            variant="ghost"
-            accessibilityLabel="Go back"
-            tint="#FFFFFF"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.18)",
-              borderWidth: 0,
-            }}
-          />
-          <View style={{ flex: 1, marginLeft: spacing.md }}>
-            <Text
-              style={[
-                typography.overline,
-                {
-                  color: "#FFFFFF",
-                  opacity: 0.85,
-                  letterSpacing: 2,
-                  fontWeight: "700",
-                },
-              ]}
-            >
-              HEALTHHUB
-            </Text>
-            <Text
-              style={[
-                typography.title.lg,
-                { color: "#FFFFFF", fontWeight: "700" },
-              ]}
-            >
-              {role === "doctor" ? "Join as a doctor" : "Create account"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Logo */}
-        <View style={{ alignItems: "center" }}>
-          <View
-            style={[
-              {
-                width: 64,
-                height: 64,
-                borderRadius: 20,
-                backgroundColor: colors.surface,
-                alignItems: "center",
-                justifyContent: "center",
-              },
-              shadow.lg,
-            ]}
-          >
-            <HeartPulse size={30} color={colors.primary} strokeWidth={2.25} />
-          </View>
-        </View>
+          HEALTHHUB
+        </Text>
       </View>
 
-      {/* Form card overlapping hero */}
+      {/* Heading Section */}
+      <View style={{ marginTop: 36, marginBottom: 24 }}>
+        <Text
+          style={{
+            fontSize: 34,
+            fontWeight: "800",
+            color: "#1D1B20",
+            fontFamily: fontFamily.displayBold,
+            lineHeight: 42,
+          }}
+        >
+          Create account.
+        </Text>
+        <Text
+          style={{
+            fontSize: 15,
+            color: "#7F7B8C",
+            marginTop: 8,
+            fontFamily: fontFamily.body,
+            lineHeight: 22,
+          }}
+        >
+          {role === "doctor"
+            ? "Set up your practice profile so patients can find and book you."
+            : "Start managing your health today. It takes less than a minute."}
+        </Text>
+      </View>
+
+      {/* Segmented role selector */}
       <View
         style={{
-          flex: 1,
-          marginTop: -spacing.xl,
-          paddingHorizontal: spacing.xl,
-          paddingBottom: spacing.xl,
+          flexDirection: "row",
+          backgroundColor: "#FFFFFF",
+          borderRadius: 24,
+          borderWidth: 1,
+          borderColor: "#E6E4EA",
+          padding: 3,
+          marginBottom: 28,
         }}
       >
-        <View
-          style={[
-            {
-              backgroundColor: colors.surface,
-              borderRadius: radius.xxl,
-              padding: spacing.xl,
-              gap: spacing.lg,
-            },
-            shadow.lg,
-          ]}
-        >
-          {/* Subtitle */}
-          <Text
-            style={[typography.body.md, { color: colors.textMuted, marginTop: -spacing.xs }]}
-          >
-            {role === "doctor"
-              ? "Set up your practice profile so patients can find and book you."
-              : "Start managing your health today. It takes less than a minute."}
-          </Text>
+        {(
+          [
+            { value: "patient", label: "Patient" },
+            { value: "doctor", label: "Doctor" },
+          ] as const
+        ).map(({ value, label }) => {
+          const active = role === value;
+          return (
+            <Pressable
+              key={value}
+              onPress={() => {
+                setRole(value);
+                setValue("role", value);
+                if (value === "patient") {
+                  setValue("doctorProfile.specialization", "");
+                  setValue("doctorProfile.registrationNumber", "");
+                  setValue("doctorProfile.hospitalId", "");
+                  setShowOtherSpecialty(false);
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Register as ${label}`}
+              accessibilityState={{ selected: active }}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 10,
+                borderRadius: 21,
+                backgroundColor: active ? colors.primarySoft : "transparent",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: active ? colors.primary : "#7F7B8C",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-          {/* Segmented role selector */}
-          <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: colors.surfaceMuted,
-              borderRadius: radius.full,
-              padding: 4,
-            }}
-          >
-            {(
-              [
-                { value: "patient", label: "Patient", Icon: HeartPulse },
-                { value: "doctor", label: "Doctor", Icon: Stethoscope },
-              ] as const
-            ).map(({ value, label, Icon }) => {
-              const active = role === value;
-              return (
-                <Pressable
-                  key={value}
-                  onPress={() => {
-                    setRole(value);
-                    setValue("role", value);
-                    if (value === "patient") {
-                      setValue("doctorProfile.specialization", "");
-                      setValue("doctorProfile.registrationNumber", "");
-                      setValue("doctorProfile.hospitalId", "");
+      {/* Form Fields */}
+      <View style={{ gap: 16 }}>
+        {/* Full Name */}
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="Full name"
+              value={value || ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="John Doe"
+              icon={User}
+              autoCapitalize="words"
+              autoComplete="name"
+              error={errors.name?.message}
+            />
+          )}
+        />
+
+        {/* Email */}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="Email"
+              value={value || ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="you@example.com"
+              icon={Mail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              error={errors.email?.message}
+            />
+          )}
+        />
+
+        {/* Phone */}
+        <Controller
+          control={control}
+          name="phone"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="Phone (optional)"
+              value={value || ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="+94 77 123 4567"
+              icon={Phone}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              error={errors.phone?.message}
+            />
+          )}
+        />
+
+        {/* NIC */}
+        <Controller
+          control={control}
+          name="nic"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="National ID (optional)"
+              value={value || ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="200012345678"
+              icon={IdCard}
+              autoCapitalize="characters"
+              error={errors.nic?.message}
+            />
+          )}
+        />
+
+        {/* Password */}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="Password"
+              value={value || ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="At least 8 characters"
+              icon={Lock}
+              secureTextEntry={!showPassword}
+              rightIcon={showPassword ? EyeOff : Eye}
+              onRightIconPress={() => setShowPassword(!showPassword)}
+              error={errors.password?.message}
+            />
+          )}
+        />
+
+        {/* Confirm Password */}
+        <Controller
+          control={control}
+          name="confirm"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="Confirm password"
+              value={value || ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Repeat password"
+              icon={Lock}
+              secureTextEntry={!showConfirmPassword}
+              rightIcon={showConfirmPassword ? EyeOff : Eye}
+              onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              error={errors.confirm?.message}
+            />
+          )}
+        />
+
+        {/* Doctor profile details */}
+        {role === "doctor" ? (
+          <View style={{ marginTop: 12, gap: 16 }}>
+            {/* Specialty Field */}
+            <View style={{ marginBottom: 4 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "800",
+                  color: "#7F7B8C",
+                  letterSpacing: 0.8,
+                  fontFamily: fontFamily.displayBold,
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                Specialty *
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.xs,
+                  marginBottom: spacing.xs,
+                }}
+              >
+                {specialties.map((s) => (
+                  <Pressable
+                    key={s}
+                    onPress={() => {
+                      setValue("doctorProfile.specialization", s, {
+                        shouldValidate: true,
+                      });
                       setShowOtherSpecialty(false);
-                    }
+                    }}
+                    style={{
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: 6,
+                      borderRadius: radius.md,
+                      borderWidth: 1,
+                      borderColor: selectedSpecialization === s ? colors.primary : "#E6E4EA",
+                      backgroundColor: selectedSpecialization === s ? colors.primarySoft : "#FFFFFF",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "700",
+                        color: selectedSpecialization === s ? colors.primary : "#7F7B8C",
+                      }}
+                    >
+                      {s}
+                    </Text>
+                  </Pressable>
+                ))}
+                <Pressable
+                  onPress={() => {
+                    setShowOtherSpecialty((v) => !v);
+                    setValue("doctorProfile.specialization", "", {
+                      shouldValidate: false,
+                    });
                   }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Register as ${label}`}
-                  accessibilityState={{ selected: active }}
                   style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: spacing.xs,
-                    paddingVertical: 10,
-                    borderRadius: radius.full,
-                    backgroundColor: active ? colors.surface : "transparent",
-                    ...(active ? shadow.sm : null),
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: 6,
+                    borderRadius: radius.md,
+                    borderWidth: 1,
+                    borderColor: showOtherSpecialty ? colors.primary : "#E6E4EA",
+                    backgroundColor: showOtherSpecialty ? colors.primarySoft : "#FFFFFF",
                   }}
                 >
-                  <Icon
-                    size={16}
-                    color={active ? colors.primary : colors.textMuted}
-                    strokeWidth={2.25}
-                  />
                   <Text
-                    style={[
-                      typography.label.md,
-                      {
-                        color: active ? colors.text : colors.textMuted,
-                        fontWeight: active ? "700" : "600",
-                      },
-                    ]}
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      color: showOtherSpecialty ? colors.primary : "#7F7B8C",
+                    }}
                   >
-                    {label}
+                    Other
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-
-          {/* Identity */}
-          <Controller
-            control={control}
-            name="name"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField label="Full name" required error={errors.name?.message}>
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="John Doe"
-                  placeholderTextColor={colors.textSubtle}
-                  autoCapitalize="words"
-                  autoComplete="name"
-                  textContentType="name"
-                  leadingIcon={User}
-                  invalid={!!errors.name}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField
-                label="Email"
-                helper="Provide email or phone number"
-                error={errors.email?.message}
-              >
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.textSubtle}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  leadingIcon={Mail}
-                  invalid={!!errors.email}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField label="Phone (optional)">
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="+94 77 123 4567"
-                  placeholderTextColor={colors.textSubtle}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  textContentType="telephoneNumber"
-                  leadingIcon={Phone}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="nic"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField label="National ID (optional)" helper="Used for verification">
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="200012345678"
-                  placeholderTextColor={colors.textSubtle}
-                  autoCapitalize="characters"
-                  leadingIcon={IdCard}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
-
-          {/* Security */}
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField label="Password" required error={errors.password?.message}>
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="At least 8 characters"
-                  placeholderTextColor={colors.textSubtle}
-                  secureTextEntry
-                  autoComplete="password-new"
-                  textContentType="newPassword"
-                  leadingIcon={Lock}
-                  showPasswordToggle
-                  invalid={!!errors.password}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="confirm"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField
-                label="Confirm password"
-                required
-                error={errors.confirm?.message}
-              >
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="Repeat password"
-                  placeholderTextColor={colors.textSubtle}
-                  secureTextEntry
-                  autoComplete="password-new"
-                  textContentType="newPassword"
-                  leadingIcon={Lock}
-                  showPasswordToggle
-                  invalid={!!errors.confirm}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
-
-          {/* Doctor profile */}
-          {role === "doctor" ? (
-            <>
-              {/* Section label */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.xs }}>
-                <Stethoscope size={14} color={colors.primary} strokeWidth={2.5} />
-                <Text
-                  style={[
-                    typography.overline,
-                    { color: colors.primary, letterSpacing: 1.5, fontWeight: "700" },
-                  ]}
-                >
-                  Practice details
-                </Text>
               </View>
 
-              <FormField
-                label="Specialty"
-                required
-                error={errors.doctorProfile?.specialization?.message}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: spacing.xs,
-                    marginBottom: spacing.xs,
-                  }}
-                >
-                  {specialties.map((s) => (
-                    <Pill
-                      key={s}
-                      label={s}
-                      tone={selectedSpecialization === s ? "primary" : "neutral"}
-                      onPress={() => {
-                        setValue("doctorProfile.specialization", s, {
-                          shouldValidate: true,
-                        });
-                        setShowOtherSpecialty(false);
-                      }}
-                    />
-                  ))}
-                  <Pill
-                    label="Other"
-                    tone={showOtherSpecialty ? "primary" : "neutral"}
-                    onPress={() => {
-                      setShowOtherSpecialty((v) => !v);
-                      setValue("doctorProfile.specialization", "", {
-                        shouldValidate: false,
-                      });
-                    }}
-                  />
-                </View>
-                {showOtherSpecialty ? (
-                  <Controller
-                    control={control}
-                    name="doctorProfile.specialization"
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <TextInput
-                        value={value}
-                        onChangeText={(t) => onChange(t, { shouldValidate: true })}
-                        onBlur={onBlur}
-                        placeholder="e.g., Cardiology"
-                        placeholderTextColor={colors.textSubtle}
-                        autoCapitalize="words"
-                        leadingIcon={Stethoscope}
-                        tone="soft"
-                      />
-                    )}
-                  />
-                ) : null}
-              </FormField>
-
-              <Controller
-                control={control}
-                name="doctorProfile.registrationNumber"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <FormField
-                    label="SLMC registration number"
-                    helper="Sri Lanka Medical Council ID"
-                  >
-                    <TextInput
-                      value={value}
-                      onChangeText={onChange}
+              {showOtherSpecialty ? (
+                <Controller
+                  control={control}
+                  name="doctorProfile.specialization"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <CustomUnderlineInput
+                      label="Custom specialty"
+                      value={value || ""}
+                      onChangeText={(t) => onChange(t, { shouldValidate: true })}
                       onBlur={onBlur}
-                      placeholder="e.g., 12345"
-                      placeholderTextColor={colors.textSubtle}
-                      autoCapitalize="characters"
-                      leadingIcon={IdCard}
-                      tone="soft"
+                      placeholder="e.g. Cardiology"
+                      icon={Stethoscope}
+                      error={errors.doctorProfile?.specialization?.message}
                     />
-                  </FormField>
-                )}
-              />
+                  )}
+                />
+              ) : null}
+            </View>
 
-              <FormField
-                label="Hospital (optional)"
-                helper="You can update this later in your profile."
-                error={errors.doctorProfile?.hospitalId?.message}
+            {/* Registration number */}
+            <Controller
+              control={control}
+              name="doctorProfile.registrationNumber"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomUnderlineInput
+                  label="SLMC registration number"
+                  value={value || ""}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="e.g., 12345"
+                  icon={IdCard}
+                  autoCapitalize="characters"
+                  error={errors.doctorProfile?.registrationNumber?.message}
+                />
+              )}
+            />
+
+            {/* Hospital Search */}
+            <View style={{ marginBottom: 4 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "800",
+                  color: "#7F7B8C",
+                  letterSpacing: 0.8,
+                  fontFamily: fontFamily.displayBold,
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
               >
+                Hospital (optional)
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingBottom: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#E6E4EA",
+                }}
+              >
+                <Search size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
                 <TextInput
                   value={hospitalQuery}
                   onChangeText={setHospitalQuery}
                   placeholder="Search hospitals"
-                  placeholderTextColor={colors.textSubtle}
-                  leadingIcon={Search}
-                  tone="soft"
+                  placeholderTextColor="#C4C0CC"
+                  style={{
+                    flex: 1,
+                    fontSize: 15,
+                    color: "#1D1B20",
+                    fontFamily: fontFamily.body,
+                    padding: 0,
+                  }}
                   autoCapitalize="none"
                 />
-                {selectedHospitalId ? (
-                  <View
+              </View>
+
+              {selectedHospitalId ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: 10,
+                    borderRadius: radius.md,
+                    backgroundColor: colors.primarySoft,
+                    marginTop: spacing.sm,
+                    borderWidth: 1,
+                    borderColor: colors.primary + "20",
+                  }}
+                >
+                  <Text
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: spacing.sm,
-                      paddingHorizontal: spacing.md,
-                      paddingVertical: 10,
-                      borderRadius: radius.md,
-                      backgroundColor: colors.primarySoft,
-                      marginTop: spacing.xs,
-                      borderWidth: 1,
-                      borderColor: colors.primary + "20",
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: colors.text,
+                      flex: 1,
                     }}
                   >
-                    <Text
-                      style={[
-                        typography.body.sm,
-                        { color: colors.text, flex: 1, fontWeight: "600" },
-                      ]}
-                    >
-                      {hospitals.find((h) => h.id === selectedHospitalId)?.name || "Selected hospital"}
-                    </Text>
+                    {hospitals.find((h) => h.id === selectedHospitalId)?.name || "Selected hospital"}
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      setValue("doctorProfile.hospitalId", "");
+                      setHospitalQuery("");
+                    }}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear hospital"
+                  >
+                    <X size={16} color={colors.primary} />
+                  </Pressable>
+                </View>
+              ) : hospitalsLoading ? (
+                <View style={{ marginTop: spacing.sm, height: 48, backgroundColor: colors.surfaceMuted, borderRadius: radius.md }} />
+              ) : hospitals.length > 0 && hospitalQuery ? (
+                <View style={{ gap: spacing.xs, marginTop: spacing.sm }}>
+                  {hospitals.slice(0, 5).map((h: any) => (
                     <Pressable
-                      onPress={() => {
-                        setValue("doctorProfile.hospitalId", "");
-                        setHospitalQuery("");
-                      }}
-                      hitSlop={8}
+                      key={h.id}
+                      onPress={() =>
+                        setValue("doctorProfile.hospitalId", h.id, {
+                          shouldValidate: true,
+                        })
+                      }
                       accessibilityRole="button"
-                      accessibilityLabel="Clear hospital"
+                      accessibilityLabel={`Select ${h.name}`}
+                      style={({ pressed }) => ({
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.sm,
+                        borderRadius: radius.md,
+                        backgroundColor: pressed ? colors.primarySoft : "#F9F8FA",
+                        borderWidth: 1,
+                        borderColor: "#E6E4EA",
+                      })}
                     >
-                      <X size={16} color={colors.primary} />
-                    </Pressable>
-                  </View>
-                ) : hospitalsLoading ? (
-                  <View style={{ marginTop: spacing.xs }}>
-                    <Skeleton height={48} radius={radius.md} />
-                  </View>
-                ) : hospitals.length > 0 ? (
-                  <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
-                    {hospitals.slice(0, 5).map((h: any) => (
-                      <Pressable
-                        key={h.id}
-                        onPress={() =>
-                          setValue("doctorProfile.hospitalId", h.id, {
-                            shouldValidate: true,
-                          })
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={`Select ${h.name}`}
-                        style={({ pressed }) => ({
-                          paddingHorizontal: spacing.md,
-                          paddingVertical: spacing.sm,
-                          borderRadius: radius.md,
-                          backgroundColor: pressed ? colors.primarySoft : colors.surfaceMuted,
-                          borderWidth: 1,
-                          borderColor: colors.border,
-                        })}
-                      >
-                        <Text style={[typography.body.sm, { color: colors.text, fontWeight: "600" }]}>
-                          {h.name}
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#1D1B20" }}>
+                        {h.name}
+                      </Text>
+                      {h.address ? (
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: "#7F7B8C",
+                            marginTop: 2,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {h.address}
                         </Text>
-                        {h.address ? (
-                          <Text
-                            style={[
-                              typography.caption,
-                              { color: colors.textMuted, marginTop: 2 },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {h.address}
-                          </Text>
-                        ) : null}
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-              </FormField>
-            </>
-          ) : null}
-
-          {/* Error banner */}
-          {errors.root ? (
-            <View
-              style={{
-                backgroundColor: colors.dangerSoft,
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.md,
-                borderRadius: radius.md,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.sm,
-              }}
-            >
-              <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
-              <Text
-                style={[
-                  typography.caption,
-                  { color: colors.danger, fontWeight: "600", flex: 1 },
-                ]}
-                accessibilityLiveRegion="polite"
-              >
-                {errors.root.message}
-              </Text>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </View>
-          ) : null}
+          </View>
+        ) : null}
 
-          {/* Submit */}
-          <Button
-            title={role === "doctor" ? "Create doctor account" : "Create account"}
-            onPress={handleSubmit(onSubmit)}
-            loading={submitting}
-            size="lg"
-            iconRight={ArrowRight}
-          />
-
-          {/* Sign in link */}
-          <Pressable
-            onPress={() => router.push("/(auth)/login" as any)}
-            accessibilityRole="link"
-            hitSlop={8}
-            style={{ alignItems: "center", paddingVertical: spacing.xs }}
+        {/* Error Banner */}
+        {errors.root ? (
+          <View
+            style={{
+              backgroundColor: colors.dangerSoft,
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              borderRadius: radius.md,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+              marginTop: 10,
+            }}
           >
-            <Text style={[typography.body.md, { color: colors.textMuted }]}>
-              Already have an account?{" "}
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>
-                Sign in
-              </Text>
+            <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
+            <Text
+              style={[
+                typography.caption,
+                { color: colors.danger, fontWeight: "600", flex: 1 },
+              ]}
+            >
+              {errors.root.message}
             </Text>
-          </Pressable>
-        </View>
+          </View>
+        ) : null}
 
-        {/* Footer */}
-        <Text
-          style={[
-            typography.caption,
-            {
-              color: colors.textSubtle,
-              textAlign: "center",
-              marginTop: spacing.lg,
-            },
-          ]}
+        {/* Register Button */}
+        <Pressable
+          onPress={handleSubmit(onSubmit)}
+          disabled={submitting}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: submitting ? `${colors.primary}80` : colors.primary,
+            height: 52,
+            borderRadius: 26,
+            marginTop: 20,
+            opacity: pressed ? 0.8 : 1,
+            gap: 8,
+          })}
         >
-          By creating an account you agree to our Terms & Privacy Policy.
-        </Text>
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "700",
+                  color: "#FFFFFF",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {role === "doctor" ? "Create doctor account" : "Create account"}
+              </Text>
+              <ArrowRight size={18} color="#FFFFFF" strokeWidth={2} />
+            </>
+          )}
+        </Pressable>
+
+        {/* Footer Link */}
+        <Pressable
+          onPress={() => router.push("/(auth)/login" as any)}
+          accessibilityRole="link"
+          hitSlop={8}
+          style={{ alignItems: "center", paddingVertical: spacing.xs, marginBottom: 60 }}
+        >
+          <Text style={{ fontSize: 15, color: "#7F7B8C", fontFamily: fontFamily.body }}>
+            Already have an account?{" "}
+            <Text style={{ color: colors.primary, fontWeight: "700", fontFamily: fontFamily.bodyBold }}>
+              Sign in
+            </Text>
+          </Text>
+        </Pressable>
       </View>
     </Screen>
+  );
+}
+
+function CustomUnderlineInput({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  icon: Icon,
+  secureTextEntry,
+  rightIcon: RightIcon,
+  onRightIconPress,
+  error,
+  onBlur,
+  ...props
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder: string;
+  icon: any;
+  secureTextEntry?: boolean;
+  rightIcon?: any;
+  onRightIconPress?: () => void;
+  error?: string;
+  onBlur?: () => void;
+  [key: string]: any;
+}) {
+  const { colors, fontFamily } = useTheme();
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <View style={{ marginBottom: 4 }}>
+      {/* Label */}
+      <View style={{ flexDirection: "row", marginBottom: 6 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: "800",
+            color: "#7F7B8C",
+            letterSpacing: 0.8,
+            fontFamily: fontFamily.displayBold,
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </Text>
+        <Text style={{ fontSize: 11, color: colors.danger || "#FF3B30", marginLeft: 2 }}>*</Text>
+      </View>
+
+      {/* Input Row */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingBottom: 8,
+          borderBottomWidth: focused ? 2 : 1,
+          borderBottomColor: focused ? colors.primary : "#E6E4EA",
+        }}
+      >
+        <Icon size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+        
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#C4C0CC"
+          secureTextEntry={secureTextEntry}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false);
+            if (onBlur) onBlur();
+          }}
+          style={{
+            flex: 1,
+            fontSize: 15,
+            color: "#1D1B20",
+            fontFamily: fontFamily.body,
+            padding: 0,
+          }}
+          {...props}
+        />
+
+        {RightIcon && (
+          <Pressable onPress={onRightIconPress} hitSlop={8}>
+            <RightIcon size={18} color="#C4C0CC" />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Error text */}
+      {error && (
+        <Text
+          style={{
+            fontSize: 12,
+            color: colors.danger || "#FF3B30",
+            marginTop: 6,
+            fontFamily: fontFamily.body,
+          }}
+        >
+          {error}
+        </Text>
+      )}
+    </View>
   );
 }

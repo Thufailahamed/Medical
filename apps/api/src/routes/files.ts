@@ -141,12 +141,8 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
   const date = formData.get("date") as string;
   const patientId = formData.get("patientId") as string;
 
-  if (!file || !recordType || !title || !date || !patientId) {
+  if (!recordType || !title || !date || !patientId) {
     return c.json({ error: "Missing required fields" }, 400);
-  }
-
-  if (file.size > MAX_SIZE) {
-    return c.json({ error: "File too large (max 50MB)" }, 400);
   }
 
   // Ownership check: patients can only create for themselves
@@ -169,67 +165,77 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
     })
     .returning();
 
-  // Upload file to R2
-  let fileType = "other";
-  if (file.type === "application/pdf") fileType = "pdf";
-  else if (file.type.startsWith("image/")) fileType = "image";
-  else if (file.type === "application/dicom") fileType = "dicom";
+  let fileRecord = null;
+  const hasFile = file && typeof file !== "string" && file.size > 0;
 
-  const ext = file.name.split(".").pop() || "bin";
-  const r2Key = `medical/${patientId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  if (hasFile) {
+    if (file.size > MAX_SIZE) {
+      return c.json({ error: "File too large (max 50MB)" }, 400);
+    }
 
-  const arrayBuffer = await file.arrayBuffer();
-  await c.env.R2.put(r2Key, arrayBuffer, {
-    httpMetadata: { contentType: file.type },
-  });
+    // Upload file to R2
+    let fileType = "other";
+    if (file.type === "application/pdf") fileType = "pdf";
+    else if (file.type.startsWith("image/")) fileType = "image";
+    else if (file.type === "application/dicom") fileType = "dicom";
 
-  const [fileRecord] = await db
-    .insert(files)
-    .values({
-      recordId: record.id,
-      url: r2Key,
-      r2Key,
-      type: fileType,
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
-    })
-    .returning();
+    const ext = file.name.split(".").pop() || "bin";
+    const r2Key = `medical/${patientId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-  // V3: auto-OCR for prescriptions / PDFs / images.
-  // Fire-and-forget using ctx.waitUntil so the response isn't blocked.
-  if (
-    recordType === "prescription" ||
-    file.type === "application/pdf" ||
-    file.type.startsWith("image/")
-  ) {
-    const fetchUrl = `/files/download/${encodeURIComponent(r2Key)}?stream=1`;
-    const ocrPromise = (async () => {
-      try {
-        const origin = new URL(c.req.url).origin;
-        const res = await fetch(`${origin}/ai/ocr/prescription`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: c.req.header("Authorization") || "",
-          },
-          body: JSON.stringify({ fileUrl: fetchUrl, patientId }),
-        });
-        if (!res.ok) return;
-        const json = (await res.json()) as { result?: any };
-        const result = json?.result;
-        if (!result) return;
-        const serialized = JSON.stringify(result);
-        await db
-          .update(medicalRecords)
-          .set({ extractedData: serialized })
-          .where(eq(medicalRecords.id, record.id));
-      } catch (err) {
-        console.error("[files.upload-with-record] OCR failed:", err);
+    const arrayBuffer = await file.arrayBuffer();
+    await c.env.R2.put(r2Key, arrayBuffer, {
+      httpMetadata: { contentType: file.type },
+    });
+
+    const [insertedFile] = await db
+      .insert(files)
+      .values({
+        recordId: record.id,
+        url: r2Key,
+        r2Key,
+        type: fileType,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+      })
+      .returning();
+    fileRecord = insertedFile;
+
+    // V3: auto-OCR for prescriptions / PDFs / images.
+    // Fire-and-forget using ctx.waitUntil so the response isn't blocked.
+    if (
+      recordType === "prescription" ||
+      file.type === "application/pdf" ||
+      file.type.startsWith("image/")
+    ) {
+      const fetchUrl = `/files/download/${encodeURIComponent(r2Key)}?stream=1`;
+      const ocrPromise = (async () => {
+        try {
+          const origin = new URL(c.req.url).origin;
+          const res = await fetch(`${origin}/ai/ocr/prescription`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: c.req.header("Authorization") || "",
+            },
+            body: JSON.stringify({ fileUrl: fetchUrl, patientId }),
+          });
+          if (!res.ok) return;
+          const json = (await res.json()) as { result?: any };
+          const result = json?.result;
+          if (!result) return;
+          const serialized = JSON.stringify(result);
+          await db
+            .update(medicalRecords)
+            .set({ extractedData: serialized })
+            .where(eq(medicalRecords.id, record.id));
+        } catch (err) {
+          console.error("[files.upload-with-record] OCR failed:", err);
+        }
+      })();
+      if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+        c.executionCtx.waitUntil(ocrPromise);
       }
-    })();
-    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
-      c.executionCtx.waitUntil(ocrPromise);
     }
   }
 

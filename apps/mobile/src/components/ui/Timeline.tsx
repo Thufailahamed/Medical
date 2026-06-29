@@ -102,7 +102,9 @@ export function Timeline<T>({
                     {!flush ? (
                       <NodeDot tone={meta.tone} dim={isLastItem} />
                     ) : null}
-                    {renderItem(item, idx, groupKey)}
+                    <View style={[!flush && { paddingLeft: spacing.md }]}>
+                      {renderItem(item, idx, groupKey)}
+                    </View>
                   </View>
                 );
               })}
@@ -176,8 +178,6 @@ const styles = StyleSheet.create({
   list: {},
   itemWrap: {
     position: "relative",
-    flexDirection: "row",
-    alignItems: "stretch",
   },
   node: {
     position: "absolute",

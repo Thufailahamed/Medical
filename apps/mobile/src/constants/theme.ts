@@ -307,13 +307,13 @@ export const radius = {
 // ---------- Typography ----------
 
 export const fontFamily = {
-  display: "Inter_600SemiBold",
-  displayBold: "Inter_700Bold",
-  body: "Inter_400Regular",
-  bodyMedium: "Inter_500Medium",
-  bodySemibold: "Inter_600SemiBold",
-  bodyBold: "Inter_700Bold",
-  heavy: "Inter_800ExtraBold",
+  display: "Outfit_600SemiBold",
+  displayBold: "Outfit_700Bold",
+  body: "Outfit_400Regular",
+  bodyMedium: "Outfit_500Medium",
+  bodySemibold: "Outfit_600SemiBold",
+  bodyBold: "Outfit_700Bold",
+  heavy: "Outfit_800ExtraBold",
 } as const;
 
 type TypeStyle = {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
-import { Screen, Card, Avatar, Button, useToast } from "@/components/ui";
+import { Screen, Card, Avatar, Button, useToast, DateField } from "@/components/ui";
 
 const BLOOD_GROUPS = ["O+", "A+", "B+", "AB+", "O-", "A-", "B-", "AB-"];
 const GENDERS = ["Male", "Female", "Other"];
@@ -54,6 +54,11 @@ export default function EditProfileScreen() {
   const [weight, setWeight] = useState("");
   const [gender, setGender] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const dobDate = useMemo(() => {
+    if (!dateOfBirth) return undefined;
+    const d = new Date(dateOfBirth);
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  }, [dateOfBirth]);
   const [allergies, setAllergies] = useState("");
   const [conditions, setConditions] = useState("");
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
@@ -223,7 +228,35 @@ export default function EditProfileScreen() {
         >
           Edit Profile
         </Text>
-        <View style={{ width: 40 }} />
+        <Pressable
+          onPress={handleSave}
+          disabled={updateProfile.isPending || savingPhoto}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Save profile"
+          style={({ pressed }) => ({
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 6,
+            borderRadius: radius.md,
+            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+            alignItems: "center",
+            justifyContent: "center",
+          })}
+        >
+          {updateProfile.isPending || savingPhoto ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "700",
+                color: colors.primary,
+              }}
+            >
+              Save
+            </Text>
+          )}
+        </Pressable>
       </View>
 
       <ScrollView
@@ -406,21 +439,15 @@ export default function EditProfileScreen() {
             </LabeledRow>
 
             <LabeledRow label="Date of Birth">
-              <TextInput
-                value={dateOfBirth}
-                onChangeText={setDateOfBirth}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.textSubtle}
-                autoCapitalize="none"
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: radius.md,
-                  padding: spacing.md,
-                  fontSize: 14,
-                  color: colors.text,
-                  backgroundColor: colors.surface,
+              <DateField
+                value={dobDate}
+                onChange={(date) => {
+                  const yyyy = date.getFullYear();
+                  const mm = String(date.getMonth() + 1).padStart(2, "0");
+                  const dd = String(date.getDate()).padStart(2, "0");
+                  setDateOfBirth(`${yyyy}-${mm}-${dd}`);
                 }}
+                placeholder="Select Date of Birth"
               />
             </LabeledRow>
 
@@ -569,30 +596,17 @@ export default function EditProfileScreen() {
             color={colors.primary}
             style={{ marginTop: spacing.lg }}
           />
-        ) : null}
+        ) : (
+          <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.xl }}>
+            <Button
+              title="Save changes"
+              onPress={handleSave}
+              loading={updateProfile.isPending || savingPhoto}
+              icon={Save}
+            />
+          </View>
+        )}
       </ScrollView>
-
-      {/* Save bar */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: spacing.lg,
-          paddingBottom: spacing.xl,
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-        }}
-      >
-        <Button
-          title="Save changes"
-          onPress={handleSave}
-          loading={updateProfile.isPending || savingPhoto}
-          icon={Save}
-        />
-      </View>
     </Screen>
   );
 }

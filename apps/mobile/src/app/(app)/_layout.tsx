@@ -131,11 +131,41 @@ export default function AppLayout() {
         }}
       />
       {/* Hidden routes — these are sub-pages, not tabs */}
-      <Tabs.Screen name="appointments" options={{ href: null }} />
-      <Tabs.Screen name="book-appointment" options={{ href: null }} />
-      <Tabs.Screen name="edit-profile" options={{ href: null }} />
-      <Tabs.Screen name="add-medicine" options={{ href: null }} />
-      <Tabs.Screen name="add-record" options={{ href: null }} />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="book-appointment"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="add-medicine"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="add-record"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
       <Tabs.Screen name="doctor" options={{ href: null }} />
       <Tabs.Screen name="doctor/queue" options={{ href: null }} />
       <Tabs.Screen name="doctor/patient-detail" options={{ href: null }} />
@@ -160,27 +190,147 @@ export default function AppLayout() {
       <Tabs.Screen name="ai/summary" options={{ href: null }} />
       <Tabs.Screen name="ai/lab-explain" options={{ href: null }} />
       <Tabs.Screen name="ai/drug-check" options={{ href: null }} />
-      <Tabs.Screen name="ai/chat" options={{ href: null }} />
+      <Tabs.Screen
+        name="ai/chat"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
       <Tabs.Screen name="ai/ocr" options={{ href: null }} />
-      <Tabs.Screen name="record-detail" options={{ href: null }} />
-      <Tabs.Screen name="edit-record" options={{ href: null }} />
-      <Tabs.Screen name="edit-medicine" options={{ href: null }} />
-      <Tabs.Screen name="family" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="notes" options={{ href: null }} />
-      <Tabs.Screen name="vitals" options={{ href: null }} />
-      <Tabs.Screen name="support" options={{ href: null }} />
-      <Tabs.Screen name="activity" options={{ href: null }} />
-      <Tabs.Screen name="appearance" options={{ href: null }} />
-      <Tabs.Screen name="change-password" options={{ href: null }} />
-      <Tabs.Screen name="share" options={{ href: null }} />
-      <Tabs.Screen name="timeline" options={{ href: null }} />
-      <Tabs.Screen name="allergies" options={{ href: null }} />
-      <Tabs.Screen name="vaccinations" options={{ href: null }} />
-      <Tabs.Screen name="health-summary" options={{ href: null }} />
-      <Tabs.Screen name="export" options={{ href: null }} />
-      <Tabs.Screen name="appointment-detail" options={{ href: null }} />
-      <Tabs.Screen name="notification-preferences" options={{ href: null }} />
+      <Tabs.Screen
+        name="record-detail"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="edit-record"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="edit-medicine"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="family"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="vitals"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="support"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="activity"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="appearance"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="change-password"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="share"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="timeline"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="allergies"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="vaccinations"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="health-summary"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="export"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="appointment-detail"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="notification-preferences"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
     </Tabs>
   );
 }

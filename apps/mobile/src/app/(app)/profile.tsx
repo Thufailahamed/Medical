@@ -39,9 +39,9 @@ import {
   useFamilyMembers,
   useMyMedicines,
   useAllergies,
+  useDoctorMe,
 } from "@/hooks/useApi";
 import { api } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import {
   Screen,
   Card,
@@ -118,6 +118,8 @@ export default function ProfileScreen() {
   const isHospitalStaff = role === "hospital_staff";
   const isHospital = isHospitalAdmin || isHospitalStaff;
 
+  const { data: doctorProfileData } = useDoctorMe({ enabled: isDoctor });
+
   const bmi = useMemo(() => calcBmi(patient?.height, patient?.weight), [patient]);
   const bmiInfo = bmi ? bmiCategory(bmi) : null;
 
@@ -157,9 +159,6 @@ export default function ProfileScreen() {
   async function handleLogout() {
     try {
       await api("/auth/logout", { method: "POST" });
-    } catch {}
-    try {
-      await supabase.auth.signOut();
     } catch {}
     queryClient.clear();
     logout();
@@ -411,7 +410,9 @@ export default function ProfileScreen() {
                         ]}
                         numberOfLines={1}
                       >
-                        {userRow?.name || user?.name || "—"}
+                        {isDoctor && !(userRow?.name || user?.name || "").toLowerCase().startsWith("dr.")
+                          ? `Dr. ${userRow?.name || user?.name || "—"}`
+                          : (userRow?.name || user?.name || "—")}
                       </Text>
                       <Text
                         style={[
@@ -441,6 +442,20 @@ export default function ProfileScreen() {
                       tone={isDoctor ? "info" : "primary"}
                       size="sm"
                     />
+                    {isDoctor && doctorProfileData?.doctor?.doctors?.specialization ? (
+                      <Pill
+                        label={doctorProfileData.doctor.doctors.specialization}
+                        tone="info"
+                        size="sm"
+                      />
+                    ) : null}
+                    {isDoctor && doctorProfileData?.doctor?.doctors?.registrationNumber ? (
+                      <Pill
+                        label={`SLMC: ${doctorProfileData.doctor.doctors.registrationNumber}`}
+                        tone="neutral"
+                        size="sm"
+                      />
+                    ) : null}
                     {userRow?.verified || user?.verified ? (
                       <Pill
                         icon={ShieldCheck}
@@ -454,159 +469,168 @@ export default function ProfileScreen() {
               </View>
 
               {/* 3-col stats grid */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: spacing.sm,
-                }}
-              >
-                <StatCard
-                  icon={Droplet}
-                  tone="danger"
-                  size="sm"
-                  label="Blood"
-                  value={patient?.bloodGroup || "—"}
-                />
-                <StatCard
-                  icon={HeartPulse}
-                  tone={bmiInfo?.tone ?? "info"}
-                  size="sm"
-                  label="BMI"
-                  value={bmi ? bmi.toFixed(1) : "—"}
-                  hint={bmiInfo?.label}
-                />
-                <StatCard
-                  icon={Activity}
-                  tone="primary"
-                  size="sm"
-                  label="Active"
-                  value={String(medCount)}
-                  hint={medCount === 1 ? "medicine" : "medicines"}
-                />
-              </View>
+              {!isDoctor && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: spacing.sm,
+                  }}
+                >
+                  <StatCard
+                    icon={Droplet}
+                    tone="danger"
+                    size="sm"
+                    label="Blood"
+                    value={patient?.bloodGroup || "—"}
+                  />
+                  <StatCard
+                    icon={HeartPulse}
+                    tone={bmiInfo?.tone ?? "info"}
+                    size="sm"
+                    label="BMI"
+                    value={bmi ? bmi.toFixed(1) : "—"}
+                    hint={bmiInfo?.label}
+                  />
+                  <StatCard
+                    icon={Activity}
+                    tone="primary"
+                    size="sm"
+                    label="Active"
+                    value={String(medCount)}
+                    hint={medCount === 1 ? "medicine" : "medicines"}
+                  />
+                </View>
+              )}
             </View>
           </Card>
         </View>
 
         {/* ─── Health profile card ─── */}
-        <View
-          style={{
-            marginHorizontal: spacing.lg,
-            marginTop: spacing.lg,
-          }}
-        >
-          <Card
-            padded={false}
-            onPress={() => router.push("/(app)/edit-profile" as any)}
-            accessibilityLabel="Edit health profile"
+        {!isDoctor && (
+          <View
+            style={{
+              marginHorizontal: spacing.lg,
+              marginTop: spacing.lg,
+            }}
           >
-            <View
-              style={{
-                paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.md,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              }}
+            <Card
+              padded={false}
+              onPress={() => router.push("/(app)/edit-profile" as any)}
+              accessibilityLabel="Edit health profile"
             >
               <View
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: radius.lg,
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: colors.warningSoft,
+                  gap: spacing.md,
                 }}
               >
-                <AlertTriangle
-                  size={20}
-                  color={colors.warning}
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: radius.lg,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.warningSoft,
+                  }}
+                >
+                  <AlertTriangle
+                    size={20}
+                    color={colors.warning}
+                    strokeWidth={2.25}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[typography.title.sm, { color: colors.text }]}>
+                    Health profile
+                  </Text>
+                  <Text
+                    style={[
+                      typography.body.sm,
+                      { color: colors.textMuted, marginTop: 2 },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    Allergies & conditions visible to your doctors
+                  </Text>
+                </View>
+                <ChevronRight
+                  size={18}
+                  color={colors.textSubtle}
                   strokeWidth={2.25}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[typography.title.sm, { color: colors.text }]}>
-                  Health profile
-                </Text>
-                <Text
-                  style={[
-                    typography.body.sm,
-                    { color: colors.textMuted, marginTop: 2 },
-                  ]}
-                  numberOfLines={2}
-                >
-                  Allergies & conditions visible to your doctors
-                </Text>
-              </View>
-              <ChevronRight
-                size={18}
-                color={colors.textSubtle}
-                strokeWidth={2.25}
-              />
-            </View>
-            <Divider />
-            <View style={{ padding: spacing.lg, gap: spacing.md }}>
-              <SummaryRow
-                label="ALLERGIES"
-                empty="None recorded"
-                items={allergies}
-                tone="danger"
-                icon={AlertTriangle}
-              />
-              <SummaryRow
-                label="CONDITIONS"
-                empty="None recorded"
-                items={conditions}
-                tone="warning"
-                icon={Activity}
-              />
-              <View style={{ gap: spacing.xs }}>
-                <Text
-                  style={[
-                    typography.overline,
-                    { color: colors.textMuted, letterSpacing: 1.2 },
-                  ]}
-                >
-                  EMERGENCY CONTACTS
-                </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: spacing.sm,
-                  }}
-                >
+              <Divider />
+              <View style={{ padding: spacing.lg, gap: spacing.md }}>
+                <SummaryRow
+                  label="ALLERGIES"
+                  empty="None recorded"
+                  items={allergies}
+                  tone="danger"
+                  icon={AlertTriangle}
+                />
+                <SummaryRow
+                  label="CONDITIONS"
+                  empty="None recorded"
+                  items={conditions}
+                  tone="warning"
+                  icon={Activity}
+                />
+                <View style={{ gap: spacing.xs }}>
                   <Text
                     style={[
-                      typography.body.md,
-                      { color: colors.text, fontWeight: "600" },
+                      typography.overline,
+                      { color: colors.textMuted, letterSpacing: 1.2, alignSelf: "flex-start" },
                     ]}
                   >
-                    {emergencyContacts.length > 0
-                      ? `${emergencyContacts.length} on file`
-                      : "None recorded"}
+                    EMERGENCY CONTACTS
                   </Text>
-                  <Text
-                    onPress={() => router.push("/(app)/family" as any)}
-                    style={[
-                      typography.label.md,
-                      { color: colors.primary, fontWeight: "700" },
-                    ]}
-                    accessibilityRole="link"
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: spacing.sm,
+                      width: "100%",
+                    }}
                   >
-                    Manage in Family
-                  </Text>
+                    <Text
+                      style={[
+                        typography.body.md,
+                        {
+                          color: emergencyContacts.length > 0 ? colors.text : colors.textSubtle,
+                          fontWeight: emergencyContacts.length > 0 ? "600" : "500",
+                          alignSelf: "flex-start",
+                        },
+                      ]}
+                    >
+                      {emergencyContacts.length > 0
+                        ? `${emergencyContacts.length} on file`
+                        : "None recorded"}
+                    </Text>
+                    <Text
+                      onPress={() => router.push("/(app)/family" as any)}
+                      style={[
+                        typography.label.md,
+                        { color: colors.primary, fontWeight: "700" },
+                      ]}
+                      accessibilityRole="link"
+                    >
+                      Manage in Family
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          </Card>
-        </View>
+            </Card>
+          </View>
+        )}
 
         {/* ─── Account section ─── */}
         <View style={{ marginTop: spacing.lg }}>
-          <SectionHeader title="Account" />
+          <SectionHeader title="Account" style={{ paddingHorizontal: spacing.lg }} />
           <View style={{ marginHorizontal: spacing.lg }}>
             <Card padded={false}>
               {accountItems.map((item, i) => (
@@ -628,31 +652,33 @@ export default function ProfileScreen() {
         </View>
 
         {/* ─── Health section ─── */}
-        <View style={{ marginTop: spacing.lg }}>
-          <SectionHeader title="Health" />
-          <View style={{ marginHorizontal: spacing.lg }}>
-            <Card padded={false}>
-              {healthItems.map((item, i) => (
-                <View key={item.label}>
-                  <ListItem
-                    icon={item.icon}
-                    iconTone={item.tone}
-                    title={item.label}
-                    subtitle={item.subtitle}
-                    onPress={item.onPress}
-                    showChevron
-                    bordered={false}
-                  />
-                  {i < healthItems.length - 1 ? <Divider /> : null}
-                </View>
-              ))}
-            </Card>
+        {!isDoctor && (
+          <View style={{ marginTop: spacing.lg }}>
+            <SectionHeader title="Health" style={{ paddingHorizontal: spacing.lg }} />
+            <View style={{ marginHorizontal: spacing.lg }}>
+              <Card padded={false}>
+                {healthItems.map((item, i) => (
+                  <View key={item.label}>
+                    <ListItem
+                      icon={item.icon}
+                      iconTone={item.tone}
+                      title={item.label}
+                      subtitle={item.subtitle}
+                      onPress={item.onPress}
+                      showChevron
+                      bordered={false}
+                    />
+                    {i < healthItems.length - 1 ? <Divider /> : null}
+                  </View>
+                ))}
+              </Card>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* ─── Support section ─── */}
         <View style={{ marginTop: spacing.lg }}>
-          <SectionHeader title="Support" />
+          <SectionHeader title="Support" style={{ paddingHorizontal: spacing.lg }} />
           <View style={{ marginHorizontal: spacing.lg }}>
             <Card padded={false}>
               <ListItem
@@ -713,11 +739,11 @@ function SummaryRow({
 }) {
   const { colors, spacing, typography } = useTheme();
   return (
-    <View style={{ gap: spacing.xs }}>
+    <View style={{ alignItems: "flex-start", gap: spacing.xs }}>
       <Text
         style={[
           typography.overline,
-          { color: colors.textMuted, letterSpacing: 1.2 },
+          { color: colors.textMuted, letterSpacing: 1.2, alignSelf: "flex-start" },
         ]}
       >
         {label}
@@ -726,7 +752,7 @@ function SummaryRow({
         <Text
           style={[
             typography.body.md,
-            { color: colors.textSubtle, fontWeight: "500" },
+            { color: colors.textSubtle, fontWeight: "500", alignSelf: "flex-start" },
           ]}
         >
           {empty}
@@ -737,6 +763,7 @@ function SummaryRow({
             flexDirection: "row",
             flexWrap: "wrap",
             gap: spacing.xs,
+            alignSelf: "flex-start",
           }}
         >
           {items.map((it, i) => (

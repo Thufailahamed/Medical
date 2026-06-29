@@ -18,20 +18,27 @@ import type { AppEnvironment } from "../types";
 
 const medicinesRouter = new Hono<AppEnvironment>();
 
-function slotsForFrequency(freq: string | null): string[] {
-  switch ((freq || "").toLowerCase()) {
-    case "once daily":
-      return ["09:00"];
-    case "twice daily":
-      return ["09:00", "21:00"];
-    case "three times daily":
-      return ["09:00", "15:00", "21:00"];
-    case "four times daily":
-      return ["08:00", "13:00", "18:00", "22:00"];
-    default:
-      // "As needed" and unknown — no scheduled doses
-      return [];
+function slotsForFrequency(freq: string | null, timing?: string | null): string[] {
+  const f = (freq || "").toLowerCase();
+  if (f === "once daily") return ["09:00"];
+  if (f === "twice daily") return ["09:00", "21:00"];
+  if (f === "three times daily") return ["09:00", "15:00", "21:00"];
+  if (f === "four times daily") return ["08:00", "13:00", "18:00", "22:00"];
+
+  const t = (timing || "").toLowerCase();
+  if (t.includes("morning") || t.includes("breakfast") || t.includes("food") || t.includes("am")) {
+    return ["09:00"];
   }
+  if (t.includes("noon") || t.includes("afternoon") || t.includes("lunch")) {
+    return ["13:00"];
+  }
+  if (t.includes("evening") || t.includes("dinner")) {
+    return ["18:00"];
+  }
+  if (t.includes("night") || t.includes("bed") || t.includes("pm")) {
+    return ["21:00"];
+  }
+  return ["09:00"];
 }
 
 function isAsNeeded(freq: string | null) {
@@ -55,7 +62,6 @@ async function scheduleTodayForMedicine(
   const start = medicineRow.startDate || today;
   const end = medicineRow.endDate || today;
   if (today < start || today > end) return 0;
-  if (isAsNeeded(medicineRow.frequency)) return 0;
 
   // Don't create duplicates if doses already exist for this medicine today
   const dayStart = `${today}T00:00:00.000Z`;
@@ -77,7 +83,7 @@ async function scheduleTodayForMedicine(
   );
 
   let created = 0;
-  for (const time of slotsForFrequency(medicineRow.frequency)) {
+  for (const time of slotsForFrequency(medicineRow.frequency, medicineRow.timing)) {
     if (existingTimes.has(time)) continue;
     const [hh, mm] = time.split(":").map(Number);
     const scheduled = new Date();

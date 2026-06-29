@@ -143,14 +143,24 @@ export async function aiComplete(
         max_tokens: opts.maxTokens ?? 800,
         temperature: opts.temperature ?? 0.3,
       });
-      // Workers AI returns { response: "..." } for chat models
-      return (
+      console.log("[aiComplete] raw response:", JSON.stringify(res));
+      const val =
         res?.response ??
         res?.output_text ??
         res?.result?.response ??
-        (typeof res === "string" ? res : "") ??
-        ""
-      );
+        (typeof res === "string" ? res : "");
+
+      if (typeof val === "string") return val;
+      if (val && typeof val === "object") {
+        return (
+          (val as any).text ??
+          (val as any).message ??
+          (val as any).response ??
+          (val as any).content ??
+          JSON.stringify(val)
+        );
+      }
+      return "";
     } catch (err) {
       console.error("[aiComplete] ai.run threw:", (err as Error)?.message || err);
       return "";

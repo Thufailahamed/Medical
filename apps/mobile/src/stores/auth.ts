@@ -35,5 +35,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       authFailureCount: 0,
     }),
   onAuthError: () =>
-    set((state) => ({ authFailureCount: state.authFailureCount + 1 })),
+    set((state) => ({
+      user: null,
+      patient: null,
+      isAuthenticated: false,
+      authFailureCount: state.authFailureCount + 1,
+    })),
 }));

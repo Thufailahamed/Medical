@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Plus,
   Send,
@@ -66,6 +67,7 @@ function fmtWhen(d: string) {
 export default function AiChatScreen() {
   const router = useRouter();
   const { spacing, colors, typography } = useTheme();
+  const insets = useSafeAreaInsets();
   const toast = useToast();
 
   const sessions = useChatSessions();
@@ -138,7 +140,7 @@ export default function AiChatScreen() {
     const canSend = draft.trim().length > 0 && !sending;
 
     return (
-      <Screen padded={false} edges={["top"]}>
+      <Screen padded={false} edges={["top"]} bottomInset={false}>
         <ScreenHeader
           back
           onBack={() => setActiveId(null)}
@@ -230,7 +232,7 @@ export default function AiChatScreen() {
               gap: spacing.sm,
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.sm,
-              paddingBottom: spacing.lg,
+              paddingBottom: Math.max(insets.bottom, spacing.lg),
               borderTopWidth: 1,
               borderTopColor: colors.border,
               backgroundColor: colors.bgElevated,

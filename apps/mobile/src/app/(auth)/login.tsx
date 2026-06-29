@@ -4,24 +4,19 @@ import {
   Text,
   Pressable,
   Keyboard,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock, ArrowRight, HeartPulse, ShieldCheck } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Mail, Lock, ArrowRight, Heart, Eye, EyeOff, ShieldCheck } from "lucide-react-native";
 import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
-import {
-  Screen,
-  Button,
-  TextInput,
-  FormField,
-  useToast,
-} from "@/components/ui";
+import { Screen, useToast } from "@/components/ui";
 
 const schema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email"),
@@ -32,8 +27,9 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { colors, spacing, typography, radius, shadow } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily } = useTheme();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
 
@@ -63,9 +59,7 @@ export default function LoginScreen() {
 
       setUser(res.user);
       toast.show("Welcome back", "success");
-      // V3: route doctors straight to the portal, not the patient dashboard.
-      const home =
-        res.user?.role === "doctor" ? "/(app)/doctor" : "/(app)";
+      const home = res.user?.role === "doctor" ? "/(app)/doctor" : "/(app)";
       router.replace(home as any);
     } catch (err: any) {
       console.error("Login error details:", err);
@@ -101,265 +95,326 @@ export default function LoginScreen() {
       keyboard
       scroll
       padded={false}
-      bottomInset={false}
+      bottomInset={true}
       edges={["top", "bottom"]}
-      contentContainerStyle={{ flexGrow: 1 }}
+      style={{ backgroundColor: "#FFFFFF" }}
+      contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
     >
-      {/* Hero band — gradient + decorative shapes */}
-      <View style={{ height: 320, position: "relative", overflow: "hidden" }}>
-        <LinearGradient
-          colors={["#1E3B8B", "#0F766E"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-
-
-        {/* Logo + brand */}
-        <View
-          style={{
-            position: "absolute",
-            top: 70,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-          }}
-        >
-          <View
-            style={[
-              {
-                width: 76,
-                height: 76,
-                borderRadius: 24,
-                backgroundColor: colors.surface,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: spacing.md,
-              },
-              shadow.lg,
-            ]}
-          >
-            <HeartPulse size={36} color={colors.primary} strokeWidth={2.25} />
-          </View>
-          <Text
-            style={[
-              typography.overline,
-              {
-                color: "#FFFFFF",
-                opacity: 0.85,
-                letterSpacing: 2.5,
-                fontWeight: "700",
-              },
-            ]}
-          >
-            HEALTHHUB
-          </Text>
-        </View>
-      </View>
-
-      {/* Form card — overlapping hero */}
+      {/* Branding Header */}
       <View
         style={{
-          flex: 1,
-          marginTop: -36,
-          paddingHorizontal: spacing.xl,
-          paddingBottom: spacing.xl,
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: 40,
         }}
       >
-        <View
-          style={[
-            {
-              backgroundColor: colors.surface,
-              borderRadius: radius.xxl,
-              padding: spacing.xl,
-              gap: spacing.lg,
-            },
-            shadow.lg,
-          ]}
+        <Heart size={26} color={colors.primary} strokeWidth={2.25} />
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "800",
+            color: "#1D1B20",
+            letterSpacing: 3,
+            fontFamily: fontFamily.displayBold,
+            marginLeft: 8,
+          }}
         >
-          {/* Heading */}
-          <View style={{ gap: spacing.xs, marginBottom: spacing.xs }}>
-            <Text
-              style={[
-                typography.display.sm,
-                {
-                  color: colors.text,
-                  fontWeight: "700",
-                  fontSize: 24,
-                  lineHeight: 32,
-                },
-              ]}
-            >
-              Welcome back
-            </Text>
-            <Text
-              style={[
-                typography.body.md,
-                { color: colors.textMuted },
-              ]}
-            >
-              Sign in to continue managing your health.
-            </Text>
-          </View>
+          HEALTHHUB
+        </Text>
+      </View>
 
-          {/* Email */}
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField
-                label="Email"
-                required
-                error={errors.email?.message}
-              >
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.textSubtle}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  leadingIcon={Mail}
-                  invalid={!!errors.email}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
+      {/* Heading Section */}
+      <View style={{ marginTop: 48, marginBottom: 32 }}>
+        <Text
+          style={{
+            fontSize: 34,
+            fontWeight: "800",
+            color: "#1D1B20",
+            fontFamily: fontFamily.displayBold,
+            lineHeight: 42,
+          }}
+        >
+          Welcome back.
+        </Text>
+        <Text
+          style={{
+            fontSize: 15,
+            color: "#7F7B8C",
+            marginTop: 10,
+            fontFamily: fontFamily.body,
+            lineHeight: 22,
+          }}
+        >
+          Sign in to continue managing your health.
+        </Text>
+      </View>
 
-          {/* Password */}
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormField
-                label="Password"
-                required
-                error={errors.password?.message}
-              >
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="Enter your password"
-                  placeholderTextColor={colors.textSubtle}
-                  secureTextEntry
-                  autoComplete="password"
-                  textContentType="password"
-                  leadingIcon={Lock}
-                  showPasswordToggle
-                  invalid={!!errors.password}
-                  tone="soft"
-                />
-              </FormField>
-            )}
-          />
+      {/* Form Fields */}
+      <View style={{ gap: 20 }}>
+        {/* Email Field */}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="Email"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="you@example.com"
+              icon={Mail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              error={errors.email?.message}
+            />
+          )}
+        />
 
-          {/* Forgot password link */}
-          <Pressable
-            onPress={goForgot}
-            accessibilityRole="link"
-            hitSlop={8}
-            style={{ alignSelf: "flex-end", marginTop: -spacing.sm }}
+        {/* Password Field */}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomUnderlineInput
+              label="Password"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Enter your password"
+              icon={Lock}
+              secureTextEntry={!showPassword}
+              rightIcon={showPassword ? EyeOff : Eye}
+              onRightIconPress={() => setShowPassword(!showPassword)}
+              error={errors.password?.message}
+            />
+          )}
+        />
+
+        {/* Forgot Password Link */}
+        <Pressable
+          onPress={goForgot}
+          accessibilityRole="link"
+          hitSlop={8}
+          style={{ alignSelf: "flex-end", marginTop: -8 }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "700",
+              color: colors.primary,
+              fontFamily: fontFamily.bodyBold,
+            }}
           >
-            <Text
-              style={[
-                typography.label.md,
-                { color: colors.primary, fontWeight: "700" },
-              ]}
-            >
-              Forgot password?
-            </Text>
-          </Pressable>
+            Forgot password?
+          </Text>
+        </Pressable>
 
-          {/* Error banner */}
-          {errors.root ? (
-            <View
-              style={{
-                backgroundColor: colors.dangerSoft,
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.md,
-                borderRadius: radius.md,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.sm,
-              }}
-            >
-              <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
-              <Text
-                style={[
-                  typography.caption,
-                  { color: colors.danger, fontWeight: "600", flex: 1 },
-                ]}
-                accessibilityLiveRegion="polite"
-              >
-                {errors.root.message}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Submit */}
-          <Button
-            title="Sign in"
-            onPress={handleSubmit(onSubmit)}
-            loading={submitting}
-            size="lg"
-            iconRight={ArrowRight}
-          />
-
-          {/* Divider */}
+        {/* Error Banner */}
+        {errors.root ? (
           <View
             style={{
+              backgroundColor: colors.dangerSoft,
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              borderRadius: radius.md,
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.sm,
+              marginTop: 10,
             }}
           >
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+            <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
             <Text
               style={[
                 typography.caption,
-                { color: colors.textSubtle, fontWeight: "500" },
+                { color: colors.danger, fontWeight: "600", flex: 1 },
               ]}
             >
-              or
+              {errors.root.message}
             </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
           </View>
+        ) : null}
 
-          {/* Register link */}
-          <Pressable
-            onPress={goRegister}
-            accessibilityRole="link"
-            hitSlop={8}
-            style={{ alignItems: "center", paddingVertical: spacing.xs }}
-          >
-            <Text style={[typography.body.md, { color: colors.textMuted }]}>
-              New to HealthHub?{" "}
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>
-                Create account
+        {/* Sign In Button */}
+        <Pressable
+          onPress={handleSubmit(onSubmit)}
+          disabled={submitting}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: submitting ? `${colors.primary}80` : colors.primary,
+            height: 52,
+            borderRadius: 26,
+            marginTop: 20,
+            opacity: pressed ? 0.8 : 1,
+            gap: 8,
+          })}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "700",
+                  color: "#FFFFFF",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                Sign in
               </Text>
-            </Text>
-          </Pressable>
+              <ArrowRight size={18} color="#FFFFFF" strokeWidth={2} />
+            </>
+          )}
+        </Pressable>
+
+        {/* Divider */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.sm,
+            marginTop: 24,
+          }}
+        >
+          <View style={{ flex: 1, height: 1, backgroundColor: "#E6E4EA" }} />
+          <Text
+            style={{
+              fontSize: 12,
+              color: "#7F7B8C",
+              fontWeight: "600",
+              textTransform: "uppercase",
+              letterSpacing: 1,
+              fontFamily: fontFamily.body,
+            }}
+          >
+            or
+          </Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: "#E6E4EA" }} />
         </View>
 
-        {/* Footer micro-copy */}
-        <Text
-          style={[
-            typography.caption,
-            {
-              color: colors.textSubtle,
-              textAlign: "center",
-              marginTop: spacing.lg,
-            },
-          ]}
+        {/* Register footer link */}
+        <Pressable
+          onPress={goRegister}
+          accessibilityRole="link"
+          hitSlop={8}
+          style={{ alignItems: "center", paddingVertical: spacing.xs, marginBottom: 40 }}
         >
-          By signing in you agree to our Terms & Privacy Policy.
-        </Text>
+          <Text style={{ fontSize: 15, color: "#7F7B8C", fontFamily: fontFamily.body }}>
+            New to HealthHub?{" "}
+            <Text style={{ color: colors.primary, fontWeight: "700", fontFamily: fontFamily.bodyBold }}>
+              Create account
+            </Text>
+          </Text>
+        </Pressable>
       </View>
     </Screen>
+  );
+}
+
+function CustomUnderlineInput({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  icon: Icon,
+  secureTextEntry,
+  rightIcon: RightIcon,
+  onRightIconPress,
+  error,
+  onBlur,
+  ...props
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder: string;
+  icon: any;
+  secureTextEntry?: boolean;
+  rightIcon?: any;
+  onRightIconPress?: () => void;
+  error?: string;
+  onBlur?: () => void;
+  [key: string]: any;
+}) {
+  const { colors, fontFamily } = useTheme();
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <View style={{ marginBottom: 4 }}>
+      {/* Label */}
+      <View style={{ flexDirection: "row", marginBottom: 6 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: "800",
+            color: "#7F7B8C",
+            letterSpacing: 0.8,
+            fontFamily: fontFamily.displayBold,
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </Text>
+        <Text style={{ fontSize: 11, color: colors.danger || "#FF3B30", marginLeft: 2 }}>*</Text>
+      </View>
+
+      {/* Input Row */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingBottom: 8,
+          borderBottomWidth: focused ? 2 : 1,
+          borderBottomColor: focused ? colors.primary : "#E6E4EA",
+        }}
+      >
+        <Icon size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+        
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#C4C0CC"
+          secureTextEntry={secureTextEntry}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false);
+            if (onBlur) onBlur();
+          }}
+          style={{
+            flex: 1,
+            fontSize: 15,
+            color: "#1D1B20",
+            fontFamily: fontFamily.body,
+            padding: 0,
+          }}
+          {...props}
+        />
+
+        {RightIcon && (
+          <Pressable onPress={onRightIconPress} hitSlop={8}>
+            <RightIcon size={18} color="#C4C0CC" />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Error text */}
+      {error && (
+        <Text
+          style={{
+            fontSize: 12,
+            color: colors.danger || "#FF3B30",
+            marginTop: 6,
+            fontFamily: fontFamily.body,
+          }}
+        >
+          {error}
+        </Text>
+      )}
+    </View>
   );
 }

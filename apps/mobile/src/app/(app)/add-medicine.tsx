@@ -284,7 +284,7 @@ export default function AddMedicineScreen() {
   };
 
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset tabBarOffset>
+    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
       <ScreenHeader back title="Add medicine" />
 
       {/* Compact identity strip */}

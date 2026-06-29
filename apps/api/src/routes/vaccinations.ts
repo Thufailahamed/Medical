@@ -140,6 +140,12 @@ vaccinationsRouter.get("/me/due", authMiddleware, requireRole("patient"), async 
       };
 
       if (daysUntil < 0) {
+        // If the user is an adult (18+ years / 216 months), do not mark childhood vaccines (recommended under 18 years) as overdue.
+        const isUserAdult = ageMonths >= 216;
+        const isChildhoodVaccine = (slot.monthsFromBirth || 0) < 216;
+        if (isUserAdult && isChildhoodVaccine) {
+          continue;
+        }
         overdue.push(item);
       } else if (daysUntil <= 30) {
         due.push(item);
