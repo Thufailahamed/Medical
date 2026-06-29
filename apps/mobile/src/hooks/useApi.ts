@@ -203,10 +203,65 @@ export function useDeleteFamilyMember() {
 }
 
 // ─── Medicines ───────────────────────────────────────────
-export function useMyMedicines() {
+export function useMyMedicines(opts?: { includeInactive?: boolean }) {
   return useQuery({
-    queryKey: ["medicines"],
-    queryFn: () => api<{ medicines: any[] }>("/medicines/me"),
+    queryKey: ["medicines", opts?.includeInactive ? "all" : "active"],
+    queryFn: () =>
+      api<{ medicines: any[] }>(
+        `/medicines/me${opts?.includeInactive ? "?includeInactive=true" : ""}`
+      ),
+  });
+}
+
+export function useMedicineStats() {
+  return useQuery({
+    queryKey: ["medicines", "stats"],
+    queryFn: () =>
+      api<{
+        activeCount: number;
+        pausedCount: number;
+        todayCount: number;
+        todayTaken: number;
+        streakDays: number;
+        last7Days: Array<{ date: string; total: number; taken: number; pct: number }>;
+      }>("/medicines/me/stats"),
+    staleTime: 60_000,
+  });
+}
+
+export type MedicineSuggestion = {
+  name: string;
+  category?: string;
+  commonDosages: string[];
+  commonFrequencies: string[];
+  commonTimings: string[];
+  source: "history" | "catalog";
+  score: number;
+};
+
+export function useMedicineSuggestions(query: string, limit = 8) {
+  return useQuery({
+    queryKey: ["medicines", "suggest", query.trim().toLowerCase(), limit],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set("limit", String(limit));
+      if (query.trim()) params.set("q", query.trim());
+      return api<{
+        suggestions: MedicineSuggestion[];
+        query: string;
+        count: number;
+      }>(`/medicines/suggest?${params.toString()}`);
+    },
+    staleTime: 60_000,
+    placeholderData: (prev: any) => prev,
+  });
+}
+
+export function useMedicine(id: string) {
+  return useQuery({
+    queryKey: ["medicine", id],
+    queryFn: () => api<{ medicine: any }>(`/medicines/${id}`),
+    enabled: !!id,
   });
 }
 
@@ -227,6 +282,7 @@ export function useAddMedicine() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
+      queryClient.invalidateQueries({ queryKey: ["doses"] });
     },
   });
 }
@@ -241,6 +297,21 @@ export function useUpdateMedicine() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
+    },
+  });
+}
+
+export function useEditMedicine() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; [k: string]: any }) =>
+      api<{ medicine: any }>(`/medicines/${id}`, {
+        method: "PATCH",
+        body: data,
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
+      queryClient.invalidateQueries({ queryKey: ["medicine", vars.id] });
     },
   });
 }
@@ -263,6 +334,7 @@ export function useStopMedicine() {
       api<{ medicine: any }>(`/medicines/${id}/stop`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
+      queryClient.invalidateQueries({ queryKey: ["doses"] });
     },
   });
 }

@@ -44,6 +44,51 @@ export const patientProfileSchema = z.object({
   }).optional(),
 });
 
+// ─── V2: Medicine ────────────────────────────────────────
+export const FREQUENCY_VALUES = [
+  "Once daily",
+  "Twice daily",
+  "Three times daily",
+  "Four times daily",
+  "As needed",
+] as const;
+
+export const TIMING_VALUES = [
+  "Before food",
+  "After food",
+  "With food",
+  "Any time",
+  "Morning",
+  "Afternoon",
+  "Evening",
+  "Night",
+] as const;
+
+export const medicineSchema = z.object({
+  patientId: z.string().min(1),
+  prescriptionId: z.string().optional(),
+  name: z.string().min(1).max(120),
+  dosage: z.string().min(1).max(60),
+  frequency: z.enum(FREQUENCY_VALUES),
+  timing: z.enum(TIMING_VALUES).optional(),
+  startDate: z.string().min(1), // YYYY-MM-DD
+  endDate: z.string().min(1).optional(), // YYYY-MM-DD
+  refillReminder: z.boolean().optional(),
+  notes: z.string().max(1000).optional(),
+});
+
+export const medicineUpdateSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  dosage: z.string().min(1).max(60).optional(),
+  frequency: z.enum(FREQUENCY_VALUES).optional(),
+  timing: z.enum(TIMING_VALUES).optional(),
+  startDate: z.string().min(1).optional(),
+  endDate: z.string().min(1).optional(),
+  refillReminder: z.boolean().optional(),
+  notes: z.string().max(1000).optional(),
+  active: z.boolean().optional(),
+});
+
 export const appointmentSchema = z.object({
   doctorId: z.string().uuid(),
   hospitalId: z.string().uuid(),

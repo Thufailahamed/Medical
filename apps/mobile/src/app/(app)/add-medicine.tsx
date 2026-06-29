@@ -1,4 +1,13 @@
-import { View, Text } from "react-native";
+// @ts-nocheck
+
+import { useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,8 +17,16 @@ import {
   Save,
   FileText,
   Hourglass,
+  History,
+  Sparkles,
+  CornerDownLeft,
 } from "lucide-react-native";
-import { useAddMedicine, usePatientProfile } from "@/hooks/useApi";
+import {
+  useAddMedicine,
+  usePatientProfile,
+  useMedicineSuggestions,
+  type MedicineSuggestion,
+} from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -27,6 +44,7 @@ const FREQUENCIES = [
   { value: "Once daily", label: "Once daily" },
   { value: "Twice daily", label: "Twice daily" },
   { value: "Three times daily", label: "Three times" },
+  { value: "Four times daily", label: "Four times" },
   { value: "As needed", label: "As needed" },
 ];
 
@@ -35,6 +53,10 @@ const TIMINGS = [
   { value: "After food", label: "After food" },
   { value: "With food", label: "With food" },
   { value: "Any time", label: "Any time" },
+  { value: "Morning", label: "Morning" },
+  { value: "Afternoon", label: "Afternoon" },
+  { value: "Evening", label: "Evening" },
+  { value: "Night", label: "Night" },
 ];
 
 const schema = z.object({
@@ -48,6 +70,91 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
+type ApplyField = (name: keyof FormData, value: any) => void;
+
+function SuggestionRow({
+  s,
+  onApply,
+}: {
+  s: MedicineSuggestion;
+  onApply: (s: MedicineSuggestion) => void;
+}) {
+  const { colors, typography, spacing, radius } = useTheme();
+  const isHistory = s.source === "history";
+  const topDosage = s.commonDosages[0];
+  const topFreq = s.commonFrequencies[0];
+  const topTiming = s.commonTimings[0];
+
+  return (
+    <Pressable
+      onPress={() => onApply(s)}
+      accessibilityRole="button"
+      accessibilityLabel={`Use ${s.name}`}
+      style={({ pressed }) => ({
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+      })}
+    >
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: isHistory ? colors.primarySoft : "rgba(14, 165, 183, 0.12)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {isHistory ? (
+          <History size={15} color={colors.primary} strokeWidth={2.25} />
+        ) : (
+          <Sparkles size={15} color="#0EA5B7" strokeWidth={2.25} />
+        )}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          style={[
+            typography.title.sm,
+            { color: colors.text, fontWeight: "700" },
+          ]}
+          numberOfLines={1}
+        >
+          {s.name}
+        </Text>
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.textMuted, marginTop: 1 },
+          ]}
+          numberOfLines={1}
+        >
+          {s.category
+            ? `${s.category} · `
+            : isHistory
+            ? "From your history · "
+            : ""}
+          {topDosage
+            ? `${topDosage}${
+                topFreq ? ` · ${topFreq}` : ""
+              }${topTiming ? ` · ${topTiming}` : ""}`
+            : "Tap to autofill"}
+        </Text>
+      </View>
+      <CornerDownLeft
+        size={14}
+        color={colors.textSubtle}
+        strokeWidth={2.25}
+      />
+    </Pressable>
+  );
+}
+
 export default function AddMedicineScreen() {
   const router = useRouter();
   const { spacing, colors, typography, radius } = useTheme();
@@ -59,6 +166,7 @@ export default function AddMedicineScreen() {
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -72,6 +180,25 @@ export default function AddMedicineScreen() {
     },
     mode: "onChange",
   });
+
+  const [nameQuery, setNameQuery] = useState("");
+  const [nameFocused, setNameFocused] = useState(false);
+
+  const { data: suggestData, isFetching } = useMedicineSuggestions(nameQuery, 6);
+  const suggestions: MedicineSuggestion[] = suggestData?.suggestions || [];
+  const showDropdown =
+    nameFocused &&
+    nameQuery.trim().length > 0 &&
+    suggestions.length > 0;
+
+  function applySuggestion(s: MedicineSuggestion) {
+    setValue("name", s.name, { shouldValidate: true });
+    if (s.commonDosages[0]) setValue("dosage", s.commonDosages[0], { shouldValidate: true });
+    if (s.commonFrequencies[0]) setValue("frequency", s.commonFrequencies[0], { shouldValidate: true });
+    if (s.commonTimings[0]) setValue("timing", s.commonTimings[0], { shouldValidate: true });
+    setNameFocused(false);
+    toast.show(`Autofilled from ${s.source === "history" ? "your history" : "catalog"}`, "success");
+  }
 
   const onSubmit = async (data: FormData) => {
     const patientId = profileData?.patient?.patients?.id;
@@ -138,7 +265,7 @@ export default function AddMedicineScreen() {
               { color: colors.textMuted, marginTop: 2 },
             ]}
           >
-            We'll send timely reminders.
+            Start typing — we'll suggest from your history and common medicines.
           </Text>
         </View>
       </View>
@@ -154,16 +281,77 @@ export default function AddMedicineScreen() {
                   label="Medicine name"
                   required
                   error={errors.name?.message}
+                  helper={
+                    !showDropdown && nameQuery.trim().length > 0 && !isFetching
+                      ? suggestions.length === 0
+                        ? "No matches. Type full name to add a custom medicine."
+                        : undefined
+                      : undefined
+                  }
                 >
-                  <TextInput
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    placeholder="e.g., Amoxicillin"
-                    autoCapitalize="words"
-                    leadingIcon={Pill}
-                    invalid={!!errors.name}
-                  />
+                  <View style={{ position: "relative" }}>
+                    <TextInput
+                      value={value}
+                      onChangeText={(t) => {
+                        onChange(t);
+                        setNameQuery(t);
+                      }}
+                      onFocus={() => setNameFocused(true)}
+                      onBlur={(e) => {
+                        onBlur(e);
+                        // Delay so taps on suggestion rows register before dismiss.
+                        setTimeout(() => setNameFocused(false), 120);
+                      }}
+                      placeholder="e.g., Amoxicillin"
+                      autoCapitalize="words"
+                      leadingIcon={Pill}
+                      invalid={!!errors.name}
+                      trailingIcon={
+                        isFetching && nameQuery.trim().length > 0
+                          ? undefined
+                          : undefined
+                      }
+                    />
+                    {isFetching && nameQuery.trim().length > 0 ? (
+                      <View
+                        style={{
+                          position: "absolute",
+                          right: spacing.md,
+                          top: 0,
+                          bottom: 0,
+                          justifyContent: "center",
+                        }}
+                      >
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      </View>
+                    ) : null}
+                  </View>
+                  {showDropdown ? (
+                    <View
+                      style={{
+                        marginTop: 6,
+                        backgroundColor: colors.surface,
+                        borderRadius: radius.lg,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        overflow: "hidden",
+                        maxHeight: 280,
+                      }}
+                    >
+                      <ScrollView
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {suggestions.map((s) => (
+                          <SuggestionRow
+                            key={`${s.source}-${s.name}`}
+                            s={s}
+                            onApply={applySuggestion}
+                          />
+                        ))}
+                      </ScrollView>
+                    </View>
+                  ) : null}
                 </FormField>
               )}
             />

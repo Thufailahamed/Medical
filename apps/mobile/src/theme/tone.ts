@@ -22,6 +22,7 @@ export type TonePalette = {
   bgStrong: string;
   fg: string;
   border: string;
+  onBgStrong: string;
 };
 
 export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
@@ -32,6 +33,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.primary,
         fg: colors.primary,
         border: colors.primary,
+        onBgStrong: colors.onPrimary,
       };
     case "accent":
       return {
@@ -39,6 +41,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.accent,
         fg: colors.accent,
         border: colors.accent,
+        onBgStrong: colors.onAccent,
       };
     case "accent2":
       return {
@@ -46,6 +49,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.accent2,
         fg: colors.accent2,
         border: colors.accent2,
+        onBgStrong: colors.onAccent2,
       };
     case "warning":
       return {
@@ -53,6 +57,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.warning,
         fg: colors.warning,
         border: colors.warning,
+        onBgStrong: colors.onWarning,
       };
     case "danger":
       return {
@@ -60,6 +65,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.danger,
         fg: colors.danger,
         border: colors.danger,
+        onBgStrong: colors.onDanger,
       };
     case "info":
       return {
@@ -67,6 +73,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.info,
         fg: colors.info,
         border: colors.info,
+        onBgStrong: colors.onInfo,
       };
     case "success":
       return {
@@ -74,6 +81,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.success,
         fg: colors.success,
         border: colors.success,
+        onBgStrong: colors.onSuccess,
       };
     case "neutral":
     default:
@@ -82,6 +90,7 @@ export function tonePalette(tone: Tone, colors: ThemeColors): TonePalette {
         bgStrong: colors.textMuted,
         fg: colors.textMuted,
         border: colors.borderStrong,
+        onBgStrong: colors.textInverse,
       };
   }
 }

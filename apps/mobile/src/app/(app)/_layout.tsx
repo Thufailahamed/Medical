@@ -159,6 +159,7 @@ export default function AppLayout() {
       <Tabs.Screen name="ai/ocr" options={{ href: null }} />
       <Tabs.Screen name="record-detail" options={{ href: null }} />
       <Tabs.Screen name="edit-record" options={{ href: null }} />
+      <Tabs.Screen name="edit-medicine" options={{ href: null }} />
       <Tabs.Screen name="family" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="notes" options={{ href: null }} />

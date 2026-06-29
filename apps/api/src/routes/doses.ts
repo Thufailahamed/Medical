@@ -120,6 +120,12 @@ dosesRouter.post("/schedule/today", authMiddleware, async (c) => {
   const endOfDay = new Date(now);
   endOfDay.setHours(23, 59, 59, 999);
 
+  const today = now.toISOString().slice(0, 10);
+  const dayStartIso = startOfDay.toISOString();
+  const dayEndIso = endOfDay.toISOString();
+
+  // Pull active medicines, then filter to those whose [startDate, endDate]
+  // window includes today and that have a real schedule (skip "As needed").
   const activeMeds = await db
     .select()
     .from(medicines)
@@ -138,15 +144,41 @@ dosesRouter.post("/schedule/today", authMiddleware, async (c) => {
       case "four times daily":
         return ["08:00", "13:00", "18:00", "22:00"];
       default:
-        return ["09:00"];
+        // "As needed" and unknown → no scheduled doses
+        return [];
     }
   };
 
-  const today = now.toISOString().slice(0, 10);
+  // Pre-fetch existing doses for today so we can dedupe across calls.
+  const existing = await db
+    .select()
+    .from(medicineDoses)
+    .where(
+      and(
+        eq(medicineDoses.patientId, patientId),
+        gte(medicineDoses.scheduledFor, dayStartIso),
+        lte(medicineDoses.scheduledFor, dayEndIso)
+      )
+    );
+  const existingKey = new Set(
+    existing.map((e: any) => {
+      const t = new Date(e.scheduledFor).toISOString().slice(11, 16); // HH:MM
+      return `${e.medicineId}@${t}`;
+    })
+  );
+
   const created: any[] = [];
   for (const med of activeMeds) {
-    const m = med.medicines || med;
+    const m = (med as any).medicines || med;
+    // Honour medicine's own date range
+    const start = m.startDate || today;
+    const end = m.endDate || today;
+    if (today < start || today > end) continue;
+
     for (const time of slotsForFrequency(m.frequency)) {
+      const key = `${m.id}@${time}`;
+      if (existingKey.has(key)) continue;
+
       const [hh, mm] = time.split(":").map((n) => parseInt(n, 10));
       const scheduled = new Date(now);
       scheduled.setHours(hh || 9, mm || 0, 0, 0);
@@ -159,7 +191,8 @@ dosesRouter.post("/schedule/today", authMiddleware, async (c) => {
           scheduledFor: scheduled.toISOString(),
         } as any)
         .returning();
-      created.push(row?.medicine_doses || row);
+      created.push((row as any)?.medicine_doses || row);
+      existingKey.add(key); // guard against intra-loop dupes
     }
   }
 

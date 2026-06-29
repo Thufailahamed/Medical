@@ -43,7 +43,7 @@ export function Chip({
 }: ChipProps) {
   const { colors, spacing, radius, typography } = useTheme();
   const palette = useTone(tone);
-  const { fg: selFg, bgStrong: selBg } = useTone(
+  const { onBgStrong: selFg, bgStrong: selBg } = useTone(
     tone === "neutral" ? "primary" : tone
   );
 
