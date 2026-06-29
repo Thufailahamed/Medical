@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, desc, asc, or, like, gte, lt, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, or, like, gte, lt, isNull, sql } from "drizzle-orm";
 import {
   doctors,
   patients,
@@ -16,8 +16,12 @@ import {
   vitals,
   notifications,
   doctorAvailability,
+  doctorTimeOff,
   labOrders,
   hospitals,
+  hospitalStaff,
+  appointmentStatusHistory,
+  walkIns,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -28,6 +32,10 @@ import {
   appointmentStatusSchema,
   availabilitySchema,
 } from "@healthcare/shared";
+import { notify } from "../lib/notifications";
+import { audit } from "../lib/audit";
+import { compactQueue } from "../lib/booking";
+import { canAccessPatient } from "../lib/access";
 import type { AppEnvironment } from "../types";
 
 const doctorPortalRouter = new Hono<AppEnvironment>();
@@ -55,9 +63,11 @@ doctorPortalRouter.get("/queue", async (c) => {
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
 
-  const rows = await db
+  const appts = await db
     .select({
+      kind: sql<string>`'appointment'`.as("kind"),
       appointmentId: appointments.id,
+      walkInId: sql<string | null>`null`.as("walk_in_id"),
       patientId: patients.id,
       patientName: users.name,
       patientPhoto: users.photo,
@@ -67,10 +77,12 @@ doctorPortalRouter.get("/queue", async (c) => {
       gender: patients.gender,
       date: appointments.date,
       time: appointments.time,
+      priority: sql<string | null>`null`.as("priority"),
       status: appointments.status,
       queueNumber: appointments.queueNumber,
       reason: appointments.reason,
       notes: appointments.notes,
+      arrivedAt: sql<string | null>`null`.as("arrived_at"),
       hospitalId: appointments.hospitalId,
       hospitalName: hospitals.name,
     })
@@ -82,6 +94,49 @@ doctorPortalRouter.get("/queue", async (c) => {
       and(eq(appointments.doctorId, doctor.id), eq(appointments.date, date))
     )
     .orderBy(asc(appointments.queueNumber), asc(appointments.time));
+
+  // Walk-ins that arrived today for this doctor
+  const wi = await db
+    .select({
+      kind: sql<string>`'walkin'`.as("kind"),
+      walkInId: walkIns.id,
+      patientId: patients.id,
+      patientName: users.name,
+      patientPhoto: users.photo,
+      patientPhone: users.phone,
+      nic: users.nic,
+      bloodGroup: patients.bloodGroup,
+      gender: patients.gender,
+      date: sql<string>`substr(${walkIns.arrivedAt}, 1, 10)`.as("date"),
+      time: sql<string>`substr(${walkIns.arrivedAt}, 12, 5)`.as("time"),
+      priority: walkIns.priority,
+      status: walkIns.status,
+      queueNumber: sql<number | null>`null`.as("queue_number"),
+      reason: walkIns.reason,
+      notes: walkIns.notes,
+      arrivedAt: walkIns.arrivedAt,
+      hospitalId: walkIns.hospitalId,
+      hospitalName: hospitals.name,
+    })
+    .from(walkIns)
+    .innerJoin(patients, eq(walkIns.patientId, patients.id))
+    .innerJoin(users, eq(patients.userId, users.id))
+    .leftJoin(hospitals, eq(walkIns.hospitalId, hospitals.id))
+    .where(
+      and(
+        eq(walkIns.doctorId, doctor.id),
+        gte(walkIns.arrivedAt, `${date} 00:00:00`),
+        lt(walkIns.arrivedAt, `${date} 23:59:59`)
+      )
+    );
+
+  const rows = [...appts, ...wi].sort((a: any, b: any) => {
+    // walk-ins first (most recent), then appointments by queue number
+    if (a.kind !== b.kind) return a.kind === "walkin" ? -1 : 1;
+    const aSort = `${a.time || ""}-${(a.queueNumber ?? 9999)}`;
+    const bSort = `${b.time || ""}-${(b.queueNumber ?? 9999)}`;
+    return aSort.localeCompare(bSort);
+  });
 
   return c.json({ date, count: rows.length, queue: rows });
 });
@@ -328,12 +383,13 @@ doctorPortalRouter.post("/follow-ups", async (c) => {
     .limit(1);
 
   if (patientRow) {
-    await db.insert(notifications).values({
+    await notify({
+      db,
       userId: patientRow.userId,
       type: "appointment",
       title: "Follow-up scheduled",
       body: `Follow-up on ${parsed.data.followUpDate}: ${parsed.data.title}`,
-      data: JSON.stringify({ recordId: row?.medical_records?.id || row?.id }),
+      data: { recordId: row?.medical_records?.id || row?.id, kind: "follow_up" },
     });
   }
 
@@ -416,7 +472,8 @@ doctorPortalRouter.patch("/follow-ups/:id/status", async (c) => {
     const patientUserId =
       (patient as any)?.patients?.userId ?? (patient as any)?.userId;
     if (patientUserId) {
-      await db.insert(notifications).values({
+      await notify({
+        db,
         userId: patientUserId,
         type: "general",
         title:
@@ -427,10 +484,7 @@ doctorPortalRouter.patch("/follow-ups/:id/status", async (c) => {
           body.status === "completed"
             ? `Your follow-up "${own.title}" has been marked completed.`
             : `Your follow-up "${own.title}" was cancelled.`,
-        data: JSON.stringify({
-          followUpId: id,
-          status: body.status,
-        }),
+        data: { followUpId: id, status: body.status },
       });
     }
   }
@@ -480,23 +534,37 @@ doctorPortalRouter.post("/lab-orders", async (c) => {
     date: new Date().toISOString().split("T")[0],
   });
 
-  // Notify lab staff (any user with role 'laboratory') — fan-out is small
-  // for v2, no fine-grained hospital routing yet.
-  const labUsers = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.role, "laboratory"));
-
+  // Notify lab staff — hospital-scoped first, global fallback.
+  const orderId = order?.lab_orders?.id || order?.id;
+  let labUsers: { id: string }[] = [];
+  if (doctor?.hospitalId) {
+    const scoped = await db
+      .select({ id: users.id })
+      .from(users)
+      .innerJoin(hospitalStaff, eq(hospitalStaff.userId, users.id))
+      .where(
+        and(
+          eq(users.role, "laboratory"),
+          eq(hospitalStaff.hospitalId, doctor.hospitalId),
+          eq(hospitalStaff.active, true)
+        )
+      );
+    labUsers = scoped;
+  }
+  if (labUsers.length === 0) {
+    labUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.role, "laboratory"));
+  }
   for (const u of labUsers) {
-    await db.insert(notifications).values({
+    await notify({
+      db,
       userId: u.id,
       type: "lab_ready",
       title: `New ${parsed.data.priority} lab order`,
       body: `${parsed.data.tests.length} test(s) ordered`,
-      data: JSON.stringify({
-        orderId: order?.lab_orders?.id || order?.id,
-        patientId: parsed.data.patientId,
-      }),
+      data: { orderId, patientId: parsed.data.patientId },
     });
   }
 
@@ -581,14 +649,13 @@ doctorPortalRouter.put("/lab-orders/:id", async (c) => {
     const patientUserId =
       (patient as any)?.patients?.userId ?? (patient as any)?.userId;
     if (patientUserId) {
-      await db.insert(notifications).values({
+      await notify({
+        db,
         userId: patientUserId,
         type: "lab_ready",
         title: "Lab results ready",
         body: `Your lab report is ready. Open HealthHub to view it.`,
-        data: JSON.stringify({
-          orderId: row?.lab_orders?.id || row?.id,
-        }),
+        data: { orderId: row?.lab_orders?.id || row?.id },
       });
     }
   }
@@ -656,6 +723,74 @@ doctorPortalRouter.put("/availability", async (c) => {
   return c.json({ availability: rows });
 });
 
+// ─── Doctor Time Off ─────────────────────────────────────
+// GET /doctor-portal/time-off?from=YYYY-MM-DD&to=YYYY-MM-DD
+doctorPortalRouter.get("/time-off", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+  const from = c.req.query("from");
+  const to = c.req.query("to");
+
+  const whereParts: any[] = [eq(doctorTimeOff.doctorId, doctor.id)];
+  if (from) whereParts.push(gte(doctorTimeOff.date, from));
+  if (to) whereParts.push(lt(doctorTimeOff.date, to));
+
+  const rows = await db
+    .select()
+    .from(doctorTimeOff)
+    .where(and(...whereParts))
+    .orderBy(asc(doctorTimeOff.date));
+
+  return c.json({ timeOff: rows });
+});
+
+// POST /doctor-portal/time-off { date, startTime?, endTime?, reason? }
+doctorPortalRouter.post("/time-off", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+  const body = await c.req.json().catch(() => ({}));
+  const date = String(body?.date || "").trim();
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return c.json({ error: "date (YYYY-MM-DD) required" }, 400);
+  }
+  const startTime = body?.startTime ? String(body.startTime) : null;
+  const endTime = body?.endTime ? String(body.endTime) : null;
+  const reason = body?.reason ? String(body.reason).slice(0, 200) : null;
+
+  const [row] = await db
+    .insert(doctorTimeOff)
+    .values({
+      doctorId: doctor.id,
+      date,
+      startTime,
+      endTime,
+      reason,
+    } as any)
+    .returning();
+  return c.json({ timeOff: row }, 201);
+});
+
+// DELETE /doctor-portal/time-off/:id
+doctorPortalRouter.delete("/time-off/:id", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+  const id = c.req.param("id");
+  const [own] = await db
+    .select()
+    .from(doctorTimeOff)
+    .where(and(eq(doctorTimeOff.id, id), eq(doctorTimeOff.doctorId, doctor.id)))
+    .limit(1);
+  if (!own) return c.json({ error: "Not found" }, 404);
+  await db.delete(doctorTimeOff).where(eq(doctorTimeOff.id, id));
+  return c.json({ ok: true });
+});
+
 // ─── Appointment status ──────────────────────────────────
 // POST /doctor-portal/appointments/:id/status
 doctorPortalRouter.post("/appointments/:id/status", async (c) => {
@@ -706,7 +841,8 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
       cancelled: "Cancelled",
       no_show: "Marked as no-show",
     };
-    await db.insert(notifications).values({
+    await notify({
+      db,
       userId: patientRow.userId,
       type: "appointment",
       title: `Appointment ${friendly[status] || status}`,
@@ -714,8 +850,31 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
         status === "cancelled"
           ? `Your appointment on ${own.date} at ${own.time} was cancelled by the doctor.`
           : `Your appointment is now ${friendly[status] || status}.`,
-      data: JSON.stringify({ appointmentId: id, status }),
+      data: { appointmentId: id, status },
     });
+  }
+
+  // Audit + status history.
+  await audit(db, {
+    userId,
+    action: "appointment.status_change",
+    resource: "appointment",
+    resourceId: id,
+    details: { from: own.status, to: parsed.data.status },
+  });
+  await db.insert(appointmentStatusHistory).values({
+    appointmentId: id,
+    fromStatus: own.status,
+    toStatus: parsed.data.status,
+    changedByUserId: userId,
+  } as any);
+
+  // If doctor just cancelled a previously active slot, free queue numbers.
+  if (
+    ["cancelled", "no_show"].includes(parsed.data.status) &&
+    ["scheduled", "confirmed", "in_progress"].includes(own.status)
+  ) {
+    await compactQueue(db, own.doctorId, own.date, own.time);
   }
 
   return c.json({ appointment: row?.appointments || row });
@@ -769,6 +928,7 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
   const assessment = body.assessment ? String(body.assessment).slice(0, 4000) : null;
   const plan = body.plan ? String(body.plan).slice(0, 4000) : null;
   const notes = body.notes ? String(body.notes).slice(0, 2000) : null;
+  const appointmentId = body.appointmentId ? String(body.appointmentId) : null;
 
   // Compose a single SOAP-style summary for the patient's chart
   const soapParts: string[] = [];
@@ -780,7 +940,7 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // 1) Create the visit record (clinical_note recordType)
+  // 1) Create the visit record (clinical_note recordType) — link to appointment
   const [visit] = await db
     .insert(medicalRecords)
     .values({
@@ -793,6 +953,7 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
       summary,
       notes,
       date: today,
+      appointmentId,
     } as any)
     .returning();
 
@@ -828,6 +989,7 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
             .join(" • ")
             .slice(0, 500) || null,
           date: today,
+          appointmentId,
         } as any)
         .returning();
       createdPrescriptions.push({ prescription: rx, record: rxRecord });
@@ -849,6 +1011,7 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         title: `Lab order: ${String(l.testName).slice(0, 100)}`,
         notes: l.instructions ? String(l.instructions).slice(0, 500) : null,
         date: today,
+        appointmentId,
       } as any)
       .returning();
     createdLabs.push(labRec);
@@ -869,6 +1032,7 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         notes: fu.notes ? String(fu.notes).slice(0, 1000) : null,
         followUpDate: String(fu.followUpDate).slice(0, 10),
         date: today,
+        appointmentId,
       } as any)
       .returning();
     createdFollowUp = fuRec;

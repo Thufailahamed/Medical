@@ -192,6 +192,13 @@ export default function ProfileScreen() {
       onPress: () => router.push("/(app)/notifications" as any),
     },
     {
+      label: "Notification preferences",
+      subtitle: "Choose in-app & push per category",
+      icon: Bell,
+      tone: "neutral" as const,
+      onPress: () => router.push("/(app)/notification-preferences" as any),
+    },
+    {
       label: "Appearance",
       subtitle: "Light, dark, or system theme",
       icon: Palette,

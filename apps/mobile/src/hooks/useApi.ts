@@ -939,6 +939,31 @@ export function useChangePassword() {
 }
 
 // ─── Appointment cancel (patient) ────────────────────────
+export function useRescheduleAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; date: string; time: string }) =>
+      api<{ appointment: any; queueNumber: number }>(
+        `/appointments/${input.id}/reschedule`,
+        { method: "PATCH", body: { date: input.date, time: input.time } }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+export function useAppointmentRecords(id: string | null) {
+  return useQuery({
+    queryKey: ["appointments", id, "records"],
+    queryFn: () =>
+      api<{ appointment: any; records: any[] }>(
+        `/appointments/${id}/records`
+      ),
+    enabled: !!id,
+  });
+}
+
 export function useCancelAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -1161,6 +1186,153 @@ export function useUpdateAppointmentStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["doctor-portal"] });
       qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+// ─── Walk-ins ────────────────────────────────────────────
+export function useWalkIns(opts?: {
+  date?: string;
+  status?: string;
+  doctorId?: string;
+}) {
+  const params = new URLSearchParams();
+  if (opts?.date) params.set("date", opts.date);
+  if (opts?.status) params.set("status", opts.status);
+  if (opts?.doctorId) params.set("doctorId", opts.doctorId);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["walk-ins", opts?.date || "", opts?.status || "", opts?.doctorId || ""],
+    queryFn: () => api<{ walkIns: any[] }>(`/walk-ins${qs ? `?${qs}` : ""}`),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useCreateWalkIn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      patientId: string;
+      doctorId: string;
+      reason?: string;
+      priority?: "routine" | "urgent";
+    }) =>
+      api<{ walkIn: any }>("/walk-ins", { method: "POST", body: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["walk-ins"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "queue"] });
+    },
+  });
+}
+
+export function useUpdateWalkIn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      id: string;
+      status?: "waiting" | "in_consultation" | "completed" | "no_show";
+      notes?: string;
+    }) =>
+      api<{ walkIn: any }>(`/walk-ins/${input.id}`, {
+        method: "PATCH",
+        body: { status: input.status, notes: input.notes },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["walk-ins"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "queue"] });
+    },
+  });
+}
+
+export function useWalkInSearch(q: string) {
+  return useQuery({
+    queryKey: ["walk-ins", "search", q],
+    queryFn: () =>
+      api<{ patients: any[] }>(`/walk-ins/search?q=${encodeURIComponent(q)}`),
+    enabled: q.length >= 2,
+    staleTime: 10_000,
+  });
+}
+
+// ─── Notification Preferences ────────────────────────────
+const NOTIF_TYPES = [
+  "appointment",
+  "medicine",
+  "lab_ready",
+  "prescription",
+  "vaccination",
+  "insurance",
+  "hospital",
+  "emergency",
+  "general",
+] as const;
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ["notification-preferences", "me"],
+    queryFn: () =>
+      api<{ preferences: any[] }>("/push/notification-preferences/me"),
+    initialData: { preferences: NOTIF_TYPES.map((t) => ({ type: t, inApp: true, push: true })) },
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (preferences: Array<{ type: string; inApp: boolean; push: boolean }>) =>
+      api("/push/notification-preferences/me", {
+        method: "PUT",
+        body: { preferences },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notification-preferences"] });
+    },
+  });
+}
+
+// ─── Doctor Time Off ─────────────────────────────────────
+export function useTimeOff(opts?: { from?: string; to?: string }) {
+  const params = new URLSearchParams();
+  if (opts?.from) params.set("from", opts.from);
+  if (opts?.to) params.set("to", opts.to);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["doctor-portal", "time-off", opts?.from || "", opts?.to || ""],
+    queryFn: () =>
+      api<{ timeOff: any[] }>(
+        `/doctor-portal/time-off${qs ? `?${qs}` : ""}`
+      ),
+  });
+}
+
+export function useAddTimeOff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      date: string;
+      startTime?: string | null;
+      endTime?: string | null;
+      reason?: string | null;
+    }) =>
+      api<{ timeOff: any }>("/doctor-portal/time-off", {
+        method: "POST",
+        body: input,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "time-off"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "availability"] });
+    },
+  });
+}
+
+export function useDeleteTimeOff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: true }>(`/doctor-portal/time-off/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "time-off"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "availability"] });
     },
   });
 }

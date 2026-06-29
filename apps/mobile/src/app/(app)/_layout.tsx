@@ -156,6 +156,7 @@ export default function AppLayout() {
       <Tabs.Screen name="hospital/staff" options={{ href: null }} />
       <Tabs.Screen name="hospital/patients" options={{ href: null }} />
       <Tabs.Screen name="hospital/patient-detail" options={{ href: null }} />
+      <Tabs.Screen name="hospital/walk-ins" options={{ href: null }} />
       <Tabs.Screen name="ai/summary" options={{ href: null }} />
       <Tabs.Screen name="ai/lab-explain" options={{ href: null }} />
       <Tabs.Screen name="ai/drug-check" options={{ href: null }} />
@@ -178,6 +179,8 @@ export default function AppLayout() {
       <Tabs.Screen name="vaccinations" options={{ href: null }} />
       <Tabs.Screen name="health-summary" options={{ href: null }} />
       <Tabs.Screen name="export" options={{ href: null }} />
+      <Tabs.Screen name="appointment-detail" options={{ href: null }} />
+      <Tabs.Screen name="notification-preferences" options={{ href: null }} />
     </Tabs>
   );
 }

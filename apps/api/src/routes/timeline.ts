@@ -10,7 +10,6 @@ import {
   symptoms,
   medicines,
   appointments,
-  clinicalNotes,
   patients,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
@@ -175,16 +174,19 @@ timelineRouter.get("/me", authMiddleware, async (c) => {
   if (keep("note")) {
     const rows = await db
       .select()
-      .from(clinicalNotes)
-      .where(eq(clinicalNotes.patientId, patient.id));
+      .from(medicalRecords)
+      .where(and(
+        eq(medicalRecords.patientId, patient.id),
+        eq(medicalRecords.recordType, "clinical_note")
+      ));
     for (const n of rows) {
       events.push({
         id: `note-${n.id}`,
         kind: "note",
-        date: n.createdAt,
+        date: n.date || n.createdAt,
         title: n.title || "Clinical note",
-        subtitle: n.body ? String(n.body).slice(0, 140) : null,
-        meta: { authorRole: n.authorRole, noteId: n.id },
+        subtitle: n.notes ? String(n.notes).slice(0, 140) : null,
+        meta: { authorRole: "doctor", noteId: n.id },
       });
     }
   }

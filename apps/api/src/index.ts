@@ -29,6 +29,9 @@ import timelineRouter from "./routes/timeline";
 import healthSummaryRouter from "./routes/health-summary";
 import exportRouter from "./routes/export";
 import shareRouter from "./routes/share";
+import pushRouter from "./routes/push";
+import walkInsRouter from "./routes/walk-ins";
+import { bookingRemindersRouter } from "./cron/booking-reminders";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -88,6 +91,13 @@ app.route("/timeline", timelineRouter);
 app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);
 app.route("/share", shareRouter);
+app.route("/push", pushRouter);
+app.route("/walk-ins", walkInsRouter);
+
+// ─── Cron (Wrangler scheduled + manual POST for testing) ──
+// Trigger via wrangler.toml: [triggers] crons = ["7 * * * *"]
+// Manual: POST /__cron/booking-reminders  with x-cron-secret header.
+app.route("/", bookingRemindersRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {

@@ -25,6 +25,7 @@ import {
   staffSchema,
 } from "@healthcare/shared";
 import type { AppEnvironment } from "../types";
+import { notify } from "../lib/notifications";
 
 const hospitalPortalRouter = new Hono<AppEnvironment>();
 
@@ -470,12 +471,13 @@ hospitalPortalRouter.post("/beds/:id/assign", async (c) => {
   });
 
   // Notify patient
-  await db.insert(notifications).values({
+  await notify({
+    db,
     userId: patient.userId,
     type: "hospital",
     title: "Admitted",
     body: `You have been admitted to ${hospital.name}`,
-    data: JSON.stringify({ bedId, assignmentId: assignment?.id }),
+    data: { bedId, assignmentId: assignment?.id },
   });
 
   return c.json({ assignment }, 201);
@@ -539,12 +541,13 @@ hospitalPortalRouter.post("/beds/:id/discharge", async (c) => {
       date: now.split("T")[0],
     });
 
-    await db.insert(notifications).values({
+    await notify({
+      db,
       userId: patient.userId,
       type: "hospital",
       title: "Discharged",
       body: `You have been discharged from ${hospital.name}`,
-      data: JSON.stringify({ bedId }),
+      data: { bedId },
     });
   }
 

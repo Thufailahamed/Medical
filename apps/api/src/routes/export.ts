@@ -15,8 +15,8 @@ import {
   appointments,
   prescriptions,
   familyMembers,
-  insurancePolicies,
-  emergencyEvents,
+  insurance,
+  emergencies,
   allergies,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
@@ -61,8 +61,8 @@ async function bundlePatient(db: any, patientId: string) {
     db.select().from(appointments).where(eq(appointments.patientId, patientId)),
     db.select().from(prescriptions).where(eq(prescriptions.patientId, patientId)),
     db.select().from(familyMembers).where(eq(familyMembers.patientId, patientId)),
-    db.select().from(insurancePolicies).where(eq(insurancePolicies.patientId, patientId)),
-    db.select().from(emergencyEvents).where(eq(emergencyEvents.patientId, patientId)),
+    db.select().from(insurance).where(eq(insurance.patientId, patientId)),
+    db.select().from(emergencies).where(eq(emergencies.patientId, patientId)),
     db.select().from(allergies).where(eq(allergies.patientId, patientId)),
   ]);
 

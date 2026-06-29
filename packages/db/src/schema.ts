@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 // ─── Users ───────────────────────────────────────────────
@@ -261,10 +261,19 @@ export const appointments = sqliteTable("appointments", {
   paymentStatus: text("payment_status", {
     enum: ["pending", "paid", "refunded", "insurance"],
   }).default("pending"),
+  reminderSent: integer("reminder_sent", { mode: "boolean" }).default(false),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
-});
+}, (t) => ({
+  doctorDateTimeIdx: index("appointments_doctor_date_time_idx").on(
+    t.doctorId,
+    t.date,
+    t.time
+  ),
+  patientDateIdx: index("appointments_patient_date_idx").on(t.patientId, t.date),
+  doctorDateIdx: index("appointments_doctor_date_idx").on(t.doctorId, t.date),
+}));
 
 // ─── Insurance ───────────────────────────────────────────
 export const insurance = sqliteTable("insurance", {
@@ -459,6 +468,97 @@ export const pushTokens = sqliteTable("push_tokens", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });
+
+// ─── Notification Preferences (per user per type) ────────
+export const notificationPreferences = sqliteTable("notification_preferences", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  type: text("type", {
+    enum: [
+      "medicine",
+      "appointment",
+      "lab_ready",
+      "prescription",
+      "insurance",
+      "hospital",
+      "emergency",
+      "vaccination",
+      "general",
+    ],
+  }).notNull(),
+  inApp: integer("in_app", { mode: "boolean" }).default(true).notNull(),
+  push: integer("push", { mode: "boolean" }).default(true).notNull(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Doctor Time Off (vacation / sick / conference) ─────
+export const doctorTimeOff = sqliteTable("doctor_time_off", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  doctorId: text("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  date: text("date").notNull(), // YYYY-MM-DD
+  startTime: text("start_time"), // HH:MM, null = all day
+  endTime: text("end_time"), // HH:MM, null = all day
+  reason: text("reason"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Walk-ins (front-desk check-in, OPD) ────────────────
+export const walkIns = sqliteTable("walk_ins", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  doctorId: text("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  hospitalId: text("hospital_id")
+    .notNull()
+    .references(() => hospitals.id),
+  reason: text("reason"),
+  priority: text("priority", { enum: ["routine", "urgent"] })
+    .default("routine")
+    .notNull(),
+  status: text("status", {
+    enum: ["waiting", "in_consultation", "completed", "no_show"],
+  })
+    .default("waiting")
+    .notNull(),
+  arrivedAt: text("arrived_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  consultationEndedAt: text("consultation_ended_at"),
+  assignedByUserId: text("assigned_by_user_id").references(() => users.id),
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Appointment Status History (audit) ─────────────────
+export const appointmentStatusHistory = sqliteTable(
+  "appointment_status_history",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    appointmentId: text("appointment_id")
+      .notNull()
+      .references(() => appointments.id),
+    fromStatus: text("from_status"),
+    toStatus: text("to_status").notNull(),
+    changedByUserId: text("changed_by_user_id").references(() => users.id),
+    reason: text("reason"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  }
+);
 
 // ─── Password Reset Tokens ───────────────────────────────
 export const passwordResets = sqliteTable("password_resets", {

@@ -5,6 +5,7 @@ import { eq, and, or } from "drizzle-orm";
 import { emergencies, patients, users, medicines, notifications, hospitals } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
+import { notify } from "../lib/notifications";
 
 const emergencyRouter = new Hono<AppEnvironment>();
 
@@ -101,18 +102,20 @@ emergencyRouter.post("/sos", authMiddleware, async (c) => {
       .from(users)
       .where(or(...contactPhones.map((phone) => eq(users.phone, phone))));
     for (const contact of matchedUsers as any[]) {
-      await db.insert(notifications).values({
+      await notify({
+        db,
         userId: contact.id,
         type: "emergency",
         title: `Emergency: ${u.name}`,
         body: `Your emergency contact ${u.name} has triggered an SOS${nearestHospitalName ? `. Nearest hospital: ${nearestHospitalName}` : ""}.`,
-        data: JSON.stringify({
+        data: {
           patientId: p.id,
           emergencyId: emergency.emergencies.id,
           latitude,
           longitude,
           nearestHospitalId,
-        }),
+        },
+        forcePush: true,
       });
       notifiedContacts += 1;
     }
@@ -125,24 +128,27 @@ emergencyRouter.post("/sos", authMiddleware, async (c) => {
     .from(users)
     .where(eq(users.role, "ambulance"));
   for (const amb of ambulances as any[]) {
-    await db.insert(notifications).values({
+    await notify({
+      db,
       userId: amb.id,
       type: "emergency",
       title: `SOS — ${u.name}`,
       body: `${u.name} triggered emergency SOS${nearestHospitalName ? ` near ${nearestHospitalName}` : ""}. Blood group ${p.bloodGroup ?? "—"}.`,
-      data: JSON.stringify({
+      data: {
         patientId: p.id,
         emergencyId: emergency.emergencies.id,
         latitude,
         longitude,
         nearestHospitalId,
-      }),
+      },
+      forcePush: true,
     });
     ambulancesNotified += 1;
   }
 
   // 5) Self-notification (existing behaviour)
-  await db.insert(notifications).values({
+  await notify({
+    db,
     userId,
     type: "emergency",
     title: "Emergency SOS Sent",
@@ -150,6 +156,7 @@ emergencyRouter.post("/sos", authMiddleware, async (c) => {
       notifiedContacts + ambulancesNotified > 0
         ? `${notifiedContacts} contact${notifiedContacts === 1 ? "" : "s"} and ${ambulancesNotified} ambulance${ambulancesNotified === 1 ? "" : "s"} alerted.`
         : "Your emergency signal has been sent.",
+    forcePush: true,
   });
 
   // 6) Build the share payload the mobile UI surfaces to first responders

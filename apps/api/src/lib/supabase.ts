@@ -1,16 +1,13 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
-export function createSupabaseAdmin() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+export function createSupabaseAdmin(url: string, serviceRoleKey: string) {
+  return createClient(url, serviceRoleKey);
 }
 
-export function createSupabaseAuth(token: string) {
+export function createSupabaseAuth(url: string, anonKey: string, token: string) {
   return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       global: {
         headers: { Authorization: `Bearer ${token}` },

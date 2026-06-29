@@ -32,3 +32,9 @@ vars = { ENVIRONMENT = "production" }
 
 [env.development]
 vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
+
+# Cron triggers — fires every hour at :07 to remind patients/doctors
+# of appointments scheduled in the next 24 hours.
+# Off-minute (:07) avoids the :00 spike seen by other cron jobs.
+[triggers]
+crons = ["7 * * * *"]

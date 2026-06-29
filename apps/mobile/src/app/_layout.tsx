@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
@@ -13,6 +13,8 @@ import {
 } from "@expo-google-fonts/inter";
 import * as SplashScreen from "expo-splash-screen";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import { useAuthStore } from "@/stores/auth";
+import { registerForPushNotifications, onPushResponse } from "@/lib/push";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
 
@@ -46,6 +48,7 @@ function ThemedStack() {
 
 export default function RootLayout() {
   useProtectedRoute();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -59,6 +62,27 @@ export default function RootLayout() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded, fontError]);
+
+  // Register for push notifications once authenticated.
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerForPushNotifications();
+    }
+  }, [isAuthenticated]);
+
+  // Tapping a push notification deep-links via router.
+  useEffect(() => {
+    const cleanup = onPushResponse((resp) => {
+      const data: any = (resp.notification?.request?.content as any)?.data;
+      if (data?.appointmentId) {
+        router.push({
+          pathname: "/(app)/appointment-detail",
+          params: { id: data.appointmentId },
+        });
+      }
+    });
+    return cleanup;
+  }, []);
 
   // Render app shell while fonts load; splash covers the gap.
   return (

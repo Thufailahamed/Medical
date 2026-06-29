@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import { eq, or, like, desc, and } from "drizzle-orm";
-import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, hospitals, doctorAvailability } from "@healthcare/db";
+import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, hospitals, doctorAvailability, doctorTimeOff } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import type { AppEnvironment } from "../types";
@@ -369,6 +369,12 @@ doctorRouter.get("/:id/availability", authMiddleware, async (c) => {
       )
     );
 
+  // Time-off blocks for that specific date (full-day or partial)
+  const offs = await db
+    .select()
+    .from(doctorTimeOff)
+    .where(and(eq(doctorTimeOff.doctorId, id), eq(doctorTimeOff.date, date)));
+
   // Existing booked appointments that day
   const booked = await db
     .select()
@@ -387,8 +393,20 @@ doctorRouter.get("/:id/availability", authMiddleware, async (c) => {
   );
 
   // Build candidate slots from working hours or default 09:00-17:00
-  const slots: { time: string; available: boolean; queueNumber?: number }[] = [];
-  const MAX_PER_SLOT = 4; // 4 patients per 30-min slot by default
+  const slots: {
+    time: string;
+    available: boolean;
+    queueNumber?: number;
+    reason?: "time_off" | "past" | "full";
+    slotMinutes: number;
+  }[] = [];
+  const MAX_PER_SLOT = 4;
+
+  // Use the minimum configured slot minutes across the day's working hours
+  // (or 30 by default). All ranges share the same granularity per doctor.
+  const slotMinutes = hours.length > 0
+    ? Math.max(5, Math.min(...hours.map((h: any) => h.slotMinutes || 30)))
+    : 30;
 
   const ranges =
     hours.length > 0
@@ -403,26 +421,72 @@ doctorRouter.get("/:id/availability", authMiddleware, async (c) => {
         b.status !== "no_show"
     ).length;
 
+  // Past-time check (only when querying "today")
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isToday = date === todayStr;
+  const nowMin = (() => {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+  })();
+
+  const minutesOf = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const inAnyTimeOff = (t: string): boolean => {
+    if (!offs.length) return false;
+    const m = minutesOf(t);
+    return offs.some((o: any) => {
+      if (!o.startTime && !o.endTime) return true; // all day
+      const s = o.startTime ? minutesOf(o.startTime) : 0;
+      const e = o.endTime ? minutesOf(o.endTime) : 24 * 60;
+      return m >= s && m < e;
+    });
+  };
+
   for (const r of ranges) {
     const [sh, sm] = r.start.split(":").map(Number);
     const [eh, em] = r.end.split(":").map(Number);
     let cur = sh * 60 + sm;
     const end = eh * 60 + em;
-    while (cur + 30 <= end) {
+    while (cur + slotMinutes <= end) {
       const hh = String(Math.floor(cur / 60)).padStart(2, "0");
       const mm = String(cur % 60).padStart(2, "0");
       const t = `${hh}:${mm}`;
+
+      if (inAnyTimeOff(t)) {
+        slots.push({ time: t, available: false, reason: "time_off", slotMinutes });
+        cur += slotMinutes;
+        continue;
+      }
+
+      if (isToday && cur <= nowMin) {
+        slots.push({ time: t, available: false, reason: "past", slotMinutes });
+        cur += slotMinutes;
+        continue;
+      }
+
       const count = queueCountFor(t);
+      const available = count < MAX_PER_SLOT;
       slots.push({
         time: t,
-        available: count < MAX_PER_SLOT,
+        available,
         queueNumber: count + 1,
+        reason: available ? undefined : "full",
+        slotMinutes,
       });
-      cur += 30;
+      cur += slotMinutes;
     }
   }
 
-  return c.json({ date, slots, bookedTimes: Array.from(bookedTimes) });
+  return c.json({
+    date,
+    slots,
+    bookedTimes: Array.from(bookedTimes),
+    slotMinutes,
+    offCount: offs.length,
+  });
 });
 
 export default doctorRouter;

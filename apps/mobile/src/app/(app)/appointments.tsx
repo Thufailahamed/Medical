@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { View, Text, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, CalendarPlus, Clock, X, Loader } from "lucide-react-native";
+import { Plus, CalendarPlus, Clock, X, Loader, FileText } from "lucide-react-native";
 import { useMyAppointments, useCancelAppointment } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -227,7 +227,15 @@ export default function AppointmentsScreen() {
                         {month}
                       </Text>
                     </View>
-                    <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(app)/appointment-detail",
+                          params: { id: item.id },
+                        })
+                      }
+                      style={{ flex: 1, gap: 6, minWidth: 0 }}
+                    >
                       <Text
                         style={[typography.title.sm, { color: colors.text }]}
                         numberOfLines={1}
@@ -266,14 +274,18 @@ export default function AppointmentsScreen() {
                           </View>
                         ) : null}
                         {item.status ? (
+                          <Pill label={item.status.replace("_", " ")} tone={tone} size="sm" />
+                        ) : null}
+                        {item.recordCount ? (
                           <Pill
-                            label={item.status}
-                            tone={tone}
+                            icon={FileText}
+                            label={`${item.recordCount} note${item.recordCount === 1 ? "" : "s"}`}
+                            tone="info"
                             size="sm"
                           />
                         ) : null}
                       </View>
-                    </View>
+                    </Pressable>
                     {(item.status === "scheduled" ||
                       item.status === "confirmed" ||
                       item.status === "pending") ? (

@@ -10,10 +10,13 @@ import {
   XCircle,
   Hash,
   Sparkles,
+  UserPlus,
+  AlertCircle,
 } from "lucide-react-native";
 import {
   useDoctorQueue,
   useUpdateAppointmentStatus,
+  useUpdateWalkIn,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -99,8 +102,10 @@ export default function DoctorQueue() {
             const tone = statusTone(q.status);
             const canStart = q.status === "scheduled" || q.status === "confirmed";
             const canComplete = q.status === "in_progress";
+            const isWalkIn = q.kind === "walkin";
+            const key = q.appointmentId || q.walkInId || `${q.patientId}-${q.time}`;
             return (
-              <Card key={q.appointmentId} padded={false}>
+              <Card key={key} padded={false}>
                 <View style={{ padding: spacing.lg, gap: spacing.md }}>
                   <View
                     style={{
@@ -112,7 +117,7 @@ export default function DoctorQueue() {
                     <Avatar
                       name={q.patientName}
                       size="md"
-                      tone="primary"
+                      tone={isWalkIn ? "warning" : "primary"}
                       source={q.patientPhoto ? { uri: q.patientPhoto } : undefined}
                     />
                     <View style={{ flex: 1 }}>
@@ -129,7 +134,17 @@ export default function DoctorQueue() {
                         {q.reason || "No reason given"}
                       </Text>
                     </View>
-                    <Pill label={q.status} tone={tone} size="sm" />
+                    <View style={{ flexDirection: "row", gap: 6 }}>
+                      {isWalkIn ? (
+                        <Pill
+                          icon={UserPlus}
+                          label="Walk-in"
+                          tone={q.priority === "urgent" ? "danger" : "warning"}
+                          size="sm"
+                        />
+                      ) : null}
+                      <Pill label={q.status.replace("_", " ")} tone={tone} size="sm" />
+                    </View>
                   </View>
 
                   <View
@@ -140,18 +155,17 @@ export default function DoctorQueue() {
                       flexWrap: "wrap",
                     }}
                   >
-                    <Pill
-                      icon={Clock}
-                      label={q.time || "—"}
-                      tone="neutral"
-                      size="sm"
-                    />
-                    <Pill
-                      icon={Hash}
-                      label={`#${q.queueNumber ?? "—"}`}
-                      tone="neutral"
-                      size="sm"
-                    />
+                    {q.time ? (
+                      <Pill icon={Clock} label={q.time || "—"} tone="neutral" size="sm" />
+                    ) : null}
+                    {!isWalkIn ? (
+                      <Pill
+                        icon={Hash}
+                        label={`#${q.queueNumber ?? "—"}`}
+                        tone="neutral"
+                        size="sm"
+                      />
+                    ) : null}
                     {q.bloodGroup ? (
                       <Pill label={q.bloodGroup} tone="info" size="sm" />
                     ) : null}
@@ -180,58 +194,64 @@ export default function DoctorQueue() {
                         })
                       }
                     />
-                    {canStart ? (
-                      <Button
-                        title="Start"
-                        icon={Play}
-                        variant="secondary"
-                        size="sm"
-                        fullWidth={false}
-                        loading={busyId === q.appointmentId}
-                        onPress={() => setStatus(q.appointmentId, "in_progress")}
-                      />
-                    ) : null}
-                    {canComplete ? (
+                    {isWalkIn ? (
+                      <WalkInActions walkInId={q.walkInId} status={q.status} />
+                    ) : (
                       <>
-                        <Button
-                          title="Complete visit"
-                          icon={Sparkles}
-                          variant="primary"
-                          size="sm"
-                          fullWidth={false}
-                          onPress={() =>
-                            router.push({
-                              pathname: "/doctor/visit-summary",
-                              params: {
-                                patientId: q.patientId,
-                                appointmentId: q.appointmentId,
-                              },
-                            })
-                          }
-                        />
-                        <Button
-                          title="Mark done"
-                          icon={CheckCircle2}
-                          variant="ghost"
-                          size="sm"
-                          fullWidth={false}
-                          loading={busyId === q.appointmentId}
-                          onPress={() => setStatus(q.appointmentId, "completed")}
-                        />
+                        {canStart ? (
+                          <Button
+                            title="Start"
+                            icon={Play}
+                            variant="secondary"
+                            size="sm"
+                            fullWidth={false}
+                            loading={busyId === q.appointmentId}
+                            onPress={() => setStatus(q.appointmentId, "in_progress")}
+                          />
+                        ) : null}
+                        {canComplete ? (
+                          <>
+                            <Button
+                              title="Complete visit"
+                              icon={Sparkles}
+                              variant="primary"
+                              size="sm"
+                              fullWidth={false}
+                              onPress={() =>
+                                router.push({
+                                  pathname: "/doctor/visit-summary",
+                                  params: {
+                                    patientId: q.patientId,
+                                    appointmentId: q.appointmentId,
+                                  },
+                                })
+                              }
+                            />
+                            <Button
+                              title="Mark done"
+                              icon={CheckCircle2}
+                              variant="ghost"
+                              size="sm"
+                              fullWidth={false}
+                              loading={busyId === q.appointmentId}
+                              onPress={() => setStatus(q.appointmentId, "completed")}
+                            />
+                          </>
+                        ) : null}
+                        {q.status !== "completed" &&
+                        q.status !== "cancelled" &&
+                        q.status !== "no_show" ? (
+                          <Button
+                            title="No-show"
+                            icon={XCircle}
+                            variant="danger"
+                            size="sm"
+                            fullWidth={false}
+                            onPress={() => setStatus(q.appointmentId, "no_show")}
+                          />
+                        ) : null}
                       </>
-                    ) : null}
-                    {q.status !== "completed" &&
-                    q.status !== "cancelled" &&
-                    q.status !== "no_show" ? (
-                      <Button
-                        title="No-show"
-                        icon={XCircle}
-                        variant="danger"
-                        size="sm"
-                        fullWidth={false}
-                        onPress={() => setStatus(q.appointmentId, "no_show")}
-                      />
-                    ) : null}
+                    )}
                   </View>
                 </View>
               </Card>
@@ -243,4 +263,46 @@ export default function DoctorQueue() {
       <View style={{ height: 24 }} />
     </Screen>
   );
+}
+
+function WalkInActions({ walkInId, status }: { walkInId: string; status: string }) {
+  const updateWalkIn = useUpdateWalkIn();
+  const toast = useToast();
+
+  async function set(s: "in_consultation" | "completed" | "no_show") {
+    try {
+      await updateWalkIn.mutateAsync({ id: walkInId, status: s });
+      toast.show(`Status: ${s.replace("_", " ")}`, "info");
+    } catch (err: any) {
+      toast.show(err?.message || "Could not update", "danger");
+    }
+  }
+
+  if (status === "waiting") {
+    return (
+      <Button
+        title="Start consult"
+        icon={Play}
+        variant="secondary"
+        size="sm"
+        fullWidth={false}
+        onPress={() => set("in_consultation")}
+      />
+    );
+  }
+  if (status === "in_consultation") {
+    return (
+      <>
+        <Button
+          title="Mark done"
+          icon={CheckCircle2}
+          variant="primary"
+          size="sm"
+          fullWidth={false}
+          onPress={() => set("completed")}
+        />
+      </>
+    );
+  }
+  return null;
 }
