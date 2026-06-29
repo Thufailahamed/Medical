@@ -12,6 +12,7 @@ import {
   prescriptions,
   labs,
   labReports,
+  followUps,
   vitals,
   notifications,
   doctorAvailability,
@@ -724,5 +725,173 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
 // Helper for the patient-detail picker: list doctors at the same hospital.
 // GET /doctor-portal/colleagues
 // Removed (unused): use /doctor/search?hospitalId=... instead.
+
+// ─── V3: Visit summary (one-shot clinical write-up) ────
+// POST /doctor-portal/visit-summary
+//   {
+//     patientId, appointmentId?,
+//     title,            // e.g. "Visit 2024-03-12"
+//     diagnosis?,       // ICD-style or free text
+//     subjective?,      // SOAP: what patient said
+//     objective?,       // SOAP: exam / vitals / labs reviewed
+//     assessment?,      // SOAP: clinical impression
+//     plan?,            // SOAP: treatment plan / instructions
+//     notes?,           // free-form addition
+//     prescriptionItems?:  [{ name, dosage, frequency, duration, instructions }],
+//     labOrders?:         [{ testName, instructions? }],
+//     followUp?:          { followUpDate, title, notes? },
+//     markAppointmentCompleted?: boolean,
+//   }
+doctorPortalRouter.post("/visit-summary", async (c) => {
+  const userId = c.get("userId");
+  const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role;
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+
+  if (userRole !== "doctor") {
+    return c.json({ error: "Doctor role required" }, 403);
+  }
+  const patientId = String(body.patientId || "").trim();
+  if (!patientId) return c.json({ error: "patientId is required" }, 400);
+
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const title = String(body.title || `Visit ${new Date().toISOString().slice(0, 10)}`).slice(0, 200);
+  const diagnosis = body.diagnosis ? String(body.diagnosis).slice(0, 500) : null;
+  const subjective = body.subjective ? String(body.subjective).slice(0, 4000) : null;
+  const objective = body.objective ? String(body.objective).slice(0, 4000) : null;
+  const assessment = body.assessment ? String(body.assessment).slice(0, 4000) : null;
+  const plan = body.plan ? String(body.plan).slice(0, 4000) : null;
+  const notes = body.notes ? String(body.notes).slice(0, 2000) : null;
+
+  // Compose a single SOAP-style summary for the patient's chart
+  const soapParts: string[] = [];
+  if (subjective) soapParts.push(`SUBJECTIVE\n${subjective}`);
+  if (objective) soapParts.push(`OBJECTIVE\n${objective}`);
+  if (assessment) soapParts.push(`ASSESSMENT\n${assessment}`);
+  if (plan) soapParts.push(`PLAN\n${plan}`);
+  const summary = soapParts.length ? soapParts.join("\n\n") : null;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 1) Create the visit record (clinical_note recordType)
+  const [visit] = await db
+    .insert(medicalRecords)
+    .values({
+      patientId,
+      hospitalId: doctor.hospitalId || null,
+      doctorId: doctor.id,
+      recordType: "clinical_note",
+      title,
+      diagnosis,
+      summary,
+      notes,
+      date: today,
+    } as any)
+    .returning();
+
+  // 2) Prescriptions
+  const prescriptionItems: any[] = Array.isArray(body.prescriptionItems)
+    ? body.prescriptionItems
+    : [];
+  const createdPrescriptions: any[] = [];
+  if (prescriptionItems.length > 0) {
+    for (const p of prescriptionItems) {
+      if (!p?.name) continue;
+      const [rx] = await db
+        .insert(prescriptions)
+        .values({
+          patientId,
+          doctorId: doctor.id,
+          hospitalId: doctor.hospitalId || null,
+          diagnosis: diagnosis || title,
+          notes: p.instructions ? String(p.instructions).slice(0, 1000) : null,
+        } as any)
+        .returning();
+      // Attach a medical_record mirror for visibility in records list
+      const [rxRecord] = await db
+        .insert(medicalRecords)
+        .values({
+          patientId,
+          hospitalId: doctor.hospitalId || null,
+          doctorId: doctor.id,
+          recordType: "prescription",
+          title: `Prescription: ${String(p.name).slice(0, 100)}`,
+          notes: [p.dosage, p.frequency, p.duration, p.instructions]
+            .filter(Boolean)
+            .join(" • ")
+            .slice(0, 500) || null,
+          date: today,
+        } as any)
+        .returning();
+      createdPrescriptions.push({ prescription: rx, record: rxRecord });
+    }
+  }
+
+  // 3) Lab orders
+  const labOrders: any[] = Array.isArray(body.labOrders) ? body.labOrders : [];
+  const createdLabs: any[] = [];
+  for (const l of labOrders) {
+    if (!l?.testName) continue;
+    const [labRec] = await db
+      .insert(medicalRecords)
+      .values({
+        patientId,
+        hospitalId: doctor.hospitalId || null,
+        doctorId: doctor.id,
+        recordType: "lab_order",
+        title: `Lab order: ${String(l.testName).slice(0, 100)}`,
+        notes: l.instructions ? String(l.instructions).slice(0, 500) : null,
+        date: today,
+      } as any)
+      .returning();
+    createdLabs.push(labRec);
+  }
+
+  // 4) Follow-up
+  let createdFollowUp: any = null;
+  if (body.followUp?.followUpDate && body.followUp?.title) {
+    const fu = body.followUp;
+    const [fuRec] = await db
+      .insert(medicalRecords)
+      .values({
+        patientId,
+        hospitalId: doctor.hospitalId || null,
+        doctorId: doctor.id,
+        recordType: "follow_up",
+        title: String(fu.title).slice(0, 200),
+        notes: fu.notes ? String(fu.notes).slice(0, 1000) : null,
+        followUpDate: String(fu.followUpDate).slice(0, 10),
+        date: today,
+      } as any)
+      .returning();
+    createdFollowUp = fuRec;
+  }
+
+  // 5) Mark appointment completed (if provided)
+  if (body.appointmentId && body.markAppointmentCompleted !== false) {
+    const apptId = String(body.appointmentId);
+    await db
+      .update(appointments)
+      .set({ status: "completed" as any })
+      .where(eq(appointments.id, apptId));
+  }
+
+  return c.json(
+    {
+      visit,
+      prescriptions: createdPrescriptions,
+      labOrders: createdLabs,
+      followUp: createdFollowUp,
+    },
+    201
+  );
+});
 
 export default doctorPortalRouter;

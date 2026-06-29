@@ -179,9 +179,22 @@ export default function DoctorPatientDetail() {
           }}
         >
           <Button
+            title="Complete visit"
+            icon={Sparkles}
+            variant="primary"
+            size="sm"
+            fullWidth={false}
+            onPress={() =>
+              router.push({
+                pathname: "/doctor/visit-summary",
+                params: { patientId: id },
+              })
+            }
+          />
+          <Button
             title="Clinical note"
             icon={Stethoscope}
-            variant="primary"
+            variant="secondary"
             size="sm"
             fullWidth={false}
             onPress={() =>

@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   XCircle,
   Hash,
+  Sparkles,
 } from "lucide-react-native";
 import {
   useDoctorQueue,
@@ -191,15 +192,33 @@ export default function DoctorQueue() {
                       />
                     ) : null}
                     {canComplete ? (
-                      <Button
-                        title="Complete"
-                        icon={CheckCircle2}
-                        variant="outline"
-                        size="sm"
-                        fullWidth={false}
-                        loading={busyId === q.appointmentId}
-                        onPress={() => setStatus(q.appointmentId, "completed")}
-                      />
+                      <>
+                        <Button
+                          title="Complete visit"
+                          icon={Sparkles}
+                          variant="primary"
+                          size="sm"
+                          fullWidth={false}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/doctor/visit-summary",
+                              params: {
+                                patientId: q.patientId,
+                                appointmentId: q.appointmentId,
+                              },
+                            })
+                          }
+                        />
+                        <Button
+                          title="Mark done"
+                          icon={CheckCircle2}
+                          variant="ghost"
+                          size="sm"
+                          fullWidth={false}
+                          loading={busyId === q.appointmentId}
+                          onPress={() => setStatus(q.appointmentId, "completed")}
+                        />
+                      </>
                     ) : null}
                     {q.status !== "completed" &&
                     q.status !== "cancelled" &&

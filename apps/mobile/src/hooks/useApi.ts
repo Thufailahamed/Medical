@@ -1966,3 +1966,47 @@ export function useVitalsSeries(opts: {
     staleTime: 60_000,
   });
 }
+
+// ─── Doctor: Visit Summary (one-shot SOAP write-up) ───────
+export type VisitSummaryInput = {
+  patientId: string;
+  appointmentId?: string;
+  title?: string;
+  diagnosis?: string;
+  subjective?: string;
+  objective?: string;
+  assessment?: string;
+  plan?: string;
+  notes?: string;
+  prescriptionItems?: Array<{
+    name: string;
+    dosage?: string;
+    frequency?: string;
+    duration?: string;
+    instructions?: string;
+  }>;
+  labOrders?: Array<{ testName: string; instructions?: string }>;
+  followUp?: { followUpDate: string; title: string; notes?: string };
+  markAppointmentCompleted?: boolean;
+};
+
+export function useCreateVisitSummary() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: VisitSummaryInput) =>
+      api<{
+        visit: any;
+        prescriptions: any[];
+        labOrders: any[];
+        followUp: any;
+      }>("/doctor-portal/visit-summary", { method: "POST", body: input }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({
+        queryKey: ["medical-records", variables.patientId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["doctor-portal", "queue"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
