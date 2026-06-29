@@ -1,22 +1,37 @@
 import { z } from "zod";
 
-export const registerSchema = z.object({
-  email: z.string().email().optional(),
-  phone: z.string().min(10).max(15).optional(),
-  name: z.string().min(2).max(100),
-  role: z.enum([
-    "patient",
-    "doctor",
-    "hospital_admin",
-    "hospital_staff",
-    "laboratory",
-    "pharmacy",
-    "insurance",
-    "ambulance",
-  ]),
-  password: z.string().min(8),
-  nic: z.string().optional(),
+export const doctorProfileSchema = z.object({
+  specialization: z.string().min(2, "Specialization is required").max(80),
+  registrationNumber: z.string().max(80).optional(),
+  hospitalId: z.string().uuid().optional(),
 });
+
+export const registerSchema = z
+  .object({
+    email: z.string().email().optional(),
+    phone: z.string().min(10).max(15).optional(),
+    name: z.string().min(2).max(100),
+    role: z.enum([
+      "patient",
+      "doctor",
+      "hospital_admin",
+      "hospital_staff",
+      "laboratory",
+      "pharmacy",
+      "insurance",
+      "ambulance",
+    ]),
+    password: z.string().min(8),
+    nic: z.string().optional(),
+    doctorProfile: doctorProfileSchema.optional(),
+  })
+  .refine(
+    (d) => d.role !== "doctor" || !!d.doctorProfile?.specialization?.trim(),
+    {
+      message: "Specialization is required for doctor accounts",
+      path: ["doctorProfile", "specialization"],
+    }
+  );
 
 export const loginSchema = z.object({
   email: z.string().email().optional(),
@@ -90,11 +105,15 @@ export const medicineUpdateSchema = z.object({
 });
 
 export const appointmentSchema = z.object({
-  doctorId: z.string().uuid(),
-  hospitalId: z.string().uuid(),
-  date: z.string(),
-  time: z.string(),
-  reason: z.string().optional(),
+  doctorId: z.string().uuid("Invalid doctor id"),
+  hospitalId: z.string().uuid("Invalid hospital id"),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "Time must be HH:MM (24h)"),
+  reason: z.string().max(500, "Reason must be under 500 chars").optional(),
 });
 
 export const medicalRecordSchema = z.object({

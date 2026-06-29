@@ -21,8 +21,10 @@ const STATUS_TONE: Record<string, PillTone> = {
   confirmed: "success",
   pending: "warning",
   scheduled: "primary",
+  in_progress: "primary",
   completed: "info",
   cancelled: "danger",
+  no_show: "danger",
 };
 
 const FILTERS = [

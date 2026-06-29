@@ -15,13 +15,19 @@ import {
   Lock,
   ArrowRight,
   HeartPulse,
+  Stethoscope,
   ChevronLeft,
   IdCard,
+  Stethoscope as DoctorIcon,
+  Search,
+  X,
 } from "lucide-react-native";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useSpecialties, useHospitals } from "@/hooks/useApi";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Screen,
   Card,
@@ -29,17 +35,27 @@ import {
   TextInput,
   FormField,
   IconButton,
+  Pill,
+  Skeleton,
   useToast,
 } from "@/components/ui";
 
 const schema = z
   .object({
+    role: z.enum(["patient", "doctor"]),
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Enter a valid email").optional().or(z.literal("")),
     phone: z.string().optional(),
     nic: z.string().optional(),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirm: z.string(),
+    doctorProfile: z
+      .object({
+        specialization: z.string().optional(),
+        registrationNumber: z.string().optional(),
+        hospitalId: z.string().optional(),
+      })
+      .optional(),
   })
   .refine((d) => !!d.email || !!d.phone, {
     message: "Email or phone is required",
@@ -48,7 +64,15 @@ const schema = z
   .refine((d) => d.password === d.confirm, {
     message: "Passwords do not match",
     path: ["confirm"],
-  });
+  })
+  .refine(
+    (d) =>
+      d.role !== "doctor" || !!(d.doctorProfile?.specialization || "").trim(),
+    {
+      message: "Specialization is required for doctor accounts",
+      path: ["doctorProfile", "specialization"],
+    }
+  );
 
 type FormData = z.infer<typeof schema>;
 
@@ -56,35 +80,72 @@ export default function RegisterScreen() {
   const router = useRouter();
   const { colors, spacing, typography } = useTheme();
   const [submitting, setSubmitting] = useState(false);
+  const [role, setRole] = useState<"patient" | "doctor">("patient");
+  const [hospitalQuery, setHospitalQuery] = useState("");
+  const [showOtherSpecialty, setShowOtherSpecialty] = useState(false);
+  const debouncedHospitalQuery = useDebounce(hospitalQuery, 300);
+  const { data: specialtiesData } = useSpecialties();
+  const { data: hospitalsData, isLoading: hospitalsLoading } = useHospitals(
+    role === "doctor" ? debouncedHospitalQuery : ""
+  );
+  const specialties: string[] = specialtiesData?.specialties || [];
+  const hospitals: any[] = hospitalsData?.hospitals || [];
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
 
   const {
     control,
     handleSubmit,
+    setValue,
+    watch,
     setError,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", phone: "", nic: "", password: "", confirm: "" },
+    defaultValues: {
+      role: "patient",
+      name: "",
+      email: "",
+      phone: "",
+      nic: "",
+      password: "",
+      confirm: "",
+      doctorProfile: {
+        specialization: "",
+        registrationNumber: "",
+        hospitalId: "",
+      },
+    },
     mode: "onBlur",
   });
+
+  const selectedSpecialization = watch("doctorProfile.specialization");
+  const selectedHospitalId = watch("doctorProfile.hospitalId");
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
     try {
+      const body: any = {
+        name: data.name,
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+        nic: data.nic || undefined,
+        password: data.password,
+        role: data.role,
+      };
+      if (data.role === "doctor") {
+        body.doctorProfile = {
+          specialization: (data.doctorProfile?.specialization || "").trim(),
+          registrationNumber:
+            data.doctorProfile?.registrationNumber?.trim() || undefined,
+          hospitalId: data.doctorProfile?.hospitalId || undefined,
+        };
+      }
       const res = await api<{ user: any; session?: any; message?: string }>(
         "/auth/register",
         {
           method: "POST",
-          body: {
-            name: data.name,
-            email: data.email || undefined,
-            phone: data.phone || undefined,
-            nic: data.nic || undefined,
-            password: data.password,
-            role: "patient",
-          },
+          body,
         }
       );
 
@@ -139,14 +200,18 @@ export default function RegisterScreen() {
             backgroundColor: colors.primarySoft,
           }}
         >
-          <HeartPulse size={20} color={colors.primary} strokeWidth={2.25} />
+          {role === "doctor" ? (
+            <Stethoscope size={20} color={colors.primary} strokeWidth={2.25} />
+          ) : (
+            <HeartPulse size={20} color={colors.primary} strokeWidth={2.25} />
+          )}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[typography.overline, { color: colors.textMuted }]}>
             HealthHub
           </Text>
           <Text style={[typography.title.lg, { color: colors.text }]}>
-            Create your account
+            {role === "doctor" ? "Join as a doctor" : "Create your account"}
           </Text>
         </View>
       </View>
@@ -164,8 +229,40 @@ export default function RegisterScreen() {
             { color: colors.textMuted, marginBottom: spacing.xs },
           ]}
         >
-          Start managing your health today. It takes less than a minute.
+          {role === "doctor"
+            ? "Set up your practice profile so patients can find and book you."
+            : "Start managing your health today. It takes less than a minute."}
         </Text>
+
+        {/* Role selector */}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: spacing.sm,
+            marginBottom: spacing.xs,
+          }}
+        >
+          <Pill
+            label="Patient"
+            tone={role === "patient" ? "primary" : "neutral"}
+            onPress={() => {
+              setRole("patient");
+              setValue("role", "patient");
+              setValue("doctorProfile.specialization", "");
+              setValue("doctorProfile.registrationNumber", "");
+              setValue("doctorProfile.hospitalId", "");
+              setShowOtherSpecialty(false);
+            }}
+          />
+          <Pill
+            label="Doctor"
+            tone={role === "doctor" ? "primary" : "neutral"}
+            onPress={() => {
+              setRole("doctor");
+              setValue("role", "doctor");
+            }}
+          />
+        </View>
 
         <Card padded={false}>
           <View style={{ padding: spacing.lg, paddingBottom: spacing.sm }}>
@@ -311,6 +408,199 @@ export default function RegisterScreen() {
             />
           </View>
         </Card>
+
+        {role === "doctor" ? (
+          <Card padded={false}>
+            <View style={{ padding: spacing.lg, paddingBottom: spacing.sm }}>
+              <Text
+                style={[
+                  typography.label.lg,
+                  { color: colors.textMuted, letterSpacing: 0.6 },
+                ]}
+              >
+                DOCTOR PROFILE
+              </Text>
+            </View>
+            <View
+              style={{
+                paddingHorizontal: spacing.lg,
+                gap: spacing.lg,
+                paddingBottom: spacing.lg,
+              }}
+            >
+              <FormField
+                label="Specialty"
+                required
+                error={errors.doctorProfile?.specialization?.message}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: spacing.xs,
+                  }}
+                >
+                  {specialties.map((s) => (
+                    <Pill
+                      key={s}
+                      label={s}
+                      tone={
+                        selectedSpecialization === s ? "primary" : "neutral"
+                      }
+                      onPress={() => {
+                        setValue("doctorProfile.specialization", s, {
+                          shouldValidate: true,
+                        });
+                        setShowOtherSpecialty(false);
+                      }}
+                    />
+                  ))}
+                  <Pill
+                    label="Other"
+                    tone={showOtherSpecialty ? "primary" : "neutral"}
+                    onPress={() => {
+                      setShowOtherSpecialty((v) => !v);
+                      setValue("doctorProfile.specialization", "", {
+                        shouldValidate: false,
+                      });
+                    }}
+                  />
+                </View>
+                {showOtherSpecialty ? (
+                  <Controller
+                    control={control}
+                    name="doctorProfile.specialization"
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <TextInput
+                        value={value}
+                        onChangeText={(t) =>
+                          onChange(t, { shouldValidate: true })
+                        }
+                        onBlur={onBlur}
+                        placeholder="e.g., Cardiology"
+                        autoCapitalize="words"
+                        leadingIcon={DoctorIcon}
+                      />
+                    )}
+                  />
+                ) : null}
+              </FormField>
+
+              <Controller
+                control={control}
+                name="doctorProfile.registrationNumber"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <FormField
+                    label="SLMC registration number"
+                    helper="Sri Lanka Medical Council ID"
+                  >
+                    <TextInput
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="e.g., 12345"
+                      autoCapitalize="characters"
+                      leadingIcon={IdCard}
+                    />
+                  </FormField>
+                )}
+              />
+
+              <FormField
+                label="Hospital (optional)"
+                helper="You can update this later in your profile."
+                error={errors.doctorProfile?.hospitalId?.message}
+              >
+                <TextInput
+                  value={hospitalQuery}
+                  onChangeText={setHospitalQuery}
+                  placeholder="Search hospitals"
+                  leadingIcon={Search}
+                  tone="soft"
+                  autoCapitalize="none"
+                />
+                {selectedHospitalId ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.sm,
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: 10,
+                      borderRadius: 12,
+                      backgroundColor: colors.primarySoft,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.body.sm,
+                        { color: colors.text, flex: 1 },
+                      ]}
+                    >
+                      {hospitals.find((h) => h.id === selectedHospitalId)
+                        ?.name || "Selected hospital"}
+                    </Text>
+                    <Pressable
+                      onPress={() => {
+                        setValue("doctorProfile.hospitalId", "");
+                        setHospitalQuery("");
+                      }}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear hospital"
+                    >
+                      <X size={16} color={colors.textMuted} />
+                    </Pressable>
+                  </View>
+                ) : hospitalsLoading ? (
+                  <Skeleton height={48} radius={12} />
+                ) : hospitals.length > 0 ? (
+                  <View style={{ gap: spacing.xs }}>
+                    {hospitals.slice(0, 5).map((h: any) => (
+                      <Pressable
+                        key={h.id}
+                        onPress={() =>
+                          setValue("doctorProfile.hospitalId", h.id, {
+                            shouldValidate: true,
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Select ${h.name}`}
+                        style={({ pressed }) => ({
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: 10,
+                          borderRadius: 12,
+                          backgroundColor: pressed
+                            ? colors.primarySoft
+                            : colors.surface,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                        })}
+                      >
+                        <Text
+                          style={[typography.body.sm, { color: colors.text }]}
+                        >
+                          {h.name}
+                        </Text>
+                        {h.address ? (
+                          <Text
+                            style={[
+                              typography.caption,
+                              { color: colors.textMuted },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {h.address}
+                          </Text>
+                        ) : null}
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </FormField>
+            </View>
+          </Card>
+        ) : null}
 
         {errors.root ? (
           <Text

@@ -250,6 +250,7 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
   const db = c.get("db");
   const query = (c.req.query("query") || "").trim();
   const specialization = (c.req.query("specialization") || "").trim();
+  const hospitalId = (c.req.query("hospitalId") || "").trim();
 
   const conditions: any[] = [];
   if (query) {
@@ -258,6 +259,9 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
   }
   if (specialization) {
     conditions.push(eq(doctors.specialization, specialization));
+  }
+  if (hospitalId) {
+    conditions.push(eq(doctors.hospitalId, hospitalId));
   }
 
   const baseQuery = db

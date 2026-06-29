@@ -1,4 +1,4 @@
-// Healthcare theme tokens — cyan/teal palette, WCAG AAA light + dark.
+// Healthcare theme tokens — calm sky/blue palette, WCAG AAA light + dark.
 // All UI components must consume `useTheme()`; raw hex belongs only here.
 
 import { Easing } from "react-native-reanimated";
@@ -6,19 +6,6 @@ import { Easing } from "react-native-reanimated";
 // ---------- Palette (raw hex) ----------
 
 export const palette = {
-  violet: {
-    50: "#FAF8FF",
-    100: "#F5F3FF",
-    200: "#E4DFFF",
-    300: "#D3CCFF",
-    400: "#B8AEFF",
-    500: "#9E8FFF",
-    600: "#7C3AED",
-    700: "#6D28D9",
-    800: "#5B21B6",
-    900: "#4C1D95",
-    950: "#2E1065",
-  },
   cyan: {
     50: "#ECFEFF",
     100: "#CFFAFE",
@@ -177,7 +164,7 @@ type ColorScheme = {
 };
 
 const lightColors: ColorScheme = {
-  bg: palette.violet[50],
+  bg: palette.sky[50],
   bgElevated: palette.white,
   surface: palette.white,
   surfaceMuted: palette.slate[50],
@@ -187,14 +174,14 @@ const lightColors: ColorScheme = {
   textInverse: palette.white,
   border: palette.slate[200],
   borderStrong: palette.slate[300],
-  borderFocus: palette.violet[500],
-  primary: palette.violet[600],
-  primaryMuted: palette.violet[700],
-  primarySoft: palette.violet[100],
+  borderFocus: palette.sky[500],
+  primary: palette.sky[600],
+  primaryMuted: palette.sky[700],
+  primarySoft: palette.sky[100],
   onPrimary: palette.white,
-  secondary: palette.violet[400],
-  secondaryMuted: palette.violet[500],
-  secondarySoft: palette.violet[50],
+  secondary: palette.sky[400],
+  secondaryMuted: palette.sky[500],
+  secondarySoft: palette.sky[50],
   onSecondary: palette.slate[900],
   accent: palette.emerald[600],
   accentMuted: palette.emerald[700],
@@ -204,8 +191,8 @@ const lightColors: ColorScheme = {
   accent2Muted: palette.coral[700],
   accent2Soft: palette.coral[50],
   onAccent2: palette.white,
-  orb: palette.violet[400],
-  orbDeep: palette.violet[800],
+  orb: palette.sky[300],
+  orbDeep: palette.sky[700],
   glass: "rgba(255, 255, 255, 0.72)",
   glassOnPrimary: "rgba(255, 255, 255, 0.18)",
   glassOnPrimarySoft: "rgba(255, 255, 255, 0.85)",
@@ -240,14 +227,14 @@ const darkColors: ColorScheme = {
   textInverse: palette.slate[900],
   border: palette.slate[800],
   borderStrong: palette.slate[700],
-  borderFocus: palette.violet[400],
-  primary: palette.violet[400],
-  primaryMuted: palette.violet[300],
-  primarySoft: "rgba(124, 58, 237, 0.12)",
+  borderFocus: palette.sky[400],
+  primary: palette.sky[400],
+  primaryMuted: palette.sky[300],
+  primarySoft: "rgba(14, 165, 233, 0.14)",
   onPrimary: palette.slate[950],
-  secondary: palette.violet[300],
-  secondaryMuted: palette.violet[200],
-  secondarySoft: "rgba(124, 58, 237, 0.08)",
+  secondary: palette.sky[300],
+  secondaryMuted: palette.sky[200],
+  secondarySoft: "rgba(14, 165, 233, 0.10)",
   onSecondary: palette.slate[950],
   accent: palette.emerald[400],
   accentMuted: palette.emerald[300],
@@ -257,8 +244,8 @@ const darkColors: ColorScheme = {
   accent2Muted: palette.coral[300],
   accent2Soft: "rgba(255, 122, 89, 0.14)",
   onAccent2: palette.slate[950],
-  orb: palette.violet[500],
-  orbDeep: palette.violet[900],
+  orb: palette.sky[500],
+  orbDeep: palette.sky[900],
   glass: "rgba(15, 23, 42, 0.72)",
   glassOnPrimary: "rgba(255, 255, 255, 0.10)",
   glassOnPrimarySoft: "rgba(255, 255, 255, 0.78)",
@@ -479,7 +466,7 @@ export const shadow = {
     elevation: 6,
   } as ShadowStyle,
   hero: {
-    shadowColor: palette.violet[700],
+    shadowColor: palette.sky[700],
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.22,
     shadowRadius: 28,
@@ -493,7 +480,7 @@ export const shadow = {
     elevation: 5,
   } as ShadowStyle,
   primary: {
-    shadowColor: palette.violet[600],
+    shadowColor: palette.sky[600],
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 16,

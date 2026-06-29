@@ -100,7 +100,7 @@ export default function BookAppointmentScreen() {
   });
 
   const values = watch();
-  const selectedDoctor = doctors.find((d) => d.id === values.doctorId);
+  const selectedDoctor = doctors.find((d) => d.doctorId === values.doctorId);
 
   const dateStr = values.date ? values.date.toISOString().slice(0, 10) : "";
   const { data: availabilityData } = useDoctorAvailability(
@@ -183,12 +183,16 @@ export default function BookAppointmentScreen() {
                 <Pill
                   label="All"
                   tone={specialtyFilter === null ? "primary" : "neutral"}
+                  onPress={() => setSpecialtyFilter(null)}
                 />
                 {specialties.map((s) => (
                   <Pill
                     key={s}
                     label={s}
                     tone={specialtyFilter === s ? "primary" : "neutral"}
+                    onPress={() =>
+                      setSpecialtyFilter(specialtyFilter === s ? null : s)
+                    }
                   />
                 ))}
               </View>
@@ -214,10 +218,10 @@ export default function BookAppointmentScreen() {
             ) : (
               <View style={{ gap: spacing.sm }}>
                 {doctors.map((d) => {
-                  const selected = values.doctorId === d.id;
+                  const selected = values.doctorId === d.doctorId;
                   return (
                     <NextActionCard
-                      key={d.id}
+                      key={d.doctorId}
                       subject={d.name || "Doctor"}
                       verb={d.specialization || ""}
                       context={
@@ -254,7 +258,7 @@ export default function BookAppointmentScreen() {
                         ) : undefined
                       }
                       onPress={() => {
-                        setValue("doctorId", d.id, { shouldValidate: true });
+                        setValue("doctorId", d.doctorId, { shouldValidate: true });
                         setValue(
                           "hospitalId",
                           d.hospitalId || "",
@@ -453,8 +457,8 @@ export default function BookAppointmentScreen() {
               title="Continue"
               onPress={() => setStep((s) => s + 1)}
               disabled={
-                (step === 1 && !values.doctorId) ||
-                (step === 2 && (!values.date || !values.time))
+                (step === 1 && (!values.doctorId || !!errors.doctorId || !!errors.hospitalId)) ||
+                (step === 2 && (!values.date || !values.time || !!errors.date || !!errors.time))
               }
               iconRight={ChevronRight}
             />

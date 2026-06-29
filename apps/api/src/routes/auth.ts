@@ -3,7 +3,7 @@
 import { Hono } from "hono";
 import { createClient } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
-import { users, patients } from "@healthcare/db";
+import { users, patients, doctors } from "@healthcare/db";
 import { registerSchema, loginSchema } from "../lib/validators";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
@@ -20,7 +20,7 @@ auth.post("/register", async (c) => {
     return c.json({ error: "Validation failed", details: parsed.error.flatten() }, 400);
   }
 
-  const { email, phone, name, role, password, nic } = parsed.data;
+  const { email, phone, name, role, password, nic, doctorProfile } = parsed.data;
 
   // Must have either email or phone
   if (!email && !phone) {
@@ -48,24 +48,52 @@ auth.post("/register", async (c) => {
     return c.json({ error: authError.message }, 400);
   }
 
-  // Insert into users table
-  const [dbUser] = await db
-    .insert(users)
-    .values({
-      supabaseId: authUser.user.id,
-      email: email || null,
-      phone: phone || null,
-      name,
-      role,
-      nic,
-    })
-    .returning();
+  // Atomic: create the users row plus the role-specific profile row
+  // in one transaction. If the profile insert fails the users row is
+  // rolled back; we then clean up the Supabase auth user so we don't
+  // leave an orphan account.
+  let dbUser: any = null;
+  try {
+    const txResult = await db.transaction(async (tx) => {
+      const [u] = await tx
+        .insert(users)
+        .values({
+          supabaseId: authUser.user.id,
+          email: email || null,
+          phone: phone || null,
+          name,
+          role,
+          nic,
+        })
+        .returning();
 
-  // If patient, create patient profile
-  if (role === "patient") {
-    await db.insert(patients).values({
-      userId: dbUser.id,
+      if (role === "patient") {
+        await tx.insert(patients).values({ userId: u.id });
+      } else if (role === "doctor") {
+        if (!doctorProfile) {
+          // Should be blocked by Zod refine, but guard anyway.
+          throw new Error("Missing doctor profile");
+        }
+        await tx.insert(doctors).values({
+          userId: u.id,
+          specialization: doctorProfile.specialization.trim(),
+          registrationNumber: doctorProfile.registrationNumber?.trim() || null,
+          hospitalId: doctorProfile.hospitalId || null,
+        });
+      }
+      return u;
     });
+    dbUser = txResult;
+  } catch (err: any) {
+    // Best-effort cleanup of the Supabase auth record. Don't surface
+    // cleanup errors to the caller — the real cause is the DB failure.
+    try {
+      await supabase.auth.admin.deleteUser(authUser.user.id);
+    } catch {}
+    return c.json(
+      { error: err?.message || "Could not create account" },
+      500
+    );
   }
 
   // Sign in to get session

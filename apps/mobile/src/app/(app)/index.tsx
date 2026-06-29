@@ -232,7 +232,7 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* ─── Purple hero ─── */}
+        {/* ─── Sky hero ─── */}
         <View
           style={{
             marginHorizontal: spacing.lg,
@@ -242,7 +242,7 @@ export default function HomeScreen() {
           }}
         >
           <LinearGradient
-            colors={["#7C3AED", "#5B21B6"]}
+            colors={["#0EA5E9", "#075985"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}

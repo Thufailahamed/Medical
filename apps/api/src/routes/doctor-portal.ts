@@ -686,24 +686,35 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
     .where(eq(appointments.id, id))
     .returning();
 
-  // Notify patient of status change (skip for cancelled — handled elsewhere)
-  if (parsed.data.status !== "cancelled") {
-    const [patientRow] = await db
-      .select({ userId: patients.userId, name: users.name })
-      .from(patients)
-      .innerJoin(users, eq(patients.userId, users.id))
-      .where(eq(patients.id, own.patientId))
-      .limit(1);
+  // Notify patient of status change — including cancelled so the patient
+  // is never left wondering why the slot disappeared.
+  const status = parsed.data.status;
+  const [patientRow] = await db
+    .select({ userId: patients.userId, name: users.name })
+    .from(patients)
+    .innerJoin(users, eq(patients.userId, users.id))
+    .where(eq(patients.id, own.patientId))
+    .limit(1);
 
-    if (patientRow) {
-      await db.insert(notifications).values({
-        userId: patientRow.userId,
-        type: "appointment",
-        title: `Appointment ${parsed.data.status}`,
-        body: `Your appointment is now ${parsed.data.status}`,
-        data: JSON.stringify({ appointmentId: id }),
-      });
-    }
+  if (patientRow) {
+    const friendly: Record<string, string> = {
+      scheduled: "Scheduled",
+      confirmed: "Confirmed",
+      in_progress: "In progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      no_show: "Marked as no-show",
+    };
+    await db.insert(notifications).values({
+      userId: patientRow.userId,
+      type: "appointment",
+      title: `Appointment ${friendly[status] || status}`,
+      body:
+        status === "cancelled"
+          ? `Your appointment on ${own.date} at ${own.time} was cancelled by the doctor.`
+          : `Your appointment is now ${friendly[status] || status}.`,
+      data: JSON.stringify({ appointmentId: id, status }),
+    });
   }
 
   return c.json({ appointment: row?.appointments || row });
