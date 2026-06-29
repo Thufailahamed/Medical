@@ -83,47 +83,6 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
   return c.json({ patients: results });
 });
 
-// ─── View patient timeline (doctor must have treated patient) ──
-doctorRouter.get("/patient/:patientId/timeline", authMiddleware, requireRole("doctor"), async (c) => {
-  const patientId = c.req.param("patientId");
-  const userId = c.get("userId");
-  const db = c.get("db");
-
-  const [doctor] = await db
-    .select()
-    .from(doctors)
-    .where(eq(doctors.userId, userId))
-    .limit(1);
-
-  if (!doctor) {
-    return c.json({ error: "Doctor not found" }, 404);
-  }
-
-  // Verify doctor has treated this patient
-  const [treated] = await db
-    .select()
-    .from(medicalRecords)
-    .where(
-      and(
-        eq(medicalRecords.patientId, patientId),
-        eq(medicalRecords.doctorId, doctor.doctors.id)
-      )
-    )
-    .limit(1);
-
-  if (!treated) {
-    return c.json({ error: "Access denied: no treatment history" }, 403);
-  }
-
-  const records = await db
-    .select()
-    .from(medicalRecords)
-    .where(eq(medicalRecords.patientId, patientId))
-    .orderBy(desc(medicalRecords.date));
-
-  return c.json({ records });
-});
-
 // ─── Create prescription ─────────────────────────────────
 doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async (c) => {
   const userId = c.get("userId");
@@ -203,7 +162,18 @@ doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async 
   }
 
   const records = await db
-    .select()
+    .select({
+      id: medicalRecords.id,
+      patientId: medicalRecords.patientId,
+      doctorId: medicalRecords.doctorId,
+      title: medicalRecords.title,
+      diagnosis: medicalRecords.diagnosis,
+      summary: medicalRecords.summary,
+      notes: medicalRecords.notes,
+      date: medicalRecords.date,
+      followUpDate: medicalRecords.followUpDate,
+      createdAt: medicalRecords.createdAt,
+    })
     .from(medicalRecords)
     .where(
       and(
@@ -213,7 +183,46 @@ doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async 
     )
     .orderBy(desc(medicalRecords.date));
 
-  return c.json({ prescriptions: records });
+  // Enrich with patient name + medicine count in one pass.
+  const patientIds = [...new Set(records.map((r) => r.patientId).filter(Boolean))];
+  const rxIds = records.map((r) => r.id);
+
+  let patientMap = new Map<string, { id: string; name: string }>();
+  if (patientIds.length) {
+    const rows = await db
+      .select({
+        id: patients.id,
+        patientId: patients.userId,
+        name: users.name,
+      })
+      .from(patients)
+      .innerJoin(users, eq(users.id, patients.userId))
+      .where(
+        or(...patientIds.map((id) => eq(patients.id, id))) as any
+      );
+    for (const r of rows) {
+      patientMap.set(r.id, { id: r.id, name: r.name });
+    }
+  }
+
+  let medCountMap = new Map<string, number>();
+  if (rxIds.length) {
+    const medRows = await db
+      .select({ prescriptionId: medicines.prescriptionId })
+      .from(medicines);
+    for (const m of medRows) {
+      if (!m.prescriptionId) continue;
+      medCountMap.set(m.prescriptionId, (medCountMap.get(m.prescriptionId) ?? 0) + 1);
+    }
+  }
+
+  const enriched = records.map((r) => ({
+    ...r,
+    patient: patientMap.get(r.patientId) || null,
+    medicineCount: medCountMap.get(r.id) ?? 0,
+  }));
+
+  return c.json({ prescriptions: enriched, count: enriched.length });
 });
 
 // ─── Doctor profile ──────────────────────────────────────

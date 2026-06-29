@@ -146,6 +146,9 @@ export const medicalRecords = sqliteTable("medical_records", {
   notes: text("notes"),
   date: text("date").notNull(),
   followUpDate: text("follow_up_date"),
+  status: text("status", {
+    enum: ["pending", "completed", "cancelled"],
+  }).default("pending"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

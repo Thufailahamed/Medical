@@ -221,6 +221,73 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
   return c.json({ record: row?.medical_records || row }, 201);
 });
 
+// GET /doctor-portal/clinical-notes?limit=50&q=
+// Cross-patient list of clinical notes authored by the current doctor.
+doctorPortalRouter.get("/clinical-notes", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "50", 10) || 50));
+  const q = (c.req.query("q") || "").trim().toLowerCase();
+
+  const rows = await db
+    .select({
+      id: medicalRecords.id,
+      patientId: medicalRecords.patientId,
+      title: medicalRecords.title,
+      diagnosis: medicalRecords.diagnosis,
+      notes: medicalRecords.notes,
+      date: medicalRecords.date,
+      createdAt: medicalRecords.createdAt,
+    })
+    .from(medicalRecords)
+    .where(
+      and(
+        eq(medicalRecords.doctorId, doctor.id),
+        eq(medicalRecords.recordType, "clinical_note")
+      )
+    )
+    .orderBy(desc(medicalRecords.createdAt))
+    .limit(limit);
+
+  // Enrich with patient names in one join.
+  const patientIds = [...new Set(rows.map((r) => r.patientId).filter(Boolean))];
+  let patientMap = new Map<string, { id: string; name: string }>();
+  if (patientIds.length) {
+    const pRows = await db
+      .select({
+        id: patients.id,
+        name: users.name,
+      })
+      .from(patients)
+      .innerJoin(users, eq(users.id, patients.userId))
+      .where(
+        or(...patientIds.map((id) => eq(patients.id, id))) as any
+      );
+    for (const r of pRows) patientMap.set(r.id, { id: r.id, name: r.name });
+  }
+
+  let enriched = rows.map((r) => ({
+    ...r,
+    patient: patientMap.get(r.patientId) || null,
+  }));
+
+  if (q) {
+    enriched = enriched.filter((r: any) => {
+      const hay = [r.title, r.diagnosis, r.notes, r.patient?.name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  return c.json({ notes: enriched, count: enriched.length });
+});
+
 // ─── Follow-ups ──────────────────────────────────────────
 // POST /doctor-portal/follow-ups
 doctorPortalRouter.post("/follow-ups", async (c) => {
@@ -297,6 +364,77 @@ doctorPortalRouter.get("/follow-ups", async (c) => {
     .orderBy(asc(medicalRecords.followUpDate));
 
   return c.json({ followUps: rows });
+});
+
+// PATCH /doctor-portal/follow-ups/:id/status
+// Mark a follow-up as completed or cancelled (or back to pending).
+doctorPortalRouter.patch("/follow-ups/:id/status", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+
+  const allowed = ["pending", "completed", "cancelled"];
+  if (!body.status || !allowed.includes(body.status)) {
+    return c.json(
+      { error: `status must be one of: ${allowed.join(", ")}` },
+      400
+    );
+  }
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const [own] = await db
+    .select()
+    .from(medicalRecords)
+    .where(
+      and(
+        eq(medicalRecords.id, id),
+        eq(medicalRecords.doctorId, doctor.id),
+        eq(medicalRecords.recordType, "follow_up")
+      )
+    )
+    .limit(1);
+  if (!own) return c.json({ error: "Follow-up not found" }, 404);
+
+  const [updated] = await db
+    .update(medicalRecords)
+    .set({ status: body.status })
+    .where(eq(medicalRecords.id, id))
+    .returning();
+
+  // Notify the patient that a follow-up changed status (except pending,
+  // which is the default and would just be noise).
+  if (body.status === "completed" || body.status === "cancelled") {
+    const [patient] = await db
+      .select()
+      .from(patients)
+      .where(eq(patients.id, own.patientId))
+      .limit(1);
+    const patientUserId =
+      (patient as any)?.patients?.userId ?? (patient as any)?.userId;
+    if (patientUserId) {
+      await db.insert(notifications).values({
+        userId: patientUserId,
+        type: "general",
+        title:
+          body.status === "completed"
+            ? "Follow-up completed"
+            : "Follow-up cancelled",
+        body:
+          body.status === "completed"
+            ? `Your follow-up "${own.title}" has been marked completed.`
+            : `Your follow-up "${own.title}" was cancelled.`,
+        data: JSON.stringify({
+          followUpId: id,
+          status: body.status,
+        }),
+      });
+    }
+  }
+
+  return c.json({ record: updated?.medical_records || updated });
 });
 
 // ─── Lab orders ──────────────────────────────────────────
@@ -431,6 +569,29 @@ doctorPortalRouter.put("/lab-orders/:id", async (c) => {
     .where(eq(labOrders.id, id))
     .returning();
 
+  // When results come back, ping the patient so they see it in their
+  // records and notifications.
+  if (body.status === "completed" && own.patientId) {
+    const [patient] = await db
+      .select()
+      .from(patients)
+      .where(eq(patients.id, own.patientId))
+      .limit(1);
+    const patientUserId =
+      (patient as any)?.patients?.userId ?? (patient as any)?.userId;
+    if (patientUserId) {
+      await db.insert(notifications).values({
+        userId: patientUserId,
+        type: "lab_ready",
+        title: "Lab results ready",
+        body: `Your lab report is ready. Open HealthHub to view it.`,
+        data: JSON.stringify({
+          orderId: row?.lab_orders?.id || row?.id,
+        }),
+      });
+    }
+  }
+
   return c.json({ order: row?.lab_orders || row });
 });
 
@@ -551,35 +712,6 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
 // ─── Doctors: search (re-export of /doctor/search) ───────
 // Helper for the patient-detail picker: list doctors at the same hospital.
 // GET /doctor-portal/colleagues
-doctorPortalRouter.get("/colleagues", async (c) => {
-  const userId = c.get("userId");
-  const db = c.get("db");
-  const doctor = await getDoctor(db, userId);
-  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
-
-  if (!doctor.hospitalId) return c.json({ colleagues: [] });
-
-  const rows = await db
-    .select({
-      doctorId: doctors.id,
-      name: users.name,
-      specialization: doctors.specialization,
-      photo: users.photo,
-    })
-    .from(doctors)
-    .innerJoin(users, eq(doctors.userId, users.id))
-    .where(
-      and(
-        eq(doctors.hospitalId, doctor.hospitalId),
-        // exclude self
-        // drizzle: use sql `${doctors.id} != ${doctor.id}` — but to keep
-        // @ts-nocheck friendly, fetch all then filter.
-      )
-    );
-
-  return c.json({
-    colleagues: rows.filter((r: any) => r.doctorId !== doctor.id),
-  });
-});
+// Removed (unused): use /doctor/search?hospitalId=... instead.
 
 export default doctorPortalRouter;

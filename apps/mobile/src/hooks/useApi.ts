@@ -799,6 +799,33 @@ export function useDoctorDashboard() {
   });
 }
 
+export function useDoctorMe() {
+  return useQuery({
+    queryKey: ["doctor", "me"],
+    queryFn: () =>
+      api<{ doctor: { doctors: any; users: any } | null }>("/doctor/me"),
+    staleTime: 60_000,
+  });
+}
+
+export function useDoctorPrescriptions() {
+  return useQuery({
+    queryKey: ["doctor", "prescriptions"],
+    queryFn: () => api<{ prescriptions: any[] }>("/doctor/prescriptions"),
+  });
+}
+
+export function useDoctorClinicalNotes(limit = 50) {
+  return useQuery({
+    queryKey: ["doctor-portal", "clinical-notes", "list", limit],
+    queryFn: () =>
+      api<{ notes: any[]; count: number }>(
+        `/doctor-portal/clinical-notes?limit=${limit}`
+      ),
+    staleTime: 30_000,
+  });
+}
+
 export function useSearchPatients(query: string) {
   return useQuery({
     queryKey: ["doctor", "search", query],
@@ -996,6 +1023,24 @@ export function useCreateFollowUp() {
       qc.invalidateQueries({
         queryKey: ["doctor-portal", "patient", vars.patientId],
       });
+    },
+  });
+}
+
+export function useUpdateFollowUpStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      id: string;
+      status: "pending" | "completed" | "cancelled";
+    }) =>
+      api<{ record: any }>(
+        `/doctor-portal/follow-ups/${data.id}/status`,
+        { method: "PATCH", body: { status: data.status } }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "follow-ups"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "patient"] });
     },
   });
 }

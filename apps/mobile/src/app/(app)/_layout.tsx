@@ -146,6 +146,9 @@ export default function AppLayout() {
       <Tabs.Screen name="doctor/follow-ups" options={{ href: null }} />
       <Tabs.Screen name="doctor/follow-up-new" options={{ href: null }} />
       <Tabs.Screen name="doctor/availability" options={{ href: null }} />
+      <Tabs.Screen name="doctor/profile" options={{ href: null }} />
+      <Tabs.Screen name="doctor/prescriptions" options={{ href: null }} />
+      <Tabs.Screen name="doctor/clinical-notes" options={{ href: null }} />
       <Tabs.Screen name="hospital/dashboard" options={{ href: null }} />
       <Tabs.Screen name="hospital/wards" options={{ href: null }} />
       <Tabs.Screen name="hospital/ward-detail" options={{ href: null }} />

@@ -65,6 +65,31 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
     body: `Your appointment is on ${parsed.data.date} at ${parsed.data.time}. Queue #${queueNumber}`,
   });
 
+  // Notify the doctor so they see new bookings in their queue.
+  const [doctor] = await db
+    .select()
+    .from(doctors)
+    .where(eq(doctors.id, parsed.data.doctorId))
+    .limit(1);
+  if (doctor) {
+    const doctorUserId =
+      (doctor as any).doctors?.userId ?? (doctor as any).userId;
+    if (doctorUserId && doctorUserId !== userId) {
+      await db.insert(notifications).values({
+        userId: doctorUserId,
+        type: "appointment",
+        title: "New appointment booked",
+        body: `Queue #${queueNumber} on ${parsed.data.date} at ${parsed.data.time}${parsed.data.reason ? ` · ${parsed.data.reason}` : ""}`,
+        data: JSON.stringify({
+          appointmentId: appointment?.id ?? null,
+          patientId: (patient as any).patients?.id ?? patient.id,
+          date: parsed.data.date,
+          time: parsed.data.time,
+        }),
+      });
+    }
+  }
+
   return c.json({ appointment }, 201);
 });
 
@@ -92,36 +117,8 @@ appointmentsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) 
   return c.json({ appointments: upcoming });
 });
 
-// ─── Doctor's appointments ───────────────────────────────
-appointmentsRouter.get("/doctor", authMiddleware, requireRole("doctor"), async (c) => {
-  const userId = c.get("userId");
-  const db = c.get("db");
-
-  const [doctor] = await db
-    .select()
-    .from(doctors)
-    .where(eq(doctors.userId, userId))
-    .limit(1);
-
-  if (!doctor) {
-    return c.json({ error: "Doctor profile not found" }, 404);
-  }
-
-  const today = new Date().toISOString().split("T")[0];
-
-  const todaysAppointments = await db
-    .select()
-    .from(appointments)
-    .where(
-      and(
-        eq(appointments.doctorId, doctor.doctors.id),
-        eq(appointments.date, today)
-      )
-    )
-    .orderBy(appointments.queueNumber);
-
-  return c.json({ appointments: todaysAppointments });
-});
+// ─── Doctor's appointments (today only) — covered by /doctor-portal/queue ──
+// Removed: use /doctor-portal/queue?date=YYYY-MM-DD instead.
 
 // ─── Update appointment status (with ownership check) ────
 appointmentsRouter.put("/:id/status", authMiddleware, requireRole("doctor", "hospital_staff"), async (c) => {

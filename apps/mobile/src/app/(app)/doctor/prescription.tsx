@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react-native";
 import {
-  useDoctorDashboard,
   useSearchPatients,
   useCreatePrescription,
 } from "@/hooks/useApi";
@@ -59,7 +58,6 @@ export default function PrescriptionScreen() {
   const toast = useToast();
   const { patientId } = useLocalSearchParams<{ patientId?: string }>();
 
-  const { data: dashboard } = useDoctorDashboard();
   const createPrescription = useCreatePrescription();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,14 +72,18 @@ export default function PrescriptionScreen() {
   const [medFrequency, setMedFrequency] = useState("");
 
   async function handleCreate() {
-    const patient = selectedPatient || dashboard?.recentPatients?.find?.((p: any) => p.id === patientId);
+    const patient =
+      selectedPatient ||
+      // Fallback: when navigating from patient-detail, the search hook is
+      // already loaded with this patient — pick it out of the cache.
+      searchResults?.patients?.find?.((p: any) => (p.patients?.id || p.id) === patientId);
     if (!patient || !medName || !medDosage) {
       toast.show("Medicine name and dosage required", "warning");
       return;
     }
     try {
       await createPrescription.mutateAsync({
-        patientId: patient.id || patient.patients?.id || patientId,
+        patientId: patient.patients?.id || patient.id || patientId,
         diagnosis,
         notes,
         medicines: [
