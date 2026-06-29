@@ -38,10 +38,15 @@ import {
   Pencil,
   Stethoscope as DocIcon,
   Link,
+  Archive,
+  ArchiveRestore,
+  Tag as TagIcon,
+  Users,
 } from "lucide-react-native";
 import {
   useMedicalRecord,
   useDeleteMedicalRecord,
+  useEditMedicalRecord,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -53,7 +58,10 @@ import {
   Button,
   Pill,
   IconButton,
+  Chip,
 } from "@/components/ui";
+import { FamilyPickerSheet } from "@/components/FamilyPickerSheet";
+import { TagPickerSheet } from "@/components/TagPickerSheet";
 
 type RecordType =
   | "lab_report"
@@ -142,7 +150,10 @@ export default function RecordDetailScreen() {
   const toast = useToast();
   const { data, isLoading } = useMedicalRecord(id || "");
   const deleteRecord = useDeleteMedicalRecord();
+  const editRecord = useEditMedicalRecord();
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [familyPickerOpen, setFamilyPickerOpen] = useState(false);
+  const [tagPickerOpen, setTagPickerOpen] = useState(false);
 
   // Opens the file in the system browser / via Linking. In dev mode the
   // /files/download/:key?stream=1 endpoint serves the bytes without auth,
@@ -205,11 +216,39 @@ export default function RecordDetailScreen() {
     if (!record) return;
     Alert.alert(
       "Delete record?",
-      "This will remove the record and its attachments. This cannot be undone.",
+      "This will permanently remove the record and its attachments. You can archive instead to keep it recoverable.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Archive instead",
+          onPress: async () => {
+            try {
+              await editRecord.mutateAsync({ id: record.id, archived: true });
+              toast.show("Record archived", {
+                tone: "info",
+                action: {
+                  label: "Undo",
+                  onPress: async () => {
+                    try {
+                      await editRecord.mutateAsync({
+                        id: record.id,
+                        archived: false,
+                      });
+                      toast.show("Restored", "success");
+                    } catch (err: any) {
+                      toast.show(err?.message || "Restore failed", "danger");
+                    }
+                  },
+                },
+              });
+              setMoreOpen(false);
+            } catch (err: any) {
+              toast.show(err?.message || "Archive failed", "danger");
+            }
+          },
+        },
+        {
+          text: "Delete forever",
           style: "destructive",
           onPress: async () => {
             try {
@@ -225,6 +264,47 @@ export default function RecordDetailScreen() {
     );
     setMoreOpen(false);
     setConfirmDelete(false);
+  }
+
+  async function handleArchiveToggle() {
+    if (!record) return;
+    const archived = !!record.archivedAt;
+    try {
+      await editRecord.mutateAsync({ id: record.id, archived: !archived });
+      toast.show(archived ? "Restored" : "Archived", "success");
+      setMoreOpen(false);
+    } catch (err: any) {
+      toast.show(err?.message || "Failed", "danger");
+    }
+  }
+
+  async function handleMoveTo(familyMemberId: string | null) {
+    if (!record) return;
+    try {
+      await editRecord.mutateAsync({ id: record.id, familyMemberId });
+      toast.show(
+        familyMemberId ? "Moved to family member" : "Returned to you",
+        "success"
+      );
+      setMoreOpen(false);
+    } catch (err: any) {
+      toast.show(err?.message || "Move failed", "danger");
+    }
+  }
+
+  function handleApplyTags(next: string[]) {
+    if (!record) return;
+    editRecord.mutate(
+      { id: record.id, tags: next },
+      {
+        onSuccess: () => {
+          toast.show("Tags updated", "success");
+          setTagPickerOpen(false);
+        },
+        onError: (err: any) =>
+          toast.show(err?.message || "Tag update failed", "danger"),
+      }
+    );
   }
 
   function handleEdit() {
@@ -444,8 +524,129 @@ export default function RecordDetailScreen() {
                   </Text>
                 </View>
               ) : null}
+              {record.familyMember?.name ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: spacing.sm,
+                    paddingVertical: 4,
+                    borderRadius: 999,
+                    backgroundColor: colors.surfaceMuted,
+                  }}
+                >
+                  <Users size={12} color={colors.textMuted} strokeWidth={2.25} />
+                  <Text style={[typography.caption, { color: colors.text }]}>
+                    {record.familyMember.name}
+                    {record.familyMember.relationship
+                      ? ` · ${record.familyMember.relationship}`
+                      : ""}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           )}
+        </View>
+
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, marginTop: spacing.lg }}>
+          {/* Quick action row */}
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <Button
+              title="Edit record"
+              icon={Pencil}
+              variant="outline"
+              size="md"
+              onPress={handleEdit}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Share"
+              icon={Share2}
+              variant="ghost"
+              size="md"
+              onPress={handleShare}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Link"
+              icon={Link}
+              variant="ghost"
+              size="md"
+              onPress={() => router.push("/(app)/share" as any)}
+              style={{ flex: 1 }}
+            />
+          </View>
+
+          {/* Archived badge + tags */}
+          <View style={{ gap: spacing.md }}>
+            {record.archivedAt ? (
+              <Card style={{ padding: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <Archive size={18} color={colors.warning} strokeWidth={2.25} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+                    Archived
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    Hidden from your default list. Tap Restore in the menu to bring it back.
+                  </Text>
+                </View>
+                <Button
+                  title="Restore"
+                  size="sm"
+                  variant="outline"
+                  icon={ArchiveRestore}
+                  onPress={handleArchiveToggle}
+                />
+              </Card>
+            ) : null}
+
+            <Card padded={false}>
+              <Pressable
+                onPress={() => setTagPickerOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Edit tags"
+                style={{
+                  padding: spacing.md,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                }}
+              >
+                <TagIcon size={16} color={colors.textMuted} strokeWidth={2.25} />
+                <Text
+                  style={[
+                    typography.label.md,
+                    { color: colors.textMuted, fontWeight: "800", letterSpacing: 0.5, flex: 1 },
+                  ]}
+                >
+                  TAGS
+                </Text>
+                <Pencil size={14} color={colors.textMuted} strokeWidth={2} />
+              </Pressable>
+              {(record.tags?.length ?? 0) > 0 ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: spacing.xs,
+                    paddingHorizontal: spacing.md,
+                    paddingBottom: spacing.md,
+                  }}
+                >
+                  {record.tags.map((t: string) => (
+                    <Chip key={t} label={`#${t}`} size="sm" />
+                  ))}
+                </View>
+              ) : (
+                <View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.md }}>
+                  <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                    No tags yet — tap to add some.
+                  </Text>
+                </View>
+              )}
+            </Card>
+          </View>
         </View>
 
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, marginTop: spacing.lg }}>
@@ -657,6 +858,30 @@ export default function RecordDetailScreen() {
             variant="outline"
           />
           <Button
+            title="Edit tags"
+            icon={TagIcon}
+            onPress={() => {
+              setMoreOpen(false);
+              setTagPickerOpen(true);
+            }}
+            variant="outline"
+          />
+          <Button
+            title="Move to family member"
+            icon={Users}
+            onPress={() => {
+              setMoreOpen(false);
+              setFamilyPickerOpen(true);
+            }}
+            variant="outline"
+          />
+          <Button
+            title={record?.archivedAt ? "Restore from archive" : "Archive record"}
+            icon={record?.archivedAt ? ArchiveRestore : Archive}
+            onPress={handleArchiveToggle}
+            variant="outline"
+          />
+          <Button
             title="Share record"
             icon={Share2}
             onPress={handleShare}
@@ -676,6 +901,19 @@ export default function RecordDetailScreen() {
           />
         </View>
       </BottomSheet>
+
+      <FamilyPickerSheet
+        visible={familyPickerOpen}
+        onDismiss={() => setFamilyPickerOpen(false)}
+        onPick={handleMoveTo}
+      />
+      <TagPickerSheet
+        visible={tagPickerOpen}
+        onDismiss={() => setTagPickerOpen(false)}
+        currentTags={record?.tags ?? []}
+        suggestions={[]}
+        onApply={handleApplyTags}
+      />
     </Screen>
   );
 }

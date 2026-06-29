@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import * as SecureStore from "expo-secure-store";
+import { secureStorage } from "./secureStorage";
 
 export type ThemeScheme = "light" | "dark" | "system";
 
@@ -10,30 +10,8 @@ interface ThemeState {
   toggle: () => void;
 }
 
-// SecureStore adapter for zustand persist (storage only stores strings).
-const secureStorage = {
-  getItem: async (name: string) => {
-    try {
-      return await SecureStore.getItemAsync(name);
-    } catch {
-      return null;
-    }
-  },
-  setItem: async (name: string, value: string) => {
-    try {
-      await SecureStore.setItemAsync(name, value);
-    } catch {
-      // no-op
-    }
-  },
-  removeItem: async (name: string) => {
-    try {
-      await SecureStore.deleteItemAsync(name);
-    } catch {
-      // no-op
-    }
-  },
-};
+// Adapter is shared via ./secureStorage so other persisted stores
+// (recordsPrefs, etc.) reuse the same SecureStore-backed primitive.
 
 export const useThemeStore = create<ThemeState>()(
   persist(

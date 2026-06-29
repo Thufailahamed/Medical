@@ -73,6 +73,14 @@ export default function DoctorHub() {
 
   const tiles = [
     {
+      key: "records",
+      title: "Patient records",
+      subtitle: `${rxCount + notesCount + labCount} across your patients`,
+      icon: FileText,
+      tone: "primary" as const,
+      href: "/doctor/records",
+    },
+    {
       key: "queue",
       title: "Today's queue",
       subtitle: `${upcoming} waiting now`,

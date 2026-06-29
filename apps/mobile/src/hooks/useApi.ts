@@ -70,14 +70,45 @@ export function useUpdatePatientProfile() {
 }
 
 // ─── Medical Records ─────────────────────────────────────
-export function useMedicalRecords(opts?: { limit?: number; offset?: number; type?: string }) {
+export type UseMedicalRecordsOpts = {
+  limit?: number;
+  offset?: number;
+  type?: string;
+  query?: string;
+  tags?: string[];
+  archived?: "all" | "only"; // "all" = include archived; default = active only
+  scope?: "own" | "family"; // "own" = patient only; "family" = union of own + family-member records
+  familyMemberId?: string | null;
+  sort?: "newest" | "oldest" | "relevance";
+};
+
+export function useMedicalRecords(opts?: UseMedicalRecordsOpts) {
+  const key = [
+    "medical-records",
+    opts?.limit ?? 100,
+    opts?.offset ?? 0,
+    opts?.type ?? "all",
+    opts?.query ?? "",
+    opts?.tags?.join(",") ?? "",
+    opts?.archived ?? "active",
+    opts?.scope ?? "family",
+    opts?.familyMemberId ?? "",
+    opts?.sort ?? "newest",
+  ];
   return useQuery({
-    queryKey: ["medical-records", opts?.limit ?? 50, opts?.offset ?? 0, opts?.type ?? "all"],
+    queryKey: key,
     queryFn: () => {
       const params = new URLSearchParams();
       if (opts?.limit) params.set("limit", String(opts.limit));
       if (opts?.offset) params.set("offset", String(opts.offset));
       if (opts?.type && opts.type !== "all") params.set("type", opts.type);
+      if (opts?.query) params.set("q", opts.query);
+      if (opts?.tags?.length) params.set("tags", opts.tags.join(","));
+      if (opts?.archived === "only") params.set("archived", "only");
+      if (opts?.archived === "all") params.set("archived", "all");
+      if (opts?.scope) params.set("scope", opts.scope);
+      if (opts?.familyMemberId) params.set("familyMemberId", opts.familyMemberId);
+      if (opts?.sort) params.set("sort", opts.sort);
       const qs = params.toString();
       return api<{ records: any[]; total: number; limit: number; offset: number }>(
         `/medical-records/me${qs ? `?${qs}` : ""}`
@@ -142,6 +173,83 @@ export function useDeleteMedicalRecord() {
       api<{ message: string }>(`/medical-records/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+    },
+  });
+}
+
+// ─── V4: bulk operations on medical records ─────────────────
+function bulkKeys() {
+  return {
+    all: ["medical-records", "doctor-portal", "records"] as const,
+  };
+}
+
+export function useBulkDeleteRecords() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<{ deleted: number; denied: Array<{ id: string; reason: string }> }>(
+        "/medical-records/bulk-delete",
+        { method: "POST", body: { ids } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bulkKeys().all });
+    },
+  });
+}
+
+export function useBulkArchiveRecords() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<{ archived: number; denied: Array<{ id: string; reason: string }> }>(
+        "/medical-records/bulk-archive",
+        { method: "POST", body: { ids } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bulkKeys().all });
+    },
+  });
+}
+
+export function useBulkRestoreRecords() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<{ restored: number; denied: Array<{ id: string; reason: string }> }>(
+        "/medical-records/bulk-restore",
+        { method: "POST", body: { ids } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bulkKeys().all });
+    },
+  });
+}
+
+export function useBulkTagRecords() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: string[]; add?: string[]; remove?: string[] }) =>
+      api<{ updated: number; denied: Array<{ id: string; reason: string }> }>(
+        "/medical-records/bulk-tag",
+        { method: "POST", body: data }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bulkKeys().all });
+    },
+  });
+}
+
+export function useBulkMoveRecords() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: string[]; familyMemberId: string | null }) =>
+      api<{ moved: number; denied: Array<{ id: string; reason: string }> }>(
+        "/medical-records/bulk-move",
+        { method: "POST", body: data }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bulkKeys().all });
     },
   });
 }
@@ -821,6 +929,52 @@ export function useDoctorDashboard() {
   return useQuery({
     queryKey: ["doctor", "dashboard"],
     queryFn: () => api<any>("/doctor/dashboard"),
+  });
+}
+
+export type UseDoctorRecordsOpts = {
+  limit?: number;
+  offset?: number;
+  type?: string;
+  query?: string;
+  tags?: string[];
+  archived?: "all" | "only";
+  patientId?: string;
+  sort?: "newest" | "oldest" | "relevance";
+};
+
+export function useDoctorRecords(opts?: UseDoctorRecordsOpts) {
+  const key = [
+    "doctor-portal",
+    "records",
+    opts?.limit ?? 50,
+    opts?.offset ?? 0,
+    opts?.type ?? "all",
+    opts?.query ?? "",
+    opts?.tags?.join(",") ?? "",
+    opts?.archived ?? "active",
+    opts?.patientId ?? "",
+    opts?.sort ?? "newest",
+  ];
+  return useQuery({
+    queryKey: key,
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.offset) params.set("offset", String(opts.offset));
+      if (opts?.type && opts.type !== "all") params.set("type", opts.type);
+      if (opts?.query) params.set("q", opts.query);
+      if (opts?.tags?.length) params.set("tags", opts.tags.join(","));
+      if (opts?.archived === "only") params.set("archived", "only");
+      if (opts?.archived === "all") params.set("archived", "all");
+      if (opts?.patientId) params.set("patientId", opts.patientId);
+      if (opts?.sort) params.set("sort", opts.sort);
+      const qs = params.toString();
+      return api<{ records: any[]; total: number; limit: number; offset: number }>(
+        `/doctor-portal/records${qs ? `?${qs}` : ""}`
+      );
+    },
+    staleTime: 30_000,
   });
 }
 

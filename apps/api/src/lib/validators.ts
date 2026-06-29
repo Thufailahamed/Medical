@@ -141,3 +141,20 @@ export const medicalRecordSchema = z.object({
   date: z.string(),
   followUpDate: z.string().optional(),
 });
+
+// ─── Bulk ops on medical records (V4) ───────────────────────
+export const medicalRecordBulkIdsSchema = z.object({
+  ids: z.array(z.string().min(1)).max(200),
+});
+
+export const medicalRecordBulkTagSchema = z.object({
+  ids: z.array(z.string().min(1)).max(200),
+  add: z.array(z.string().min(1).max(40)).max(50).optional(),
+  remove: z.array(z.string().min(1).max(40)).max(50).optional(),
+});
+
+export const medicalRecordBulkMoveSchema = z.object({
+  ids: z.array(z.string().min(1)).max(200),
+  // null = unassign back to the patient
+  familyMemberId: z.string().min(1).nullable(),
+});

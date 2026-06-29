@@ -22,6 +22,7 @@ import {
   hospitalStaff,
   appointmentStatusHistory,
   walkIns,
+  files,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -884,6 +885,194 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
 // Helper for the patient-detail picker: list doctors at the same hospital.
 // GET /doctor-portal/colleagues
 // Removed (unused): use /doctor/search?hospitalId=... instead.
+
+// ─── V4: Doctor cross-patient records hub ────────────────
+// GET /doctor-portal/records?q=&type=&patientId=&archived=&tags=&sort=&limit=&offset=
+// Lists medical records across every patient this doctor has a relationship
+// with (appointment / prescription / lab_order / medical_record) plus
+// records they authored directly. Same query primitives as /medical-records/me
+// but scoped to the doctor's patient set.
+doctorPortalRouter.get("/records", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10) || 50, 200);
+  const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
+  const typeFilter = c.req.query("type");
+  const qRaw = (c.req.query("q") || "").trim();
+  const tagsCsv = (c.req.query("tags") || "").trim();
+  const archivedParam = c.req.query("archived"); // "all" | "only" | default active
+  const patientId = c.req.query("patientId") || "";
+  const sortMode = (c.req.query("sort") || "newest") as
+    | "newest"
+    | "oldest"
+    | "relevance";
+
+  // ─── Resolve doctor's accessible patient set ────────
+  // Union of: any patient this doctor has appointment/prescription/labOrder/medicalRecord for,
+  // PLUS any patient in records where doctorId = me.
+  const linkedRows = await db
+    .select({ patientId: appointments.patientId })
+    .from(appointments)
+    .where(eq(appointments.doctorId, doctor.id));
+  const rxRows = await db
+    .select({ patientId: prescriptions.patientId })
+    .from(prescriptions)
+    .where(eq(prescriptions.doctorId, doctor.id));
+  const labRows = await db
+    .select({ patientId: labOrders.patientId })
+    .from(labOrders)
+    .where(eq(labOrders.doctorId, doctor.id));
+  const mrRows = await db
+    .select({ patientId: medicalRecords.patientId })
+    .from(medicalRecords)
+    .where(eq(medicalRecords.doctorId, doctor.id));
+
+  const patientIdSet = new Set<string>();
+  for (const r of [...linkedRows, ...rxRows, ...labRows, ...mrRows]) {
+    if ((r as any).patientId) patientIdSet.add((r as any).patientId);
+  }
+  const linkedPatientIds = Array.from(patientIdSet);
+
+  if (linkedPatientIds.length === 0) {
+    return c.json({ records: [], total: 0, limit, offset });
+  }
+
+  const inScopeIds = patientId ? [patientId] : linkedPatientIds;
+
+  // ─── Build WHERE ─────────────────────────────────────
+  const whereParts: any[] = [inArray(medicalRecords.patientId, inScopeIds)];
+
+  if (archivedParam === "only") {
+    whereParts.push(isNotNull(medicalRecords.archivedAt));
+  } else if (archivedParam !== "all") {
+    whereParts.push(isNull(medicalRecords.archivedAt));
+  }
+
+  if (typeFilter) whereParts.push(eq(medicalRecords.recordType, typeFilter as any));
+
+  if (tagsCsv) {
+    const wanted = tagsCsv.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+    if (wanted.length) {
+      whereParts.push(sql`EXISTS (
+        SELECT 1 FROM json_each(${medicalRecords.tags}) AS je
+        WHERE je.value IN (${sql.join(
+          wanted.map((t) => sql`${t}`),
+          sql`, `
+        )})
+      )`);
+    }
+  }
+
+  if (qRaw) {
+    const like = `%${qRaw.replace(/[%_]/g, "\\$&")}%`;
+    const likeCol = (col: any) => sql`${col} LIKE ${like} ESCAPE '\\'`;
+    whereParts.push(
+      or(
+        likeCol(medicalRecords.title),
+        likeCol(medicalRecords.diagnosis),
+        likeCol(medicalRecords.summary),
+        likeCol(medicalRecords.notes),
+        likeCol(medicalRecords.recordType),
+        likeCol(medicalRecords.extractedData)
+      )
+    );
+  }
+
+  let orderClause: any[] = [
+    desc(medicalRecords.date),
+    desc(medicalRecords.createdAt),
+  ];
+  if (sortMode === "oldest") orderClause = [sql`${medicalRecords.date} ASC`];
+
+  const records = await db
+    .select()
+    .from(medicalRecords)
+    .where(and(...whereParts))
+    .orderBy(...orderClause)
+    .limit(limit)
+    .offset(offset);
+
+  const totalRows = await db
+    .select({ c: sql<number>`count(*)` })
+    .from(medicalRecords)
+    .where(and(...whereParts));
+  const total = Number(totalRows[0]?.c ?? 0);
+
+  // ─── Enrich ──────────────────────────────────────────
+  const recordIds = records.map((r: any) => r.id);
+  const fileCounts: Record<string, { count: number; first?: any }> = {};
+  if (recordIds.length) {
+    const allFiles = await db
+      .select()
+      .from(files)
+      .where(inArray(files.recordId, recordIds));
+    for (const f of allFiles as any[]) {
+      if (!f.recordId) continue;
+      const bucket = fileCounts[f.recordId] || { count: 0 };
+      bucket.count += 1;
+      if (!bucket.first) bucket.first = f;
+      fileCounts[f.recordId] = bucket;
+    }
+  }
+
+  const hospitalIds = Array.from(
+    new Set(records.map((r: any) => r.hospitalId).filter(Boolean))
+  ) as string[];
+  const hospitalMap: Record<string, any> = {};
+  if (hospitalIds.length) {
+    const rows = await db
+      .select({ id: hospitals.id, name: hospitals.name })
+      .from(hospitals)
+      .where(inArray(hospitals.id, hospitalIds));
+    for (const h of rows) hospitalMap[h.id] = { id: h.id, name: h.name };
+  }
+
+  // Patient name resolution for the row.
+  const patientIds = Array.from(
+    new Set(records.map((r: any) => r.patientId).filter(Boolean))
+  ) as string[];
+  const patientMap: Record<string, { id: string; name: string; photo: string | null }> = {};
+  if (patientIds.length) {
+    const rows = await db
+      .select({
+        id: patients.id,
+        userId: patients.userId,
+        name: users.name,
+        photo: users.photo,
+      })
+      .from(patients)
+      .innerJoin(users, eq(patients.userId, users.id))
+      .where(inArray(patients.id, patientIds));
+    for (const r of rows) {
+      patientMap[r.id] = { id: r.id, name: r.name, photo: r.photo || null };
+    }
+  }
+
+  return c.json({
+    records: records.map((r: any) => ({
+      ...r,
+      tags: (() => {
+        if (!r.tags) return [];
+        try {
+          const v = JSON.parse(r.tags);
+          return Array.isArray(v) ? v.filter((x: any) => typeof x === "string") : [];
+        } catch {
+          return [];
+        }
+      })(),
+      attachments: fileCounts[r.id] || { count: 0 },
+      hospital: r.hospitalId ? hospitalMap[r.hospitalId] || null : null,
+      patient: patientMap[r.patientId] || null,
+    })),
+    total,
+    limit,
+    offset,
+  });
+});
 
 // ─── V3: Visit summary (one-shot clinical write-up) ────
 // POST /doctor-portal/visit-summary

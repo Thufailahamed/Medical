@@ -120,3 +120,22 @@ export async function canAccessPatient(
 
   return { allowed: false, reason: "Role not permitted" };
 }
+
+// ─── Record-level access (V4) ─────────────────────────────
+// Wraps canAccessPatient for per-record ownership. Used by bulk endpoints
+// to filter an array of record ids down to those the caller can act on.
+export async function canAccessRecord(
+  db: any,
+  userId: string,
+  role: string,
+  recordId: string
+): Promise<{ allowed: boolean; reason?: string; record?: any }> {
+  const [r] = await db
+    .select()
+    .from(medicalRecords)
+    .where(eq(medicalRecords.id, recordId))
+    .limit(1);
+  if (!r) return { allowed: false, reason: "Record not found" };
+  const access = await canAccessPatient(db, userId, role, r.patientId);
+  return { allowed: access.allowed, reason: access.reason, record: r };
+}

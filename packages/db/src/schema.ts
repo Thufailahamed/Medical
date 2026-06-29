@@ -119,47 +119,62 @@ export const doctors = sqliteTable("doctors", {
 });
 
 // ─── Medical Records ─────────────────────────────────────
-export const medicalRecords = sqliteTable("medical_records", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  patientId: text("patient_id")
-    .notNull()
-    .references(() => patients.id),
-  hospitalId: text("hospital_id").references(() => hospitals.id),
-  doctorId: text("doctor_id").references(() => doctors.id),
-  recordType: text("record_type", {
-    enum: [
-      "lab_report",
-      "imaging",
-      "prescription",
-      "hospital_visit",
-      "vaccination",
-      "surgery",
-      "allergy",
-      "insurance",
-      "fitness",
-      "discharge_summary",
-      "medical_certificate",
-      "operation_note",
-      "invoice",
-      "clinical_note",
-      "lab_order",
-      "follow_up",
-    ],
-  }).notNull(),
-  title: text("title").notNull(),
-  diagnosis: text("diagnosis"),
-  summary: text("summary"),
-  notes: text("notes"),
-  extractedData: text("extracted_data"), // V3: JSON for OCR / AI extraction
-  date: text("date").notNull(),
-  followUpDate: text("follow_up_date"),
-  status: text("status", {
-    enum: ["pending", "completed", "cancelled"],
-  }).default("pending"),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+export const medicalRecords = sqliteTable(
+  "medical_records",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    hospitalId: text("hospital_id").references(() => hospitals.id),
+    doctorId: text("doctor_id").references(() => doctors.id),
+    recordType: text("record_type", {
+      enum: [
+        "lab_report",
+        "imaging",
+        "prescription",
+        "hospital_visit",
+        "vaccination",
+        "surgery",
+        "allergy",
+        "insurance",
+        "fitness",
+        "discharge_summary",
+        "medical_certificate",
+        "operation_note",
+        "invoice",
+        "clinical_note",
+        "lab_order",
+        "follow_up",
+      ],
+    }).notNull(),
+    title: text("title").notNull(),
+    diagnosis: text("diagnosis"),
+    summary: text("summary"),
+    notes: text("notes"),
+    extractedData: text("extracted_data"), // V3: JSON for OCR / AI extraction
+    date: text("date").notNull(),
+    followUpDate: text("follow_up_date"),
+    status: text("status", {
+      enum: ["pending", "completed", "cancelled"],
+    }).default("pending"),
+    // V4: manageability + searchability
+    tags: text("tags"), // JSON array of lowercase strings
+    archivedAt: text("archived_at"), // ISO timestamp; NULL = active
+    familyMemberId: text("family_member_id").references(() => familyMembers.id),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    familyMemberIdx: index("idx_medical_records_family_member").on(
+      t.familyMemberId
+    ),
+    patientArchivedDateIdx: index(
+      "idx_medical_records_patient_archived_date"
+    ).on(t.patientId, t.archivedAt, t.date),
+  })
+);
 
 // ─── Files (Medical Attachments) ─────────────────────────
 export const files = sqliteTable("files", {
