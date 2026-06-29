@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -67,7 +67,18 @@ async function runRequest<T>(
     const error = await response
       .json()
       .catch(() => ({ error: "Request failed" }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+
+    let errMsg = "Request failed";
+    if (typeof error.error === "string") {
+      errMsg = error.error;
+    } else if (error.error && typeof error.error.message === "string") {
+      errMsg = error.error.message;
+    } else if (typeof error.message === "string") {
+      errMsg = error.message;
+    } else {
+      errMsg = `HTTP ${response.status}`;
+    }
+    throw new Error(errMsg);
   }
 
   return response.json();
@@ -82,8 +93,11 @@ export async function api<T = any>(
   if (DEV_MODE) {
     token = "dev-token";
   } else {
-    const { data } = await supabase.auth.getSession();
-    token = data.session?.access_token || null;
+    try {
+      token = await SecureStore.getItemAsync("auth_token");
+    } catch {
+      token = null;
+    }
   }
   return runRequest<T>(endpoint, options, token);
 }
@@ -93,21 +107,5 @@ export async function apiWithRefresh<T = any>(
   endpoint: string,
   options: ApiOptions = {}
 ): Promise<T> {
-  try {
-    return await api<T>(endpoint, options);
-  } catch (err: any) {
-    if (!/HTTP 401/.test(err?.message || "") && !/Invalid token/i.test(err?.message || "")) {
-      throw err;
-    }
-
-    // Try to refresh once
-    if (DEV_MODE) throw err;
-
-    const { data: refreshData, error: refreshErr } =
-      await supabase.auth.refreshSession();
-    if (refreshErr || !refreshData.session) throw err;
-
-    const newToken = refreshData.session.access_token;
-    return runRequest<T>(endpoint, { ...options, silent401: true }, newToken);
-  }
+  return api<T>(endpoint, options);
 }

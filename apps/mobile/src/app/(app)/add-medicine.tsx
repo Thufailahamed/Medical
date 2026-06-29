@@ -1,12 +1,13 @@
 // @ts-nocheck
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   ScrollView,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -20,14 +21,20 @@ import {
   History,
   Sparkles,
   CornerDownLeft,
+  AlertTriangle,
+  ShieldAlert,
+  X,
 } from "lucide-react-native";
 import {
-  useAddMedicine,
+  useAddMedicineWithConfirm,
   usePatientProfile,
   useMedicineSuggestions,
+  useMedicineInteractions,
   type MedicineSuggestion,
+  type InteractionsResponse,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Screen,
   ScreenHeader,
@@ -159,7 +166,7 @@ export default function AddMedicineScreen() {
   const router = useRouter();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
-  const addMedicine = useAddMedicine();
+  const addMedicine = useAddMedicineWithConfirm();
   const { data: profileData } = usePatientProfile();
 
   const {
@@ -167,6 +174,7 @@ export default function AddMedicineScreen() {
     handleSubmit,
     setError,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -183,6 +191,29 @@ export default function AddMedicineScreen() {
 
   const [nameQuery, setNameQuery] = useState("");
   const [nameFocused, setNameFocused] = useState(false);
+  const [pendingWarnings, setPendingWarnings] = useState<InteractionsResponse | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<any | null>(null);
+
+  const debouncedName = useDebounce(watch("name") || "", 350);
+  const interactionsQuery = useMedicineInteractions(debouncedName);
+  const interactions: InteractionsResponse | undefined = interactionsQuery.data;
+
+  const hasBlockingWarning = useMemo(() => {
+    if (!interactions) return false;
+    return (
+      interactions.allergies.some((a) => a.severity === "critical" || a.severity === "severe") ||
+      interactions.interactions.some((i) => i.severity === "severe")
+    );
+  }, [interactions]);
+
+  const hasSoftWarning = useMemo(() => {
+    if (!interactions) return false;
+    if (hasBlockingWarning) return false;
+    return (
+      interactions.allergies.length > 0 || interactions.interactions.length > 0
+    );
+  }, [interactions, hasBlockingWarning]);
 
   const { data: suggestData, isFetching } = useMedicineSuggestions(nameQuery, 6);
   const suggestions: MedicineSuggestion[] = suggestData?.suggestions || [];
@@ -200,7 +231,7 @@ export default function AddMedicineScreen() {
     toast.show(`Autofilled from ${s.source === "history" ? "your history" : "catalog"}`, "success");
   }
 
-  const onSubmit = async (data: FormData) => {
+  const submitWithOverride = async (data: FormData, override: boolean) => {
     const patientId = profileData?.patient?.patients?.id;
     if (!patientId) {
       setError("root", { message: "Patient profile not loaded" });
@@ -208,24 +239,52 @@ export default function AddMedicineScreen() {
     }
     try {
       await addMedicine.mutateAsync({
-        patientId,
-        name: data.name,
-        dosage: data.dosage,
-        frequency: data.frequency,
-        timing: data.timing,
-        notes: data.notes || undefined,
-        startDate: data.startDate.toISOString().slice(0, 10),
+        data: {
+          patientId,
+          name: data.name,
+          dosage: data.dosage,
+          frequency: data.frequency,
+          timing: data.timing,
+          notes: data.notes || undefined,
+          startDate: data.startDate.toISOString().slice(0, 10),
+        },
+        confirmOverride: override,
       });
       toast.show("Medicine added", "success");
       router.back();
     } catch (err: any) {
-      setError("root", { message: err?.message || "Could not add medicine" });
-      toast.show(err?.message || "Could not add medicine", "danger");
+      if (err?.status === 409 && err?.body?.requiresConfirmation) {
+        // Show confirm modal
+        setPendingWarnings(err.body);
+        setPendingPayload({ patientId, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate });
+        setShowConfirmModal(true);
+      } else {
+        const msg = err?.message || "Could not add medicine";
+        setError("root", { message: msg });
+        toast.show(msg, "danger");
+      }
     }
   };
 
+  const onSubmit = async (data: FormData) => {
+    // If interactions already known client-side and are blocking, force modal.
+    if (interactions && hasBlockingWarning) {
+      setPendingWarnings(interactions);
+      setPendingPayload({ patientId: profileData?.patient?.patients?.id, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate });
+      setShowConfirmModal(true);
+      return;
+    }
+    await submitWithOverride(data, false);
+  };
+
+  const confirmAnyway = async () => {
+    if (!pendingPayload) return;
+    setShowConfirmModal(false);
+    await submitWithOverride(pendingPayload as any, true);
+  };
+
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
+    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset tabBarOffset>
       <ScreenHeader back title="Add medicine" />
 
       {/* Compact identity strip */}
@@ -356,6 +415,74 @@ export default function AddMedicineScreen() {
               )}
             />
 
+            {/* V3: Inline interaction warnings */}
+            {(hasBlockingWarning || hasSoftWarning) && interactions ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: spacing.sm,
+                  padding: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: hasBlockingWarning ? colors.dangerSoft : colors.warningSoft,
+                  borderWidth: 1,
+                  borderColor: hasBlockingWarning ? `${colors.danger}55` : `${colors.warning}55`,
+                }}
+                accessibilityRole="alert"
+                accessibilityLabel={
+                  hasBlockingWarning
+                    ? "Critical interaction warning"
+                    : "Interaction warning"
+                }
+              >
+                {hasBlockingWarning ? (
+                  <ShieldAlert size={18} color={colors.danger} strokeWidth={2.25} />
+                ) : (
+                  <AlertTriangle size={18} color={colors.warning} strokeWidth={2.25} />
+                )}
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text
+                    style={[
+                      typography.label.md,
+                      {
+                        color: hasBlockingWarning ? colors.danger : colors.warning,
+                        fontWeight: "800",
+                      },
+                    ]}
+                  >
+                    {hasBlockingWarning ? "Critical interaction" : "Possible interaction"}
+                  </Text>
+                  {interactions.allergies.map((a, i) => (
+                    <Text
+                      key={`a-${i}`}
+                      style={[typography.body.sm, { color: colors.text }]}
+                    >
+                      • Allergy: {a.substance} ({a.severity})
+                      {a.reaction ? ` — ${a.reaction}` : ""}
+                    </Text>
+                  ))}
+                  {interactions.interactions.map((it, i) => (
+                    <Text
+                      key={`i-${i}`}
+                      style={[typography.body.sm, { color: colors.text }]}
+                    >
+                      • {it.medicines.join(" + ")}: {it.note}
+                    </Text>
+                  ))}
+                  {hasBlockingWarning ? (
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.danger, fontWeight: "700", marginTop: 2 },
+                      ]}
+                    >
+                      You'll be asked to confirm before saving.
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+
             <Controller
               control={control}
               name="dosage"
@@ -467,6 +594,146 @@ export default function AddMedicineScreen() {
           size="lg"
         />
       </View>
+
+      {/* V3: Confirm-anyway modal for severe interactions */}
+      <Modal
+        visible={showConfirmModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.55)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: spacing.lg,
+              paddingBottom: spacing.xl + 16,
+              gap: spacing.md,
+            }}
+            accessibilityViewIsModal
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: colors.dangerSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ShieldAlert size={20} color={colors.danger} strokeWidth={2.25} />
+                </View>
+                <Text
+                  style={[
+                    typography.title.md,
+                    { color: colors.text, fontWeight: "800" },
+                  ]}
+                >
+                  Confirm anyway?
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowConfirmModal(false)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <X size={20} color={colors.textMuted} />
+              </Pressable>
+            </View>
+
+            <Text
+              style={[typography.body.md, { color: colors.text, lineHeight: 22 }]}
+            >
+              {pendingWarnings?.allergies?.[0]
+                ? `This conflicts with your recorded allergy: ${pendingWarnings.allergies[0].substance}.`
+                : pendingWarnings?.interactions?.[0]?.note ||
+                  "There is a known severe interaction. Please confirm."}
+            </Text>
+
+            <View style={{ gap: 6 }}>
+              {pendingWarnings?.allergies?.map((a, i) => (
+                <View
+                  key={`ma-${i}`}
+                  style={{
+                    flexDirection: "row",
+                    gap: spacing.xs,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <AlertTriangle size={14} color={colors.danger} />
+                  <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+                    Allergy: {a.substance} ({a.severity})
+                  </Text>
+                </View>
+              ))}
+              {pendingWarnings?.interactions?.map((it, i) => (
+                <View
+                  key={`mi-${i}`}
+                  style={{
+                    flexDirection: "row",
+                    gap: spacing.xs,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <AlertTriangle size={14} color={colors.danger} />
+                  <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+                    {it.medicines.join(" + ")}: {it.note}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Text
+              style={[
+                typography.caption,
+                { color: colors.textMuted, lineHeight: 18 },
+              ]}
+            >
+              Only proceed if your doctor has explicitly advised it. The warning is saved with the medicine.
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+              <Button
+                title="Cancel"
+                variant="outline"
+                onPress={() => setShowConfirmModal(false)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Add anyway"
+                variant="danger"
+                onPress={confirmAnyway}
+                loading={addMedicine.isPending}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }

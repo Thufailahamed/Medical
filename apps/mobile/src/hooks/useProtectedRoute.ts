@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useRouter, useSegments } from "expo-router";
-import { supabase } from "@/lib/supabase";
+import * as SecureStore from "expo-secure-store";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 
@@ -25,67 +25,46 @@ export function useProtectedRoute() {
   const segments = useSegments();
   const router = useRouter();
 
+  // Load JWT token on launch and fetch profile
   useEffect(() => {
     if (DEV_MODE) {
       setUser(DEV_USER);
       return;
     }
 
-    // Normal Supabase auth flow
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        api<{ user: any }>("/auth/me")
-          .then((data) => setUser(data.user))
-          .catch(() => {
-            setUser({
-              id: session.user!.id,
-              supabaseId: session.user!.id,
-              role: "patient",
-              email: session.user!.email ?? null,
-              phone: session.user!.phone ?? null,
-              name: session.user!.user_metadata?.name || "",
-              nic: null,
-              photo: null,
-              verified: false,
-              createdAt: session.user!.created_at,
-              updatedAt: session.user!.updated_at || session.user!.created_at,
+    SecureStore.getItemAsync("auth_token")
+      .then((token) => {
+        if (token) {
+          api<{ user: any }>("/auth/me")
+            .then((data) => {
+              setUser(data.user);
+            })
+            .catch(() => {
+              // Token invalid or expired, clear it
+              SecureStore.deleteItemAsync("auth_token").finally(() => {
+                setUser(null);
+                setLoading(false);
+              });
             });
-          });
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          try {
-            const data = await api<{ user: any }>("/auth/me");
-            setUser(data.user);
-          } catch {
-            setUser({
-              id: session.user.id,
-              supabaseId: session.user.id,
-              role: "patient",
-              email: session.user.email ?? null,
-              phone: session.user.phone ?? null,
-              name: session.user.user_metadata?.name || "",
-              nic: null,
-              photo: null,
-              verified: false,
-              createdAt: session.user.created_at,
-              updatedAt: session.user.updated_at || session.user.created_at,
-            });
-          }
         } else {
           setUser(null);
+          setLoading(false);
         }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+      })
+      .catch(() => {
+        setUser(null);
+        setLoading(false);
+      });
   }, []);
 
+  // Listen for logout / auth failure to clear secure storage
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !DEV_MODE) {
+      SecureStore.deleteItemAsync("auth_token").catch(() => {});
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Route guarding based on authentication status
   useEffect(() => {
     if (isLoading) return;
 
@@ -94,7 +73,11 @@ export function useProtectedRoute() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/login");
     } else if (isAuthenticated && inAuthGroup) {
-      router.replace("/(app)");
+      const home =
+        (useAuthStore.getState().user as any)?.role === "doctor"
+          ? "/(app)/doctor"
+          : "/(app)";
+      router.replace(home as any);
     }
   }, [isAuthenticated, isLoading, segments]);
 }

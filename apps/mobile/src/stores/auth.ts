@@ -23,7 +23,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   authFailureCount: 0,
   setUser: (user) =>
-    set({ user, isAuthenticated: !!user, isLoading: false }),
+    set({ user, isAuthenticated: !!user, isLoading: false, authFailureCount: 0 }),
   setPatient: (patient) => set({ patient }),
   setLoading: (isLoading) => set({ isLoading }),
   logout: () =>
@@ -32,6 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       patient: null,
       isAuthenticated: false,
       isLoading: false,
+      authFailureCount: 0,
     }),
   onAuthError: () =>
     set((state) => ({ authFailureCount: state.authFailureCount + 1 })),

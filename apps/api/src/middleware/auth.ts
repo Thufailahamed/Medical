@@ -1,8 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { users } from "@healthcare/db";
 import type { Context, Next } from "hono";
 import type { AppEnvironment } from "../types";
+import { verifyToken } from "../lib/crypto";
 
 const DEV_USER = {
   id: "dev-user-001",
@@ -19,14 +19,14 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
     let [dbUser] = await db
       .select()
       .from(users)
-      .where(eq(users.supabaseId, DEV_USER.id))
+      .where(eq(users.id, DEV_USER.id))
       .limit(1);
 
     if (!dbUser) {
       const [created] = await db
         .insert(users)
         .values({
-          supabaseId: DEV_USER.id,
+          id: DEV_USER.id,
           email: DEV_USER.email,
           name: "Dev User",
           role: "patient",
@@ -35,13 +35,6 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
       dbUser = created;
     }
 
-    // Create a minimal mock Supabase client
-    const supabase = createClient(
-      c.env.SUPABASE_URL || "https://placeholder.supabase.co",
-      c.env.SUPABASE_ANON_KEY || "placeholder"
-    );
-
-    c.set("supabase", supabase);
     c.set("user", DEV_USER as any);
     c.set("userId", dbUser.id);
     c.set("dbUser", dbUser);
@@ -49,7 +42,7 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
     return;
   }
 
-  // ── Normal auth ────────────────────────────────────────
+  // ── Normal JWT auth ──────────────────────────────────────
   const authHeader = c.req.header("Authorization");
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -57,39 +50,29 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
   }
 
   const token = authHeader.split(" ")[1];
+  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const decoded = await verifyToken(token, secret);
 
-  const supabase = createClient(
-    c.env.SUPABASE_URL,
-    c.env.SUPABASE_ANON_KEY,
-    {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    }
-  );
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
+  if (!decoded || !decoded.sub) {
     return c.json({ error: "Invalid or expired token" }, 401);
   }
 
-  // Map Supabase user to D1 user
+  const userId = decoded.sub;
+
+  // Map JWT sub to D1 user
   const db = c.get("db");
   const [dbUser] = await db
     .select()
     .from(users)
-    .where(eq(users.supabaseId, user.id))
+    .where(eq(users.id, userId))
     .limit(1);
 
   if (!dbUser) {
     return c.json({ error: "User not found in database" }, 401);
   }
 
-  c.set("supabase", supabase);
-  c.set("user", user);
-  c.set("userId", dbUser.id); // D1 user ID, not Supabase ID
+  c.set("user", { id: dbUser.id, email: dbUser.email, role: dbUser.role } as any);
+  c.set("userId", dbUser.id); // D1 user ID
   c.set("dbUser", dbUser);
 
   await next();

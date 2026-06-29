@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, desc, gte, lte } from "drizzle-orm";
+import { eq, and, desc, gte, lte, asc } from "drizzle-orm";
 import { vitals, symptoms, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
@@ -97,6 +97,61 @@ vitalsRouter.delete("/:id", authMiddleware, async (c) => {
 
   await db.delete(vitals).where(eq(vitals.id, id));
   return c.json({ message: "Vital deleted" });
+});
+
+// ─── Vitals trend series (chart-ready) ───────────────────
+vitalsRouter.get("/me/series", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const patientId = await getPatientId(db, userId);
+  if (!patientId) return c.json({ type: null, points: [], stats: null });
+
+  const type = c.req.query("type");
+  const from = c.req.query("from");
+  const to = c.req.query("to");
+
+  if (!type) return c.json({ error: "type is required" }, 400);
+
+  const conditions: any[] = [
+    eq(vitals.patientId, patientId),
+    eq(vitals.type, type as any),
+  ];
+  if (from) conditions.push(gte(vitals.recordedAt, from));
+  if (to) conditions.push(lte(vitals.recordedAt, to));
+
+  const rows = await db
+    .select()
+    .from(vitals)
+    .where(and(...conditions))
+    .orderBy(asc(vitals.recordedAt));
+
+  const points = rows.map((r: any) => ({
+    t: r.recordedAt,
+    value: Number(r.value),
+    secondary: r.secondaryValue != null ? Number(r.secondaryValue) : null,
+    id: r.id,
+    unit: r.unit,
+  }));
+
+  let stats = null;
+  if (points.length > 0) {
+    const values = points.map((p: any) => p.value).filter((v: number) => Number.isFinite(v));
+    const min = values.length ? Math.min(...values) : null;
+    const max = values.length ? Math.max(...values) : null;
+    const sum = values.reduce((a: number, b: number) => a + b, 0);
+    const avg = values.length ? sum / values.length : null;
+    const latest = points[points.length - 1].value;
+    const first = points[0].value;
+    const delta = Number.isFinite(latest) && Number.isFinite(first) ? latest - first : null;
+    stats = { min, max, avg, latest, delta, count: values.length };
+  }
+
+  return c.json({
+    type,
+    range: { from: from || null, to: to || null },
+    points,
+    stats,
+  });
 });
 
 // ─── Symptoms list ───────────────────────────────────────

@@ -12,6 +12,7 @@ export interface AppEnvironment {
     SUPABASE_SERVICE_ROLE_KEY: string;
     ENVIRONMENT: string;
     DEV_MODE: string;
+    JWT_SECRET?: string;
   };
   Variables: {
     supabase: SupabaseClient;

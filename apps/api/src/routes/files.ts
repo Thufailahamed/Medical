@@ -196,6 +196,43 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
     })
     .returning();
 
+  // V3: auto-OCR for prescriptions / PDFs / images.
+  // Fire-and-forget using ctx.waitUntil so the response isn't blocked.
+  if (
+    recordType === "prescription" ||
+    file.type === "application/pdf" ||
+    file.type.startsWith("image/")
+  ) {
+    const fetchUrl = `/files/download/${encodeURIComponent(r2Key)}?stream=1`;
+    const ocrPromise = (async () => {
+      try {
+        const origin = new URL(c.req.url).origin;
+        const res = await fetch(`${origin}/ai/ocr/prescription`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: c.req.header("Authorization") || "",
+          },
+          body: JSON.stringify({ fileUrl: fetchUrl, patientId }),
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as { result?: any };
+        const result = json?.result;
+        if (!result) return;
+        const serialized = JSON.stringify(result);
+        await db
+          .update(medicalRecords)
+          .set({ extractedData: serialized })
+          .where(eq(medicalRecords.id, record.id));
+      } catch (err) {
+        console.error("[files.upload-with-record] OCR failed:", err);
+      }
+    })();
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(ocrPromise);
+    }
+  }
+
   return c.json({
     record,
     file: fileRecord,

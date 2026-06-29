@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,25 +14,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   Upload,
   Search,
-  FlaskConical,
-  ScrollText,
-  Image as ImageIcon,
   FileText,
   Bell,
-  Stethoscope,
-  Syringe,
-  Scissors,
-  AlertCircle,
-  ShieldCheck,
-  Dumbbell,
   Building2,
-  FileBadge,
-  NotebookPen,
-  Receipt,
-  HeartPulse,
   Paperclip,
-  Sparkles,
   ChevronRight,
+  Share2,
 } from "lucide-react-native";
 import {
   useMedicalRecords,
@@ -48,46 +35,15 @@ import {
   Avatar,
   TextInput,
   Chip,
-  Timeline,
-  Skeleton,
+  Roadmap,
+  RoadmapSkeleton,
   Pill,
   EmptyState,
   Button,
 } from "@/components/ui";
+import { RECORD_META, metaFor, type RecordType } from "@/lib/recordImportance";
 
-type RecordType =
-  | "lab_report"
-  | "imaging"
-  | "prescription"
-  | "hospital_visit"
-  | "vaccination"
-  | "surgery"
-  | "allergy"
-  | "insurance"
-  | "fitness"
-  | "discharge_summary"
-  | "medical_certificate"
-  | "operation_note"
-  | "invoice";
-
-const TYPE_META: Record<
-  RecordType,
-  { label: string; icon: any; iconColor: string; bgTone: string }
-> = {
-  lab_report: { label: "Lab", icon: FlaskConical, iconColor: "#765b00", bgTone: "#ffdf93" },
-  imaging: { label: "Imaging", icon: ImageIcon, iconColor: "#63597c", bgTone: "#e1d4fd" },
-  prescription: { label: "Prescription", icon: ScrollText, iconColor: "#4f378a", bgTone: "#e9ddff" },
-  hospital_visit: { label: "Visit", icon: Stethoscope, iconColor: "#006a6a", bgTone: "#a4f0f0" },
-  vaccination: { label: "Vaccine", icon: Syringe, iconColor: "#7a5900", bgTone: "#fff0c2" },
-  surgery: { label: "Surgery", icon: Scissors, iconColor: "#ba1a1a", bgTone: "#ffdad6" },
-  allergy: { label: "Allergy", icon: AlertCircle, iconColor: "#ba1a1a", bgTone: "#ffdad6" },
-  insurance: { label: "Insurance", icon: ShieldCheck, iconColor: "#006b54", bgTone: "#a8f0d4" },
-  fitness: { label: "Fitness", icon: Dumbbell, iconColor: "#4f378a", bgTone: "#e9ddff" },
-  discharge_summary: { label: "Discharge", icon: FileBadge, iconColor: "#4f378a", bgTone: "#e9ddff" },
-  medical_certificate: { label: "Certificate", icon: NotebookPen, iconColor: "#4f378a", bgTone: "#e9ddff" },
-  operation_note: { label: "Op Note", icon: HeartPulse, iconColor: "#ba1a1a", bgTone: "#ffdad6" },
-  invoice: { label: "Invoice", icon: Receipt, iconColor: "#765b00", bgTone: "#ffdf93" },
-};
+import type { ImportanceMeta } from "@/components/ui";
 
 type FilterValue = "all" | RecordType;
 
@@ -111,14 +67,8 @@ const DATE_RANGES: { value: DateRange; label: string; ms: number | null }[] = [
 
 type SortMode = "newest" | "oldest";
 
-function metaFor(type?: string) {
-  return TYPE_META[type as RecordType] ?? {
-    label: type ? type.replace(/_/g, " ") : "Record",
-    icon: FileText,
-    iconColor: "#7a7582",
-    bgTone: "#e6e0e9",
-  };
-}
+// Local metaFor removed — `metaFor` is now imported from `@/lib/recordImportance`
+// (it includes rank alongside the original label/icon/color).
 
 // ─── Highlight helper ─────────────────────────────────────
 // Splits text around query and returns marked segments so we can bold matches.
@@ -143,23 +93,8 @@ function highlight(text: string, q: string) {
 }
 
 // ─── Skeleton ─────────────────────────────────────────────
-function RecordsSkeleton() {
-  const { spacing } = useTheme();
-  return (
-    <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.md }}>
-      {[0, 1, 2, 3].map((i) => (
-        <View key={i} style={{ flexDirection: "row", gap: spacing.md }}>
-          <Skeleton width={48} height={48} radius={24} />
-          <View style={{ flex: 1, gap: 6 }}>
-            <Skeleton width="60%" height={14} />
-            <Skeleton width="40%" height={12} />
-            <Skeleton width="90%" height={10} />
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
+// RecordsSkeleton removed — `RoadmapSkeleton` (from `@/components/ui`) is the
+// canonical loading state and is rendered inline where needed.
 
 export default function RecordsScreen() {
   const router = useRouter();
@@ -174,11 +109,13 @@ export default function RecordsScreen() {
     refetch,
     isRefetching,
   } = useMedicalRecords({ limit: 100 });
-
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterValue>("all");
   const [range, setRange] = useState<DateRange>("all");
   const [sort, setSort] = useState<SortMode>("newest");
+
+  // Ref for mini-map jumps — wraps the page ScrollView.
+  const scrollRef = useRef<any>(null);
 
   const records: any[] = recordsData?.records ?? [];
 
@@ -218,34 +155,23 @@ export default function RecordsScreen() {
     return list;
   }, [records, search, filter, range, sort]);
 
-  // ─── Group by year-month ────────────────────────────────
-  const groups = useMemo(() => {
-    const map: Record<string, { items: any[]; latest: number }> = {};
-    for (const rec of filtered) {
-      const d = new Date(rec.date);
-      let key: string;
-      if (Number.isNaN(d.getTime())) {
-        key = "Undated";
-      } else {
-        const month = d.toLocaleDateString("en-US", { month: "long" }).toUpperCase();
-        const year = d.getFullYear();
-        key = `${month} ${year}`;
-      }
-      const bucket = (map[key] ??= { items: [], latest: 0 });
-      bucket.items.push(rec);
-      const t = new Date(rec.date).getTime() || 0;
-      if (t > bucket.latest) bucket.latest = t;
-    }
-    // Order groups by their latest record, newest first.
-    return Object.entries(map)
-      .sort(([, a], [, b]) => b.latest - a.latest)
-      .reduce<Record<string, any[]>>((acc, [k, v]) => {
-        acc[k] = v.items;
-        return acc;
-      }, {});
-  }, [filtered]);
+  // ─── Group by year-month (LEGACY — Roadmap handles its own year buckets) ──
+  // Kept disabled — Roadmap component groups by year internally now.
+  // const groups = useMemo(() => { ... }, [filtered]);
+  // const groupKeys = Object.keys(groups);
 
-  const groupKeys = Object.keys(groups);
+  // ─── Roadmap importance map (type → rank/color/label) ───
+  const importance: Record<string, ImportanceMeta> = useMemo(() => {
+    const out: Record<string, ImportanceMeta> = {};
+    for (const [type, meta] of Object.entries(RECORD_META)) {
+      out[type] = {
+        rank: meta.rank,
+        color: meta.iconColor,
+        label: meta.label,
+      };
+    }
+    return out;
+  }, []);
 
   // ─── Per-filter counts ──────────────────────────────────
   const counts = useMemo(() => {
@@ -258,7 +184,7 @@ export default function RecordsScreen() {
 
   const totalLabel = stats?.total != null ? `${stats.total} total` : `${records.length} shown`;
 
-  // ─── Render item for Timeline ───────────────────────────
+  // ─── Render item for Roadmap ────────────────────────────
   function renderItem(rec: any) {
     const meta = metaFor(rec.recordType);
     const IconComponent = meta.icon;
@@ -274,12 +200,19 @@ export default function RecordsScreen() {
         accessibilityLabel={`${meta.label} record: ${rec.title}`}
         style={({ pressed }) => ({
           flex: 1,
-          marginLeft: spacing.md,
           backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
           borderRadius: radius.xl,
           padding: spacing.md,
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderLeftWidth: 4,
+          // Color the left accent with the dot color so the rail → card reads
+          // as one continuous journey line.
+          borderLeftColor: meta.iconColor,
+          borderTopWidth: 1,
+          borderRightWidth: 1,
+          borderBottomWidth: 1,
+          borderTopColor: colors.border,
+          borderRightColor: colors.border,
+          borderBottomColor: colors.border,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.03,
@@ -392,6 +325,7 @@ export default function RecordsScreen() {
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -451,6 +385,21 @@ export default function RecordsScreen() {
               })}
             >
               <Upload size={22} color={colors.primary} strokeWidth={2.25} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/(app)/share" as any)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Share with doctor"
+              style={({ pressed }) => ({
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Share2 size={22} color={colors.primary} strokeWidth={2.25} />
             </Pressable>
             <Pressable
               onPress={() => router.push("/(app)/notifications")}
@@ -669,9 +618,11 @@ export default function RecordsScreen() {
           </View>
         )}
 
-        {/* ─── Records list ────────────────────────────────── */}
+        {/* ─── Records list (Roadmap) ───────────────────────── */}
         {isLoading ? (
-          <RecordsSkeleton />
+          <View style={{ paddingHorizontal: spacing.lg }}>
+            <RoadmapSkeleton count={6} />
+          </View>
         ) : records.length === 0 ? (
           <EmptyState
             style={{ marginTop: spacing.xl }}
@@ -716,14 +667,20 @@ export default function RecordsScreen() {
           </View>
         ) : (
           <View style={{ marginTop: spacing.lg, paddingHorizontal: spacing.lg }}>
-            <Timeline
-              data={filtered}
-              keyExtractor={(r) => r.id}
-              groupBy={(r) => groupKeyFor(r.date)}
-              renderItem={(r) => renderItem(r)}
-              groupMeta={Object.fromEntries(
-                groupKeys.map((k) => [k, { label: k, tone: "neutral" }])
-              )}
+            <Roadmap
+              items={filtered.map((r: any) => ({
+                id: r.id,
+                date: r.date,
+                type: r.recordType,
+                data: r,
+              }))}
+              scrollRef={scrollRef}
+              // Approximate offset of the roadmap root within the page ScrollView
+              // (status bar + app bar + hero + filter row + sort row + result pill).
+              topOffset={340}
+              importance={importance}
+              gapThresholdDays={180}
+              renderItem={(rec: any) => renderItem(rec.data)}
             />
           </View>
         )}
@@ -743,12 +700,7 @@ function formatItemDate(dateStr: string) {
   }
 }
 
-function groupKeyFor(dateStr: string) {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return "Undated";
-  const month = d.toLocaleDateString("en-US", { month: "long" }).toUpperCase();
-  return `${month} ${d.getFullYear()}`;
-}
+// groupKeyFor removed — Roadmap component groups items by year internally.
 
 // ─── Highlighted text ─────────────────────────────────────
 function HighlightedText({

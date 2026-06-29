@@ -49,6 +49,22 @@ const RELATIONSHIPS = [
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+const HEREDITARY_CONDITIONS = [
+  "Diabetes",
+  "Hypertension",
+  "Heart disease",
+  "Stroke",
+  "Cancer",
+  "Asthma",
+  "Thyroid disorder",
+  "Mental health condition",
+  "Alzheimer's / dementia",
+  "Parkinson's",
+  "Kidney disease",
+  "Liver disease",
+  "Other",
+];
+
 export default function FamilyScreen() {
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
@@ -62,6 +78,11 @@ export default function FamilyScreen() {
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState(RELATIONSHIPS[0]);
   const [bloodGroup, setBloodGroup] = useState<string | null>(null);
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [conditionInput, setConditionInput] = useState("");
+  const [isDeceased, setIsDeceased] = useState(false);
+  const [causeOfDeath, setCauseOfDeath] = useState("");
+  const [notes, setNotes] = useState("");
 
   function callNumber(num?: string) {
     if (!num) {
@@ -100,6 +121,10 @@ export default function FamilyScreen() {
         relationship,
         phone: cleanedPhone || undefined,
         bloodGroup: bloodGroup || undefined,
+        conditions: conditions.length ? conditions : undefined,
+        isDeceased,
+        causeOfDeath: isDeceased ? causeOfDeath.trim() || undefined : undefined,
+        notes: notes.trim() || undefined,
       });
       toast.show(`${trimmedName} added`, "success");
       setComposing(false);
@@ -107,9 +132,20 @@ export default function FamilyScreen() {
       setPhone("");
       setRelationship(RELATIONSHIPS[0]);
       setBloodGroup(null);
+      setConditions([]);
+      setConditionInput("");
+      setIsDeceased(false);
+      setCauseOfDeath("");
+      setNotes("");
     } catch (err: any) {
       toast.show(err?.message || "Could not add", "danger");
     }
+  }
+
+  function toggleCondition(c: string) {
+    setConditions((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+    );
   }
 
   function confirmDelete(member: any) {
@@ -192,6 +228,92 @@ export default function FamilyScreen() {
                 />
               ))}
             </View>
+          </FormField>
+
+          <FormField
+            label="Hereditary conditions"
+            helper="Helps assess your personal risk"
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: spacing.xs,
+                marginBottom: spacing.xs,
+              }}
+            >
+              {HEREDITARY_CONDITIONS.map((c) => (
+                <Chip
+                  key={c}
+                  label={c}
+                  selected={conditions.includes(c)}
+                  tone={conditions.includes(c) ? "warning" : "neutral"}
+                  onPress={() => toggleCondition(c)}
+                />
+              ))}
+            </View>
+            <TextInput
+              value={conditionInput}
+              onChangeText={setConditionInput}
+              onSubmitEditing={() => {
+                const v = conditionInput.trim();
+                if (v && !conditions.includes(v)) {
+                  setConditions((p) => [...p, v]);
+                }
+                setConditionInput("");
+              }}
+              placeholder="Type custom condition and press enter"
+              returnKeyType="done"
+              style={{ marginTop: spacing.xs }}
+            />
+            {conditions.length > 0 && (
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.textMuted, marginTop: 4 },
+                ]}
+              >
+                {conditions.length} selected
+              </Text>
+            )}
+          </FormField>
+
+          <FormField label="Deceased?">
+            <View style={{ flexDirection: "row", gap: spacing.xs }}>
+              <Chip
+                label="Living"
+                selected={!isDeceased}
+                tone={!isDeceased ? "success" : "neutral"}
+                onPress={() => setIsDeceased(false)}
+              />
+              <Chip
+                label="Deceased"
+                selected={isDeceased}
+                tone={isDeceased ? "danger" : "neutral"}
+                onPress={() => setIsDeceased(true)}
+              />
+            </View>
+          </FormField>
+
+          {isDeceased && (
+            <FormField label="Cause of death">
+              <TextInput
+                value={causeOfDeath}
+                onChangeText={setCauseOfDeath}
+                placeholder="Optional — helps assess hereditary risk"
+              />
+            </FormField>
+          )}
+
+          <FormField label="Notes" helper="Optional — any context">
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="e.g., Adopted, half-sibling, estranged…"
+              multiline
+              numberOfLines={3}
+              tone="soft"
+            />
           </FormField>
 
           <Button

@@ -1,5 +1,12 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import {
+  getEmergencyProfile,
+  setEmergencyProfile,
+  getLastMeds,
+  getLastAllergies,
+  type CachedEmergencyProfile,
+} from "@/lib/offline-cache";
 import {
   View,
   Text,
@@ -89,6 +96,42 @@ export default function EmergencyScreen() {
   const [showHealthId, setShowHealthId] = useState(true);
   const [showQr, setShowQr] = useState(true);
   const [pressing, setPressing] = useState(false);
+
+  // V3: offline-cache fallback for emergency profile
+  const [cached, setCached] = useState<CachedEmergencyProfile | null>(null);
+  useEffect(() => {
+    getEmergencyProfile().then(setCached);
+  }, []);
+  useEffect(() => {
+    // Re-fetch meds/allergies from cache for emergency
+    (async () => {
+      const [meds, allergies] = await Promise.all([
+        getLastMeds(),
+        getLastAllergies(),
+      ]);
+      setCached((prev) => ({
+        ...(prev || {
+          generatedAt: new Date().toISOString(),
+        }),
+        activeMedicines: meds,
+        allergies,
+      }));
+    })();
+  }, []);
+
+  useEffect(() => {
+    // Write-back fresh data to cache when profile loads
+    const p = profileData?.patient?.patients;
+    if (p) {
+      setEmergencyProfile({
+        ...(cached || {}),
+        generatedAt: new Date().toISOString(),
+        bloodGroup: p.bloodGroup,
+        dateOfBirth: p.dateOfBirth,
+        conditions: (cached as any)?.conditions,
+      });
+    }
+  }, [profileData]);
 
   const patient = profileData?.patient?.patients;
   const userRow = profileData?.patient?.users;

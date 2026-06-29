@@ -1,11 +1,11 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { createClient } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { users, patients, doctors } from "@healthcare/db";
 import { registerSchema, loginSchema } from "../lib/validators";
 import { authMiddleware } from "../middleware/auth";
+import { hashPassword, verifyPassword, generateToken } from "../lib/crypto";
 import type { AppEnvironment } from "../types";
 
 const auth = new Hono<AppEnvironment>();
@@ -27,96 +27,71 @@ auth.post("/register", async (c) => {
     return c.json({ error: "Email or phone required" }, 400);
   }
 
-  const supabase = createClient(
-    c.env.SUPABASE_URL,
-    c.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-
-  // Create Supabase auth user
-  const createPayload: any = {
-    password,
-    email_confirm: true,
-    phone_confirm: true,
-  };
-
-  if (email) createPayload.email = email;
-  if (phone) createPayload.phone = phone;
-
-  const { data: authUser, error: authError } = await supabase.auth.admin.createUser(createPayload);
-
-  if (authError) {
-    return c.json({ error: authError.message }, 400);
+  // Check if user already exists in D1 database
+  let existingUser = null;
+  if (email) {
+    [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  } else if (phone) {
+    [existingUser] = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
   }
 
-  // Atomic: create the users row plus the role-specific profile row
-  // in one transaction. If the profile insert fails the users row is
-  // rolled back; we then clean up the Supabase auth user so we don't
-  // leave an orphan account.
+  if (existingUser) {
+    return c.json({ error: "Email or phone number is already registered" }, 400);
+  }
+
+  // Hash password
+  const passwordHash = await hashPassword(password);
+
   let dbUser: any = null;
   try {
-    const txResult = await db.transaction(async (tx) => {
-      const [u] = await tx
-        .insert(users)
-        .values({
-          supabaseId: authUser.user.id,
-          email: email || null,
-          phone: phone || null,
-          name,
-          role,
-          nic,
-        })
-        .returning();
+    const [u] = await db
+      .insert(users)
+      .values({
+        supabaseId: crypto.randomUUID(),
+        email: email || null,
+        phone: phone || null,
+        name,
+        role,
+        nic,
+        passwordHash,
+      })
+      .returning();
 
-      if (role === "patient") {
-        await tx.insert(patients).values({ userId: u.id });
-      } else if (role === "doctor") {
-        if (!doctorProfile) {
-          // Should be blocked by Zod refine, but guard anyway.
-          throw new Error("Missing doctor profile");
-        }
-        await tx.insert(doctors).values({
-          userId: u.id,
-          specialization: doctorProfile.specialization.trim(),
-          registrationNumber: doctorProfile.registrationNumber?.trim() || null,
-          hospitalId: doctorProfile.hospitalId || null,
-        });
+    if (role === "patient") {
+      await db.insert(patients).values({ userId: u.id });
+    } else if (role === "doctor") {
+      if (!doctorProfile) {
+        // Should be blocked by Zod refine, but guard anyway.
+        throw new Error("Missing doctor profile");
       }
-      return u;
-    });
-    dbUser = txResult;
+      await db.insert(doctors).values({
+        userId: u.id,
+        specialization: doctorProfile.specialization.trim(),
+        registrationNumber: doctorProfile.registrationNumber?.trim() || null,
+        hospitalId: doctorProfile.hospitalId || null,
+      });
+    }
+    dbUser = u;
   } catch (err: any) {
-    // Best-effort cleanup of the Supabase auth record. Don't surface
-    // cleanup errors to the caller — the real cause is the DB failure.
-    try {
-      await supabase.auth.admin.deleteUser(authUser.user.id);
-    } catch {}
+    const msg = err?.message === "{}" || err?.message === "[object Object]" || !err?.message
+      ? "Database insertion failed."
+      : err.message;
     return c.json(
-      { error: err?.message || "Could not create account" },
+      { error: msg },
       500
     );
   }
 
-  // Sign in to get session
-  if (email) {
-    const { data: session, error: sessionError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  // Generate JWT token
+  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const token = await generateToken(dbUser.id, secret);
 
-    if (sessionError) {
-      return c.json({ user: dbUser, message: "Account created but login failed" }, 201);
-    }
-
-    return c.json({
-      user: dbUser,
-      session: session.session,
-    }, 201);
-  }
-
-  // Phone-only registration: no session returned
   return c.json({
     user: dbUser,
-    message: "Account created. Please sign in with your phone.",
+    session: {
+      access_token: token,
+      refresh_token: "dummy-refresh-token",
+    },
   }, 201);
 });
 
@@ -130,47 +105,40 @@ auth.post("/login", async (c) => {
   }
 
   const { email, phone, password } = parsed.data;
+  const db = c.get("db");
 
-  const supabase = createClient(
-    c.env.SUPABASE_URL,
-    c.env.SUPABASE_ANON_KEY
-  );
-
-  // Login with email or phone
-  let authResult;
-
+  // Get user from D1 database
+  let dbUser = null;
   if (email) {
-    authResult = await supabase.auth.signInWithPassword({ email, password });
+    [dbUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   } else if (phone) {
-    // For phone login, Supabase needs OTP, not password.
-    // For now, we use the phone email proxy pattern.
-    const loginEmail = `${phone}@phone.auth`;
-    authResult = await supabase.auth.signInWithPassword({ email: loginEmail, password });
-  } else {
-    return c.json({ error: "Email or phone required" }, 400);
+    [dbUser] = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
   }
 
-  const { data, error } = authResult;
-
-  if (error) {
+  if (!dbUser) {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
-  // Get DB user
-  const db = c.get("db");
-  const [dbUser] = await db
-    .select()
-    .from(users)
-    .where(eq(users.supabaseId, data.user.id))
-    .limit(1);
-
-  if (!dbUser) {
-    return c.json({ error: "User not found" }, 404);
+  // Verify password hash
+  let isPasswordValid = false;
+  if (dbUser.passwordHash) {
+    isPasswordValid = await verifyPassword(password, dbUser.passwordHash);
   }
+
+  if (!isPasswordValid) {
+    return c.json({ error: "Invalid credentials" }, 401);
+  }
+
+  // Generate JWT token
+  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const token = await generateToken(dbUser.id, secret);
 
   return c.json({
     user: dbUser,
-    session: data.session,
+    session: {
+      access_token: token,
+      refresh_token: "dummy-refresh-token",
+    },
   });
 });
 
@@ -206,8 +174,6 @@ auth.post("/refresh", async (c) => {
 
 // ─── Logout ──────────────────────────────────────────────
 auth.post("/logout", authMiddleware, async (c) => {
-  const supabase = c.get("supabase");
-  await supabase.auth.signOut();
   return c.json({ message: "Logged out" });
 });
 

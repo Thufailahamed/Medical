@@ -23,6 +23,12 @@ import wellnessRouter from "./routes/wellness";
 import doctorPortalRouter from "./routes/doctor-portal";
 import hospitalPortalRouter from "./routes/hospital-portal";
 import chatRouter from "./routes/chat";
+import allergiesRouter from "./routes/allergies";
+import vaccinationsRouter from "./routes/vaccinations";
+import timelineRouter from "./routes/timeline";
+import healthSummaryRouter from "./routes/health-summary";
+import exportRouter from "./routes/export";
+import shareRouter from "./routes/share";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -76,6 +82,12 @@ app.route("/wellness", wellnessRouter);
 app.route("/doctor-portal", doctorPortalRouter);
 app.route("/hospital-portal", hospitalPortalRouter);
 app.route("/chat", chatRouter);
+app.route("/allergies", allergiesRouter);
+app.route("/vaccinations", vaccinationsRouter);
+app.route("/timeline", timelineRouter);
+app.route("/health-summary", healthSummaryRouter);
+app.route("/export", exportRouter);
+app.route("/share", shareRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {

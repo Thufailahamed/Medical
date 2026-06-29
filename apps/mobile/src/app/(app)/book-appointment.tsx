@@ -140,7 +140,7 @@ export default function BookAppointmentScreen() {
   };
 
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
+    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset tabBarOffset>
       <ScreenHeader back title="Book appointment" />
 
       <View style={{ paddingTop: spacing.md, paddingBottom: spacing.xl }}>

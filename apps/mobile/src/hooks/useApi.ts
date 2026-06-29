@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, apiWithRefresh } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { setLastAllergies, setLastMeds } from "@/lib/offline-cache";
 import type { Patient, MedicalRecord, Appointment } from "@healthcare/shared";
 
 // ─── Patient Profile ─────────────────────────────────────
@@ -204,13 +205,26 @@ export function useDeleteFamilyMember() {
 
 // ─── Medicines ───────────────────────────────────────────
 export function useMyMedicines(opts?: { includeInactive?: boolean }) {
-  return useQuery({
+  const q = useQuery({
     queryKey: ["medicines", opts?.includeInactive ? "all" : "active"],
     queryFn: () =>
       api<{ medicines: any[] }>(
         `/medicines/me${opts?.includeInactive ? "?includeInactive=true" : ""}`
       ),
   });
+  // V3: hydrate offline cache (active only)
+  if (!opts?.includeInactive && q.data?.medicines) {
+    setLastMeds(
+      q.data.medicines
+        .filter((m: any) => !m.endDate)
+        .map((m: any) => ({
+          name: m.name,
+          dosage: m.dosage,
+          frequency: m.frequency,
+        }))
+    );
+  }
+  return q;
 }
 
 export function useMedicineStats() {
@@ -1542,5 +1556,413 @@ export function useDeleteChatSession() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat", "sessions"] });
     },
+  });
+}
+
+// ─── V3: Allergies (structured) ─────────────────────────
+export type Allergy = {
+  id: string;
+  patientId: string;
+  substance: string;
+  severity: "mild" | "moderate" | "severe" | "critical";
+  reaction: string | null;
+  onsetDate: string | null;
+  notes: string | null;
+  active: number | boolean;
+  createdAt: string;
+};
+
+export function useAllergies(opts?: { activeOnly?: boolean }) {
+  const q = useQuery({
+    queryKey: ["allergies", opts?.activeOnly ? "active" : "all"],
+    queryFn: () => api<{ allergies: Allergy[] }>("/allergies/me"),
+    staleTime: 30_000,
+  });
+  // V3: hydrate offline cache
+  if (q.data?.allergies) {
+    setLastAllergies(
+      q.data.allergies.map((a) => ({
+        substance: a.substance,
+        severity: a.severity,
+        reaction: a.reaction,
+      }))
+    );
+  }
+  return q;
+}
+
+export function useAddAllergy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      substance: string;
+      severity?: "mild" | "moderate" | "severe" | "critical";
+      reaction?: string;
+      onsetDate?: string;
+      notes?: string;
+    }) =>
+      api<{ allergy: Allergy }>("/allergies/me", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allergies"] });
+    },
+  });
+}
+
+export function useUpdateAllergy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; [k: string]: any }) =>
+      api<{ allergy: Allergy }>(`/allergies/${id}`, {
+        method: "PATCH",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allergies"] });
+    },
+  });
+}
+
+export function useDeleteAllergy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ message: string }>(`/allergies/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allergies"] });
+    },
+  });
+}
+
+// ─── V3: Medicine Interaction Check ──────────────────────
+export type InteractionWarning = {
+  medicines: string[];
+  severity: "minor" | "moderate" | "severe";
+  note: string;
+  source?: string;
+};
+
+export type AllergyMatch = {
+  id: string;
+  substance: string;
+  severity: "mild" | "moderate" | "severe" | "critical";
+  reaction: string | null;
+};
+
+export type InteractionsResponse = {
+  candidate: string;
+  activeMedicines: string[];
+  allergies: AllergyMatch[];
+  interactions: InteractionWarning[];
+  hasWarnings: boolean;
+  severity: "minor" | "moderate" | "severe" | "critical" | null;
+};
+
+export function useMedicineInteractions(candidate: string, enabled = true) {
+  return useQuery({
+    queryKey: ["medicine-interactions", candidate.trim().toLowerCase()],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set("candidate", candidate);
+      return api<InteractionsResponse>(`/medicines/me/interactions?${params.toString()}`);
+    },
+    enabled: enabled && candidate.trim().length >= 2,
+    staleTime: 30_000,
+  });
+}
+
+// ─── V3: Add medicine with interaction override ──────────
+export function useAddMedicineWithConfirm() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      data: any;
+      confirmOverride?: boolean;
+    }) => {
+      const { data, confirmOverride } = args;
+      const headers: Record<string, string> = {};
+      if (confirmOverride) headers["X-Confirm-Warning"] = "true";
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/medicines`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...headers,
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err: any = new Error(json.error || `HTTP ${response.status}`);
+        err.status = response.status;
+        err.body = json;
+        throw err;
+      }
+      return json;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["medicines"] });
+      qc.invalidateQueries({ queryKey: ["doses"] });
+      qc.invalidateQueries({ queryKey: ["medicine-interactions"] });
+    },
+  });
+}
+
+// ─── V3: Share links ────────────────────────────────────
+export type ShareLink = {
+  id: string;
+  token: string;
+  label: string | null;
+  scope: string;
+  expiresAt: string;
+  revoked: boolean;
+  createdAt: string;
+  lastViewedAt: string | null;
+};
+
+export function useShareLinks() {
+  return useQuery({
+    queryKey: ["share", "links"],
+    queryFn: () => api<{ links: ShareLink[] }>("/share/links"),
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateShareLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      label?: string;
+      scope?: string;
+      expiresInHours?: number;
+    }) =>
+      api<{ link: ShareLink; token: string; url: string; expiresAt: string }>(
+        "/share/links",
+        { method: "POST", body: payload }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["share", "links"] });
+    },
+  });
+}
+
+export function useRevokeShareLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ message: string }>(`/share/links/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["share", "links"] });
+    },
+  });
+}
+
+// ─── V3: Data export ────────────────────────────────────
+export type ExportFormat = "json" | "txt" | "fhir-bundle";
+
+export function getExportUrl(format: ExportFormat = "json") {
+  return `/export/me?format=${format}`;
+}
+
+// ─── V3: Health Summary ─────────────────────────────────
+export type HealthSummary = {
+  generatedAt: string;
+  demographics: {
+    name: string | null;
+    dob: string | null;
+    age: number | null;
+    sex: string | null;
+    bloodGroup: string | null;
+    heightCm: number | null;
+    weightKg: number | null;
+    bmi: number | null;
+  };
+  allergies: { substance: string; severity: string; reaction: string | null }[];
+  conditions: { title: string; diagnosedOn: string | null; notes: string | null }[];
+  activeMedicines: { name: string; dosage: string | null; frequency: string | null; since: string | null }[];
+  recentVitals: {
+    type: string;
+    latest: { value: any; secondary: any; unit: string | null; recordedAt: string } | null;
+    avg: number | null;
+    count: number;
+  }[];
+  followUps: { title: string; scheduledAt: string; location: string | null; provider: string | null }[];
+  lifestyle: Record<string, any>;
+};
+
+export function useHealthSummary() {
+  return useQuery({
+    queryKey: ["health-summary", "json"],
+    queryFn: () => api<HealthSummary>("/health-summary/me"),
+    staleTime: 60_000,
+  });
+}
+
+// ─── V3: Unified Timeline ───────────────────────────────
+export type TimelineEventKind =
+  | "record"
+  | "vital"
+  | "symptom"
+  | "medicine_start"
+  | "medicine_stop"
+  | "appointment"
+  | "note";
+
+export type TimelineEvent = {
+  id: string;
+  kind: TimelineEventKind;
+  date: string | null;
+  title: string;
+  subtitle: string | null;
+  icon: string;
+  color: string;
+  label: string;
+  meta?: Record<string, any>;
+};
+
+export type TimelineResponse = {
+  events: TimelineEvent[];
+  counts: Record<string, number>;
+};
+
+export function useUnifiedTimeline(opts?: {
+  type?: TimelineEventKind | "all";
+  from?: string;
+  to?: string;
+  limit?: number;
+}) {
+  const params = new URLSearchParams();
+  if (opts?.type && opts.type !== "all") params.set("type", opts.type);
+  if (opts?.from) params.set("from", opts.from);
+  if (opts?.to) params.set("to", opts.to);
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  return useQuery({
+    queryKey: ["timeline", opts?.type || "all", opts?.from || "", opts?.to || ""],
+    queryFn: () =>
+      api<TimelineResponse>(`/timeline/me?${params.toString()}`),
+    staleTime: 30_000,
+  });
+}
+
+// ─── V3: Vaccinations ───────────────────────────────────
+export type VaccineCatalogItem = {
+  id: string;
+  name: string;
+  shortName: string | null;
+  category: string | null;
+  targetDisease: string | null;
+  schedule: string;
+  aliases: string | null;
+  notes: string | null;
+};
+
+export type VaccinationDueItem = {
+  vaccineId: string;
+  vaccine: string;
+  shortName: string | null;
+  dose: number;
+  doseLabel: string;
+  dueDate: string;
+  daysUntil: number;
+  targetDisease: string | null;
+};
+
+export function useVaccinations() {
+  return useQuery({
+    queryKey: ["vaccinations", "list"],
+    queryFn: () =>
+      api<{ administered: any[]; catalog: VaccineCatalogItem[] }>(
+        "/vaccinations/me"
+      ),
+    staleTime: 60_000,
+  });
+}
+
+export function useVaccinationsDue() {
+  return useQuery({
+    queryKey: ["vaccinations", "due"],
+    queryFn: () =>
+      api<{
+        due: VaccinationDueItem[];
+        overdue: VaccinationDueItem[];
+        upcoming: VaccinationDueItem[];
+      }>("/vaccinations/me/due"),
+    staleTime: 60_000,
+  });
+}
+
+export function useAddVaccination() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      vaccineName: string;
+      vaccineId?: string;
+      dose?: number;
+      recordDate?: string;
+      provider?: string;
+      notes?: string;
+    }) =>
+      api<{ vaccination: any }>("/vaccinations/me", {
+        method: "POST",
+        body: payload,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vaccinations"] });
+      qc.invalidateQueries({ queryKey: ["medical-records"] });
+    },
+  });
+}
+
+// ─── V3: Vitals trend series ─────────────────────────────
+export type VitalsPoint = {
+  t: string;
+  value: number;
+  secondary: number | null;
+  id: string;
+  unit: string | null;
+};
+
+export type VitalsSeriesStats = {
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+  latest: number | null;
+  delta: number | null;
+  count: number;
+};
+
+export type VitalsSeriesResponse = {
+  type: string | null;
+  range: { from: string | null; to: string | null };
+  points: VitalsPoint[];
+  stats: VitalsSeriesStats | null;
+};
+
+export function useVitalsSeries(opts: {
+  type: string;
+  from?: string;
+  to?: string;
+  enabled?: boolean;
+}) {
+  const params = new URLSearchParams();
+  params.set("type", opts.type);
+  if (opts.from) params.set("from", opts.from);
+  if (opts.to) params.set("to", opts.to);
+  return useQuery({
+    queryKey: ["vitals", "series", opts.type, opts.from || "", opts.to || ""],
+    queryFn: () =>
+      api<VitalsSeriesResponse>(`/vitals/me/series?${params.toString()}`),
+    enabled: opts.enabled !== false && !!opts.type,
+    staleTime: 60_000,
   });
 }

@@ -146,6 +146,10 @@ patientsRouter.post("/me/family", authMiddleware, requireRole("patient"), async 
       allergies: body.allergies ? JSON.stringify(body.allergies) : undefined,
       medicalConditions: body.medicalConditions ? JSON.stringify(body.medicalConditions) : undefined,
       phone: body.phone,
+      conditions: body.conditions ? JSON.stringify(body.conditions) : null,
+      isDeceased: body.isDeceased ? 1 : 0,
+      causeOfDeath: body.causeOfDeath || null,
+      notes: body.notes || null,
     })
     .returning();
 

@@ -37,6 +37,7 @@ import {
   Paperclip,
   Pencil,
   Stethoscope as DocIcon,
+  Link,
 } from "lucide-react-native";
 import {
   useMedicalRecord,
@@ -464,6 +465,14 @@ export default function RecordDetailScreen() {
               variant="ghost"
               size="md"
               onPress={handleShare}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Link"
+              icon={Link}
+              variant="ghost"
+              size="md"
+              onPress={() => router.push("/(app)/share" as any)}
               style={{ flex: 1 }}
             />
           </View>

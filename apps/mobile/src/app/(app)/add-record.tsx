@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -8,9 +8,16 @@ import {
   Check,
   Stethoscope,
   FileBadge,
+  ScanText,
+  Sparkles,
+  Pill,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
-import { useUploadRecordWithFile } from "@/hooks/useApi";
+import {
+  useUploadRecordWithFile,
+  useMedicalRecord,
+  useAddMedicine,
+} from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -21,6 +28,7 @@ import {
   DateField,
   Card,
   Chip,
+  BottomSheet,
   useToast,
 } from "@/components/ui";
 
@@ -53,6 +61,51 @@ export default function AddRecordScreen() {
   const [notes, setNotes] = useState("");
   const [pickedFile, setPickedFile] = useState<any>(null);
 
+  const [lastRecordId, setLastRecordId] = useState<string | null>(null);
+  const [ocrSheetOpen, setOcrSheetOpen] = useState(false);
+  const [extractedMedicines, setExtractedMedicines] = useState<
+    { name: string; dosage: string; frequency: string; timing?: string }[]
+  >([]);
+
+  const { data: lastRecord } = useMedicalRecord(lastRecordId || "");
+  const addMedicine = useAddMedicine();
+
+  // V3: When extractedData appears on a freshly-uploaded prescription,
+  // open the medicine-confirm sheet.
+  useEffect(() => {
+    const ext = (lastRecord as any)?.record?.extractedData;
+    if (!ext) return;
+    try {
+      const parsed = JSON.parse(ext);
+      if (Array.isArray(parsed?.medicines) && parsed.medicines.length > 0) {
+        setExtractedMedicines(parsed.medicines);
+        setOcrSheetOpen(true);
+      }
+    } catch {}
+  }, [(lastRecord as any)?.record?.extractedData]);
+
+  async function addExtractedMedicines() {
+    let added = 0;
+    for (const m of extractedMedicines) {
+      try {
+        await addMedicine.mutateAsync({
+          name: m.name,
+          dosage: m.dosage || undefined,
+          frequency: m.frequency || undefined,
+          startDate: new Date().toISOString().slice(0, 10),
+        });
+        added++;
+      } catch {}
+    }
+    setOcrSheetOpen(false);
+    toast.show(
+      added > 0
+        ? `Added ${added} medicine${added === 1 ? "" : "s"}`
+        : "Could not add medicines",
+      added > 0 ? "success" : "danger"
+    );
+  }
+
   async function pickFile() {
     const result = await DocumentPicker.getDocumentAsync({
       type: "*/*",
@@ -64,16 +117,14 @@ export default function AddRecordScreen() {
   }
 
   async function handleSave() {
-    if (!pickedFile) {
-      toast.show("Attach a file first", "warning");
-      return;
-    }
+    // File attachment is always optional — title + type + date are the only
+    // required fields (matches backend `medicalRecordSchema`).
     if (!title.trim()) {
       toast.show("Title is required", "warning");
       return;
     }
     try {
-      await upload.mutateAsync({
+      const res = await upload.mutateAsync({
         file: {
           uri: pickedFile.uri,
           name: pickedFile.name,
@@ -86,6 +137,13 @@ export default function AddRecordScreen() {
         notes: notes.trim() || undefined,
       });
       toast.show("Record added", "success");
+
+      // V3: For prescriptions, fetch extracted meds once OCR completes.
+      const recordId = (res as any)?.record?.id;
+      if (recordType === "prescription" && recordId) {
+        setLastRecordId(recordId);
+        toast.show("Reading prescription…", "info");
+      }
       router.back();
     } catch (err: any) {
       toast.show(err?.message || "Upload failed", "danger");
@@ -93,11 +151,11 @@ export default function AddRecordScreen() {
   }
 
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
+    <Screen keyboard padded={false} edges={["top"]} bottomInset>
       <ScreenHeader back title="Add record" />
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110, gap: spacing.lg }}
         keyboardShouldPersistTaps="handled"
       >
         {/* File picker */}
@@ -131,7 +189,7 @@ export default function AddRecordScreen() {
                 { color: colors.text, textAlign: "center" },
               ]}
             >
-              {pickedFile ? pickedFile.name : "Attach a file"}
+              {pickedFile ? pickedFile.name : "Attach file (optional)"}
             </Text>
             <Text
               style={[
@@ -144,7 +202,7 @@ export default function AddRecordScreen() {
                 ? `${(pickedFile.size / 1024).toFixed(0)} KB · ${
                     pickedFile.mimeType || "file"
                   }`
-                : "PDF, image, DICOM — max 50MB"}
+                : "PDF, image, DICOM — max 50MB · or skip to log a note"}
             </Text>
             <Button
               title={pickedFile ? "Choose another" : "Choose file"}
@@ -227,6 +285,71 @@ export default function AddRecordScreen() {
           fullWidth
         />
       </ScrollView>
+
+      {/* V3: OCR medicine-confirm sheet */}
+      <BottomSheet
+        visible={ocrSheetOpen}
+        onDismiss={() => setOcrSheetOpen(false)}
+        title="Extracted from prescription"
+      >
+        <View style={{ gap: spacing.md }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+            }}
+          >
+            <Sparkles size={16} color={colors.primary} />
+            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+              We read {extractedMedicines.length} medicine
+              {extractedMedicines.length === 1 ? "" : "s"} from your prescription.
+            </Text>
+          </View>
+
+          {extractedMedicines.map((m, i) => (
+            <View
+              key={i}
+              style={{
+                padding: spacing.md,
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                gap: 2,
+              }}
+            >
+              <Text
+                style={[
+                  typography.title.sm,
+                  { color: colors.text, fontWeight: "700" },
+                ]}
+              >
+                {m.name}
+              </Text>
+              <Text style={[typography.caption, { color: colors.textMuted }]}>
+                {[m.dosage, m.frequency, m.timing].filter(Boolean).join(" • ")}
+              </Text>
+            </View>
+          ))}
+
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <Button
+              title="Skip"
+              variant="outline"
+              onPress={() => setOcrSheetOpen(false)}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title={`Add ${extractedMedicines.length} to my list`}
+              icon={Pill}
+              onPress={addExtractedMedicines}
+              loading={addMedicine.isPending}
+              style={{ flex: 2 }}
+            />
+          </View>
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }

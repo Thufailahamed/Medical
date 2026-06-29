@@ -156,7 +156,7 @@ export default function EditRecordScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110, gap: spacing.lg }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Type chips */}

@@ -171,6 +171,12 @@ export default function AppLayout() {
       <Tabs.Screen name="activity" options={{ href: null }} />
       <Tabs.Screen name="appearance" options={{ href: null }} />
       <Tabs.Screen name="change-password" options={{ href: null }} />
+      <Tabs.Screen name="share" options={{ href: null }} />
+      <Tabs.Screen name="timeline" options={{ href: null }} />
+      <Tabs.Screen name="allergies" options={{ href: null }} />
+      <Tabs.Screen name="vaccinations" options={{ href: null }} />
+      <Tabs.Screen name="health-summary" options={{ href: null }} />
+      <Tabs.Screen name="export" options={{ href: null }} />
     </Tabs>
   );
 }

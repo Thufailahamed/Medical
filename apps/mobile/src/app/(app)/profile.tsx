@@ -25,6 +25,11 @@ import {
   ChevronRight,
   Building2,
   BedDouble,
+  Share2,
+  ClipboardList,
+  FileText,
+  Syringe,
+  Download,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -33,6 +38,7 @@ import {
   useUnreadCount,
   useFamilyMembers,
   useMyMedicines,
+  useAllergies,
 } from "@/hooks/useApi";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
@@ -93,6 +99,7 @@ export default function ProfileScreen() {
   const { data: unread } = useUnreadCount();
   const { data: familyData } = useFamilyMembers();
   const { data: medicinesData } = useMyMedicines();
+  const { data: allergiesData } = useAllergies();
 
   // If the API layer reports an unrecoverable 401, sign the user out.
   useEffect(() => {
@@ -129,6 +136,11 @@ export default function ProfileScreen() {
     (m: any) => m.active !== false
   );
   const medCount = activeMeds.length;
+  const allergyCount = allergiesData?.allergies?.length ?? 0;
+  const criticalAllergies =
+    allergiesData?.allergies?.filter(
+      (a: any) => a.severity === "critical" && a.active !== false
+    ).length ?? 0;
   const unreadCount: number = unread?.count ?? 0;
 
   function confirmLogout() {
@@ -197,11 +209,41 @@ export default function ProfileScreen() {
 
   const healthItems = [
     {
+      label: "Timeline",
+      subtitle: "Everything in chronological order",
+      icon: ClipboardList,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/timeline" as any),
+    },
+    {
+      label: "Health Summary",
+      subtitle: "One-page snapshot of your record",
+      icon: FileText,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/health-summary" as any),
+    },
+    {
       label: "Vitals",
       subtitle: medCount > 0 ? `${medCount} active ${medCount === 1 ? "medicine" : "medicines"}` : "BP, glucose, weight trends",
       icon: Activity,
       tone: "info" as const,
       onPress: () => router.push("/(app)/vitals" as any),
+    },
+    {
+      label: "Allergies",
+      subtitle: allergyCount > 0
+        ? `${allergyCount} recorded ${allergyCount === 1 ? "allergy" : "allergies"}${criticalAllergies > 0 ? " • " + criticalAllergies + " critical" : ""}`
+        : "Drug, food, environmental",
+      icon: AlertTriangle,
+      tone: criticalAllergies > 0 ? ("danger" as const) : ("warning" as const),
+      onPress: () => router.push("/(app)/allergies" as any),
+    },
+    {
+      label: "Vaccinations",
+      subtitle: "Immunization history & due dates",
+      icon: Syringe,
+      tone: "info" as const,
+      onPress: () => router.push("/(app)/vaccinations" as any),
     },
     {
       label: "Notes",
@@ -216,6 +258,20 @@ export default function ProfileScreen() {
       icon: ShieldCheck,
       tone: "warning" as const,
       onPress: () => router.push("/(app)/activity" as any),
+    },
+    {
+      label: "Share with doctor",
+      subtitle: "Create secure share links for your records",
+      icon: Share2,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/share" as any),
+    },
+    {
+      label: "Export my data",
+      subtitle: "Download your full record (JSON, TXT, or FHIR)",
+      icon: Download,
+      tone: "neutral" as const,
+      onPress: () => router.push("/(app)/export" as any),
     },
     ...(isDoctor
       ? [

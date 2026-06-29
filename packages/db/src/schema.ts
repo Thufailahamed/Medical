@@ -4,7 +4,8 @@ import { sql } from "drizzle-orm";
 // ─── Users ───────────────────────────────────────────────
 export const users = sqliteTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  supabaseId: text("supabase_id").unique().notNull(),
+  supabaseId: text("supabase_id").unique(),
+  passwordHash: text("password_hash"),
   role: text("role", {
     enum: [
       "patient",
@@ -70,6 +71,11 @@ export const familyMembers = sqliteTable("family_members", {
   medicalConditions: text("medical_conditions"),
   phone: text("phone"),
   isManagedBy: text("managed_by").references(() => patients.id), // for children managed by parents
+  // V3: hereditary tracking
+  conditions: text("conditions"), // JSON array of condition strings
+  isDeceased: integer("is_deceased", { mode: "boolean" }).default(false),
+  causeOfDeath: text("cause_of_death"),
+  notes: text("notes"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -144,6 +150,7 @@ export const medicalRecords = sqliteTable("medical_records", {
   diagnosis: text("diagnosis"),
   summary: text("summary"),
   notes: text("notes"),
+  extractedData: text("extracted_data"), // V3: JSON for OCR / AI extraction
   date: text("date").notNull(),
   followUpDate: text("follow_up_date"),
   status: text("status", {
@@ -645,4 +652,71 @@ export const chatMessages = sqliteTable("chat_messages", {
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
+});
+
+// ─── V3: Allergies (structured) ───────────────────────────
+export const allergies = sqliteTable("allergies", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  substance: text("substance").notNull(),
+  severity: text("severity", {
+    enum: ["mild", "moderate", "severe", "critical"],
+  }).notNull(),
+  reaction: text("reaction"),
+  onsetDate: text("onset_date"),
+  notes: text("notes"),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── V3: Vaccine Catalog (WHO/EPI reference) ─────────────
+export const vaccineCatalog = sqliteTable("vaccine_catalog", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  shortName: text("short_name"),
+  category: text("category"),
+  targetDisease: text("target_disease"),
+  schedule: text("schedule").notNull(), // JSON array of { monthsFromBirth, label }
+  aliases: text("aliases"), // JSON array
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── V3: Share Links (time-limited doctor access) ───────
+export const shareLinks = sqliteTable("share_links", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  token: text("token").notNull().unique(),
+  scope: text("scope").notNull().default("{}"),
+  label: text("label"),
+  expiresAt: text("expires_at").notNull(),
+  revoked: integer("revoked", { mode: "boolean" }).default(false),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  lastViewedAt: text("last_viewed_at"),
+});
+
+// ─── V3: Share Link Views (audit trail) ─────────────────
+export const shareLinkViews = sqliteTable("share_link_views", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  linkId: text("link_id")
+    .notNull()
+    .references(() => shareLinks.id),
+  viewedAt: text("viewed_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
 });

@@ -32,6 +32,13 @@ export type { HeroStatus } from "./Hero";
 export { NextActionCard } from "./NextActionCard";
 export { Timeline } from "./Timeline";
 export type { TimelineGroupKey } from "./Timeline";
+export { Roadmap, RoadmapSkeleton } from "./Roadmap";
+export type {
+  RoadmapProps,
+  RoadmapItemBase,
+  ImportanceMeta,
+  Rank as RoadmapRank,
+} from "./Roadmap";
 export { DoseRing } from "./DoseRing";
 export { FloatingActionButton } from "./FloatingActionButton";
 export { Stepper } from "./Stepper";

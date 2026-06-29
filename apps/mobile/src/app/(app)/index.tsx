@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import {
   Bell,
   Pill,
+  FileText,
   ClipboardList,
   CalendarPlus,
   Plus,
@@ -23,6 +24,8 @@ import {
   Clock,
   AlertTriangle,
   Activity,
+  ShieldAlert,
+  Syringe,
   Upload,
   HeartPulse,
   TrendingUp,
@@ -32,10 +35,13 @@ import {
   MessageSquare,
   ScanText,
   FileSearch,
+  Share2,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import {
   usePatientProfile,
+  useAllergies,
+  useVaccinationsDue,
   useTodayMedicines,
   useMyAppointments,
   useUnreadCount,
@@ -83,6 +89,8 @@ export default function HomeScreen() {
   const { data: medsData, isLoading: medsLoading, refetch: refetchMeds } = useTodayMedicines();
   const { data: apptsData, isLoading: apptsLoading, refetch: refetchAppts } = useMyAppointments();
   const { data: unread, refetch: refetchUnread } = useUnreadCount();
+  const { data: allergiesData } = useAllergies();
+  const { data: vaccineDue } = useVaccinationsDue();
 
   const [fabOpen, setFabOpen] = useState(false);
 
@@ -147,6 +155,89 @@ export default function HomeScreen() {
         }
         contentContainerStyle={{ paddingBottom: 140 }}
       >
+        {/* V3: critical allergy banner */}
+        {(() => {
+          const criticalAllergies =
+            (allergiesData?.allergies ?? []).filter(
+              (a: any) => a.severity === "critical" && a.active !== false
+            );
+          if (criticalAllergies.length === 0) return null;
+          return (
+            <Pressable
+              onPress={() => router.push("/(app)/allergies" as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Critical allergies on file"
+              style={{
+                marginHorizontal: spacing.lg,
+                marginTop: spacing.sm,
+                padding: spacing.md,
+                borderRadius: radius.lg,
+                backgroundColor: colors.danger,
+                flexDirection: "row",
+                gap: spacing.sm,
+                alignItems: "flex-start",
+              }}
+            >
+              <ShieldAlert size={20} color="#fff" strokeWidth={2.25} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[typography.title.sm, { color: "#fff", fontWeight: "800" }]}
+                >
+                  {criticalAllergies.length === 1
+                    ? `Critical allergy: ${criticalAllergies[0].substance}`
+                    : `${criticalAllergies.length} critical allergies on file`}
+                </Text>
+                <Text
+                  style={[typography.caption, { color: "#fff", opacity: 0.9, marginTop: 2 }]}
+                >
+                  View details
+                </Text>
+              </View>
+              <ChevronRight size={18} color="#fff" />
+            </Pressable>
+          );
+        })()}
+
+        {/* V3: Overdue vaccines banner */}
+        {(() => {
+          const overdue = vaccineDue?.overdue ?? [];
+          if (overdue.length === 0) return null;
+          return (
+            <Pressable
+              onPress={() => router.push("/(app)/vaccinations" as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Overdue vaccinations"
+              style={{
+                marginHorizontal: spacing.lg,
+                marginTop: spacing.sm,
+                padding: spacing.md,
+                borderRadius: radius.lg,
+                backgroundColor: colors.warning,
+                flexDirection: "row",
+                gap: spacing.sm,
+                alignItems: "flex-start",
+              }}
+            >
+              <Syringe size={20} color="#fff" strokeWidth={2.25} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[typography.title.sm, { color: "#fff", fontWeight: "800" }]}
+                >
+                  {overdue.length === 1
+                    ? `Overdue: ${overdue[0].vaccine}`
+                    : `${overdue.length} overdue vaccinations`}
+                </Text>
+                <Text
+                  style={[typography.caption, { color: "#fff", opacity: 0.9, marginTop: 2 }]}
+                >
+                  Tap to view and update
+                </Text>
+              </View>
+              <ChevronRight size={18} color="#fff" />
+            </Pressable>
+          );
+        })()}
+
         {/* ─── App header ─── */}
         <View
           style={{
@@ -242,36 +333,12 @@ export default function HomeScreen() {
           }}
         >
           <LinearGradient
-            colors={["#0EA5E9", "#075985"]}
+            colors={["#1E3B8B", "#0F766E"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
-          {/* Decorative orbs */}
-          <View
-            style={[
-              styles.heroOrb,
-              {
-                width: 180,
-                height: 180,
-                top: -60,
-                right: -40,
-                backgroundColor: "rgba(255,255,255,0.10)",
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.heroOrb,
-              {
-                width: 120,
-                height: 120,
-                bottom: -30,
-                left: -20,
-                backgroundColor: "rgba(255,255,255,0.08)",
-              },
-            ]}
-          />
+
 
           {/* Content sits above orbs */}
           <View style={{ gap: spacing.sm }}>
@@ -682,6 +749,36 @@ export default function HomeScreen() {
               router.push("/(app)/book-appointment");
             }}
           />
+          <FabAction
+            icon={Share2}
+            label="Share with doctor"
+            description="Create secure share links for records"
+            tone="primary"
+            onPress={() => {
+              setFabOpen(false);
+              router.push("/(app)/share");
+            }}
+          />
+          <FabAction
+            icon={ClipboardList}
+            label="Timeline"
+            description="All events in chronological order"
+            tone="primary"
+            onPress={() => {
+              setFabOpen(false);
+              router.push("/(app)/timeline");
+            }}
+          />
+          <FabAction
+            icon={FileText}
+            label="Health summary"
+            description="One-page snapshot of your record"
+            tone="accent"
+            onPress={() => {
+              setFabOpen(false);
+              router.push("/(app)/health-summary");
+            }}
+          />
         </View>
       </BottomSheet>
     </Screen>
@@ -1062,6 +1159,8 @@ function WellnessCard() {
   const router = useRouter();
   const { colors, spacing, typography } = useTheme();
   const { data, isLoading } = useWellness();
+  const tone: Tone = data?.level?.tone ?? "info";
+  const palette = useTone(tone);
 
   if (isLoading) {
     return (
@@ -1082,8 +1181,6 @@ function WellnessCard() {
   if (!data) return null;
 
   const score = data.score;
-  const tone: Tone = data.level?.tone ?? "info";
-  const palette = useTone(tone);
   const components = Array.isArray(data.components) ? data.components : [];
   const Trend = score >= 75 ? TrendingUp : score >= 45 ? Minus : TrendingDown;
 
