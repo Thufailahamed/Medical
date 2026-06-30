@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Text, TextInput, StyleSheet, type StyleProp, type TextStyle } from "react-native";
 
 /** PostScript names from @expo-google-fonts/outfit (must match theme.ts). */

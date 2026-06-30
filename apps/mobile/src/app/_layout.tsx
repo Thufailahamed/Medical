@@ -27,6 +27,7 @@ import { registerForPushNotifications, onPushResponse } from "@/lib/push";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
 import { applyOutfitFontDefaults } from "@/lib/fonts";
+import i18n from "@/i18n";
 
 // NOTE on the hydration race:
 // `useLocaleStore.persist.hasHydrated()` is async (SecureStore read), so we
