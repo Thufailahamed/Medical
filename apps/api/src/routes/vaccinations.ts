@@ -10,13 +10,34 @@ import {
   medicalRecords,
   vaccineCatalog,
   patients,
+  users,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { computeVaccineDueSlots } from "../lib/vaccine-schedule";
+import { parseAcceptLanguage, type Locale } from "../lib/locale";
 import type { AppEnvironment } from "../types";
 
 const vaccinationsRouter = new Hono<AppEnvironment>();
+
+/** Resolve a vaccine's display name in the user's preferred locale.
+ *  Mirrors the same lookup in cron/vaccination-reminders.ts; falls back to
+ *  English (`name`) when the locale column is NULL. */
+function vaccineNameFor(
+  v: any,
+  locale: Locale
+): string {
+  if (locale === "si" && v.nameSi) return v.nameSi;
+  if (locale === "ta" && v.nameTa) return v.nameTa;
+  return v.name;
+}
+
+/** Resolve a vaccine's target disease name in the user's preferred locale. */
+function diseaseNameFor(v: any, locale: Locale): string | undefined {
+  if (locale === "si" && v.targetDiseaseSi) return v.targetDiseaseSi;
+  if (locale === "ta" && v.targetDiseaseTa) return v.targetDiseaseTa;
+  return v.targetDisease;
+}
 
 async function getOwnPatient(db: any, userId: string) {
   const [p] = await db
@@ -62,7 +83,25 @@ vaccinationsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) 
   // Catalog
   const catalog = await db.select().from(vaccineCatalog);
 
-  return c.json({ administered, catalog });
+  // Phase 2.2.2: localize `name` + `targetDisease` projection for chips.
+  const acceptLocale = parseAcceptLanguage(c.req.header("Accept-Language"));
+  const [u] = await db
+    .select({ preferredLocale: users.preferredLocale })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const locale: Locale =
+    (u?.preferredLocale === "si" || u?.preferredLocale === "ta")
+      ? (u.preferredLocale as Locale)
+      : acceptLocale;
+
+  const localizedCatalog = (catalog as any[]).map((v) => ({
+    ...v,
+    name: vaccineNameFor(v, locale),
+    targetDisease: diseaseNameFor(v, locale),
+  }));
+
+  return c.json({ administered, catalog: localizedCatalog });
 });
 
 // ─── Due / overdue / upcoming ────────────────────────────
@@ -90,7 +129,36 @@ vaccinationsRouter.get("/me/due", authMiddleware, requireRole("patient"), async 
     administered: administered as any,
   });
 
-  return c.json(slots);
+  // Phase 2.2.2: localize slot `vaccine` and `targetDisease` for the
+  // user. Source = Accept-Language header (preferred on this path) with
+  // fall-through to `users.preferred_locale` so the cron push and the
+  // GET list agree.
+  const acceptLocale = parseAcceptLanguage(c.req.header("Accept-Language"));
+  const [u] = await db
+    .select({ preferredLocale: users.preferredLocale })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const locale: Locale =
+    (u?.preferredLocale === "si" || u?.preferredLocale === "ta")
+      ? (u.preferredLocale as Locale)
+      : acceptLocale;
+
+  const localize = (s: any) => {
+    const v = (catalog as any[]).find((x) => x.id === s.vaccineId);
+    if (!v) return s;
+    return {
+      ...s,
+      vaccine: vaccineNameFor(v, locale),
+      targetDisease: diseaseNameFor(v, locale) ?? s.targetDisease,
+    };
+  };
+
+  return c.json({
+    due: slots.due.map(localize),
+    overdue: slots.overdue.map(localize),
+    upcoming: slots.upcoming.map(localize),
+  });
 });
 
 // ─── Add a vaccination record ────────────────────────────
