@@ -14,6 +14,12 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDate, fmtTime, intlLocale } from "@/lib/format";
+
+function intlLocaleFromTag(l: string) {
+  return intlLocale(l as any);
+}
 import {
   Plus,
   Send,
@@ -40,16 +46,20 @@ import {
   useToast,
 } from "@/components/ui";
 
-function fmtTime(d: string) {
+function fmtTime(d: string, locale: string) {
   try {
     const dt = new Date(d);
-    return dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return new Intl.DateTimeFormat(intlLocaleFromTag(locale), {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(dt);
   } catch {
     return "";
   }
 }
 
-function fmtWhen(t: (k: string, opts?: any) => string, d: string) {
+function fmtWhen(t: (k: string, opts?: any) => string, d: string, locale: string) {
   try {
     const dt = new Date(d);
     const now = new Date();
@@ -58,10 +68,10 @@ function fmtWhen(t: (k: string, opts?: any) => string, d: string) {
     if (diff < 3600) return t("aiChat.whenMinutes", { count: Math.floor(diff / 60) });
     if (diff < 86400) return t("aiChat.whenHours", { count: Math.floor(diff / 3600) });
     if (diff < 604800) return t("aiChat.whenDays", { count: Math.floor(diff / 86400) });
-    return dt.toLocaleDateString(undefined, {
+    return new Intl.DateTimeFormat(intlLocaleFromTag(locale), {
       day: "numeric",
       month: "short",
-    });
+    }).format(dt);
   } catch {
     return "";
   }
@@ -70,6 +80,7 @@ function fmtWhen(t: (k: string, opts?: any) => string, d: string) {
 export default function AiChatScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -198,7 +209,7 @@ export default function AiChatScreen() {
                     showMeta={!sameAuthor}
                     meta={t("aiChat.metaFormat", {
                       author: authorLabel,
-                      time: fmtTime(m.createdAt),
+                      time: fmtTime(m.createdAt, locale),
                     })}
                   />
                 );
@@ -356,7 +367,7 @@ export default function AiChatScreen() {
                 title={s.title || t("aiChat.sessionFallbackTitle")}
                 when={
                   s.updatedAt
-                    ? fmtWhen(t, s.updatedAt)
+                    ? fmtWhen(t, s.updatedAt, locale)
                     : t("aiChat.sessionFallbackWhen")
                 }
                 onPress={() => setActiveId(s.id)}

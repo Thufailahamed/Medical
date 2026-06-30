@@ -20,6 +20,8 @@ type ScrollableRef = {
 };
 import { ChevronDown, MapPin } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useLocaleStore } from "@/stores/locale";
+import { intlLocale } from "@/lib/format";
 import { useTone } from "@/theme/tone";
 import { Skeleton } from "./Skeleton";
 import { Pill } from "./Pill";
@@ -94,13 +96,13 @@ function humanGap(days: number): string {
   return `${weeks} ${weeks === 1 ? "week" : "weeks"} between visits`;
 }
 
-function formatToday(d = new Date()): string {
-  return d
-    .toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
+function formatToday(locale: string, d = new Date()): string {
+  return new Intl.DateTimeFormat(intlLocale(locale as any), {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+    .format(d)
     .toUpperCase();
 }
 
@@ -118,6 +120,7 @@ export function Roadmap<T extends RoadmapItemBase>({
   style,
 }: RoadmapProps<T>) {
   const { colors, spacing, typography, radius, shadow } = useTheme();
+  const locale = useLocaleStore((s) => s.locale);
 
   // ─── Year groups ────────────────────────────────────────
   const yearGroups = useMemo(() => {
@@ -170,7 +173,7 @@ export function Roadmap<T extends RoadmapItemBase>({
           ]}
         />
         <Pill
-          label={`TODAY · ${formatToday()}`}
+          label={`TODAY · ${formatToday(locale)}`}
           tone="primary"
           icon={MapPin}
           size="sm"

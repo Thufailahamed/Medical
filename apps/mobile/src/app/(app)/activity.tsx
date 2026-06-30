@@ -10,6 +10,8 @@ import {
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useAuditLog } from "@/hooks/useApi";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDateTime } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -45,6 +47,7 @@ function metaFor(action: string): { labelKey: string | null; icon: any; tone: an
 
 export default function ActivityScreen() {
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography } = useTheme();
   const { data, isLoading } = useAuditLog();
   const entries: any[] = data?.auditLogs || [];
@@ -97,7 +100,7 @@ export default function ActivityScreen() {
                   title={title}
                   subtitle={`${e.resource || ""}${
                     e.resourceId ? ` · ${e.resourceId.slice(-6)}` : ""
-                  } · ${new Date(e.createdAt).toLocaleString()}`}
+                  } · ${fmtDateTime(new Date(e.createdAt), locale)}`}
                 />
               );
             })}

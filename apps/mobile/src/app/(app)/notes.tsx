@@ -11,6 +11,8 @@ import {
   Pencil,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDateTime } from "@/lib/format";
 import {
   useNotes,
   useCreateNote,
@@ -35,6 +37,7 @@ import {
 export default function NotesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading } = useNotes();
@@ -275,9 +278,7 @@ export default function NotesScreen() {
                 <Text
                   style={[typography.caption, { color: colors.textMuted }]}
                 >
-                  {new Date(
-                    n.createdAt || n.updatedAt
-                  ).toLocaleString()}
+                  {fmtDateTime(new Date(n.createdAt || n.updatedAt), locale)}
                 </Text>
               </View>
             </Card>

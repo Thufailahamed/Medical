@@ -15,6 +15,8 @@ import {
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtMonthYear, fmtDateLong, intlLocale } from "@/lib/format";
 import {
   Search,
   FileText,
@@ -78,6 +80,7 @@ export default function RecordsScreen() {
   const { spacing, colors, typography, fontFamily, radius } = useTheme();
   const toast = useToast();
   const prefs = useRecordsPrefsStore();
+  const locale = useLocaleStore((s) => s.locale);
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
   const { data: stats } = useRecordStats();
@@ -201,7 +204,7 @@ export default function RecordsScreen() {
       const owner = rec.familyMember?.name
         ? `${rec.familyMember.name}`
         : t("records.group.you");
-      const monthKey = getGroupKey(t, rec.date);
+      const monthKey = getGroupKey(t, locale, rec.date);
       const key = `${owner} · ${monthKey}`;
       if (!map[key]) {
         map[key] = [];
@@ -328,7 +331,7 @@ export default function RecordsScreen() {
     const meta = metaFor(rec.recordType);
     const catStyle = getCategoryStyle(rec.recordType);
     const IconComponent = meta.icon;
-    const dateLabel = formatItemDateLabel(t, rec.date);
+    const dateLabel = formatItemDateLabel(t, locale, rec.date);
     const firstAttachment = rec.attachments?.first;
     const isSelected = selection.has(rec.id);
 
@@ -1222,19 +1225,17 @@ function getRecordTypeLabel(t: (k: string) => string, type: string): string {
   return t(`records.type.${type}`, { defaultValue: (type || "").replace(/_/g, " ") });
 }
 
-function getGroupKey(t: (k: string) => string, dateStr: string) {
+function getGroupKey(t: (k: string) => string, locale: ReturnType<typeof useLocaleStore.getState>["locale"], dateStr: string) {
   try {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return t("records.unknownDate");
-    return d
-      .toLocaleDateString("en-US", { month: "long", year: "numeric" })
-      .toUpperCase();
+    return fmtMonthYear(d, locale).toUpperCase();
   } catch {
     return t("records.unknownDate");
   }
 }
 
-function formatItemDateLabel(t: (k: string) => string, dateStr: string) {
+function formatItemDateLabel(t: (k: string) => string, locale: ReturnType<typeof useLocaleStore.getState>["locale"], dateStr: string) {
   try {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return dateStr;
@@ -1243,7 +1244,7 @@ function formatItemDateLabel(t: (k: string) => string, dateStr: string) {
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
     if (d.toDateString() === yesterday.toDateString()) return t("records.date.yesterday");
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return fmtDateLong(d, locale);
   } catch {
     return dateStr;
   }

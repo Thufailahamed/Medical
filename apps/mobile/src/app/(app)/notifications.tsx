@@ -25,6 +25,8 @@ import {
   Timeline,
 } from "@/components/ui";
 import type { Tone } from "@/theme/tone";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDate } from "@/lib/format";
 
 const TYPE_META: Record<string, { icon: any; tone: Tone }> = {
   medicine: { icon: Pill, tone: "primary" },
@@ -40,7 +42,7 @@ const FILTERS = [
   { value: "unread", key: "notifications.filter.unread" },
 ];
 
-function timeAgo(t: (key: string, opts?: any) => string, ts?: string | null) {
+function timeAgo(t: (key: string, opts?: any) => string, locale: string, ts?: string | null) {
   if (!ts) return "";
   const d = new Date(ts);
   if (isNaN(d.getTime())) return "";
@@ -52,7 +54,7 @@ function timeAgo(t: (key: string, opts?: any) => string, ts?: string | null) {
   if (h < 24) return t("notifications.timeAgo.hoursAgo", { count: h });
   const days = Math.floor(h / 24);
   if (days < 7) return t("notifications.timeAgo.daysAgo", { count: days });
-  return d.toLocaleDateString();
+  return fmtDate(d, locale as any);
 }
 
 function groupByTime(ts?: string | null) {
@@ -68,6 +70,7 @@ function groupByTime(ts?: string | null) {
 
 export default function NotificationsScreen() {
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography } = useTheme();
   const { data, isLoading } = useNotifications();
   const markRead = useMarkNotificationRead();
@@ -181,7 +184,7 @@ export default function NotificationsScreen() {
             flush
             renderItem={(item: any) => {
               const meta = TYPE_META[item.type] || TYPE_META.general;
-              const time = timeAgo(t, item.createdAt);
+              const time = timeAgo(t, locale, item.createdAt);
               const subtitle = item.body
                 ? t("notifications.itemSubtitle", { body: item.body, time })
                 : time;

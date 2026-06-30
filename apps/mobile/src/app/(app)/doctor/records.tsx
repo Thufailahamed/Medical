@@ -8,11 +8,13 @@ import {
   Pressable,
   RefreshControl,
   TextInput,
-  StyleSheet,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtMonthYear, fmtDateLong } from "@/lib/format";
 import { Search, Archive, FileText, X, Check, Users } from "lucide-react-native";
 import {
   useDoctorRecords,
@@ -31,24 +33,15 @@ import { TagPickerSheet } from "@/components/TagPickerSheet";
 
 type FilterValue = "all" | RecordType | "archived";
 
-const FILTER_ORDER: { value: FilterValue; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "lab_report", label: "Lab" },
-  { value: "prescription", label: "Rx" },
-  { value: "imaging", label: "Imaging" },
-  { value: "hospital_visit", label: "Visits" },
-  { value: "vaccination", label: "Vaccines" },
-  { value: "surgery", label: "Surgery" },
-  { value: "archived", label: "Archived" },
-];
-
 type SortMode = "newest" | "oldest" | "relevance";
 
 export default function DoctorRecordsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, fontFamily, radius } = useTheme();
   const toast = useToast();
   const bulkTag = useBulkTagRecords();
+  const locale = useLocaleStore((s) => s.locale);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterValue>("all");
@@ -59,6 +52,20 @@ export default function DoctorRecordsScreen() {
   const selectionMode = selection.size > 0;
 
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
+
+  const FILTER_ORDER: { value: FilterValue; label: string }[] = useMemo(
+    () => [
+      { value: "all", label: t("doctorRecords.filters.all") },
+      { value: "lab_report", label: t("doctorRecords.filters.lab_report") },
+      { value: "prescription", label: t("doctorRecords.filters.prescription") },
+      { value: "imaging", label: t("doctorRecords.filters.imaging") },
+      { value: "hospital_visit", label: t("doctorRecords.filters.hospital_visit") },
+      { value: "vaccination", label: t("doctorRecords.filters.vaccination") },
+      { value: "surgery", label: t("doctorRecords.filters.surgery") },
+      { value: "archived", label: t("doctorRecords.filters.archived") },
+    ],
+    [t]
+  );
 
   const queryOpts = useMemo(
     () => ({
@@ -100,13 +107,12 @@ export default function DoctorRecordsScreen() {
     ]);
   }, [records, search]);
 
-  // Group by patient name then by month-year.
   const groupedSections = useMemo(() => {
     const sections: { title: string; data: any[] }[] = [];
     const map: Record<string, any[]> = {};
     for (const rec of ranked) {
-      const patientLabel = rec.patient?.name || "Unknown patient";
-      const monthKey = getMonthKey(rec.date);
+      const patientLabel = rec.patient?.name || t("doctorRecords.unknownPatient");
+      const monthKey = getMonthKey(locale, rec.date);
       const key = `${patientLabel} · ${monthKey}`;
       if (!map[key]) {
         map[key] = [];
@@ -115,7 +121,7 @@ export default function DoctorRecordsScreen() {
       map[key].push(rec);
     }
     return sections;
-  }, [ranked]);
+  }, [ranked, t]);
 
   const counts = useMemo(() => {
     const base: Record<string, number> = { all: records.length };
@@ -129,14 +135,14 @@ export default function DoctorRecordsScreen() {
   const tagSuggestions = useMemo(() => {
     const tally = new Map<string, number>();
     for (const r of records as any[]) {
-      for (const t of r.tags || []) {
-        tally.set(t, (tally.get(t) || 0) + 1);
+      for (const tag of r.tags || []) {
+        tally.set(tag, (tally.get(tag) || 0) + 1);
       }
     }
     return Array.from(tally.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
-      .map(([t]) => t);
+      .map(([tag]) => tag);
   }, [records]);
 
   const allSelectedArchived = useMemo(() => {
@@ -206,10 +212,10 @@ export default function DoctorRecordsScreen() {
     const meta = metaFor(rec.recordType);
     const catStyle = getCategoryStyle(rec.recordType);
     const IconComponent = meta.icon;
-    const dateLabel = formatItemDateLabel(rec.date);
+    const dateLabel = formatItemDateLabel(locale, rec.date);
     const firstAttachment = rec.attachments?.first;
     const isSelected = selection.has(rec.id);
-    const patientName = rec.patient?.name || "Unknown patient";
+    const patientName = rec.patient?.name || t("doctorRecords.unknownPatient");
 
     return (
       <Pressable
@@ -344,9 +350,9 @@ export default function DoctorRecordsScreen() {
                 marginTop: 6,
               }}
             >
-              {rec.tags.slice(0, 4).map((t: string) => (
+              {rec.tags.slice(0, 4).map((tag: string) => (
                 <View
-                  key={t}
+                  key={tag}
                   style={{
                     paddingHorizontal: 6,
                     paddingVertical: 2,
@@ -362,7 +368,7 @@ export default function DoctorRecordsScreen() {
                       fontFamily: fontFamily.bodyBold,
                     }}
                   >
-                    #{t}
+                    #{tag}
                   </Text>
                 </View>
               ))}
@@ -381,9 +387,7 @@ export default function DoctorRecordsScreen() {
           ) : null}
 
           {firstAttachment && (
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}
-            >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
               <FileText size={14} color={colors.primary} />
               <Text
                 style={{
@@ -393,8 +397,7 @@ export default function DoctorRecordsScreen() {
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                {rec.attachments?.count || 1} attachment
-                {(rec.attachments?.count || 1) === 1 ? "" : "s"}
+                {t("doctorRecords.attachmentCount", { count: rec.attachments?.count || 1 })}
               </Text>
             </View>
           )}
@@ -427,7 +430,7 @@ export default function DoctorRecordsScreen() {
               fontFamily: fontFamily.bodyBold,
             }}
           >
-            ‹ Back
+            {t("doctorRecords.backLabel")}
           </Text>
         </Pressable>
 
@@ -442,7 +445,7 @@ export default function DoctorRecordsScreen() {
             },
           ]}
         >
-          {selectionMode ? `${selection.size} selected` : "Patient Records"}
+          {selectionMode ? t("doctorRecords.selected", { count: selection.size }) : t("doctorRecords.title")}
         </Text>
 
         <View style={{ width: 50 }} />
@@ -478,7 +481,7 @@ export default function DoctorRecordsScreen() {
               },
             ]}
           >
-            {selectionMode ? "Manage records" : "Across your patients"}
+            {selectionMode ? t("doctorRecords.selectTitle") : t("doctorRecords.heroAll")}
           </Text>
           <Text
             style={{
@@ -489,7 +492,7 @@ export default function DoctorRecordsScreen() {
               marginTop: 2,
             }}
           >
-            {recordsData?.total ?? records.length} total · grouped by patient
+            {t("doctorRecords.totalGrouped", { count: recordsData?.total ?? records.length })}
           </Text>
         </View>
 
@@ -512,7 +515,7 @@ export default function DoctorRecordsScreen() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search title, OCR, patient..."
+            placeholder={t("doctorRecords.searchPlaceholder")}
             placeholderTextColor="#9C97AC"
             style={{
               flex: 1,
@@ -601,7 +604,7 @@ export default function DoctorRecordsScreen() {
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                {m}
+                {t(`doctorRecords.sort.${m}`)}
               </Text>
             </Pressable>
           ))}
@@ -615,11 +618,11 @@ export default function DoctorRecordsScreen() {
         ) : groupedSections.length === 0 ? (
           <EmptyState
             icon={Users}
-            title={search ? "No matches" : "No records yet"}
+            title={search ? t("doctorRecords.emptySearchTitle") : t("doctorRecords.emptyTitle")}
             subtitle={
               search
-                ? "Try a different keyword, or clear filters."
-                : "Records appear here when your patients share them or you author them after a visit."
+                ? t("doctorRecords.emptySearchBody")
+                : t("doctorRecords.emptyBody")
             }
           />
         ) : (
@@ -684,18 +687,14 @@ export default function DoctorRecordsScreen() {
   );
 }
 
-function getMonthKey(dateStr: string): string {
+function getMonthKey(locale: ReturnType<typeof useLocaleStore.getState>["locale"], dateStr: string): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "Unknown";
-  return d.toLocaleString("en-US", { month: "long", year: "numeric" });
+  return fmtMonthYear(d, locale);
 }
 
-function formatItemDateLabel(dateStr: string): string {
+function formatItemDateLabel(locale: ReturnType<typeof useLocaleStore.getState>["locale"], dateStr: string): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return fmtDateLong(d, locale);
 }

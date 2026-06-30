@@ -6,10 +6,10 @@ import {
   Text,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   FileText,
   Search,
@@ -22,13 +22,13 @@ import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
-  Card,
   EmptyState,
   Skeleton,
 } from "@/components/ui";
 
 export default function DoctorPrescriptionsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const { data, isLoading, refetch } = useDoctorPrescriptions();
   const [refreshing, setRefreshing] = useState(false);
@@ -75,8 +75,8 @@ export default function DoctorPrescriptionsScreen() {
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="My prescriptions"
-        subtitle={`${all.length} on file`}
+        title={t("doctorPrescriptions.title")}
+        subtitle={t("doctorPrescriptions.subtitle", { count: all.length })}
         onBack={() => router.back()}
       />
       <ScrollView
@@ -136,29 +136,29 @@ export default function DoctorPrescriptionsScreen() {
                     color: !filter ? colors.onPrimary : colors.text,
                   }}
                 >
-                  All
+                  {t("doctorPrescriptions.filters.all")}
                 </Text>
               </Pressable>
               <FilterChip
                 active={scope === "recent"}
-                label="Last 90 days"
+                label={t("doctorPrescriptions.filters.last90")}
                 onPress={() => setScope(scope === "recent" ? "all" : "recent")}
               />
               <FilterChip
                 active={filter === "diabetes"}
-                label="Diabetes"
+                label={t("doctorPrescriptions.filters.diabetes")}
                 onPress={() => setFilter(filter === "diabetes" ? "" : "diabetes")}
               />
               <FilterChip
                 active={filter === "hypertension"}
-                label="Hypertension"
+                label={t("doctorPrescriptions.filters.hypertension")}
                 onPress={() =>
                   setFilter(filter === "hypertension" ? "" : "hypertension")
                 }
               />
               <FilterChip
                 active={filter === "antibiotic"}
-                label="Antibiotic"
+                label={t("doctorPrescriptions.filters.antibiotic")}
                 onPress={() =>
                   setFilter(filter === "antibiotic" ? "" : "antibiotic")
                 }
@@ -177,11 +177,11 @@ export default function DoctorPrescriptionsScreen() {
           <EmptyState
             style={{ marginTop: spacing.xl }}
             icon={FileText}
-            title={filter ? "No matches" : "No prescriptions yet"}
+            title={filter ? t("doctorPrescriptions.emptySearchTitle") : t("doctorPrescriptions.emptyTitle")}
             message={
               filter
-                ? "Try a different search."
-                : "Prescriptions you write will appear here."
+                ? t("doctorPrescriptions.emptySearchBody")
+                : t("doctorPrescriptions.emptyBody")
             }
           />
         ) : (
@@ -202,7 +202,10 @@ export default function DoctorPrescriptionsScreen() {
                   } as any)
                 }
                 accessibilityRole="button"
-                accessibilityLabel={`Prescription for ${r.patient?.name || "patient"} on ${r.date}`}
+                accessibilityLabel={t("doctorPrescriptions.itemA11y", {
+                  name: r.patient?.name || t("doctorPrescriptions.unknownPatient"),
+                  date: r.date,
+                })}
                 style={({ pressed }) => ({
                   backgroundColor: pressed
                     ? colors.surfaceMuted
@@ -244,7 +247,7 @@ export default function DoctorPrescriptionsScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {r.title || "Prescription"}
+                      {r.title || t("doctorPrescriptions.fallbackTitle")}
                     </Text>
                     <Text
                       style={[
@@ -253,7 +256,7 @@ export default function DoctorPrescriptionsScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {r.patient?.name || "Unknown patient"}
+                      {r.patient?.name || t("doctorPrescriptions.unknownPatient")}
                       {r.diagnosis ? ` · ${r.diagnosis}` : ""}
                     </Text>
                     <View
@@ -307,8 +310,7 @@ export default function DoctorPrescriptionsScreen() {
                             letterSpacing: 0.3,
                           }}
                         >
-                          {r.medicineCount || 0} MED
-                          {r.medicineCount === 1 ? "" : "S"}
+                          {t("doctorPrescriptions.medCount", { count: r.medicineCount || 0 })}
                         </Text>
                       </View>
                       {r.followUpDate ? (
@@ -320,7 +322,7 @@ export default function DoctorPrescriptionsScreen() {
                             letterSpacing: 0.3,
                           }}
                         >
-                          FU {(r.followUpDate || "").toUpperCase()}
+                          {t("doctorPrescriptions.fuPrefix")} {(r.followUpDate || "").toUpperCase()}
                         </Text>
                       ) : null}
                     </View>

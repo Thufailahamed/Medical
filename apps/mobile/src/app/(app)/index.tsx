@@ -40,6 +40,8 @@ import {
   FileText,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
+import { useLocaleStore, type Locale } from "@/stores/locale";
+import { intlLocale, fmtWeekdayShort, fmtMonthShort } from "@/lib/format";
 import {
   usePatientProfile,
   useAllergies,
@@ -87,6 +89,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { spacing, typography, colors, radius, fontFamily } = useTheme();
   const toast = useToast();
 
@@ -162,9 +165,9 @@ export default function HomeScreen() {
 
   const headerDate = (() => {
     const d = new Date();
-    const weekday = d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    const weekday = fmtWeekdayShort(d, locale).toUpperCase();
     const day = d.getDate();
-    const month = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+    const month = fmtMonthShort(d, locale).toUpperCase();
     return `${greeting.toUpperCase()} · ${weekday} ${day} ${month}`;
   })();
 
@@ -1553,8 +1556,9 @@ function AppointmentTimelineRow({
 }) {
   const router = useRouter();
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { colors, spacing, typography } = useTheme();
-  const dateLabel = item?.date ? formatDate(t, item.date) : "—";
+  const dateLabel = item?.date ? formatDate(t, locale, item.date) : "—";
   const timeLabel = item?.time ? formatClock(item.time) : "";
 
   const title = item?.reason || t("appointments.fallbackTitle");
@@ -1717,7 +1721,7 @@ function FabAction({
   );
 }
 
-function formatDate(t: (k: string) => string, input?: string) {
+function formatDate(t: (k: string) => string, locale: Locale, input?: string) {
   if (!input) return "—";
   try {
     const d = new Date(input);
@@ -1726,11 +1730,11 @@ function formatDate(t: (k: string) => string, input?: string) {
     tomorrow.setDate(today.getDate() + 1);
     if (sameDay(d, today)) return t("home.dateToday");
     if (sameDay(d, tomorrow)) return t("home.dateTomorrow");
-    return d.toLocaleDateString(undefined, {
+    return new Intl.DateTimeFormat(intlLocale(locale), {
       weekday: "short",
       day: "numeric",
       month: "short",
-    });
+    }).format(d);
   } catch {
     return input;
   }

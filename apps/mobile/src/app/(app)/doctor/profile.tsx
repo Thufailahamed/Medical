@@ -6,10 +6,10 @@ import {
   Text,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Stethoscope,
   Phone,
@@ -47,11 +47,13 @@ function InfoRow({
   label,
   value,
   href,
+  t,
 }: {
   icon: any;
   label: string;
   value?: string | null;
   href?: string;
+  t: (k: string, opts?: any) => string;
 }) {
   const { colors, spacing, typography } = useTheme();
   return (
@@ -99,7 +101,7 @@ function InfoRow({
           onPress={() => Linking.openURL(href).catch(() => {})}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel={`Open ${label}`}
+          accessibilityLabel={t("doctorProfile.openA11y", { label })}
         >
           <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.2} />
         </Pressable>
@@ -126,7 +128,7 @@ function StatBlock({
     warning: { bg: "rgba(245, 158, 11, 0.14)", fg: "#F59E0B" },
     success: { bg: "rgba(16, 185, 129, 0.14)", fg: "#10B981" },
   };
-  const t = tones[tone] ?? tones.primary;
+  const tn = tones[tone] ?? tones.primary;
   return (
     <View
       style={{
@@ -145,12 +147,12 @@ function StatBlock({
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: t.bg,
+          backgroundColor: tn.bg,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={16} color={t.fg} strokeWidth={2.25} />
+        <Icon size={16} color={tn.fg} strokeWidth={2.25} />
       </View>
       <Text
         style={[
@@ -174,6 +176,7 @@ function StatBlock({
 
 export default function DoctorProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const user = useAuthStore((s) => s.user);
 
@@ -207,7 +210,7 @@ export default function DoctorProfileScreen() {
   if (isLoading || !doctor || !dbUser) {
     return (
       <Screen padded={false} edges={["top"]} bottomInset={false}>
-        <ScreenHeader title="Doctor profile" onBack={() => router.back()} />
+        <ScreenHeader title={t("doctorProfile.title")} onBack={() => router.back()} />
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
           <Skeleton height={140} radius={20} />
           <Skeleton height={220} radius={20} />
@@ -217,7 +220,7 @@ export default function DoctorProfileScreen() {
     );
   }
 
-  const initials = (dbUser?.name || "Dr")
+  const initials = (dbUser?.name || t("doctorProfile.initialsFallback"))
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -227,12 +230,14 @@ export default function DoctorProfileScreen() {
 
   const phoneHref = dbUser?.phone ? `tel:${dbUser.phone}` : undefined;
   const emailHref = dbUser?.email ? `mailto:${dbUser.email}` : undefined;
+  const nameFallback = t("doctorProfile.nameFallback");
+  const displayName = dbUser?.name || nameFallback;
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Doctor profile"
-        subtitle={dbUser?.name || "Doctor"}
+        title={t("doctorProfile.title")}
+        subtitle={t("doctorProfile.subtitle", { name: displayName })}
         onBack={() => router.back()}
       />
       <ScrollView
@@ -284,7 +289,7 @@ export default function DoctorProfileScreen() {
                 ]}
                 numberOfLines={1}
               >
-                {dbUser?.name || "Doctor"}
+                {displayName}
               </Text>
               {dbUser?.verified ? (
                 <BadgeCheck size={16} color={colors.primary} strokeWidth={2.4} />
@@ -297,7 +302,7 @@ export default function DoctorProfileScreen() {
               ]}
               numberOfLines={1}
             >
-              {doctor.specialization || "General Practice"}
+              {doctor.specialization || t("doctorProfile.generalPractice")}
             </Text>
             {doctor.licenseNumber ? (
               <Text
@@ -307,7 +312,7 @@ export default function DoctorProfileScreen() {
                 ]}
                 numberOfLines={1}
               >
-                SLMC {doctor.licenseNumber}
+                {t("doctorProfile.slmc", { number: doctor.licenseNumber })}
               </Text>
             ) : null}
           </View>
@@ -317,19 +322,19 @@ export default function DoctorProfileScreen() {
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
           <StatBlock
             icon={CalendarDays}
-            label="Today's queue"
+            label={t("doctorProfile.stats.todayQueue")}
             value={queueCount}
             tone="primary"
           />
           <StatBlock
             icon={FlaskConical}
-            label="Lab orders"
+            label={t("doctorProfile.stats.labOrders")}
             value={labCount}
             tone="info"
           />
           <StatBlock
             icon={CalendarClock}
-            label="Follow-ups"
+            label={t("doctorProfile.stats.followUps")}
             value={followCount}
             tone="warning"
           />
@@ -343,24 +348,24 @@ export default function DoctorProfileScreen() {
               { color: colors.textMuted, fontWeight: "700", marginBottom: 6 },
             ]}
           >
-            ACTIVITY
+            {t("doctorProfile.sections.activity")}
           </Text>
           <View style={{ flexDirection: "row", gap: spacing.sm }}>
             <StatBlock
               icon={FileText}
-              label="Prescriptions"
+              label={t("doctorProfile.stats.prescriptions")}
               value={rxCount}
               tone="success"
             />
             <StatBlock
               icon={Edit3}
-              label="Clinical notes"
+              label={t("doctorProfile.stats.clinicalNotes")}
               value={notesCount}
               tone="primary"
             />
             <StatBlock
               icon={Bell}
-              label="Unread alerts"
+              label={t("doctorProfile.stats.unread")}
               value={unread?.count ?? 0}
               tone="warning"
             />
@@ -375,19 +380,21 @@ export default function DoctorProfileScreen() {
               { color: colors.textMuted, fontWeight: "700", marginBottom: 6 },
             ]}
           >
-            CONTACT
+            {t("doctorProfile.sections.contact")}
           </Text>
           <InfoRow
             icon={Phone}
-            label="Phone"
+            label={t("doctorProfile.rows.phone")}
             value={dbUser?.phone}
             href={phoneHref}
+            t={t}
           />
           <InfoRow
             icon={Mail}
-            label="Email"
+            label={t("doctorProfile.rows.email")}
             value={dbUser?.email}
             href={emailHref}
+            t={t}
           />
         </Card>
 
@@ -399,45 +406,51 @@ export default function DoctorProfileScreen() {
               { color: colors.textMuted, fontWeight: "700", marginBottom: 6 },
             ]}
           >
-            PRACTICE
+            {t("doctorProfile.sections.practice")}
           </Text>
           <InfoRow
             icon={Stethoscope}
-            label="Specialization"
+            label={t("doctorProfile.rows.specialization")}
             value={doctor.specialization}
+            t={t}
           />
           <InfoRow
             icon={Briefcase}
-            label="Years of experience"
+            label={t("doctorProfile.rows.years")}
             value={
               doctor.yearsOfExperience != null
-                ? `${doctor.yearsOfExperience} years`
+                ? t("doctorProfile.rows.yearsValue", { count: doctor.yearsOfExperience })
                 : null
             }
+            t={t}
           />
           <InfoRow
             icon={GraduationCap}
-            label="Qualifications"
+            label={t("doctorProfile.rows.qualifications")}
             value={doctor.qualifications}
+            t={t}
           />
           <InfoRow
             icon={Award}
-            label="Languages spoken"
+            label={t("doctorProfile.rows.languages")}
             value={doctor.languages}
+            t={t}
           />
           <InfoRow
             icon={Building2}
-            label="Hospital"
+            label={t("doctorProfile.rows.hospital")}
             value={doctor.hospitalName}
+            t={t}
           />
           <InfoRow
             icon={Clock4}
-            label="Consultation fee"
+            label={t("doctorProfile.rows.fee")}
             value={
               doctor.consultationFee != null
-                ? `LKR ${doctor.consultationFee}`
+                ? t("doctorProfile.rows.feeValue", { amount: doctor.consultationFee })
                 : null
             }
+            t={t}
           />
         </Card>
 
@@ -445,7 +458,7 @@ export default function DoctorProfileScreen() {
         <View style={{ gap: spacing.sm }}>
           <Card
             onPress={() => router.push("/doctor/availability")}
-            accessibilityLabel="Edit availability"
+            accessibilityLabel={t("doctorProfile.editAvailabilityA11y")}
           >
             <View
               style={{
@@ -477,7 +490,7 @@ export default function DoctorProfileScreen() {
                     { color: colors.text, fontWeight: "700" },
                   ]}
                 >
-                  My availability
+                  {t("doctorProfile.availabilityTitle")}
                 </Text>
                 <Text
                   style={[
@@ -485,7 +498,7 @@ export default function DoctorProfileScreen() {
                     { color: colors.textMuted, marginTop: 2 },
                   ]}
                 >
-                  Edit weekly hours and slot minutes
+                  {t("doctorProfile.availabilitySubtitle")}
                 </Text>
               </View>
               <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.2} />
@@ -494,7 +507,7 @@ export default function DoctorProfileScreen() {
 
           <Card
             onPress={() => router.push("/notifications")}
-            accessibilityLabel="Notifications"
+            accessibilityLabel={t("doctorProfile.notificationsTitle")}
           >
             <View
               style={{
@@ -522,7 +535,7 @@ export default function DoctorProfileScreen() {
                     { color: colors.text, fontWeight: "700" },
                   ]}
                 >
-                  Notifications
+                  {t("doctorProfile.notificationsTitle")}
                 </Text>
                 <Text
                   style={[
@@ -531,8 +544,8 @@ export default function DoctorProfileScreen() {
                   ]}
                 >
                   {unread?.count
-                    ? `${unread.count} unread`
-                    : "All caught up"}
+                    ? t("doctorProfile.notificationsUnread", { count: unread.count })
+                    : t("doctorProfile.notificationsCaughtUp")}
                 </Text>
               </View>
               {unread?.count ? (

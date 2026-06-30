@@ -22,6 +22,8 @@ import {
   XCircle,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import {
   useShareLinks,
   useCreateShareLink,
@@ -48,6 +50,7 @@ export default function ShareScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
+  const locale = useLocaleStore((s) => s.locale);
   const { data, isLoading, refetch } = useShareLinks();
   const create = useCreateShareLink();
   const revoke = useRevokeShareLink();
@@ -97,7 +100,7 @@ export default function ShareScreen() {
         message: t("share.shareMessage", {
           label: link.label || t("share.link.labelFallback"),
           url,
-          date: new Date(link.expiresAt).toLocaleString(),
+          date: fmtDateTime(new Date(link.expiresAt), locale),
         }),
       });
     } catch (e: any) {
@@ -235,10 +238,10 @@ export default function ShareScreen() {
                   <Text style={[typography.caption, { color: colors.textMuted }]}>
                     {expired
                       ? t("share.link.expiredOn", {
-                          date: new Date(l.expiresAt).toLocaleDateString(),
+                          date: fmtDate(new Date(l.expiresAt), locale),
                         })
                       : t("share.link.expiresOn", {
-                          date: new Date(l.expiresAt).toLocaleString(),
+                          date: fmtDateTime(new Date(l.expiresAt), locale),
                         })}
                   </Text>
                 </View>

@@ -5,6 +5,8 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { Calendar as CalendarIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDate, fmtTime, fmtDateTime } from "@/lib/format";
 
 type Props = {
   value?: Date;
@@ -19,15 +21,10 @@ type Props = {
   disabled?: boolean;
 };
 
-function formatDate(d: Date, mode: "date" | "datetime" | "time") {
-  if (mode === "time") return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (mode === "datetime")
-    return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  return d.toLocaleDateString(undefined, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+function formatDate(d: Date, mode: "date" | "datetime" | "time", locale: ReturnType<typeof useLocaleStore.getState>["locale"]) {
+  if (mode === "time") return fmtTime(d, locale);
+  if (mode === "datetime") return fmtDateTime(d, locale);
+  return fmtDate(d, locale);
 }
 
 export function DateField({
@@ -43,6 +40,7 @@ export function DateField({
   disabled,
 }: Props) {
   const { colors, spacing, radius, typography } = useTheme();
+  const locale = useLocaleStore((s) => s.locale);
   const [show, setShow] = useState(false);
 
   const handleChange = (_e: DateTimePickerEvent, date?: Date) => {
@@ -103,7 +101,7 @@ export function DateField({
             { color: value ? colors.text : colors.textSubtle, flex: 1 },
           ]}
         >
-          {value ? formatDate(value, mode) : placeholder}
+          {value ? formatDate(value, mode, locale) : placeholder}
         </Text>
       </Pressable>
       {show ? (

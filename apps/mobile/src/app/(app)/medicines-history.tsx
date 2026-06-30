@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDate, fmtTime } from "@/lib/format";
 import {
   ChevronLeft,
   Check,
@@ -427,6 +429,7 @@ function MissedTab({
 }) {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
+  const locale = useLocaleStore((s) => s.locale);
   if (doses.length === 0) {
     return (
       <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
@@ -455,8 +458,8 @@ function MissedTab({
       {doses.map((d: any) => {
         const med = medById[d.medicineId] || {};
         const date = new Date(d.scheduledFor);
-        const dateLabel = date.toLocaleDateString();
-        const timeLabel = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const dateLabel = fmtDate(date, locale);
+        const timeLabel = fmtTime(date, locale);
         return (
           <View key={d.id} style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border }}>
             <View
@@ -526,6 +529,7 @@ function AllTab({
 }) {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
+  const locale = useLocaleStore((s) => s.locale);
   if (doses.length === 0) {
     return (
       <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
@@ -544,7 +548,7 @@ function AllTab({
   // Group by local date.
   const groups: Record<string, any[]> = {};
   for (const d of doses) {
-    const key = new Date(d.scheduledFor).toLocaleDateString();
+    const key = fmtDate(new Date(d.scheduledFor), locale);
     (groups[key] = groups[key] || []).push(d);
   }
   return (
@@ -563,10 +567,7 @@ function AllTab({
             {items.map((d: any) => {
               const med = medById[d.medicineId] || {};
               const doseDate = new Date(d.scheduledFor);
-              const timeLabel = doseDate.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
+              const timeLabel = fmtTime(doseDate, locale);
               const taken = !!d.takenAt;
               const skipped = !!d.skipped;
               const missed = !taken && !skipped && d.scheduledFor < new Date().toISOString();

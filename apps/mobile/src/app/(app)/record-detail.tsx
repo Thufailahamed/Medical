@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDateLong, intlLocale } from "@/lib/format";
 import {
   ChevronLeft,
   FileText,
@@ -146,6 +148,7 @@ export default function RecordDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography, fontFamily } = useTheme();
   const toast = useToast();
 
@@ -478,7 +481,7 @@ export default function RecordDetailScreen() {
               fontFamily: fontFamily.body,
             }}
           >
-            {ownerLabel} · {formatDate(record.date)}
+            {ownerLabel} · {formatDate(record.date, locale)}
           </Text>
           <Text
             style={{
@@ -564,7 +567,7 @@ export default function RecordDetailScreen() {
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                {formatDate(record.date)}
+                {formatDate(record.date, locale)}
               </Text>
             </View>
           </View>
@@ -1132,15 +1135,15 @@ function SheetRow({
   );
 }
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string, locale: string) {
   try {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("en-US", {
+    return new Intl.DateTimeFormat(intlLocale(locale as any), {
       month: "short",
       day: "numeric",
       year: "numeric",
-    });
+    }).format(d);
   } catch {
     return dateStr;
   }

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert, Dimensions } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtMonthYear, fmtDateTime } from "@/lib/format";
 import {
   Activity,
   Plus,
@@ -57,6 +59,7 @@ export default function VitalsScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
+  const locale = useLocaleStore((s) => s.locale);
   const { data, isLoading } = useVitals();
   const addVital = useAddVital();
   const deleteVital = useDeleteVital();
@@ -117,13 +120,11 @@ export default function VitalsScreen() {
       const date = new Date(v.recordedAt || v.createdAt);
       const key = isNaN(date.getTime())
         ? "RECENT"
-        : date
-            .toLocaleDateString("en-US", { month: "long", year: "numeric" })
-            .toUpperCase();
+        : fmtMonthYear(date, locale).toUpperCase();
       (map[key] ??= []).push(v);
     }
     return map;
-  }, [vitals]);
+  }, [vitals, locale]);
 
   async function save() {
     const v = parseFloat(value);
@@ -574,9 +575,7 @@ export default function VitalsScreen() {
                               { color: colors.textMuted },
                             ]}
                           >
-                            {new Date(
-                              v.recordedAt || v.createdAt
-                            ).toLocaleString()}
+                            {fmtDateTime(new Date(v.recordedAt || v.createdAt), locale)}
                           </Text>
                           {v.notes ? (
                             <Text

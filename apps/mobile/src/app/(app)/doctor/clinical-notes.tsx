@@ -10,19 +10,20 @@ import {
   TextInput as RNTextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Edit3, Search, ChevronRight, CalendarDays } from "lucide-react-native";
 import { useDoctorClinicalNotes } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
-  Card,
   EmptyState,
   Skeleton,
 } from "@/components/ui";
 
 export default function DoctorClinicalNotesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const { data, isLoading, refetch } = useDoctorClinicalNotes();
   const [refreshing, setRefreshing] = useState(false);
@@ -51,11 +52,13 @@ export default function DoctorClinicalNotesScreen() {
     }
   }
 
+  const count = data?.count ?? all.length;
+
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Clinical notes"
-        subtitle={`${data?.count ?? all.length} recorded`}
+        title={t("doctorClinicalNotes.title")}
+        subtitle={t("doctorClinicalNotes.subtitle", { count })}
         onBack={() => router.back()}
       />
       <ScrollView
@@ -89,7 +92,7 @@ export default function DoctorClinicalNotesScreen() {
             <TextInputShim
               value={q}
               onChangeText={setQ}
-              placeholder="Search by title, diagnosis, patient"
+              placeholder={t("doctorClinicalNotes.searchPlaceholder")}
               placeholderTextColor={colors.textSubtle}
               style={{
                 flex: 1,
@@ -103,7 +106,7 @@ export default function DoctorClinicalNotesScreen() {
                 onPress={() => setQ("")}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="Clear search"
+                accessibilityLabel={t("doctorClinicalNotes.clearA11y")}
               >
                 <Text
                   style={{
@@ -112,7 +115,7 @@ export default function DoctorClinicalNotesScreen() {
                     color: colors.textMuted,
                   }}
                 >
-                  Clear
+                  {t("doctorClinicalNotes.clear")}
                 </Text>
               </Pressable>
             ) : null}
@@ -129,16 +132,16 @@ export default function DoctorClinicalNotesScreen() {
           <EmptyState
             style={{ marginTop: spacing.xl }}
             icon={Edit3}
-            title={q ? "No matches" : "No clinical notes yet"}
+            title={q ? t("doctorClinicalNotes.emptySearchTitle") : t("doctorClinicalNotes.emptyTitle")}
             message={
               q
-                ? "Try a different search."
-                : "Notes you write from a patient's chart will appear here."
+                ? t("doctorClinicalNotes.emptySearchBody")
+                : t("doctorClinicalNotes.emptyBody")
             }
-            actionLabel={!q ? "Find a patient" : undefined}
+            actionLabel={!q ? t("doctorClinicalNotes.findPatient") : undefined}
             onAction={
               !q
-                ? () => router.push("/doctor/prescription")
+                ? () => router.push("/doctor/prescription" as any)
                 : undefined
             }
           />
@@ -160,7 +163,10 @@ export default function DoctorClinicalNotesScreen() {
                   } as any)
                 }
                 accessibilityRole="button"
-                accessibilityLabel={`Note for ${r.patient?.name || "patient"}: ${r.title}`}
+                accessibilityLabel={t("doctorClinicalNotes.itemA11y", {
+                  name: r.patient?.name || t("doctorClinicalNotes.unknownPatient"),
+                  title: r.title,
+                })}
                 style={({ pressed }) => ({
                   backgroundColor: pressed
                     ? colors.surfaceMuted
@@ -202,7 +208,7 @@ export default function DoctorClinicalNotesScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {r.title || "Clinical note"}
+                      {r.title || t("doctorClinicalNotes.noteFallback")}
                     </Text>
                     <Text
                       style={[
@@ -211,7 +217,7 @@ export default function DoctorClinicalNotesScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {r.patient?.name || "Unknown patient"}
+                      {r.patient?.name || t("doctorClinicalNotes.unknownPatient")}
                       {r.diagnosis ? ` · ${r.diagnosis}` : ""}
                     </Text>
                     {r.notes ? (
@@ -269,7 +275,6 @@ export default function DoctorClinicalNotesScreen() {
   );
 }
 
-// Local inline TextInput to avoid pulling FormField for a single-line search.
 function TextInputShim(props: any) {
   return <RNTextInput {...props} />;
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtDate } from "@/lib/format";
 import {
   Sparkles,
   FlaskConical,
@@ -34,6 +36,7 @@ import {
 export default function LabExplainScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
 
@@ -114,7 +117,7 @@ export default function LabExplainScreen() {
                       { color: colors.textMuted, marginTop: 2 },
                     ]}
                   >
-                    {new Date(selectedReport.createdAt).toLocaleDateString()}
+                    {fmtDate(new Date(selectedReport.createdAt), locale)}
                   </Text>
                 </View>
                 <PillCmp
@@ -276,7 +279,7 @@ export default function LabExplainScreen() {
               icon={FlaskConical}
               iconTone="info"
               title={r.reportType}
-              subtitle={`${new Date(r.createdAt).toLocaleDateString()} · ${r.status}`}
+              subtitle={`${fmtDate(new Date(r.createdAt), locale)} · ${r.status}`}
               pill={{ label: t("aiLabExplain.explainPill"), tone: "primary" }}
               onPress={() => explain(r)}
             />

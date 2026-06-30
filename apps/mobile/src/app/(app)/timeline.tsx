@@ -19,6 +19,8 @@ import {
   History,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { useLocaleStore } from "@/stores/locale";
+import { fmtMonthYear, fmtDateTime } from "@/lib/format";
 import {
   useUnifiedTimeline,
   type TimelineEvent,
@@ -56,10 +58,9 @@ const KIND_ICONS: Record<TimelineEventKind, any> = {
 };
 
 // Returns a stable i18n key for the group label rather than a raw string;
-// the display label is resolved at render time via t(). Date formatting is
-// left to phase 1.1e (Intl) — this screen still uses en-US for month names
-// in older-than-30-days groups.
-function groupKey(dateIso: string | null): string {
+// the display label is resolved at render time via t(). Date formatting for
+// older-than-30-days groups uses the active locale via fmtMonthYear.
+function groupKey(dateIso: string | null, locale: ReturnType<typeof useLocaleStore.getState>["locale"]): string {
   if (!dateIso) return "unknown";
   const d = new Date(dateIso);
   if (isNaN(d.getTime())) return "unknown";
@@ -81,8 +82,7 @@ function groupKey(dateIso: string | null): string {
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   if (days < 7) return "week";
   if (days < 30) return "month";
-  if (days < 365)
-    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  if (days < 365) return fmtMonthYear(d, locale);
   return d.getFullYear().toString();
 }
 
@@ -96,6 +96,7 @@ export default function TimelineScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
+  const locale = useLocaleStore((s) => s.locale);
   const [filter, setFilter] = useState<TimelineEventKind | "all">("all");
 
   const { data, isLoading, refetch, isFetching } = useUnifiedTimeline({
@@ -160,7 +161,7 @@ export default function TimelineScreen() {
         ) : (
           <Timeline
             data={events}
-            groupBy={(e) => groupKey(e.date)}
+            groupBy={(e) => groupKey(e.date, locale)}
             groupMeta={{
               today: { label: t("timeline.group.today"), tone: "primary" },
               yesterday: { label: t("timeline.group.yesterday"), tone: "info" },
@@ -244,7 +245,7 @@ export default function TimelineScreen() {
                           { color: colors.textSubtle, marginTop: 4 },
                         ]}
                       >
-                        {e.date ? new Date(e.date).toLocaleString() : "—"}
+                        {e.date ? fmtDateTime(new Date(e.date), locale) : "—"}
                       </Text>
                     </View>
                   </View>
