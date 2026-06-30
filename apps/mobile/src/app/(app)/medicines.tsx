@@ -404,13 +404,13 @@ export default function MedicinesScreen() {
         {tab === "today" ? (
           <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
             <LinearGradient
-              colors={["#4f378a", "#31215a"]}
+              colors={["#1D4ED8", "#059669"]}
               style={{
                 padding: spacing.lg,
                 borderRadius: radius.xxl,
                 position: "relative",
                 overflow: "hidden",
-                shadowColor: "#4f378a",
+                shadowColor: "#1D4ED8",
                 shadowOffset: { width: 0, height: 10 },
                 shadowOpacity: 0.15,
                 shadowRadius: 15,
