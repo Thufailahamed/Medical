@@ -353,7 +353,7 @@ export default function HomeScreen() {
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: colors.danger,
+                    backgroundColor: colors.danger || "#FF3B30",
                   }}
                 />
               ) : null}
@@ -376,7 +376,7 @@ export default function HomeScreen() {
           }}
         >
           <LinearGradient
-            colors={["#1E3A8A", "#047857"]}
+            colors={["#0B2B64", "#0C8B8C"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}

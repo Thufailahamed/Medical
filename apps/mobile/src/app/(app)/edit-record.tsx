@@ -135,7 +135,7 @@ export default function EditRecordScreen() {
       />
 
       <ScrollView
-        style={{ backgroundColor: colors.bg }}
+        style={{ backgroundColor: "#FAF9FC" }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 100 }}
       >
@@ -169,7 +169,7 @@ export default function EditRecordScreen() {
                     style={{
                       fontSize: 14,
                       fontWeight: "700",
-                      color: colors.text,
+                      color: "#1D1B20",
                       fontFamily: fontFamily.bodyBold,
                     }}
                   >
@@ -185,7 +185,7 @@ export default function EditRecordScreen() {
                 style={{
                   fontSize: 12,
                   fontWeight: "700",
-                  color: colors.textMuted,
+                  color: "#7F7B8C",
                   letterSpacing: 1,
                   marginBottom: spacing.xs,
                   fontFamily: fontFamily.displayBold,
@@ -209,7 +209,7 @@ export default function EditRecordScreen() {
                         paddingHorizontal: 12,
                         paddingVertical: 8,
                         borderRadius: 16,
-                        backgroundColor: isSel ? colors.primary : colors.surfaceMuted,
+                        backgroundColor: isSel ? colors.primary : "#F4F2F8",
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 4,
@@ -217,14 +217,14 @@ export default function EditRecordScreen() {
                     >
                       <meta.icon
                         size={13}
-                        color={isSel ? colors.onPrimary : colors.text}
+                        color={isSel ? "#FFFFFF" : colors.text}
                         strokeWidth={2.25}
                       />
                       <Text
                         style={{
                           fontSize: 13,
                           fontWeight: "700",
-                          color: isSel ? colors.onPrimary : colors.text,
+                          color: isSel ? "#FFFFFF" : "#1D1B20",
                           fontFamily: isSel
                             ? fontFamily.bodyBold
                             : fontFamily.body,
@@ -304,8 +304,8 @@ export default function EditRecordScreen() {
                 variant="ghost"
                 size="md"
                 onPress={confirmDelete}
-                leftIcon={<Trash2 size={16} color={colors.danger} />}
-                textStyle={{ color: colors.danger }}
+                leftIcon={<Trash2 size={16} color={colors.danger || "#FF3B30"} />}
+                textStyle={{ color: colors.danger || "#FF3B30" }}
               />
             </View>
           </View>
