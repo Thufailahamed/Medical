@@ -114,3 +114,64 @@ function toDate(input: Date | string | number): Date {
   if (input instanceof Date) return input;
   return new Date(input);
 }
+
+// ─── Phase 1.2: NIC + DOB helpers (client-side) ──────────
+// Mirrors the server validators so the form rejects garbage before round-trip.
+
+/** SL NIC: old (9 digits + V/X) or new (12 digits). */
+export const NIC_REGEX = /^(\d{9}[VvXx]|\d{12})$/;
+
+/** Canonicalise a NIC string (uppercase, trimmed). */
+export function normalizeNic(nic: string): string {
+  return nic.trim().toUpperCase();
+}
+
+/**
+ * Validate YYYY-MM-DD as a real past date (age 0..120).
+ * Mirrors server `parseDob` so client rejects before round-trip.
+ */
+export function parseDob(dob: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
+  if (!m) return null;
+  const yr = +m[1], moIdx = +m[2] - 1, day = +m[3];
+  if (moIdx < 0 || moIdx > 11) return null;
+  if (day < 1 || day > 31) return null;
+  const date = new Date(yr, moIdx, day);
+  if (
+    date.getFullYear() !== yr ||
+    date.getMonth() !== moIdx ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  const now = new Date();
+  if (date.getTime() > now.getTime()) return null;
+  const ageYears = (now.getTime() - date.getTime()) / (365.25 * 24 * 3600 * 1000);
+  if (ageYears > 120) return null;
+  return date;
+}
+
+/** Mask a NIC for display: "200*******678" (last 3 + 4 prefix). */
+export function maskNic(nic: string): string {
+  const s = normalizeNic(nic);
+  if (s.length <= 4) return "****";
+  return s.slice(0, 3) + "****" + s.slice(-3);
+}
+
+/** Mask an email or phone target: "thi****@gm**.com" / "+94****4567". */
+export function maskTarget(target: string): string {
+  if (!target) return "****";
+  if (target.includes("@")) {
+    const [local, domain] = target.split("@");
+    const localMasked =
+      local.length <= 2 ? local[0] + "*" : local.slice(0, 3) + "****";
+    const dotIdx = domain.lastIndexOf(".");
+    const tld = dotIdx >= 0 ? domain.slice(dotIdx) : "";
+    const d = dotIdx >= 0 ? domain.slice(0, dotIdx) : domain;
+    const domainMasked =
+      d.length <= 2 ? d[0] + "*" + tld : d.slice(0, 2) + "**" + tld;
+    return `${localMasked}@${domainMasked}`;
+  }
+  if (target.length <= 6) return "****";
+  return target.slice(0, 3) + "****" + target.slice(-2);
+}

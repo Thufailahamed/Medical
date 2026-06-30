@@ -23,12 +23,34 @@ export const users = sqliteTable("users", {
   phone: text("phone").unique(),
   name: text("name").notNull(),
   nic: text("nic"),
+  // Phase 1.2: bcrypt hash of NIC for soft-verification login. Plain NIC
+  // stays in this row for last-mile display only; queries against an
+  // unauthenticated caller never read it.
+  nicHash: text("nic_hash"),
+  dateOfBirth: text("date_of_birth"),
   photo: text("photo"),
   verified: integer("verified", { mode: "boolean" }).default(false),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── OTP codes (Phase 1.2) ────────────────────────────────
+// 6-digit numeric code, bcrypt-hashed at rest. Used by /auth/send-otp and
+// /auth/verify-otp. Single-use, 5-minute TTL.
+export const otpCodes = sqliteTable("otp_codes", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => users.id),
+  channel: text("channel", { enum: ["mobile", "email"] }).notNull(),
+  target: text("target").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  consumedAt: text("consumed_at"),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });

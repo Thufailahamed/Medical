@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
+  Calendar,
 } from "lucide-react-native";
 import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
@@ -34,6 +35,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { useSpecialties, useHospitals } from "@/hooks/useApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Screen, Skeleton, useToast } from "@/components/ui";
+import { NIC_REGEX, parseDob } from "@/lib/format";
 
 const schema = z
   .object({
@@ -42,6 +44,7 @@ const schema = z
     email: z.string().email("Enter a valid email").optional().or(z.literal("")),
     phone: z.string().optional(),
     nic: z.string().optional(),
+    dob: z.string().optional(),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirm: z.string(),
     doctorProfile: z
@@ -67,6 +70,21 @@ const schema = z
       message: "Specialization is required for doctor accounts",
       path: ["doctorProfile", "specialization"],
     }
+  )
+  .refine(
+    (d) =>
+      d.role !== "patient" || NIC_REGEX.test((d.nic || "").trim()),
+    {
+      message: "NIC must be 9 digits + letter (old) or 12 digits (new)",
+      path: ["nic"],
+    },
+  )
+  .refine(
+    (d) => d.role !== "patient" || (!!d.dob && parseDob(d.dob) !== null),
+    {
+      message: "Enter a valid past date (YYYY-MM-DD)",
+      path: ["dob"],
+    },
   );
 
 type FormData = z.infer<typeof schema>;
@@ -105,6 +123,7 @@ export default function RegisterScreen() {
       email: "",
       phone: "",
       nic: "",
+      dob: "",
       password: "",
       confirm: "",
       doctorProfile: {
@@ -151,6 +170,20 @@ export default function RegisterScreen() {
         await SecureStore.setItemAsync("auth_token", res.session.access_token);
         setUser(res.user);
         toast.show("Account created", "success");
+        // Phase 1.2: if patient gave a phone, route through OTP screen
+        // for soft 2FA verification before reaching the home stack.
+        if (data.role === "patient" && (data.phone || "").trim()) {
+          router.replace({
+            pathname: "/(auth)/verify-otp",
+            params: {
+              userId: res.user.id,
+              channel: "mobile",
+              target: data.phone,
+              mode: "register",
+            },
+          } as any);
+          return;
+        }
         const home =
           (data.role as string) === "doctor" ? "/(app)/doctor" : "/(app)";
         router.replace(home as any);
@@ -390,17 +423,38 @@ export default function RegisterScreen() {
           name="nic"
           render={({ field: { onChange, onBlur, value } }) => (
             <CustomUnderlineInput
-              label="National ID (optional)"
+              label={role === "patient" ? "National ID *" : "National ID (optional)"}
               value={value || ""}
-              onChangeText={onChange}
+              onChangeText={(t) => onChange(t.toUpperCase())}
               onBlur={onBlur}
-              placeholder="200012345678"
+              placeholder="200012345678 or 123456789V"
               icon={IdCard}
               autoCapitalize="characters"
               error={errors.nic?.message}
             />
           )}
         />
+
+        {/* DOB (required for patient) */}
+        {role === "patient" ? (
+          <Controller
+            control={control}
+            name="dob"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomUnderlineInput
+                label="Date of birth *"
+                value={value || ""}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="YYYY-MM-DD"
+                icon={Calendar}
+                keyboardType="numbers-and-punctuation"
+                autoComplete="birthdate-full"
+                error={errors.dob?.message}
+              />
+            )}
+          />
+        ) : null}
 
         {/* Password */}
         <Controller
