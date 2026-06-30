@@ -349,9 +349,9 @@ export function useMyMedicines(opts?: { includeInactive?: boolean }) {
   return q;
 }
 
-export function useMedicineStats() {
+export function useMedicineStats(days: number = 7) {
   return useQuery({
-    queryKey: ["medicines", "stats"],
+    queryKey: ["medicines", "stats", days],
     queryFn: () =>
       api<{
         activeCount: number;
@@ -359,9 +359,40 @@ export function useMedicineStats() {
         todayCount: number;
         todayTaken: number;
         streakDays: number;
-        last7Days: Array<{ date: string; total: number; taken: number; pct: number }>;
-      }>("/medicines/me/stats"),
+        last7Days: Array<{
+          date: string;
+          total: number;
+          taken: number;
+          skipped: number;
+          missed: number;
+          pct: number;
+        }>;
+      }>(`/medicines/me/stats?days=${days}`),
     staleTime: 60_000,
+  });
+}
+
+// F3: list missed doses (past, never taken, not skipped).
+export function useMissedDoses(limit: number = 50) {
+  return useQuery({
+    queryKey: ["doses", "missed", limit],
+    queryFn: () => api<{ doses: any[]; count: number }>(`/doses/missed?limit=${limit}`),
+    refetchInterval: 60_000,
+  });
+}
+
+// F3: history of doses for an arbitrary window.
+export function useDosesHistory(opts: { from?: string; to?: string; medicineId?: string } = {}) {
+  return useQuery({
+    queryKey: ["doses", "history", opts],
+    queryFn: () => {
+      const p = new URLSearchParams();
+      if (opts.from) p.set("from", opts.from);
+      if (opts.to) p.set("to", opts.to);
+      if (opts.medicineId) p.set("medicineId", opts.medicineId);
+      const qs = p.toString();
+      return api<{ doses: any[] }>(`/doses/me${qs ? `?${qs}` : ""}`);
+    },
   });
 }
 
@@ -501,6 +532,10 @@ export function useScheduleTodayDoses() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doses"] });
+      // M6: schedule can introduce new medicines into the Today view if
+      // the med list was racing with the schedule call. Refresh the
+      // /medicines/today query so the screen reflects the new schedule.
+      queryClient.invalidateQueries({ queryKey: ["medicines", "today"] });
     },
   });
 }

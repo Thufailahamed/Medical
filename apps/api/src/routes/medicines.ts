@@ -14,36 +14,18 @@ import { medicineSchema, medicineUpdateSchema } from "../lib/validators";
 import { canAccessPatient } from "../lib/access";
 import { MEDICINE_CATALOG } from "../data/medicines-catalog";
 import { findStaticInteractions } from "../lib/ai";
+import {
+  formatLocalDate,
+  localDayToUtcRange,
+  localHHMM,
+  localToday,
+} from "../lib/timezone";
+import { slotsForFrequency, isAsNeeded } from "../lib/medicine-slots";
 import type { AppEnvironment } from "../types";
 
 const medicinesRouter = new Hono<AppEnvironment>();
 
-function slotsForFrequency(freq: string | null, timing?: string | null): string[] {
-  const f = (freq || "").toLowerCase();
-  if (f === "once daily") return ["09:00"];
-  if (f === "twice daily") return ["09:00", "21:00"];
-  if (f === "three times daily") return ["09:00", "15:00", "21:00"];
-  if (f === "four times daily") return ["08:00", "13:00", "18:00", "22:00"];
-
-  const t = (timing || "").toLowerCase();
-  if (t.includes("morning") || t.includes("breakfast") || t.includes("food") || t.includes("am")) {
-    return ["09:00"];
-  }
-  if (t.includes("noon") || t.includes("afternoon") || t.includes("lunch")) {
-    return ["13:00"];
-  }
-  if (t.includes("evening") || t.includes("dinner")) {
-    return ["18:00"];
-  }
-  if (t.includes("night") || t.includes("bed") || t.includes("pm")) {
-    return ["21:00"];
-  }
-  return ["09:00"];
-}
-
-function isAsNeeded(freq: string | null) {
-  return (freq || "").toLowerCase() === "as needed";
-}
+// slotsForFrequency + isAsNeeded now imported from ../lib/medicine-slots.
 
 async function getOwnPatient(db: any, userId: string) {
   const [p] = await db
@@ -63,9 +45,10 @@ async function scheduleTodayForMedicine(
   const end = medicineRow.endDate || today;
   if (today < start || today > end) return 0;
 
-  // Don't create duplicates if doses already exist for this medicine today
-  const dayStart = `${today}T00:00:00.000Z`;
-  const dayEnd = `${today}T23:59:59.999Z`;
+  // B1 (timezone): use local-day UTC range, not literal T00/T23 bounds
+  // from a UTC date string. Same fix as the standalone /doses/schedule/today
+  // handler so behaviour is identical whether scheduling on add or on demand.
+  const { startUtc: dayStart, endUtc: dayEnd } = localDayToUtcRange(today);
   const existing = await db
     .select()
     .from(medicineDoses)
@@ -77,9 +60,7 @@ async function scheduleTodayForMedicine(
       )
     );
   const existingTimes = new Set(
-    existing.map((e: any) =>
-      new Date(e.scheduledFor).toISOString().slice(11, 16)
-    )
+    existing.map((e: any) => localHHMM(e.scheduledFor))
   );
 
   let created = 0;
@@ -160,10 +141,13 @@ medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (
     else pausedCount = Number(r.c);
   }
 
-  // today
-  const today = new Date().toISOString().slice(0, 10);
-  const todayStart = `${today}T00:00:00.000Z`;
-  const todayEnd = `${today}T23:59:59.999Z`;
+  // today — B1 (timezone): use local calendar day, then derive the
+  // UTC range that covers it. The previous `${today}T00:00:00.000Z`
+  // pattern read the UTC date and skipped doses scheduled on the user's
+  // local "today" that landed in a different UTC day.
+  const today = localToday();
+  const { startUtc: todayStart, endUtc: todayEnd } =
+    localDayToUtcRange(today);
   const [todayRow] = await db
     .select({
       total: sql<number>`count(*)`,
@@ -180,14 +164,23 @@ medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (
   const todayCount = Number(todayRow?.total ?? 0);
   const todayTaken = Number(todayRow?.taken ?? 0);
 
-  // last 7 days — group by ISO date of scheduledFor
+  // F3: window now configurable via ?days= (default 7, cap 90).
+  // group by LOCAL date of scheduledFor.
+  // B1 (timezone): use local day arithmetic + formatLocalDate() on
+  // every key so the buckets line up with the dose rows even when
+  // the dose's UTC time falls in a different calendar day.
+  const days = Math.min(
+    Math.max(parseInt(c.req.query("days") || "7", 10) || 7, 1),
+    90
+  );
   const sevenStart = new Date();
   sevenStart.setHours(0, 0, 0, 0);
-  sevenStart.setDate(sevenStart.getDate() - 6);
+  sevenStart.setDate(sevenStart.getDate() - (days - 1));
   const doseRows = await db
     .select({
       scheduledFor: medicineDoses.scheduledFor,
       takenAt: medicineDoses.takenAt,
+      skipped: medicineDoses.skipped,
     })
     .from(medicineDoses)
     .where(
@@ -197,18 +190,28 @@ medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (
       )
     );
 
-  const byDate: Record<string, { total: number; taken: number }> = {};
-  for (let i = 0; i < 7; i++) {
+  const byDate: Record<
+    string,
+    { total: number; taken: number; skipped: number; missed: number }
+  > = {};
+  for (let i = 0; i < days; i++) {
     const d = new Date(sevenStart);
     d.setDate(sevenStart.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    byDate[key] = { total: 0, taken: 0 };
+    const key = formatLocalDate(d);
+    byDate[key] = { total: 0, taken: 0, skipped: 0, missed: 0 };
   }
   for (const r of doseRows) {
-    const key = new Date(r.scheduledFor).toISOString().slice(0, 10);
+    const key = formatLocalDate(r.scheduledFor);
     if (!byDate[key]) continue;
     byDate[key].total += 1;
     if (r.takenAt) byDate[key].taken += 1;
+    else if (r.skipped) byDate[key].skipped += 1;
+    else {
+      // past & not taken & not skipped = missed
+      if (new Date(r.scheduledFor).getTime() < Date.now()) {
+        byDate[key].missed += 1;
+      }
+    }
   }
   const last7Days = Object.entries(byDate)
     .sort(([a], [b]) => (a < b ? -1 : 1))
@@ -216,15 +219,20 @@ medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (
       date,
       total: v.total,
       taken: v.taken,
+      skipped: v.skipped,
+      missed: v.missed,
       pct: v.total > 0 ? Math.round((v.taken / v.total) * 100) : 0,
     }));
 
   // streak = consecutive days from yesterday backwards with >=80% adherence
   // (today excluded because it's incomplete).
+  // M2: a gap day (total=0, i.e. user wasn't on any medicines) breaks the
+  // streak. Previously `continue` silently skipped gap days and let a
+  // streak survive weeks of zero-schedule days, which is misleading.
   let streakDays = 0;
   for (let i = last7Days.length - 2; i >= 0; i--) {
     const day = last7Days[i];
-    if (day.total === 0) continue;
+    if (day.total === 0) break;
     if (day.pct >= 80) streakDays += 1;
     else break;
   }

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,9 @@ import {
   Calendar,
   Edit,
   Trash2,
+  Power,
+  Play,
+  History,
 } from "lucide-react-native";
 import {
   useMyMedicines,
@@ -35,6 +38,7 @@ import {
   useSkipDose,
   useScheduleTodayDoses,
   useDeleteMedicine,
+  useEditMedicine,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -46,9 +50,13 @@ import {
   Avatar,
 } from "@/components/ui";
 
-const TABS: { value: "today" | "all"; label: string }[] = [
+// M1: third tab "All" surfaces stopped/paused medicines so users can
+// resume them. The previous "All Active" label was a lie — the underlying
+// query (`useMyMedicines()` without opts) only returned active=true rows.
+const TABS: { value: "today" | "active" | "all"; label: string }[] = [
   { value: "today", label: "Today" },
-  { value: "all", label: "All Active" },
+  { value: "active", label: "Active" },
+  { value: "all", label: "All" },
 ];
 
 type PeriodKey = "morning" | "afternoon" | "evening" | "night";
@@ -124,20 +132,26 @@ export default function MedicinesScreen() {
   const toast = useToast();
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
-  const { data: allMeds, isLoading, refetch: refetchAll } = useMyMedicines();
+  const [tab, setTab] = useState<"today" | "active" | "all">("today");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [selectedMed, setSelectedMed] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // M1: include inactive rows only when the user opts into the "All" tab.
+  // "today" + "active" stay scoped to active=true so the period grouping
+  // and dose badges don't show stale entries.
+  const { data: allMeds, isLoading, refetch: refetchAll } = useMyMedicines(
+    tab === "all" ? { includeInactive: true } : undefined
+  );
   const { data: todayMeds, refetch: refetchToday } = useTodayMedicines();
   const { data: todayDoses, refetch: refetchDoses } = useTodayDoses();
   const stopMedicine = useStopMedicine();
   const deleteMedicine = useDeleteMedicine();
+  const edit = useEditMedicine();
   const markTaken = useMarkDoseTaken();
   const untakeDose = useUntakeDose();
   const skipDose = useSkipDose();
   const scheduleToday = useScheduleTodayDoses();
-
-  const [tab, setTab] = useState<"today" | "all">("today");
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [selectedMed, setSelectedMed] = useState<any>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -146,6 +160,24 @@ export default function MedicinesScreen() {
       refetchDoses();
     }, [refetchToday, refetchAll, refetchDoses])
   );
+
+  // B2: Auto-schedule today's doses for any active in-range medicine that
+  // has no dose rows yet. Closes the gap where medicines added in the past
+  // (or added on a day without an explicit "Mark today's schedule" tap)
+  // showed up on the Today tab with no Mark-Taken button working.
+  //
+  // Safe to call repeatedly: B1's timezone fix makes the server dedup exact.
+  // Only fires when there are meds but no doses yet for today — never when
+  // the schedule is already in place or while a request is in-flight.
+  useEffect(() => {
+    if (tab !== "today") return;
+    if (scheduleToday.isPending) return;
+    const meds = todayMeds?.medicines ?? [];
+    const doses = todayDoses?.doses ?? [];
+    if (meds.length > 0 && doses.length === 0) {
+      scheduleToday.mutate();
+    }
+  }, [tab, todayMeds, todayDoses, scheduleToday]);
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -156,7 +188,9 @@ export default function MedicinesScreen() {
     }
   }
 
-  // API returns FLAT objects
+  // API returns FLAT objects. `allMeds` is already active-only for
+// tab="today" + tab="active" (no `includeInactive` opt passed); it
+// includes stopped rows for tab="all".
   const list: any[] =
     tab === "today" ? todayMeds?.medicines ?? [] : allMeds?.medicines ?? [];
 
@@ -485,13 +519,43 @@ export default function MedicinesScreen() {
         ) : null}
 
         {tab === "today" && list.length > 0 ? (
-          <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+          <View
+            style={{
+              paddingHorizontal: spacing.lg,
+              marginTop: spacing.md,
+              flexDirection: "row",
+              gap: spacing.sm,
+            }}
+          >
             <Button
               title="Mark today's schedule"
               icon={Calendar}
               variant="outline"
               onPress={handleScheduleToday}
               loading={scheduleToday.isPending}
+              fullWidth={false}
+              size="sm"
+            />
+            <Button
+              title="History"
+              icon={History}
+              variant="ghost"
+              onPress={() => router.push("/(app)/medicines-history")}
+              fullWidth={false}
+              size="sm"
+            />
+          </View>
+        ) : null}
+
+        {/* F3: also surface a History shortcut when on the Active tab
+            so users can review adherence without returning to Today. */}
+        {tab === "active" ? (
+          <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+            <Button
+              title="View adherence & history"
+              icon={History}
+              variant="outline"
+              onPress={() => router.push("/(app)/medicines-history")}
               fullWidth={false}
               size="sm"
             />
@@ -665,6 +729,7 @@ export default function MedicinesScreen() {
 
                     {items.map((med) => {
                       const isTaken = !!doseMap[med.id]?.taken;
+                      const isInactive = med.active === false;
                       return (
                         <Pressable
                           key={med.id}
@@ -743,19 +808,53 @@ export default function MedicinesScreen() {
                             <View
                               style={{ flex: 1, marginRight: spacing.md }}
                             >
-                              <Text
-                                style={[
-                                  typography.title.sm,
-                                  {
-                                    color: colors.text,
-                                    fontWeight: "800",
-                                    fontSize: 16,
-                                  },
-                                ]}
-                                numberOfLines={1}
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: spacing.xs,
+                                }}
                               >
-                                {med.name}
-                              </Text>
+                                <Text
+                                  style={[
+                                    typography.title.sm,
+                                    {
+                                      color: isInactive
+                                        ? colors.textMuted
+                                        : colors.text,
+                                      fontWeight: "800",
+                                      fontSize: 16,
+                                      flexShrink: 1,
+                                    },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {med.name}
+                                </Text>
+                                {isInactive ? (
+                                  <View
+                                    style={{
+                                      paddingHorizontal: 8,
+                                      paddingVertical: 2,
+                                      borderRadius: 999,
+                                      backgroundColor: colors.surfaceMuted,
+                                      borderWidth: 1,
+                                      borderColor: colors.border,
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: "800",
+                                        color: colors.textMuted,
+                                        letterSpacing: 0.5,
+                                      }}
+                                    >
+                                      STOPPED
+                                    </Text>
+                                  </View>
+                                ) : null}
+                              </View>
                               <Text
                                 style={[
                                   typography.body.sm,
@@ -895,7 +994,7 @@ export default function MedicinesScreen() {
             ) : null}
           </View>
 
-          {selectedMed && tab === "today" ? (
+          {selectedMed && tab === "today" && selectedMed.active !== false ? (
             <Button
               title={
                 doseMap[selectedMed.id]?.taken
@@ -928,13 +1027,40 @@ export default function MedicinesScreen() {
             />
           ) : null}
 
-          {selectedMed ? (
+          {/* M1: resume/stop pair. Stop is hidden once the med is already
+              inactive; Resume flips active=true via the existing PATCH. */}
+          {selectedMed && selectedMed.active !== false ? (
             <Button
               title="Stop medicine"
-              icon={Plus}
+              icon={Power}
               onPress={handleStop}
               variant="outline"
               loading={stopMedicine.isPending}
+            />
+          ) : null}
+
+          {selectedMed && selectedMed.active === false ? (
+            <Button
+              title="Resume medicine"
+              icon={Play}
+              onPress={async () => {
+                try {
+                  await edit.mutateAsync({
+                    id: selectedMed.id,
+                    active: true,
+                  } as any);
+                  toast.show(`${selectedMed.name} resumed`, "success");
+                  refetchAll();
+                  refetchToday();
+                } catch (err: any) {
+                  toast.show(err?.message || "Failed to resume", "danger");
+                } finally {
+                  setMoreOpen(false);
+                  setSelectedMed(null);
+                }
+              }}
+              variant="primary"
+              loading={edit.isPending}
             />
           ) : null}
 

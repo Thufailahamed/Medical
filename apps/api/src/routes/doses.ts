@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, isNull, sql } from "drizzle-orm";
 import { medicineDoses, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { scheduleTodayForPatient } from "../lib/medicine-scheduler";
@@ -39,9 +39,50 @@ dosesRouter.get("/me", authMiddleware, async (c) => {
     .from(medicineDoses)
     .where(and(...conditions))
     .orderBy(desc(medicineDoses.scheduledFor))
-    .limit(200);
+    .limit(500);
 
   return c.json({ doses: rows });
+});
+
+// ─── F3: list missed doses (past, never taken, not skipped) ─────
+// GET /doses/missed — surfaces past doses that the patient never
+// acknowledged. The mobile history screen uses this to render a
+// "You missed X — Acknowledge?" card. Cap at 90d lookback to keep the
+// query cheap. Per-call `limit` caps the result set.
+dosesRouter.get("/missed", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const patientId = await getPatientId(db, userId);
+  if (!patientId) return c.json({ doses: [] });
+
+  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 200);
+  const since = c.req.query("since"); // optional ISO; defaults to 90d ago
+
+  const sinceIso =
+    since ||
+    (() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 90);
+      return d.toISOString();
+    })();
+
+  const rows: any[] = await db
+    .select()
+    .from(medicineDoses)
+    .where(
+      and(
+        eq(medicineDoses.patientId, patientId),
+        isNull(medicineDoses.takenAt),
+        eq(medicineDoses.skipped, false),
+        // scheduledFor < now (already in the past)
+        sql`${medicineDoses.scheduledFor} < ${new Date().toISOString()}`,
+        gte(medicineDoses.scheduledFor, sinceIso)
+      )
+    )
+    .orderBy(desc(medicineDoses.scheduledFor))
+    .limit(limit);
+
+  return c.json({ doses: rows, count: rows.length });
 });
 
 // ─── Mark a dose taken ───────────────────────────────────
