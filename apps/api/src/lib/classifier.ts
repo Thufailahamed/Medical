@@ -15,6 +15,7 @@ import { aiComplete, cacheGet, cacheStore } from "./ai";
 import { extractR2Key } from "../routes/ai";
 import { fetchR2Text } from "./ai";
 import { writeAudit } from "./audit";
+import { upsertRecordFts } from "./fts";
 import { medicalRecords } from "@healthcare/db";
 import { eq } from "drizzle-orm";
 
@@ -319,6 +320,17 @@ export async function persistClassification(
     .update(medicalRecords)
     .set(next)
     .where(eq(medicalRecords.id, recordId));
+
+  // Phase 2.1: FTS5 sync — re-index after extractedData or recordType
+  // mutation so the new classification text appears in search results.
+  await upsertRecordFts(db, {
+    id: recordId,
+    title: existing.title,
+    diagnosis: existing.diagnosis,
+    summary: existing.summary,
+    notes: existing.notes,
+    extractedData: serialized,
+  });
 
   return {
     recordType: next.recordType ?? existing.recordType,

@@ -11,6 +11,7 @@ import {
   uploadBuffer,
 } from "../lib/storage";
 import { classify, persistClassification } from "../lib/classifier";
+import { upsertRecordFts } from "../lib/fts";
 
 // CF imposes a 25MB hard limit per inbound email. Anything beyond is
 // dropped pre-parse; we still cap defensively for raw streams.
@@ -125,6 +126,11 @@ export async function processInboundEmail(
         })
         .returning();
       record = inserted;
+      // Phase 2.1: FTS5 sync — inbound email attachments join the search
+      // index the moment they hit the medical_records table. The
+      // classification waitUntil below re-indexes again when extractedData
+      // is upgraded from the initial empty value.
+      await upsertRecordFts(db, inserted);
     } catch (err: any) {
       // Unique-index violation on email_message_id means a sibling
       // attachment of the same email was already inserted. Skip this

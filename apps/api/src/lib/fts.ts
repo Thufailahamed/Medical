@@ -118,11 +118,13 @@ function sanitiseFtsQuery(q: string): string {
     .replace(/\b(?:and|or|near|not)\b/g, " ")
     .trim();
   if (!stripped) return "";
-  // Quote each token so diacritics/whitespace are preserved as literals,
-  // and append `*` for prefix matching ("heart" matches "heartbeat").
+  // Prefix-match each token with `*`. Single-token inputs skip the quotes
+  // — FTS5 treats `"tok"*` and `tok*` identically for one-word inputs, but
+  // SQLite's parser has historically rejected `"tok"*` in older builds.
+  // For multi-word inputs we AND the prefix terms so all must hit.
   return stripped
     .split(/\s+/)
     .filter((tok) => tok.length >= 1)
-    .map((tok) => `"${tok.replace(/"/g, "")}"*`)
+    .map((tok) => `${tok.replace(/"/g, "")}*`)
     .join(" ");
 }

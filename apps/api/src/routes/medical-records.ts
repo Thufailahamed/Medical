@@ -31,6 +31,7 @@ import {
 import { canAccessPatient, canAccessRecord } from "../lib/access";
 import { audit } from "../lib/audit";
 import { flattenTranslated } from "../lib/validation-error";
+import { upsertRecordFts, removeRecordFts } from "../lib/fts";
 import type { AppEnvironment } from "../types";
 
 const medicalRecordsRouter = new Hono<AppEnvironment>();
@@ -481,6 +482,9 @@ medicalRecordsRouter.post("/", authMiddleware, requireRole("doctor", "hospital_s
     })
     .returning();
 
+  // Phase 2.1: FTS5 sync — every new record lands in the search index.
+  if (record) await upsertRecordFts(db, record);
+
   return c.json({ record }, 201);
 });
 
@@ -562,6 +566,11 @@ medicalRecordsRouter.patch("/:id", authMiddleware, async (c) => {
     .where(eq(medicalRecords.id, recordId))
     .returning();
 
+  // Phase 2.1: re-index after searchable-field edits (title/diagnosis/
+  // summary/notes). Archive/tag/move routes skip FTS since they don't
+  // touch the indexed columns.
+  if (updated) await upsertRecordFts(db, updated);
+
   return c.json({ record: updated });
 });
 
@@ -615,6 +624,8 @@ medicalRecordsRouter.post(
       }
       await db.delete(files).where(inArray(files.recordId, allowed));
       await db.delete(medicalRecords).where(inArray(medicalRecords.id, allowed));
+      // Phase 2.1: FTS5 sync — drop each row from the search index.
+      await Promise.all(allowed.map((id) => removeRecordFts(db, id)));
     }
 
     await audit(db, {
@@ -897,6 +908,8 @@ medicalRecordsRouter.delete("/:id", authMiddleware, async (c) => {
   }
   await db.delete(files).where(eq(files.recordId, recordId));
   await db.delete(medicalRecords).where(eq(medicalRecords.id, recordId));
+  // Phase 2.1: FTS5 sync — drop the row from the search index.
+  await removeRecordFts(db, recordId);
 
   return c.json({ message: "Record deleted", deletedAttachments: attachedFiles.length });
 });

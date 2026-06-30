@@ -38,6 +38,7 @@ import { audit } from "../lib/audit";
 import { compactQueue } from "../lib/booking";
 import { canAccessPatient } from "../lib/access";
 import { flattenTranslated } from "../lib/validation-error";
+import { upsertRecordFts } from "../lib/fts";
 import type { AppEnvironment } from "../types";
 
 const doctorPortalRouter = new Hono<AppEnvironment>();
@@ -276,6 +277,9 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
     })
     .returning();
 
+  // Phase 2.1: FTS5 sync.
+  if (row) await upsertRecordFts(db, row);
+
   return c.json({ record: row?.medical_records || row }, 201);
 });
 
@@ -376,6 +380,9 @@ doctorPortalRouter.post("/follow-ups", async (c) => {
       date: new Date().toISOString().split("T")[0],
     })
     .returning();
+
+  // Phase 2.1: FTS5 sync.
+  if (row) await upsertRecordFts(db, row);
 
   // Notify patient
   const [patientRow] = await db
@@ -526,15 +533,20 @@ doctorPortalRouter.post("/lab-orders", async (c) => {
 
   // Also create a medical_records entry of type lab_order so the patient's
   // timeline reflects it.
-  await db.insert(medicalRecords).values({
-    patientId: parsed.data.patientId,
-    hospitalId: parsed.data.hospitalId || doctor.hospitalId || null,
-    doctorId: doctor.id,
-    recordType: "lab_order",
-    title: `Lab order — ${parsed.data.tests.join(", ")}`,
-    notes: parsed.data.notes || null,
-    date: new Date().toISOString().split("T")[0],
-  });
+  const [labMirror] = await db
+    .insert(medicalRecords)
+    .values({
+      patientId: parsed.data.patientId,
+      hospitalId: parsed.data.hospitalId || doctor.hospitalId || null,
+      doctorId: doctor.id,
+      recordType: "lab_order",
+      title: `Lab order — ${parsed.data.tests.join(", ")}`,
+      notes: parsed.data.notes || null,
+      date: new Date().toISOString().split("T")[0],
+    })
+    .returning();
+  // Phase 2.1: FTS5 sync.
+  if (labMirror) await upsertRecordFts(db, labMirror);
 
   // Notify lab staff — hospital-scoped first, global fallback.
   const orderId = order?.lab_orders?.id || order?.id;
@@ -1147,6 +1159,9 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
     } as any)
     .returning();
 
+  // Phase 2.1: FTS5 sync — visit record joins the search index.
+  if (visit) await upsertRecordFts(db, visit);
+
   // 2) Prescriptions
   const prescriptionItems: any[] = Array.isArray(body.prescriptionItems)
     ? body.prescriptionItems
@@ -1182,6 +1197,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
           appointmentId,
         } as any)
         .returning();
+      // Phase 2.1: FTS5 sync — prescription mirror joins the search index.
+      if (rxRecord) await upsertRecordFts(db, rxRecord);
       createdPrescriptions.push({ prescription: rx, record: rxRecord });
     }
   }
@@ -1204,6 +1221,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         appointmentId,
       } as any)
       .returning();
+    // Phase 2.1: FTS5 sync — lab-order mirror joins the search index.
+    if (labRec) await upsertRecordFts(db, labRec);
     createdLabs.push(labRec);
   }
 
@@ -1225,6 +1244,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         appointmentId,
       } as any)
       .returning();
+    // Phase 2.1: FTS5 sync — follow-up mirror joins the search index.
+    if (fuRec) await upsertRecordFts(db, fuRec);
     createdFollowUp = fuRec;
   }
 

@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { files, medicalRecords, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { upsertRecordFts } from "../lib/fts";
 import type { AppEnvironment } from "../types";
 
 const filesRouter = new Hono<AppEnvironment>();
@@ -164,6 +165,9 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
       date,
     })
     .returning();
+
+  // Phase 2.1: FTS5 sync — new record joins the search index.
+  if (record) await upsertRecordFts(db, record);
 
   let fileRecord = null;
   const hasFile = file && typeof file !== "string" && file.size > 0;
