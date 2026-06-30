@@ -2,14 +2,36 @@ import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { Home, ClipboardList, Pill, Siren, UserRound } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
+import { useLocaleStore } from "@/stores/locale";
+
+// Sinhala + Tamil glyphs render ~1.3x wider than Latin at the same font size.
+// Trim fontSize + letterSpacing for those locales to keep the 5 labels from
+// overlapping under the icon. Latin (en) keeps the original 10/0.4 spec.
+const NARROW_TAB_LABEL = {
+  fontSize: 9,
+  fontWeight: "700" as const,
+  letterSpacing: 0,
+  marginTop: 4,
+};
+const WIDE_TAB_LABEL = {
+  fontSize: 10,
+  fontWeight: "700" as const,
+  letterSpacing: 0.4,
+  marginTop: 4,
+};
 
 export default function AppLayout() {
   const { colors, typography, shadow } = useTheme();
   const { data: unread } = useUnreadCount();
   const unreadN = unread?.count ?? 0;
+  const { t } = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
+  const isWideScript = locale === "si" || locale === "ta";
+  const labelStyle = isWideScript ? NARROW_TAB_LABEL : WIDE_TAB_LABEL;
 
   return (
     <Tabs
@@ -73,18 +95,13 @@ export default function AppLayout() {
             />
           </View>
         ),
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "700",
-          letterSpacing: 0.4,
-          marginTop: 4,
-        },
+        tabBarLabelStyle: labelStyle,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("nav.tabs.home"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={Home} focused={focused} badge={unreadN} />
           ),
@@ -93,7 +110,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="records"
         options={{
-          title: "Records",
+          title: t("nav.tabs.records"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={ClipboardList} focused={focused} />
           ),
@@ -102,7 +119,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="medicines"
         options={{
-          title: "Medicines",
+          title: t("nav.tabs.medicines"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={Pill} focused={focused} />
           ),
@@ -111,7 +128,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="emergency"
         options={{
-          title: "Emergency",
+          title: t("nav.tabs.emergency"),
           tabBarIcon: ({ focused }) => (
             <TabIcon
               icon={Siren}
@@ -124,7 +141,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t("nav.tabs.profile"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={UserRound} focused={focused} />
           ),

@@ -934,5 +934,14 @@
       "markTakenLate": "ප්‍රමාද ලෙස ගන්නා ලදී කියන්න",
       "acknowledgeMissed": "මඟ හැරුණු බව තහවුරු කරන්න"
     }
+  },
+  "nav": {
+    "tabs": {
+      "home": "මුල් පිටුව",
+      "records": "වාර්තා",
+      "medicines": "ඖෂධ",
+      "emergency": "හදිසි",
+      "profile": "ගිණුම"
+    }
   }
 }

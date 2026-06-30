@@ -2475,5 +2475,14 @@
     "noVitals": "No vitals recorded",
     "records": "Records",
     "noRecords": "No records yet"
+  },
+  "nav": {
+    "tabs": {
+      "home": "Home",
+      "records": "Records",
+      "medicines": "Medicines",
+      "emergency": "Emergency",
+      "profile": "Profile"
+    }
   }
 }

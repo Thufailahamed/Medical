@@ -934,5 +934,14 @@
       "markTakenLate": "தாமதமாக எடுத்ததாகக் குறி",
       "acknowledgeMissed": "தவறவிட்டதை உறுதிப்படுத்து"
     }
+  },
+  "nav": {
+    "tabs": {
+      "home": "முகப்பு",
+      "records": "பதிவுகள்",
+      "medicines": "மருந்துகள்",
+      "emergency": "அவசரம்",
+      "profile": "சுயவிவரம்"
+    }
   }
 }
