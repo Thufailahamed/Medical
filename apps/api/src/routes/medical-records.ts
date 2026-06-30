@@ -113,7 +113,14 @@ medicalRecordsRouter.get("/me", authMiddleware, requireRole("patient"), async (c
   const tagsCsv = (c.req.query("tags") || "").trim();
   const archivedParam = c.req.query("archived"); // "true" (default active only), "all", "only"
   const scope = (c.req.query("scope") || "family") as "own" | "family";
-  const familyMemberId = c.req.query("familyMemberId") || "";
+  // Phase 2.3: when the family-context middleware has resolved an active
+  // FM, scope the list to that member. The explicit `familyMemberId`
+  // query param wins — the active FM is the default, not a hard filter
+  // (callers can opt back into the family union by sending `scope=family`
+  // and omitting `familyMemberId`).
+  const explicitFm = c.req.query("familyMemberId") || "";
+  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+  const familyMemberId = explicitFm || (activeFm ? activeFm : "");
   const sortMode = (c.req.query("sort") || "newest") as
     | "newest"
     | "oldest"

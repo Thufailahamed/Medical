@@ -36,13 +36,26 @@ vaccinationsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) 
 
   // Administered: medical_records where recordType=vaccination
   const administered = await db
+  // Phase 2.3: family-context filter — when active FM is set, scope to
+  // that member's records. Without active FM, list the principal + family
+  // union (the historical default — keeps existing installs working).
+  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+  const fmFilter = activeFm ? eq(medicalRecords.familyMemberId, activeFm) : undefined;
+
+  const administered = await db
     .select()
     .from(medicalRecords)
     .where(
-      and(
-        eq(medicalRecords.patientId, patient.id),
-        eq(medicalRecords.recordType, "vaccination")
-      )
+      fmFilter
+        ? and(
+            eq(medicalRecords.patientId, patient.id),
+            eq(medicalRecords.recordType, "vaccination"),
+            fmFilter
+          )
+        : and(
+            eq(medicalRecords.patientId, patient.id),
+            eq(medicalRecords.recordType, "vaccination")
+          )
     )
     .orderBy(desc(medicalRecords.recordDate));
 
@@ -124,6 +137,12 @@ vaccinationsRouter.post("/me", authMiddleware, requireRole("patient"), async (c)
       ? catalogEntry.targetDisease
       : body.notes || null;
 
+// Phase 2.3: explicit body.familyMemberId wins; otherwise active FM
+  // resolves to a default. NULL stays NULL.
+  const explicitFm = (body as any).familyMemberId ?? null;
+  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+  const familyMemberId = explicitFm || activeFm || null;
+
   const [row] = await db
     .insert(medicalRecords)
     .values({
@@ -136,6 +155,7 @@ vaccinationsRouter.post("/me", authMiddleware, requireRole("patient"), async (c)
       notes:
         body.notes ||
         (catalogEntry ? `Vaccine ID: ${catalogEntry.id}` : null),
+      familyMemberId,
     } as any)
     .returning();
 

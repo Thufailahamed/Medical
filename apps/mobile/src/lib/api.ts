@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore } from "@/stores/locale";
+import { useActiveFamilyMemberStore } from "@/stores/activeFamilyMember";
 import { intlLocale } from "./format";
 
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -44,6 +45,13 @@ async function runRequest<T>(
   requestHeaders["Accept-Language"] = intlLocale(
     useLocaleStore.getState().locale
   );
+  // Phase 2.3: forward active family member so list endpoints filter
+  // and POST endpoints default-assign. Header is the request-level hint;
+  // server column is the durable source of truth.
+  const activeFmId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
+  if (activeFmId) {
+    requestHeaders["x-active-family-member-id"] = activeFmId;
+  }
 
   if (!isFormData && body && !requestHeaders["Content-Type"]) {
     requestHeaders["Content-Type"] = "application/json";
@@ -70,6 +78,20 @@ async function runRequest<T>(
         // store not ready; ignore
       }
     }
+    // Phase 2.3: 410 with `family_member_gone` means the active FM the
+    // client thinks it's acting as no longer exists (deleted on another
+    // device, owner changed, etc.). Clear the local store + tell the
+    // caller via a typed error so screens can react.
+    if (response.status === 410) {
+      try {
+        const body = await response.clone().json().catch(() => ({}));
+        if (body?.reason === "family_member_gone") {
+          useActiveFamilyMemberStore.getState().clear();
+        }
+      } catch {
+        // ignore parse errors — clear() is idempotent
+      }
+    }
     const error = await response
       .json()
       .catch(() => ({ error: "Request failed" }));
@@ -84,7 +106,10 @@ async function runRequest<T>(
     } else {
       errMsg = `HTTP ${response.status}`;
     }
-    throw new Error(errMsg);
+    const err: any = new Error(errMsg);
+    err.status = response.status;
+    err.reason = error?.reason;
+    throw err;
   }
 
   return response.json();

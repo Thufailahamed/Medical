@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { Home, ClipboardList, Pill, Siren, UserRound } from "lucide-react-native";
+import { Home, ClipboardList, Pill, Siren, UserRound, Users } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -117,6 +117,15 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="family"
+        options={{
+          title: t("nav.tabs.family"),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={Users} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="medicines"
         options={{
           title: t("nav.tabs.medicines"),
@@ -178,6 +187,13 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="add-record"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="email-import"
         options={{
           href: null,
           tabBarStyle: { display: "none" },
@@ -395,13 +411,6 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="medicines-history"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="family"
         options={{
           href: null,
           tabBarStyle: { display: "none" },

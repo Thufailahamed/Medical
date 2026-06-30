@@ -32,7 +32,7 @@
     "expo": "~51.0.0",
     "expo-asset": "~10.0.0",
     "expo-blur": "~13.0.2",
-    "expo-clipboard": "^56.0.4",
+    "expo-clipboard": "~6.0.3",
     "expo-constants": "~16.0.0",
     "expo-document-picker": "~12.0.2",
     "expo-font": "~12.0.0",

@@ -27,7 +27,18 @@ patientsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
     return c.json({ error: "Patient profile not found" }, 404);
   }
 
-  return c.json({ patient });
+  // Phase 2.3: include active FM so the client can rehydrate its store
+  // on boot without an extra round-trip.
+  const [u] = await db
+    .select({ activeFamilyMemberId: users.activeFamilyMemberId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return c.json({
+    patient,
+    activeFamilyMemberId: u?.activeFamilyMemberId ?? null,
+  });
 });
 
 // ─── Update my profile (with ownership verification) ─────

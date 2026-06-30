@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createDb } from "./lib/db";
 import { localeMiddleware } from "./middleware/locale";
+import { familyContextMiddleware } from "./middleware/family-context";
 import authRoutes from "./routes/auth";
 import patientsRoutes from "./routes/patients";
 import medicalRecordsRoutes from "./routes/medical-records";
@@ -40,6 +41,7 @@ import { doseRemindersRouter } from "./cron/dose-reminders";
 import { refillRemindersRouter } from "./cron/refill-reminders";
 import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
+import familyActiveRouter from "./routes/family-active";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -61,6 +63,13 @@ app.use("*", async (c, next) => {
 // ─── Locale middleware ────────────────────────────────────
 // Resolves Accept-Language → en|si|ta and stashes on c.get("locale").
 app.use("*", localeMiddleware);
+
+// ─── Family-context middleware (Phase 2.3) ──────────────
+// Reads `x-active-family-member-id` header (or falls back to
+// `users.active_family_member_id` column) and stashes the resolved id
+// on `c.get("activeFamilyMemberId")`. No-op for unauthenticated
+// requests — let auth handle them.
+app.use("*", familyContextMiddleware);
 
 // ─── Health check ────────────────────────────────────────
 app.get("/", (c) => {
@@ -99,6 +108,7 @@ app.route("/hospital-portal", hospitalPortalRouter);
 app.route("/chat", chatRouter);
 app.route("/allergies", allergiesRouter);
 app.route("/vaccinations", vaccinationsRouter);
+app.route("/family", familyActiveRouter);
 app.route("/timeline", timelineRouter);
 app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);

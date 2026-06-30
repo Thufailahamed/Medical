@@ -141,6 +141,7 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
   const diagnosis = formData.get("diagnosis") as string | null;
   const date = formData.get("date") as string;
   const patientId = formData.get("patientId") as string;
+  const formFamilyMemberId = formData.get("familyMemberId") as string | null;
 
   if (!recordType || !title || !date || !patientId) {
     return c.json({ error: "Missing required fields" }, 400);
@@ -154,6 +155,12 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
     }
   }
 
+  // Phase 2.3: explicit formData.familyMemberId wins; otherwise the
+  // active-FM context resolves to a default. Empty string → NULL.
+  const explicitFm = (formFamilyMemberId || "").trim();
+  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+  const familyMemberId = explicitFm || activeFm || null;
+
   // Create medical record
   const [record] = await db
     .insert(medicalRecords)
@@ -163,7 +170,8 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
       title,
       diagnosis,
       date,
-    })
+      familyMemberId,
+    } as any)
     .returning();
 
   // Phase 2.1: FTS5 sync — new record joins the search index.

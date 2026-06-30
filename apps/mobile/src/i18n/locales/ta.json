@@ -370,6 +370,9 @@
       "greeting": "வரவேற்பு",
       "profile": "சுயவிவரம்"
     },
+    "activeMemberA11y": "{{name}} ஆக செயல்படுகிறது. குடும்ப உறுப்பினரை மாற்ற தட்டவும்.",
+    "activeMemberFallback": "குடும்ப உறுப்பினர்",
+    "activeMemberPickerTitle": "செயலில் உள்ள உறுப்பினரை மாற்று",
     "greetingMorning": "காலை வணக்கம்",
     "greetingAfternoon": "மதிய வணக்கம்",
     "greetingEvening": "மாலை வணக்கம்",
@@ -957,6 +960,7 @@
     "tabs": {
       "home": "முகப்பு",
       "records": "பதிவுகள்",
+      "family": "குடும்பம்",
       "medicines": "மருந்துகள்",
       "emergency": "அவசரம்",
       "profile": "சுயவிவரம்"

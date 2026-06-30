@@ -41,6 +41,7 @@ import {
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
+import { ActiveMemberPill } from "@/components/ActiveMemberPill";
 import { intlLocale, fmtWeekdayShort, fmtMonthShort } from "@/lib/format";
 import {
   usePatientProfile,
@@ -287,14 +288,17 @@ export default function HomeScreen() {
             )}
           </Pressable>
 
-          <Text
-            style={[
-              typography.title.lg,
-              { color: colors.primary, fontWeight: "800", fontSize: 22, fontFamily: fontFamily.displayBold }
-            ]}
-          >
-            {t("home.brand")}
-          </Text>
+          <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
+            <Text
+              style={[
+                typography.title.lg,
+                { color: colors.primary, fontWeight: "800", fontSize: 22, fontFamily: fontFamily.displayBold }
+              ]}
+            >
+              {t("home.brand")}
+            </Text>
+            <ActiveMemberPill />
+          </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
             <Pressable

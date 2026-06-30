@@ -39,6 +39,16 @@ export const users = sqliteTable("users", {
   // Format: `u_<8hex>@records.<domain>`. Generated eagerly on user create;
   // backfilled for legacy rows by migration 0006.
   emailAlias: text("email_alias"),
+  // Phase 2.3: server-cached "Acting as …" context. NULL = principal
+  // patient (historical default). Set via PATCH /family/active; read by
+  // the family-context middleware to scope list filters + POST defaults.
+  // Mobile also persists this in secureStorage for offline-first boot.
+  // Note: `as any` cast on the references callback breaks a TS inference
+  // cycle — `users → familyMembers → patients → users` — that TS can't
+  // resolve via the lazy-callback pattern alone.
+  activeFamilyMemberId: text("active_family_member_id").references(
+    ((): any => familyMembers.id)
+  ),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

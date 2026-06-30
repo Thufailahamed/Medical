@@ -93,11 +93,19 @@ medicinesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => 
 
   const includeInactive = c.req.query("includeInactive") === "true";
 
+  // Phase 2.3: family-context filter. When active FM is set, scope to
+  // medicines tagged for that member. Medicines without a familyMemberId
+  // are "household" (e.g. paracetamol shared) and always show.
+  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+  const fmFilter = activeFm ? eq(medicines.familyMemberId, activeFm) : undefined;
+
   const list = await db
     .select()
     .from(medicines)
     .where(
-      includeInactive
+      fmFilter
+        ? fmFilter
+        : includeInactive
         ? eq(medicines.patientId, patient.id)
         : and(
             eq(medicines.patientId, patient.id),
@@ -623,6 +631,13 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
     );
   }
 
+  // Phase 2.3: explicit body.familyMemberId wins; otherwise the
+  // active-FM context resolves to a default. NULL stays NULL
+  // ("household" medicine, applies to principal by default).
+  const explicitFm = (data as any).familyMemberId ?? null;
+  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+  const familyMemberId = explicitFm || activeFm || null;
+
   const [medicine] = await db
     .insert(medicines)
     .values({
@@ -637,6 +652,7 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
       refillReminder: data.refillReminder ?? false,
       notes: data.notes,
       active: true,
+      familyMemberId,
     } as any)
     .returning();
 

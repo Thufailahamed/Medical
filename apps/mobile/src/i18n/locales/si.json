@@ -370,6 +370,9 @@
       "greeting": "ආචාර පෙතිගැන්වීම",
       "profile": "පැතිකඩ"
     },
+    "activeMemberA11y": "{{name}} ලෙස ක්‍රියා කරමින්. පවුලේ සාමාජිකයෙකු මාරු කිරීමට ඔබන්න.",
+    "activeMemberFallback": "පවුලේ සාමාජිකයා",
+    "activeMemberPickerTitle": "ක්‍රියාකාරී සාමාජිකයා මාරු කරන්න",
     "greetingMorning": "සුභ උදේ",
     "greetingAfternoon": "සුභ දහවල්",
     "greetingEvening": "සුභ සවස",
@@ -957,6 +960,7 @@
     "tabs": {
       "home": "මුල් පිටුව",
       "records": "වාර්තා",
+      "family": "පවුල",
       "medicines": "ඖෂධ",
       "emergency": "හදිසි",
       "profile": "ගිණුම"
