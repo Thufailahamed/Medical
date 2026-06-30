@@ -19,6 +19,9 @@ export interface AppEnvironment {
     DEV_MODE: string;
     JWT_SECRET?: string;
     CRON_SECRET?: string;
+    // Phase 1.4: domain hosting email aliases for Phase 1.4 ingestion.
+    // e.g. "records.healthhub.app" — used in the address handed to users.
+    EMAIL_ALIAS_DOMAIN: string;
   };
   Variables: {
     user: User;

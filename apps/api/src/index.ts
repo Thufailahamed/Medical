@@ -32,6 +32,8 @@ import exportRouter from "./routes/export";
 import shareRouter from "./routes/share";
 import pushRouter from "./routes/push";
 import walkInsRouter from "./routes/walk-ins";
+import emailRouter from "./routes/email";
+import { handleInboundEmail } from "./email/inbound";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
 import { refillRemindersRouter } from "./cron/refill-reminders";
@@ -100,6 +102,9 @@ app.route("/export", exportRouter);
 app.route("/share", shareRouter);
 app.route("/push", pushRouter);
 app.route("/walk-ins", walkInsRouter);
+// Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
+// because the existing patientsRouter catches `:id` which would shadow it.
+app.route("/", emailRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]
@@ -125,4 +130,19 @@ app.onError((err, c) => {
   return c.json({ error: "Internal server error" }, 500);
 });
 
-export default app;
+// Phase 1.4: Cloudflare Email Routing wires the Worker's `email` handler
+// directly (not via HTTP). Inbound mail hits `handleInboundEmail` first
+// to resolve sender/alias → patient before any DB writes. Cf. Email
+// Workers docs: the ExportedHandler.email property receives an
+// EmailEvent-like message; we expose `handleInboundEmail` here.
+export default {
+  fetch: app.fetch,
+  async email(message: any, env: any, ctx: any) {
+    try {
+      await handleInboundEmail(message, env);
+    } catch (err) {
+      // Anti-enumeration: never reply on errors. Drop silently.
+      console.error("email handler error:", err);
+    }
+  },
+} satisfies ExportedHandler<any>;

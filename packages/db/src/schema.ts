@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 // ─── Users ───────────────────────────────────────────────
@@ -35,13 +35,20 @@ export const users = sqliteTable("users", {
   nicVerificationLevel: text("nic_verification_level"),
   photo: text("photo"),
   verified: integer("verified", { mode: "boolean" }).default(false),
+  // Phase 1.4: per-user personal inbox alias for email-to-record ingestion.
+  // Format: `u_<8hex>@records.<domain>`. Generated eagerly on user create;
+  // backfilled for legacy rows by migration 0006.
+  emailAlias: text("email_alias"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   updatedAt: text("updated_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
-});
+},
+(t) => ({
+  emailAliasUnique: uniqueIndex("users_email_alias_unique").on(t.emailAlias),
+}));
 
 // ─── OTP codes (Phase 1.2) ────────────────────────────────
 // 6-digit numeric code, bcrypt-hashed at rest. Used by /auth/send-otp and
@@ -189,6 +196,12 @@ export const medicalRecords = sqliteTable(
     tags: text("tags"), // JSON array of lowercase strings
     archivedAt: text("archived_at"), // ISO timestamp; NULL = active
     familyMemberId: text("family_member_id").references(() => familyMembers.id),
+    // Phase 1.4: how this record entered the locker.
+    //   "user_upload" | "doctor" | "email-alias" | "email-from"
+    source: text("source"),
+    // Phase 1.4: dedupe key for CF Email Routing retries. NULL for non-email
+    // records. Unique index rejects duplicate inserts from the same event.
+    emailMessageId: text("email_message_id"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -200,6 +213,9 @@ export const medicalRecords = sqliteTable(
     patientArchivedDateIdx: index(
       "idx_medical_records_patient_archived_date"
     ).on(t.patientId, t.archivedAt, t.date),
+    emailMessageIdUnique: uniqueIndex(
+      "medical_records_email_message_id_unique"
+    ).on(t.emailMessageId),
   })
 );
 

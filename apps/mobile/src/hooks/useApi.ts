@@ -54,6 +54,34 @@ export function usePatientProfile() {
   });
 }
 
+// Phase 1.4: per-user personal inbox alias for email-to-record ingestion.
+export type EmailAliasResponse = {
+  alias: string;        // e.g. "u_a1b2c3d4"
+  address: string;      // e.g. "u_a1b2c3d4@records.healthhub.app"
+  email: string | null; // user's verified email (legacy path From address)
+  domain: string;
+};
+
+export function useEmailAlias() {
+  return useQuery({
+    queryKey: ["patient", "me", "email-alias"],
+    queryFn: () => apiWithRefresh<EmailAliasResponse>("/patients/me/email-alias"),
+  });
+}
+
+export function useRotateEmailAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<EmailAliasResponse>("/patients/me/email-alias/rotate", {
+        method: "PATCH",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient", "me", "email-alias"] });
+    },
+  });
+}
+
 export function useUpdatePatientProfile() {
   const queryClient = useQueryClient();
   return useMutation({

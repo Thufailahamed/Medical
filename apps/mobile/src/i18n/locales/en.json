@@ -185,6 +185,10 @@
         "subtitle": "Reminders and updates",
         "subtitleUnread": "{{count}} unread"
       },
+      "emailImport": {
+        "label": "Email-to-records",
+        "subtitle": "Send PDFs and lab reports to a personal inbox"
+      },
       "notificationPreferences": {
         "label": "Notification preferences",
         "subtitle": "Choose in-app & push per category"
@@ -2484,5 +2488,24 @@
       "emergency": "Emergency",
       "profile": "Profile"
     }
+  },
+  "emailImport": {
+    "title": "Email-to-Records",
+    "subtitle": "Forward lab reports and discharge summaries to a private inbox.",
+    "aliasHeading": "Your personal inbox",
+    "copyButton": "Copy address",
+    "copiedToast": "Address copied",
+    "rotateButton": "Rotate address",
+    "confirmRotate": "Confirm rotate",
+    "rotateToast": "New address generated",
+    "rotateError": "Could not rotate — try again",
+    "qrCaption": "Scan this QR to open a new email with this address.",
+    "howHeading": "How it works",
+    "howStep1": "Forward or send any email with PDF or image attachments to your personal inbox.",
+    "howStep2": "Within seconds the attachments appear in your records as drafts.",
+    "howStep3": "Open the app to set a record type, title, and date — your records are yours to organize.",
+    "legacyHeading": "Send from your verified email",
+    "legacyBody": "You can also send from {{email}} — we'll route by sender even without the alias.",
+    "legacyAction": "Open mail"
   }
 }

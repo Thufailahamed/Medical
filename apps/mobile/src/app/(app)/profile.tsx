@@ -27,6 +27,7 @@ import {
   Building2,
   BedDouble,
   Share2,
+  Inbox,
   ClipboardList,
   FileText,
   Syringe,
@@ -177,6 +178,13 @@ export default function ProfileScreen() {
       icon: Pencil,
       tone: "primary" as const,
       onPress: () => router.push("/(app)/edit-profile" as any),
+    },
+    {
+      labelKey: "profile.item.emailImport.label",
+      subtitle: t("profile.item.emailImport.subtitle"),
+      icon: Inbox,
+      tone: "accent" as const,
+      onPress: () => router.push("/(app)/email-import" as any),
     },
     {
       labelKey: "profile.item.family.label",

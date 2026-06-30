@@ -12,6 +12,7 @@
     "@healthcare/db": "workspace:*",
     "drizzle-orm": "^0.33.0",
     "hono": "^4.5.0",
+    "postal-mime": "^2.7.5",
     "zod": "^3.23.0"
   },
   "devDependencies": {
