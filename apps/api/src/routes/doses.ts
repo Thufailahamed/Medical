@@ -2,8 +2,9 @@
 
 import { Hono } from "hono";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
-import { medicineDoses, medicines, patients } from "@healthcare/db";
+import { medicineDoses, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { scheduleTodayForPatient } from "../lib/medicine-scheduler";
 import type { AppEnvironment } from "../types";
 
 const dosesRouter = new Hono<AppEnvironment>();
@@ -67,9 +68,14 @@ dosesRouter.post("/:id/taken", authMiddleware, async (c) => {
 
   if (!dose) return c.json({ error: "Dose not found" }, 404);
 
+  // B3 (notes): only overwrite notes when the client explicitly provides
+  // them. Without this, untake → re-mark loses the previous "after lunch"
+  // style note because the body omits notes and we fell back to null.
+  const patch: any = { takenAt, skipped: false };
+  if (body.notes !== undefined) patch.notes = body.notes;
   const [updated] = await db
     .update(medicineDoses)
-    .set({ takenAt, skipped: false, notes: body.notes ?? null })
+    .set(patch)
     .where(eq(medicineDoses.id, doseId))
     .returning();
 
@@ -98,9 +104,13 @@ dosesRouter.post("/:id/skip", authMiddleware, async (c) => {
     .limit(1);
   if (!dose) return c.json({ error: "Dose not found" }, 404);
 
+  // B3 (notes): same pattern as mark-taken — preserve notes unless the
+  // client explicitly passes a new value.
+  const patch: any = { skipped: true, takenAt: null };
+  if (body.notes !== undefined) patch.notes = body.notes;
   const [updated] = await db
     .update(medicineDoses)
-    .set({ skipped: true, takenAt: null, notes: body.notes ?? null })
+    .set(patch)
     .where(eq(medicineDoses.id, doseId))
     .returning();
 
@@ -114,96 +124,10 @@ dosesRouter.post("/schedule/today", authMiddleware, async (c) => {
   const patientId = await getPatientId(db, userId);
   if (!patientId) return c.json({ error: "Patient not found" }, 404);
 
-  const now = new Date();
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(now);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const today = now.toISOString().slice(0, 10);
-  const dayStartIso = startOfDay.toISOString();
-  const dayEndIso = endOfDay.toISOString();
-
-  // Pull active medicines, then filter to those whose [startDate, endDate]
-  // window includes today and that have a real schedule (skip "As needed").
-  const activeMeds = await db
-    .select()
-    .from(medicines)
-    .where(
-      and(eq(medicines.patientId, patientId), eq(medicines.active, true))
-    );
-
-  const slotsForFrequency = (freq: string | null, timing?: string | null): string[] => {
-    const f = (freq || "").toLowerCase();
-    if (f === "once daily") return ["09:00"];
-    if (f === "twice daily") return ["09:00", "21:00"];
-    if (f === "three times daily") return ["09:00", "15:00", "21:00"];
-    if (f === "four times daily") return ["08:00", "13:00", "18:00", "22:00"];
-
-    const t = (timing || "").toLowerCase();
-    if (t.includes("morning") || t.includes("breakfast") || t.includes("food") || t.includes("am")) {
-      return ["09:00"];
-    }
-    if (t.includes("noon") || t.includes("afternoon") || t.includes("lunch")) {
-      return ["13:00"];
-    }
-    if (t.includes("evening") || t.includes("dinner")) {
-      return ["18:00"];
-    }
-    if (t.includes("night") || t.includes("bed") || t.includes("pm")) {
-      return ["21:00"];
-    }
-    return ["09:00"];
-  };
-
-  // Pre-fetch existing doses for today so we can dedupe across calls.
-  const existing = await db
-    .select()
-    .from(medicineDoses)
-    .where(
-      and(
-        eq(medicineDoses.patientId, patientId),
-        gte(medicineDoses.scheduledFor, dayStartIso),
-        lte(medicineDoses.scheduledFor, dayEndIso)
-      )
-    );
-  const existingKey = new Set(
-    existing.map((e: any) => {
-      const t = new Date(e.scheduledFor).toISOString().slice(11, 16); // HH:MM
-      return `${e.medicineId}@${t}`;
-    })
-  );
-
-  const created: any[] = [];
-  for (const med of activeMeds) {
-    const m = (med as any).medicines || med;
-    // Honour medicine's own date range
-    const start = m.startDate || today;
-    const end = m.endDate || today;
-    if (today < start || today > end) continue;
-
-    for (const time of slotsForFrequency(m.frequency, m.timing)) {
-      const key = `${m.id}@${time}`;
-      if (existingKey.has(key)) continue;
-
-      const [hh, mm] = time.split(":").map((n) => parseInt(n, 10));
-      const scheduled = new Date(now);
-      scheduled.setHours(hh || 9, mm || 0, 0, 0);
-
-      const [row] = await db
-        .insert(medicineDoses)
-        .values({
-          medicineId: m.id,
-          patientId,
-          scheduledFor: scheduled.toISOString(),
-        } as any)
-        .returning();
-      created.push((row as any)?.medicine_doses || row);
-      existingKey.add(key); // guard against intra-loop dupes
-    }
-  }
-
-  return c.json({ doses: created, count: created.length, date: today });
+  // R2: schedule logic lives in lib/medicine-scheduler so the cron can
+  // call it server-side too. Idempotent — safe on retry.
+  const { created, date } = await scheduleTodayForPatient(db, patientId);
+  return c.json({ doses: [], count: created, date });
 });
 
 // ─── Untake a dose ───────────────────────────────────────

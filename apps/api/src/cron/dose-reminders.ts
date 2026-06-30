@@ -10,6 +10,9 @@ import {
 } from "@healthcare/db";
 import { notify } from "../lib/notifications";
 import { createDb } from "../lib/db";
+import {
+  scheduleTodayForAllPatients,
+} from "../lib/medicine-scheduler";
 import type { AppEnvironment } from "../types";
 
 /**
@@ -46,6 +49,12 @@ doseRemindersRouter.post("/__cron/dose-reminders", async (c) => {
   const horizon = new Date(now.getTime() + 15 * 60 * 1000);
   const nowIso = now.toISOString();
   const horizonIso = horizon.toISOString();
+
+  // Companion to F1: ensure today's dose rows exist for every patient
+  // with active meds. Idempotent — first cron pass per day creates the
+  // rows; subsequent passes no-op. Without this, users who never open
+  // the app get zero reminders because there are no dose rows to remind.
+  const sched = await scheduleTodayForAllPatients(db);
 
   // Pull doses due in [now, now+15min], not yet taken/skipped/reminded.
   // Join medicines for name+dosage, patients for userId (the notification
@@ -123,6 +132,7 @@ doseRemindersRouter.post("/__cron/dose-reminders", async (c) => {
 
   return c.json({
     ok: true,
+    scheduled: sched,
     scanned: rows.length,
     sent,
     failures: failures.length,
