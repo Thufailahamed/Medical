@@ -1,0 +1,8 @@
+-- 0002_peaceful_nuke: empty placeholder.
+-- The schema drift that originally generated this migration (a `notified_at`
+-- column on `medicine_doses`) was applied directly to remote D1 via
+-- apps/api/migrations/0005_dose_reminders.sql outside the drizzle flow.
+-- The companion index `medicine_doses_due_idx` was also applied directly.
+-- This file is tracked in drizzle's journal so future `db:generate` runs
+-- do not regenerate the duplicate ALTER, but it intentionally contains no
+-- statements — re-running it is a no-op.

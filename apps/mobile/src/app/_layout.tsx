@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { I18nextProvider } from "react-i18next";
 import { Stack, router } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -21,9 +22,17 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useAuthStore } from "@/stores/auth";
+import { useLocaleStore } from "@/stores/locale";
 import { registerForPushNotifications, onPushResponse } from "@/lib/push";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
+import i18n from "@/i18n";
+
+// NOTE on the hydration race:
+// `useLocaleStore.persist.hasHydrated()` is async (SecureStore read), so we
+// cannot synchronously read the persisted locale at module load. Instead we
+// gate first render on hydration completion — splash covers the window so
+// users never see a flash of English when they previously picked Sinhala.
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // ignore — splash already shown or hidden
@@ -69,11 +78,34 @@ export default function RootLayout() {
     Outfit_800ExtraBold,
   });
 
+  // Track persisted-locale hydration. Initial value is the current sync
+  // status; for new users this is `false` (hydration is async even with no
+  // stored data) and flips to `true` once persist completes its first cycle.
+  const [hasLocaleHydrated, setHasLocaleHydrated] = useState(
+    useLocaleStore.persist.hasHydrated()
+  );
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    const unsubFinish = useLocaleStore.persist.onFinishHydration((state) => {
+      i18n.changeLanguage(state.locale);
+      setHasLocaleHydrated(true);
+    });
+    // If hydration already finished before this effect mounted (rare — only
+    // on the very first synchronous path), pick up the current state now.
+    if (useLocaleStore.persist.hasHydrated()) {
+      i18n.changeLanguage(useLocaleStore.getState().locale);
+      setHasLocaleHydrated(true);
+    }
+    return unsubFinish;
+  }, []);
+
+  const ready = hasLocaleHydrated && (fontsLoaded || !!fontError);
+
+  useEffect(() => {
+    if (ready) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded, fontError]);
+  }, [ready]);
 
   // Register for push notifications once authenticated.
   useEffect(() => {
@@ -96,15 +128,28 @@ export default function RootLayout() {
     return cleanup;
   }, []);
 
-  // Render app shell while fonts load; splash covers the gap.
+  // Keep i18next in sync with persisted locale changes (from LocaleSwitcher).
+  useEffect(() => {
+    return useLocaleStore.subscribe((state) => {
+      i18n.changeLanguage(state.locale);
+    });
+  }, []);
+
+  // Render app shell while fonts load AND persisted locale hydrates; splash
+  // covers the gap. Blocking on hydration prevents the EN→SI flash on cold
+  // start for returning non-English users.
+  if (!ready) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <ToastProvider>
-            <ThemedStack />
-          </ToastProvider>
-        </ThemeProvider>
+        <I18nextProvider i18n={i18n}>
+          <ThemeProvider>
+            <ToastProvider>
+              <ThemedStack />
+            </ToastProvider>
+          </ThemeProvider>
+        </I18nextProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

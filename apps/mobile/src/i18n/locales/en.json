@@ -1,0 +1,48 @@
+{
+  "common": {
+    "languageEnglish": "English",
+    "languageSinhala": "සිංහල",
+    "languageTamil": "தமிழ்"
+  },
+  "support": {
+    "title": "Help & Support",
+    "heroTitle": "How can we help?",
+    "heroSubtitle": "Reach the team or browse common questions below.",
+    "contactHeading": "CONTACT",
+    "contactEmailLabel": "Email support",
+    "contactChatLabel": "Text us",
+    "contactCallLabel": "Call support",
+    "hoursLabel": "Mon–Fri, 9:00–18:00 IST",
+    "faqHeading": "FREQUENTLY ASKED",
+    "footer": "HealthHub v0.1 · Healthcare Platform",
+    "faq": {
+      "bookAppointment": {
+        "question": "How do I book an appointment?",
+        "answer": "Open Home → tap 'Book appointment', pick a doctor, choose a date and time slot, then confirm. You'll get an in-app notification when the doctor confirms."
+      },
+      "seePrescriptions": {
+        "question": "Where can I see my prescriptions?",
+        "answer": "All prescriptions your doctor has issued appear in your medical records under the 'Prescription' filter. You can also tap any prescription to view attached medicines."
+      },
+      "medicineAdherence": {
+        "question": "How does medicine adherence work?",
+        "answer": "Open the Medicines tab and tap 'Mark today's schedule' to generate dose reminders for each active medicine. Tap the dose ring when you take it. The history persists across sessions and devices."
+      },
+      "shareRecords": {
+        "question": "Can I share records with a new doctor?",
+        "answer": "Each doctor you see via the app automatically gets access to records they created. To grant access to an outside doctor, use the QR Health ID on the Emergency screen — they can scan it once to view your critical info."
+      },
+      "sos": {
+        "question": "What happens if I tap SOS?",
+        "answer": "Your location, blood group, allergies, current medicines, and emergency contacts are sent to all your registered emergency contacts. A notification is created on their accounts and an audit log entry is written to your record."
+      },
+      "exportData": {
+        "question": "How do I export my data?",
+        "answer": "All attachments stored in your records can be downloaded individually from the Records tab. A full data export is on the roadmap."
+      }
+    }
+  },
+  "appearance": {
+    "languageHeading": "LANGUAGE"
+  }
+}

@@ -6,10 +6,12 @@ import {
   Text,
   ScrollView,
   Pressable,
-  TextInput,
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Pill,
   Save,
@@ -26,112 +28,261 @@ import {
   type MedicineSuggestion,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Screen, ScreenHeader, Button, Card } from "@/components/ui";
+import {
+  Screen,
+  ScreenHeader,
+  Button,
+  Card,
+  FormField,
+  TextInput,
+  ChipGroup,
+  DateField,
+  useToast,
+} from "@/components/ui";
 
+// M3: mirror of medicineUpdateSchema in apps/api/src/lib/validators.ts.
+// Frequency + timing enums are duplicated rather than re-exported so the
+// mobile bundle doesn't pull in API-only validators. Keep in sync if the
+// server enum changes.
 const FREQUENCIES = [
-  "Once daily",
-  "Twice daily",
-  "Three times daily",
-  "Four times daily",
-  "As needed",
-];
+  { value: "Once daily", label: "Once daily" },
+  { value: "Twice daily", label: "Twice daily" },
+  { value: "Three times daily", label: "Three times" },
+  { value: "Four times daily", label: "Four times" },
+  { value: "As needed", label: "As needed" },
+] as const;
 
 const TIMINGS = [
-  "Before food",
-  "After food",
-  "With food",
-  "Any time",
-  "Morning",
-  "Afternoon",
-  "Evening",
-  "Night",
-];
+  { value: "Before food", label: "Before food" },
+  { value: "After food", label: "After food" },
+  { value: "With food", label: "With food" },
+  { value: "Any time", label: "Any time" },
+  { value: "Morning", label: "Morning" },
+  { value: "Afternoon", label: "Afternoon" },
+  { value: "Evening", label: "Evening" },
+  { value: "Night", label: "Night" },
+] as const;
+
+// M3 + M4: Zod schema. Dates are coerced so RHF can hold Date objects
+// while the server receives YYYY-MM-DD strings. active is required
+// because the form owns the active toggle now.
+const editSchema = z.object({
+  name: z.string().min(1, "Name is required").max(120),
+  dosage: z.string().min(1, "Dosage is required").max(60),
+  frequency: z.enum(
+    FREQUENCIES.map((f) => f.value) as [string, ...string[]]
+  ),
+  timing: z
+    .enum(TIMINGS.map((t) => t.value) as [string, ...string[]])
+    .optional(),
+  startDate: z.date({ required_error: "Start date is required" }),
+  endDate: z.date().optional(),
+  notes: z.string().max(1000).optional(),
+  active: z.boolean(),
+});
+type EditFormData = z.infer<typeof editSchema>;
+
+function toDateString(d: Date | undefined): string {
+  if (!d) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Suggestion row, mirrors add-medicine.tsx.
+function SuggestionRow({
+  s,
+  onApply,
+}: {
+  s: MedicineSuggestion;
+  onApply: (s: MedicineSuggestion) => void;
+}) {
+  const { colors, typography, spacing } = useTheme();
+  const isHistory = s.source === "history";
+  const topDosage = s.commonDosages[0];
+  const topFreq = s.commonFrequencies[0];
+  const topTiming = s.commonTimings[0];
+
+  return (
+    <Pressable
+      onPress={() => onApply(s)}
+      accessibilityRole="button"
+      accessibilityLabel={`Use ${s.name}`}
+      style={({ pressed }) => ({
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+      })}
+    >
+      <View
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 15,
+          backgroundColor: isHistory
+            ? colors.primarySoft
+            : "rgba(14, 165, 183, 0.12)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {isHistory ? (
+          <History size={14} color={colors.primary} strokeWidth={2.25} />
+        ) : (
+          <Sparkles size={14} color="#0EA5B7" strokeWidth={2.25} />
+        )}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          style={[
+            typography.title.sm,
+            { color: colors.text, fontWeight: "700" },
+          ]}
+          numberOfLines={1}
+        >
+          {s.name}
+        </Text>
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.textMuted, marginTop: 1 },
+          ]}
+          numberOfLines={1}
+        >
+          {s.category ? `${s.category} · ` : ""}
+          {topDosage
+            ? `${topDosage}${topFreq ? ` · ${topFreq}` : ""}${
+                topTiming ? ` · ${topTiming}` : ""
+              }`
+            : "Tap to use name"}
+        </Text>
+      </View>
+      <CornerDownLeft size={14} color={colors.textSubtle} strokeWidth={2.25} />
+    </Pressable>
+  );
+}
 
 export default function EditMedicineScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = (params.id as string) || "";
   const router = useRouter();
   const { spacing, colors, typography, radius } = useTheme();
+  const toast = useToast();
 
   const { data, isLoading, error } = useMedicine(id);
   const edit = useEditMedicine();
   const stop = useStopMedicine();
 
-  const [name, setName] = useState("");
-  const [dosage, setDosage] = useState("");
-  const [frequency, setFrequency] = useState<string>("Once daily");
-  const [timing, setTiming] = useState<string | undefined>(undefined);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [nameFocused, setNameFocused] = useState(false);
-  const [active, setActive] = useState(true);
-  const [hydrated, setHydrated] = useState(false);
-  const [savedOnce, setSavedOnce] = useState(false);
-
   const med = data?.medicine;
 
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<EditFormData>({
+    resolver: zodResolver(editSchema) as any,
+    defaultValues: {
+      name: "",
+      dosage: "",
+      frequency: "Once daily",
+      timing: undefined,
+      startDate: new Date(),
+      endDate: undefined,
+      notes: "",
+      active: true,
+    },
+    mode: "onChange",
+  });
+
+  const [hydrated, setHydrated] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
+
+  // M3: hydrate the form once the medicine is loaded.
   useEffect(() => {
     if (med && !hydrated) {
-      setName(med.name ?? "");
-      setDosage(med.dosage ?? "");
-      setFrequency(med.frequency ?? "Once daily");
-      setTiming(med.timing ?? undefined);
-      setStartDate(med.startDate ?? "");
-      setEndDate(med.endDate ?? "");
-      setNotes(med.notes ?? "");
-      setActive(med.active !== false);
+      const start = med.startDate ? new Date(`${med.startDate}T00:00:00`) : new Date();
+      const end = med.endDate ? new Date(`${med.endDate}T00:00:00`) : undefined;
+      reset({
+        name: med.name ?? "",
+        dosage: med.dosage ?? "",
+        frequency: (med.frequency ?? "Once daily") as any,
+        timing: (med.timing ?? undefined) as any,
+        startDate: start,
+        endDate: end,
+        notes: med.notes ?? "",
+        active: med.active !== false,
+      });
       setHydrated(true);
     }
-  }, [med, hydrated]);
+  }, [med, hydrated, reset]);
 
-  const dirty = useMemo(() => {
-    if (!med) return false;
-    return (
-      name !== (med.name ?? "") ||
-      dosage !== (med.dosage ?? "") ||
-      frequency !== (med.frequency ?? "Once daily") ||
-      (timing ?? null) !== (med.timing ?? null) ||
-      startDate !== (med.startDate ?? "") ||
-      (endDate || null) !== (med.endDate ?? null) ||
-      notes !== (med.notes ?? "") ||
-      active !== (med.active !== false)
-    );
-  }, [med, name, dosage, frequency, timing, startDate, endDate, notes, active]);
+  const watchedName = watch("name") || "";
+  const watchedFrequency = watch("frequency");
+  const watchedTiming = watch("timing");
+  const watchedStart = watch("startDate");
+  const watchedEnd = watch("endDate");
+  const watchedActive = watch("active");
+  const watchedDosage = watch("dosage");
+  const watchedNotes = watch("notes");
 
-  // Autocomplete — only when name changed from the original value.
-  const { data: suggestData, isFetching } = useMedicineSuggestions(name, 6);
+  const { data: suggestData, isFetching } = useMedicineSuggestions(
+    watchedName,
+    6
+  );
   const suggestions: MedicineSuggestion[] = suggestData?.suggestions || [];
   const showDropdown =
     nameFocused &&
-    name.trim().length > 0 &&
-    name.trim().toLowerCase() !== (med?.name ?? "").trim().toLowerCase() &&
+    watchedName.trim().length > 0 &&
+    watchedName.trim().toLowerCase() !== (med?.name ?? "").trim().toLowerCase() &&
     suggestions.length > 0;
 
-  function applyNameOnly(s: MedicineSuggestion) {
-    setName(s.name);
+  function applySuggestion(s: MedicineSuggestion) {
+    setValue("name", s.name, { shouldValidate: true, shouldDirty: true });
+    if (s.commonDosages[0])
+      setValue("dosage", s.commonDosages[0], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    if (s.commonFrequencies[0])
+      setValue("frequency", s.commonFrequencies[0] as any, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    if (s.commonTimings[0])
+      setValue("timing", s.commonTimings[0] as any, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
     setNameFocused(false);
   }
 
-  async function onSave() {
+  async function onSubmit(data: EditFormData) {
     if (!med) return;
     try {
       await edit.mutateAsync({
         id: med.id,
-        name: name.trim(),
-        dosage: dosage.trim(),
-        frequency,
-        timing: timing as any,
-        startDate,
-        endDate: endDate || undefined,
-        notes: notes.trim() || undefined,
-        active,
+        name: data.name.trim(),
+        dosage: data.dosage.trim(),
+        frequency: data.frequency,
+        timing: data.timing,
+        startDate: toDateString(data.startDate),
+        endDate: data.endDate ? toDateString(data.endDate) : undefined,
+        notes: data.notes?.trim() || undefined,
+        active: data.active,
       } as any);
-      setSavedOnce(true);
-      setHydrated(false);
-      setTimeout(() => router.back(), 400);
+      toast.show("Saved", "success");
+      router.back();
     } catch (err: any) {
-      // Mutation error surfaces in toast via hook; nothing to do here.
+      toast.show(err?.message || "Save failed", "danger");
     }
   }
 
@@ -139,9 +290,11 @@ export default function EditMedicineScreen() {
     if (!med) return;
     try {
       await stop.mutateAsync(med.id);
-      setHydrated(false);
-      setTimeout(() => router.back(), 400);
-    } catch {}
+      toast.show(`${med.name} stopped`, "info");
+      router.back();
+    } catch (err: any) {
+      toast.show(err?.message || "Failed to stop", "danger");
+    }
   }
 
   if (isLoading || (!med && !error)) {
@@ -199,439 +352,370 @@ export default function EditMedicineScreen() {
       />
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120, gap: spacing.lg }}
+        contentContainerStyle={{
+          padding: spacing.lg,
+          paddingBottom: 120,
+          gap: spacing.lg,
+        }}
       >
-        {/* Active toggle */}
+        {/* Active toggle (Controller) */}
         <Card>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <View style={{ flex: 1, paddingRight: spacing.md }}>
-              <Text
-                style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "700" },
-                ]}
-              >
-                {active ? "Active" : "Paused"}
-              </Text>
-              <Text
-                style={[
-                  typography.caption,
-                  { color: colors.textMuted, marginTop: 2 },
-                ]}
-              >
-                {active
-                  ? "Reminders will continue."
-                  : "Reminders are off until you reactivate."}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => setActive((v) => !v)}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: active }}
-              accessibilityLabel="Active toggle"
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 52,
-                height: 30,
-                borderRadius: 16,
-                backgroundColor: active ? colors.primary : colors.surfaceMuted,
-                padding: 3,
-                justifyContent: "center",
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
+          <Controller
+            control={control}
+            name="active"
+            render={({ field: { value, onChange } }) => (
               <View
                 style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: "#fff",
-                  transform: [{ translateX: active ? 22 : 0 }],
-                }}
-              />
-            </Pressable>
-          </View>
-        </Card>
-
-        {/* Name */}
-        <Card>
-          <Text
-            style={[
-              typography.label.md,
-              { color: colors.textMuted, marginBottom: spacing.xs, fontWeight: "700" },
-            ]}
-          >
-            Medicine name
-          </Text>
-          <View style={{ position: "relative" }}>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              onFocus={() => setNameFocused(true)}
-              onBlur={() => {
-                // Delay so taps on suggestion rows register before dismiss.
-                setTimeout(() => setNameFocused(false), 120);
-              }}
-              placeholder="e.g. Metformin"
-              placeholderTextColor={colors.textMuted}
-              style={{
-                color: colors.text,
-                fontSize: 16,
-                paddingVertical: 6,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-              }}
-            />
-            {isFetching && name.trim().length > 0 ? (
-              <View
-                style={{
-                  position: "absolute",
-                  right: spacing.sm,
-                  top: 0,
-                  bottom: 0,
-                  justifyContent: "center",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                <ActivityIndicator size="small" color={colors.primary} />
-              </View>
-            ) : null}
-          </View>
-          {showDropdown ? (
-            <View
-              style={{
-                marginTop: 8,
-                backgroundColor: colors.surface,
-                borderRadius: radius.lg,
-                borderWidth: 1,
-                borderColor: colors.border,
-                overflow: "hidden",
-                maxHeight: 240,
-              }}
-            >
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                {suggestions.map((s) => {
-                  const isHistory = s.source === "history";
-                  const topDosage = s.commonDosages[0];
-                  const topFreq = s.commonFrequencies[0];
-                  const topTiming = s.commonTimings[0];
-                  return (
-                    <Pressable
-                      key={`${s.source}-${s.name}`}
-                      onPress={() => applyNameOnly(s)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Use ${s.name}`}
-                      style={({ pressed }) => ({
-                        paddingHorizontal: spacing.md,
-                        paddingVertical: spacing.sm,
-                        backgroundColor: pressed
-                          ? colors.surfaceMuted
-                          : colors.surface,
-                        borderTopWidth: 1,
-                        borderTopColor: colors.border,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: spacing.sm,
-                      })}
-                    >
-                      <View
-                        style={{
-                          width: 30,
-                          height: 30,
-                          borderRadius: 15,
-                          backgroundColor: isHistory
-                            ? colors.primarySoft
-                            : "rgba(14, 165, 183, 0.12)",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {isHistory ? (
-                          <History size={14} color={colors.primary} strokeWidth={2.25} />
-                        ) : (
-                          <Sparkles size={14} color="#0EA5B7" strokeWidth={2.25} />
-                        )}
-                      </View>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text
-                          style={[
-                            typography.title.sm,
-                            { color: colors.text, fontWeight: "700" },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {s.name}
-                        </Text>
-                        <Text
-                          style={[
-                            typography.caption,
-                            { color: colors.textMuted, marginTop: 1 },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {s.category ? `${s.category} · ` : ""}
-                          {topDosage
-                            ? `${topDosage}${
-                                topFreq ? ` · ${topFreq}` : ""
-                              }${topTiming ? ` · ${topTiming}` : ""}`
-                            : "Tap to use name"}
-                        </Text>
-                      </View>
-                      <CornerDownLeft
-                        size={14}
-                        color={colors.textSubtle}
-                        strokeWidth={2.25}
-                      />
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          ) : null}
-        </Card>
-
-        {/* Dosage */}
-        <Card>
-          <Text
-            style={[
-              typography.label.md,
-              { color: colors.textMuted, marginBottom: spacing.xs, fontWeight: "700" },
-            ]}
-          >
-            Dosage
-          </Text>
-          <TextInput
-            value={dosage}
-            onChangeText={setDosage}
-            placeholder="e.g. 500 mg"
-            placeholderTextColor={colors.textMuted}
-            style={{
-              color: colors.text,
-              fontSize: 16,
-              paddingVertical: 6,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.border,
-            }}
-          />
-        </Card>
-
-        {/* Frequency chips */}
-        <Card>
-          <Text
-            style={[
-              typography.label.md,
-              { color: colors.textMuted, marginBottom: spacing.sm, fontWeight: "700" },
-            ]}
-          >
-            Frequency
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {FREQUENCIES.map((f) => {
-              const sel = f === frequency;
-              return (
+                <View style={{ flex: 1, paddingRight: spacing.md }}>
+                  <Text
+                    style={[
+                      typography.title.sm,
+                      { color: colors.text, fontWeight: "700" },
+                    ]}
+                  >
+                    {value ? "Active" : "Paused"}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.textMuted, marginTop: 2 },
+                    ]}
+                  >
+                    {value
+                      ? "Reminders will continue."
+                      : "Reminders are off until you reactivate."}
+                  </Text>
+                </View>
                 <Pressable
-                  key={f}
-                  onPress={() => setFrequency(f)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: sel }}
-                  accessibilityLabel={f}
+                  onPress={() => onChange(!value)}
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: !!value }}
+                  accessibilityLabel="Active toggle"
+                  hitSlop={8}
                   style={({ pressed }) => ({
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    backgroundColor: sel ? colors.primary : colors.surfaceMuted,
-                    borderWidth: 1,
-                    borderColor: sel ? colors.primary : colors.border,
+                    width: 52,
+                    height: 30,
+                    borderRadius: 16,
+                    backgroundColor: value
+                      ? colors.primary
+                      : colors.surfaceMuted,
+                    padding: 3,
+                    justifyContent: "center",
                     opacity: pressed ? 0.85 : 1,
                   })}
                 >
-                  <Text
+                  <View
                     style={{
-                      fontSize: 13,
-                      fontWeight: "700",
-                      color: sel ? colors.onPrimary : colors.text,
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: "#fff",
+                      transform: [{ translateX: value ? 22 : 0 }],
                     }}
-                  >
-                    {f}
-                  </Text>
+                  />
                 </Pressable>
-              );
-            })}
+              </View>
+            )}
+          />
+        </Card>
+
+        {/* Name */}
+        <Card padded={false}>
+          <View style={{ padding: spacing.lg, gap: spacing.md }}>
+            <Controller
+              control={control}
+              name="name"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <FormField
+                  label="Medicine name"
+                  required
+                  error={errors.name?.message}
+                >
+                  <View style={{ position: "relative" }}>
+                    <TextInput
+                      value={value}
+                      onChangeText={onChange}
+                      onFocus={() => setNameFocused(true)}
+                      onBlur={() => {
+                        onBlur();
+                        setTimeout(() => setNameFocused(false), 120);
+                      }}
+                      placeholder="e.g. Metformin"
+                      leadingIcon={Pill}
+                      invalid={!!errors.name}
+                    />
+                    {isFetching && value?.trim().length > 0 ? (
+                      <View
+                        style={{
+                          position: "absolute",
+                          right: spacing.md,
+                          top: 0,
+                          bottom: 0,
+                          justifyContent: "center",
+                        }}
+                      >
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      </View>
+                    ) : null}
+                  </View>
+                  {showDropdown ? (
+                    <View
+                      style={{
+                        marginTop: 6,
+                        backgroundColor: colors.surface,
+                        borderRadius: radius.lg,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        overflow: "hidden",
+                        maxHeight: 280,
+                      }}
+                    >
+                      <ScrollView
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {suggestions.map((s) => (
+                          <SuggestionRow
+                            key={`${s.source}-${s.name}`}
+                            s={s}
+                            onApply={applySuggestion}
+                          />
+                        ))}
+                      </ScrollView>
+                    </View>
+                  ) : null}
+                </FormField>
+              )}
+            />
+          </View>
+        </Card>
+
+        {/* Dosage */}
+        <Card padded={false}>
+          <View style={{ padding: spacing.lg }}>
+            <Controller
+              control={control}
+              name="dosage"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <FormField
+                  label="Dosage"
+                  required
+                  error={errors.dosage?.message}
+                >
+                  <TextInput
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="e.g., 500mg"
+                    invalid={!!errors.dosage}
+                  />
+                </FormField>
+              )}
+            />
+          </View>
+        </Card>
+
+        {/* Frequency chips */}
+        <Card padded={false}>
+          <View style={{ padding: spacing.lg }}>
+            <FormField
+              label="Frequency"
+              required
+              error={errors.frequency?.message}
+            >
+              <Controller
+                control={control}
+                name="frequency"
+                render={({ field: { onChange, value } }) => (
+                  <ChipGroup
+                    options={FREQUENCIES as any}
+                    value={value}
+                    onChange={onChange}
+                  />
+                )}
+              />
+            </FormField>
           </View>
         </Card>
 
         {/* Timing chips */}
-        <Card>
-          <Text
-            style={[
-              typography.label.md,
-              { color: colors.textMuted, marginBottom: spacing.sm, fontWeight: "700" },
-            ]}
-          >
-            Timing (optional)
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            <Pressable
-              onPress={() => setTiming(undefined)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: !timing }}
-              accessibilityLabel="No timing"
-              style={({ pressed }) => ({
-                paddingHorizontal: spacing.md,
-                paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: !timing ? colors.primary : colors.surfaceMuted,
-                borderWidth: 1,
-                borderColor: !timing ? colors.primary : colors.border,
-                opacity: pressed ? 0.85 : 1,
-              })}
+        <Card padded={false}>
+          <View style={{ padding: spacing.lg, gap: spacing.sm }}>
+            <FormField
+              label="Timing"
+              error={errors.timing?.message}
+              helper="When to take this medicine"
             >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: !timing ? colors.onPrimary : colors.text,
-                }}
-              >
-                None
-              </Text>
-            </Pressable>
-            {TIMINGS.map((t) => {
-              const sel = t === timing;
-              return (
-                <Pressable
-                  key={t}
-                  onPress={() => setTiming(t)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: sel }}
-                  accessibilityLabel={t}
-                  style={({ pressed }) => ({
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    backgroundColor: sel ? colors.primary : colors.surfaceMuted,
-                    borderWidth: 1,
-                    borderColor: sel ? colors.primary : colors.border,
-                    opacity: pressed ? 0.85 : 1,
-                  })}
-                >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "700",
-                      color: sel ? colors.onPrimary : colors.text,
-                    }}
+              <Controller
+                control={control}
+                name="timing"
+                render={({ field: { onChange, value } }) => (
+                  <View
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
                   >
-                    {t}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Pressable
+                      onPress={() => onChange(undefined)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: !value }}
+                      accessibilityLabel="No timing"
+                      style={({ pressed }) => ({
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: 8,
+                        borderRadius: 999,
+                        backgroundColor: !value
+                          ? colors.primary
+                          : colors.surfaceMuted,
+                        borderWidth: 1,
+                        borderColor: !value ? colors.primary : colors.border,
+                        opacity: pressed ? 0.85 : 1,
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "700",
+                          color: !value ? colors.onPrimary : colors.text,
+                        }}
+                      >
+                        None
+                      </Text>
+                    </Pressable>
+                    {TIMINGS.map((t) => {
+                      const sel = t.value === value;
+                      return (
+                        <Pressable
+                          key={t.value}
+                          onPress={() => onChange(t.value as any)}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: sel }}
+                          accessibilityLabel={t.label}
+                          style={({ pressed }) => ({
+                            paddingHorizontal: spacing.md,
+                            paddingVertical: 8,
+                            borderRadius: 999,
+                            backgroundColor: sel
+                              ? colors.primary
+                              : colors.surfaceMuted,
+                            borderWidth: 1,
+                            borderColor: sel ? colors.primary : colors.border,
+                            opacity: pressed ? 0.85 : 1,
+                          })}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: "700",
+                              color: sel ? colors.onPrimary : colors.text,
+                            }}
+                          >
+                            {t.label}
+                          </Text>
+                          </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              />
+            </FormField>
           </View>
         </Card>
 
-        {/* Date range */}
-        <Card>
-          <View style={{ flexDirection: "row", gap: spacing.md }}>
+        {/* M4: Date range — was free-text before. Now DateField picker. */}
+        <Card padded={false}>
+          <View
+            style={{
+              padding: spacing.lg,
+              flexDirection: "row",
+              gap: spacing.md,
+            }}
+          >
             <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  typography.label.md,
-                  { color: colors.textMuted, marginBottom: spacing.xs, fontWeight: "700" },
-                ]}
-              >
-                Start
-              </Text>
-              <TextInput
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="none"
-                style={{
-                  color: colors.text,
-                  fontSize: 16,
-                  paddingVertical: 6,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
-                }}
+              <Controller
+                control={control}
+                name="startDate"
+                render={({ field: { onChange, value } }) => (
+                  <DateField
+                    label="Start date"
+                    value={value}
+                    onChange={onChange}
+                    placeholder="When did you start?"
+                    error={errors.startDate?.message}
+                  />
+                )}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  typography.label.md,
-                  { color: colors.textMuted, marginBottom: spacing.xs, fontWeight: "700" },
-                ]}
-              >
-                End
-              </Text>
-              <TextInput
-                value={endDate}
-                onChangeText={setEndDate}
-                placeholder="YYYY-MM-DD (optional)"
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="none"
-                style={{
-                  color: colors.text,
-                  fontSize: 16,
-                  paddingVertical: 6,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
-                }}
+              <Controller
+                control={control}
+                name="endDate"
+                render={({ field: { onChange, value } }) => (
+                  <DateField
+                    label="End date (optional)"
+                    value={value}
+                    onChange={onChange}
+                    placeholder="When does it end?"
+                    error={errors.endDate?.message}
+                  />
+                )}
               />
             </View>
           </View>
         </Card>
 
         {/* Notes */}
-        <Card>
+        <Card padded={false}>
+          <View style={{ padding: spacing.lg }}>
+            <Controller
+              control={control}
+              name="notes"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <FormField
+                  label="Notes"
+                  helper="Anything to remember"
+                  error={errors.notes?.message}
+                >
+                  <TextInput
+                    value={value ?? ""}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="e.g., take with warm water"
+                    multiline
+                    numberOfLines={3}
+                    invalid={!!errors.notes}
+                  />
+                </FormField>
+              )}
+            />
+          </View>
+        </Card>
+
+        {errors.root ? (
           <Text
             style={[
-              typography.label.md,
-              { color: colors.textMuted, marginBottom: spacing.xs, fontWeight: "700" },
+              typography.caption,
+              { color: colors.danger, textAlign: "center" },
             ]}
           >
-            Notes
+            {errors.root.message}
           </Text>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Anything to remember"
-            placeholderTextColor={colors.textMuted}
-            multiline
-            numberOfLines={3}
-            style={{
-              color: colors.text,
-              fontSize: 15,
-              minHeight: 60,
-              paddingVertical: 6,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.border,
-              textAlignVertical: "top",
-            }}
-          />
-        </Card>
+        ) : null}
 
         {/* Actions */}
         <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
           <Button
-            title={savedOnce ? "Saved" : "Save changes"}
+            title="Save changes"
             icon={Save}
-            onPress={onSave}
+            onPress={handleSubmit(onSubmit)}
             loading={edit.isPending}
-            disabled={!dirty || edit.isPending}
+            disabled={!isDirty || edit.isPending}
             variant="primary"
           />
-          {med.active !== false ? (
+          {watchedActive ? (
             <Button
               title="Stop medicine"
               icon={Power}

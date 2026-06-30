@@ -166,30 +166,181 @@ export default function AppLayout() {
           tabBarStyle: { display: "none" },
         }}
       />
-      <Tabs.Screen name="doctor" options={{ href: null }} />
-      <Tabs.Screen name="doctor/queue" options={{ href: null }} />
-      <Tabs.Screen name="doctor/patient-detail" options={{ href: null }} />
-      <Tabs.Screen name="doctor/clinical-note" options={{ href: null }} />
-      <Tabs.Screen name="doctor/prescription" options={{ href: null }} />
-      <Tabs.Screen name="doctor/lab-order" options={{ href: null }} />
-      <Tabs.Screen name="doctor/lab-orders" options={{ href: null }} />
-      <Tabs.Screen name="doctor/follow-ups" options={{ href: null }} />
-      <Tabs.Screen name="doctor/follow-up-new" options={{ href: null }} />
-      <Tabs.Screen name="doctor/availability" options={{ href: null }} />
-      <Tabs.Screen name="doctor/profile" options={{ href: null }} />
-      <Tabs.Screen name="doctor/prescriptions" options={{ href: null }} />
-      <Tabs.Screen name="doctor/clinical-notes" options={{ href: null }} />
-      <Tabs.Screen name="doctor/visit-summary" options={{ href: null }} />
-      <Tabs.Screen name="hospital/dashboard" options={{ href: null }} />
-      <Tabs.Screen name="hospital/wards" options={{ href: null }} />
-      <Tabs.Screen name="hospital/ward-detail" options={{ href: null }} />
-      <Tabs.Screen name="hospital/staff" options={{ href: null }} />
-      <Tabs.Screen name="hospital/patients" options={{ href: null }} />
-      <Tabs.Screen name="hospital/patient-detail" options={{ href: null }} />
-      <Tabs.Screen name="hospital/walk-ins" options={{ href: null }} />
-      <Tabs.Screen name="ai/summary" options={{ href: null }} />
-      <Tabs.Screen name="ai/lab-explain" options={{ href: null }} />
-      <Tabs.Screen name="ai/drug-check" options={{ href: null }} />
+      <Tabs.Screen
+        name="doctor"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/queue"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/patient-detail"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/clinical-note"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/prescription"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/lab-order"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/lab-orders"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/follow-ups"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/follow-up-new"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/availability"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/profile"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/prescriptions"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/clinical-notes"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/visit-summary"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="doctor/records"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/dashboard"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/wards"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/ward-detail"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/staff"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/patients"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/patient-detail"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/walk-ins"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="ai/summary"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="ai/lab-explain"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="ai/drug-check"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
       <Tabs.Screen
         name="ai/chat"
         options={{
@@ -197,7 +348,13 @@ export default function AppLayout() {
           tabBarStyle: { display: "none" },
         }}
       />
-      <Tabs.Screen name="ai/ocr" options={{ href: null }} />
+      <Tabs.Screen
+        name="ai/ocr"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
       <Tabs.Screen
         name="record-detail"
         options={{
@@ -214,6 +371,13 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="edit-medicine"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="medicines-history"
         options={{
           href: null,
           tabBarStyle: { display: "none" },

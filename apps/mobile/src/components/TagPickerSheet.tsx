@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,8 +13,9 @@ import { useTheme } from "@/theme/ThemeProvider";
 
 type Props = {
   visible: boolean;
-  onDismiss: () => void;
-  currentTags: string[];
+  onDismiss?: () => void;
+  onClose?: () => void;
+  currentTags?: string[];
   suggestions: string[]; // top used tags derived from the records cache
   onApply: (next: string[]) => void;
 };
@@ -22,13 +23,22 @@ type Props = {
 export function TagPickerSheet({
   visible,
   onDismiss,
+  onClose,
   currentTags,
   suggestions,
   onApply,
 }: Props) {
   const { colors, spacing, typography } = useTheme();
-  const [working, setWorking] = useState<string[]>(currentTags);
+  const [working, setWorking] = useState<string[]>(currentTags || []);
   const [draft, setDraft] = useState("");
+
+  const handleDismiss = onDismiss || onClose || (() => {});
+
+  useEffect(() => {
+    if (visible) {
+      setWorking(currentTags || []);
+    }
+  }, [visible, currentTags]);
 
   function toggle(tag: string) {
     setWorking((prev) =>
@@ -45,11 +55,11 @@ export function TagPickerSheet({
 
   function apply() {
     onApply(working);
-    onDismiss();
+    handleDismiss();
   }
 
   return (
-    <BottomSheet visible={visible} onDismiss={onDismiss} title="Edit tags">
+    <BottomSheet visible={visible} onDismiss={handleDismiss} title="Edit tags">
       <View style={{ gap: spacing.md, paddingBottom: spacing.md }}>
         {suggestions.length ? (
           <View style={{ gap: spacing.xs }}>

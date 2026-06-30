@@ -15,6 +15,7 @@ import {
   ChevronUp,
   ExternalLink,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -23,40 +24,24 @@ import {
   ListItem,
 } from "@/components/ui";
 
-const FAQ = [
-  {
-    q: "How do I book an appointment?",
-    a: "Open Home → tap 'Book appointment', pick a doctor, choose a date and time slot, then confirm. You'll get an in-app notification when the doctor confirms.",
-  },
-  {
-    q: "Where can I see my prescriptions?",
-    a: "All prescriptions your doctor has issued appear in your medical records under the 'Prescription' filter. You can also tap any prescription to view attached medicines.",
-  },
-  {
-    q: "How does medicine adherence work?",
-    a: "Open the Medicines tab and tap 'Mark today's schedule' to generate dose reminders for each active medicine. Tap the dose ring when you take it. The history persists across sessions and devices.",
-  },
-  {
-    q: "Can I share records with a new doctor?",
-    a: "Each doctor you see via the app automatically gets access to records they created. To grant access to an outside doctor, use the QR Health ID on the Emergency screen — they can scan it once to view your critical info.",
-  },
-  {
-    q: "What happens if I tap SOS?",
-    a: "Your location, blood group, allergies, current medicines, and emergency contacts are sent to all your registered emergency contacts. A notification is created on their accounts and an audit log entry is written to your record.",
-  },
-  {
-    q: "How do I export my data?",
-    a: "All attachments stored in your records can be downloaded individually from the Records tab. A full data export is on the roadmap.",
-  },
-];
+// FAQ keyset pulls from i18n; the hard-coded "q/a" object becomes key paths
+// so translators can swap all content per-locale without code changes.
+const FAQ_KEYS = [
+  "bookAppointment",
+  "seePrescriptions",
+  "medicineAdherence",
+  "shareRecords",
+  "sos",
+  "exportData",
+] as const;
 
 const CONTACT = {
   email: "support@healthhub.app",
   phone: "+94 11 234 5678",
-  hours: "Mon–Fri, 9:00–18:00 IST",
 };
 
 export default function SupportScreen() {
+  const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const [open, setOpen] = useState<number | null>(0);
 
@@ -74,7 +59,7 @@ export default function SupportScreen() {
 
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
-      <ScreenHeader title="Help & Support" />
+      <ScreenHeader title={t("support.title")} />
       <ScrollView
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
       >
@@ -102,7 +87,7 @@ export default function SupportScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[typography.title.md, { color: colors.text }]}>
-                How can we help?
+                {t("support.heroTitle")}
               </Text>
               <Text
                 style={[
@@ -110,7 +95,7 @@ export default function SupportScreen() {
                   { color: colors.textMuted, marginTop: 2 },
                 ]}
               >
-                Reach the team or browse common questions below.
+                {t("support.heroSubtitle")}
               </Text>
             </View>
           </View>
@@ -119,13 +104,13 @@ export default function SupportScreen() {
         {/* Contact cards */}
         <View style={{ gap: spacing.sm }}>
           <Text style={[typography.label.md, { color: colors.textMuted }]}>
-            CONTACT
+            {t("support.contactHeading")}
           </Text>
           <Card padded={false}>
             <ListItem
               icon={Mail}
               iconTone="primary"
-              title="Email support"
+              title={t("support.contactEmailLabel")}
               subtitle={CONTACT.email}
               onPress={openEmail}
               trailing={<ExternalLink size={16} color={colors.textMuted} />}
@@ -133,16 +118,16 @@ export default function SupportScreen() {
             <ListItem
               icon={MessageSquare}
               iconTone="accent2"
-              title="Text us"
-              subtitle={`${CONTACT.phone} · ${CONTACT.hours}`}
+              title={t("support.contactChatLabel")}
+              subtitle={`${CONTACT.phone} · ${t("support.hoursLabel")}`}
               onPress={openChat}
               trailing={<ExternalLink size={16} color={colors.textMuted} />}
             />
             <ListItem
               icon={Phone}
               iconTone="success"
-              title="Call support"
-              subtitle={CONTACT.hours}
+              title={t("support.contactCallLabel")}
+              subtitle={t("support.hoursLabel")}
               onPress={callPhone}
               trailing={<ExternalLink size={16} color={colors.textMuted} />}
             />
@@ -152,21 +137,23 @@ export default function SupportScreen() {
         {/* FAQ */}
         <View style={{ gap: spacing.sm }}>
           <Text style={[typography.label.md, { color: colors.textMuted }]}>
-            FREQUENTLY ASKED
+            {t("support.faqHeading")}
           </Text>
           <Card padded={false}>
-            {FAQ.map((item, idx) => {
+            {FAQ_KEYS.map((key, idx) => {
               const isOpen = open === idx;
+              const questionKey = `support.faq.${key}.question`;
+              const answerKey = `support.faq.${key}.answer`;
               return (
                 <Pressable
-                  key={idx}
+                  key={key}
                   onPress={() => setOpen(isOpen ? null : idx)}
                   accessibilityRole="button"
-                  accessibilityLabel={item.q}
+                  accessibilityLabel={t(questionKey)}
                   style={{
                     paddingHorizontal: spacing.lg,
                     paddingVertical: spacing.md,
-                    borderBottomWidth: idx < FAQ.length - 1 ? 1 : 0,
+                    borderBottomWidth: idx < FAQ_KEYS.length - 1 ? 1 : 0,
                     borderBottomColor: colors.border,
                   }}
                 >
@@ -181,7 +168,7 @@ export default function SupportScreen() {
                     <Text
                       style={[typography.title.sm, { color: colors.text, flex: 1 }]}
                     >
-                      {item.q}
+                      {t(questionKey)}
                     </Text>
                     {isOpen ? (
                       <ChevronUp size={18} color={colors.textMuted} />
@@ -200,7 +187,7 @@ export default function SupportScreen() {
                         },
                       ]}
                     >
-                      {item.a}
+                      {t(answerKey)}
                     </Text>
                   ) : null}
                 </Pressable>
@@ -215,7 +202,7 @@ export default function SupportScreen() {
             { color: colors.textMuted, textAlign: "center" },
           ]}
         >
-          HealthHub v0.1 · Healthcare Platform
+          {t("support.footer")}
         </Text>
       </ScrollView>
     </Screen>

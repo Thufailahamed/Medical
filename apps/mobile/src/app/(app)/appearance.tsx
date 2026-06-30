@@ -1,6 +1,7 @@
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Smartphone, Sun, Moon, Heart, Pill, Check } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import { useThemeStore } from "@/stores/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -11,11 +12,13 @@ import {
   SectionHeader,
   useToast,
 } from "@/components/ui";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { withOpacity } from "@/constants/theme";
 
 export default function AppearanceScreen() {
   const router = useRouter();
   const toast = useToast();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const scheme = useThemeStore((s) => s.scheme);
   const setScheme = useThemeStore((s) => s.setScheme);
@@ -156,6 +159,16 @@ export default function AppearanceScreen() {
             </Pressable>
           );
         })}
+      </View>
+
+      {/* ─── Language ──────────────────────────────────── */}
+      <View style={{ gap: spacing.sm }}>
+        <SectionHeader
+          title={t("appearance.languageHeading")}
+        />
+        <Card>
+          <LocaleSwitcher />
+        </Card>
       </View>
 
       {/* ─── Preview ───────────────────────────────────── */}
