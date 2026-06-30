@@ -28,6 +28,11 @@ export const users = sqliteTable("users", {
   // unauthenticated caller never read it.
   nicHash: text("nic_hash"),
   dateOfBirth: text("date_of_birth"),
+  // Phase 1.2a: how strongly we verified the NIC. "format" passed
+  // structural validation (regex + year + day-of-year + female offset);
+  // "format+dob" additionally matched the user-supplied DOB against the
+  // DOB encoded in the NIC. NULL for legacy rows / no-NIC users.
+  nicVerificationLevel: text("nic_verification_level"),
   photo: text("photo"),
   verified: integer("verified", { mode: "boolean" }).default(false),
   createdAt: text("created_at")

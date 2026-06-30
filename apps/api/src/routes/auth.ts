@@ -23,6 +23,7 @@ import {
   generateOtpCode,
   maskTarget,
 } from "../lib/crypto";
+import { nicVerificationLevel } from "../lib/nic";
 import type { AppEnvironment } from "../types";
 
 const auth = new Hono<AppEnvironment>();
@@ -75,6 +76,7 @@ auth.post("/register", async (c) => {
   // Hash password
   const passwordHash = await hashPassword(password);
   const nicHash = nic ? await hashSecret(normalizeNic(nic)) : null;
+  const nicLevel = nicVerificationLevel(nic, dob);
 
   let dbUser: any = null;
   try {
@@ -89,6 +91,7 @@ auth.post("/register", async (c) => {
         nic: nic ? normalizeNic(nic) : null,
         nicHash,
         dateOfBirth: dob || null,
+        nicVerificationLevel: nicLevel === "none" ? null : nicLevel,
         passwordHash,
       })
       .returning();
@@ -125,6 +128,7 @@ auth.post("/register", async (c) => {
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
+    nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
   });
 
   return c.json({
@@ -175,6 +179,7 @@ auth.post("/login", async (c) => {
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
+    nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
   });
 
   return c.json({
@@ -214,10 +219,23 @@ auth.post("/login-by-nic", async (c) => {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
+  // Refresh verification level on every login. Covers legacy rows where
+  // the column was added later (0013 migration) and users whose stored
+  // level was computed before the cross-check existed.
+  const level = nicVerificationLevel(dbUser.nic, dbUser.dateOfBirth);
+  if ((dbUser.nicVerificationLevel ?? null) !== (level === "none" ? null : level)) {
+    await db
+      .update(users)
+      .set({ nicVerificationLevel: level === "none" ? null : level })
+      .where(eq(users.id, dbUser.id));
+    dbUser.nicVerificationLevel = level === "none" ? null : level;
+  }
+
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
+    nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
     nicVerified: true,
   });
 

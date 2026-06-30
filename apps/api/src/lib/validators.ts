@@ -1,16 +1,18 @@
 import { z } from "zod";
+import {
+  isStructurallyValid,
+  nicMatchesDob,
+  normalizeNic as normalizeNicLib,
+} from "./nic";
 
 // ─── Phase 1.2: SL National Identity Card ──────────────────
-// Old format (pre-2016): 9 digits + 1 letter (V/X) e.g. 123456789V
-// New format (2016+):    12 digits e.g. 200012345678
-export const NIC_REGEX = /^(\d{9}[VvXx]|\d{12})$/;
+// Structural validation + DOB cross-check lives in `./nic`. We re-export
+// the regex here so existing call sites keep working.
+export { NIC_REGEX } from "./nic";
 
-/**
- * Normalize NIC to upper-case + digits only (letters uppercase).
- * Acceptance is case-insensitive but stored canonical.
- */
+/** Canonicalise a NIC to upper-case + trimmed. */
 export function normalizeNic(nic: string): string {
-  return nic.trim().toUpperCase();
+  return normalizeNicLib(nic);
 }
 
 /**
@@ -41,9 +43,16 @@ export function parseDob(dob: string): Date | null {
   return date;
 }
 
+// Phase 1.2a: nicField now uses the structural parser (regex + year range +
+// day-of-year bounds + female offset). The regex-only check was enough to
+// stop obvious typos but let through clearly fabricated numbers like
+// `111111111V`. See `./nic.ts` for the rationale.
 const nicField = z
   .string()
-  .regex(NIC_REGEX, "NIC must be 9 digits + letter (old) or 12 digits (new)");
+  .refine(isStructurallyValid, {
+    message:
+      "NIC must be 9 digits + V/X (old format) or 12 digits (new format) and encode a valid birthdate",
+  });
 
 const dobField = z.string().refine((s) => parseDob(s) !== null, {
   message: "Date of birth must be a real past date (YYYY-MM-DD)",
@@ -89,6 +98,17 @@ export const registerSchema = z
     {
       message: "NIC and date of birth are required for patient accounts",
       path: ["nic"],
+    }
+  )
+  .refine(
+    (d) =>
+      d.role !== "patient" ||
+      !d.nic ||
+      !d.dob ||
+      nicMatchesDob(d.nic, d.dob),
+    {
+      message: "Date of birth doesn't match the NIC. Please re-check both.",
+      path: ["dob"],
     }
   );
 

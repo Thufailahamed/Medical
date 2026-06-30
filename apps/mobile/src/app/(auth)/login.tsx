@@ -28,7 +28,7 @@ import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
-import { NIC_REGEX, parseDob } from "@/lib/format";
+import { isStructurallyValidNic, nicMatchesDob, parseDob } from "@/lib/format";
 
 type Mode = "password" | "nic";
 
@@ -38,7 +38,11 @@ const passwordSchema = z.object({
 });
 
 const nicSchema = z.object({
-  nic: z.string().regex(NIC_REGEX, "Enter a valid NIC"),
+  nic: z
+    .string()
+    .refine(isStructurallyValidNic, {
+      message: "Enter a valid NIC (old: 9 digits + V/X, new: 12 digits)",
+    }),
   dob: z.string().refine((s) => parseDob(s) !== null, {
     message: "Enter a valid past date (YYYY-MM-DD)",
   }),

@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `nic_verification_level` text;

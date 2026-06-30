@@ -116,14 +116,98 @@ function toDate(input: Date | string | number): Date {
 }
 
 // ─── Phase 1.2: NIC + DOB helpers (client-side) ──────────
-// Mirrors the server validators so the form rejects garbage before round-trip.
+// Mirrors `apps/api/src/lib/nic.ts`. Stays in lockstep so the register
+// form can surface the encoded DOB and reject mismatches before a
+// network round-trip. The check-digit algorithm is intentionally NOT
+// shipped (DRP does not publish it); structural + DOB consistency is
+// the strongest cheap check.
 
 /** SL NIC: old (9 digits + V/X) or new (12 digits). */
 export const NIC_REGEX = /^(\d{9}[VvXx]|\d{12})$/;
 
+const OLD_REGEX = /^\d{9}[VvXx]$/;
+const NEW_REGEX = /^\d{12}$/;
+
 /** Canonicalise a NIC string (uppercase, trimmed). */
 export function normalizeNic(nic: string): string {
   return nic.trim().toUpperCase();
+}
+
+function daysInYear(year: number): number {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
+}
+
+function dayOfYearToMonthDay(
+  year: number,
+  doy: number,
+): { month: number; day: number } {
+  const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (daysInYear(year) === 366) monthDays[1] = 29;
+  let remaining = doy;
+  for (let i = 0; i < 12; i++) {
+    if (remaining <= monthDays[i]) return { month: i + 1, day: remaining };
+    remaining -= monthDays[i];
+  }
+  throw new Error("day-of-year out of range");
+}
+
+export type NicFormat = "OLD" | "NEW";
+
+export interface ParsedNic {
+  format: NicFormat;
+  year: number;
+  month: number;
+  day: number;
+  serial: string;
+}
+
+/** Parse a structurally valid NIC. Returns null on any failure. */
+export function parseNic(raw: string): ParsedNic | null {
+  const nic = normalizeNic(raw);
+  if (!NIC_REGEX.test(nic)) return null;
+
+  if (NEW_REGEX.test(nic)) {
+    const year = +nic.slice(0, 4);
+    let daysRaw = +nic.slice(4, 7);
+    const serial = nic.slice(7, 11);
+    const max = daysInYear(year);
+    if (daysRaw > max) daysRaw -= 500;
+    if (year < 1900 || year > 9999) return null;
+    if (daysRaw < 1 || daysRaw > max) return null;
+    const { month, day } = dayOfYearToMonthDay(year, daysRaw);
+    return { format: "NEW", year, month, day, serial };
+  }
+
+  const yy = +nic.slice(0, 2);
+  let daysRaw = +nic.slice(2, 5);
+  const serial = nic.slice(5, 8);
+  const year = 1900 + yy;
+  const max = daysInYear(year);
+  if (daysRaw > max) daysRaw -= 500;
+  if (daysRaw < 1 || daysRaw > max) return null;
+  const { month, day } = dayOfYearToMonthDay(year, daysRaw);
+  return { format: "OLD", year, month, day, serial };
+}
+
+/** Structural validity. Year must be 1900..currentYear-15. */
+export function isStructurallyValidNic(raw: string): boolean {
+  const p = parseNic(raw);
+  if (!p) return false;
+  return p.year >= 1900 && p.year <= new Date().getFullYear() - 15;
+}
+
+/** Extract the DOB encoded in the NIC as YYYY-MM-DD. Null on parse failure. */
+export function nicEncodedDob(raw: string): string | null {
+  const p = parseNic(raw);
+  if (!p) return null;
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
+/** Does the encoded DOB in the NIC match the user-supplied DOB? */
+export function nicMatchesDob(raw: string, dob: string): boolean {
+  const encoded = nicEncodedDob(raw);
+  if (!encoded) return false;
+  return encoded === dob.trim();
 }
 
 /**

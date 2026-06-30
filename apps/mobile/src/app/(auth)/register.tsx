@@ -35,7 +35,12 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { useSpecialties, useHospitals } from "@/hooks/useApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Screen, Skeleton, useToast } from "@/components/ui";
-import { NIC_REGEX, parseDob } from "@/lib/format";
+import {
+  isStructurallyValidNic,
+  nicEncodedDob,
+  nicMatchesDob,
+  parseDob,
+} from "@/lib/format";
 
 const schema = z
   .object({
@@ -72,10 +77,9 @@ const schema = z
     }
   )
   .refine(
-    (d) =>
-      d.role !== "patient" || NIC_REGEX.test((d.nic || "").trim()),
+    (d) => d.role !== "patient" || isStructurallyValidNic((d.nic || "").trim()),
     {
-      message: "NIC must be 9 digits + letter (old) or 12 digits (new)",
+      message: "NIC must be a valid Sri Lankan ID (old: 9 digits + V/X, new: 12 digits)",
       path: ["nic"],
     },
   )
@@ -83,6 +87,17 @@ const schema = z
     (d) => d.role !== "patient" || (!!d.dob && parseDob(d.dob) !== null),
     {
       message: "Enter a valid past date (YYYY-MM-DD)",
+      path: ["dob"],
+    },
+  )
+  .refine(
+    (d) =>
+      d.role !== "patient" ||
+      !d.nic ||
+      !d.dob ||
+      nicMatchesDob(d.nic, d.dob),
+    {
+      message: "Date of birth doesn't match the NIC. Please re-check both.",
       path: ["dob"],
     },
   );
@@ -434,6 +449,36 @@ export default function RegisterScreen() {
             />
           )}
         />
+
+        {/* NIC hint — shows the DOB encoded in the NIC. Auto-fills the
+            DOB field if the user hasn't typed anything yet so they just
+            confirm. */}
+        {(() => {
+          const nicValue = (watch("nic") || "").trim();
+          const dobValue = (watch("dob") || "").trim();
+          if (!nicValue || !isStructurallyValidNic(nicValue)) return null;
+          const encoded = nicEncodedDob(nicValue);
+          if (!encoded) return null;
+          // Auto-fill once: only when DOB field is empty so we don't clobber.
+          if (!dobValue) {
+            setTimeout(() => setValue("dob", encoded, { shouldValidate: true }), 0);
+          }
+          const matches = dobValue && nicMatchesDob(nicValue, dobValue);
+          return (
+            <Text
+              style={{
+                fontSize: 12,
+                marginTop: -10,
+                color: matches ? colors.success : colors.textMuted,
+                fontFamily: fontFamily.body,
+              }}
+            >
+              {matches
+                ? "✓ DOB matches the NIC."
+                : `This NIC encodes birthdate ${encoded}. Make sure the date below matches.`}
+            </Text>
+          );
+        })()}
 
         {/* DOB (required for patient) */}
         {role === "patient" ? (
