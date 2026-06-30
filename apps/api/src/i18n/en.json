@@ -22,6 +22,32 @@
     "invite": {
       "acceptedTitle": "Family invite accepted",
       "acceptedBody": "{{name}} accepted your invite to be added as your {{relationship}}."
+    },
+    "invitePage": {
+      "someone": "Someone",
+      "ogTitle": "{{name}} invited you to HealthHub",
+      "ogDescription": "Open the link in HealthHub to accept the invite.",
+      "invitedBy": "{{name}} invited you",
+      "heroTitle": "Join HealthHub",
+      "inviteLine": "{{inviter}} wants to add you as their {{relationship}}",
+      "inviteLineNoRel": "{{inviter}} wants to add you to their HealthHub",
+      "alreadyAccepted": "Already accepted",
+      "openInApp": "Open in HealthHub",
+      "appStore": "App Store",
+      "playStore": "Google Play",
+      "expiresOn": "Link expires {{date}}",
+      "footer": "Secure family health records",
+      "invalid": {
+        "missingTitle": "Missing invite link",
+        "missingBody": "The link you opened is incomplete.",
+        "notFoundTitle": "Invite not found",
+        "notFoundBody": "This invite doesn't exist or has been removed.",
+        "revokedTitle": "Invite cancelled",
+        "revokedBody": "The sender cancelled this invite. Ask them for a new link.",
+        "expiredTitle": "Invite expired",
+        "expiredBody": "This invite has expired. Ask the sender to generate a fresh link.",
+        "homeCta": "Open HealthHub"
+      }
     }
   }
 }

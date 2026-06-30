@@ -43,6 +43,7 @@ import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
 import familyActiveRouter from "./routes/family-active";
 import familyInviteRouter from "./routes/family-invites";
+import invitePageRouter from "./routes/invite-page";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -122,6 +123,9 @@ app.route("/walk-ins", walkInsRouter);
 app.route("/", emailRouter);
 // Phase 2.1: AI auto-classify + trilingual FTS5 search.
 app.route("/", classificationRouter);
+// Phase 2.3.2: web landing page for family invite links. Mounted at root
+// so the public URL is /invite/<token>, mirroring the mobile deep-link.
+app.route("/", invitePageRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]

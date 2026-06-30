@@ -22,6 +22,32 @@
     "invite": {
       "acceptedTitle": "පවුල් ආරාධනාව පිළිගන්න ලදී",
       "acceptedBody": "{{name}} ඔබේ {{relationship}} ලෙස එකතු වීමට ඔබේ ආරාධනාව පිළිගත්තේය."
+    },
+    "invitePage": {
+      "someone": "යමෙක්",
+      "ogTitle": "{{name}} ඔබව HealthHub වෙතට ආරාධනා කළේය",
+      "ogDescription": "ආරාධනාව පිළිගැනීමට HealthHub හි සබැඳිය විවෘත කරන්න.",
+      "invitedBy": "{{name}} ඔබව ආරාධනා කළේය",
+      "heroTitle": "HealthHub වෙතට සම්බන්ධ වන්න",
+      "inviteLine": "{{inviter}} ඔබව ඔවුන්ගේ {{relationship}} ලෙස එකතු කිරීමට කැමතිය",
+      "inviteLineNoRel": "{{inviter}} ඔබව ඔවුන්ගේ HealthHub වෙතට එකතු කිරීමට කැමතිය",
+      "alreadyAccepted": "දැනටමත් පිළිගන්න ලදී",
+      "openInApp": "HealthHub හි විවෘත කරන්න",
+      "appStore": "App Store",
+      "playStore": "Google Play",
+      "expiresOn": "සබැඳිය කල් ඉකුත් වන්නේ {{date}}",
+      "footer": "ආරක්ෂිත පවුල් සෞඛ්‍ය වාර්තා",
+      "invalid": {
+        "missingTitle": "ආරාධනා සබැඳිය මග හැරී ඇත",
+        "missingBody": "ඔබ විවෘත කළ සබැඳිය අසම්පූර්ණය.",
+        "notFoundTitle": "ආරාධනාව හමු නොවීය",
+        "notFoundBody": "මෙම ආරාධනාව නොපවතී හෝ ඉවත් කර ඇත.",
+        "revokedTitle": "ආරාධනාව අවලංගු කරන ලදී",
+        "revokedBody": "යවන්නා මෙම ආරාධනාව අවලංගු කළේය. නව සබැඳියක් ඉල්ලන්න.",
+        "expiredTitle": "ආරාධනාව කල් ඉකුත් වී ඇත",
+        "expiredBody": "මෙම ආරාධනාව කල් ඉකුත් වී ඇත. නව සබැඳියක් ඉල්ලන්න.",
+        "homeCta": "HealthHub විවෘත කරන්න"
+      }
     }
   }
 }

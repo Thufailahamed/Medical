@@ -22,6 +22,32 @@
     "invite": {
       "acceptedTitle": "குடும்ப அழைப்பு ஏற்கப்பட்டது",
       "acceptedBody": "{{name}} உங்கள் {{relationship}} ஆக சேர்க்க உங்கள் அழைப்பை ஏற்றுக்கொண்டார்."
+    },
+    "invitePage": {
+      "someone": "ஒருவர்",
+      "ogTitle": "{{name}} உங்களை HealthHub-க்கு அழைத்தார்",
+      "ogDescription": "அழைப்பை ஏற்க HealthHub இணைப்பைத் திறக்கவும்.",
+      "invitedBy": "{{name}} உங்களை அழைத்தார்",
+      "heroTitle": "HealthHub-இல் சேருங்கள்",
+      "inviteLine": "{{inviter}} உங்களை அவர்களின் {{relationship}} ஆக சேர்க்க விரும்புகிறார்",
+      "inviteLineNoRel": "{{inviter}} உங்களை அவர்களின் HealthHub-இல் சேர்க்க விரும்புகிறார்",
+      "alreadyAccepted": "ஏற்கனவே ஏற்கப்பட்டது",
+      "openInApp": "HealthHub-இல் திற",
+      "appStore": "App Store",
+      "playStore": "Google Play",
+      "expiresOn": "இணைப்பு காலாவதியாகும் தேதி: {{date}}",
+      "footer": "பாதுகாப்பான குடும்ப சுகாதார பதிவுகள்",
+      "invalid": {
+        "missingTitle": "அழைப்பு இணைப்பு இல்லை",
+        "missingBody": "நீங்கள் திறந்த இணைப்பு முழுமையற்றது.",
+        "notFoundTitle": "அழைப்பு கிடைக்கவில்லை",
+        "notFoundBody": "இந்த அழைப்பு இல்லை அல்லது அகற்றப்பட்டது.",
+        "revokedTitle": "அழைப்பு ரத்து செய்யப்பட்டது",
+        "revokedBody": "அனுப்புநர் இந்த அழைப்பை ரத்து செய்துவிட்டார். புதிய இணைப்பு கேளுங்கள்.",
+        "expiredTitle": "அழைப்பு காலாவதியானது",
+        "expiredBody": "இந்த அழைப்பு காலாவதியானது. புதிய இணைப்பு கேளுங்கள்.",
+        "homeCta": "HealthHub-ஐத் திற"
+      }
     }
   }
 }

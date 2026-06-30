@@ -26,6 +26,12 @@ export interface AppEnvironment {
     // Default 0.6. Cron uses CLASSIFY_CRON_THRESHOLD (default 0.7).
     CLASSIFY_THRESHOLD?: string;
     CLASSIFY_CRON_THRESHOLD?: string;
+    // Phase 2.3.2: invite landing page. PUBLIC_URL is the web origin
+    // where recipients without the app installed see the HTML summary.
+    // Store URLs are placeholders until the app is published.
+    PUBLIC_URL?: string;
+    IOS_APP_STORE_URL?: string;
+    ANDROID_PLAY_STORE_URL?: string;
   };
   Variables: {
     user: User;

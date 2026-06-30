@@ -20,6 +20,12 @@ EMAIL_ALIAS_DOMAIN = "records.healthhub.app"
 # Reject values below this — recordType stays 'other'.
 CLASSIFY_THRESHOLD = "0.6"
 CLASSIFY_CRON_THRESHOLD = "0.7"
+# Phase 2.3.2: invite landing page. PUBLIC_URL is the web origin where
+# recipients without the app installed see the HTML summary. Store URLs
+# are placeholders until the app is published.
+PUBLIC_URL = "https://app.healthhub.app"
+IOS_APP_STORE_URL = "https://apps.apple.com/app/id000000000"
+ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.healthhub"
 
 [[d1_databases]]
 binding = "DB"
