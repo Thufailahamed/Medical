@@ -17,6 +17,7 @@ import {
   HeartPulse,
   Check,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import {
   getExportUrl,
   usePatientProfile,
@@ -32,20 +33,38 @@ import {
   useToast,
 } from "@/components/ui";
 
-const FORMATS: { value: "json" | "txt" | "fhir-bundle"; label: string; icon: any; hint: string }[] = [
-  { value: "json", label: "JSON", icon: FileJson, hint: "Full bundle, machine-readable" },
-  { value: "txt", label: "Plain text", icon: FileText, hint: "Human-readable text summary" },
-  { value: "fhir-bundle", label: "FHIR", icon: HeartPulse, hint: "Healthcare interoperability standard" },
+type FormatValue = "json" | "txt" | "fhir-bundle";
+
+const FORMATS: { value: FormatValue; labelKey: string; hintKey: string; icon: any }[] = [
+  {
+    value: "json",
+    labelKey: "export.format.json.label",
+    hintKey: "export.format.json.hint",
+    icon: FileJson,
+  },
+  {
+    value: "txt",
+    labelKey: "export.format.txt.label",
+    hintKey: "export.format.txt.hint",
+    icon: FileText,
+  },
+  {
+    value: "fhir-bundle",
+    labelKey: "export.format.fhirBundle.label",
+    hintKey: "export.format.fhirBundle.hint",
+    icon: HeartPulse,
+  },
 ];
 
 export default function ExportScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
   const { data: profileData } = usePatientProfile();
 
-  const [format, setFormat] = useState<"json" | "txt" | "fhir-bundle">("json");
+  const [format, setFormat] = useState<FormatValue>("json");
   const [loading, setLoading] = useState(false);
 
   const patient = profileData?.patient?.patients;
@@ -67,21 +86,23 @@ export default function ExportScreen() {
       } catch {}
       await Share.share({
         message: payload.slice(0, 200_000),
-        title: `HealthHub export (${format})`,
+        title: t("export.shareTitle", { format }),
       });
-      toast.show({ message: "Export ready to share", tone: "success" });
+      toast.show({ message: t("export.toast.success"), tone: "success" });
     } catch (e: any) {
-      toast.show({ message: e?.message || "Export failed", tone: "danger" });
+      toast.show({ message: e?.message || t("export.toast.error"), tone: "danger" });
     } finally {
       setLoading(false);
     }
   }
 
+  const formatLabel = format.toUpperCase();
+
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Export my data"
-        subtitle="Download a copy of your full record"
+        title={t("export.title")}
+        subtitle={t("export.subtitle")}
         onBack={() => router.back()}
       />
 
@@ -98,14 +119,11 @@ export default function ExportScreen() {
                 { color: colors.text, fontWeight: "800", flex: 1 },
               ]}
             >
-              What's included
+              {t("export.whatsIncluded.title")}
             </Text>
           </View>
           <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 20 }]}>
-            Demographics, allergies, medicines, vitals, symptoms, records,
-            appointments, prescriptions, family history, insurance policies,
-            emergency history, and file references. Files themselves are NOT
-            downloaded — links only.
+            {t("export.whatsIncluded.body")}
           </Text>
         </Card>
 
@@ -116,7 +134,7 @@ export default function ExportScreen() {
               { color: colors.text, fontWeight: "800", marginBottom: spacing.sm },
             ]}
           >
-            Format
+            {t("export.format.title")}
           </Text>
           <View style={{ gap: spacing.sm }}>
             {FORMATS.map((f) => {
@@ -163,12 +181,12 @@ export default function ExportScreen() {
                         { color: colors.text, fontWeight: "700" },
                       ]}
                     >
-                      {f.label}
+                      {t(f.labelKey)}
                     </Text>
                     <Text
                       style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}
                     >
-                      {f.hint}
+                      {t(f.hintKey)}
                     </Text>
                   </View>
                   {selected && (
@@ -187,7 +205,7 @@ export default function ExportScreen() {
               { color: colors.textMuted, marginBottom: 4 },
             ]}
           >
-            PATIENT
+            {t("export.patient.heading")}
           </Text>
           <Text style={[typography.body.md, { color: colors.text }]}>
             {patient?.fullName || user?.name || "—"}
@@ -199,7 +217,11 @@ export default function ExportScreen() {
         </Card>
 
         <Button
-          title={loading ? "Generating…" : `Export as ${format.toUpperCase()}`}
+          title={
+            loading
+              ? t("export.action.generating")
+              : t("export.action.exportAs", { format: formatLabel })
+          }
           icon={ShareIcon}
           onPress={downloadExport}
           loading={loading}
@@ -212,8 +234,7 @@ export default function ExportScreen() {
             { color: colors.textSubtle, textAlign: "center", marginTop: spacing.sm, lineHeight: 18 },
           ]}
         >
-          Your data belongs to you. Exports are not stored on our servers and
-          are generated on demand.
+          {t("export.footer")}
         </Text>
       </ScrollView>
     </Screen>

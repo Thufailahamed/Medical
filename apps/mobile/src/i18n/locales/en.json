@@ -44,5 +44,121 @@
   },
   "appearance": {
     "languageHeading": "LANGUAGE"
+  },
+  "activity": {
+    "title": "Activity log",
+    "subtitle": "Who accessed your records",
+    "helperText": "Your right-of-access log. We record every action that touches your records. Tap any entry for details.",
+    "empty": {
+      "title": "No activity yet",
+      "message": "Your access log will appear here once you start using the app."
+    },
+    "action": {
+      "emergencySos": "Emergency SOS triggered",
+      "recordView": "Record viewed",
+      "recordCreate": "Record created",
+      "recordUpdate": "Record updated",
+      "recordDelete": "Record deleted",
+      "notificationSend": "Notification sent"
+    }
+  },
+  "export": {
+    "title": "Export my data",
+    "subtitle": "Download a copy of your full record",
+    "whatsIncluded": {
+      "title": "What's included",
+      "body": "Demographics, allergies, medicines, vitals, symptoms, records, appointments, prescriptions, family history, insurance policies, emergency history, and file references. Files themselves are NOT downloaded — links only."
+    },
+    "format": {
+      "title": "Format",
+      "json": {
+        "label": "JSON",
+        "hint": "Full bundle, machine-readable"
+      },
+      "txt": {
+        "label": "Plain text",
+        "hint": "Human-readable text summary"
+      },
+      "fhirBundle": {
+        "label": "FHIR",
+        "hint": "Healthcare interoperability standard"
+      }
+    },
+    "patient": {
+      "heading": "PATIENT"
+    },
+    "action": {
+      "generating": "Generating…",
+      "exportAs": "Export as {{format}}"
+    },
+    "shareTitle": "HealthHub export ({{format}})",
+    "toast": {
+      "success": "Export ready to share",
+      "error": "Export failed"
+    },
+    "footer": "Your data belongs to you. Exports are not stored on our servers and are generated on demand."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle_one": "{{count}} unread",
+    "subtitle_other": "{{count}} unread",
+    "markAll": {
+      "label": "Mark all",
+      "accessibilityLabel": "Mark all as read"
+    },
+    "filter": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "empty": {
+      "unread": {
+        "title": "All caught up",
+        "message": "You've read all your notifications"
+      },
+      "all": {
+        "title": "No notifications",
+        "message": "We'll let you know when something important happens"
+      }
+    },
+    "group": {
+      "today": "Today",
+      "week": "Earlier this week",
+      "older": "Older"
+    },
+    "timeAgo": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    },
+    "fallbackTitle": "Notification",
+    "itemSubtitle": "{{body}} · {{time}}",
+    "accessibilityLabel": "{{title}}, {{status}}",
+    "status": {
+      "read": "read",
+      "unread": "unread"
+    }
+  },
+  "changePassword": {
+    "title": "Change password",
+    "field": {
+      "currentLabel": "Current password",
+      "currentPlaceholder": "••••••••",
+      "newLabel": "New password",
+      "newPlaceholder": "At least 8 characters",
+      "confirmLabel": "Confirm new password",
+      "confirmPlaceholder": "Repeat new password"
+    },
+    "action": {
+      "submit": "Update password"
+    },
+    "error": {
+      "tooShort": "New password must be at least 8 characters",
+      "mismatch": "Passwords don't match"
+    },
+    "toast": {
+      "success": "Password updated",
+      "error": "Could not change password"
+    }
   }
 }

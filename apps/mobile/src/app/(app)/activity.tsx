@@ -8,6 +8,7 @@ import {
   Bell,
   ShieldAlert,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import { useAuditLog } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -15,24 +16,27 @@ import {
   ScreenHeader,
   Card,
   ListItem,
-  Avatar,
   Skeleton,
   EmptyState,
 } from "@/components/ui";
 
-const ACTION_META: Record<string, { label: string; icon: any; tone: any }> = {
-  "emergency.sos": { label: "Emergency SOS triggered", icon: ShieldAlert, tone: "danger" },
-  "record.view": { label: "Record viewed", icon: Eye, tone: "primary" },
-  "record.create": { label: "Record created", icon: Plus, tone: "success" },
-  "record.update": { label: "Record updated", icon: Pencil, tone: "warning" },
-  "record.delete": { label: "Record deleted", icon: Trash2, tone: "danger" },
-  "notification.send": { label: "Notification sent", icon: Bell, tone: "accent2" },
+// ACTION_META stores i18n keys (not raw strings) so translators can swap
+// every audit-log verb label without code changes. The fallback in
+// `metaFor` handles action codes the server might send that we haven't
+// enumerated yet.
+const ACTION_META: Record<string, { labelKey: string; icon: any; tone: any }> = {
+  "emergency.sos": { labelKey: "activity.action.emergencySos", icon: ShieldAlert, tone: "danger" },
+  "record.view": { labelKey: "activity.action.recordView", icon: Eye, tone: "primary" },
+  "record.create": { labelKey: "activity.action.recordCreate", icon: Plus, tone: "success" },
+  "record.update": { labelKey: "activity.action.recordUpdate", icon: Pencil, tone: "warning" },
+  "record.delete": { labelKey: "activity.action.recordDelete", icon: Trash2, tone: "danger" },
+  "notification.send": { labelKey: "activity.action.notificationSend", icon: Bell, tone: "accent2" },
 };
 
-function metaFor(action: string) {
+function metaFor(action: string): { labelKey: string | null; icon: any; tone: any } {
   return (
     ACTION_META[action] || {
-      label: action.replace(/[._]/g, " "),
+      labelKey: null,
       icon: History,
       tone: "neutral",
     }
@@ -40,6 +44,7 @@ function metaFor(action: string) {
 }
 
 export default function ActivityScreen() {
+  const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const { data, isLoading } = useAuditLog();
   const entries: any[] = data?.auditLogs || [];
@@ -47,8 +52,8 @@ export default function ActivityScreen() {
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScreenHeader
-        title="Activity log"
-        subtitle="Who accessed your records"
+        title={t("activity.title")}
+        subtitle={t("activity.subtitle")}
       />
       {isLoading ? (
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
@@ -60,8 +65,8 @@ export default function ActivityScreen() {
         <View style={{ padding: spacing.lg }}>
           <EmptyState
             icon={History}
-            title="No activity yet"
-            message="Your access log will appear here once you start using the app."
+            title={t("activity.empty.title")}
+            message={t("activity.empty.message")}
             tone="neutral"
           />
         </View>
@@ -75,19 +80,21 @@ export default function ActivityScreen() {
               { color: colors.textMuted, marginBottom: spacing.md },
             ]}
           >
-            Your right-of-access log. We record every action that touches
-            your records. Tap any entry for details.
+            {t("activity.helperText")}
           </Text>
           <Card padded={false}>
             {entries.map((e, idx) => {
               const meta = metaFor(e.action);
               const Icon = meta.icon;
+              const title = meta.labelKey
+                ? t(meta.labelKey)
+                : e.action.replace(/[._]/g, " ");
               return (
                 <ListItem
                   key={e.id || idx}
                   icon={Icon}
                   iconTone={meta.tone}
-                  title={meta.label}
+                  title={title}
                   subtitle={`${e.resource || ""}${
                     e.resourceId ? ` · ${e.resourceId.slice(-6)}` : ""
                   } · ${new Date(e.createdAt).toLocaleString()}`}

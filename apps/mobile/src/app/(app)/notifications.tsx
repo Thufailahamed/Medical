@@ -9,6 +9,7 @@ import {
   Siren,
   CheckCheck,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import {
   useNotifications,
   useMarkNotificationRead,
@@ -35,22 +36,22 @@ const TYPE_META: Record<string, { icon: any; tone: Tone }> = {
 };
 
 const FILTERS = [
-  { value: "all", label: "All" },
-  { value: "unread", label: "Unread" },
+  { value: "all", key: "notifications.filter.all" },
+  { value: "unread", key: "notifications.filter.unread" },
 ];
 
-function timeAgo(ts?: string | null) {
+function timeAgo(t: (key: string, opts?: any) => string, ts?: string | null) {
   if (!ts) return "";
   const d = new Date(ts);
   if (isNaN(d.getTime())) return "";
   const diff = Date.now() - d.getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "Just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return t("notifications.timeAgo.justNow");
+  if (m < 60) return t("notifications.timeAgo.minutesAgo", { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t("notifications.timeAgo.hoursAgo", { count: h });
   const days = Math.floor(h / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return t("notifications.timeAgo.daysAgo", { count: days });
   return d.toLocaleDateString();
 }
 
@@ -66,6 +67,7 @@ function groupByTime(ts?: string | null) {
 }
 
 export default function NotificationsScreen() {
+  const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const { data, isLoading } = useNotifications();
   const markRead = useMarkNotificationRead();
@@ -91,15 +93,15 @@ export default function NotificationsScreen() {
   return (
     <Screen scroll tabBarOffset bottomInset={false}>
       <ScreenHeader
-        title="Notifications"
-        subtitle={`${unreadCount} unread`}
+        title={t("notifications.title")}
+        subtitle={t("notifications.subtitle", { count: unreadCount })}
         right={
           unreadCount > 0 ? (
             <Pressable
               onPress={handleMarkAll}
               disabled={markAll.isPending}
               accessibilityRole="button"
-              accessibilityLabel="Mark all as read"
+              accessibilityLabel={t("notifications.markAll.accessibilityLabel")}
               hitSlop={8}
               style={({ pressed }) => ({
                 flexDirection: "row",
@@ -119,7 +121,7 @@ export default function NotificationsScreen() {
                   { color: colors.primary, fontWeight: "700" },
                 ]}
               >
-                Mark all
+                {t("notifications.markAll.label")}
               </Text>
             </Pressable>
           ) : undefined
@@ -137,7 +139,7 @@ export default function NotificationsScreen() {
         {FILTERS.map((f) => (
           <FilterPill
             key={f.value}
-            label={f.label}
+            label={t(f.key)}
             active={filter === f.value}
             onPress={() => setFilter(f.value as any)}
           />
@@ -153,11 +155,15 @@ export default function NotificationsScreen() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Bell}
-          title={filter === "unread" ? "All caught up" : "No notifications"}
+          title={
+            filter === "unread"
+              ? t("notifications.empty.unread.title")
+              : t("notifications.empty.all.title")
+          }
           message={
             filter === "unread"
-              ? "You've read all your notifications"
-              : "We'll let you know when something important happens"
+              ? t("notifications.empty.unread.message")
+              : t("notifications.empty.all.message")
           }
           tone="primary"
         />
@@ -167,21 +173,28 @@ export default function NotificationsScreen() {
             data={filtered}
             groupBy={(n: any) => groupByTime(n.createdAt)}
             groupMeta={{
-              today: { label: "Today", tone: "primary" },
-              week: { label: "Earlier this week", tone: "info" },
-              older: { label: "Older", tone: "neutral" },
+              today: { label: t("notifications.group.today"), tone: "primary" },
+              week: { label: t("notifications.group.week"), tone: "info" },
+              older: { label: t("notifications.group.older"), tone: "neutral" },
             }}
             keyExtractor={(n: any) => n.id}
             flush
             renderItem={(item: any) => {
               const meta = TYPE_META[item.type] || TYPE_META.general;
+              const time = timeAgo(t, item.createdAt);
+              const subtitle = item.body
+                ? t("notifications.itemSubtitle", { body: item.body, time })
+                : time;
+              const status = item.read
+                ? t("notifications.status.read")
+                : t("notifications.status.unread");
               return (
                 <ListItem
                   icon={meta.icon}
                   iconTone={meta.tone}
                   variant="default"
-                  title={item.title || "Notification"}
-                  subtitle={`${item.body ? item.body + " · " : ""}${timeAgo(item.createdAt)}`}
+                  title={item.title || t("notifications.fallbackTitle")}
+                  subtitle={subtitle}
                   subtitleMaxLines={2}
                   trailing={
                     item.read ? null : (
@@ -197,7 +210,10 @@ export default function NotificationsScreen() {
                   }
                   showChevron
                   onPress={() => !item.read && markRead.mutate(item.id)}
-                  accessibilityLabel={`${item.title}, ${item.read ? "read" : "unread"}`}
+                  accessibilityLabel={t("notifications.accessibilityLabel", {
+                    title: item.title,
+                    status,
+                  })}
                   style={
                     item.read
                       ? undefined
