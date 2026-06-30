@@ -2316,6 +2316,98 @@ export function useRevokeShareLink() {
   });
 }
 
+// ─── Phase 2.3.1: Family Invite Link ───────────────────
+// share_links row with kind="family_invite". The principal generates a
+// token for a proposed family member (name + relationship); the invitee
+// redeems it on first accept and a family_members row is created in
+// the inviter's patient context.
+export type FamilyInvite = {
+  id: string;
+  token: string;
+  label: string | null;
+  scope: string;
+  expiresAt: string;
+  revoked: boolean;
+  createdAt: string;
+  consumedAt: string | null;
+  redeemedByUserId: string | null;
+};
+
+export type FamilyInviteView = {
+  inviterName: string;
+  inviterPhoto: string | null;
+  name: string;
+  relationship: string | null;
+  expiresAt: string;
+  consumed: boolean;
+};
+
+export function useFamilyInvites() {
+  return useQuery({
+    queryKey: ["family", "invites"],
+    queryFn: () => api<{ invites: FamilyInvite[] }>("/family/invites"),
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateFamilyInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      name: string;
+      relationship: string;
+      expiresInHours?: number;
+    }) =>
+      api<{
+        invite: FamilyInvite;
+        token: string;
+        url: string;
+        expiresAt: string;
+      }>("/family/invites", { method: "POST", body: payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["family", "invites"] });
+    },
+  });
+}
+
+export function useRevokeFamilyInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) =>
+      api<{ ok: boolean }>(`/family/invites/${token}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["family", "invites"] });
+    },
+  });
+}
+
+// Public preview — no auth header. Used by the deep-link route before
+// login. `useApi.ts`'s `api()` already handles missing tokens gracefully.
+export function useFamilyInvitePreview(token: string | null) {
+  return useQuery({
+    queryKey: ["family", "invites", "preview", token],
+    queryFn: () =>
+      api<FamilyInviteView>(`/family/invites/${token}`, { silent401: true }),
+    enabled: !!token,
+    retry: false,
+  });
+}
+
+export function useAcceptFamilyInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) =>
+      api<{ member: any; alreadyAccepted?: boolean }>(
+        `/family/invites/${token}/accept`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["family"] });
+      qc.invalidateQueries({ queryKey: ["family", "invites"] });
+    },
+  });
+}
+
 // ─── V3: Data export ────────────────────────────────────
 export type ExportFormat = "json" | "txt" | "fhir-bundle";
 

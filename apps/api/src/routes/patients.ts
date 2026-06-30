@@ -7,6 +7,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { patientProfileSchema, familyMemberSchema } from "../lib/validators";
 import { flattenTranslated } from "../lib/validation-error";
+import { writeAudit } from "../lib/audit";
 import type { AppEnvironment } from "../types";
 
 const patientsRouter = new Hono<AppEnvironment>();
@@ -198,6 +199,17 @@ patientsRouter.post("/me/family", authMiddleware, requireRole("patient"), async 
     })
     .returning();
 
+  // Phase 2.3.1: audit self-composed family_members rows so the audit
+  // trail includes both self-add (here) and invite-accepted (in
+  // routes/family-invites.ts).
+  await writeAudit(db, {
+    userId,
+    action: "family_member_added",
+    resource: "family_member",
+    resourceId: member?.id ?? null,
+    details: { from: "self_compose", name: data.name, relationship: data.relationship },
+  });
+
   return c.json({ member }, 201);
 });
 
@@ -233,7 +245,19 @@ patientsRouter.delete("/me/family/:memberId", authMiddleware, requireRole("patie
     return c.json({ error: "Family member not found or access denied" }, 404);
   }
 
+  const removed = member;
+
   await db.delete(familyMembers).where(eq(familyMembers.id, memberId));
+
+  // Phase 2.3.1: audit removal. `name` + `relationship` are captured for
+  // the audit trail even though the row is gone.
+  await writeAudit(db, {
+    userId,
+    action: "family_member_removed",
+    resource: "family_member",
+    resourceId: removed.id,
+    details: { name: removed.name, relationship: removed.relationship },
+  });
 
   return c.json({ message: "Family member removed" });
 });

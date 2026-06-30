@@ -17,5 +17,11 @@
       "bodyDueSoon_one": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකින් ලබා දීමට නියමිතය ({{date}}).",
       "bodyDueSoon_other": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකින් ලබා දීමට නියමිතය ({{date}})."
     }
+  },
+  "family": {
+    "invite": {
+      "acceptedTitle": "පවුල් ආරාධනාව පිළිගන්න ලදී",
+      "acceptedBody": "{{name}} ඔබේ {{relationship}} ලෙස එකතු වීමට ඔබේ ආරාධනාව පිළිගත්තේය."
+    }
   }
 }

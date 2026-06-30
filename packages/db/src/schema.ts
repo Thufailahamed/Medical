@@ -899,6 +899,9 @@ export const vaccineReminders = sqliteTable("vaccine_reminders", {
 });
 
 // ─── V3: Share Links (time-limited doctor access) ───────
+// Phase 2.3.1: `kind` discriminates record-share vs family-invite so the
+// table can host both without a parallel table. `consumedAt` + `redeemedByUserId`
+// are invite-only lifecycle fields (NULL for record-share rows).
 export const shareLinks = sqliteTable("share_links", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   patientId: text("patient_id")
@@ -916,6 +919,12 @@ export const shareLinks = sqliteTable("share_links", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   lastViewedAt: text("last_viewed_at"),
+  // Phase 2.3.1: invite discriminator + lifecycle.
+  kind: text("kind").notNull().default("record_share"),
+  consumedAt: text("consumed_at"),
+  redeemedByUserId: text("redeemed_by_user_id").references(
+    (): any => users.id
+  ),
 });
 
 // ─── V3: Share Link Views (audit trail) ─────────────────

@@ -4,15 +4,19 @@ import { useTranslation } from "react-i18next";
 import {
   Users,
   Plus,
+  UserPlus,
   Phone,
   MessageCircle,
   Trash2,
+  Link2Off,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import {
   useFamilyMembers,
   useAddFamilyMember,
   useDeleteFamilyMember,
+  useFamilyInvites,
+  useRevokeFamilyInvite,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { parseDob } from "@/lib/format";
@@ -31,6 +35,7 @@ import {
   Chip,
   useToast,
 } from "@/components/ui";
+import { FamilyInviteSheet } from "@/components/FamilyInviteSheet";
 
 // DB values; rendered via t("family.relationship.<value>")
 const RELATIONSHIPS = [
@@ -76,9 +81,16 @@ export default function FamilyScreen() {
   const { data, isLoading } = useFamilyMembers();
   const addMember = useAddFamilyMember();
   const deleteMember = useDeleteFamilyMember();
+  const { data: inviteData } = useFamilyInvites();
+  const revokeInvite = useRevokeFamilyInvite();
   const family: any[] = data?.family || [];
+  const pendingInvites: any[] =
+    (inviteData?.invites ?? []).filter(
+      (i: any) => !i.revoked && !i.consumedAt
+    );
 
   const [composing, setComposing] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState(RELATIONSHIPS[0]);
@@ -400,12 +412,20 @@ export default function FamilyScreen() {
           title={t("family.title")}
           subtitle={t("family.subtitle", { count: family.length })}
           right={
-            <IconButton
-              icon={Plus}
-              variant="solid"
-              onPress={() => setComposing(true)}
-              accessibilityLabel={t("family.addLabel")}
-            />
+            <View style={{ flexDirection: "row", gap: spacing.xs }}>
+              <IconButton
+                icon={UserPlus}
+                variant="ghost"
+                onPress={() => setInviteOpen(true)}
+                accessibilityLabel={t("family.invite.buttonTitle")}
+              />
+              <IconButton
+                icon={Plus}
+                variant="solid"
+                onPress={() => setComposing(true)}
+                accessibilityLabel={t("family.addLabel")}
+              />
+            </View>
           }
         />
 
@@ -531,9 +551,72 @@ export default function FamilyScreen() {
                 />
               </Card>
             ))}
+
+            {pendingInvites.length > 0 && (
+              <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+                <Text style={[typography.overline, { color: colors.textMuted }]}>
+                  {t("family.invite.pendingTitle")}
+                </Text>
+                {pendingInvites.map((inv: any) => {
+                  let parsed: { name?: string; relationship?: string } = {};
+                  try {
+                    parsed = JSON.parse(inv.scope || "{}");
+                  } catch {
+                    parsed = {};
+                  }
+                  return (
+                    <Card key={inv.id}>
+                      <ListItem
+                        icon={UserPlus}
+                        iconBg={colors.accentSoft}
+                        title={parsed.name || inv.label || "—"}
+                        subtitle={
+                          parsed.relationship
+                            ? t(`family.relationship.${parsed.relationship}`, {
+                                defaultValue: parsed.relationship,
+                              })
+                            : ""
+                        }
+                        rightSlot={
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t("family.invite.revoke")}
+                            onPress={() => revokeInvite.mutate(inv.token)}
+                            style={{
+                              paddingHorizontal: spacing.md,
+                              paddingVertical: spacing.sm,
+                              borderRadius: radius.md,
+                              backgroundColor: colors.dangerSoft,
+                              flexDirection: "row",
+                              gap: spacing.xs,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Link2Off size={14} color={colors.danger} strokeWidth={2.25} />
+                            <Text
+                              style={[
+                                typography.label.md,
+                                { color: colors.danger, fontWeight: "700" },
+                              ]}
+                            >
+                              {t("family.invite.revoke")}
+                            </Text>
+                          </Pressable>
+                        }
+                      />
+                    </Card>
+                  );
+                })}
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
+
+      <FamilyInviteSheet
+        visible={inviteOpen}
+        onDismiss={() => setInviteOpen(false)}
+      />
     </Screen>
   );
 }

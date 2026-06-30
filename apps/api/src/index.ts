@@ -42,6 +42,7 @@ import { refillRemindersRouter } from "./cron/refill-reminders";
 import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
 import familyActiveRouter from "./routes/family-active";
+import familyInviteRouter from "./routes/family-invites";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -109,6 +110,7 @@ app.route("/chat", chatRouter);
 app.route("/allergies", allergiesRouter);
 app.route("/vaccinations", vaccinationsRouter);
 app.route("/family", familyActiveRouter);
+app.route("/family", familyInviteRouter);
 app.route("/timeline", timelineRouter);
 app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);

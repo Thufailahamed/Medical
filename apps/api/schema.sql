@@ -401,11 +401,15 @@ CREATE TABLE IF NOT EXISTS share_links (
   revoked INTEGER DEFAULT 0,
   created_by TEXT NOT NULL REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  last_viewed_at TEXT
+  last_viewed_at TEXT,
+  kind TEXT NOT NULL DEFAULT 'record_share',
+  consumed_at TEXT,
+  redeemed_by_user_id TEXT REFERENCES users(id)
 );
 CREATE INDEX IF NOT EXISTS idx_share_links_patient ON share_links(patient_id);
 CREATE INDEX IF NOT EXISTS idx_share_links_token ON share_links(token);
 CREATE INDEX IF NOT EXISTS idx_share_links_active ON share_links(revoked, expires_at);
+CREATE INDEX IF NOT EXISTS share_links_kind_idx ON share_links(kind);
 
 -- ─── Share Link Views (audit) ────────────────────────────
 CREATE TABLE IF NOT EXISTS share_link_views (

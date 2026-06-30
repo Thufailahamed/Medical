@@ -17,5 +17,11 @@
       "bodyDueSoon_one": "{{vaccine}} {{dose}} ஆவது டோஸ் {{count}} நாளில் வழங்கப்பட வேண்டும் ({{date}}).",
       "bodyDueSoon_other": "{{vaccine}} {{dose}} ஆவது டோஸ் {{count}} நாட்களில் வழங்கப்பட வேண்டும் ({{date}})."
     }
+  },
+  "family": {
+    "invite": {
+      "acceptedTitle": "குடும்ப அழைப்பு ஏற்கப்பட்டது",
+      "acceptedBody": "{{name}} உங்கள் {{relationship}} ஆக சேர்க்க உங்கள் அழைப்பை ஏற்றுக்கொண்டார்."
+    }
   }
 }

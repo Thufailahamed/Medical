@@ -138,6 +138,12 @@ shareRouter.get("/:token", async (c) => {
     .limit(1);
 
   if (!link) return c.json({ error: "Invalid link" }, 404);
+  // Phase 2.3.1: family invites have their own /family/invites/:token
+  // route. Don't let the record-share bundle handler accidentally expose
+  // them — treat as 404 to avoid leaking that the token exists.
+  if ((link as any).kind && (link as any).kind !== "record_share") {
+    return c.json({ error: "Invalid link" }, 404);
+  }
   if (link.revoked) return c.json({ error: "Link has been revoked" }, 410);
   if (new Date(link.expiresAt) < new Date()) {
     return c.json({ error: "Link has expired" }, 410);

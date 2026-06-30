@@ -17,5 +17,11 @@
       "bodyDueSoon_one": "{{vaccine}} dose {{dose}} is due in {{count}} day ({{date}}).",
       "bodyDueSoon_other": "{{vaccine}} dose {{dose}} is due in {{count}} days ({{date}})."
     }
+  },
+  "family": {
+    "invite": {
+      "acceptedTitle": "Family invite accepted",
+      "acceptedBody": "{{name}} accepted your invite to be added as your {{relationship}}."
+    }
   }
 }

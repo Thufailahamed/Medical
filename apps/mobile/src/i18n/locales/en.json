@@ -899,6 +899,43 @@
       "Kidney disease": "Kidney disease",
       "Liver disease": "Liver disease",
       "Other": "Other"
+    },
+    "invite": {
+      "buttonTitle": "Invite by link",
+      "sheetTitle": "Invite a family member",
+      "intro": "Generate a link to invite {{name}} as your {{relationship}}.",
+      "nameField": "Their name",
+      "namePlaceholder": "e.g. Nimal Perera",
+      "nameRequired": "Name is required",
+      "relationshipField": "Relationship to you",
+      "generate": "Generate link",
+      "generating": "Generating…",
+      "linkLabel": "Share this link",
+      "linkHelper": "Send it via WhatsApp, SMS, or any messenger. The link works once.",
+      "urlCopied": "Link copied to clipboard",
+      "shareButton": "Share",
+      "copyButton": "Copy",
+      "shareMessage": "{{inviter}} invited you to join their family locker on HealthHub. Open: {{url}}",
+      "revoke": "Revoke",
+      "revoked": "Invite revoked",
+      "pendingTitle": "Pending invites",
+      "pendingEmpty": "No pending invites.",
+      "pendingExpires": "Expires {{date}}",
+      "summary": {
+        "title": "Family invite",
+        "inviter": "From",
+        "invitee": "Member",
+        "relationship": "Relationship"
+      },
+      "acceptTitle": "Accept invite",
+      "accept": "Accept",
+      "dismiss": "Dismiss",
+      "accepted": "Invite accepted — you're now added as {{name}}'s {{relationship}}.",
+      "alreadyAccepted": "This invite has already been used.",
+      "invalidOrExpired": "This invite link is invalid or has expired.",
+      "loginRequired": "Sign in or create an account to accept this invite.",
+      "loginButton": "Sign in",
+      "error": "Could not {{action}} invite. Please try again."
     }
   },
   "medicine": {
