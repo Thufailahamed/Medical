@@ -129,11 +129,13 @@ export function useRecordStats() {
   });
 }
 
-export function useMedicalRecord(id: string) {
+export function useMedicalRecord(id: string | string[] | undefined) {
+  const recordId = Array.isArray(id) ? id[0] : id;
   return useQuery({
-    queryKey: ["medical-records", id],
-    queryFn: () => api<{ record: any }>(`/medical-records/${id}`),
-    enabled: !!id,
+    queryKey: ["medical-records", recordId],
+    queryFn: () => api<{ record: any }>(`/medical-records/${recordId}`),
+    enabled: !!recordId,
+    select: (data) => data.record,
   });
 }
 

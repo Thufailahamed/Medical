@@ -168,6 +168,12 @@ export default function RecordDetailScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const recordId = record?.id;
+  const attachments = useMemo(() => {
+    if (!record) return [];
+    if (Array.isArray(record.files)) return record.files;
+    if (Array.isArray(record.attachments)) return record.attachments;
+    return [];
+  }, [record]);
   const lastActionRef = useRef<null | (() => Promise<void>)>(null);
 
   function doArchive() {
@@ -342,6 +348,10 @@ export default function RecordDetailScreen() {
 
   // Open the first attachment in the system viewer, via its r2Key.
   async function openAttachment(att: any) {
+    if (!att?.r2Key) {
+      toast.show(t("recordDetail.toast.noFileKey"), "warning");
+      return;
+    }
     const url = `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
       att.r2Key
     )}`;
@@ -423,12 +433,13 @@ export default function RecordDetailScreen() {
         }}
       >
         <IconButton
-          accessibilityLabel={t("recordDetail.a11y.moreOptions")}
+          icon={ChevronLeft}
+          accessibilityLabel={t("recordDetail.notFound.back")}
           onPress={() => router.back()}
           variant="ghost"
-        >
-          <ChevronLeft size={26} color={colors.primary} strokeWidth={2.25} />
-        </IconButton>
+          tint={colors.primary}
+          size="md"
+        />
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <IconComp size={16} color={meta.tone} strokeWidth={2.25} />
@@ -785,7 +796,7 @@ export default function RecordDetailScreen() {
         </View>
 
         {/* Attachments */}
-        {record.attachments?.length ? (
+        {attachments.length ? (
           <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
             <Card>
               <Text
@@ -799,12 +810,23 @@ export default function RecordDetailScreen() {
                 }}
               >
                 {t("recordDetail.attachments", {
-                  count: record.attachments.length,
+                  count: attachments.length,
                 })}
               </Text>
               <View style={{ gap: spacing.sm }}>
-                {record.attachments.map((att: any) => {
+                {attachments.map((att: any) => {
                   const isImage = att.type === "image";
+                  const sizeKb =
+                    att.sizeBytes != null
+                      ? att.sizeBytes / 1024
+                      : att.fileSize != null
+                      ? att.fileSize / 1024
+                      : null;
+                  const displayName =
+                    att.filename ||
+                    att.fileName ||
+                    att.r2Key?.split("/").pop() ||
+                    t("recordDetail.attachmentFallback", { defaultValue: "Attachment" });
                   return (
                     <Pressable
                       key={att.id}
@@ -819,7 +841,7 @@ export default function RecordDetailScreen() {
                         backgroundColor: "#F4F2F8",
                       }}
                     >
-                      {isImage ? (
+                      {isImage && att.r2Key ? (
                         <Image
                           source={{
                             uri: `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
@@ -860,7 +882,7 @@ export default function RecordDetailScreen() {
                             fontFamily: fontFamily.bodyBold,
                           }}
                         >
-                          {att.filename || att.r2Key.split("/").pop()}
+                          {displayName}
                         </Text>
                         <Text
                           style={{
@@ -869,7 +891,9 @@ export default function RecordDetailScreen() {
                             fontFamily: fontFamily.body,
                           }}
                         >
-                          {(att.sizeBytes / 1024).toFixed(1)} KB · {att.type}
+                          {sizeKb != null
+                            ? `${sizeKb.toFixed(1)} KB · ${att.type}`
+                            : att.type}
                         </Text>
                       </View>
                       <ExternalLink

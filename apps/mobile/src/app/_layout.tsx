@@ -4,21 +4,7 @@ import { Stack, router } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-} from "@expo-google-fonts/inter";
-import {
-  Outfit_400Regular,
-  Outfit_500Medium,
-  Outfit_600SemiBold,
-  Outfit_700Bold,
-  Outfit_800ExtraBold,
-} from "@expo-google-fonts/outfit";
+import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useAuthStore } from "@/stores/auth";
@@ -67,16 +53,11 @@ export default function RootLayout() {
   useProtectedRoute();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_800ExtraBold,
-    Outfit_400Regular,
-    Outfit_500Medium,
-    Outfit_600SemiBold,
-    Outfit_700Bold,
-    Outfit_800ExtraBold,
+    Outfit_400Regular: require("@expo-google-fonts/outfit/400Regular/Outfit_400Regular.ttf"),
+    Outfit_500Medium: require("@expo-google-fonts/outfit/500Medium/Outfit_500Medium.ttf"),
+    Outfit_600SemiBold: require("@expo-google-fonts/outfit/600SemiBold/Outfit_600SemiBold.ttf"),
+    Outfit_700Bold: require("@expo-google-fonts/outfit/700Bold/Outfit_700Bold.ttf"),
+    Outfit_800ExtraBold: require("@expo-google-fonts/outfit/800ExtraBold/Outfit_800ExtraBold.ttf"),
   });
 
   // Track persisted-locale hydration. Initial value is the current sync
@@ -97,10 +78,18 @@ export default function RootLayout() {
       i18n.changeLanguage(useLocaleStore.getState().locale);
       setHasLocaleHydrated(true);
     }
-    return unsubFinish;
+    const hydrationTimeout = setTimeout(() => {
+      setHasLocaleHydrated(true);
+    }, 2500);
+    return () => {
+      clearTimeout(hydrationTimeout);
+      unsubFinish();
+    };
   }, []);
 
-  const ready = hasLocaleHydrated && fontsLoaded;
+  // Never block forever on fonts — release builds can fail asset resolution.
+  const fontsReady = fontsLoaded || !!fontError;
+  const ready = hasLocaleHydrated && fontsReady;
 
   useEffect(() => {
     if (fontsLoaded) {
