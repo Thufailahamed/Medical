@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert, Dimensions } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 import { useLocaleStore } from "@/stores/locale";
 import { fmtMonthYear, fmtDateTime } from "@/lib/format";
 import {
@@ -56,6 +57,7 @@ const VITAL_TYPES: { value: string; labelKey: string; icon: any; unit: string }[
 const RANGES = [7, 30, 90, 365];
 
 export default function VitalsScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
@@ -254,6 +256,7 @@ export default function VitalsScreen() {
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScreenHeader
+        onBack={() => router.back()}
         title={t("vitals.title")}
         subtitle={t("vitals.subtitle")}
         right={

@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Trash2,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import {
   useFamilyMembers,
   useAddFamilyMember,
@@ -67,6 +68,7 @@ const HEREDITARY_CONDITIONS = [
 ];
 
 export default function FamilyScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
@@ -335,6 +337,7 @@ export default function FamilyScreen() {
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         <ScreenHeader
+          onBack={() => router.back()}
           title={t("family.title")}
           subtitle={t("family.subtitle", { count: family.length })}
           right={
