@@ -1,0 +1,11 @@
+{
+  "validation": {
+    "specializationRequired": "Specialization is required",
+    "specializationRequiredDoctor": "Specialization is required for doctor accounts",
+    "invalidDoctorId": "Invalid doctor id",
+    "invalidHospitalId": "Invalid hospital id",
+    "invalidDateFormat": "Date must be YYYY-MM-DD",
+    "invalidTimeFormat": "Time must be HH:MM (24h)",
+    "reasonTooLong": "Reason must be under 500 chars"
+  }
+}

@@ -10,6 +10,7 @@ import {
   medicines,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { flattenTranslated } from "../lib/validation-error";
 import { chatSessionSchema, chatMessageSchema } from "@healthcare/shared";
 import {
   aiComplete,
@@ -45,7 +46,7 @@ chatRouter.post("/sessions", async (c) => {
   const parsed = chatSessionSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -103,7 +104,7 @@ chatRouter.post("/sessions/:id/messages", async (c) => {
   const parsed = chatMessageSchema.safeParse({ ...body, sessionId: id });
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }

@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
-import { fmtDate, fmtTime, intlLocale } from "@/lib/format";
+import { fmtDate, intlLocale } from "@/lib/format";
 
 function intlLocaleFromTag(l: string) {
   return intlLocale(l as any);

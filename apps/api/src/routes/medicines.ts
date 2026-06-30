@@ -21,6 +21,7 @@ import {
   localToday,
 } from "../lib/timezone";
 import { slotsForFrequency, isAsNeeded } from "../lib/medicine-slots";
+import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
 
 const medicinesRouter = new Hono<AppEnvironment>();
@@ -547,7 +548,7 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
   const parsed = medicineSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -669,7 +670,7 @@ medicinesRouter.patch("/:id", authMiddleware, async (c) => {
   const parsed = medicineUpdateSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }

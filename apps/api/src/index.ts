@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createDb } from "./lib/db";
+import { localeMiddleware } from "./middleware/locale";
 import authRoutes from "./routes/auth";
 import patientsRoutes from "./routes/patients";
 import medicalRecordsRoutes from "./routes/medical-records";
@@ -51,6 +52,10 @@ app.use("*", async (c, next) => {
   c.set("db", createDb(c.env.DB));
   await next();
 });
+
+// ─── Locale middleware ────────────────────────────────────
+// Resolves Accept-Language → en|si|ta and stashes on c.get("locale").
+app.use("*", localeMiddleware);
 
 // ─── Health check ────────────────────────────────────────
 app.get("/", (c) => {

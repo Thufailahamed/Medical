@@ -1,5 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
+import { useLocaleStore } from "@/stores/locale";
+import { intlLocale } from "./format";
 
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
 const FALLBACK_API_URL = "http://localhost:8787";
@@ -38,6 +40,10 @@ async function runRequest<T>(
 
   const requestHeaders: Record<string, string> = { ...headers };
   if (token) requestHeaders["Authorization"] = `Bearer ${token}`;
+  // Forward active locale so the API can translate Zod validation errors.
+  requestHeaders["Accept-Language"] = intlLocale(
+    useLocaleStore.getState().locale
+  );
 
   if (!isFormData && body && !requestHeaders["Content-Type"]) {
     requestHeaders["Content-Type"] = "application/json";

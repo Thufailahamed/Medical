@@ -1,0 +1,11 @@
+{
+  "validation": {
+    "specializationRequired": "විශේෂතාවය අවශ්‍යයි",
+    "specializationRequiredDoctor": "වෛද්‍ය ගිණුම් සඳහා විශේෂතාවය අවශ්‍යයි",
+    "invalidDoctorId": "වෛද්‍ය හැඳුනුම්පත වැරදියි",
+    "invalidHospitalId": "රෝහල් හැඳුනුම්පත වැරදියි",
+    "invalidDateFormat": "දිනය YYYY-MM-DD ආකෘතියෙන් විය යුතුය",
+    "invalidTimeFormat": "වේලාව HH:MM (24පැය) ආකෘතියෙන් විය යුතුය",
+    "reasonTooLong": "හේතුව අක්ෂර 500 ට අඩු විය යුතුය"
+  }
+}

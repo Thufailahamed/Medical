@@ -1,4 +1,5 @@
 import type { DB } from "../lib/db";
+import type { Locale } from "../lib/locale";
 import type { users } from "@healthcare/db";
 
 export interface User {
@@ -25,6 +26,7 @@ export interface AppEnvironment {
     dbUser: typeof users.$inferSelect;
     userRole: string;
     db: DB;
+    locale: Locale;
   };
 }
 

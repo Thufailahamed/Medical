@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { users, patients, doctors } from "@healthcare/db";
 import { registerSchema, loginSchema } from "../lib/validators";
 import { authMiddleware } from "../middleware/auth";
+import { flattenTranslated } from "../lib/validation-error";
 import { hashPassword, verifyPassword, generateToken, verifyToken } from "../lib/crypto";
 import type { AppEnvironment } from "../types";
 
@@ -17,7 +18,7 @@ auth.post("/register", async (c) => {
   const parsed = registerSchema.safeParse(body);
 
   if (!parsed.success) {
-    return c.json({ error: "Validation failed", details: parsed.error.flatten() }, 400);
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
 
   const { email, phone, name, role, password, nic, doctorProfile } = parsed.data;
@@ -101,7 +102,7 @@ auth.post("/login", async (c) => {
   const parsed = loginSchema.safeParse(body);
 
   if (!parsed.success) {
-    return c.json({ error: "Validation failed", details: parsed.error.flatten() }, 400);
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
 
   const { email, phone, password } = parsed.data;

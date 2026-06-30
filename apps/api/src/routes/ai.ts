@@ -37,6 +37,7 @@ import {
   type ChatMsg,
 } from "../lib/ai";
 import { canAccessPatient, getPatientForUser } from "../lib/access";
+import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
 
 const ai = new Hono<AppEnvironment>();
@@ -85,7 +86,7 @@ ai.post("/summary", async (c) => {
   const parsed = aiSummarySchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -240,7 +241,7 @@ ai.post("/explain/lab-report", async (c) => {
   const parsed = aiLabExplainSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -341,7 +342,7 @@ ai.post("/drug-interaction", async (c) => {
   const parsed = aiDrugInteractionSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -421,7 +422,7 @@ ai.post("/chat", async (c) => {
   const parsed = aiChatSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -544,7 +545,7 @@ ai.post("/ocr/prescription", async (c) => {
   const parsed = aiOcrSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }

@@ -30,6 +30,7 @@ import {
 } from "../lib/validators";
 import { canAccessPatient, canAccessRecord } from "../lib/access";
 import { audit } from "../lib/audit";
+import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
 
 const medicalRecordsRouter = new Hono<AppEnvironment>();
@@ -450,7 +451,7 @@ medicalRecordsRouter.post("/", authMiddleware, requireRole("doctor", "hospital_s
   const parsed = medicalRecordSchema.safeParse(body);
 
   if (!parsed.success) {
-    return c.json({ error: "Validation failed", details: parsed.error.flatten() }, 400);
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
 
   const targetPatientId: string | undefined = body.patientId;
@@ -583,7 +584,7 @@ medicalRecordsRouter.post(
     const parsed = medicalRecordBulkIdsSchema.safeParse(body);
     if (!parsed.success) {
       return c.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
+        { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
         400
       );
     }
@@ -641,7 +642,7 @@ medicalRecordsRouter.post(
     const parsed = medicalRecordBulkIdsSchema.safeParse(body);
     if (!parsed.success) {
       return c.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
+        { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
         400
       );
     }
@@ -688,7 +689,7 @@ medicalRecordsRouter.post(
     const parsed = medicalRecordBulkIdsSchema.safeParse(body);
     if (!parsed.success) {
       return c.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
+        { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
         400
       );
     }
@@ -734,7 +735,7 @@ medicalRecordsRouter.post(
     const parsed = medicalRecordBulkTagSchema.safeParse(body);
     if (!parsed.success) {
       return c.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
+        { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
         400
       );
     }
@@ -803,7 +804,7 @@ medicalRecordsRouter.post(
     const parsed = medicalRecordBulkMoveSchema.safeParse(body);
     if (!parsed.success) {
       return c.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
+        { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
         400
       );
     }

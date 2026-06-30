@@ -6,6 +6,7 @@ import { appointments, doctors, patients, notifications, medicalRecords, appoint
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { appointmentSchema } from "../lib/validators";
+import { flattenTranslated } from "../lib/validation-error";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { ACTIVE_STATUSES, MAX_PER_SLOT, compactQueue } from "../lib/booking";
@@ -26,7 +27,7 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
   const parsed = appointmentSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }

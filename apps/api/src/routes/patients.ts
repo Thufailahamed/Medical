@@ -6,6 +6,7 @@ import { patients, users, familyMembers } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { patientProfileSchema } from "../lib/validators";
+import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
 
 const patientsRouter = new Hono<AppEnvironment>();
@@ -37,7 +38,7 @@ patientsRouter.put("/me", authMiddleware, requireRole("patient"), async (c) => {
   const parsed = patientProfileSchema.safeParse(body);
 
   if (!parsed.success) {
-    return c.json({ error: "Validation failed", details: parsed.error.flatten() }, 400);
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
 
   const data = parsed.data;

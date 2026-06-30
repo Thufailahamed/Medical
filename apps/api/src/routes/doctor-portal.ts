@@ -37,6 +37,7 @@ import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { compactQueue } from "../lib/booking";
 import { canAccessPatient } from "../lib/access";
+import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
 
 const doctorPortalRouter = new Hono<AppEnvironment>();
@@ -253,7 +254,7 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
   const parsed = clinicalNoteSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -354,7 +355,7 @@ doctorPortalRouter.post("/follow-ups", async (c) => {
   const parsed = followUpSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -502,7 +503,7 @@ doctorPortalRouter.post("/lab-orders", async (c) => {
   const parsed = labOrderSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -690,7 +691,7 @@ doctorPortalRouter.put("/availability", async (c) => {
   const parsed = availabilitySchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -802,7 +803,7 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
   const parsed = appointmentStatusSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }

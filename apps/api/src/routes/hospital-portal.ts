@@ -26,6 +26,7 @@ import {
 } from "@healthcare/shared";
 import type { AppEnvironment } from "../types";
 import { notify } from "../lib/notifications";
+import { flattenTranslated } from "../lib/validation-error";
 
 const hospitalPortalRouter = new Hono<AppEnvironment>();
 
@@ -190,7 +191,7 @@ hospitalPortalRouter.post("/wards", async (c) => {
   const parsed = wardSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -331,7 +332,7 @@ hospitalPortalRouter.post("/beds", async (c) => {
   const parsed = bedSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -371,7 +372,7 @@ hospitalPortalRouter.put("/beds/:id/status", async (c) => {
   const parsed = bedStatusSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -406,7 +407,7 @@ hospitalPortalRouter.post("/beds/:id/assign", async (c) => {
   const parsed = bedAssignSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }
@@ -582,7 +583,7 @@ hospitalPortalRouter.post("/staff", async (c) => {
   const parsed = staffSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
   }

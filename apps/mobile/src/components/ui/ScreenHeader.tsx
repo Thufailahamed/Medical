@@ -38,7 +38,7 @@ export function ScreenHeader({
     else router.back();
   };
 
-  const showBack = !!back;
+  const showBack = !!back || !!onBack;
   const showLeft = !!left;
 
   const variantSpacing =

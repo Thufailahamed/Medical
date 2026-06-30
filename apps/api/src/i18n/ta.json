@@ -1,0 +1,11 @@
+{
+  "validation": {
+    "specializationRequired": "சிறப்பு தேவை",
+    "specializationRequiredDoctor": "மருத்துவர் கணக்குகளுக்கு சிறப்பு தேவை",
+    "invalidDoctorId": "தவறான மருத்துவர் ஐடி",
+    "invalidHospitalId": "தவறான மருத்துவமனை ஐடி",
+    "invalidDateFormat": "தேதி YYYY-MM-DD வடிவமைப்பில் இருக்க வேண்டும்",
+    "invalidTimeFormat": "நேரம் HH:MM (24மணி) வடிவமைப்பில் இருக்க வேண்டும்",
+    "reasonTooLong": "காரணம் 500 எழுத்துகளுக்குக் கீழ் இருக்க வேண்டும்"
+  }
+}

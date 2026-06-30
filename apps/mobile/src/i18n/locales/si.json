@@ -193,5 +193,746 @@
     "removeConfirmBody": "ඔබට මෙම පවුල් සාමාජිකයා ඉවත් කිරීමට අවශ්‍ය බව ඔබට විශ්වාසද?",
     "savedToast": "පවුල් සාමාජිකයා සුරකින ලදී",
     "removeToast": "පවුල් සාමාජිකයා ඉවත් කෙරිණි"
+  },
+  "status": {
+    "scheduled": "සැලසුම් කළ",
+    "taken": "ගන්නා ලදී",
+    "skipped": "මඟ හරින ලදී",
+    "missed": "මඟ හැරිණි",
+    "upcoming": "ඉදිරියෙන්",
+    "active": "ක්‍රියාත්මක",
+    "completed": "සම්පූර්ණ",
+    "cancelled": "අවලංගු කළ",
+    "pending": "පොරොත්තුවෙන්",
+    "active_appointment": "ක්‍රියාත්මක",
+    "completed_appointment": "සම්පූර්ණ",
+    "no_show_appointment": "නොපැමිණිණි"
+  },
+  "notifications": {
+    "title": "දැනුම්දීම්",
+    "subtitle": "නොකියවූ {{count}}",
+    "markAll": {
+      "label": "සියල්ල කියවූ ලෙස සලකන්න",
+      "accessibilityLabel": "සියල්ල කියවූ ලෙස සලකන්න"
+    },
+    "filter": {
+      "all": "සියල්ල",
+      "unread": "නොකියවූ"
+    },
+    "empty": {
+      "unread": {
+        "title": "සියල්ල කියවා ඇත",
+        "message": "ඔබ සියලු දැනුම්දීම් කියවා ඇත"
+      },
+      "all": {
+        "title": "දැනුම්දීම් නැත",
+        "message": "වැදගත් දෙයක් සිදු වූ විට අපි ඔබට දන්වන්නෙමු"
+      }
+    },
+    "group": {
+      "today": "අද",
+      "week": "මේ සතියේ මුලදී",
+      "older": "පැරණි"
+    },
+    "timeAgo": {
+      "justNow": "මේ මොහොතේ",
+      "minutesAgo": "මිනිත්තු {{count}}කට පෙර",
+      "hoursAgo": "පැය {{count}}කට පෙර",
+      "daysAgo": "දින {{count}}කට පෙර"
+    },
+    "fallbackTitle": "දැනුම්දීම",
+    "itemSubtitle": "{{body}} · {{time}}",
+    "accessibilityLabel": "{{title}}, {{status}}",
+    "status": {
+      "read": "කියවූ",
+      "unread": "නොකියවූ"
+    }
+  },
+  "medicines": {
+    "brandName": "HealthHub",
+    "a11y": {
+      "profile": "පැතිකඩ",
+      "addMedicine": "ඖෂධයක් එකතු කරන්න",
+      "notifications": "දැනුම්දීම්",
+      "moreOptions": "තවත් විකල්ප",
+      "markTaken": "{{name}} ගන්නා ලදී ලෙස සලකන්න"
+    },
+    "tabs": {
+      "today": "අද",
+      "active": "ක්‍රියාත්මක",
+      "all": "සියල්ල"
+    },
+    "hero": {
+      "dailyProgress": "දෛනික ප්‍රගතිය",
+      "completedFraction": "අද දින ඖෂධ සම්පූර්ණ කළේ",
+      "allDone": "සියල්ල සම්පූර්ණයි",
+      "onTrack": "නිවැරදි මඟේ",
+      "allCompleted": "සියල්ල සම්පූර්ණයි!",
+      "remaining_one": "{{count}}ක් ඉතිරියි",
+      "remaining_other": "{{count}}ක් ඉතිරියි"
+    },
+    "actions": {
+      "markSchedule": "අද කාලසටහන සලකන්න",
+      "history": "ඉතිහස්ත",
+      "viewHistory": "අනුගමනය සහ ඉතිහස්ත බලන්න"
+    },
+    "empty": {
+      "today": {
+        "title": "අදට කිසිවක් සැලසුම් කර නැත",
+        "body": "ඔබේ දිනය භුක්ති විඳින්න. ආරම්භ කිරීමට ඖෂධයක් එකතු කරන්න."
+      },
+      "all": {
+        "title": "තවම ඖෂධ නැත",
+        "body": "ඔබට නිසි මතක් කිරීම් ලැබීමට ඖෂධ එකතු කරන්න."
+      }
+    },
+    "period": {
+      "morning": {
+        "label": "උදේ",
+        "range": "උදේ 8:00 — උදේ 11:59"
+      },
+      "afternoon": {
+        "label": "දහවල්",
+        "range": "දහවල් 12:00 — සවස 4:59"
+      },
+      "evening": {
+        "label": "සවස",
+        "range": "සවස 5:00 — රාත්‍රී 8:59"
+      },
+      "night": {
+        "label": "රාත්‍රී",
+        "range": "රාත්‍රී 9:00 — උදේ 7:00"
+      }
+    },
+    "status": {
+      "stopped": "නවත්වන ලදී",
+      "taken": "ගන්නා ලදී",
+      "markTaken": "ගන්නා ලදී ලෙස සලකන්න"
+    },
+    "sheet": {
+      "title": "ඖෂධ විස්තර",
+      "fallbackName": "ඖෂධය",
+      "subtitleFallback": "ඖෂධය",
+      "markTaken": "ගන්නා ලදී ලෙස සලකන්න",
+      "markNotTaken": "නොගන්නා ලදී ලෙස සලකන්න",
+      "edit": "ඖෂධය සංශෝධනය කරන්න",
+      "stop": "ඖෂධය නවත්වන්න",
+      "resume": "ඖෂධය නැවත ආරම්භ කරන්න",
+      "delete": "ඖෂධය මකන්න",
+      "close": "වැසීම"
+    },
+    "toast": {
+      "markedTaken": "{{name}} ගන්නා ලදී ලෙස සලකන ලදී",
+      "markedNotTaken": "{{name}} නොගන්නා ලදී ලෙස සලකන ලදී",
+      "stopped": "{{name}} නවත්වන ලදී",
+      "deleted": "{{name}} මකා දැමුවා",
+      "resumed": "{{name}} නැවත ආරම්භ කෙරිණි",
+      "updateError": "යාවත්කාලීන කිරීම අසාර්ථක විය",
+      "stopError": "නවත්වීම අසාර්ථක විය",
+      "deleteError": "මැකීම අසාර්ථක විය",
+      "resumeError": "නැවත ආරම්භ කිරීම අසාර්ථක විය",
+      "scheduled_one": "අද සඳහා මතක් කිරීම {{count}}ක් සැලසුම් කෙරිණි",
+      "scheduled_other": "අද සඳහා මතක් කිරීම් {{count}}ක් සැලසුම් කෙරිණි",
+      "noSchedule": "සැලසුම් කළ හැකි ඖෂධ නැත",
+      "scheduleError": "සැලසුම් කිරීම අසාර්ථක විය"
+    }
+  },
+  "medicine": {
+    "frequency": {
+      "Once daily": "දිනපතා එක් වරක්",
+      "Twice daily": "දිනපතා දෙවරක්",
+      "Three times daily": "දිනපතා තුන් වරක්",
+      "Four times daily": "දිනපතා සතර වරක්",
+      "As needed": "අවශ්‍ය විට"
+    },
+    "timing": {
+      "Before food": "ආහාරයට පෙර",
+      "After food": "ආහාරයෙන් පසු",
+      "With food": "ආහාරය සමඟ",
+      "Any time": "ඕනෑම වේලාවක",
+      "Morning": "උදේ",
+      "Afternoon": "දහවල්",
+      "Evening": "සවස",
+      "Night": "රාත්‍රී"
+    },
+    "_other": {}
+  },
+  "home": {
+    "brand": "HealthHub",
+    "a11y": {
+      "criticalAllergies": "ගොන්නේ දරුණු ආසාත්මකතා",
+      "quickAdd": "ඉක්මනින් එකතු කරන්න",
+      "notifications": "දැනුම්දීම්",
+      "refresh": "නැවුම් කරන්න",
+      "medicineOf": "{{name}} විස්තර",
+      "greeting": "ආචාර පෙතිගැන්වීම",
+      "profile": "පැතිකඩ"
+    },
+    "greetingMorning": "සුභ උදේ",
+    "greetingAfternoon": "සුභ දහවල්",
+    "greetingEvening": "සුභ සවස",
+    "welcomeDefault": "නැවත සාදරයෙන් පිළිගනිමු! පහත කාර්යයන් පරීක්ෂා කරන්න.",
+    "fallbackName": "මිතුරා",
+    "upcomingTodayLabel": "අද ඉදිරියේ",
+    "doses": "මාත්‍රා",
+    "medsSub": "ඖෂධ",
+    "dose_one": "මාත්‍රාව",
+    "dose_other": "මාත්‍රා",
+    "bloodChip": "{{group}} ලේ",
+    "bloodEmpty": "ලේ —",
+    "bmiEmpty": "24.1 BMI",
+    "alerts_one": "අනතුරු ඇඟවීම් {{count}}ක්",
+    "alerts_other": "අනතුරු ඇඟවීම් {{count}}ක්",
+    "noAlerts": "අනතුරු ඇඟවීම් නැත",
+    "sectionQuickActions": "ඉක්මන් ක්‍රියා",
+    "sectionAi": "AI සහායක",
+    "sectionSchedule": "අද කාලසටහන",
+    "sectionWellness": "සෞඛ්‍යය",
+    "sectionComingUp": "ඉදිරියෙන්",
+    "viewAll": "සියල්ල බලන්න",
+    "allVisits": "සියලු පැමිණීම්",
+    "medicines": "ඖෂධ",
+    "records": "වාර්තා",
+    "bookVisit": "පැමිණීමක් වෙන්කරන්න",
+    "emergency": "හදිසි",
+    "aiTitle": "සෞඛ්‍ය AI",
+    "aiSubtitle": "සාරාංශ, ඖෂධ පරීක්ෂා, කතාබහ සහ තවත්",
+    "aiChat": "කතාබහ",
+    "aiSummary": "සාරාංශ",
+    "aiLabExplain": "රසායනාගාර පැහැදිලි කිරීම",
+    "aiDrugCheck": "ඖෂධ පරීක්ෂාව",
+    "aiOcrButton": "බෙහෙත් වට්ටෝරුව OCR",
+    "scheduleEmptyTitle": "තවම ඖෂධ නැත",
+    "scheduleEmptyBody": "දිනුම් මතක් කිරීම් ලැබීමට පළමු ඖෂධය එකතු කරන්න.",
+    "scheduleEmptyAction": "ඖෂධයක් එකතු කරන්න",
+    "fallbackMed": "ඖෂධය",
+    "tapToView": "බැලීමට තට්ටු කරන්න",
+    "upNextLabel": "ඊළඟ",
+    "wellnessDoingGreat": "ඔබ හොඳින් කරනවා",
+    "wellnessRoomToImprove": "වැඩිදියුණු කිරීමට ඉඩ",
+    "wellnessBackOnTrack": "නැවත මඟට එමු",
+    "wellnessDefault": "සෞඛ්‍යය",
+    "miniStat": {
+      "blood": "ලේ",
+      "doses": "මාත්‍රා",
+      "vitals": "ප්‍රතිෂ් ors"
+    },
+    "bmiRow": "BMI {{bmi}} • {{category}}",
+    "fab": {
+      "title": "ඉක්මනින් එකතු කරන්න",
+      "logDose": {
+        "label": "මාත්‍රාවක් සටහන් කරන්න",
+        "desc": "ඖෂධයක් ගන්නා ලදී ලෙස සලකන්න"
+      },
+      "addRecord": {
+        "label": "වාර්තාවක් එකතු කරන්න",
+        "desc": "රසායනාගාර / බෙහෙත් වට්ටෝරුව සුරක්ෂිත කරන්න"
+      },
+      "logVital": {
+        "label": "ප්‍රතිෂ් ors සටහන් කරන්න",
+        "desc": "රුධිර පීඩනය, බර, සීනි මට්ටම"
+      },
+      "bookVisit": {
+        "label": "පැමිණීමක් වෙන්කරන්න",
+        "desc": "වෛද්‍ය හමුවක් සැලසුම් කරන්න"
+      }
+    },
+    "dateToday": "අද",
+    "dateTomorrow": "හෙට",
+    "queuePill": "පෝලිම #{{n}}",
+    "doctorAt": "වෛද්‍ය {{name}} {{time}} ට",
+    "tapToViewDetails": "විස්තර බැලීමට තට්ටු කරන්න",
+    "criticalAllergy_one": "දරුණු ආසාත්මකතාවය: {{substance}}",
+    "criticalAllergy_other": "ගොන්නේ දරුණු ආසාත්මකතා {{count}}ක්",
+    "viewDetails": "විස්තර බලන්න"
+  },
+  "editProfile": {
+    "title": "පැතිකඩ සංශෝධනය කරන්න",
+    "save": "සුරක්ෂිත කරන්න",
+    "saveButton": "වෙනස්කම් සුරක්ෂිත කරන්න",
+    "accessibilityLabel": {
+      "goBack": "ආපසු යන්න",
+      "saveProfile": "පැතිකඩ සුරක්ෂිත කරන්න",
+      "changePhoto": "ඡායාරූපය වෙනස් කරන්න",
+      "addContact": "ඇමතුමක් එකතු කරන්න",
+      "removeContact": "ඇමතුම ඉවත් කරන්න"
+    },
+    "verifiedStatus": {
+      "verified": "සත්‍යාපිත පැතිකඩ",
+      "goodStanding": "පැතිකඩ හොඳ තත්ත්වයේ"
+    },
+    "addContactButton": "එකතු කරන්න",
+    "basicsHeading": "මූලික",
+    "healthNotesHeading": "සෞඛ්‍ය සටහන්",
+    "emergencyContactsHeading": "හදිසි ඇමතුම්",
+    "emptyContacts": "හදිසි ඇමතුම් නැත. පළමු ප්‍රතිචාරකරයන්ට නිවැරදි පුද්ගලයන්ට ළඟා විය හැකි වීමට එකක් එකතු කරන්න.",
+    "bloodGroup": {
+      "label": "ලේ කාණ්ඩය"
+    },
+    "gender": {
+      "label": "ලිංගය",
+      "male": "පිරිමි",
+      "female": "ගැහැණු",
+      "other": "වෙනත්"
+    },
+    "dob": {
+      "label": "උපන් දිනය",
+      "placeholder": "උපන් දිනය තෝරන්න"
+    },
+    "height": {
+      "label": "උස",
+      "placeholder": "170",
+      "unit": "සෙ.මී."
+    },
+    "weight": {
+      "label": "බර",
+      "placeholder": "68",
+      "unit": "කිලෝ"
+    },
+    "allergies": {
+      "label": "ආසාත්මකතා",
+      "helper": "කොමා වලින් වෙන් කරන්න",
+      "placeholder": "පenicillin, shellfish"
+    },
+    "conditions": {
+      "label": "පවතින රෝග",
+      "helper": "කොමා වලින් වෙන් කරන්න",
+      "placeholder": "අධි රුධිර පීඩනය, ඇදුම"
+    },
+    "contact": {
+      "namePlaceholder": "නම",
+      "relationshipPlaceholder": "සම්බන්ධතාව (උදා: සැමියා)",
+      "phonePlaceholder": "දුරකථනය"
+    },
+    "photo": {
+      "permissionDenied": "ඡායාරූප ගැලරිය බලපත්‍රය අවශ්‍යයි"
+    },
+    "error": {
+      "dobFormat": "උපන් දිනය YYYY-MM-DD විය යුතුය",
+      "dobInvalid": "උපන් දිනය වැරදි හෝ අනාගතයේ ය",
+      "heightRange": "උස 50 ත් 250 අතර සෙ.මී. විය යුතුය",
+      "weightRange": "බර 10 ත් 400 අතර කිලෝ විය යුතුය",
+      "bloodGroup": "ලේ කාණ්ඩයක් තෝරන්න",
+      "contactName": "හදිසි ඇමතුමකට නමක් අවශ්‍යයි",
+      "contactPhone": "හදිසි ඇමතුමකට වලංගු දුරකථන අංකයක් අවශ්‍යයි"
+    },
+    "toast": {
+      "saved": "පැතිකඩ යාවත්කාලීන කෙරිණි",
+      "saveError": "සුරක්ෂිත කිරීම අසාර්ථක විය"
+    }
+  },
+  "changePassword": {
+    "title": "මුරපදය වෙනස් කරන්න",
+    "field": {
+      "currentLabel": "වර්තමාන මුරපදය",
+      "currentPlaceholder": "••••••••",
+      "newLabel": "නව මුරපදය",
+      "newPlaceholder": "අවම වශයෙන් අක්ෂර 8ක්",
+      "confirmLabel": "නව මුරපදය තහවුරු කරන්න",
+      "confirmPlaceholder": "නැවත නව මුරපදය ඇතුළත් කරන්න"
+    },
+    "action": {
+      "submit": "මුරපදය යාවත්කාලීන කරන්න"
+    },
+    "error": {
+      "tooShort": "නව මුරපදය අවම වශයෙන් අක්ෂර 8ක් විය යුතුය",
+      "mismatch": "මුරපද නොගැළපේ"
+    },
+    "toast": {
+      "success": "මුරපදය යාවත්කාලීන කෙරිණි",
+      "error": "මුරපදය වෙනස් කිරීම අසාර්ථක විය"
+    }
+  },
+  "activity": {
+    "title": "ක්‍රියාකාරකම් සටහන",
+    "subtitle": "ඔබේ වාර්තා වෙත ප්‍රවේශය සිදු කළ අය",
+    "helperText": "ඔබේ ප්‍රවේශ අයිතිය සටහන. ඔබේ වාර්තා ස්පර්ශ කරන සෑම ක්‍රියාවක්ම අපි සටහන් කරමු. විස්තර සඳහා ඇතුළත් කිරීමක් තට්ටු කරන්න.",
+    "empty": {
+      "title": "තවම ක්‍රියාකාරකම් නැත",
+      "message": "ඔබ යෙදුම භාවිත ආරම්භ කළ පසු ප්‍රවේශ සටහන මෙහි දිස්වනු ඇත."
+    },
+    "action": {
+      "emergencySos": "හදිසි SOS ක්‍රියාත්මක කරන ලදී",
+      "recordView": "වාර්තාව දැක්ම",
+      "recordCreate": "වාර්තාව නිර්මාණය කෙරිණි",
+      "recordUpdate": "වාර්තාව යාවත්කාලීන කෙරිණි",
+      "recordDelete": "වාර්තාව මකන ලදී",
+      "notificationSend": "දැනුම්දීම යැවිණි"
+    }
+  },
+  "records": {
+    "title": "වාර්තා",
+    "tabsAll": "සියල්ල",
+    "subtotalOf": "මුළු {{count}} කින්",
+    "searchPlaceholder": "වාර්තා සොයන්න...",
+    "empty": {
+      "title": "තවම වාර්තා නැත",
+      "body": "ඔබේ පළමු වාර්තාව එකතු කරන්න. රසායනාගාර වාර්තා, බෙහෙත් වට්ටෝරු, රූප සහ වැඩිදෙයා සුරක්ෂිත කරන්න."
+    },
+    "unknownDate": "දිනය නොදනී",
+    "attachmentCount_one": "ඇමුණුමක්",
+    "attachmentCount_other": "ඇමුණුම් {{count}}ක්",
+    "fallbackTitle": "නම් නොකළ වාර්තාව",
+    "archive": {
+      "label": "සංරක්ෂිත",
+      "a11y": "සංරක්ෂිත"
+    },
+    "unarchive": {
+      "label": "සංරක්ෂිතයෙන් ඉවත් කරන්න"
+    },
+    "move": {
+      "title": "වාර්තා ගෙන යන්න",
+      "body": "කවුරුන්ට දැන් මෙම වාර්තා ප්‍රවේශ කළ හැකි ද?",
+      "self": "මට (මාගේම)",
+      "family": "පවුලේ අයෙකුට",
+      "clear": "කිසිවෙකුට නොවේ",
+      "apply": "යොදන්න",
+      "cancel": "අවලංගු කරන්න"
+    }
+  },
+  "share": {
+    "title": "වාර්තා බෙදාගැනීම",
+    "subtitle": "වෛද්‍යවරුන් හෝ පවුලේ අය සමඟ සුරක්ෂිතව බෙදාගන්න",
+    "createButton": "බෙදාගැනීමේ link එකක් සාදන්න",
+    "duration": {
+      "1": "පැය 1",
+      "24": "පැය 24",
+      "168": "සතියක්",
+      "720": "මාසයක්"
+    },
+    "explanation": {
+      "title": "බෙදාගැනීම් links ගැන",
+      "body": "කාලයක් අවසන් වන සුරක්ෂිත links සාදන්න. ලබන්නාට ඔබේ වාර්තා වලින් තෝරාගත් කොටසකට ප්‍රවේශය ලැබේ."
+    },
+    "empty": {
+      "title": "බෙදාගැනීම් link නැත",
+      "message": "ඔබේ පළමු link එක සාදන්න"
+    },
+    "link": {
+      "labelFallback": "නම් නොකළ link",
+      "shareButton": "බෙදාගන්න",
+      "revokeButton": "අවලංගු කරන්න",
+      "statusActive": "ක්‍රියාත්මක",
+      "statusExpired": "කල් ඉකුත්",
+      "statusRevoked": "අවලංගු කළ",
+      "expiresOn": "කල් ඉකුත් වේ: {{date}}",
+      "expiredOn": "කල් ඉකුත් වූ: {{date}}"
+    },
+    "sheet": {
+      "title": "නව link එකක්",
+      "warning": "බෙදාගන්නා ඕනෑම කෙනෙකුට කාල සීමාව තුළ දත්ත බැලිය හැක."
+    },
+    "field": {
+      "labelLabel": "නම් කිරීම (අමතර)",
+      "labelPlaceholder": "උදා: වෛද්‍ය සම්මුන්නට",
+      "scopeLabel": "විෂ්කාලය",
+      "durationLabel": "කාල සීමාව"
+    },
+    "scope": {
+      "all": "සියලු වාර්තා",
+      "recent6m": "මෑත මාස 6"
+    },
+    "toast": {
+      "created": "link එක සාදන ලදී",
+      "revoked": "link එක අවලංගු කෙරිණි",
+      "createError": "link එක සෑදීම අසාර්ථක විය",
+      "revokeError": "අවලංගු කිරීම අසාර්ථක විය",
+      "shareError": "බෙදාගැනීම අසාර්ථක විය"
+    },
+    "deleteConfirm": {
+      "title": "link එක අවලංගු කරන්නද?",
+      "body": "ලබන්නාට ඉදිරියේදී ප්‍රවේශය අහෝසි වේ."
+    },
+    "shareMessage": "{{label}}\n{{url}}\nකල් ඉකුත්: {{date}}"
+  },
+  "timeline": {
+    "title": "කාල රේඛාව",
+    "subtitleEmpty": "ඔබේ සියලු සිදුවීම් මෙහි",
+    "subtitleCount_one": "{{count}} සිදුවීමක්",
+    "subtitleCount_other": "{{count}} සිදුවීම්",
+    "filter": {
+      "all": "සියල්ල",
+      "record": "වාර්තා",
+      "vital": "ප්‍රතිෂ් ors",
+      "symptom": "රෝග ලක්ෂණ",
+      "medicineStart": "ඖෂධ ආරම්භය",
+      "appointment": "පැමිණීම්",
+      "note": "සටහන්"
+    },
+    "group": {
+      "today": "අද",
+      "yesterday": "ඊයේ",
+      "week": "මේ සතියේ",
+      "month": "මේ මාසයේ",
+      "unknown": "දිනය නොදනී"
+    },
+    "summary": {
+      "heading": "සාරාංශය"
+    },
+    "empty": {
+      "title": "සිදුවීම් නැත",
+      "allMessage": "ඔබේ සියලු සිදුවීම් මෙහි පෙන්වනු ඇත",
+      "filteredMessage": "තෝරාගත් {{filter}} සඳහා සිදුවීම් නැත"
+    }
+  },
+  "vitals": {
+    "title": "සෞඛ්‍ය මිනුම්",
+    "subtitle": "මිනුම් සටහන් කර ප්‍රවණතා බලන්න",
+    "logLabel": "මිනුමක් සටහන් කරන්න",
+    "compose": {
+      "title": "මිනුමක් සටහන් කරන්න",
+      "typeLabel": "වර්ගය",
+      "valueLabel": "අගය ({{unit}})",
+      "valuePlaceholderBP": "120",
+      "valuePlaceholderDefault": "0.0",
+      "diastolicLabel": "ඩයාස්ටොලික්",
+      "secondaryPlaceholder": "80",
+      "notesLabel": "සටහන්",
+      "notesHelper": "අමතර සන්දර්භය එකතු කරන්න",
+      "notesPlaceholder": "උදා: උදේ ආහාරයට පෙර",
+      "saveButton": "සුරක්ෂිත කරන්න"
+    },
+    "chart": {
+      "trendHeading": "ප්‍රවණතා",
+      "hideDiastolic": "ඩයාස්ටොලික් සඟවන්න",
+      "showDiastolic": "ඩයාස්ටොලික් පෙන්වන්න",
+      "systolicOnly": "සිස්ටොලික් පමණි",
+      "systolicDiastolic": "සිස්ටොලික් + ඩයාස්ටොලික්",
+      "noReadings": "{{label}} සඳහා කියවීම් නැත",
+      "stats": {
+        "latest": "නවතම",
+        "avg": "සාමාන්‍ය",
+        "min": "කුඩාම",
+        "max": "වැඩිම",
+        "delta": "වෙනස"
+      }
+    },
+    "range": {
+      "7": "දින 7",
+      "30": "දින 30",
+      "90": "දින 90",
+      "365": "වසර 1"
+    },
+    "toast": {
+      "invalidValue": "වලංගු අගයක් ඇතුළත් කරන්න",
+      "logged": "{{label}} සටහන් කෙරිණි",
+      "saveError": "සුරක්ෂිත කිරීම අසාර්ථක විය"
+    },
+    "delete": {
+      "title": "වෛද්‍ය මිනුම් මකන්නද?",
+      "body": "මේ කියවීම සදාකාලිකව ඉවත් කෙරේ."
+    },
+    "empty": {
+      "title": "වෛද්‍ය මිනුම් නැත",
+      "message": "ඔබේ පළමු කියවීම එකතු කරන්න"
+    },
+    "type": {
+      "blood_pressure": {
+        "label": "රුධිර පීඩනය"
+      },
+      "blood_sugar": {
+        "label": "රුධිර සීනි"
+      },
+      "weight": {
+        "label": "බර"
+      },
+      "heart_rate": {
+        "label": "හෘද ස්පන්දන වේගය"
+      },
+      "temperature": {
+        "label": "උෂ්ණත්වය"
+      },
+      "spo2": {
+        "label": "SpO₂"
+      },
+      "cholesterol": {
+        "label": "කොලෙස්ටරෝල්"
+      }
+    }
+  },
+  "allergies": {
+    "title": "ආසාත්මකතා",
+    "subtitle": "ඔබේ දන්නා ආසාත්මකතා ලැයිස්තු ගත කරන්න",
+    "addButton": "ආසාත්මකතාවයක් එකතු කරන්න",
+    "emptyTitle": "ආසාත්මකතා සටහන් කර නැත",
+    "emptyBody": "පළමු පේළිය ප්‍රතිකාර කණ්ඩායමට ඔබේ ආසාත්මකතා ගැන දැනුම් දෙන්න.",
+    "fallbackName": "ආසාත්මකතාවයක්",
+    "severity": {
+      "mild": "මඳ",
+      "moderate": "මධ්‍යම",
+      "severe": "දරුණු",
+      "critical": "ඉතා දරුණු"
+    },
+    "reactionPlaceholder": "ප්‍රතික්‍රියා (උදා: ඉස්සරහ, වමනය)",
+    "notesPlaceholder": "සටහන් එකතු කරන්න",
+    "toast": {
+      "saved": "ආසාත්මකතාවය සුරක්ෂිත කෙරිණි",
+      "saveError": "සුරක්ෂිත කිරීම අසාර්ථක විය",
+      "deleted": "ආසාත්මකතාවය මකා දැමුවා",
+      "deleteError": "මැකීම අසාර්ථක විය"
+    },
+    "deleteConfirm": {
+      "title": "ආසාත්මකතාවය මකන්නද?",
+      "body": "මේ ඇතුළත් කිරීම සදාකාලිකව ඉවත් කෙරේ."
+    },
+    "criticalBanner": "දරුණු ආසාත්මකතා ගොන්නේ"
+  },
+  "vaccinations": {
+    "title": "එන්නත්",
+    "subtitle": "ඔබේ සියලු එන්නත් සටහන් ලැයිස්තු ගත කරන්න",
+    "addButton": "එන්නතක් එකතු කරන්න",
+    "emptyTitle": "එන්නත් සටහන් කර නැත",
+    "emptyBody": "ඔබේ එන්නත් ඉතිහාසය මෙහි එකතු කරන්න.",
+    "fallbackName": "එන්නත",
+    "vaccinePlaceholder": "එන්නතේ නම",
+    "dosePlaceholder": "මාත්‍රාව",
+    "lotPlaceholder": "Lot අංකය",
+    "clinicPlaceholder": "ස්ථානය",
+    "notesPlaceholder": "සටහන්",
+    "toast": {
+      "saved": "එන්නත සුරක්ෂිත කෙරිණි",
+      "saveError": "සුරක්ෂිත කිරීම අසාර්ථක විය",
+      "deleted": "එන්නත මකා දැමුවා",
+      "deleteError": "මැකීම අසාර්ථක විය"
+    },
+    "deleteConfirm": {
+      "title": "එන්නත මකන්නද?",
+      "body": "මේ ඇතුළත් කිරීම සදාකාලිකව ඉවත් කෙරේ."
+    }
+  },
+  "notes": {
+    "title": "සටහන්",
+    "subtitle": "වෛද්‍යවරයා සමඟ බෙදාගත හැකි පුද්ගලික සටහන්",
+    "addButton": "නව සටහනක්",
+    "empty": {
+      "title": "තවම සටහන් නැත",
+      "message": "ඔබේ පළමු සටහන එකතු කරන්න"
+    },
+    "placeholder": "ඔබට මතක තියාගැනීමට අවශ්‍ය දේ සටහන් කරන්න...",
+    "shareToggle": "මගේ වෛද්‍ය සමඟ බෙදාගන්න",
+    "toast": {
+      "saved": "සටහන සුරක්ෂිත කෙරිණි",
+      "saveError": "සුරක්ෂිත කිරීම අසාර්ථක විය",
+      "deleted": "සටහන මකා දැමුවා",
+      "deleteError": "මැකීම අසාර්ථක විය"
+    },
+    "deleteConfirm": {
+      "title": "සටහන මකන්නද?",
+      "body": "මේ ඇතුළත් කිරීම සදාකාලිකව ඉවත් කෙරේ."
+    }
+  },
+  "appointments": {
+    "title": "පැමිණීම්",
+    "subtitle_empty": "ඔබට කිසිවක් සැලසුම් කර නැත",
+    "subtitle_one": "පැමිණීමක් සැලසුම් කර ඇත",
+    "subtitle_other": "පැමිණීම් {{count}}ක් සැලසුම් කර ඇත",
+    "bookButton": "පැමිණීමක් වෙන්කරන්න",
+    "tabs": {
+      "upcoming": "ඉදිරියේ",
+      "past": "අවසන් වූ",
+      "cancelled": "අවලංගු කළ"
+    },
+    "empty": {
+      "title": "පැමිණීම් නැත",
+      "body": "ඔබේ පළමු පැමිණීම වෙන්කරන්න."
+    },
+    "confirmCancel": {
+      "title": "පැමිණීම අවලංගු කරන්නද?",
+      "body": "වෛද්‍යවරයාට දැනුම් දෙනු ලැබේ."
+    },
+    "toast": {
+      "booked": "පැමිණීම වෙන් කෙරිණි",
+      "bookedError": "වෙන් කිරීම අසාර්ථක විය",
+      "cancelled": "පැමිණීම අවලංගු කෙරිණි",
+      "cancelError": "අවලංගු කිරීම අසාර්ථක විය"
+    }
+  },
+  "healthSummary": {
+    "title": "සෞඛ්‍ය සාරාංශය",
+    "subtitle": "පසුගිය දින 30 දළ විශ්ලේෂණය",
+    "generate": "නව සාරාංශයක් සාදන්න",
+    "regenerate": "නැවත සාදන්න",
+    "recentHeading": "මෑත සාරාංශ",
+    "historyHeading": "සාරාංශ ඉතිහස්ත",
+    "viewFull": "සම්පූර්ණ වාර්තාව බලන්න",
+    "emptyTitle": "තවම සාරාංශ නැත",
+    "emptyBody": "ඔබේ පළමු සාරාංශය සාදන්න.",
+    "generating": "සාරාංශය සෑදෙමින්...",
+    "toast": {
+      "generated": "සාරාංශය සාදන ලදී",
+      "error": "සාරාංශ සෑදීම අසාර්ථක විය"
+    },
+    "actions": {
+      "share": "බෙදාගන්න",
+      "download": "බාගැනීම",
+      "delete": "මකන්න"
+    },
+    "deleteConfirm": {
+      "title": "සාරාංශය මකන්නද?",
+      "body": "මේ සාරාංශය සදාකාලිකව ඉවත් කෙරේ."
+    }
+  },
+  "export": {
+    "title": "මගේ දත්ත බාහිර කරන්න",
+    "subtitle": "ඔබේ සම්පූර්ණ වාර්තාවේ පිටපතක් බාගන්න",
+    "whatsIncluded": {
+      "title": "ඇතුළත් දේ",
+      "body": "ජනවිකා, ආසාත්මකතා, ඖෂධ, ප්‍රතිෂ් ors, රෝග ලක්ෂණ, වාර්තා, පැමිණීම්, බෙහෙත් වට්ටෝරු සහ ඖෂධ ඉතිහාසය."
+    },
+    "format": {
+      "title": "ආකෘතිය",
+      "json": {
+        "label": "JSON",
+        "hint": "සම්පූර්ණ කට්ටලය, යන්ත්‍රය කියවිය හැකි"
+      },
+      "txt": {
+        "label": "සාමාන්‍ය පෙළ",
+        "hint": "මිනිසුන්ට කියවිය හැකි සාරාංශය"
+      },
+      "fhirBundle": {
+        "label": "FHIR",
+        "hint": "සෞඛ්‍ය අනුකූලතා ප්‍රමිතිය"
+      }
+    },
+    "patient": {
+      "heading": "රෝගී"
+    },
+    "action": {
+      "generating": "සාදමින්...",
+      "exportAs": "{{format}} ලෙස බාහිර කරන්න"
+    },
+    "shareTitle": "HealthHub export ({{format}})",
+    "toast": {
+      "success": "බාහිර ගොන්න බෙදාගැනීමට සූදානම්",
+      "error": "බාහිර කිරීම අසාර්ථක විය"
+    },
+    "footer": "ඔබේ දත්ත ඔබට අයිතියි. බාහිර කිරීම් අපේ සේවාදායකවල ගබඩා නොකර ඉල්ලීම මත සාදනු ලැබේ."
+  },
+  "medicinesHistory": {
+    "title": "ඖෂධ ඉතිහාසය",
+    "subtitle": "මාත්‍රා අනුගමනය සහ ප්‍රවණතා",
+    "fallbackName": "ඖෂධය",
+    "scheduledAt": "{{date}} {{time}} ට සැලසුම් කෙරිණි",
+    "allEmpty": "කිසිදු මාත්‍රාවක් ලොග් කර නැත",
+    "missedEmpty": {
+      "title": "මඟ හැරුණු මාත්‍රා නැත",
+      "body": "ඔබ නියමිතව ඖෂධ ගනිමින් සිටී!"
+    },
+    "status": {
+      "taken": "ගන්නා ලදී",
+      "skipped": "මඟ හරින ලදී",
+      "missed": "මඟ හැරිණි",
+      "upcoming": "ඉදිරියෙන්"
+    },
+    "tabs": {
+      "all": "සියල්ල",
+      "taken": "ගන්නා ලදී",
+      "missed": "මඟ හැරිණි",
+      "upcoming": "ඉදිරියෙන්"
+    },
+    "a11y": {
+      "markTakenLate": "ප්‍රමාද ලෙස ගන්නා ලදී කියන්න",
+      "acknowledgeMissed": "මඟ හැරුණු බව තහවුරු කරන්න"
+    }
   }
 }
