@@ -33,6 +33,7 @@ import pushRouter from "./routes/push";
 import walkInsRouter from "./routes/walk-ins";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
+import { refillRemindersRouter } from "./cron/refill-reminders";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -99,11 +100,14 @@ app.route("/walk-ins", walkInsRouter);
 // Trigger via wrangler.toml: [triggers] crons = [...]
 //   - "7 * * * *"        → booking reminders (hourly, off-minute)
 //   - "3,8,13,...,58 * * * *" → dose reminders (every 5 min, off-minute)
+//   - "37 3 * * *"       → refill reminders (daily 09:07 SL)
 // Manual:
 //   POST /__cron/booking-reminders  with x-cron-secret header.
 //   POST /__cron/dose-reminders     with x-cron-secret header.
+//   POST /__cron/refill-reminders   with x-cron-secret header.
 app.route("/", bookingRemindersRouter);
 app.route("/", doseRemindersRouter);
+app.route("/", refillRemindersRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {

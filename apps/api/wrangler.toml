@@ -29,9 +29,13 @@ vars = { ENVIRONMENT = "production" }
 vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
 
 # Cron triggers:
-#   - "7 * * * *"        → booking reminders (hourly at :07, off-minute)
-#   - "3,8,13,...,58 * * * *" → dose reminders (every 5 min, off-minute).
-#     Off-minute shifts (3,8,13,18,23,28,33,38,43,48,53,58) avoid the
-#     :00/:05 spike seen by other jobs worldwide.
+#   - "7 * * * *"                          → booking reminders (hourly :07)
+#   - "3,8,13,...,58 * * * *"               → dose reminders (every 5 min)
+#   - "37 3 * * *"                         → refill reminders (daily 09:07 SL)
+# Off-minute shifts avoid the :00/:05 spike seen by other cron jobs.
 [triggers]
-crons = ["7 * * * *", "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"]
+crons = [
+  "7 * * * *",
+  "3,8,13,18,23,28,33,38,43,48,53,58 * * * *",
+  "37 3 * * *",
+]
