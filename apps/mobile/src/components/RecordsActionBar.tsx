@@ -35,7 +35,7 @@ type Props = {
 };
 
 export function RecordsActionBar({
-  selectedIds,
+  selectedIds = [],
   allArchived,
   hideMove,
   onClose,
@@ -49,7 +49,7 @@ export function RecordsActionBar({
   const del = useBulkDeleteRecords();
   const move = useBulkMoveRecords();
 
-  const count = selectedIds.length;
+  const count = (selectedIds || []).length;
   const busy =
     archive.isPending ||
     restore.isPending ||
@@ -74,9 +74,9 @@ export function RecordsActionBar({
   async function handleArchive() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     try {
-      const res = await archive.mutateAsync(selectedIds);
+      const res = await archive.mutateAsync(selectedIds || []);
       announceDenied("archived", res.denied, res.archived);
-      const ids = [...selectedIds];
+      const ids = [...(selectedIds || [])];
       toast.show("Archived", {
         tone: "info",
         action: {
@@ -100,7 +100,7 @@ export function RecordsActionBar({
   async function handleRestore() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
-      const res = await restore.mutateAsync(selectedIds);
+      const res = await restore.mutateAsync(selectedIds || []);
       announceDenied("restored", res.denied, res.restored);
       onClose();
     } catch (err: any) {
@@ -122,7 +122,7 @@ export function RecordsActionBar({
               () => {}
             );
             try {
-              const res = await del.mutateAsync(selectedIds);
+              const res = await del.mutateAsync(selectedIds || []);
               announceDenied("deleted", res.denied, res.deleted);
               onClose();
             } catch (err: any) {

@@ -90,7 +90,7 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { spacing, typography, colors, radius, fontFamily } = useTheme();
+  const { spacing, typography, colors, radius, fontFamily, layout } = useTheme();
   const toast = useToast();
 
   const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = usePatientProfile();
@@ -121,13 +121,9 @@ export default function HomeScreen() {
 
   const hour = new Date().getHours();
   const greeting =
-    hour < 12
-      ? t("home.greetingMorning")
-      : hour < 17
-      ? t("home.greetingAfternoon")
-      : t("home.greetingEvening");
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  const firstName = user?.name?.split(" ")[0] || t("home.fallbackName");
+  const firstName = user?.name?.split(" ")[0] || "there";
 
   const bmi =
     patient?.height && patient?.weight
@@ -165,9 +161,9 @@ export default function HomeScreen() {
 
   const headerDate = (() => {
     const d = new Date();
-    const weekday = fmtWeekdayShort(d, locale).toUpperCase();
+    const weekday = d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     const day = d.getDate();
-    const month = fmtMonthShort(d, locale).toUpperCase();
+    const month = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
     return `${greeting.toUpperCase()} · ${weekday} ${day} ${month}`;
   })();
 
@@ -186,7 +182,7 @@ export default function HomeScreen() {
   const timingMeta = useMemo(() => buildTimingMeta(t), [t]);
 
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+    <Screen padded={false} edges={["top"]} tabBarOffset={false} bottomInset={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -196,7 +192,7 @@ export default function HomeScreen() {
             tintColor={colors.primary}
           />
         }
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ paddingBottom: layout.tabBarHeight + spacing.lg }}
       >
         {/* V3: critical allergy banner */}
         {(() => {

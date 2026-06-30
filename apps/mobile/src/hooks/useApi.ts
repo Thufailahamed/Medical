@@ -179,6 +179,92 @@ export function useDeleteMedicalRecord() {
   });
 }
 
+export function useUpdateRecordTags() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, tags }: { id: string; tags: string[] }) =>
+      api<{ record: any }>(`/medical-records/${id}`, {
+        method: "PATCH",
+        body: { tags },
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["medical-records", vars.id] });
+    },
+  });
+}
+
+export function useArchiveRecord() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ record: any }>(`/medical-records/${id}`, {
+        method: "PATCH",
+        body: { archived: true },
+      }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["medical-records", id] });
+    },
+  });
+}
+
+export function useRestoreRecord() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ record: any }>(`/medical-records/${id}`, {
+        method: "PATCH",
+        body: { archived: false },
+      }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["medical-records", id] });
+    },
+  });
+}
+
+export function useMoveRecordToFamily() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, familyMemberId }: { id: string; familyMemberId: string | null }) =>
+      api<{ record: any }>(`/medical-records/${id}`, {
+        method: "PATCH",
+        body: { familyMemberId },
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["medical-records", vars.id] });
+    },
+  });
+}
+
+export function useReturnRecordToOwn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string; familyMemberId: string | null }) =>
+      api<{ record: any }>(`/medical-records/${id}`, {
+        method: "PATCH",
+        body: { familyMemberId: null },
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["medical-records", vars.id] });
+    },
+  });
+}
+
+export function useDeleteRecord() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ message: string }>(`/medical-records/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+    },
+  });
+}
+
 // ─── V4: bulk operations on medical records ─────────────────
 function bulkKeys() {
   return {

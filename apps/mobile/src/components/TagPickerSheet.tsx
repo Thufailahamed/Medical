@@ -25,7 +25,7 @@ export function TagPickerSheet({
   onDismiss,
   onClose,
   currentTags,
-  suggestions,
+  suggestions = [],
   onApply,
 }: Props) {
   const { colors, spacing, typography } = useTheme();
@@ -61,7 +61,7 @@ export function TagPickerSheet({
   return (
     <BottomSheet visible={visible} onDismiss={handleDismiss} title="Edit tags">
       <View style={{ gap: spacing.md, paddingBottom: spacing.md }}>
-        {suggestions.length ? (
+        {(suggestions || []).length ? (
           <View style={{ gap: spacing.xs }}>
             <Text style={[typography.label.md, { color: colors.textMuted }]}>
               Suggestions
