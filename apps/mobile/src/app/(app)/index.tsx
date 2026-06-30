@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -115,6 +115,15 @@ export default function HomeScreen() {
       refetchDoses();
     }, [refetchProfile, refetchMeds, refetchAppts, refetchUnread, refetchWellness, refetchDoses])
   );
+
+  // Phase 2.2.1: rehydrate local locale from server so future pushes
+  // (vaccination cron, etc.) match what the user sees in the app.
+  useEffect(() => {
+    const remote = profileData?.patient?.users?.preferredLocale;
+    if (remote && remote !== locale && (remote === "en" || remote === "si" || remote === "ta")) {
+      useLocaleStore.getState().setLocale(remote as Locale);
+    }
+  }, [profileData?.patient?.users?.preferredLocale, locale]);
 
   const patient = profileData?.patient?.patients;
   const todayMeds: any[] = medsData?.medicines ?? [];

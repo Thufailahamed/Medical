@@ -49,6 +49,11 @@ export const users = sqliteTable("users", {
   activeFamilyMemberId: text("active_family_member_id").references(
     ((): any => familyMembers.id)
   ),
+  // Phase 2.2.1: durable locale preference. Mobile PATCHes this on
+  // every locale change so crons + share-link consumers see the right
+  // language without relying on a per-request Accept-Language header.
+  // NULL = "en" (the safe default for legacy rows).
+  preferredLocale: text("preferred_locale"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -859,6 +864,13 @@ export const vaccineCatalog = sqliteTable("vaccine_catalog", {
   schedule: text("schedule").notNull(), // JSON array of { monthsFromBirth, label }
   aliases: text("aliases"), // JSON array
   notes: text("notes"),
+  // Phase 2.2.1: localized names + target disease. English stays in
+  // the original columns; cron picks based on users.preferredLocale.
+  // Nullable for backward compatibility with the seeded catalog.
+  nameSi: text("name_si"),
+  nameTa: text("name_ta"),
+  targetDiseaseSi: text("target_disease_si"),
+  targetDiseaseTa: text("target_disease_ta"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

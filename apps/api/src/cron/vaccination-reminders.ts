@@ -25,6 +25,7 @@ import { and, eq, isNull, sql, lte, or } from "drizzle-orm";
 import {
   medicalRecords,
   patients,
+  users,
   vaccineCatalog,
   vaccineReminders,
 } from "@healthcare/db";
@@ -33,6 +34,7 @@ import { computeVaccineDueSlots } from "../lib/vaccine-schedule";
 import { createDb } from "../lib/db";
 import { localToday, formatLocalDate } from "../lib/timezone";
 import { writeAudit } from "../lib/audit";
+import { translate, type Locale } from "../lib/locale";
 import type { AppEnvironment } from "../types";
 
 const REMINDER_WINDOW_DAYS = 30;  // when we start tracking a slot
@@ -61,10 +63,17 @@ vaccinationRemindersRouter.post("/__cron/vaccination-reminders", async (c) => {
   const today = localToday();
 
   // 1. Pull all patients with DOB (vaccine reminders are only useful
-  //    for people whose age we can compute).
+  //    for people whose age we can compute). Join users to pick up the
+  //    persistent `preferred_locale` so the push is localized.
   const allPatients: any[] = await db
-    .select({ id: patients.id, userId: patients.userId, dateOfBirth: patients.dateOfBirth })
-    .from(patients);
+    .select({
+      id: patients.id,
+      userId: patients.userId,
+      dateOfBirth: patients.dateOfBirth,
+      preferredLocale: users.preferredLocale,
+    })
+    .from(patients)
+    .leftJoin(users, eq(users.id, patients.userId));
 
   // 2. Pull catalog + administered vaccines once (avoid per-patient re-fetch).
   const catalog: any[] = await db.select().from(vaccineCatalog);
@@ -72,6 +81,25 @@ vaccinationRemindersRouter.post("/__cron/vaccination-reminders", async (c) => {
     .select()
     .from(medicalRecords)
     .where(eq(medicalRecords.recordType, "vaccination"));
+
+  // Index vaccine name lookup by id; resolved per-user locale below.
+  const vaccineById = new Map<string, any>(catalog.map((v: any) => [v.id, v]));
+
+  /** Resolve a vaccine's display name in the patient's preferred locale.
+   *  Falls back to English (`vaccineCatalog.name`) when the locale column
+   *  is NULL or an unsupported locale sneaks in. */
+  function vaccineNameFor(vaccineId: string, locale: Locale): string {
+    const v = vaccineById.get(vaccineId);
+    if (!v) return "";
+    if (locale === "si" && v.nameSi) return v.nameSi;
+    if (locale === "ta" && v.nameTa) return v.nameTa;
+    return v.name;
+  }
+
+  function resolveLocale(raw: string | null | undefined): Locale {
+    if (raw === "si" || raw === "ta") return raw;
+    return "en";
+  }
 
   let scanned = 0;
   let queued = 0;
@@ -81,6 +109,7 @@ vaccinationRemindersRouter.post("/__cron/vaccination-reminders", async (c) => {
 
   for (const p of allPatients) {
     try {
+      const locale = resolveLocale(p.preferredLocale);
       const slots = computeVaccineDueSlots({
         patient: { dateOfBirth: p.dateOfBirth },
         catalog,
@@ -167,34 +196,49 @@ vaccinationRemindersRouter.post("/__cron/vaccination-reminders", async (c) => {
             continue;
           }
 
-          // 2c. Fire notification.
-          const dayWord = slot.daysUntil === 1 ? "day" : "days";
-          let body: string;
-          if (slot.daysUntil < 0) {
-            const daysLate = Math.abs(slot.daysUntil);
-            const lateWord = daysLate === 1 ? "day" : "days";
-            body = `${slot.vaccine} dose ${slot.dose} was due ${daysLate} ${lateWord} ago (${dueDate}).`;
-          } else if (slot.daysUntil === 0) {
-            body = `${slot.vaccine} dose ${slot.dose} is due today.`;
-          } else {
-            body = `${slot.vaccine} dose ${slot.dose} is due in ${slot.daysUntil} ${dayWord} (${dueDate}).`;
-          }
+          // 2c. Fire notification. Body is pre-localized via translate()
+          //     with the user's preferred_locale. Vaccine name resolves to
+          //     `name_si` / `name_ta` when set, else English fallback.
+          const vaccineLabel = vaccineNameFor(slot.vaccineId, locale);
+          const count = slot.daysUntil < 0 ? Math.abs(slot.daysUntil) : slot.daysUntil;
+          const tplKey =
+            slot.daysUntil < 0
+              ? `notifications.vaccination.bodyOverdue_${count === 1 ? "one" : "other"}`
+              : slot.daysUntil === 0
+              ? `notifications.vaccination.bodyDueToday`
+              : `notifications.vaccination.bodyDueSoon_${count === 1 ? "one" : "other"}`;
+
+          const tplFallback =
+            slot.daysUntil < 0
+              ? `${vaccineLabel} dose ${slot.dose} was due ${count} day${count === 1 ? "" : "s"} ago (${dueDate}).`
+              : slot.daysUntil === 0
+              ? `${vaccineLabel} dose ${slot.dose} is due today.`
+              : `${vaccineLabel} dose ${slot.dose} is due in ${count} day${count === 1 ? "" : "s"} (${dueDate}).`;
+
+          const body = translate(locale, tplKey, tplFallback)
+            .replace(/\{\{vaccine\}\}/g, vaccineLabel)
+            .replace(/\{\{dose\}\}/g, String(slot.dose))
+            .replace(/\{\{count\}\}/g, String(count))
+            .replace(/\{\{date\}\}/g, dueDate);
+
+          const title = translate(
+            locale,
+            "notifications.vaccination.title",
+            "Vaccination reminder"
+          );
 
           await notify({
             db,
             userId: p.userId,
             type: "vaccination",
-            // TODO(2.2.1): localize body + title via user.locale + per-vaccine
-            // translation table. Today we hardcode English to match the
-            // refill-reminders.ts pattern; the mobile in-app notification
-            // surface is already localized via `notifications.vaccination`.
-            title: "Vaccination reminder",
+            title,
             body,
             data: {
               vaccineId: slot.vaccineId,
-              vaccine: slot.vaccine,
+              vaccine: vaccineLabel,
               dose: slot.dose,
               dueDate,
+              locale,
               deepLink: `/vaccinations?focus=${slot.vaccineId}`,
             },
           });

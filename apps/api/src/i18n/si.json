@@ -7,5 +7,15 @@
     "invalidDateFormat": "දිනය YYYY-MM-DD ආකෘතියෙන් විය යුතුය",
     "invalidTimeFormat": "වේලාව HH:MM (24පැය) ආකෘතියෙන් විය යුතුය",
     "reasonTooLong": "හේතුව අක්ෂර 500 ට අඩු විය යුතුය"
+  },
+  "notifications": {
+    "vaccination": {
+      "title": "එන්නත් මතක් කිරීම",
+      "bodyOverdue_one": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකට පෙර ලබා දීමට නියමිත විය ({{date}}).",
+      "bodyOverdue_other": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකට පෙර ලබා දීමට නියමිත විය ({{date}}).",
+      "bodyDueToday": "{{vaccine}} {{dose}} වැනි මාත්‍රාව අද ලබා දීමට නියමිතය.",
+      "bodyDueSoon_one": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකින් ලබා දීමට නියමිතය ({{date}}).",
+      "bodyDueSoon_other": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකින් ලබා දීමට නියමිතය ({{date}})."
+    }
   }
 }

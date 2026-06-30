@@ -7,5 +7,15 @@
     "invalidDateFormat": "தேதி YYYY-MM-DD வடிவமைப்பில் இருக்க வேண்டும்",
     "invalidTimeFormat": "நேரம் HH:MM (24மணி) வடிவமைப்பில் இருக்க வேண்டும்",
     "reasonTooLong": "காரணம் 500 எழுத்துகளுக்குக் கீழ் இருக்க வேண்டும்"
+  },
+  "notifications": {
+    "vaccination": {
+      "title": "தடுப்பூசி நினைவூட்டி",
+      "bodyOverdue_one": "{{vaccine}} {{dose}} ஆவது டோஸ் {{count}} நாளுக்கு முன்பு வழங்கப்பட வேண்டியிருந்தது ({{date}}).",
+      "bodyOverdue_other": "{{vaccine}} {{dose}} ஆவது டோஸ் {{count}} நாட்களுக்கு முன்பு வழங்கப்பட வேண்டியிருந்தது ({{date}}).",
+      "bodyDueToday": "{{vaccine}} {{dose}} ஆவது டோஸ் இன்று வழங்கப்பட வேண்டும்.",
+      "bodyDueSoon_one": "{{vaccine}} {{dose}} ஆவது டோஸ் {{count}} நாளில் வழங்கப்பட வேண்டும் ({{date}}).",
+      "bodyDueSoon_other": "{{vaccine}} {{dose}} ஆவது டோஸ் {{count}} நாட்களில் வழங்கப்பட வேண்டும் ({{date}})."
+    }
   }
 }

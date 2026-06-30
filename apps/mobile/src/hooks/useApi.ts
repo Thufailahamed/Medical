@@ -43,6 +43,7 @@ export type PatientProfileResponse = {
       photo: string | null;
       verified: boolean;
       role: string;
+      preferredLocale: string | null;
     };
   };
 };

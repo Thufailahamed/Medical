@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocaleStore, type Locale } from "@/stores/locale";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Pill } from "@/components/ui";
+import { api } from "@/lib/api";
 
 const LOCALES: Array<{ code: Locale; labelKey: string; nativeName: string }> = [
   { code: "en", labelKey: "common.languageEnglish", nativeName: "English" },
@@ -18,6 +19,16 @@ export function LocaleSwitcher() {
   const { spacing } = useTheme();
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
+
+  // Persist locally for instant i18n, then sync to server so future
+  // server-side pushes (vaccination cron, etc.) use the same locale.
+  // Best-effort: if the network call fails, the local change still sticks.
+  const onSelect = (code: Locale) => {
+    setLocale(code);
+    api("/me/locale", { method: "PATCH", body: { locale: code } }).catch(
+      (err) => console.warn("[locale] PATCH /me/locale failed:", err?.message)
+    );
+  };
 
   return (
     <View
@@ -36,7 +47,7 @@ export function LocaleSwitcher() {
             label={t(l.labelKey, { defaultValue: l.nativeName })}
             tone={active ? "primary" : "neutral"}
             outlined={!active}
-            onPress={() => setLocale(l.code)}
+            onPress={() => onSelect(l.code)}
             style={{ minHeight: 36, paddingVertical: 6 }}
           />
         );

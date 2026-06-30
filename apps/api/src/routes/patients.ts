@@ -41,6 +41,27 @@ patientsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
   });
 });
 
+// ─── Update my preferred locale (Phase 2.2.1) ────────────
+// Lightweight PATCH so the mobile locale store change can sync up so the
+// vaccination-cron push body is localized. Validates against the same
+// supported set as `lib/locale.ts`.
+patientsRouter.patch("/me/locale", authMiddleware, requireRole("patient"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const raw = typeof body?.locale === "string" ? body.locale : "";
+  if (!["en", "si", "ta"].includes(raw)) {
+    return c.json({ error: "Unsupported locale" }, 400);
+  }
+
+  await db
+    .update(users)
+    .set({ preferredLocale: raw } as any)
+    .where(eq(users.id, userId));
+
+  return c.json({ ok: true, locale: raw });
+});
+
 // ─── Update my profile (with ownership verification) ─────
 patientsRouter.put("/me", authMiddleware, requireRole("patient"), async (c) => {
   const userId = c.get("userId");
