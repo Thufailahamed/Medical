@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { patients, users, familyMembers } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
-import { patientProfileSchema } from "../lib/validators";
+import { patientProfileSchema, familyMemberSchema } from "../lib/validators";
 import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
 
@@ -124,7 +124,19 @@ patientsRouter.get("/me/family", authMiddleware, requireRole("patient"), async (
 patientsRouter.post("/me/family", authMiddleware, requireRole("patient"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
+
+  const parsed = familyMemberSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400,
+    );
+  }
+  const data = parsed.data;
 
   const [patient] = await db
     .select()
@@ -139,18 +151,18 @@ patientsRouter.post("/me/family", authMiddleware, requireRole("patient"), async 
   const [member] = await db
     .insert(familyMembers)
     .values({
-      patientId: (patient.patients?.id ?? patient.id),
-      name: body.name,
-      relationship: body.relationship,
-      dateOfBirth: body.dateOfBirth,
-      bloodGroup: body.bloodGroup,
-      allergies: body.allergies ? JSON.stringify(body.allergies) : undefined,
-      medicalConditions: body.medicalConditions ? JSON.stringify(body.medicalConditions) : undefined,
-      phone: body.phone,
-      conditions: body.conditions ? JSON.stringify(body.conditions) : null,
-      isDeceased: body.isDeceased ? 1 : 0,
-      causeOfDeath: body.causeOfDeath || null,
-      notes: body.notes || null,
+      patientId: patient.patients?.id ?? patient.id,
+      name: data.name,
+      relationship: data.relationship,
+      dateOfBirth: data.dateOfBirth || null,
+      bloodGroup: data.bloodGroup,
+      allergies: data.allergies ? JSON.stringify(data.allergies) : undefined,
+      medicalConditions: data.medicalConditions ? JSON.stringify(data.medicalConditions) : undefined,
+      phone: data.phone,
+      conditions: data.conditions ? JSON.stringify(data.conditions) : null,
+      isDeceased: data.isDeceased ? 1 : 0,
+      causeOfDeath: data.causeOfDeath || null,
+      notes: data.notes || null,
     })
     .returning();
 

@@ -10,6 +10,7 @@ import {
   sendOtpSchema,
   verifyOtpSchema,
   normalizeNic,
+  ageAtRegistration,
 } from "../lib/validators";
 import { authMiddleware } from "../middleware/auth";
 import { flattenTranslated } from "../lib/validation-error";
@@ -125,10 +126,12 @@ auth.post("/register", async (c) => {
   // mobile app can scope data to a verified subject without a server
   // round-trip per request.
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const registerAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
     nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
+    isMinor: registerAge !== null && registerAge < 18,
   });
 
   return c.json({
@@ -176,10 +179,12 @@ auth.post("/login", async (c) => {
 
   // Generate JWT token
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const loginAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
     nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
+    isMinor: loginAge !== null && loginAge < 18,
   });
 
   return c.json({
@@ -232,10 +237,12 @@ auth.post("/login-by-nic", async (c) => {
   }
 
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const nicLoginAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
     nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
+    isMinor: nicLoginAge !== null && nicLoginAge < 18,
     nicVerified: true,
   });
 
@@ -363,9 +370,11 @@ auth.post("/verify-otp", async (c) => {
     .where(eq(otpCodes.id, otp.id));
 
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const otpAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
+    isMinor: otpAge !== null && otpAge < 18,
     nicVerified: true,
     otpVerified: true,
   });

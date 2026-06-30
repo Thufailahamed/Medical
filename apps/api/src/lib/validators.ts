@@ -54,6 +54,33 @@ const nicField = z
       "NIC must be 9 digits + V/X (old format) or 12 digits (new format) and encode a valid birthdate",
   });
 
+/**
+ * Age threshold for the NIC skip path. Matches typical SL NIC issuance
+ * age (12–16 depending on district). `isMinor` JWT claim is derived
+ * separately using 18 (WHO + SL law).
+ */
+export const MINOR_NIC_THRESHOLD = 16;
+
+/**
+ * Compute the patient's age in years at registration given their DOB
+ * (YYYY-MM-DD). Returns null if DOB is missing or unparseable.
+ */
+export function ageAtRegistration(dob: string | null | undefined): number | null {
+  if (!dob) return null;
+  const d = parseDob(dob);
+  if (!d) return null;
+  const now = new Date();
+  let years = now.getUTCFullYear() - d.getUTCFullYear();
+  const monthDelta = now.getUTCMonth() - d.getUTCMonth();
+  if (
+    monthDelta < 0 ||
+    (monthDelta === 0 && now.getUTCDate() < d.getUTCDate())
+  ) {
+    years--;
+  }
+  return years;
+}
+
 const dobField = z.string().refine((s) => parseDob(s) !== null, {
   message: "Date of birth must be a real past date (YYYY-MM-DD)",
 });
@@ -94,18 +121,34 @@ export const registerSchema = z
     }
   )
   .refine(
-    (d) => d.role !== "patient" || (!!d.nic && !!d.dob),
+    (d) => {
+      if (d.role !== "patient") return true;
+      // Phase 1.2b: minors can register without NIC. They should be added
+      // to a parent's account via the Family screen instead of self-registering,
+      // but we don't block self-registration — that's a parental-consent
+      // conversation for later phases.
+      const age = ageAtRegistration(d.dob);
+      if (age !== null && age < MINOR_NIC_THRESHOLD) return true;
+      return !!d.nic && !!d.dob;
+    },
     {
-      message: "NIC and date of birth are required for patient accounts",
+      message: "NIC and date of birth are required for adult patient accounts",
       path: ["nic"],
     }
   )
   .refine(
-    (d) =>
-      d.role !== "patient" ||
-      !d.nic ||
-      !d.dob ||
-      nicMatchesDob(d.nic, d.dob),
+    (d) => {
+      if (d.role !== "patient") return true;
+      // Skip the cross-check for minors.
+      const age = ageAtRegistration(d.dob);
+      if (age !== null && age < MINOR_NIC_THRESHOLD) return true;
+      return (
+        d.role !== "patient" ||
+        !d.nic ||
+        !d.dob ||
+        nicMatchesDob(d.nic, d.dob)
+      );
+    },
     {
       message: "Date of birth doesn't match the NIC. Please re-check both.",
       path: ["dob"],
@@ -138,6 +181,56 @@ export const verifyOtpSchema = z.object({
   nic: nicField.optional(),
   channel: z.enum(["mobile", "email"]),
   code: z.string().regex(/^\d{6}$/, "OTP must be 6 digits"),
+});
+
+// ─── Phase 1.2b: family member ────────────────────────────────
+// Mirrors the 13 relationship values exposed as chips in
+// `apps/mobile/src/app/(app)/family.tsx`. `Other` accepts a free-text
+// alternative via the existing `notes` field if needed in future.
+export const FAMILY_RELATIONSHIP_VALUES = [
+  "Spouse",
+  "Father",
+  "Mother",
+  "Son",
+  "Daughter",
+  "Brother",
+  "Sister",
+  "Grandfather",
+  "Grandmother",
+  "Uncle",
+  "Aunt",
+  "Cousin",
+  "Other",
+] as const;
+
+/** POST /patients/me/family — creates a child/relative profile owned by the parent patient. */
+export const familyMemberSchema = z.object({
+  name: z.string().min(1).max(120),
+  relationship: z.enum(FAMILY_RELATIONSHIP_VALUES),
+  // Optional but encouraged for child entries — used downstream for
+  // pediatric vs adult dosing and for the in-app adult-DOB warning.
+  dateOfBirth: z
+    .string()
+    .refine((s) => {
+      if (!s) return true;
+      const d = parseDob(s);
+      if (!d) return false;
+      // Reject ages > 100 (likely typo or test data).
+      const age = ageAtRegistration(s);
+      return age !== null && age <= 100;
+    }, "Date of birth must be a real past date (YYYY-MM-DD)"),
+  bloodGroup: z
+    .enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+    .optional(),
+  allergies: z.array(z.string()).optional(),
+  medicalConditions: z.array(z.string()).optional(),
+  // Hereditary conditions (Phase 3 in the family schema). Accept as string
+  // array for client simplicity.
+  conditions: z.array(z.string()).optional(),
+  phone: z.string().min(10).max(15).optional(),
+  isDeceased: z.boolean().optional(),
+  causeOfDeath: z.string().max(500).optional(),
+  notes: z.string().max(1000).optional(),
 });
 
 export const loginSchema = z.object({

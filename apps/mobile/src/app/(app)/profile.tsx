@@ -182,7 +182,9 @@ export default function ProfileScreen() {
       labelKey: "profile.item.family.label",
       subtitle:
         familyCount === 0
-          ? t("profile.item.family.subtitleEmpty")
+          ? `${t("profile.item.family.subtitleEmpty")}\n${t(
+              "profile.item.family.subtitleEmptyHint",
+            )}`
           : t("profile.item.family.subtitleCount", { count: familyCount }),
       icon: Users,
       tone: "accent" as const,

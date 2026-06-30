@@ -15,6 +15,7 @@ import {
   useDeleteFamilyMember,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { parseDob } from "@/lib/format";
 import {
   Screen,
   ScreenHeader,
@@ -70,7 +71,7 @@ const HEREDITARY_CONDITIONS = [
 export default function FamilyScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading } = useFamilyMembers();
   const addMember = useAddFamilyMember();
@@ -81,6 +82,7 @@ export default function FamilyScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState(RELATIONSHIPS[0]);
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [bloodGroup, setBloodGroup] = useState<string | null>(null);
   const [conditions, setConditions] = useState<string[]>([]);
   const [conditionInput, setConditionInput] = useState("");
@@ -123,6 +125,7 @@ export default function FamilyScreen() {
       await addMember.mutateAsync({
         name: trimmedName,
         relationship,
+        dateOfBirth: dateOfBirth.trim() || undefined,
         phone: cleanedPhone || undefined,
         bloodGroup: bloodGroup || undefined,
         conditions: conditions.length ? conditions : undefined,
@@ -135,6 +138,7 @@ export default function FamilyScreen() {
       setName("");
       setPhone("");
       setRelationship(RELATIONSHIPS[0]);
+      setDateOfBirth("");
       setBloodGroup(null);
       setConditions([]);
       setConditionInput("");
@@ -213,6 +217,61 @@ export default function FamilyScreen() {
               keyboardType="phone-pad"
             />
           </FormField>
+
+          {/* Phase 1.2b: optional DOB. Encouraged for child entries so
+              downstream features (pediatric vs adult dosing) can be
+              age-aware. Soft warning if the relationship says "child"
+              but the DOB parses to an adult. */}
+          <FormField
+            label={t("family.compose.dobLabel")}
+            helper={t("family.compose.dobHelper")}
+          >
+            <TextInput
+              value={dateOfBirth}
+              onChangeText={setDateOfBirth}
+              placeholder={t("family.compose.dobPlaceholder")}
+              keyboardType="numbers-and-punctuation"
+              autoComplete="birthdate-full"
+            />
+          </FormField>
+
+          {(() => {
+            const childRelationships = new Set(["Son", "Daughter"]);
+            if (!childRelationships.has(relationship)) return null;
+            const parsed = parseDob(dateOfBirth.trim());
+            if (!parsed) return null;
+            const now = new Date();
+            let age = now.getFullYear() - parsed.getFullYear();
+            if (
+              now.getMonth() < parsed.getMonth() ||
+              (now.getMonth() === parsed.getMonth() &&
+                now.getDate() < parsed.getDate())
+            ) {
+              age--;
+            }
+            if (age < 18) return null;
+            return (
+              <View
+                style={{
+                  backgroundColor: colors.warningSoft ?? colors.primarySoft,
+                  padding: spacing.md,
+                  borderRadius: radius.md,
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: spacing.sm,
+                }}
+              >
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.text, flex: 1, lineHeight: 18 },
+                  ]}
+                >
+                  {t("family.compose.adultDobWarning")}
+                </Text>
+              </View>
+            );
+          })()}
 
           <FormField label={t("family.compose.bloodGroupLabel")} helper={t("family.compose.bloodGroupHelper")}>
             <View

@@ -175,7 +175,8 @@
       },
       "family": {
         "label": "Family members",
-        "subtitleEmpty": "Add your first family member",
+        "subtitleEmpty": "Add a child or family member",
+        "subtitleEmptyHint": "Children under 16 without a NIC? Add them under your account.",
         "subtitleCount_one": "{{count}} member on file",
         "subtitleCount_other": "{{count}} members on file"
       },
@@ -836,6 +837,10 @@
       "phoneHelper": "Used for emergency calls & SMS",
       "phonePlaceholder": "+94 77 123 4567",
       "phoneRangeError": "Phone must be 7-15 digits",
+      "dobLabel": "Date of birth",
+      "dobHelper": "Encouraged for children — used for age-aware care.",
+      "dobPlaceholder": "YYYY-MM-DD",
+      "adultDobWarning": "This date indicates an adult. Consider adding them as their own account instead.",
       "bloodGroupLabel": "Blood group",
       "bloodGroupHelper": "Optional — used for emergency profile",
       "conditionsLabel": "Hereditary conditions",

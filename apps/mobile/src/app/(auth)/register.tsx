@@ -6,7 +6,9 @@ import {
   Keyboard,
   TextInput,
   ActivityIndicator,
+  Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,6 +44,22 @@ import {
   parseDob,
 } from "@/lib/format";
 
+// Mirror the server-side threshold (apps/api/src/lib/validators.ts).
+const MINOR_NIC_THRESHOLD = 16;
+
+function ageFromDob(dob: string | null | undefined): number | null {
+  if (!dob) return null;
+  const d = parseDob(dob);
+  if (!d) return null;
+  const now = new Date();
+  let years = now.getFullYear() - d.getFullYear();
+  const monthDelta = now.getMonth() - d.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < d.getDate())) {
+    years--;
+  }
+  return years;
+}
+
 const schema = z
   .object({
     role: z.enum(["patient", "doctor"]),
@@ -76,13 +94,7 @@ const schema = z
       path: ["doctorProfile", "specialization"],
     }
   )
-  .refine(
-    (d) => d.role !== "patient" || isStructurallyValidNic((d.nic || "").trim()),
-    {
-      message: "NIC must be a valid Sri Lankan ID (old: 9 digits + V/X, new: 12 digits)",
-      path: ["nic"],
-    },
-  )
+  // DOB required for any patient, minor or adult.
   .refine(
     (d) => d.role !== "patient" || (!!d.dob && parseDob(d.dob) !== null),
     {
@@ -90,12 +102,44 @@ const schema = z
       path: ["dob"],
     },
   )
+  // NIC structural validity — only enforced when NIC is provided AND the
+  // user is not a minor. The UI hides the NIC field below the threshold,
+  // so this branch is the safety net for edge cases (user typing into a
+  // hidden field, race conditions, etc.).
   .refine(
-    (d) =>
-      d.role !== "patient" ||
-      !d.nic ||
-      !d.dob ||
-      nicMatchesDob(d.nic, d.dob),
+    (d) => {
+      if (d.role !== "patient") return true;
+      if (!d.nic) return true;
+      const age = ageFromDob(d.dob);
+      if (age !== null && age < MINOR_NIC_THRESHOLD) return true;
+      return isStructurallyValidNic(d.nic.trim());
+    },
+    {
+      message: "NIC must be a valid Sri Lankan ID (old: 9 digits + V/X, new: 12 digits)",
+      path: ["nic"],
+    },
+  )
+  // NIC + DOB required for adult patients only.
+  .refine(
+    (d) => {
+      if (d.role !== "patient") return true;
+      const age = ageFromDob(d.dob);
+      if (age !== null && age < MINOR_NIC_THRESHOLD) return true;
+      return !!d.nic && !!d.dob;
+    },
+    {
+      message: "NIC and date of birth are required for adult patient accounts",
+      path: ["nic"],
+    },
+  )
+  // DOB-NIC consistency — skipped for minors.
+  .refine(
+    (d) => {
+      if (d.role !== "patient") return true;
+      const age = ageFromDob(d.dob);
+      if (age !== null && age < MINOR_NIC_THRESHOLD) return true;
+      return !d.nic || !d.dob || nicMatchesDob(d.nic, d.dob);
+    },
     {
       message: "Date of birth doesn't match the NIC. Please re-check both.",
       path: ["dob"],
@@ -432,30 +476,68 @@ export default function RegisterScreen() {
           )}
         />
 
-        {/* NIC */}
-        <Controller
-          control={control}
-          name="nic"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label={role === "patient" ? "National ID *" : "National ID (optional)"}
-              value={value || ""}
-              onChangeText={(t) => onChange(t.toUpperCase())}
-              onBlur={onBlur}
-              placeholder="200012345678 or 123456789V"
-              icon={IdCard}
-              autoCapitalize="characters"
-              error={errors.nic?.message}
+        {/* Phase 1.2b: NIC field hidden entirely when DOB indicates under 16.
+            Most SL kids don't have an NIC issued yet at that age. Adults
+            can register once their child outgrows the threshold and gets an
+            NIC of their own, or a parent can manage them via the Family
+            screen. */}
+        {(() => {
+          const dobValue = (watch("dob") || "").trim();
+          const age = ageFromDob(dobValue);
+          const isMinorSelfRegistering =
+            role === "patient" && age !== null && age < MINOR_NIC_THRESHOLD;
+          if (isMinorSelfRegistering) {
+            return (
+              <View
+                style={{
+                  backgroundColor: colors.primarySoft,
+                  padding: spacing.md,
+                  borderRadius: radius.md,
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: spacing.sm,
+                }}
+              >
+                <Calendar size={16} color={colors.primary} strokeWidth={2.25} style={{ marginTop: 2 }} />
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.text, flex: 1, lineHeight: 18 },
+                  ]}
+                >
+                  {`Children under ${MINOR_NIC_THRESHOLD} can register without a NIC. A parent or guardian can manage your records from the Family screen once you're signed in.`}
+                </Text>
+              </View>
+            );
+          }
+          return (
+            <Controller
+              control={control}
+              name="nic"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomUnderlineInput
+                  label={role === "patient" ? "National ID *" : "National ID (optional)"}
+                  value={value || ""}
+                  onChangeText={(t) => onChange(t.toUpperCase())}
+                  onBlur={onBlur}
+                  placeholder="200012345678 or 123456789V"
+                  icon={IdCard}
+                  autoCapitalize="characters"
+                  error={errors.nic?.message}
+                />
+              )}
             />
-          )}
-        />
+          );
+        })()}
 
         {/* NIC hint — shows the DOB encoded in the NIC. Auto-fills the
             DOB field if the user hasn't typed anything yet so they just
-            confirm. */}
+            confirm. Hidden for minors since their NIC field is hidden. */}
         {(() => {
           const nicValue = (watch("nic") || "").trim();
           const dobValue = (watch("dob") || "").trim();
+          const age = ageFromDob(dobValue);
+          if (age !== null && age < MINOR_NIC_THRESHOLD) return null;
           if (!nicValue || !isStructurallyValidNic(nicValue)) return null;
           const encoded = nicEncodedDob(nicValue);
           if (!encoded) return null;
@@ -485,16 +567,13 @@ export default function RegisterScreen() {
           <Controller
             control={control}
             name="dob"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <CustomUnderlineInput
+            render={({ field: { onChange, value } }) => (
+              <CustomUnderlineDatePicker
                 label="Date of birth *"
                 value={value || ""}
-                onChangeText={onChange}
-                onBlur={onBlur}
+                onChange={onChange}
                 placeholder="YYYY-MM-DD"
                 icon={Calendar}
-                keyboardType="numbers-and-punctuation"
-                autoComplete="birthdate-full"
                 error={errors.dob?.message}
               />
             )}
@@ -951,6 +1030,112 @@ function CustomUnderlineInput({
           </Pressable>
         )}
       </View>
+
+      {/* Error text */}
+      {error && (
+        <Text
+          style={{
+            fontSize: 12,
+            color: colors.danger || "#FF3B30",
+            marginTop: 6,
+            fontFamily: fontFamily.body,
+          }}
+        >
+          {error}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function CustomUnderlineDatePicker({
+  label,
+  value,
+  onChange,
+  placeholder,
+  icon: Icon,
+  error,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  icon: any;
+  error?: string;
+}) {
+  const { colors, fontFamily } = useTheme();
+  const [show, setShow] = useState(false);
+
+  const dateValue = value ? new Date(value) : new Date();
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShow(false);
+    }
+    if (selectedDate) {
+      const y = selectedDate.getFullYear();
+      const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const d = String(selectedDate.getDate()).padStart(2, "0");
+      onChange(`${y}-${m}-${d}`);
+    }
+  };
+
+  return (
+    <View style={{ marginBottom: 4 }}>
+      {/* Label */}
+      <View style={{ flexDirection: "row", marginBottom: 6 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: "800",
+            color: "#7F7B8C",
+            letterSpacing: 0.8,
+            fontFamily: fontFamily.displayBold,
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </Text>
+        <Text style={{ fontSize: 11, color: colors.danger || "#FF3B30", marginLeft: 2 }}>*</Text>
+      </View>
+
+      {/* Pressable Field Row */}
+      <Pressable
+        onPress={() => setShow(true)}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingBottom: 8,
+          borderBottomWidth: show ? 2 : 1,
+          borderBottomColor: show ? colors.primary : "#E6E4EA",
+        }}
+      >
+        <Icon size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+        
+        <Text
+          style={{
+            flex: 1,
+            fontSize: 15,
+            color: value ? "#1D1B20" : "#C4C0CC",
+            fontFamily: fontFamily.body,
+            paddingVertical: 2,
+          }}
+        >
+          {value || placeholder}
+        </Text>
+      </Pressable>
+
+      {show && (
+        <DateTimePicker
+          value={dateValue}
+          mode="date"
+          onChange={handleDateChange}
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          maximumDate={new Date()}
+        />
+      )}
 
       {/* Error text */}
       {error && (
