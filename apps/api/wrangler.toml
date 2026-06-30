@@ -28,8 +28,10 @@ vars = { ENVIRONMENT = "production" }
 [env.development]
 vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
 
-# Cron triggers — fires every hour at :07 to remind patients/doctors
-# of appointments scheduled in the next 24 hours.
-# Off-minute (:07) avoids the :00 spike seen by other cron jobs.
+# Cron triggers:
+#   - "7 * * * *"        → booking reminders (hourly at :07, off-minute)
+#   - "3,8,13,...,58 * * * *" → dose reminders (every 5 min, off-minute).
+#     Off-minute shifts (3,8,13,18,23,28,33,38,43,48,53,58) avoid the
+#     :00/:05 spike seen by other jobs worldwide.
 [triggers]
-crons = ["7 * * * *"]
+crons = ["7 * * * *", "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"]

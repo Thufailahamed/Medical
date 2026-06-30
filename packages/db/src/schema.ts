@@ -388,6 +388,10 @@ export const medicineDoses = sqliteTable("medicine_doses", {
   takenAt: text("taken_at"), // ISO timestamp; null if skipped
   skipped: integer("skipped", { mode: "boolean" }).default(false),
   notes: text("notes"),
+  // F1: set by dose-reminders cron after the reminder notification is
+  // dispatched. null = not yet reminded. Used as the dedup flag so the
+  // 5-min cron doesn't re-notify on the next pass.
+  notifiedAt: text("notified_at"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
