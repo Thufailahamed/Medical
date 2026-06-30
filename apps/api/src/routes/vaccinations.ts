@@ -1,9 +1,11 @@
 // @ts-nocheck
 // Structured vaccinations — admin record + due/overdue based on WHO catalog.
 // Backed by `medical_records.recordType='vaccination'` (existing) + `vaccine_catalog` (V3).
+// Phase 2.2: due-slot math extracted to lib/vaccine-schedule.ts so the
+// cron worker and this route stay in lockstep.
 
 import { Hono } from "hono";
-import { eq, and, desc, like } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import {
   medicalRecords,
   vaccineCatalog,
@@ -11,7 +13,7 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
-import { canAccessPatient } from "../lib/access";
+import { computeVaccineDueSlots } from "../lib/vaccine-schedule";
 import type { AppEnvironment } from "../types";
 
 const vaccinationsRouter = new Hono<AppEnvironment>();
@@ -23,23 +25,6 @@ async function getOwnPatient(db: any, userId: string) {
     .where(eq(patients.userId, userId))
     .limit(1);
   return p || null;
-}
-
-function ageInMonths(dob: string | null, ref: Date): number | null {
-  if (!dob) return null;
-  const birth = new Date(dob);
-  if (isNaN(birth.getTime())) return null;
-  const ms = ref.getTime() - birth.getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24 * 30.4375));
-}
-
-function parseSchedule(scheduleJson: string): { monthsFromBirth: number; label: string }[] {
-  try {
-    const arr = JSON.parse(scheduleJson);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
 }
 
 // ─── List my administered + catalog ──────────────────────
@@ -74,9 +59,6 @@ vaccinationsRouter.get("/me/due", authMiddleware, requireRole("patient"), async 
   const patient = await getOwnPatient(db, userId);
   if (!patient) return c.json({ due: [], overdue: [], upcoming: [] });
 
-  const now = new Date();
-  const ageMonths = ageInMonths(patient.dateOfBirth, now);
-
   const administered = await db
     .select()
     .from(medicalRecords)
@@ -89,77 +71,13 @@ vaccinationsRouter.get("/me/due", authMiddleware, requireRole("patient"), async 
 
   const catalog = await db.select().from(vaccineCatalog);
 
-  // For each catalog vaccine, find latest administered matching name
-  // (loose match: name contains or is contained in record title)
-  const due: any[] = [];
-  const overdue: any[] = [];
-  const upcoming: any[] = [];
+  const slots = computeVaccineDueSlots({
+    patient: { dateOfBirth: patient.dateOfBirth },
+    catalog: catalog as any,
+    administered: administered as any,
+  });
 
-  for (const v of catalog) {
-    const schedule = parseSchedule(v.schedule);
-    if (schedule.length === 0) continue;
-
-    // last dose date
-    const matched = administered.filter((a: any) => {
-      const t = (a.title || "").toLowerCase();
-      return (
-        t.includes(v.name.toLowerCase()) ||
-        v.name.toLowerCase().includes(t) ||
-        (v.shortName && t.includes(v.shortName.toLowerCase()))
-      );
-    });
-    const lastDate = matched.length
-      ? new Date(
-          matched
-            .map((m: any) => m.recordDate || m.createdAt)
-            .sort()
-            .slice(-1)[0]
-        )
-      : null;
-
-    const lastDoseIndex = matched.length; // assume one per schedule slot
-
-    for (let i = lastDoseIndex; i < schedule.length; i++) {
-      const slot = schedule[i];
-      if (ageMonths == null) continue;
-      const slotDate = new Date(patient.dateOfBirth || now);
-      slotDate.setMonth(slotDate.getMonth() + (slot.monthsFromBirth || 0));
-
-      const diffMs = slotDate.getTime() - now.getTime();
-      const daysUntil = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-      const item = {
-        vaccineId: v.id,
-        vaccine: v.name,
-        shortName: v.shortName,
-        dose: i + 1,
-        doseLabel: slot.label,
-        dueDate: slotDate.toISOString(),
-        daysUntil,
-        targetDisease: v.targetDisease,
-      };
-
-      if (daysUntil < 0) {
-        // If the user is an adult (18+ years / 216 months), do not mark childhood vaccines (recommended under 18 years) as overdue.
-        const isUserAdult = ageMonths >= 216;
-        const isChildhoodVaccine = (slot.monthsFromBirth || 0) < 216;
-        if (isUserAdult && isChildhoodVaccine) {
-          continue;
-        }
-        overdue.push(item);
-      } else if (daysUntil <= 30) {
-        due.push(item);
-      } else {
-        upcoming.push(item);
-      }
-    }
-  }
-
-  overdue.sort((a, b) => a.daysUntil - b.daysUntil);
-  due.sort((a, b) => a.daysUntil - b.daysUntil);
-  upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
-
-  return c.json({ due, overdue, upcoming });
+  return c.json(slots);
 });
 
 // ─── Add a vaccination record ────────────────────────────

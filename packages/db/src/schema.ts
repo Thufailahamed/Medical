@@ -854,6 +854,28 @@ export const vaccineCatalog = sqliteTable("vaccine_catalog", {
     .notNull(),
 });
 
+// ─── Phase 2.2: Vaccination reminder dedupe ──────────────
+// One row per (patient × catalog vaccine × schedule-index) once a slot
+// enters the 30-day reminder window. Cron worker stamps
+// `reminderSentAt` + increments `remindedCount` so we don't double-push
+// across runs. Capped at 2 pushes per slot (early + final).
+export const vaccineReminders = sqliteTable("vaccine_reminders", {
+  id: text("id").primaryKey(),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  vaccineId: text("vaccine_id")
+    .notNull()
+    .references(() => vaccineCatalog.id),
+  doseIndex: integer("dose_index").notNull(),
+  dueDate: text("due_date").notNull(),
+  reminderSentAt: text("reminder_sent_at"),
+  remindedCount: integer("reminded_count").notNull().default(0),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
 // ─── V3: Share Links (time-limited doctor access) ───────
 export const shareLinks = sqliteTable("share_links", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
