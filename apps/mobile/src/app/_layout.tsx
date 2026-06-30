@@ -26,7 +26,7 @@ import { useLocaleStore } from "@/stores/locale";
 import { registerForPushNotifications, onPushResponse } from "@/lib/push";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
-import i18n from "@/i18n";
+import { applyOutfitFontDefaults } from "@/lib/fonts";
 
 // NOTE on the hydration race:
 // `useLocaleStore.persist.hasHydrated()` is async (SecureStore read), so we
@@ -99,7 +99,19 @@ export default function RootLayout() {
     return unsubFinish;
   }, []);
 
-  const ready = hasLocaleHydrated && (fontsLoaded || !!fontError);
+  const ready = hasLocaleHydrated && fontsLoaded;
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      applyOutfitFontDefaults();
+    }
+  }, [fontsLoaded]);
+
+  useEffect(() => {
+    if (fontError) {
+      console.error("[fonts] Failed to load Outfit:", fontError);
+    }
+  }, [fontError]);
 
   useEffect(() => {
     if (ready) {

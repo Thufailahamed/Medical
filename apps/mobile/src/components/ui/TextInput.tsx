@@ -41,7 +41,7 @@ export const TextInput = forwardRef<RNTextInput, Props>(function TextInput(
   },
   ref
 ) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, fontFamily } = useTheme();
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(!!secureTextEntry);
 
@@ -101,6 +101,7 @@ export const TextInput = forwardRef<RNTextInput, Props>(function TextInput(
             lineHeight: 22,
             color: colors.text,
             paddingVertical: spacing.md,
+            fontFamily: fontFamily.body,
           },
           style,
         ]}

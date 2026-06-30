@@ -314,6 +314,7 @@ export const fontFamily = {
   bodySemibold: "Outfit_600SemiBold",
   bodyBold: "Outfit_700Bold",
   heavy: "Outfit_800ExtraBold",
+  mono: "Outfit_400Regular",
 } as const;
 
 type TypeStyle = {

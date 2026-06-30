@@ -1,3 +1,4 @@
+export { AppText } from "./AppText";
 export { Pressable } from "./Pressable";
 export { Screen } from "./Screen";
 export { ScreenHeader } from "./ScreenHeader";

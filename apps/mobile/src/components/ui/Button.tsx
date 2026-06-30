@@ -195,10 +195,10 @@ export function Button({
       <Text
         style={[
           s.font,
-          { 
-            color: textColor, 
+          {
+            color: textColor,
             textAlign: "center",
-            fontWeight: "700", // Thicker font weight for high visibility
+            fontFamily: typography.title.sm.fontFamily,
             letterSpacing: 0.25,
           },
         ]}
