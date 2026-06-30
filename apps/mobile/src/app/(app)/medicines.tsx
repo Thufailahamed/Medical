@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Sunrise,
@@ -53,15 +54,12 @@ import {
 // M1: third tab "All" surfaces stopped/paused medicines so users can
 // resume them. The previous "All Active" label was a lie — the underlying
 // query (`useMyMedicines()` without opts) only returned active=true rows.
-const TABS: { value: "today" | "active" | "all"; label: string }[] = [
-  { value: "today", label: "Today" },
-  { value: "active", label: "Active" },
-  { value: "all", label: "All" },
-];
+const TAB_VALUES = ["today", "active", "all"] as const;
+type TabValue = (typeof TAB_VALUES)[number];
 
 type PeriodKey = "morning" | "afternoon" | "evening" | "night";
 
-const PERIOD_META: Record<
+function buildPeriodMeta(t: (k: string) => string): Record<
   PeriodKey,
   {
     label: string;
@@ -70,36 +68,38 @@ const PERIOD_META: Record<
     iconColor: string;
     bgTone: string;
   }
-> = {
-  morning: {
-    label: "Morning",
-    range: "08:00 AM — 11:59 AM",
-    icon: Sunrise,
-    iconColor: "#765b00",
-    bgTone: "#ffdf93",
-  },
-  afternoon: {
-    label: "Afternoon",
-    range: "12:00 PM — 04:59 PM",
-    icon: Sun,
-    iconColor: "#6750a4",
-    bgTone: "#e9ddff",
-  },
-  evening: {
-    label: "Evening",
-    range: "05:00 PM — 08:59 PM",
-    icon: Sunset,
-    iconColor: "#63597c",
-    bgTone: "#e1d4fd",
-  },
-  night: {
-    label: "Night",
-    range: "09:00 PM — 07:59 AM",
-    icon: Moon,
-    iconColor: "#7a7582",
-    bgTone: "#e6e0e9",
-  },
-};
+> {
+  return {
+    morning: {
+      label: t("medicines.period.morning.label"),
+      range: t("medicines.period.morning.range"),
+      icon: Sunrise,
+      iconColor: "#765b00",
+      bgTone: "#ffdf93",
+    },
+    afternoon: {
+      label: t("medicines.period.afternoon.label"),
+      range: t("medicines.period.afternoon.range"),
+      icon: Sun,
+      iconColor: "#6750a4",
+      bgTone: "#e9ddff",
+    },
+    evening: {
+      label: t("medicines.period.evening.label"),
+      range: t("medicines.period.evening.range"),
+      icon: Sunset,
+      iconColor: "#63597c",
+      bgTone: "#e1d4fd",
+    },
+    night: {
+      label: t("medicines.period.night.label"),
+      range: t("medicines.period.night.range"),
+      icon: Moon,
+      iconColor: "#7a7582",
+      bgTone: "#e6e0e9",
+    },
+  };
+}
 
 function getPeriodKey(timingStr?: string | null): PeriodKey {
   const t = (timingStr || "").toLowerCase();
@@ -118,24 +118,31 @@ function getPeriodKey(timingStr?: string | null): PeriodKey {
   return "morning";
 }
 
-function subtitleForMed(m: any): string {
+function subtitleForMed(t: (k: string) => string, m: any): string {
   const bits: string[] = [];
   if (m.dosage) bits.push(m.dosage);
   if (m.frequency) bits.push(m.frequency);
   if (m.timing) bits.push(m.timing);
-  return bits.length ? bits.join(" • ") : "Medicine";
+  return bits.length ? bits.join(" • ") : t("medicines.subtitleFallback");
 }
 
 export default function MedicinesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
-  const [tab, setTab] = useState<"today" | "active" | "all">("today");
+  const [tab, setTab] = useState<TabValue>("today");
   const [moreOpen, setMoreOpen] = useState(false);
   const [selectedMed, setSelectedMed] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const TABS: { value: TabValue; label: string }[] = [
+    { value: "today", label: t("medicines.tabs.today") },
+    { value: "active", label: t("medicines.tabs.active") },
+    { value: "all", label: t("medicines.tabs.all") },
+  ];
 
   // M1: include inactive rows only when the user opts into the "All" tab.
   // "today" + "active" stay scoped to active=true so the period grouping
@@ -189,8 +196,8 @@ export default function MedicinesScreen() {
   }
 
   // API returns FLAT objects. `allMeds` is already active-only for
-// tab="today" + tab="active" (no `includeInactive` opt passed); it
-// includes stopped rows for tab="all".
+  // tab="today" + tab="active" (no `includeInactive` opt passed); it
+  // includes stopped rows for tab="all".
   const list: any[] =
     tab === "today" ? todayMeds?.medicines ?? [] : allMeds?.medicines ?? [];
 
@@ -235,18 +242,20 @@ export default function MedicinesScreen() {
   const profileName = profileData?.patient?.users?.name || "";
   const profilePhoto = profileData?.patient?.users?.photo;
 
+  const PERIOD_META = buildPeriodMeta(t);
+
   async function handleScheduleToday() {
     try {
       const res = await scheduleToday.mutateAsync();
       toast.show(
         res.count
-          ? `Scheduled ${res.count} dose reminders for today`
-          : "No medicines to schedule",
+          ? t("medicines.toast.scheduled", { count: res.count })
+          : t("medicines.toast.noSchedule"),
         "success"
       );
       refetchDoses();
     } catch (err: any) {
-      toast.show(err?.message || "Could not schedule", "danger");
+      toast.show(err?.message || t("medicines.toast.scheduleError"), "danger");
     }
   }
 
@@ -255,18 +264,18 @@ export default function MedicinesScreen() {
     try {
       if (dose?.taken) {
         await untakeDose.mutateAsync(dose.id);
-        toast.show(`${med.name} marked as not taken`, "info");
+        toast.show(t("medicines.toast.markedNotTaken", { name: med.name }), "info");
       } else if (dose?.id) {
         await markTaken.mutateAsync({ id: dose.id });
-        toast.show(`${med.name} marked as taken`, "success");
+        toast.show(t("medicines.toast.markedTaken", { name: med.name }), "success");
       } else {
         // No dose scheduled yet — schedule now and immediately mark taken
         const res = await scheduleToday.mutateAsync();
         refetchDoses();
-        toast.show(`${med.name} marked as taken`, "success");
+        toast.show(t("medicines.toast.markedTaken", { name: med.name }), "success");
       }
     } catch (err: any) {
-      toast.show(err?.message || "Could not update", "danger");
+      toast.show(err?.message || t("medicines.toast.updateError"), "danger");
     }
   }
 
@@ -274,9 +283,9 @@ export default function MedicinesScreen() {
     if (!selectedMed) return;
     try {
       await stopMedicine.mutateAsync(selectedMed.id);
-      toast.show(`${selectedMed.name} stopped`, "info");
+      toast.show(t("medicines.toast.stopped", { name: selectedMed.name }), "info");
     } catch (err: any) {
-      toast.show(err.message || "Failed to stop", "danger");
+      toast.show(err.message || t("medicines.toast.stopError"), "danger");
     } finally {
       setMoreOpen(false);
       setSelectedMed(null);
@@ -287,12 +296,12 @@ export default function MedicinesScreen() {
     if (!selectedMed) return;
     try {
       await deleteMedicine.mutateAsync(selectedMed.id);
-      toast.show(`${selectedMed.name} deleted`, "success");
+      toast.show(t("medicines.toast.deleted", { name: selectedMed.name }), "success");
       refetchToday();
       refetchAll();
       refetchDoses();
     } catch (err: any) {
-      toast.show(err.message || "Failed to delete", "danger");
+      toast.show(err.message || t("medicines.toast.deleteError"), "danger");
     } finally {
       setMoreOpen(false);
       setSelectedMed(null);
@@ -326,11 +335,11 @@ export default function MedicinesScreen() {
           <Pressable
             onPress={() => router.push("/(app)/profile")}
             accessibilityRole="button"
-            accessibilityLabel="Profile"
+            accessibilityLabel={t("medicines.a11y.profile")}
             hitSlop={6}
           >
             <Avatar
-              name={profileName || "You"}
+              name={profileName || t("common.you")}
               source={profilePhoto ? { uri: profilePhoto } : undefined}
               size="md"
               tone="primary"
@@ -342,14 +351,14 @@ export default function MedicinesScreen() {
               { color: colors.primary, fontWeight: "800", fontSize: 20 },
             ]}
           >
-            HealthHub
+            {t("medicines.brandName")}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
             <Pressable
               onPress={() => router.push("/(app)/add-medicine")}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="Add medicine"
+              accessibilityLabel={t("medicines.a11y.addMedicine")}
               style={({ pressed }) => ({
                 width: 40,
                 height: 40,
@@ -364,7 +373,7 @@ export default function MedicinesScreen() {
               onPress={() => router.push("/(app)/notifications")}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="Notifications"
+              accessibilityLabel={t("medicines.a11y.notifications")}
               style={({ pressed }) => ({
                 width: 40,
                 height: 40,
@@ -439,7 +448,7 @@ export default function MedicinesScreen() {
                     },
                   ]}
                 >
-                  DAILY PROGRESS
+                  {t("medicines.hero.dailyProgress")}
                 </Text>
                 <Text
                   style={[
@@ -465,7 +474,7 @@ export default function MedicinesScreen() {
                     },
                   ]}
                 >
-                  of today's medicines completed
+                  {t("medicines.hero.completedFraction")}
                 </Text>
 
                 <View
@@ -496,7 +505,7 @@ export default function MedicinesScreen() {
                         color: "#0EA5B7",
                       }}
                     >
-                      {remainingCount === 0 ? "ALL DONE" : "ON TRACK"}
+                      {remainingCount === 0 ? t("medicines.hero.allDone") : t("medicines.hero.onTrack")}
                     </Text>
                   </View>
                   <Text
@@ -509,8 +518,8 @@ export default function MedicinesScreen() {
                     ]}
                   >
                     {remainingCount === 0
-                      ? "All completed!"
-                      : `${remainingCount} remaining`}
+                      ? t("medicines.hero.allCompleted")
+                      : t("medicines.hero.remaining", { count: remainingCount })}
                   </Text>
                 </View>
               </View>
@@ -528,7 +537,7 @@ export default function MedicinesScreen() {
             }}
           >
             <Button
-              title="Mark today's schedule"
+              title={t("medicines.actions.markSchedule")}
               icon={Calendar}
               variant="outline"
               onPress={handleScheduleToday}
@@ -537,7 +546,7 @@ export default function MedicinesScreen() {
               size="sm"
             />
             <Button
-              title="History"
+              title={t("medicines.actions.history")}
               icon={History}
               variant="ghost"
               onPress={() => router.push("/(app)/medicines-history")}
@@ -552,7 +561,7 @@ export default function MedicinesScreen() {
         {tab === "active" ? (
           <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
             <Button
-              title="View adherence & history"
+              title={t("medicines.actions.viewHistory")}
               icon={History}
               variant="outline"
               onPress={() => router.push("/(app)/medicines-history")}
@@ -565,15 +574,15 @@ export default function MedicinesScreen() {
         {/* Tabs */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
           <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            {TABS.map((t) => {
-              const active = tab === t.value;
+            {TABS.map((tt) => {
+              const active = tab === tt.value;
               return (
                 <Pressable
-                  key={t.value}
-                  onPress={() => setTab(t.value)}
+                  key={tt.value}
+                  onPress={() => setTab(tt.value)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  accessibilityLabel={t.label}
+                  accessibilityLabel={tt.label}
                   style={{
                     height: 40,
                     paddingHorizontal: spacing.lg,
@@ -594,7 +603,7 @@ export default function MedicinesScreen() {
                       },
                     ]}
                   >
-                    {t.label}
+                    {tt.label}
                   </Text>
                 </Pressable>
               );
@@ -626,8 +635,8 @@ export default function MedicinesScreen() {
                 ]}
               >
                 {tab === "today"
-                  ? "Nothing scheduled today"
-                  : "No medicines yet"}
+                  ? t("medicines.empty.today.title")
+                  : t("medicines.empty.all.title")}
               </Text>
               <Text
                 style={[
@@ -641,11 +650,11 @@ export default function MedicinesScreen() {
                 ]}
               >
                 {tab === "today"
-                  ? "Enjoy your day. Add a medicine to start tracking."
-                  : "Add your medicines to get timely reminders and track your health rhythm."}
+                  ? t("medicines.empty.today.body")
+                  : t("medicines.empty.all.body")}
               </Text>
               <Button
-                title="Add medicine"
+                title={t("medicines.a11y.addMedicine")}
                 icon={Plus}
                 onPress={() => router.push("/(app)/add-medicine")}
                 variant="outline"
@@ -850,7 +859,7 @@ export default function MedicinesScreen() {
                                         letterSpacing: 0.5,
                                       }}
                                     >
-                                      STOPPED
+                                      {t("medicines.status.stopped")}
                                     </Text>
                                   </View>
                                 ) : null}
@@ -865,7 +874,7 @@ export default function MedicinesScreen() {
                                 ]}
                                 numberOfLines={1}
                               >
-                                {subtitleForMed(med)}
+                                {subtitleForMed(t, med)}
                               </Text>
                             </View>
 
@@ -894,14 +903,14 @@ export default function MedicinesScreen() {
                                       color: colors.success,
                                     }}
                                   >
-                                    Taken
+                                    {t("medicines.status.taken")}
                                   </Text>
                                 </View>
                               ) : (
                                 <Pressable
                                   onPress={() => toggleTaken(med)}
                                   accessibilityRole="button"
-                                  accessibilityLabel={`Mark ${med.name} as taken`}
+                                  accessibilityLabel={t("medicines.a11y.markTaken", { name: med.name })}
                                   style={({ pressed }) => ({
                                     paddingHorizontal: spacing.md,
                                     paddingVertical: 8,
@@ -921,7 +930,7 @@ export default function MedicinesScreen() {
                                           : colors.primary,
                                       }}
                                     >
-                                      Mark Taken
+                                      {t("medicines.status.markTaken")}
                                     </Text>
                                   )}
                                 </Pressable>
@@ -933,7 +942,7 @@ export default function MedicinesScreen() {
                                   setMoreOpen(true);
                                 }}
                                 accessibilityRole="button"
-                                accessibilityLabel="More options"
+                                accessibilityLabel={t("medicines.a11y.moreOptions")}
                                 style={{
                                   width: 32,
                                   height: 32,
@@ -965,7 +974,7 @@ export default function MedicinesScreen() {
           setMoreOpen(false);
           setSelectedMed(null);
         }}
-        title="Medicine details"
+        title={t("medicines.sheet.title")}
       >
         <View style={{ gap: spacing.md, paddingBottom: spacing.lg }}>
           <View style={{ alignItems: "center", gap: 4 }}>
@@ -975,7 +984,7 @@ export default function MedicinesScreen() {
                 { color: colors.text, fontWeight: "800" },
               ]}
             >
-              {selectedMed?.name || "Medicine"}
+              {selectedMed?.name || t("medicines.sheet.fallbackName")}
             </Text>
             {selectedMed?.dosage ? (
               <Text
@@ -998,8 +1007,8 @@ export default function MedicinesScreen() {
             <Button
               title={
                 doseMap[selectedMed.id]?.taken
-                  ? "Mark as not taken"
-                  : "Mark as taken"
+                  ? t("medicines.sheet.markNotTaken")
+                  : t("medicines.sheet.markTaken")
               }
               icon={Check}
               onPress={async () => {
@@ -1013,7 +1022,7 @@ export default function MedicinesScreen() {
 
           {selectedMed ? (
             <Button
-              title="Edit medicine"
+              title={t("medicines.sheet.edit")}
               icon={Edit}
               onPress={() => {
                 setMoreOpen(false);
@@ -1031,7 +1040,7 @@ export default function MedicinesScreen() {
               inactive; Resume flips active=true via the existing PATCH. */}
           {selectedMed && selectedMed.active !== false ? (
             <Button
-              title="Stop medicine"
+              title={t("medicines.sheet.stop")}
               icon={Power}
               onPress={handleStop}
               variant="outline"
@@ -1041,7 +1050,7 @@ export default function MedicinesScreen() {
 
           {selectedMed && selectedMed.active === false ? (
             <Button
-              title="Resume medicine"
+              title={t("medicines.sheet.resume")}
               icon={Play}
               onPress={async () => {
                 try {
@@ -1049,11 +1058,11 @@ export default function MedicinesScreen() {
                     id: selectedMed.id,
                     active: true,
                   } as any);
-                  toast.show(`${selectedMed.name} resumed`, "success");
+                  toast.show(t("medicines.toast.resumed", { name: selectedMed.name }), "success");
                   refetchAll();
                   refetchToday();
                 } catch (err: any) {
-                  toast.show(err?.message || "Failed to resume", "danger");
+                  toast.show(err?.message || t("medicines.toast.resumeError"), "danger");
                 } finally {
                   setMoreOpen(false);
                   setSelectedMed(null);
@@ -1066,7 +1075,7 @@ export default function MedicinesScreen() {
 
           {selectedMed ? (
             <Button
-              title="Delete medicine"
+              title={t("medicines.sheet.delete")}
               icon={Trash2}
               onPress={handleDelete}
               variant="danger"
@@ -1075,7 +1084,7 @@ export default function MedicinesScreen() {
           ) : null}
 
           <Button
-            title="Close"
+            title={t("medicines.sheet.close")}
             onPress={() => {
               setMoreOpen(false);
               setSelectedMed(null);

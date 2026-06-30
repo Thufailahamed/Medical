@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert, Dimensions } from "react-native";
+import { useTranslation } from "react-i18next";
 import {
   Activity,
   Plus,
@@ -40,24 +41,20 @@ import {
   useToast,
 } from "@/components/ui";
 
-const VITAL_TYPES = [
-  { value: "blood_pressure", label: "Blood pressure", icon: Heart, unit: "mmHg" },
-  { value: "blood_sugar", label: "Blood sugar", icon: Droplet, unit: "mg/dL" },
-  { value: "weight", label: "Weight", icon: Scale, unit: "kg" },
-  { value: "heart_rate", label: "Heart rate", icon: Heart, unit: "bpm" },
-  { value: "temperature", label: "Temperature", icon: Thermometer, unit: "°C" },
-  { value: "spo2", label: "SpO₂", icon: TrendingUp, unit: "%" },
-  { value: "cholesterol", label: "Cholesterol", icon: Droplet, unit: "mg/dL" },
+const VITAL_TYPES: { value: string; labelKey: string; icon: any; unit: string }[] = [
+  { value: "blood_pressure", labelKey: "vitals.type.blood_pressure.label", icon: Heart, unit: "mmHg" },
+  { value: "blood_sugar", labelKey: "vitals.type.blood_sugar.label", icon: Droplet, unit: "mg/dL" },
+  { value: "weight", labelKey: "vitals.type.weight.label", icon: Scale, unit: "kg" },
+  { value: "heart_rate", labelKey: "vitals.type.heart_rate.label", icon: Heart, unit: "bpm" },
+  { value: "temperature", labelKey: "vitals.type.temperature.label", icon: Thermometer, unit: "°C" },
+  { value: "spo2", labelKey: "vitals.type.spo2.label", icon: TrendingUp, unit: "%" },
+  { value: "cholesterol", labelKey: "vitals.type.cholesterol.label", icon: Droplet, unit: "mg/dL" },
 ];
 
-const RANGES = [
-  { value: 7, label: "7d" },
-  { value: 30, label: "30d" },
-  { value: 90, label: "90d" },
-  { value: 365, label: "1y" },
-];
+const RANGES = [7, 30, 90, 365];
 
 export default function VitalsScreen() {
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading } = useVitals();
@@ -131,7 +128,7 @@ export default function VitalsScreen() {
   async function save() {
     const v = parseFloat(value);
     if (!v || Number.isNaN(v)) {
-      toast.show("Enter a valid value", "warning");
+      toast.show(t("vitals.toast.invalidValue"), "warning");
       return;
     }
     try {
@@ -142,21 +139,21 @@ export default function VitalsScreen() {
         unit: meta.unit,
         notes: notes.trim() || null,
       });
-      toast.show(`${meta.label} logged`, "success");
+      toast.show(t("vitals.toast.logged", { label: t(meta.labelKey) }), "success");
       setComposing(false);
       setValue("");
       setSecondary("");
       setNotes("");
     } catch (err: any) {
-      toast.show(err?.message || "Could not log", "danger");
+      toast.show(err?.message || t("vitals.toast.saveError"), "danger");
     }
   }
 
   function confirmDelete(id: string) {
-    Alert.alert("Delete reading?", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("vitals.delete.title"), t("vitals.delete.body"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
         onPress: () => deleteVital.mutate(id),
       },
@@ -169,7 +166,7 @@ export default function VitalsScreen() {
         <ScreenHeader
           back
           onBack={() => setComposing(false)}
-          title="Log a vital"
+          title={t("vitals.compose.title")}
         />
         <ScrollView
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
@@ -177,7 +174,7 @@ export default function VitalsScreen() {
         >
           <View style={{ gap: spacing.xs }}>
             <Text style={[typography.label.md, { color: colors.textMuted }]}>
-              TYPE
+              {t("vitals.compose.typeLabel")}
             </Text>
             <View
               style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}
@@ -185,7 +182,7 @@ export default function VitalsScreen() {
               {VITAL_TYPES.map((vt) => (
                 <Chip
                   key={vt.value}
-                  label={vt.label}
+                  label={t(vt.labelKey)}
                   selected={type === vt.value}
                   tone={type === vt.value ? "primary" : "neutral"}
                   onPress={() => setType(vt.value)}
@@ -194,31 +191,35 @@ export default function VitalsScreen() {
             </View>
           </View>
 
-          <FormField label={`Value (${meta.unit})`} required>
+          <FormField label={t("vitals.compose.valueLabel", { unit: meta.unit })} required>
             <TextInput
               value={value}
               onChangeText={setValue}
-              placeholder={type === "blood_pressure" ? "120" : "72"}
+              placeholder={
+                type === "blood_pressure"
+                  ? t("vitals.compose.valuePlaceholderBP")
+                  : t("vitals.compose.valuePlaceholderDefault")
+              }
               keyboardType="numeric"
             />
           </FormField>
 
           {type === "blood_pressure" ? (
-            <FormField label="Diastolic (mmHg)" required>
+            <FormField label={t("vitals.compose.diastolicLabel")} required>
               <TextInput
                 value={secondary}
                 onChangeText={setSecondary}
-                placeholder="80"
+                placeholder={t("vitals.compose.secondaryPlaceholder")}
                 keyboardType="numeric"
               />
             </FormField>
           ) : null}
 
-          <FormField label="Notes" helper="Optional">
+          <FormField label={t("vitals.compose.notesLabel")} helper={t("vitals.compose.notesHelper")}>
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="After walk, before meal, etc."
+              placeholder={t("vitals.compose.notesPlaceholder")}
               multiline
               numberOfLines={3}
               tone="soft"
@@ -226,7 +227,7 @@ export default function VitalsScreen() {
           </FormField>
 
           <Button
-            title="Save reading"
+            title={t("vitals.compose.saveButton")}
             onPress={save}
             loading={addVital.isPending}
             icon={Plus}
@@ -247,16 +248,18 @@ export default function VitalsScreen() {
       ? TrendingDown
       : Minus;
 
+  const chartTypeMeta = VITAL_TYPES.find((v) => v.value === chartType);
+
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScreenHeader
-        title="Vitals"
-        subtitle="Track trends over time"
+        title={t("vitals.title")}
+        subtitle={t("vitals.subtitle")}
         right={
           <IconButton
             icon={Plus}
             onPress={() => setComposing(true)}
-            accessibilityLabel="Log vital"
+            accessibilityLabel={t("vitals.logLabel")}
           />
         }
       />
@@ -291,7 +294,7 @@ export default function VitalsScreen() {
                   { color: colors.text, fontWeight: "800" },
                 ]}
               >
-                Trend
+                {t("vitals.chart.trendHeading")}
               </Text>
               {isBP && points.length > 0 && (
                 <Pressable
@@ -299,11 +302,13 @@ export default function VitalsScreen() {
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel={
-                    showDiastolic ? "Hide diastolic" : "Show diastolic"
+                    showDiastolic
+                      ? t("vitals.chart.hideDiastolic")
+                      : t("vitals.chart.showDiastolic")
                   }
                 >
                   <Chip
-                    label={showDiastolic ? "S + D" : "S only"}
+                    label={showDiastolic ? t("vitals.chart.systolicDiastolic") : t("vitals.chart.systolicOnly")}
                     tone={showDiastolic ? "primary" : "neutral"}
                     size="sm"
                   />
@@ -322,7 +327,7 @@ export default function VitalsScreen() {
               {VITAL_TYPES.map((vt) => (
                 <Chip
                   key={vt.value}
-                  label={vt.label}
+                  label={t(vt.labelKey)}
                   selected={chartType === vt.value}
                   tone={chartType === vt.value ? "primary" : "neutral"}
                   onPress={() => setChartType(vt.value)}
@@ -340,11 +345,11 @@ export default function VitalsScreen() {
             >
               {RANGES.map((r) => (
                 <Chip
-                  key={r.value}
-                  label={r.label}
-                  selected={chartRange === r.value}
-                  tone={chartRange === r.value ? "info" : "neutral"}
-                  onPress={() => setChartRange(r.value)}
+                  key={r}
+                  label={t(`vitals.range.${r}`)}
+                  selected={chartRange === r}
+                  tone={chartRange === r ? "info" : "neutral"}
+                  onPress={() => setChartRange(r)}
                   size="sm"
                 />
               ))}
@@ -363,8 +368,9 @@ export default function VitalsScreen() {
                 <Text
                   style={[typography.body.sm, { color: colors.textMuted }]}
                 >
-                  No {VITAL_TYPES.find((v) => v.value === chartType)?.label}{" "}
-                  readings in this range
+                  {t("vitals.chart.noReadings", {
+                    label: chartTypeMeta ? t(chartTypeMeta.labelKey) : "",
+                  })}
                 </Text>
               </View>
             ) : (
@@ -462,24 +468,24 @@ export default function VitalsScreen() {
                 }}
               >
                 <StatCell
-                  label="Latest"
+                  label={t("vitals.chart.stats.latest")}
                   value={stats.latest != null ? String(Math.round(stats.latest)) : "—"}
-                  unit={VITAL_TYPES.find((v) => v.value === chartType)?.unit}
+                  unit={chartTypeMeta?.unit}
                 />
                 <StatCell
-                  label="Avg"
+                  label={t("vitals.chart.stats.avg")}
                   value={stats.avg != null ? String(Math.round(stats.avg)) : "—"}
                 />
                 <StatCell
-                  label="Min"
+                  label={t("vitals.chart.stats.min")}
                   value={stats.min != null ? String(Math.round(stats.min)) : "—"}
                 />
                 <StatCell
-                  label="Max"
+                  label={t("vitals.chart.stats.max")}
                   value={stats.max != null ? String(Math.round(stats.max)) : "—"}
                 />
                 <StatCell
-                  label="Δ"
+                  label={t("vitals.chart.stats.delta")}
                   value={
                     stats.delta != null
                       ? `${stats.delta > 0 ? "+" : ""}${Math.round(stats.delta)}`
@@ -504,8 +510,8 @@ export default function VitalsScreen() {
           {vitals.length === 0 ? (
             <EmptyState
               icon={Activity}
-              title="No vitals yet"
-              message="Log your first reading to start tracking trends."
+              title={t("vitals.empty.title")}
+              message={t("vitals.empty.message")}
               tone="neutral"
             />
           ) : (
@@ -549,7 +555,7 @@ export default function VitalsScreen() {
                           <Text
                             style={[typography.title.sm, { color: colors.text }]}
                           >
-                            {tMeta.label}
+                            {t(tMeta.labelKey)}
                             {v.secondaryValue != null
                               ? ` ${v.value}/${v.secondaryValue}`
                               : ` ${v.value}`}{" "}
@@ -588,7 +594,7 @@ export default function VitalsScreen() {
                           icon={Trash2}
                           size="sm"
                           onPress={() => confirmDelete(v.id)}
-                          accessibilityLabel="Delete"
+                          accessibilityLabel={t("common.delete")}
                           tint={colors.danger}
                         />
                       </View>

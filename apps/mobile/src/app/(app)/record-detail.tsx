@@ -1,322 +1,363 @@
 // @ts-nocheck
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
-  Share,
-  Pressable,
   ScrollView,
-  ActivityIndicator,
-  Alert,
+  Pressable,
+  Image,
   Linking,
+  ActivityIndicator,
+  Share,
+  Alert,
+  Modal,
+  Platform,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
-  Share2,
-  Trash2,
-  MoreVertical,
+  ChevronLeft,
   FileText,
-  FlaskConical,
-  Stethoscope,
-  Image as ImageIcon,
-  ScrollText,
-  Download,
-  CalendarDays,
-  Building2,
-  ArrowLeft,
-  ClipboardList,
-  Syringe,
-  Scissors,
-  ShieldAlert,
-  Dumbbell,
-  FileBadge,
-  NotebookPen,
-  Receipt,
-  Sparkles,
-  Paperclip,
+  Calendar,
+  Hospital,
+  User,
+  ImageIcon,
+  ExternalLink,
+  Pill,
+  Tag,
+  Share2,
   Pencil,
-  Stethoscope as DocIcon,
-  Link,
-  Archive,
-  ArchiveRestore,
-  Tag as TagIcon,
   Users,
+  Archive,
+  RotateCcw,
+  Trash2,
+  X,
+  Check,
+  MoreHorizontal,
 } from "lucide-react-native";
 import {
   useMedicalRecord,
-  useDeleteMedicalRecord,
-  useEditMedicalRecord,
+  useUpdateRecordTags,
+  useArchiveRecord,
+  useRestoreRecord,
+  useMoveRecordToFamily,
+  useReturnRecordToOwn,
+  useDeleteRecord,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
-  Screen,
-  ScreenHeader,
   Card,
-  BottomSheet,
-  useToast,
   Button,
-  Pill,
+  Pill as PillComponent,
+  useToast,
+  Screen,
   IconButton,
-  Chip,
 } from "@/components/ui";
+import { metaFor, type RecordType } from "@/lib/recordImportance";
 import { FamilyPickerSheet } from "@/components/FamilyPickerSheet";
 import { TagPickerSheet } from "@/components/TagPickerSheet";
 
-type RecordType =
-  | "lab_report"
-  | "imaging"
-  | "prescription"
-  | "hospital_visit"
-  | "vaccination"
-  | "surgery"
-  | "allergy"
-  | "insurance"
-  | "fitness"
-  | "discharge_summary"
-  | "medical_certificate"
-  | "operation_note"
-  | "invoice";
+type BottomSheetAction =
+  | "edit"
+  | "editTags"
+  | "moveToFamily"
+  | "archive"
+  | "restore"
+  | "share"
+  | "delete";
 
-const TYPE_META: Record<
-  RecordType,
-  {
-    label: string;
-    icon: any;
-    tone: "primary" | "accent" | "warning" | "info" | "danger" | "success" | "neutral";
-  }
-> = {
-  lab_report: { label: "Lab Report", icon: FlaskConical, tone: "warning" },
-  imaging: { label: "Imaging", icon: ImageIcon, tone: "info" },
-  prescription: { label: "Prescription", icon: ScrollText, tone: "primary" },
-  hospital_visit: { label: "Visit", icon: Building2, tone: "accent" },
-  vaccination: { label: "Vaccination", icon: Syringe, tone: "success" },
-  surgery: { label: "Surgery", icon: Scissors, tone: "danger" },
-  allergy: { label: "Allergy", icon: ShieldAlert, tone: "danger" },
-  insurance: { label: "Insurance", icon: FileBadge, tone: "info" },
-  fitness: { label: "Fitness", icon: Dumbbell, tone: "success" },
-  discharge_summary: { label: "Discharge", icon: NotebookPen, tone: "accent" },
-  medical_certificate: { label: "Certificate", icon: FileBadge, tone: "primary" },
-  operation_note: { label: "Op Note", icon: Scissors, tone: "danger" },
-  invoice: { label: "Invoice", icon: Receipt, tone: "warning" },
-};
-
-function formatDate(iso?: string | null) {
-  if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatBytes(bytes?: number | null) {
-  if (!bytes) return null;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function toneFgColor(tone: string, c: any) {
-  switch (tone) {
-    case "primary": return c.primary;
-    case "accent": return c.accent;
-    case "warning": return c.warning;
-    case "info": return c.info;
-    case "danger": return c.danger;
-    case "success": return c.success;
-    default: return c.textMuted;
-  }
-}
-
-function toneSoftColor(tone: string, c: any) {
-  return `${toneFgColor(tone, c)}1A`;
-}
-
-function toneBorderColor(tone: string, c: any) {
-  return `${toneFgColor(tone, c)}33`;
+function buildTypeMeta(
+  t: (k: string) => string,
+  colors: any
+): Record<RecordType, { label: string; icon: any; tone: string }> {
+  const base = (key: string, fallback: string) =>
+    t(`recordDetail.type.${key}`, { defaultValue: fallback });
+  return {
+    lab_report: {
+      label: base("lab_report", "Lab Report"),
+      icon: FileText,
+      tone: "#9A7228",
+    },
+    prescription: {
+      label: base("prescription", "Prescription"),
+      icon: Pill,
+      tone: colors.primary,
+    },
+    imaging: {
+      label: base("imaging", "Imaging"),
+      icon: ImageIcon,
+      tone: "#4A90E2",
+    },
+    hospital_visit: {
+      label: base("hospital_visit", "Visit"),
+      icon: Hospital,
+      tone: colors.primary,
+    },
+    vaccination: {
+      label: base("vaccination", "Vaccination"),
+      icon: Pill,
+      tone: "#3E8E41",
+    },
+    surgery: {
+      label: base("surgery", "Surgery"),
+      icon: Hospital,
+      tone: "#C4441A",
+    },
+    op_note: {
+      label: base("op_note", "Op Note"),
+      icon: FileText,
+      tone: "#7A6A20",
+    },
+    discharge_summary: {
+      label: base("discharge_summary", "Discharge"),
+      icon: FileText,
+      tone: "#7A6A20",
+    },
+    referral: {
+      label: base("referral", "Referral"),
+      icon: FileText,
+      tone: colors.primary,
+    },
+    insurance: {
+      label: base("insurance", "Insurance"),
+      icon: FileText,
+      tone: "#3E8E41",
+    },
+    pathology: {
+      label: base("pathology", "Pathology"),
+      icon: FileText,
+      tone: "#9A7228",
+    },
+    dental: {
+      label: base("dental", "Dental"),
+      icon: FileText,
+      tone: "#4A90E2",
+    },
+    other: {
+      label: base("other", "Other"),
+      icon: FileText,
+      tone: colors.textMuted,
+    },
+  };
 }
 
 export default function RecordDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, spacing, typography, radius, shadow } = useTheme();
+  const params = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
+  const { spacing, colors, typography, fontFamily } = useTheme();
   const toast = useToast();
-  const { data, isLoading } = useMedicalRecord(id || "");
-  const deleteRecord = useDeleteMedicalRecord();
-  const editRecord = useEditMedicalRecord();
-  const [openingId, setOpeningId] = useState<string | null>(null);
-  const [familyPickerOpen, setFamilyPickerOpen] = useState(false);
-  const [tagPickerOpen, setTagPickerOpen] = useState(false);
 
-  // Opens the file in the system browser / via Linking. In dev mode the
-  // /files/download/:key?stream=1 endpoint serves the bytes without auth,
-  // so Linking.openURL works. In production the same path requires a
-  // bearer token which Linking can't supply — we fall back to a clear
-  // "copy link" toast for the user to share manually.
-  async function openFile(f: any) {
-    if (!f?.r2Key) {
-      toast.show("No file key on this attachment", "warning");
-      return;
-    }
-    try {
-      setOpeningId(f.id);
-      const streamUrl = `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
-        f.r2Key
-      )}?stream=1`;
-      const supported = await Linking.canOpenURL(streamUrl);
-      if (supported) {
-        await Linking.openURL(streamUrl);
-      } else {
-        toast.show("Can't open this file type on your device", "warning");
-      }
-    } catch (err: any) {
-      toast.show(err?.message || "Could not open file", "danger");
-    } finally {
-      setOpeningId(null);
-    }
+  const TYPE_META = useMemo(() => buildTypeMeta(t, colors), [t, colors]);
+
+  const { data: record, isLoading, refetch } = useMedicalRecord(params.id);
+  const updateTags = useUpdateRecordTags();
+  const archiveRec = useArchiveRecord();
+  const restoreRec = useRestoreRecord();
+  const moveToFamily = useMoveRecordToFamily();
+  const returnToOwn = useReturnRecordToOwn();
+  const deleteRec = useDeleteRecord();
+
+  const [showSheet, setShowSheet] = useState(false);
+  const [showTagPicker, setShowTagPicker] = useState(false);
+  const [showFamilyPicker, setShowFamilyPicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const recordId = record?.id;
+  const lastActionRef = useRef<null | (() => Promise<void>)>(null);
+
+  function doArchive() {
+    if (!recordId) return;
+    archiveRec.mutate(recordId, {
+      onSuccess: () => {
+        toast.show(t("recordDetail.toast.archived"), "success", {
+          actionLabel: t("recordDetail.archivedBadge.restore"),
+          onAction: () => doRestore(),
+        });
+      },
+      onError: (err: any) =>
+        toast.show(
+          err?.message || t("recordDetail.toast.archiveError"),
+          "danger"
+        ),
+    });
   }
 
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const record = data?.record;
-  const meta = record ? TYPE_META[record.recordType as RecordType] : null;
-  const IconComponent = meta?.icon ?? FileText;
-  const tone = meta?.tone ?? "neutral";
-  const files: any[] = record?.files ?? [];
-
-  async function handleShare() {
-    if (!record) return;
-    try {
-      const lines = [
-        record.title,
-        `${meta?.label ?? "Record"} · ${formatDate(record.date)}`,
-      ];
-      if (record.doctor?.name) lines.push(`Doctor: ${record.doctor.name}`);
-      if (record.hospital?.name) lines.push(`Hospital: ${record.hospital.name}`);
-      if (record.diagnosis) lines.push(`Diagnosis: ${record.diagnosis}`);
-      if (record.followUpDate) lines.push(`Next follow-up: ${formatDate(record.followUpDate)}`);
-      lines.push("", "Shared from HealthHub");
-      await Share.share({
-        title: record.title,
-        message: lines.join("\n"),
-      });
-    } catch {}
-    setMoreOpen(false);
+  function doRestore() {
+    if (!recordId) return;
+    restoreRec.mutate(recordId, {
+      onSuccess: () =>
+        toast.show(t("recordDetail.toast.restored"), "success"),
+      onError: (err: any) =>
+        toast.show(
+          err?.message || t("recordDetail.toast.restoreError"),
+          "danger"
+        ),
+    });
   }
 
-  function handleDelete() {
-    if (!record) return;
-    Alert.alert(
-      "Delete record?",
-      "This will permanently remove the record and its attachments. You can archive instead to keep it recoverable.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Archive instead",
-          onPress: async () => {
-            try {
-              await editRecord.mutateAsync({ id: record.id, archived: true });
-              toast.show("Record archived", {
-                tone: "info",
-                action: {
-                  label: "Undo",
-                  onPress: async () => {
-                    try {
-                      await editRecord.mutateAsync({
-                        id: record.id,
-                        archived: false,
-                      });
-                      toast.show("Restored", "success");
-                    } catch (err: any) {
-                      toast.show(err?.message || "Restore failed", "danger");
-                    }
-                  },
-                },
-              });
-              setMoreOpen(false);
-            } catch (err: any) {
-              toast.show(err?.message || "Archive failed", "danger");
-            }
-          },
-        },
-        {
-          text: "Delete forever",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteRecord.mutateAsync(record.id);
-              toast.show("Record deleted", "success");
-              router.back();
-            } catch (err: any) {
-              toast.show(err?.message || "Failed to delete", "danger");
-            }
-          },
-        },
-      ]
-    );
-    setMoreOpen(false);
-    setConfirmDelete(false);
-  }
-
-  async function handleArchiveToggle() {
-    if (!record) return;
-    const archived = !!record.archivedAt;
-    try {
-      await editRecord.mutateAsync({ id: record.id, archived: !archived });
-      toast.show(archived ? "Restored" : "Archived", "success");
-      setMoreOpen(false);
-    } catch (err: any) {
-      toast.show(err?.message || "Failed", "danger");
-    }
-  }
-
-  async function handleMoveTo(familyMemberId: string | null) {
-    if (!record) return;
-    try {
-      await editRecord.mutateAsync({ id: record.id, familyMemberId });
-      toast.show(
-        familyMemberId ? "Moved to family member" : "Returned to you",
-        "success"
-      );
-      setMoreOpen(false);
-    } catch (err: any) {
-      toast.show(err?.message || "Move failed", "danger");
-    }
-  }
-
-  function handleApplyTags(next: string[]) {
-    if (!record) return;
-    editRecord.mutate(
-      { id: record.id, tags: next },
+  function onPickFamily(memberId: string | null) {
+    if (!recordId) return;
+    const action = memberId ? moveToFamily : returnToOwn;
+    action.mutate(
+      { id: recordId, familyMemberId: memberId },
       {
         onSuccess: () => {
-          toast.show("Tags updated", "success");
-          setTagPickerOpen(false);
+          toast.show(
+            memberId
+              ? t("recordDetail.toast.moveSuccess")
+              : t("recordDetail.toast.returnSuccess"),
+            "success"
+          );
         },
         onError: (err: any) =>
-          toast.show(err?.message || "Tag update failed", "danger"),
+          toast.show(
+            err?.message || t("recordDetail.toast.moveError"),
+            "danger"
+          ),
       }
     );
   }
 
-  function handleEdit() {
-    if (!record) return;
-    router.push({
-      pathname: "/(app)/edit-record",
-      params: { id: record.id },
-    } as any);
-    setMoreOpen(false);
+  function applyTags(nextTags: string[]) {
+    if (!recordId) return;
+    updateTags.mutate(
+      { id: recordId, tags: nextTags },
+      {
+        onSuccess: () =>
+          toast.show(t("recordDetail.toast.tagsUpdated"), "success"),
+        onError: (err: any) =>
+          toast.show(
+            err?.message || t("recordDetail.toast.tagUpdateError"),
+            "danger"
+          ),
+      }
+    );
   }
 
-  if (isLoading) {
+  function doDelete(forever: boolean) {
+    if (!recordId) return;
+    setShowDeleteConfirm(false);
+    if (forever) {
+      deleteRec.mutate(recordId, {
+        onSuccess: () =>
+          toast.show(t("recordDetail.toast.deleted"), "success"),
+        onError: (err: any) =>
+          toast.show(
+            err?.message || t("recordDetail.toast.deletedError"),
+            "danger"
+          ),
+      });
+    } else {
+      archiveRec.mutate(recordId, {
+        onSuccess: () =>
+          toast.show(t("recordDetail.toast.archiveToggle"), "info", {
+            actionLabel: t("recordDetail.archivedBadge.restore"),
+            onAction: () => doRestore(),
+          }),
+        onError: (err: any) =>
+          toast.show(
+            err?.message || t("recordDetail.toast.archiveFailed"),
+            "danger"
+          ),
+      });
+    }
+  }
+
+  async function doShare() {
+    if (!record) return;
+    const diagnosis = record.diagnosis || record.summary || "";
+    const followUp =
+      record.followUpDate && record.followUpDate.length > 0
+        ? new Date(record.followUpDate).toDateString()
+        : "";
+    const lines: string[] = [];
+    lines.push(
+      `${t("recordDetail.shareLabel.diagnosis")}: ${record.title}`
+    );
+    if (record.doctor?.name) {
+      lines.push(
+        `${t("recordDetail.shareLabel.doctor")}: ${record.doctor.name}`
+      );
+    }
+    if (record.hospital?.name) {
+      lines.push(
+        `${t("recordDetail.shareLabel.hospital")}: ${record.hospital.name}`
+      );
+    }
+    if (diagnosis) {
+      lines.push(`${t("recordDetail.shareLabel.diagnosis")}: ${diagnosis}`);
+    }
+    if (followUp) {
+      lines.push(`${t("recordDetail.shareLabel.followUp")}: ${followUp}`);
+    }
+    lines.push("");
+    lines.push(t("recordDetail.shareFooter"));
+    try {
+      await Share.share({
+        message: lines.join("\n"),
+        title: t("recordDetail.shareTitleFallback"),
+      });
+    } catch {}
+  }
+
+  function onAction(act: BottomSheetAction) {
+    setShowSheet(false);
+    if (act === "edit") {
+      router.push({
+        pathname: "/(app)/edit-record",
+        params: { id: params.id },
+      });
+      return;
+    }
+    if (act === "editTags") {
+      setShowTagPicker(true);
+      return;
+    }
+    if (act === "moveToFamily") {
+      setShowFamilyPicker(true);
+      return;
+    }
+    if (act === "archive") {
+      doArchive();
+      return;
+    }
+    if (act === "restore") {
+      doRestore();
+      return;
+    }
+    if (act === "share") {
+      doShare();
+      return;
+    }
+    if (act === "delete") {
+      setShowDeleteConfirm(true);
+      return;
+    }
+  }
+
+  // Open the first attachment in the system viewer, via its r2Key.
+  async function openAttachment(att: any) {
+    const url = `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
+      att.r2Key
+    )}`;
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (!ok) {
+        toast.show(t("recordDetail.toast.noFileKey"), "warning");
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (err: any) {
+      toast.show(
+        err?.message || t("recordDetail.toast.openError"),
+        "danger"
+      );
+    }
+  }
+
+  if (isLoading || !record) {
     return (
       <Screen padded={false} edges={["top"]}>
         <View
@@ -326,594 +367,781 @@ export default function RecordDetailScreen() {
             justifyContent: "center",
           }}
         >
-          <ActivityIndicator color={colors.primary} />
+          {isLoading ? (
+            <ActivityIndicator size="large" color={colors.primary} />
+          ) : (
+            <Card style={{ margin: spacing.lg, padding: spacing.lg }}>
+              <Text style={[typography.title.md, { fontWeight: "700" }]}>
+                {t("recordDetail.notFound.title")}
+              </Text>
+              <Text
+                style={[
+                  typography.body.sm,
+                  {
+                    color: colors.textMuted,
+                    marginTop: spacing.xs,
+                  },
+                ]}
+              >
+                {t("recordDetail.notFound.body")}
+              </Text>
+              <Button
+                title={t("recordDetail.notFound.back")}
+                variant="primary"
+                size="md"
+                onPress={() => router.back()}
+                style={{ marginTop: spacing.md }}
+              />
+            </Card>
+          )}
         </View>
       </Screen>
     );
   }
 
-  if (!record) {
-    return (
-      <Screen padded={false} edges={["top"]} bottomInset>
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: spacing.xl,
-            gap: spacing.md,
-          }}
-        >
-          <View
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 32,
-              backgroundColor: colors.surfaceMuted,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <FileText size={28} color={colors.textMuted} strokeWidth={1.75} />
-          </View>
-          <Text
-            style={[
-              typography.title.md,
-              { color: colors.text, fontWeight: "800" },
-            ]}
-          >
-            Record not found
-          </Text>
-          <Text
-            style={[
-              typography.body.sm,
-              { color: colors.textMuted, textAlign: "center" },
-            ]}
-          >
-            It may have been removed or you no longer have access.
-          </Text>
-          <Button title="Go back" onPress={() => router.back()} variant="outline" />
-        </View>
-      </Screen>
-    );
-  }
-
-  const sections: { label: string; value: string; icon: any }[] = [
-    record.diagnosis
-      ? { label: "Diagnosis", value: record.diagnosis, icon: ClipboardList }
-      : null,
-    record.summary
-      ? { label: "Summary", value: record.summary, icon: FileText }
-      : null,
-    record.notes
-      ? { label: "Notes", value: record.notes, icon: NotebookPen }
-      : null,
-    record.followUpDate
-      ? {
-          label: "Next follow-up",
-          value: formatDate(record.followUpDate),
-          icon: CalendarDays,
-        }
-      : null,
-  ].filter(Boolean) as { label: string; value: string; icon: any }[];
+  const meta = TYPE_META[record.recordType as RecordType] || TYPE_META.other;
+  const IconComp = meta.icon;
+  const isArchived = !!record.archivedAt;
+  const ownerLabel = record.familyMember?.name || t("common.you");
 
   return (
-    <Screen padded={false} edges={["top"]} bottomInset>
-      <ScreenHeader
-        back
-        title={meta?.label ?? "Record"}
-        subtitle={formatDate(record.date)}
-        right={
-          <Pressable
-            onPress={() => setMoreOpen(true)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="More options"
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-            })}
+    <Screen padded={false} edges={["top"]}>
+      {/* Top Bar */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: spacing.lg,
+          paddingVertical: 14,
+          backgroundColor: "#FFFFFF",
+          borderBottomWidth: 1,
+          borderBottomColor: "#F4F2F8",
+        }}
+      >
+        <IconButton
+          accessibilityLabel={t("recordDetail.a11y.moreOptions")}
+          onPress={() => router.back()}
+          variant="ghost"
+        >
+          <ChevronLeft size={26} color={colors.primary} strokeWidth={2.25} />
+        </IconButton>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <IconComp size={16} color={meta.tone} strokeWidth={2.25} />
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "800",
+              color: meta.tone,
+              letterSpacing: 1,
+              fontFamily: fontFamily.displayBold,
+            }}
           >
-            <MoreVertical size={22} color={colors.text} />
-          </Pressable>
-        }
-      />
+            {meta.label.toUpperCase()}
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={() => setShowSheet(true)}
+          accessibilityLabel={t("recordDetail.a11y.moreOptions")}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <MoreHorizontal size={22} color={colors.primary} />
+        </Pressable>
+      </View>
 
       <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 60 }}
+        style={{ backgroundColor: "#FAF9FC" }}
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Hero */}
         <View
           style={{
-            marginHorizontal: spacing.lg,
-            marginTop: spacing.lg,
-            padding: spacing.xl,
-            borderRadius: radius.xxl,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: "center",
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.lg,
+            paddingBottom: spacing.md,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "500",
+              color: "#7F7B8C",
+              marginBottom: 6,
+              fontFamily: fontFamily.body,
+            }}
+          >
+            {ownerLabel} · {formatDate(record.date)}
+          </Text>
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: "800",
+              color: "#1D1B20",
+              lineHeight: 30,
+              fontFamily: fontFamily.displayBold,
+              marginBottom: spacing.sm,
+            }}
+          >
+            {record.title}
+          </Text>
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {record.doctor?.name ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  backgroundColor: "#F4F2F8",
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                }}
+              >
+                <User size={12} color={colors.primary} strokeWidth={2.5} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "700",
+                    color: colors.primary,
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  {record.doctor.name}
+                </Text>
+              </View>
+            ) : null}
+            {record.hospital?.name ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  backgroundColor: "#F4F2F8",
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                }}
+              >
+                <Hospital size={12} color={colors.primary} strokeWidth={2.5} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "700",
+                    color: colors.primary,
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  {record.hospital.name}
+                </Text>
+              </View>
+            ) : null}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: "#F4F2F8",
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 999,
+              }}
+            >
+              <Calendar size={12} color={colors.primary} strokeWidth={2.5} />
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.primary,
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {formatDate(record.date)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {isArchived ? (
+          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+            <Card
+              style={{
+                borderColor: colors.warning,
+                backgroundColor: `${colors.warning}10`,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.xs,
+                }}
+              >
+                <Archive size={18} color={colors.warning} strokeWidth={2.25} />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "700",
+                    color: colors.warning,
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  {t("recordDetail.archivedBadge.title")}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  typography.body.sm,
+                  {
+                    color: colors.textMuted,
+                    marginTop: 4,
+                  },
+                ]}
+              >
+                {t("recordDetail.archivedBadge.body")}
+              </Text>
+              <Button
+                title={t("recordDetail.archivedBadge.restore")}
+                variant="ghost"
+                size="sm"
+                onPress={doRestore}
+                style={{ marginTop: spacing.sm, alignSelf: "flex-start" }}
+              />
+            </Card>
+          </View>
+        ) : null}
+
+        {/* Sections */}
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            marginBottom: spacing.md,
+            gap: spacing.md,
+          }}
+        >
+          {[
+            { key: "diagnosis", value: record.diagnosis },
+            { key: "summary", value: record.summary },
+            { key: "notes", value: record.notes },
+            { key: "followUp", value: record.followUpDate },
+          ].map((sec) => {
+            if (!sec.value || (sec.key === "followUp" && !record.followUpDate))
+              return null;
+            return (
+              <Card key={sec.key}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "800",
+                    color: colors.textMuted,
+                    letterSpacing: 1,
+                    marginBottom: 6,
+                    fontFamily: fontFamily.displayBold,
+                  }}
+                >
+                  {t(`recordDetail.sections.${sec.key}`).toUpperCase()}
+                </Text>
+                {sec.key === "followUp" ? (
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      fontWeight: "700",
+                      color: "#1D1B20",
+                      fontFamily: fontFamily.displayBold,
+                    }}
+                  >
+                    {new Date(sec.value).toDateString()}
+                  </Text>
+                ) : (
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: "#1D1B20",
+                      lineHeight: 22,
+                      fontFamily: fontFamily.body,
+                    }}
+                  >
+                    {sec.value}
+                  </Text>
+                )}
+              </Card>
+            );
+          })}
+        </View>
+
+        {/* Tags */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+          <Card>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: colors.textMuted,
+                letterSpacing: 1,
+                marginBottom: 8,
+                fontFamily: fontFamily.displayBold,
+              }}
+            >
+              {t("recordDetail.tagsHeading").toUpperCase()}
+            </Text>
+            {record.tags?.length ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 6,
+                }}
+              >
+                {record.tags.map((tag: string) => (
+                  <View
+                    key={tag}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                      backgroundColor: `${colors.primary}14`,
+                    }}
+                  >
+                    <Tag size={11} color={colors.primary} strokeWidth={2.5} />
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: colors.primary,
+                        fontFamily: fontFamily.bodyBold,
+                      }}
+                    >
+                      {tag}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.body,
+                }}
+              >
+                {t("recordDetail.noTags")}
+              </Text>
+            )}
+          </Card>
+        </View>
+
+        {/* Details (JSON pretty) */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+          <Card>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: colors.textMuted,
+                letterSpacing: 1,
+                marginBottom: 8,
+                fontFamily: fontFamily.displayBold,
+              }}
+            >
+              {t("recordDetail.detailsHeading").toUpperCase()}
+            </Text>
+            {record.extractedData && Object.keys(record.extractedData).length ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: "#1D1B20",
+                  fontFamily: fontFamily.mono,
+                  lineHeight: 18,
+                }}
+              >
+                {JSON.stringify(record.extractedData, null, 2)}
+              </Text>
+            ) : (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.body,
+                }}
+              >
+                {t("recordDetail.emptyDetails")}
+              </Text>
+            )}
+          </Card>
+        </View>
+
+        {/* Attachments */}
+        {record.attachments?.length ? (
+          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+            <Card>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "800",
+                  color: colors.textMuted,
+                  letterSpacing: 1,
+                  marginBottom: 8,
+                  fontFamily: fontFamily.displayBold,
+                }}
+              >
+                {t("recordDetail.attachments", {
+                  count: record.attachments.length,
+                })}
+              </Text>
+              <View style={{ gap: spacing.sm }}>
+                {record.attachments.map((att: any) => {
+                  const isImage = att.type === "image";
+                  return (
+                    <Pressable
+                      key={att.id}
+                      onPress={() => openAttachment(att)}
+                      accessibilityLabel={t("recordDetail.a11y.openFile")}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: spacing.md,
+                        padding: spacing.sm,
+                        borderRadius: 14,
+                        backgroundColor: "#F4F2F8",
+                      }}
+                    >
+                      {isImage ? (
+                        <Image
+                          source={{
+                            uri: `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
+                              att.r2Key
+                            )}?stream=1`,
+                          }}
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 10,
+                          }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 10,
+                            backgroundColor: "#FFFFFF",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <FileText
+                            size={20}
+                            color={colors.primary}
+                            strokeWidth={2}
+                          />
+                        </View>
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "700",
+                            color: "#1D1B20",
+                            fontFamily: fontFamily.bodyBold,
+                          }}
+                        >
+                          {att.filename || att.r2Key.split("/").pop()}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: colors.textMuted,
+                            fontFamily: fontFamily.body,
+                          }}
+                        >
+                          {(att.sizeBytes / 1024).toFixed(1)} KB · {att.type}
+                        </Text>
+                      </View>
+                      <ExternalLink
+                        size={16}
+                        color={colors.primary}
+                        strokeWidth={2.25}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Card>
+          </View>
+        ) : null}
+
+        {/* Quick actions */}
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            flexDirection: "row",
             gap: spacing.sm,
-            ...shadow.sm,
+          }}
+        >
+          <Button
+            title={t("recordDetail.quickActions.edit")}
+            variant="secondary"
+            size="md"
+            onPress={() =>
+              router.push({
+                pathname: "/(app)/edit-record",
+                params: { id: params.id },
+              })
+            }
+            style={{ flex: 1 }}
+            leftIcon={<Pencil size={16} color={colors.primary} />}
+          />
+          <Button
+            title={t("recordDetail.quickActions.share")}
+            variant="ghost"
+            size="md"
+            onPress={doShare}
+            style={{ flex: 1 }}
+            leftIcon={<Share2 size={16} color={colors.primary} />}
+          />
+          <Button
+            title={t("recordDetail.quickActions.link")}
+            variant="ghost"
+            size="md"
+            onPress={() => router.push("/(app)/notifications")}
+            style={{ flex: 1 }}
+            leftIcon={<ExternalLink size={16} color={colors.primary} />}
+          />
+        </View>
+      </ScrollView>
+
+      {/* ─── Bottom-sheet of actions ─────────────────── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showSheet}
+        onRequestClose={() => setShowSheet(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)" }}
+          onPress={() => setShowSheet(false)}
+        />
+        <View
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.xl,
           }}
         >
           <View
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: toneSoftColor(tone, colors),
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: toneBorderColor(tone, colors),
+              alignSelf: "center",
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: "#E6E4EA",
+              marginBottom: spacing.md,
+            }}
+          />
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "800",
+              color: "#1D1B20",
+              marginBottom: spacing.md,
+              fontFamily: fontFamily.displayBold,
             }}
           >
-            <IconComponent size={32} color={toneFgColor(tone, colors)} strokeWidth={2.25} />
-          </View>
-          <Pill label={meta?.label ?? "Record"} tone={tone as any} size="sm" />
-          <Text
-            style={[
-              typography.title.lg,
-              { color: colors.text, textAlign: "center", fontWeight: "900", marginTop: 4, fontSize: 22 },
-            ]}
-          >
-            {record.title}
-          </Text>
-          <Text
-            style={[
-              typography.body.sm,
-              { color: colors.textMuted, textAlign: "center" },
-            ]}
-          >
-            {formatDate(record.date)}
+            {t("recordDetail.actions.title")}
           </Text>
 
-          {/* Doctor + hospital chips */}
-          {(record.doctor?.name || record.hospital?.name) && (
-            <View
+          <SheetRow
+            icon={<Pencil size={20} color={colors.primary} />}
+            label={t("recordDetail.actions.edit")}
+            onPress={() => onAction("edit")}
+          />
+          <SheetRow
+            icon={<Tag size={20} color={colors.primary} />}
+            label={t("recordDetail.actions.editTags")}
+            onPress={() => onAction("editTags")}
+          />
+          <SheetRow
+            icon={<Users size={20} color={colors.primary} />}
+            label={t("recordDetail.actions.moveToFamily")}
+            onPress={() => onAction("moveToFamily")}
+          />
+          <SheetRow
+            icon={
+              isArchived ? (
+                <RotateCcw size={20} color={colors.primary} />
+              ) : (
+                <Archive size={20} color={colors.primary} />
+              )
+            }
+            label={
+              isArchived
+                ? t("recordDetail.actions.restore")
+                : t("recordDetail.actions.archive")
+            }
+            onPress={() => onAction(isArchived ? "restore" : "archive")}
+          />
+          <SheetRow
+            icon={<Share2 size={20} color={colors.primary} />}
+            label={t("recordDetail.actions.share")}
+            onPress={() => onAction("share")}
+          />
+          <SheetRow
+            icon={<Trash2 size={20} color={colors.danger || "#FF3B30"} />}
+            label={t("recordDetail.actions.delete")}
+            destructive
+            onPress={() => onAction("delete")}
+          />
+          <Button
+            title={t("recordDetail.actions.cancel")}
+            variant="ghost"
+            size="md"
+            onPress={() => setShowSheet(false)}
+            style={{ marginTop: spacing.sm }}
+          />
+        </View>
+      </Modal>
+
+      {/* ─── Delete confirm dialog ───────────────────── */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showDeleteConfirm}
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: spacing.lg,
+          }}
+        >
+          <Card style={{ width: "100%" }}>
+            <Text
               style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: spacing.xs,
-                marginTop: spacing.xs,
-                justifyContent: "center",
+                fontSize: 17,
+                fontWeight: "800",
+                color: "#1D1B20",
+                fontFamily: fontFamily.displayBold,
               }}
             >
-              {record.doctor?.name ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: colors.surfaceMuted,
-                  }}
-                >
-                  <DocIcon size={12} color={colors.textMuted} strokeWidth={2.25} />
-                  <Text style={[typography.caption, { color: colors.text }]}>
-                    {record.doctor.name}
-                    {record.doctor.specialization
-                      ? ` · ${record.doctor.specialization}`
-                      : ""}
-                  </Text>
-                </View>
-              ) : null}
-              {record.hospital?.name ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: colors.surfaceMuted,
-                  }}
-                >
-                  <Building2 size={12} color={colors.textMuted} strokeWidth={2.25} />
-                  <Text style={[typography.caption, { color: colors.text }]}>
-                    {record.hospital.name}
-                  </Text>
-                </View>
-              ) : null}
-              {record.familyMember?.name ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: colors.surfaceMuted,
-                  }}
-                >
-                  <Users size={12} color={colors.textMuted} strokeWidth={2.25} />
-                  <Text style={[typography.caption, { color: colors.text }]}>
-                    {record.familyMember.name}
-                    {record.familyMember.relationship
-                      ? ` · ${record.familyMember.relationship}`
-                      : ""}
-                  </Text>
-                </View>
-              ) : null}
+              {t("recordDetail.deleteConfirm.title")}
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: colors.textMuted,
+                lineHeight: 20,
+                fontFamily: fontFamily.body,
+                marginTop: spacing.xs,
+              }}
+            >
+              {t("recordDetail.deleteConfirm.body")}
+            </Text>
+
+            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+              <Button
+                title={t("recordDetail.deleteConfirm.archive")}
+                variant="secondary"
+                size="md"
+                onPress={() => doDelete(false)}
+              />
+              <Button
+                title={t("recordDetail.deleteConfirm.deleteForever")}
+                variant="primary"
+                size="md"
+                onPress={() => doDelete(true)}
+              />
+              <Button
+                title={t("recordDetail.actions.cancel")}
+                variant="ghost"
+                size="md"
+                onPress={() => setShowDeleteConfirm(false)}
+              />
             </View>
-          )}
+          </Card>
         </View>
+      </Modal>
 
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, marginTop: spacing.lg }}>
-          {/* Quick action row */}
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <Button
-              title="Edit record"
-              icon={Pencil}
-              variant="outline"
-              size="md"
-              onPress={handleEdit}
-              style={{ flex: 1 }}
-            />
-            <Button
-              title="Share"
-              icon={Share2}
-              variant="ghost"
-              size="md"
-              onPress={handleShare}
-              style={{ flex: 1 }}
-            />
-            <Button
-              title="Link"
-              icon={Link}
-              variant="ghost"
-              size="md"
-              onPress={() => router.push("/(app)/share" as any)}
-              style={{ flex: 1 }}
-            />
-          </View>
-
-          {/* Archived badge + tags */}
-          <View style={{ gap: spacing.md }}>
-            {record.archivedAt ? (
-              <Card style={{ padding: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                <Archive size={18} color={colors.warning} strokeWidth={2.25} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
-                    Archived
-                  </Text>
-                  <Text style={[typography.caption, { color: colors.textMuted }]}>
-                    Hidden from your default list. Tap Restore in the menu to bring it back.
-                  </Text>
-                </View>
-                <Button
-                  title="Restore"
-                  size="sm"
-                  variant="outline"
-                  icon={ArchiveRestore}
-                  onPress={handleArchiveToggle}
-                />
-              </Card>
-            ) : null}
-
-            <Card padded={false}>
-              <Pressable
-                onPress={() => setTagPickerOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Edit tags"
-                style={{
-                  padding: spacing.md,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.sm,
-                }}
-              >
-                <TagIcon size={16} color={colors.textMuted} strokeWidth={2.25} />
-                <Text
-                  style={[
-                    typography.label.md,
-                    { color: colors.textMuted, fontWeight: "800", letterSpacing: 0.5, flex: 1 },
-                  ]}
-                >
-                  TAGS
-                </Text>
-                <Pencil size={14} color={colors.textMuted} strokeWidth={2} />
-              </Pressable>
-              {(record.tags?.length ?? 0) > 0 ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: spacing.xs,
-                    paddingHorizontal: spacing.md,
-                    paddingBottom: spacing.md,
-                  }}
-                >
-                  {record.tags.map((t: string) => (
-                    <Chip key={t} label={`#${t}`} size="sm" />
-                  ))}
-                </View>
-              ) : (
-                <View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.md }}>
-                  <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                    No tags yet — tap to add some.
-                  </Text>
-                </View>
-              )}
-            </Card>
-          </View>
-        </View>
-
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, marginTop: spacing.lg }}>
-          {/* Quick action row */}
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <Button
-              title="Edit record"
-              icon={Pencil}
-              variant="outline"
-              size="md"
-              onPress={handleEdit}
-              style={{ flex: 1 }}
-            />
-            <Button
-              title="Share"
-              icon={Share2}
-              variant="ghost"
-              size="md"
-              onPress={handleShare}
-              style={{ flex: 1 }}
-            />
-            <Button
-              title="Link"
-              icon={Link}
-              variant="ghost"
-              size="md"
-              onPress={() => router.push("/(app)/share" as any)}
-              style={{ flex: 1 }}
-            />
-          </View>
-
-          {/* Attachments */}
-          {files.length ? (
-            <Card padded={false}>
-              <View
-                style={{
-                  padding: spacing.md,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.sm,
-                }}
-              >
-                <Paperclip size={16} color={colors.textMuted} strokeWidth={2.25} />
-                <Text
-                  style={[
-                    typography.label.md,
-                    { color: colors.textMuted, fontWeight: "800", letterSpacing: 0.5 },
-                  ]}
-                >
-                  ATTACHMENTS · {files.length}
-                </Text>
-              </View>
-              {files.map((f, i) => (
-                <View
-                  key={f.id}
-                  style={{
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.md,
-                    borderTopWidth: i === 0 ? 0 : 1,
-                    borderTopColor: colors.border,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.md,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: radius.md,
-                      backgroundColor: colors.primarySoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <FileText size={20} color={colors.primary} strokeWidth={2} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text
-                      style={[
-                        typography.title.sm,
-                        { color: colors.text, fontWeight: "700" },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {f.fileName}
-                    </Text>
-                    <Text
-                      style={[
-                        typography.body.sm,
-                        { color: colors.textMuted, fontSize: 13 },
-                      ]}
-                    >
-                      {[f.mimeType, formatBytes(f.fileSize)].filter(Boolean).join(" • ")}
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => openFile(f)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Open file"
-                    style={({ pressed }) => ({
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: pressed ? colors.surfaceMuted : colors.primarySoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    })}
-                  >
-                    {openingId === f.id ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <Download size={18} color={colors.primary} strokeWidth={2.25} />
-                    )}
-                  </Pressable>
-                </View>
-              ))}
-            </Card>
-          ) : null}
-
-          {/* Clinical sections */}
-          {sections.length ? (
-            <Card style={{ padding: spacing.lg }}>
-              <Text
-                style={[
-                  typography.title.md,
-                  { color: colors.text, fontWeight: "900", marginBottom: spacing.md },
-                ]}
-              >
-                Details
-              </Text>
-              {sections.map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <View
-                    key={s.label}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "flex-start",
-                      paddingVertical: spacing.md,
-                      borderTopWidth: i > 0 ? 1 : 0,
-                      borderTopColor: colors.border,
-                      gap: spacing.md,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: colors.surfaceMuted,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Icon size={18} color={colors.textMuted} strokeWidth={2} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          typography.overline,
-                          { color: colors.textMuted, letterSpacing: 0.5, fontWeight: "600" },
-                        ]}
-                      >
-                        {s.label}
-                      </Text>
-                      <Text
-                        style={[
-                          typography.body.md,
-                          { color: colors.text, fontWeight: "700", marginTop: 2, lineHeight: 22 },
-                        ]}
-                      >
-                        {s.value}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </Card>
-          ) : null}
-
-          {!files.length && !sections.length ? (
-            <Card style={{ padding: spacing.xl, alignItems: "center" }}>
-              <Sparkles size={20} color={colors.textMuted} strokeWidth={1.75} />
-              <Text
-                style={[
-                  typography.body.sm,
-                  { color: colors.textMuted, textAlign: "center", marginTop: spacing.sm },
-                ]}
-              >
-                This record has no attachments or notes yet.
-              </Text>
-            </Card>
-          ) : null}
-        </View>
-      </ScrollView>
-
-      {/* More options */}
-      <BottomSheet
-        visible={moreOpen}
-        onDismiss={() => setMoreOpen(false)}
-        title="Record actions"
-      >
-        <View style={{ gap: spacing.md, paddingBottom: spacing.lg }}>
-          <Button
-            title="Edit record"
-            icon={Pencil}
-            onPress={handleEdit}
-            variant="outline"
-          />
-          <Button
-            title="Edit tags"
-            icon={TagIcon}
-            onPress={() => {
-              setMoreOpen(false);
-              setTagPickerOpen(true);
-            }}
-            variant="outline"
-          />
-          <Button
-            title="Move to family member"
-            icon={Users}
-            onPress={() => {
-              setMoreOpen(false);
-              setFamilyPickerOpen(true);
-            }}
-            variant="outline"
-          />
-          <Button
-            title={record?.archivedAt ? "Restore from archive" : "Archive record"}
-            icon={record?.archivedAt ? ArchiveRestore : Archive}
-            onPress={handleArchiveToggle}
-            variant="outline"
-          />
-          <Button
-            title="Share record"
-            icon={Share2}
-            onPress={handleShare}
-            variant="outline"
-          />
-          <Button
-            title="Delete record"
-            icon={Trash2}
-            onPress={handleDelete}
-            variant="danger"
-            loading={deleteRecord.isPending}
-          />
-          <Button
-            title="Cancel"
-            onPress={() => setMoreOpen(false)}
-            variant="ghost"
-          />
-        </View>
-      </BottomSheet>
-
-      <FamilyPickerSheet
-        visible={familyPickerOpen}
-        onDismiss={() => setFamilyPickerOpen(false)}
-        onPick={handleMoveTo}
-      />
       <TagPickerSheet
-        visible={tagPickerOpen}
-        onDismiss={() => setTagPickerOpen(false)}
-        currentTags={record?.tags ?? []}
-        suggestions={[]}
-        onApply={handleApplyTags}
+        visible={showTagPicker}
+        onDismiss={() => setShowTagPicker(false)}
+        currentTags={record.tags || []}
+        onApply={applyTags}
+      />
+      <FamilyPickerSheet
+        visible={showFamilyPicker}
+        onDismiss={() => setShowFamilyPicker(false)}
+        onPick={onPickFamily}
+        excludeOwn={false}
       />
     </Screen>
   );
+}
+
+function SheetRow({
+  icon,
+  label,
+  onPress,
+  destructive,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+}) {
+  const { spacing, fontFamily } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        paddingVertical: 12,
+      }}
+    >
+      {icon}
+      <Text
+        style={{
+          fontSize: 15,
+          fontWeight: "600",
+          color: destructive ? "#FF3B30" : "#1D1B20",
+          fontFamily: fontFamily.bodySemibold,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function formatDate(dateStr: string) {
+  try {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
 }

@@ -2,7 +2,13 @@
   "common": {
     "languageEnglish": "English",
     "languageSinhala": "සිංහල",
-    "languageTamil": "தமிழ்"
+    "languageTamil": "தமிழ்",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "remove": "Remove",
+    "add": "Add",
+    "you": "You"
   },
   "support": {
     "title": "Help & Support",
@@ -43,7 +49,294 @@
     }
   },
   "appearance": {
-    "languageHeading": "LANGUAGE"
+    "title": "Appearance",
+    "subtitle": "Customize how HealthHub looks",
+    "languageHeading": "LANGUAGE",
+    "appearanceModeHeading": "Appearance mode",
+    "previewHeading": "Preview",
+    "applyButton": "Apply Changes",
+    "toast": {
+      "applied": "Appearance settings applied"
+    },
+    "mode": {
+      "system": {
+        "label": "System Default",
+        "description": "Follows your device system settings"
+      },
+      "light": {
+        "label": "Light Mode",
+        "description": "Bright clean interface for daylight"
+      },
+      "dark": {
+        "label": "Dark Mode",
+        "description": "Sleek low-light experience"
+      }
+    }
+  },
+  "notificationPreferences": {
+    "title": "Notifications",
+    "subtitle_one": "{{count}} of {{total}} active",
+    "subtitle_other": "{{count}} of {{total}} active",
+    "banner": {
+      "info_one": "{{count}} type sends push notifications. In-app stays enabled unless you turn it off.",
+      "info_other": "{{count}} types send push notifications. In-app stays enabled unless you turn it off."
+    },
+    "alwaysOn": "always on",
+    "toggle": {
+      "inApp": "In-app",
+      "push": "Push"
+    },
+    "reset": "Reset all to defaults",
+    "toast": {
+      "saved": "Preferences saved",
+      "saveError": "Could not save"
+    },
+    "type": {
+      "appointment": {
+        "label": "Appointments",
+        "description": "Booking, reschedule, confirmation, reminders"
+      },
+      "medicine": {
+        "label": "Medicines",
+        "description": "Reminders, refills, adherence nudges"
+      },
+      "lab_ready": {
+        "label": "Lab results",
+        "description": "When lab reports are ready to view"
+      },
+      "prescription": {
+        "label": "Prescriptions",
+        "description": "New prescriptions from your doctor"
+      },
+      "vaccination": {
+        "label": "Vaccinations",
+        "description": "Immunization schedule alerts"
+      },
+      "insurance": {
+        "label": "Insurance",
+        "description": "Claims, expiry, updates"
+      },
+      "hospital": {
+        "label": "Hospital",
+        "description": "Admissions, bed updates, walk-ins"
+      },
+      "emergency": {
+        "label": "Emergency",
+        "description": "Always-on SOS, alerts (push only, cannot disable)"
+      },
+      "general": {
+        "label": "General",
+        "description": "Product updates, tips, announcements"
+      }
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "section": {
+      "account": "Account",
+      "health": "Health",
+      "support": "Support"
+    },
+    "footer": "HealthHub v0.1 · Patient Foundation",
+    "logout": {
+      "title": "Sign out?",
+      "body": "You'll need to sign back in to view your records.",
+      "confirm": "Sign out"
+    },
+    "statCard": {
+      "blood": "Blood",
+      "bmi": "BMI",
+      "active": "Active",
+      "medicine_one": "medicine",
+      "medicine_other": "medicines"
+    },
+    "bmi": {
+      "underweight": "Underweight",
+      "healthy": "Healthy",
+      "elevated": "Elevated",
+      "high": "High"
+    },
+    "verified": "Verified",
+    "healthCard": {
+      "title": "Health profile",
+      "subtitle": "Allergies & conditions visible to your doctors",
+      "accessibilityLabel": "Edit health profile"
+    },
+    "allergiesHeading": "ALLERGIES",
+    "conditionsHeading": "CONDITIONS",
+    "emergencyContactsHeading": "EMERGENCY CONTACTS",
+    "noneRecorded": "None recorded",
+    "onFile": "{{count}} on file",
+    "manageInFamily": "Manage in Family",
+    "item": {
+      "editProfile": {
+        "label": "Edit profile",
+        "subtitle": "Name, blood group, height, weight, allergies"
+      },
+      "family": {
+        "label": "Family members",
+        "subtitleEmpty": "Add your first family member",
+        "subtitleCount_one": "{{count}} member on file",
+        "subtitleCount_other": "{{count}} members on file"
+      },
+      "notifications": {
+        "label": "Notifications",
+        "subtitle": "Reminders and updates",
+        "subtitleUnread": "{{count}} unread"
+      },
+      "notificationPreferences": {
+        "label": "Notification preferences",
+        "subtitle": "Choose in-app & push per category"
+      },
+      "appearance": {
+        "label": "Appearance",
+        "subtitle": "Light, dark, or system theme"
+      },
+      "changePassword": {
+        "label": "Change password",
+        "subtitle": "Update your sign-in password"
+      },
+      "timeline": {
+        "label": "Timeline",
+        "subtitle": "Everything in chronological order"
+      },
+      "healthSummary": {
+        "label": "Health Summary",
+        "subtitle": "One-page snapshot of your record"
+      },
+      "vitals": {
+        "label": "Vitals",
+        "subtitleEmpty": "BP, glucose, weight trends",
+        "subtitleCount_one": "{{count}} active medicine",
+        "subtitleCount_other": "{{count}} active medicines"
+      },
+      "allergies": {
+        "label": "Allergies",
+        "subtitleEmpty": "Drug, food, environmental",
+        "subtitleCount_one": "{{count}} recorded allergy",
+        "subtitleCount_other": "{{count}} recorded allergies",
+        "subtitleCritical": " • {{count}} critical"
+      },
+      "vaccinations": {
+        "label": "Vaccinations",
+        "subtitle": "Immunization history & due dates"
+      },
+      "notes": {
+        "label": "Notes",
+        "subtitle": "Personal journal & questions"
+      },
+      "activity": {
+        "label": "Activity log",
+        "subtitle": "Who accessed your records"
+      },
+      "share": {
+        "label": "Share with doctor",
+        "subtitle": "Create secure share links for your records"
+      },
+      "export": {
+        "label": "Export my data",
+        "subtitle": "Download your full record (JSON, TXT, or FHIR)"
+      },
+      "doctorPortal": {
+        "label": "Doctor portal",
+        "subtitle": "Manage your practice"
+      },
+      "hospitalAdmin": {
+        "label": "Hospital admin",
+        "subtitle": "Dashboard, wards, beds, staff"
+      },
+      "hospitalStaff": {
+        "label": "Hospital staff",
+        "subtitle": "Admitted patients & beds"
+      },
+      "wards": {
+        "label": "Wards",
+        "subtitle": "Manage wards and beds"
+      },
+      "staffRoster": {
+        "label": "Staff roster",
+        "subtitle": "Nurses, receptionists, technicians"
+      },
+      "helpSupport": {
+        "label": "Help & Support",
+        "subtitle": "FAQs and contact options"
+      }
+    }
+  },
+  "editProfile": {
+    "title": "Edit Profile",
+    "save": "Save",
+    "saveButton": "Save changes",
+    "accessibilityLabel": {
+      "goBack": "Go back",
+      "saveProfile": "Save profile",
+      "changePhoto": "Change photo",
+      "addContact": "Add contact",
+      "removeContact": "Remove contact"
+    },
+    "verifiedStatus": {
+      "verified": "Verified profile",
+      "goodStanding": "Profile in good standing"
+    },
+    "addContactButton": "Add",
+    "basicsHeading": "BASICS",
+    "healthNotesHeading": "HEALTH NOTES",
+    "emergencyContactsHeading": "EMERGENCY CONTACTS",
+    "emptyContacts": "No emergency contacts yet. Add one so first responders can reach the right people.",
+    "bloodGroup": {
+      "label": "Blood Group"
+    },
+    "gender": {
+      "label": "Gender",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "dob": {
+      "label": "Date of Birth",
+      "placeholder": "Select Date of Birth"
+    },
+    "height": {
+      "label": "HEIGHT",
+      "placeholder": "170",
+      "unit": "cm"
+    },
+    "weight": {
+      "label": "WEIGHT",
+      "placeholder": "68",
+      "unit": "kg"
+    },
+    "allergies": {
+      "label": "Allergies",
+      "helper": "Separate with commas",
+      "placeholder": "Penicillin, Shellfish"
+    },
+    "conditions": {
+      "label": "Existing conditions",
+      "helper": "Separate with commas",
+      "placeholder": "Hypertension, Asthma"
+    },
+    "contact": {
+      "namePlaceholder": "Name",
+      "relationshipPlaceholder": "Relationship (e.g. Spouse)",
+      "phonePlaceholder": "Phone"
+    },
+    "photo": {
+      "permissionDenied": "Photo library permission required"
+    },
+    "error": {
+      "dobFormat": "Date of birth must be YYYY-MM-DD",
+      "dobInvalid": "Date of birth is invalid or in the future",
+      "heightRange": "Height must be between 50 and 250 cm",
+      "weightRange": "Weight must be between 10 and 400 kg",
+      "bloodGroup": "Pick a blood group from the list",
+      "contactName": "Each emergency contact needs a name",
+      "contactPhone": "Each emergency contact needs a valid phone"
+    },
+    "toast": {
+      "saved": "Profile updated",
+      "saveError": "Could not save"
+    }
   },
   "activity": {
     "title": "Activity log",
@@ -100,8 +393,7 @@
   },
   "notifications": {
     "title": "Notifications",
-    "subtitle_one": "{{count}} unread",
-    "subtitle_other": "{{count}} unread",
+    "subtitle": "{{count}} unread",
     "markAll": {
       "label": "Mark all",
       "accessibilityLabel": "Mark all as read"
@@ -160,5 +452,1366 @@
       "success": "Password updated",
       "error": "Could not change password"
     }
+  },
+  "timeline": {
+    "title": "Timeline",
+    "subtitleEmpty": "Your entire record, in one stream",
+    "subtitleCount_one": "{{count}} event",
+    "subtitleCount_other": "{{count}} events",
+    "filter": {
+      "all": "All",
+      "record": "Records",
+      "vital": "Vitals",
+      "symptom": "Symptoms",
+      "medicineStart": "Meds",
+      "appointment": "Visits",
+      "note": "Notes"
+    },
+    "group": {
+      "unknown": "Unknown",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "week": "This week",
+      "month": "This month"
+    },
+    "empty": {
+      "title": "No events yet",
+      "allMessage": "Add a record, vital, or medicine to start building your timeline.",
+      "filteredMessage": "No {{filter}} events found."
+    },
+    "summary": {
+      "heading": "SUMMARY"
+    }
+  },
+  "allergies": {
+    "title": "Allergies",
+    "subtitleEmpty": "Track drugs, food, and environmental triggers",
+    "subtitleCount": "{{active}} active of {{total}}",
+    "severity": {
+      "mild": "Mild",
+      "moderate": "Moderate",
+      "severe": "Severe",
+      "critical": "Critical"
+    },
+    "status": {
+      "inactive": "Inactive"
+    },
+    "since": "Since {{date}}",
+    "toggle": {
+      "on": "On",
+      "off": "Off",
+      "reactivateLabel": "Reactivate",
+      "deactivateLabel": "Deactivate"
+    },
+    "accessibilityHint": "Tap to edit, hold to remove",
+    "banner": {
+      "title": "Critical allergies on file",
+      "description": "Shown to every doctor with access. Also blocks conflicting medicines at save-time."
+    },
+    "empty": {
+      "title": "No allergies recorded",
+      "message": "Add drug, food, latex, or environmental triggers so providers can avoid them.",
+      "action": "Add allergy"
+    },
+    "addButton": "Add allergy",
+    "deleteConfirm": {
+      "title": "Remove allergy?",
+      "body": "This will permanently remove \"{{substance}}\"."
+    },
+    "sheet": {
+      "editTitle": "Edit allergy",
+      "newTitle": "New allergy"
+    },
+    "field": {
+      "substanceLabel": "Substance",
+      "substancePlaceholder": "Penicillin, peanuts, latex…",
+      "severityLabel": "Severity",
+      "reactionLabel": "Reaction (optional)",
+      "reactionPlaceholder": "Hives, swelling, anaphylaxis…",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "Diagnosed 2019, EpiPen carried…"
+    },
+    "error": {
+      "substanceRequired": "Substance required (min 2 chars)"
+    },
+    "toast": {
+      "updated": "Allergy updated",
+      "added": "Allergy added",
+      "removed": "Allergy removed",
+      "saveError": "Could not save allergy",
+      "removeError": "Remove failed",
+      "updateError": "Update failed"
+    }
+  },
+  "notes": {
+    "title": "Notes",
+    "subtitle": "Personal journal",
+    "composing": {
+      "editTitle": "Edit note",
+      "newTitle": "New note",
+      "cancelLabel": "Cancel",
+      "submitEdit": "Save changes",
+      "submitNew": "Save note",
+      "pinToggle": {
+        "on": "Pinned",
+        "off": "Pin to top"
+      },
+      "fieldTitleLabel": "Title",
+      "titleOptional": "Optional",
+      "titlePlaceholder": "e.g., Follow-up questions",
+      "bodyLabel": "Note",
+      "bodyPlaceholder": "Write your note..."
+    },
+    "list": {
+      "untitled": "Untitled",
+      "newNoteLabel": "New note",
+      "pinLabel": "Pin",
+      "unpinLabel": "Unpin",
+      "editLabel": "Edit",
+      "deleteLabel": "Delete"
+    },
+    "empty": {
+      "title": "No notes yet",
+      "message": "Use notes to track symptoms, questions for your doctor, or anything else.",
+      "action": "Write your first note"
+    },
+    "validation": {
+      "bodyRequired": "Note body cannot be empty"
+    },
+    "toast": {
+      "updated": "Note updated",
+      "saved": "Note saved",
+      "deleted": "Note deleted",
+      "saveError": "Could not save note",
+      "deleteError": "Could not delete",
+      "updateError": "Could not update"
+    },
+    "deleteConfirm": {
+      "title": "Delete note?",
+      "body": "This cannot be undone."
+    }
+  },
+  "share": {
+    "title": "Share with doctor",
+    "subtitle": "Time-limited links to your record",
+    "explanation": {
+      "title": "How it works",
+      "body": "Create a link that anyone (no app required) can open to view your allergies, active medicines, and last 6 months of records. Links expire automatically. You can revoke at any time."
+    },
+    "createButton": "Create share link",
+    "empty": {
+      "title": "No links yet",
+      "message": "Create a time-limited link to share with a doctor."
+    },
+    "link": {
+      "labelFallback": "Shared record",
+      "statusActive": "Active",
+      "statusRevoked": "Revoked",
+      "statusExpired": "Expired",
+      "expiredOn": "Expired {{date}}",
+      "expiresOn": "Expires {{date}}",
+      "shareButton": "Share",
+      "revokeButton": "Revoke"
+    },
+    "shareMessage": "HealthHub record: {{label}}\n{{url}}\n\nExpires {{date}}",
+    "sheet": {
+      "title": "Create share link",
+      "warning": "Anyone with the link can view your shared data. You can revoke access at any time."
+    },
+    "field": {
+      "labelLabel": "Label (optional)",
+      "labelPlaceholder": "e.g. Dr Smith visit 2024",
+      "scopeLabel": "Scope",
+      "durationLabel": "Duration"
+    },
+    "scope": {
+      "all": "All records",
+      "recent6m": "Last 6 months"
+    },
+    "duration": {
+      "1": "1 hour",
+      "24": "1 day",
+      "168": "1 week",
+      "720": "30 days"
+    },
+    "deleteConfirm": {
+      "title": "Revoke link?",
+      "body": "Viewers will no longer be able to access it."
+    },
+    "toast": {
+      "created": "Share link created",
+      "revoked": "Link revoked",
+      "createError": "Create failed",
+      "shareError": "Share failed",
+      "revokeError": "Revoke failed"
+    }
+  },
+  "emergency": {
+    "sos": {
+      "accessibilityLabel": "SOS. Press and hold.",
+      "hint": "Press and hold for 1.5 seconds"
+    },
+    "header": {
+      "brand": "HEALTHHUB",
+      "accessibilityOpenProfile": "Open profile",
+      "accessibilityNotifications": "Notifications"
+    },
+    "healthId": {
+      "title": "Health ID",
+      "subtitle": "Critical info for first responders",
+      "accessibilityLabel": "Toggle health ID",
+      "bloodType": "BLOOD TYPE",
+      "phone": "PHONE",
+      "allergies": "ALLERGIES",
+      "conditions": "MEDICAL CONDITIONS",
+      "medications": "CURRENT MEDICATIONS",
+      "noneOnFile": "None on file"
+    },
+    "qr": {
+      "title": "Health QR",
+      "subtitle": "Scan to view your emergency profile",
+      "accessibilityLabel": "Toggle health QR",
+      "contactsCount_one": "{{count}} contact",
+      "contactsCount_other": "{{count}} contacts",
+      "footer": "First responders can scan this code to view your allergies, conditions, and emergency contacts."
+    },
+    "contacts": {
+      "title": "Emergency contacts",
+      "addContactLabel": "Add emergency contact",
+      "addButton": "Add",
+      "noContactsTitle": "No emergency contacts yet",
+      "noContactsBody": "Add at least one trusted person in Edit Profile so first responders can reach them.",
+      "addContactCta": "Add contact",
+      "unnamedContact": "Unnamed contact",
+      "noDetails": "No details yet",
+      "callLabel": "Call {{name}}",
+      "callFallback": "Call contact"
+    },
+    "confirm": {
+      "title": "Confirm emergency alert",
+      "body": "This sends an emergency signal with your live location. Use only in a real emergency.",
+      "cancel": "Cancel",
+      "send": "Send alert"
+    },
+    "toast": {
+      "permission": "Location permission required",
+      "sent": "Emergency alert sent. Help is on the way.",
+      "sendError": "Could not send alert",
+      "noPhone": "No phone on file",
+      "cannotCall": "Cannot place a call from this device"
+    }
+  },
+  "vaccinations": {
+    "title": "Vaccinations",
+    "subtitleEmpty": "Track your immunization history",
+    "subtitleCount_one": "{{count}} on record",
+    "subtitleCount_other": "{{count}} on record",
+    "logButton": "Log vaccination",
+    "logLabel": "Log vaccination",
+    "logFirstAction": "Log first vaccination",
+    "banners": {
+      "overdue_one": "{{count}} overdue",
+      "overdue_other": "{{count}} overdue",
+      "dueCount_one": "{{count}} due in 30 days",
+      "dueCount_other": "{{count}} due in 30 days",
+      "upToDate": "Up to date",
+      "upToDateBody": "No vaccines due in the next 30 days."
+    },
+    "sections": {
+      "administered": "ADMINISTERED",
+      "upcoming": "UPCOMING"
+    },
+    "empty": {
+      "title": "No vaccinations logged",
+      "message": "Add immunizations as you receive them to keep your record complete."
+    },
+    "upcomingRow": "In {{days}} days • {{date}}",
+    "field": {
+      "catalogLabel": "From WHO catalog (optional)",
+      "nameLabel": "Vaccine name",
+      "namePlaceholder": "e.g. Influenza",
+      "doseLabel": "Dose",
+      "dateLabel": "Date",
+      "datePlaceholder": "YYYY-MM-DD",
+      "providerLabel": "Provider",
+      "providerPlaceholder": "Hospital, clinic, or doctor",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Lot number, reactions, etc."
+    },
+    "error": {
+      "nameRequired": "Vaccine name required"
+    },
+    "toast": {
+      "logged": "Vaccination logged",
+      "saveError": "Save failed"
+    }
+  },
+  "vitals": {
+    "title": "Vitals",
+    "subtitle": "Track trends over time",
+    "logLabel": "Log vital",
+    "compose": {
+      "title": "Log a vital",
+      "typeLabel": "TYPE",
+      "valueLabel": "Value ({{unit}})",
+      "diastolicLabel": "Diastolic (mmHg)",
+      "notesLabel": "Notes",
+      "notesHelper": "Optional",
+      "notesPlaceholder": "After walk, before meal, etc.",
+      "valuePlaceholderBP": "120",
+      "valuePlaceholderDefault": "72",
+      "secondaryPlaceholder": "80",
+      "saveButton": "Save reading"
+    },
+    "toast": {
+      "logged": "{{label}} logged",
+      "invalidValue": "Enter a valid value",
+      "saveError": "Could not log"
+    },
+    "chart": {
+      "trendHeading": "Trend",
+      "showDiastolic": "Show diastolic",
+      "hideDiastolic": "Hide diastolic",
+      "systolicDiastolic": "S + D",
+      "systolicOnly": "S only",
+      "noReadings": "No {{label}} readings in this range",
+      "stats": {
+        "latest": "Latest",
+        "avg": "Avg",
+        "min": "Min",
+        "max": "Max",
+        "delta": "Δ"
+      }
+    },
+    "delete": {
+      "title": "Delete reading?",
+      "body": "This cannot be undone."
+    },
+    "empty": {
+      "title": "No vitals yet",
+      "message": "Log your first reading to start tracking trends."
+    },
+    "type": {
+      "blood_pressure": { "label": "Blood pressure", "unit": "mmHg" },
+      "blood_sugar": { "label": "Blood sugar", "unit": "mg/dL" },
+      "weight": { "label": "Weight", "unit": "kg" },
+      "heart_rate": { "label": "Heart rate", "unit": "bpm" },
+      "temperature": { "label": "Temperature", "unit": "°C" },
+      "spo2": { "label": "SpO₂", "unit": "%" },
+      "cholesterol": { "label": "Cholesterol", "unit": "mg/dL" }
+    },
+    "range": {
+      "7": "7d",
+      "30": "30d",
+      "90": "90d",
+      "365": "1y"
+    }
+  },
+  "family": {
+    "title": "Family",
+    "subtitle_one": "{{count}} member",
+    "subtitle_other": "{{count}} members",
+    "addLabel": "Add family member",
+    "addButton": "Add member",
+    "composeTitle": "Add family member",
+    "heroTitle": "Care together",
+    "heroBody": "Add family to share health info and unlock emergency access.",
+    "empty": {
+      "title": "No family members",
+      "message": "Invite a family member to share health info and emergency access"
+    },
+    "fallback": "Family member",
+    "action": {
+      "call": "Call {{name}}",
+      "message": "Message {{name}}",
+      "remove": "Remove {{name}}"
+    },
+    "compose": {
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g., Mother",
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name must be 60 characters or fewer",
+      "relationshipLabel": "Relationship",
+      "phoneLabel": "Phone",
+      "phoneHelper": "Used for emergency calls & SMS",
+      "phonePlaceholder": "+94 77 123 4567",
+      "phoneRangeError": "Phone must be 7-15 digits",
+      "bloodGroupLabel": "Blood group",
+      "bloodGroupHelper": "Optional — used for emergency profile",
+      "conditionsLabel": "Hereditary conditions",
+      "conditionsHelper": "Helps assess your personal risk",
+      "conditionsPlaceholder": "Type custom condition and press enter",
+      "conditionsSelected_one": "{{count}} selected",
+      "conditionsSelected_other": "{{count}} selected",
+      "deceasedLabel": "Deceased?",
+      "living": "Living",
+      "deceased": "Deceased",
+      "causeOfDeathLabel": "Cause of death",
+      "causeOfDeathPlaceholder": "Optional — helps assess hereditary risk",
+      "notesLabel": "Notes",
+      "notesHelper": "Optional — any context",
+      "notesPlaceholder": "e.g., Adopted, half-sibling, estranged…"
+    },
+    "toast": {
+      "added": "{{name}} added",
+      "addError": "Could not add",
+      "noPhone": "No phone on file"
+    },
+    "deleteConfirm": {
+      "title": "Remove {{name}}?",
+      "body": "Their emergency-access link will be revoked."
+    },
+    "relationship": {
+      "Spouse": "Spouse",
+      "Father": "Father",
+      "Mother": "Mother",
+      "Son": "Son",
+      "Daughter": "Daughter",
+      "Brother": "Brother",
+      "Sister": "Sister",
+      "Grandfather": "Grandfather",
+      "Grandmother": "Grandmother",
+      "Uncle": "Uncle",
+      "Aunt": "Aunt",
+      "Cousin": "Cousin",
+      "Other": "Other"
+    },
+    "condition": {
+      "Diabetes": "Diabetes",
+      "Hypertension": "Hypertension",
+      "Heart disease": "Heart disease",
+      "Stroke": "Stroke",
+      "Cancer": "Cancer",
+      "Asthma": "Asthma",
+      "Thyroid disorder": "Thyroid disorder",
+      "Mental health condition": "Mental health condition",
+      "Alzheimer's / dementia": "Alzheimer's / dementia",
+      "Parkinson's": "Parkinson's",
+      "Kidney disease": "Kidney disease",
+      "Liver disease": "Liver disease",
+      "Other": "Other"
+    }
+  },
+  "medicine": {
+    "frequency": {
+      "Once daily": "Once daily",
+      "Twice daily": "Twice daily",
+      "Three times daily": "Three times",
+      "Four times daily": "Four times",
+      "As needed": "As needed"
+    },
+    "timing": {
+      "Before food": "Before food",
+      "After food": "After food",
+      "With food": "With food",
+      "Any time": "Any time",
+      "Morning": "Morning",
+      "Afternoon": "Afternoon",
+      "Evening": "Evening",
+      "Night": "Night"
+    },
+    "form": {
+      "nameLabel": "Medicine name",
+      "namePlaceholder": "e.g., Amoxicillin",
+      "dosageLabel": "Dosage",
+      "dosagePlaceholder": "e.g., 500mg",
+      "frequencyLabel": "Frequency",
+      "timingLabel": "Timing",
+      "timingHelper": "When to take this medicine",
+      "startDateLabel": "Start date",
+      "startDatePlaceholder": "When do you start?",
+      "endDateLabel": "End date (optional)",
+      "endDatePlaceholder": "When does it end?",
+      "notesLabel": "Notes",
+      "notesHelper": "Optional",
+      "notesHelperEdit": "Anything to remember",
+      "notesPlaceholder": "Any additional instructions",
+      "notesPlaceholderEdit": "e.g., take with warm water",
+      "nameEditPlaceholder": "e.g. Metformin",
+      "startDateEditPlaceholder": "When did you start?"
+    }
+  },
+  "medicines": {
+    "brandName": "HealthHub",
+    "a11y": {
+      "profile": "Profile",
+      "addMedicine": "Add medicine",
+      "notifications": "Notifications",
+      "moreOptions": "More options",
+      "markTaken": "Mark {{name}} as taken"
+    },
+    "tabs": {
+      "today": "Today",
+      "active": "Active",
+      "all": "All"
+    },
+    "hero": {
+      "dailyProgress": "DAILY PROGRESS",
+      "completedFraction": "of today's medicines completed",
+      "allDone": "ALL DONE",
+      "onTrack": "ON TRACK",
+      "allCompleted": "All completed!",
+      "remaining_one": "{{count}} remaining",
+      "remaining_other": "{{count}} remaining"
+    },
+    "actions": {
+      "markSchedule": "Mark today's schedule",
+      "history": "History",
+      "viewHistory": "View adherence & history"
+    },
+    "empty": {
+      "today": {
+        "title": "Nothing scheduled today",
+        "body": "Enjoy your day. Add a medicine to start tracking."
+      },
+      "all": {
+        "title": "No medicines yet",
+        "body": "Add your medicines to get timely reminders and track your health rhythm."
+      }
+    },
+    "period": {
+      "morning": { "label": "Morning", "range": "08:00 AM — 11:59 AM" },
+      "afternoon": { "label": "Afternoon", "range": "12:00 PM — 04:59 PM" },
+      "evening": { "label": "Evening", "range": "05:00 PM — 08:59 PM" },
+      "night": { "label": "Night", "range": "09:00 PM — 07:59 AM" }
+    },
+    "status": {
+      "stopped": "STOPPED",
+      "taken": "Taken",
+      "markTaken": "Mark Taken"
+    },
+    "sheet": {
+      "title": "Medicine details",
+      "fallbackName": "Medicine",
+      "subtitleFallback": "Medicine",
+      "markTaken": "Mark as taken",
+      "markNotTaken": "Mark as not taken",
+      "edit": "Edit medicine",
+      "stop": "Stop medicine",
+      "resume": "Resume medicine",
+      "delete": "Delete medicine",
+      "close": "Close"
+    },
+    "toast": {
+      "markedTaken": "{{name}} marked as taken",
+      "markedNotTaken": "{{name}} marked as not taken",
+      "stopped": "{{name}} stopped",
+      "deleted": "{{name}} deleted",
+      "resumed": "{{name}} resumed",
+      "updateError": "Could not update",
+      "stopError": "Failed to stop",
+      "deleteError": "Failed to delete",
+      "resumeError": "Failed to resume",
+      "scheduled_one": "Scheduled {{count}} dose reminder for today",
+      "scheduled_other": "Scheduled {{count}} dose reminders for today",
+      "noSchedule": "No medicines to schedule",
+      "scheduleError": "Could not schedule"
+    }
+  },
+  "medicinesHistory": {
+    "title": "Medicine history",
+    "a11y": {
+      "back": "Back",
+      "markTakenLate": "Mark taken late",
+      "acknowledgeMissed": "Acknowledge missed"
+    },
+    "range": {
+      "7": "7 days",
+      "30": "30 days",
+      "90": "90 days"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "missed": "Missed ({{count}})",
+      "all": "All"
+    },
+    "stats": {
+      "streak": "STREAK",
+      "streakSubtitle": "days in a row",
+      "adherence": "ADHERENCE",
+      "adherenceSubtitle_one": "over {{count}} day",
+      "adherenceSubtitle_other": "over {{count}} days"
+    },
+    "chart": {
+      "title": "Daily adherence",
+      "empty": "No dose data in this range."
+    },
+    "breakdown": {
+      "title": "Breakdown",
+      "taken": "Taken",
+      "missed": "Missed",
+      "skipped": "Skipped"
+    },
+    "missedEmpty": {
+      "title": "Nothing missed",
+      "body": "All your doses are accounted for. Nice work."
+    },
+    "allEmpty": "No dose log in this range.",
+    "fallbackName": "Medicine",
+    "scheduledAt": "{{date}} at {{time}}",
+    "status": {
+      "taken": "Taken",
+      "skipped": "Skipped",
+      "missed": "Missed",
+      "upcoming": "Upcoming"
+    },
+    "toast": {
+      "acknowledged": "Acknowledged",
+      "ackError": "Could not acknowledge",
+      "markedTaken": "Marked as taken",
+      "markError": "Could not mark"
+    }
+  },
+  "addMedicine": {
+    "title": "Add medicine",
+    "actions": {
+      "save": "Save medicine"
+    },
+    "a11y": {
+      "close": "Close",
+      "use": "Use {{name}}",
+      "criticalWarning": "Critical interaction warning",
+      "warningAlert": "Interaction warning"
+    },
+    "hero": {
+      "label": "NEW MEDICINE",
+      "title": "Add to your routine",
+      "body": "Start typing — we'll suggest from your history and common medicines."
+    },
+    "errors": {
+      "nameRequired": "Name is required",
+      "dosageRequired": "Dosage is required",
+      "frequencyRequired": "Pick a frequency",
+      "timingRequired": "Pick a timing",
+      "startRequired": "Start date is required"
+    },
+    "noMatch": "No matches. Type full name to add a custom medicine.",
+    "suggestion": {
+      "fromHistory": "From your history · ",
+      "tapAutofill": "Tap to autofill"
+    },
+    "interaction": {
+      "critical": "Critical interaction",
+      "possible": "Possible interaction",
+      "allergyItem": "Allergy: {{substance}} ({{severity}})",
+      "allergyWithReaction": "Allergy: {{substance}} ({{severity}}) — {{reaction}}",
+      "interactionItem": "{{medicines}}: {{note}}",
+      "confirmPrompt": "You'll be asked to confirm before saving."
+    },
+    "confirm": {
+      "title": "Confirm anyway?",
+      "allergyConflict": "This conflicts with your recorded allergy: {{substance}}.",
+      "fallback": "There is a known severe interaction. Please confirm.",
+      "allergyItem": "Allergy: {{substance}} ({{severity}})",
+      "warningFooter": "Only proceed if your doctor has explicitly advised it. The warning is saved with the medicine.",
+      "cancel": "Cancel",
+      "addAnyway": "Add anyway"
+    },
+    "toast": {
+      "added": "Medicine added",
+      "error": "Could not add medicine",
+      "autofillHistory": "Autofilled from your history",
+      "autofillCatalog": "Autofilled from catalog",
+      "profileMissing": "Patient profile not loaded"
+    }
+  },
+  "editMedicine": {
+    "title": "Edit medicine",
+    "subtitle": "Edit your medicine details",
+    "loadError": {
+      "title": "Could not load medicine",
+      "body": "It may have been deleted, or you may not have access.",
+      "back": "Back"
+    },
+    "active": {
+      "on": "Active",
+      "off": "Paused",
+      "onSubtitle": "Reminders will continue.",
+      "offSubtitle": "Reminders are off until you reactivate.",
+      "toggleA11y": "Active toggle"
+    },
+    "timingNone": "None",
+    "a11y": {
+      "noTiming": "No timing"
+    },
+    "actions": {
+      "save": "Save changes",
+      "stop": "Stop medicine",
+      "tapToUse": "Tap to use name"
+    },
+    "toast": {
+      "saved": "Saved",
+      "saveError": "Save failed",
+      "stopped": "{{name}} stopped",
+      "stopError": "Failed to stop"
+    }
+  },
+  "records": {
+    "brandName": "HealthHub",
+    "title": "Your Records",
+    "manageTitle": "Manage records",
+    "searchPlaceholder": "Search records, OCR text, doctor…",
+    "scope": {
+      "own": "You",
+      "family": "You + Family"
+    },
+    "saveFilter": "Save filter",
+    "filter": {
+      "all": "All",
+      "lab_report": "Lab",
+      "prescription": "Rx",
+      "imaging": "Imaging",
+      "hospital_visit": "Visits",
+      "vaccination": "Vaccines",
+      "surgery": "Surgery",
+      "archived": "Archived"
+    },
+    "range": {
+      "all": "All time",
+      "30d": "Past 30 days",
+      "1y": "Past year"
+    },
+    "sort": {
+      "newest": "Newest",
+      "oldest": "Oldest",
+      "relevance": "Best match"
+    },
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "resultsFor": " for \"{{query}}\"",
+    "clearFilters": "Clear filters",
+    "total_one": "{{count}} total",
+    "total_other": "{{count}} total",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "youFallback": "You",
+    "unknownDate": "UNKNOWN DATE",
+    "date": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "group": {
+      "you": "You"
+    },
+    "empty": {
+      "title": "No records yet",
+      "message": "Upload your first record, or log your medical notes.",
+      "action": "Add record"
+    },
+    "noMatch": {
+      "title": "Nothing matches",
+      "body": "Try a different search term or clear the filters."
+    },
+    "viewResultsPdf": "View Results (PDF)",
+    "savedFilters": {
+      "delete": {
+        "title": "Delete filter?",
+        "message": "Remove \"{{name}}\" from saved filters?",
+        "remove": "Delete"
+      },
+      "removed": "Filter removed"
+    },
+    "toast": {
+      "loadedFilter": "Loaded \"{{name}}\"",
+      "savedFilter": "Saved \"{{name}}\"",
+      "tagged": "Tagged {{count}}",
+      "taggedPartial": "Tagged {{updated}}, {{denied}} denied",
+      "tagError": "Tag failed",
+      "moved": "Moved {{count}}",
+      "movedPartial": "Moved {{moved}}, {{denied}} denied",
+      "moveError": "Move failed"
+    },
+    "type": {
+      "lab_report": "Lab report",
+      "imaging": "Imaging",
+      "prescription": "Prescription",
+      "hospital_visit": "Hospital visit",
+      "vaccination": "Vaccination",
+      "surgery": "Surgery",
+      "allergy": "Allergy",
+      "insurance": "Insurance",
+      "fitness": "Fitness",
+      "discharge_summary": "Discharge",
+      "medical_certificate": "Certificate",
+      "operation_note": "Op note",
+      "invoice": "Invoice"
+    }
+  },
+  "recordDetail": {
+    "shareFooter": "Shared from HealthHub",
+    "shareTitleFallback": "Record",
+    "notFound": {
+      "title": "Record not found",
+      "body": "It may have been removed or you no longer have access.",
+      "back": "Go back"
+    },
+    "sections": {
+      "diagnosis": "Diagnosis",
+      "summary": "Summary",
+      "notes": "Notes",
+      "followUp": "Next follow-up"
+    },
+    "detailsHeading": "Details",
+    "emptyDetails": "This record has no attachments or notes yet.",
+    "attachments": "ATTACHMENTS · {{count}}",
+    "a11y": {
+      "moreOptions": "More options",
+      "openFile": "Open file",
+      "editTags": "Edit tags"
+    },
+    "quickActions": {
+      "edit": "Edit record",
+      "share": "Share",
+      "link": "Link"
+    },
+    "actions": {
+      "title": "Record actions",
+      "edit": "Edit record",
+      "editTags": "Edit tags",
+      "moveToFamily": "Move to family member",
+      "archive": "Archive record",
+      "restore": "Restore from archive",
+      "share": "Share record",
+      "delete": "Delete record",
+      "cancel": "Cancel"
+    },
+    "archivedBadge": {
+      "title": "Archived",
+      "body": "Hidden from your default list. Tap Restore in the menu to bring it back.",
+      "restore": "Restore"
+    },
+    "tagsHeading": "TAGS",
+    "noTags": "No tags yet — tap to add some.",
+    "shareLabel": {
+      "doctor": "Doctor: {{name}}",
+      "hospital": "Hospital: {{name}}",
+      "diagnosis": "Diagnosis: {{value}}",
+      "followUp": "Next follow-up: {{value}}"
+    },
+    "deleteConfirm": {
+      "title": "Delete record?",
+      "body": "This will permanently remove the record and its attachments. You can archive instead to keep it recoverable.",
+      "archive": "Archive instead",
+      "deleteForever": "Delete forever"
+    },
+    "toast": {
+      "noFileKey": "No file key on this attachment",
+      "cantOpenType": "Can't open this file type on your device",
+      "openError": "Could not open file",
+      "archived": "Record archived",
+      "archiveError": "Archive failed",
+      "restored": "Restored",
+      "restoreError": "Restore failed",
+      "tagUpdateError": "Tag update failed",
+      "moveSuccess": "Moved to family member",
+      "returnSuccess": "Returned to you",
+      "moveError": "Move failed",
+      "tagsUpdated": "Tags updated",
+      "deleted": "Record deleted",
+      "deletedError": "Failed to delete",
+      "archiveToggle": "Archived",
+      "archiveRestore": "Restored",
+      "archiveFailed": "Failed"
+    },
+    "type": {
+      "lab_report": "Lab Report",
+      "imaging": "Imaging",
+      "prescription": "Prescription",
+      "hospital_visit": "Visit",
+      "vaccination": "Vaccination",
+      "surgery": "Surgery",
+      "allergy": "Allergy",
+      "insurance": "Insurance",
+      "fitness": "Fitness",
+      "discharge_summary": "Discharge",
+      "medical_certificate": "Certificate",
+      "operation_note": "Op Note",
+      "invoice": "Invoice"
+    }
+  },
+  "addRecord": {
+    "title": "Add record",
+    "attachOptional": "Attach file (optional)",
+    "attachHelper": "PDF, image, DICOM — max 50MB · or skip to log a note",
+    "chooseFile": "Choose file",
+    "chooseAnother": "Choose another",
+    "recordTypeLabel": "RECORD TYPE",
+    "fields": {
+      "title": "Title",
+      "date": "Date",
+      "diagnosis": "Diagnosis",
+      "notes": "Notes"
+    },
+    "placeholders": {
+      "title": "e.g., Lipid panel — March 2026",
+      "date": "Pick date",
+      "diagnosis": "e.g., Hypercholesterolemia",
+      "notes": "Anything your doctor should know..."
+    },
+    "optionalHelper": "Optional",
+    "save": "Save record",
+    "ocrSheet": {
+      "title": "Extracted from prescription",
+      "readMedicines_one": "We read {{count}} medicine from your prescription.",
+      "readMedicines_other": "We read {{count}} medicines from your prescription.",
+      "addToList": "Add {{count}} to my list",
+      "skip": "Skip",
+      "addedMeds_one": "Added {{count}} medicine",
+      "addedMeds_other": "Added {{count}} medicines",
+      "addError": "Could not add medicines"
+    },
+    "toast": {
+      "titleRequired": "Title is required",
+      "added": "Record added",
+      "reading": "Reading prescription…",
+      "uploadError": "Upload failed"
+    }
+  },
+  "editRecord": {
+    "title": "Edit record",
+    "subtitle": "Update details, save changes",
+    "recordTypeLabel": "RECORD TYPE",
+    "fields": {
+      "title": "Title",
+      "date": "Date",
+      "diagnosis": "Diagnosis",
+      "summary": "Summary",
+      "notes": "Notes"
+    },
+    "placeholders": {
+      "title": "e.g., Lipid panel — March 2026",
+      "date": "Pick date",
+      "diagnosis": "e.g., Hypercholesterolemia",
+      "summary": "Short plain-language summary",
+      "notes": "Anything your doctor should know..."
+    },
+    "optionalHelper": "Optional",
+    "attachmentNote": "Attachments can't be edited. Delete and re-upload to change a file.",
+    "actions": {
+      "save": "Save changes",
+      "delete": "Delete record"
+    },
+    "deleteConfirm": {
+      "title": "Delete record?",
+      "body": "This will remove the record and its attachments. This cannot be undone.",
+      "delete": "Delete"
+    },
+    "toast": {
+      "titleRequired": "Title is required",
+      "updated": "Record updated",
+      "updateError": "Update failed",
+      "deleted": "Record deleted",
+      "deleteError": "Failed to delete"
+    }
+  },
+  "appointments": {
+    "title": "Appointments",
+    "subtitle": "{{total}} total · {{pct}}% upcoming",
+    "a11y": {
+      "bookAppointment": "Book appointment",
+      "cancelAppointment": "Cancel appointment"
+    },
+    "filter": {
+      "all": "All",
+      "upcoming": "Upcoming",
+      "past": "Past"
+    },
+    "cancelConfirmTitle": "Cancel appointment?",
+    "cancelConfirmBody": "Your visit on {{date}} at {{time}} will be cancelled.",
+    "cancelKeep": "Keep it",
+    "cancelConfirm": "Cancel appointment",
+    "cancelSuccess": "Appointment cancelled",
+    "cancelError": "Could not cancel",
+    "empty": {
+      "pastTitle": "No past appointments",
+      "pastBody": "Past appointments will appear here",
+      "title": "No appointments yet",
+      "body": "Schedule your next visit with a doctor",
+      "action": "Book appointment"
+    },
+    "fallbackTitle": "Doctor visit",
+    "note_one": "{{count}} note",
+    "note_other": "{{count}} notes",
+    "groups": {
+      "today": "Today",
+      "week": "This Week",
+      "later": "Later",
+      "past": "Past"
+    }
+  },
+  "appointmentDetail": {
+    "title": "Appointment",
+    "notFoundTitle": "Appointment not found",
+    "notFoundBody": "This visit may have been deleted.",
+    "reschedule": "Reschedule",
+    "visitNotes": "Visit notes ({{count}})",
+    "recordsEmptyTitle": "No records yet",
+    "recordsEmptyBody": "Your doctor hasn't written up this visit.",
+    "recordLabel": {
+      "clinical_note": "Clinical note",
+      "prescription": "Prescription",
+      "lab_order": "Lab order",
+      "follow_up": "Follow-up",
+      "lab_report": "Lab report",
+      "hospital_visit": "Hospital visit"
+    },
+    "dxPrefix": "Dx: ",
+    "followUpPill": "Follow-up: {{date}}",
+    "rescheduleSheetTitle": "Reschedule",
+    "newDateLabel": "New date",
+    "newDatePlaceholder": "YYYY-MM-DD",
+    "newTimeLabel": "New time",
+    "newTimePlaceholder": "HH:MM",
+    "save": "Save",
+    "dateTimeRequired": "Date and time required",
+    "rescheduleSuccess": "Appointment rescheduled",
+    "rescheduleError": "Could not reschedule",
+    "queuePill": "#{{n}}"
+  },
+  "bookAppointment": {
+    "title": "Book appointment",
+    "stepDoctor": "Doctor",
+    "stepSchedule": "Schedule",
+    "stepConfirm": "Confirm",
+    "step1Title": "Choose a doctor",
+    "step1Subtitle": "Filter by specialty or search by name.",
+    "searchPlaceholder": "Search doctor or specialty...",
+    "specialtyAll": "All",
+    "emptyTitle": "No doctors yet",
+    "emptyBodyFiltered": "Try a different search or specialty",
+    "emptyBodyEmpty": "Doctors will appear here once registered.",
+    "doctorFallback": "Doctor",
+    "tapToChoose": "Tap to choose",
+    "lkrFee": "LKR {{fee}}",
+    "rating": "★ {{rating}}",
+    "experience": "{{years}} yrs exp",
+    "contextRich": "★ {{rating}} · LKR {{fee}} · {{years}} yrs exp",
+    "contextFee": "LKR {{fee}} · {{years}} yrs exp",
+    "errors": {
+      "doctorRequired": "Doctor is required",
+      "hospitalRequired": "Hospital is required",
+      "dateRequired": "Date is required",
+      "timeRequired": "Pick a time slot"
+    },
+    "step2PeriodLabel": "Period",
+    "periods": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "step2DateLabel": "Date",
+    "step2DatePlaceholder": "Select appointment date",
+    "step2TimeLabel": "Time slot",
+    "step3Title": "Confirm details",
+    "step3Subtitle": "Review your booking before submitting.",
+    "summaryDoctor": "Doctor",
+    "summaryHospital": "Hospital",
+    "summaryDate": "Date",
+    "summaryTime": "Time",
+    "step3ReasonLabel": "Reason for visit",
+    "step3ReasonHelper": "Optional — short description",
+    "step3ReasonPlaceholder": "e.g., annual checkup",
+    "back": "Back",
+    "continue": "Continue",
+    "confirmBooking": "Confirm booking",
+    "toast": {
+      "booked": "Appointment booked",
+      "bookError": "Could not book appointment"
+    }
+  },
+  "healthSummary": {
+    "title": "Health Summary",
+    "subtitle": "One-page snapshot of your record",
+    "a11yShare": "Share summary",
+    "emptyTitle": "No summary available",
+    "emptyBody": "Add profile information to generate a summary.",
+    "shareFailed": "Share failed",
+    "sections": {
+      "about": "About you",
+      "allergies": "Allergies",
+      "conditions": "Conditions",
+      "activeMedicines": "Active medicines",
+      "vitals": "Recent vitals (30 days)",
+      "followUps": "Upcoming follow-ups"
+    },
+    "rows": {
+      "name": "Name",
+      "age": "Age",
+      "sex": "Sex",
+      "bloodGroup": "Blood group",
+      "heightWeight": "Height / Weight",
+      "bmi": "BMI"
+    },
+    "heightWeightValue": "{{height}} cm / {{weight}} kg",
+    "vitalsEmpty": "No vitals logged",
+    "allergiesEmpty": "None recorded",
+    "conditionsEmpty": "None on record",
+    "medicinesEmpty": "None",
+    "followUpsEmpty": "None scheduled",
+    "severityReaction": "{{severity}} • {{reaction}}",
+    "plainText": "PLAIN TEXT",
+    "plainTitle": "HEALTH SUMMARY",
+    "plainGenerated": "Generated: {{when}}",
+    "plainPatient": "Patient: {{name}}",
+    "plainAge": "Age {{age}}",
+    "plainBlood": "Blood {{group}}",
+    "plainCm": "{{n}} cm",
+    "plainKg": "{{n}} kg",
+    "plainBmi": "BMI {{n}}",
+    "plainAllergiesTitle": "ALLERGIES",
+    "plainAllergiesNone": "  None recorded",
+    "plainAllergyRow": "  • {{substance}} ({{severity}})",
+    "plainAllergyRowReaction": "  • {{substance}} ({{severity}}) — {{reaction}}",
+    "plainConditionsTitle": "CONDITIONS",
+    "plainConditionsNone": "  None on record",
+    "plainConditionRow": "  • {{title}}",
+    "plainConditionRowDate": "  • {{title}} ({{date}})",
+    "plainMedsTitle": "ACTIVE MEDICINES",
+    "plainMedsNone": "  None",
+    "plainMedRow": "  • {{name}}",
+    "plainMedRowDosage": "  • {{name}} {{dosage}}",
+    "plainMedRowAll": "  • {{name}} {{dosage}} {{frequency}}",
+    "plainVitalsTitle": "RECENT VITALS (30d)",
+    "plainVitalsNone": "  None",
+    "plainVitalRow": "  • {{type}}: {{value}}{{secondary}} {{unit}}",
+    "plainFollowUpsTitle": "UPCOMING FOLLOW-UPS",
+    "plainFollowUpsNone": "  None scheduled",
+    "plainFollowUpRow": "  • {{title}} — {{when}}",
+    "plainFollowUpRowProvider": "  • {{title}} — {{when}} @ {{provider}}"
+  },
+  "home": {
+    "brand": "HealthHub",
+    "a11y": {
+      "criticalAllergies": "Critical allergies on file",
+      "quickAdd": "Quick add",
+      "notifications": "Notifications",
+      "upNextMedicine": "Up next medicine",
+      "wellnessScore": "Wellness score",
+      "bmiNeeded": "Complete profile for BMI",
+      "logDoseHint": "Open Medicines to log a dose"
+    },
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "welcomeDefault": "Welcome back! Check your tasks below.",
+    "fallbackName": "there",
+    "upcomingTodayLabel": "UPCOMING TODAY",
+    "doses": "Doses",
+    "medsSub": "meds",
+    "dose_one": "Dose",
+    "dose_other": "Doses",
+    "bloodChip": "{{group}} Blood",
+    "bloodEmpty": "Blood —",
+    "bmiEmpty": "24.1 BMI",
+    "alerts_one": "{{count}} alerts",
+    "alerts_other": "{{count}} alerts",
+    "noAlerts": "No alerts",
+    "sectionQuickActions": "Quick actions",
+    "sectionAi": "AI assistant",
+    "sectionSchedule": "Today's schedule",
+    "sectionWellness": "Wellness",
+    "sectionComingUp": "Coming up",
+    "viewAll": "View all",
+    "allVisits": "All visits",
+    "medicines": "Medicines",
+    "records": "Records",
+    "bookVisit": "Book visit",
+    "emergency": "Emergency",
+    "aiTitle": "Health AI",
+    "aiSubtitle": "Summaries, drug checks, chat & more",
+    "aiChat": "Chat",
+    "aiSummary": "Summary",
+    "aiLabExplain": "Lab explain",
+    "aiDrugCheck": "Drug check",
+    "aiOcrButton": "Prescription OCR",
+    "scheduleEmptyTitle": "No medicines yet",
+    "scheduleEmptyBody": "Add your first medicine to get daily reminders.",
+    "scheduleEmptyAction": "Add medicine",
+    "fallbackMed": "Medicine",
+    "tapToView": "Tap to view",
+    "upNextLabel": "UP NEXT",
+    "wellnessDoingGreat": "You're doing great",
+    "wellnessRoomToImprove": "Room to improve",
+    "wellnessBackOnTrack": "Let's get back on track",
+    "wellnessDefault": "WELLNESS",
+    "miniStat": {
+      "blood": "Blood",
+      "doses": "Doses",
+      "vitals": "Vitals"
+    },
+    "bmiRow": "BMI {{bmi}} • {{category}}",
+    "fab": {
+      "title": "Quick add",
+      "logDose": {
+        "label": "Log a dose",
+        "desc": "Mark a medicine as taken"
+      },
+      "addMed": {
+        "label": "Add medicine",
+        "desc": "Add to your daily routine"
+      },
+      "quickNote": {
+        "label": "Quick note",
+        "desc": "Save a symptom or thought"
+      },
+      "logVital": {
+        "label": "Log vital",
+        "desc": "BP, sugar, weight..."
+      },
+      "addRecord": {
+        "label": "Add record",
+        "desc": "Upload a lab report or scan"
+      },
+      "bookVisit": {
+        "label": "Book visit",
+        "desc": "Schedule a doctor appointment"
+      },
+      "share": {
+        "label": "Share with doctor",
+        "desc": "Create secure share links for records"
+      },
+      "timeline": {
+        "label": "Timeline",
+        "desc": "All events in chronological order"
+      },
+      "healthSummary": {
+        "label": "Health summary",
+        "desc": "One-page snapshot of your record"
+      }
+    },
+    "dateToday": "Today",
+    "dateTomorrow": "Tomorrow",
+    "queuePill": "Queue #{{n}}",
+    "doctorAt": "Dr. {{name}} at {{time}}",
+    "tapToViewDetails": "Tap to view details",
+    "criticalAllergy_one": "Critical allergy: {{substance}}",
+    "criticalAllergy_other": "{{count}} critical allergies on file",
+    "viewDetails": "View details"
+  },
+  "aiChat": {
+    "title": "Health Q&A",
+    "subtitle": "AI chat with patient context",
+    "listTitle": "Health chat",
+    "listSubtitle": "AI Q&A with your patient context",
+    "aiPill": "AI",
+    "thinking": "Thinking…",
+    "sendA11y": "Send message",
+    "inputPlaceholder": "Ask a health question…",
+    "emptyTitle": "Ask anything",
+    "emptyBody": "Type a question to begin.",
+    "youLabel": "You",
+    "aiLabel": "AI",
+    "metaFormat": "{{author}} · {{time}}",
+    "startNew": "Start new chat",
+    "listEmptyTitle": "No chats yet",
+    "listEmptyBody": "Start a new chat to ask anything.",
+    "sessionFallbackTitle": "Health Q&A",
+    "sessionFallbackWhen": "Tap to open",
+    "sessionDeleteA11y": "Delete chat",
+    "disclaimer": "AI can make mistakes. Confirm important info with your doctor.",
+    "newChatTitle": "New chat",
+    "sendError": "Could not send",
+    "createError": "Could not start chat",
+    "deleteError": "Could not delete",
+    "whenJustNow": "just now",
+    "whenMinutes_one": "{{count}}m ago",
+    "whenMinutes_other": "{{count}}m ago",
+    "whenHours_one": "{{count}}h ago",
+    "whenHours_other": "{{count}}h ago",
+    "whenDays_one": "{{count}}d ago",
+    "whenDays_other": "{{count}}d ago"
+  },
+  "aiSummary": {
+    "title": "AI summary",
+    "subtitle": "Plain-language overview of your record",
+    "aiPill": "AI",
+    "headerResult": "Your summary",
+    "headerIdle": "Generate a summary",
+    "bodyResult": "Based on your latest records, medicines, labs, and vitals.",
+    "bodyIdle": "We'll look at your records, medicines, labs, and vitals to create a clear, plain-language summary.",
+    "actionRegenerate": "Regenerate",
+    "actionGenerate": "Generate summary",
+    "cached": "From cache",
+    "sectionOverview": "Overview",
+    "sectionDiagnoses": "Diagnoses",
+    "sectionMedicines": "Medicines",
+    "sectionHistory": "History",
+    "sectionRecentTests": "Recent tests",
+    "sectionRisks": "Risks to discuss",
+    "emptySummary": "No summary available.",
+    "emptyTitle": "No summary yet",
+    "emptyBody": "Tap Generate to create one.",
+    "disclaimer": "Generated by AI. Confirm with your doctor before acting on it.",
+    "noProfile": "No patient profile on file",
+    "generateError": "Could not generate summary"
+  },
+  "aiLabExplain": {
+    "title": "Lab explainer",
+    "subtitle": "Plain-language explanation of your lab report",
+    "aiPill": "AI",
+    "sectionExplanation": "Explanation",
+    "sectionAbnormal": "Values to discuss",
+    "sectionRecommendations": "Recommendations",
+    "emptyExplanation": "No explanation returned.",
+    "emptyReportsTitle": "No lab reports",
+    "emptyReportsBody": "Upload or fetch lab reports first.",
+    "pickAnother": "Pick another report",
+    "pickTitle": "Pick a report to explain",
+    "explainPill": "Explain",
+    "disclaimer": "Generated by AI. Confirm with your doctor before acting on it.",
+    "explainError": "Could not explain report"
+  },
+  "aiDrugCheck": {
+    "title": "Drug interaction check",
+    "subtitle": "Check medicines for conflicts",
+    "aiPill": "AI",
+    "modePick": "Pick from list",
+    "modeCustom": "Custom",
+    "commonHeader": "Common medicines",
+    "loadActive": "Or load my active medicines",
+    "customLabel": "Add a medicine",
+    "customPlaceholder": "Medicine name",
+    "addA11y": "Add medicine",
+    "listHeader": "LIST ({{count}})",
+    "checkAction_one": "Check {{count}} medicine",
+    "checkAction_other": "Check {{count}} medicines",
+    "noInteractionsTitle": "No interactions found",
+    "noInteractionsBody": "Of course, confirm with your doctor or pharmacist.",
+    "sourceVerified": "Verified database",
+    "sourceAI": "AI suggestion",
+    "emptyTitle": "Add medicines to start",
+    "emptyBody": "Use the suggestions or load your active list.",
+    "alreadyAdded": "Already added",
+    "noActive": "No active medicines on file",
+    "loadedN_one": "Loaded {{count}} medicine",
+    "loadedN_other": "Loaded {{count}} medicines",
+    "minTwo": "Add at least 2 medicines",
+    "checkError": "Check failed"
+  },
+  "aiOcr": {
+    "title": "Prescription OCR",
+    "subtitle": "Scan or pick a photo — extract medicines",
+    "aiPill": "AI",
+    "pickImageHeading": "Pick a prescription image",
+    "imageEmptyTitle": "No image yet",
+    "imageEmptyBody": "Use camera or pick from gallery.",
+    "removeButton": "Remove",
+    "cameraButton": "Camera",
+    "galleryButton": "Gallery",
+    "hintLabel": "Optional hint (improves accuracy)",
+    "hintPlaceholder": "e.g. handwritten, blurry, brand names",
+    "readButton": "Read prescription",
+    "uploaded": "Uploaded",
+    "medicinesSection": "Medicines",
+    "noMeds": "No medicines detected. Try a clearer image.",
+    "headerInfoSection": "Header info",
+    "doctorField": "Doctor: {{name}}",
+    "dateField": "Date: {{date}}",
+    "diagnosisField": "Diagnosis: {{diagnosis}}",
+    "disclaimer": "Extracted by AI. Verify with your doctor or pharmacist.",
+    "permissionDenied": "Permission denied",
+    "pickImageError": "Could not pick image",
+    "pickFirst": "Pick an image first",
+    "ocrError": "OCR failed"
   }
 }

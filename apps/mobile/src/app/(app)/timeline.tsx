@@ -18,6 +18,7 @@ import {
   StickyNote,
   History,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import {
   useUnifiedTimeline,
   type TimelineEvent,
@@ -34,14 +35,14 @@ import {
   Card,
 } from "@/components/ui";
 
-const FILTERS: { value: TimelineEventKind | "all"; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "record", label: "Records" },
-  { value: "vital", label: "Vitals" },
-  { value: "symptom", label: "Symptoms" },
-  { value: "medicine_start", label: "Meds" },
-  { value: "appointment", label: "Visits" },
-  { value: "note", label: "Notes" },
+const FILTERS: { value: TimelineEventKind | "all"; key: string }[] = [
+  { value: "all", key: "timeline.filter.all" },
+  { value: "record", key: "timeline.filter.record" },
+  { value: "vital", key: "timeline.filter.vital" },
+  { value: "symptom", key: "timeline.filter.symptom" },
+  { value: "medicine_start", key: "timeline.filter.medicineStart" },
+  { value: "appointment", key: "timeline.filter.appointment" },
+  { value: "note", key: "timeline.filter.note" },
 ];
 
 const KIND_ICONS: Record<TimelineEventKind, any> = {
@@ -54,16 +55,20 @@ const KIND_ICONS: Record<TimelineEventKind, any> = {
   note: StickyNote,
 };
 
+// Returns a stable i18n key for the group label rather than a raw string;
+// the display label is resolved at render time via t(). Date formatting is
+// left to phase 1.1e (Intl) — this screen still uses en-US for month names
+// in older-than-30-days groups.
 function groupKey(dateIso: string | null): string {
-  if (!dateIso) return "Unknown";
+  if (!dateIso) return "unknown";
   const d = new Date(dateIso);
-  if (isNaN(d.getTime())) return "Unknown";
+  if (isNaN(d.getTime())) return "unknown";
   const now = new Date();
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
-  if (sameDay) return "Today";
+  if (sameDay) return "today";
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (
@@ -71,18 +76,25 @@ function groupKey(dateIso: string | null): string {
     d.getMonth() === yesterday.getMonth() &&
     d.getDate() === yesterday.getDate()
   )
-    return "Yesterday";
+    return "yesterday";
   const diffMs = now.getTime() - d.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days < 7) return "This week";
-  if (days < 30) return "This month";
+  if (days < 7) return "week";
+  if (days < 30) return "month";
   if (days < 365)
     return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   return d.getFullYear().toString();
 }
 
+function filterLabel(t: (k: string) => string, value: string): string {
+  const humanized = value.replace(/_/g, " ");
+  const k = `timeline.filter.${value}`;
+  return t(k, { defaultValue: humanized });
+}
+
 export default function TimelineScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const [filter, setFilter] = useState<TimelineEventKind | "all">("all");
 
@@ -93,15 +105,16 @@ export default function TimelineScreen() {
   const events: TimelineEvent[] = data?.events ?? [];
   const counts = data?.counts ?? {};
 
+  const subtitle =
+    events.length === 0
+      ? t("timeline.subtitleEmpty")
+      : t("timeline.subtitleCount", { count: events.length });
+
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Timeline"
-        subtitle={
-          events.length === 0
-            ? "Your entire record, in one stream"
-            : `${events.length} event${events.length === 1 ? "" : "s"}`
-        }
+        title={t("timeline.title")}
+        subtitle={subtitle}
         onBack={() => router.back()}
         right={<History size={20} color={colors.textMuted} />}
       />
@@ -113,7 +126,7 @@ export default function TimelineScreen() {
         }}
       >
         <ChipGroup
-          options={FILTERS.map((f) => ({ value: f.value, label: f.label }))}
+          options={FILTERS.map((f) => ({ value: f.value, label: t(f.key) }))}
           value={filter}
           onChange={(v) => setFilter(v as any)}
         />
@@ -135,17 +148,26 @@ export default function TimelineScreen() {
         ) : events.length === 0 ? (
           <EmptyState
             icon={History}
-            title="No events yet"
+            title={t("timeline.empty.title")}
             message={
               filter === "all"
-                ? "Add a record, vital, or medicine to start building your timeline."
-                : `No ${filter.replace(/_/g, " ")} events found.`
+                ? t("timeline.empty.allMessage")
+                : t("timeline.empty.filteredMessage", {
+                    filter: filterLabel(t, filter as string),
+                  })
             }
           />
         ) : (
           <Timeline
             data={events}
             groupBy={(e) => groupKey(e.date)}
+            groupMeta={{
+              today: { label: t("timeline.group.today"), tone: "primary" },
+              yesterday: { label: t("timeline.group.yesterday"), tone: "info" },
+              week: { label: t("timeline.group.week"), tone: "info" },
+              month: { label: t("timeline.group.month"), tone: "neutral" },
+              unknown: { label: t("timeline.group.unknown"), tone: "neutral" },
+            }}
             keyExtractor={(e) => e.id}
             renderItem={(e) => {
               const Icon = KIND_ICONS[e.kind] || FileText;
@@ -244,7 +266,7 @@ export default function TimelineScreen() {
             }}
           >
             <Text style={[typography.overline, { color: colors.textMuted }]}>
-              SUMMARY
+              {t("timeline.summary.heading")}
             </Text>
             <View
               style={{

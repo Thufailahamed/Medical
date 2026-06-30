@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,37 +48,34 @@ import {
   useToast,
 } from "@/components/ui";
 
-const FREQUENCIES = [
-  { value: "Once daily", label: "Once daily" },
-  { value: "Twice daily", label: "Twice daily" },
-  { value: "Three times daily", label: "Three times" },
-  { value: "Four times daily", label: "Four times" },
-  { value: "As needed", label: "As needed" },
-];
+const FREQUENCY_VALUES = [
+  "Once daily",
+  "Twice daily",
+  "Three times daily",
+  "Four times daily",
+  "As needed",
+] as const;
 
-const TIMINGS = [
-  { value: "Before food", label: "Before food" },
-  { value: "After food", label: "After food" },
-  { value: "With food", label: "With food" },
-  { value: "Any time", label: "Any time" },
-  { value: "Morning", label: "Morning" },
-  { value: "Afternoon", label: "Afternoon" },
-  { value: "Evening", label: "Evening" },
-  { value: "Night", label: "Night" },
-];
+const TIMING_VALUES = [
+  "Before food",
+  "After food",
+  "With food",
+  "Any time",
+  "Morning",
+  "Afternoon",
+  "Evening",
+  "Night",
+] as const;
 
-const schema = z.object({
-  name: z.string().min(2, "Name is required"),
-  dosage: z.string().min(1, "Dosage is required"),
-  frequency: z.string().min(1, "Pick a frequency"),
-  timing: z.string().min(1, "Pick a timing"),
-  startDate: z.date(),
-  endDate: z.date().optional(),
-  notes: z.string().max(500).optional(),
-});
-type FormData = z.infer<typeof schema>;
-
-type ApplyField = (name: keyof FormData, value: any) => void;
+type FormData = {
+  name: string;
+  dosage: string;
+  frequency: string;
+  timing: string;
+  startDate: Date;
+  endDate?: Date;
+  notes?: string;
+};
 
 function SuggestionRow({
   s,
@@ -86,6 +84,7 @@ function SuggestionRow({
   s: MedicineSuggestion;
   onApply: (s: MedicineSuggestion) => void;
 }) {
+  const { t } = useTranslation();
   const { colors, typography, spacing, radius } = useTheme();
   const isHistory = s.source === "history";
   const topDosage = s.commonDosages[0];
@@ -96,7 +95,7 @@ function SuggestionRow({
     <Pressable
       onPress={() => onApply(s)}
       accessibilityRole="button"
-      accessibilityLabel={`Use ${s.name}`}
+      accessibilityLabel={t("addMedicine.a11y.use", { name: s.name })}
       style={({ pressed }) => ({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
@@ -144,13 +143,13 @@ function SuggestionRow({
           {s.category
             ? `${s.category} · `
             : isHistory
-            ? "From your history · "
+            ? t("addMedicine.suggestion.fromHistory")
             : ""}
           {topDosage
             ? `${topDosage}${
                 topFreq ? ` · ${topFreq}` : ""
               }${topTiming ? ` · ${topTiming}` : ""}`
-            : "Tap to autofill"}
+            : t("addMedicine.suggestion.tapAutofill")}
         </Text>
       </View>
       <CornerDownLeft
@@ -164,10 +163,30 @@ function SuggestionRow({
 
 export default function AddMedicineScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const addMedicine = useAddMedicineWithConfirm();
   const { data: profileData } = usePatientProfile();
+
+  const schema = z.object({
+    name: z.string().min(2, t("addMedicine.errors.nameRequired")),
+    dosage: z.string().min(1, t("addMedicine.errors.dosageRequired")),
+    frequency: z.string().min(1, t("addMedicine.errors.frequencyRequired")),
+    timing: z.string().min(1, t("addMedicine.errors.timingRequired")),
+    startDate: z.date(),
+    endDate: z.date().optional(),
+    notes: z.string().max(500).optional(),
+  });
+
+  const FREQUENCIES = FREQUENCY_VALUES.map((v) => ({
+    value: v,
+    label: t(`medicine.frequency.${v}`),
+  }));
+  const TIMINGS = TIMING_VALUES.map((v) => ({
+    value: v,
+    label: t(`medicine.timing.${v}`),
+  }));
 
   const {
     control,
@@ -191,7 +210,7 @@ export default function AddMedicineScreen() {
 
   const [nameQuery, setNameQuery] = useState("");
   const [nameFocused, setNameFocused] = useState(false);
-  const [pendingWarnings, setPendingWarnings] = useState<InteractionsResponse | null>(null);
+  const [, setPendingWarnings] = useState<InteractionsResponse | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
 
@@ -228,13 +247,13 @@ export default function AddMedicineScreen() {
     if (s.commonFrequencies[0]) setValue("frequency", s.commonFrequencies[0], { shouldValidate: true });
     if (s.commonTimings[0]) setValue("timing", s.commonTimings[0], { shouldValidate: true });
     setNameFocused(false);
-    toast.show(`Autofilled from ${s.source === "history" ? "your history" : "catalog"}`, "success");
+    toast.show(s.source === "history" ? t("addMedicine.toast.autofillHistory") : t("addMedicine.toast.autofillCatalog"), "success");
   }
 
   const submitWithOverride = async (data: FormData, override: boolean) => {
     const patientId = profileData?.patient?.patients?.id;
     if (!patientId) {
-      setError("root", { message: "Patient profile not loaded" });
+      setError("root", { message: t("addMedicine.toast.profileMissing") });
       return;
     }
     try {
@@ -250,16 +269,15 @@ export default function AddMedicineScreen() {
         },
         confirmOverride: override,
       });
-      toast.show("Medicine added", "success");
+      toast.show(t("addMedicine.toast.added"), "success");
       router.back();
     } catch (err: any) {
       if (err?.status === 409 && err?.body?.requiresConfirmation) {
-        // Show confirm modal
         setPendingWarnings(err.body);
         setPendingPayload({ patientId, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate });
         setShowConfirmModal(true);
       } else {
-        const msg = err?.message || "Could not add medicine";
+        const msg = err?.message || t("addMedicine.toast.error");
         setError("root", { message: msg });
         toast.show(msg, "danger");
       }
@@ -267,7 +285,6 @@ export default function AddMedicineScreen() {
   };
 
   const onSubmit = async (data: FormData) => {
-    // If interactions already known client-side and are blocking, force modal.
     if (interactions && hasBlockingWarning) {
       setPendingWarnings(interactions);
       setPendingPayload({ patientId: profileData?.patient?.patients?.id, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate });
@@ -285,7 +302,7 @@ export default function AddMedicineScreen() {
 
   return (
     <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
-      <ScreenHeader back title="Add medicine" />
+      <ScreenHeader back title={t("addMedicine.title", { defaultValue: "Add medicine" })} />
 
       {/* Compact identity strip */}
       <View
@@ -313,10 +330,10 @@ export default function AddMedicineScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[typography.overline, { color: colors.primary }]}>
-            NEW MEDICINE
+            {t("addMedicine.hero.label")}
           </Text>
           <Text style={[typography.title.md, { color: colors.text }]}>
-            Add to your routine
+            {t("addMedicine.hero.title")}
           </Text>
           <Text
             style={[
@@ -324,7 +341,7 @@ export default function AddMedicineScreen() {
               { color: colors.textMuted, marginTop: 2 },
             ]}
           >
-            Start typing — we'll suggest from your history and common medicines.
+            {t("addMedicine.hero.body")}
           </Text>
         </View>
       </View>
@@ -337,13 +354,13 @@ export default function AddMedicineScreen() {
               name="name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <FormField
-                  label="Medicine name"
+                  label={t("medicine.form.nameLabel")}
                   required
                   error={errors.name?.message}
                   helper={
                     !showDropdown && nameQuery.trim().length > 0 && !isFetching
                       ? suggestions.length === 0
-                        ? "No matches. Type full name to add a custom medicine."
+                        ? t("addMedicine.noMatch")
                         : undefined
                       : undefined
                   }
@@ -351,25 +368,19 @@ export default function AddMedicineScreen() {
                   <View style={{ position: "relative" }}>
                     <TextInput
                       value={value}
-                      onChangeText={(t) => {
-                        onChange(t);
-                        setNameQuery(t);
+                      onChangeText={(txt) => {
+                        onChange(txt);
+                        setNameQuery(txt);
                       }}
                       onFocus={() => setNameFocused(true)}
                       onBlur={(e) => {
                         onBlur(e);
-                        // Delay so taps on suggestion rows register before dismiss.
                         setTimeout(() => setNameFocused(false), 120);
                       }}
-                      placeholder="e.g., Amoxicillin"
+                      placeholder={t("medicine.form.namePlaceholder")}
                       autoCapitalize="words"
                       leadingIcon={Pill}
                       invalid={!!errors.name}
-                      trailingIcon={
-                        isFetching && nameQuery.trim().length > 0
-                          ? undefined
-                          : undefined
-                      }
                     />
                     {isFetching && nameQuery.trim().length > 0 ? (
                       <View
@@ -431,8 +442,8 @@ export default function AddMedicineScreen() {
                 accessibilityRole="alert"
                 accessibilityLabel={
                   hasBlockingWarning
-                    ? "Critical interaction warning"
-                    : "Interaction warning"
+                    ? t("addMedicine.a11y.criticalWarning")
+                    : t("addMedicine.a11y.warningAlert")
                 }
               >
                 {hasBlockingWarning ? (
@@ -450,15 +461,23 @@ export default function AddMedicineScreen() {
                       },
                     ]}
                   >
-                    {hasBlockingWarning ? "Critical interaction" : "Possible interaction"}
+                    {hasBlockingWarning ? t("addMedicine.interaction.critical") : t("addMedicine.interaction.possible")}
                   </Text>
                   {interactions.allergies.map((a, i) => (
                     <Text
                       key={`a-${i}`}
                       style={[typography.body.sm, { color: colors.text }]}
                     >
-                      • Allergy: {a.substance} ({a.severity})
-                      {a.reaction ? ` — ${a.reaction}` : ""}
+                      {a.reaction
+                        ? t("addMedicine.interaction.allergyWithReaction", {
+                            substance: a.substance,
+                            severity: a.severity,
+                            reaction: a.reaction,
+                          })
+                        : t("addMedicine.interaction.allergyItem", {
+                            substance: a.substance,
+                            severity: a.severity,
+                          })}
                     </Text>
                   ))}
                   {interactions.interactions.map((it, i) => (
@@ -466,7 +485,10 @@ export default function AddMedicineScreen() {
                       key={`i-${i}`}
                       style={[typography.body.sm, { color: colors.text }]}
                     >
-                      • {it.medicines.join(" + ")}: {it.note}
+                      {t("addMedicine.interaction.interactionItem", {
+                        medicines: it.medicines.join(" + "),
+                        note: it.note,
+                      })}
                     </Text>
                   ))}
                   {hasBlockingWarning ? (
@@ -476,7 +498,7 @@ export default function AddMedicineScreen() {
                         { color: colors.danger, fontWeight: "700", marginTop: 2 },
                       ]}
                     >
-                      You'll be asked to confirm before saving.
+                      {t("addMedicine.interaction.confirmPrompt")}
                     </Text>
                   ) : null}
                 </View>
@@ -488,7 +510,7 @@ export default function AddMedicineScreen() {
               name="dosage"
               render={({ field: { onChange, onBlur, value } }) => (
                 <FormField
-                  label="Dosage"
+                  label={t("medicine.form.dosageLabel")}
                   required
                   error={errors.dosage?.message}
                 >
@@ -496,7 +518,7 @@ export default function AddMedicineScreen() {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="e.g., 500mg"
+                    placeholder={t("medicine.form.dosagePlaceholder")}
                     leadingIcon={Hourglass}
                     invalid={!!errors.dosage}
                   />
@@ -505,7 +527,7 @@ export default function AddMedicineScreen() {
             />
 
             <FormField
-              label="Frequency"
+              label={t("medicine.form.frequencyLabel")}
               required
               error={errors.frequency?.message}
             >
@@ -523,7 +545,7 @@ export default function AddMedicineScreen() {
             </FormField>
 
             <FormField
-              label="Timing"
+              label={t("medicine.form.timingLabel")}
               required
               error={errors.timing?.message}
             >
@@ -540,7 +562,7 @@ export default function AddMedicineScreen() {
               />
             </FormField>
 
-            <FormField label="Start date" required>
+            <FormField label={t("medicine.form.startDateLabel")} required>
               <Controller
                 control={control}
                 name="startDate"
@@ -548,7 +570,7 @@ export default function AddMedicineScreen() {
                   <DateField
                     value={value}
                     onChange={onChange}
-                    placeholder="When do you start?"
+                    placeholder={t("medicine.form.startDatePlaceholder")}
                   />
                 )}
               />
@@ -556,7 +578,7 @@ export default function AddMedicineScreen() {
           </View>
         </Card>
 
-        <FormField label="Notes" helper="Optional">
+        <FormField label={t("medicine.form.notesLabel")} helper={t("medicine.form.notesHelper")}>
           <Controller
             control={control}
             name="notes"
@@ -565,7 +587,7 @@ export default function AddMedicineScreen() {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                placeholder="Any additional instructions"
+                placeholder={t("medicine.form.notesPlaceholder")}
                 multiline
                 numberOfLines={3}
                 leadingIcon={FileText}
@@ -587,7 +609,7 @@ export default function AddMedicineScreen() {
         ) : null}
 
         <Button
-          title="Save medicine"
+          title={t("addMedicine.actions.save", { defaultValue: "Save medicine" })}
           onPress={handleSubmit(onSubmit)}
           loading={addMedicine.isPending}
           icon={Save}
@@ -652,14 +674,14 @@ export default function AddMedicineScreen() {
                     { color: colors.text, fontWeight: "800" },
                   ]}
                 >
-                  Confirm anyway?
+                  {t("addMedicine.confirm.title")}
                 </Text>
               </View>
               <Pressable
                 onPress={() => setShowConfirmModal(false)}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="Close"
+                accessibilityLabel={t("addMedicine.a11y.close")}
               >
                 <X size={20} color={colors.textMuted} />
               </Pressable>
@@ -668,14 +690,16 @@ export default function AddMedicineScreen() {
             <Text
               style={[typography.body.md, { color: colors.text, lineHeight: 22 }]}
             >
-              {pendingWarnings?.allergies?.[0]
-                ? `This conflicts with your recorded allergy: ${pendingWarnings.allergies[0].substance}.`
-                : pendingWarnings?.interactions?.[0]?.note ||
-                  "There is a known severe interaction. Please confirm."}
+              {(pendingWarnings as any)?.allergies?.[0]
+                ? t("addMedicine.confirm.allergyConflict", {
+                    substance: (pendingWarnings as any).allergies[0].substance,
+                  })
+                : (pendingWarnings as any)?.interactions?.[0]?.note ||
+                  t("addMedicine.confirm.fallback")}
             </Text>
 
             <View style={{ gap: 6 }}>
-              {pendingWarnings?.allergies?.map((a, i) => (
+              {(pendingWarnings as any)?.allergies?.map((a: any, i: number) => (
                 <View
                   key={`ma-${i}`}
                   style={{
@@ -686,11 +710,14 @@ export default function AddMedicineScreen() {
                 >
                   <AlertTriangle size={14} color={colors.danger} />
                   <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
-                    Allergy: {a.substance} ({a.severity})
+                    {t("addMedicine.confirm.allergyItem", {
+                      substance: a.substance,
+                      severity: a.severity,
+                    })}
                   </Text>
                 </View>
               ))}
-              {pendingWarnings?.interactions?.map((it, i) => (
+              {(pendingWarnings as any)?.interactions?.map((it: any, i: number) => (
                 <View
                   key={`mi-${i}`}
                   style={{
@@ -701,7 +728,10 @@ export default function AddMedicineScreen() {
                 >
                   <AlertTriangle size={14} color={colors.danger} />
                   <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
-                    {it.medicines.join(" + ")}: {it.note}
+                    {t("addMedicine.interaction.interactionItem", {
+                      medicines: it.medicines.join(" + "),
+                      note: it.note,
+                    })}
                   </Text>
                 </View>
               ))}
@@ -713,18 +743,18 @@ export default function AddMedicineScreen() {
                 { color: colors.textMuted, lineHeight: 18 },
               ]}
             >
-              Only proceed if your doctor has explicitly advised it. The warning is saved with the medicine.
+              {t("addMedicine.confirm.warningFooter")}
             </Text>
 
             <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
               <Button
-                title="Cancel"
+                title={t("addMedicine.confirm.cancel")}
                 variant="outline"
                 onPress={() => setShowConfirmModal(false)}
                 style={{ flex: 1 }}
               />
               <Button
-                title="Add anyway"
+                title={t("addMedicine.confirm.addAnyway")}
                 variant="danger"
                 onPress={confirmAnyway}
                 loading={addMedicine.isPending}

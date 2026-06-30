@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { View, Text, Linking, Alert, Pressable, ScrollView } from "react-native";
+import { useTranslation } from "react-i18next";
 import {
   Users,
   Plus,
   Phone,
   MessageCircle,
   Trash2,
-  X,
-  Check,
 } from "lucide-react-native";
 import {
   useFamilyMembers,
@@ -31,6 +30,7 @@ import {
   useToast,
 } from "@/components/ui";
 
+// DB values; rendered via t("family.relationship.<value>")
 const RELATIONSHIPS = [
   "Spouse",
   "Father",
@@ -49,6 +49,7 @@ const RELATIONSHIPS = [
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+// DB values; rendered via t("family.condition.<value>")
 const HEREDITARY_CONDITIONS = [
   "Diabetes",
   "Hypertension",
@@ -66,6 +67,7 @@ const HEREDITARY_CONDITIONS = [
 ];
 
 export default function FamilyScreen() {
+  const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
   const { data, isLoading } = useFamilyMembers();
@@ -86,7 +88,7 @@ export default function FamilyScreen() {
 
   function callNumber(num?: string) {
     if (!num) {
-      toast.show("No phone on file", "warning");
+      toast.show(t("family.toast.noPhone"), "warning");
       return;
     }
     Linking.openURL(`tel:${num.replace(/\s/g, "")}`);
@@ -94,7 +96,7 @@ export default function FamilyScreen() {
 
   function textNumber(num?: string) {
     if (!num) {
-      toast.show("No phone on file", "warning");
+      toast.show(t("family.toast.noPhone"), "warning");
       return;
     }
     Linking.openURL(`sms:${num.replace(/\s/g, "")}`);
@@ -103,16 +105,16 @@ export default function FamilyScreen() {
   async function saveMember() {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      toast.show("Name is required", "warning");
+      toast.show(t("family.compose.nameRequired"), "warning");
       return;
     }
     if (trimmedName.length > 60) {
-      toast.show("Name must be 60 characters or fewer", "warning");
+      toast.show(t("family.compose.nameTooLong"), "warning");
       return;
     }
     const cleanedPhone = phone.replace(/[^\d+]/g, "").trim();
     if (phone.trim() && (cleanedPhone.length < 7 || cleanedPhone.length > 16)) {
-      toast.show("Phone must be 7-15 digits", "warning");
+      toast.show(t("family.compose.phoneRangeError"), "warning");
       return;
     }
     try {
@@ -126,7 +128,7 @@ export default function FamilyScreen() {
         causeOfDeath: isDeceased ? causeOfDeath.trim() || undefined : undefined,
         notes: notes.trim() || undefined,
       });
-      toast.show(`${trimmedName} added`, "success");
+      toast.show(t("family.toast.added", { name: trimmedName }), "success");
       setComposing(false);
       setName("");
       setPhone("");
@@ -138,7 +140,7 @@ export default function FamilyScreen() {
       setCauseOfDeath("");
       setNotes("");
     } catch (err: any) {
-      toast.show(err?.message || "Could not add", "danger");
+      toast.show(err?.message || t("family.toast.addError"), "danger");
     }
   }
 
@@ -150,12 +152,12 @@ export default function FamilyScreen() {
 
   function confirmDelete(member: any) {
     Alert.alert(
-      `Remove ${member.name}?`,
-      "Their emergency-access link will be revoked.",
+      t("family.deleteConfirm.title", { name: member.name }),
+      t("family.deleteConfirm.body"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Remove",
+          text: t("common.remove"),
           style: "destructive",
           onPress: () => deleteMember.mutate(member.id),
         },
@@ -169,19 +171,19 @@ export default function FamilyScreen() {
         <ScreenHeader
           back
           onBack={() => setComposing(false)}
-          title="Add family member"
+          title={t("family.composeTitle")}
         />
         <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-          <FormField label="Name" required>
+          <FormField label={t("family.compose.nameLabel")} required>
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="e.g., Mother"
+              placeholder={t("family.compose.namePlaceholder")}
               autoCapitalize="words"
             />
           </FormField>
 
-          <FormField label="Relationship">
+          <FormField label={t("family.compose.relationshipLabel")}>
             <View
               style={{
                 flexDirection: "row",
@@ -192,7 +194,7 @@ export default function FamilyScreen() {
               {RELATIONSHIPS.map((r) => (
                 <Chip
                   key={r}
-                  label={r}
+                  label={t(`family.relationship.${r}`)}
                   selected={relationship === r}
                   tone={relationship === r ? "primary" : "neutral"}
                   onPress={() => setRelationship(r)}
@@ -201,16 +203,16 @@ export default function FamilyScreen() {
             </View>
           </FormField>
 
-          <FormField label="Phone" helper="Used for emergency calls & SMS">
+          <FormField label={t("family.compose.phoneLabel")} helper={t("family.compose.phoneHelper")}>
             <TextInput
               value={phone}
               onChangeText={setPhone}
-              placeholder="+94 77 123 4567"
+              placeholder={t("family.compose.phonePlaceholder")}
               keyboardType="phone-pad"
             />
           </FormField>
 
-          <FormField label="Blood group" helper="Optional — used for emergency profile">
+          <FormField label={t("family.compose.bloodGroupLabel")} helper={t("family.compose.bloodGroupHelper")}>
             <View
               style={{
                 flexDirection: "row",
@@ -231,8 +233,8 @@ export default function FamilyScreen() {
           </FormField>
 
           <FormField
-            label="Hereditary conditions"
-            helper="Helps assess your personal risk"
+            label={t("family.compose.conditionsLabel")}
+            helper={t("family.compose.conditionsHelper")}
           >
             <View
               style={{
@@ -245,7 +247,7 @@ export default function FamilyScreen() {
               {HEREDITARY_CONDITIONS.map((c) => (
                 <Chip
                   key={c}
-                  label={c}
+                  label={t(`family.condition.${c}`)}
                   selected={conditions.includes(c)}
                   tone={conditions.includes(c) ? "warning" : "neutral"}
                   onPress={() => toggleCondition(c)}
@@ -262,7 +264,7 @@ export default function FamilyScreen() {
                 }
                 setConditionInput("");
               }}
-              placeholder="Type custom condition and press enter"
+              placeholder={t("family.compose.conditionsPlaceholder")}
               returnKeyType="done"
               style={{ marginTop: spacing.xs }}
             />
@@ -273,21 +275,21 @@ export default function FamilyScreen() {
                   { color: colors.textMuted, marginTop: 4 },
                 ]}
               >
-                {conditions.length} selected
+                {t("family.compose.conditionsSelected", { count: conditions.length })}
               </Text>
             )}
           </FormField>
 
-          <FormField label="Deceased?">
+          <FormField label={t("family.compose.deceasedLabel")}>
             <View style={{ flexDirection: "row", gap: spacing.xs }}>
               <Chip
-                label="Living"
+                label={t("family.compose.living")}
                 selected={!isDeceased}
                 tone={!isDeceased ? "success" : "neutral"}
                 onPress={() => setIsDeceased(false)}
               />
               <Chip
-                label="Deceased"
+                label={t("family.compose.deceased")}
                 selected={isDeceased}
                 tone={isDeceased ? "danger" : "neutral"}
                 onPress={() => setIsDeceased(true)}
@@ -296,20 +298,20 @@ export default function FamilyScreen() {
           </FormField>
 
           {isDeceased && (
-            <FormField label="Cause of death">
+            <FormField label={t("family.compose.causeOfDeathLabel")}>
               <TextInput
                 value={causeOfDeath}
                 onChangeText={setCauseOfDeath}
-                placeholder="Optional — helps assess hereditary risk"
+                placeholder={t("family.compose.causeOfDeathPlaceholder")}
               />
             </FormField>
           )}
 
-          <FormField label="Notes" helper="Optional — any context">
+          <FormField label={t("family.compose.notesLabel")} helper={t("family.compose.notesHelper")}>
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="e.g., Adopted, half-sibling, estranged…"
+              placeholder={t("family.compose.notesPlaceholder")}
               multiline
               numberOfLines={3}
               tone="soft"
@@ -317,7 +319,7 @@ export default function FamilyScreen() {
           </FormField>
 
           <Button
-            title="Add member"
+            title={t("family.addButton")}
             onPress={saveMember}
             loading={addMember.isPending}
             icon={Plus}
@@ -333,14 +335,14 @@ export default function FamilyScreen() {
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         <ScreenHeader
-          title="Family"
-          subtitle={`${family.length} ${family.length === 1 ? "member" : "members"}`}
+          title={t("family.title")}
+          subtitle={t("family.subtitle", { count: family.length })}
           right={
             <IconButton
               icon={Plus}
               variant="solid"
               onPress={() => setComposing(true)}
-              accessibilityLabel="Add family member"
+              accessibilityLabel={t("family.addLabel")}
             />
           }
         />
@@ -375,7 +377,7 @@ export default function FamilyScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[typography.title.sm, { color: colors.text }]}>
-                Care together
+                {t("family.heroTitle")}
               </Text>
               <Text
                 style={[
@@ -384,7 +386,7 @@ export default function FamilyScreen() {
                 ]}
                 numberOfLines={2}
               >
-                Add family to share health info and unlock emergency access.
+                {t("family.heroBody")}
               </Text>
             </View>
           </View>
@@ -399,9 +401,9 @@ export default function FamilyScreen() {
         ) : family.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No family members"
-            message="Invite a family member to share health info and emergency access"
-            actionLabel="Add member"
+            title={t("family.empty.title")}
+            message={t("family.empty.message")}
+            actionLabel={t("family.addButton")}
             onAction={() => setComposing(true)}
             tone="primary"
           />
@@ -427,10 +429,10 @@ export default function FamilyScreen() {
                       ring
                     />
                   }
-                  title={m.name || "Family member"}
+                  title={m.name || t("family.fallback")}
                   subtitle={
                     [m.relationship, m.phone].filter(Boolean).join(" · ") ||
-                    "Family member"
+                    t("family.fallback")
                   }
                   pill={
                     m.bloodGroup
@@ -448,19 +450,19 @@ export default function FamilyScreen() {
                         icon={Phone}
                         tone="success"
                         onPress={() => callNumber(m.phone)}
-                        label={`Call ${m.name}`}
+                        label={t("family.action.call", { name: m.name })}
                       />
                       <ActionDot
                         icon={MessageCircle}
                         tone="info"
                         onPress={() => textNumber(m.phone)}
-                        label={`Message ${m.name}`}
+                        label={t("family.action.message", { name: m.name })}
                       />
                       <ActionDot
                         icon={Trash2}
                         tone="danger"
                         onPress={() => confirmDelete(m)}
-                        label={`Remove ${m.name}`}
+                        label={t("family.action.remove", { name: m.name })}
                       />
                     </View>
                   }

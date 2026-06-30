@@ -6,6 +6,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Pencil,
@@ -63,11 +64,14 @@ function calcBmi(height?: number | null, weight?: number | null) {
   return weight / (m * m);
 }
 
-function bmiCategory(bmi: number) {
-  if (bmi < 18.5) return { label: "Underweight", tone: "info" as const };
-  if (bmi < 25) return { label: "Healthy", tone: "success" as const };
-  if (bmi < 30) return { label: "Elevated", tone: "warning" as const };
-  return { label: "High", tone: "danger" as const };
+function bmiCategory(
+  t: (k: string, opts?: any) => string,
+  bmi: number
+): { label: string; tone: "info" | "success" | "warning" | "danger" } {
+  if (bmi < 18.5) return { label: t("profile.bmi.underweight"), tone: "info" };
+  if (bmi < 25) return { label: t("profile.bmi.healthy"), tone: "success" };
+  if (bmi < 30) return { label: t("profile.bmi.elevated"), tone: "warning" };
+  return { label: t("profile.bmi.high"), tone: "danger" };
 }
 
 function parseList(v: string | null | undefined): string[] {
@@ -94,6 +98,7 @@ export default function ProfileScreen() {
   const { user, logout, authFailureCount } = useAuthStore();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius, shadow } = useTheme();
   const { data: profileData, isLoading: profileLoading } = usePatientProfile();
   const { data: unread } = useUnreadCount();
@@ -121,7 +126,7 @@ export default function ProfileScreen() {
   const { data: doctorProfileData } = useDoctorMe({ enabled: isDoctor });
 
   const bmi = useMemo(() => calcBmi(patient?.height, patient?.weight), [patient]);
-  const bmiInfo = bmi ? bmiCategory(bmi) : null;
+  const bmiInfo = bmi ? bmiCategory(t, bmi) : null;
 
   const allergies = useMemo(() => parseList(patient?.allergies), [patient?.allergies]);
   const conditions = useMemo(
@@ -147,11 +152,11 @@ export default function ProfileScreen() {
 
   function confirmLogout() {
     Alert.alert(
-      "Sign out?",
-      "You'll need to sign back in to view your records.",
+      t("profile.logout.title"),
+      t("profile.logout.body"),
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Sign out", style: "destructive", onPress: handleLogout },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("profile.logout.confirm"), style: "destructive", onPress: handleLogout },
       ]
     );
   }
@@ -167,46 +172,48 @@ export default function ProfileScreen() {
 
   const accountItems = [
     {
-      label: "Edit profile",
-      subtitle: "Name, blood group, height, weight, allergies",
+      labelKey: "profile.item.editProfile.label",
+      subtitle: t("profile.item.editProfile.subtitle"),
       icon: Pencil,
       tone: "primary" as const,
       onPress: () => router.push("/(app)/edit-profile" as any),
     },
     {
-      label: "Family members",
+      labelKey: "profile.item.family.label",
       subtitle:
         familyCount === 0
-          ? "Add your first family member"
-          : `${familyCount} ${familyCount === 1 ? "member" : "members"} on file`,
+          ? t("profile.item.family.subtitleEmpty")
+          : t("profile.item.family.subtitleCount", { count: familyCount }),
       icon: Users,
       tone: "accent" as const,
       onPress: () => router.push("/(app)/family" as any),
     },
     {
-      label: "Notifications",
-      subtitle: unreadCount > 0 ? `${unreadCount} unread` : "Reminders and updates",
+      labelKey: "profile.item.notifications.label",
+      subtitle: unreadCount > 0
+        ? t("profile.item.notifications.subtitleUnread", { count: unreadCount })
+        : t("profile.item.notifications.subtitle"),
       icon: Bell,
       tone: "warning" as const,
       onPress: () => router.push("/(app)/notifications" as any),
     },
     {
-      label: "Notification preferences",
-      subtitle: "Choose in-app & push per category",
+      labelKey: "profile.item.notificationPreferences.label",
+      subtitle: t("profile.item.notificationPreferences.subtitle"),
       icon: Bell,
       tone: "neutral" as const,
       onPress: () => router.push("/(app)/notification-preferences" as any),
     },
     {
-      label: "Appearance",
-      subtitle: "Light, dark, or system theme",
+      labelKey: "profile.item.appearance.label",
+      subtitle: t("profile.item.appearance.subtitle"),
       icon: Palette,
       tone: "primary" as const,
       onPress: () => router.push("/(app)/appearance" as any),
     },
     {
-      label: "Change password",
-      subtitle: "Update your sign-in password",
+      labelKey: "profile.item.changePassword.label",
+      subtitle: t("profile.item.changePassword.subtitle"),
       icon: KeyRound,
       tone: "neutral" as const,
       onPress: () => router.push("/(app)/change-password" as any),
@@ -215,66 +222,71 @@ export default function ProfileScreen() {
 
   const healthItems = [
     {
-      label: "Timeline",
-      subtitle: "Everything in chronological order",
+      labelKey: "profile.item.timeline.label",
+      subtitle: t("profile.item.timeline.subtitle"),
       icon: ClipboardList,
       tone: "primary" as const,
       onPress: () => router.push("/(app)/timeline" as any),
     },
     {
-      label: "Health Summary",
-      subtitle: "One-page snapshot of your record",
+      labelKey: "profile.item.healthSummary.label",
+      subtitle: t("profile.item.healthSummary.subtitle"),
       icon: FileText,
       tone: "primary" as const,
       onPress: () => router.push("/(app)/health-summary" as any),
     },
     {
-      label: "Vitals",
-      subtitle: medCount > 0 ? `${medCount} active ${medCount === 1 ? "medicine" : "medicines"}` : "BP, glucose, weight trends",
+      labelKey: "profile.item.vitals.label",
+      subtitle: medCount > 0
+        ? t("profile.item.vitals.subtitleCount", { count: medCount })
+        : t("profile.item.vitals.subtitleEmpty"),
       icon: Activity,
       tone: "info" as const,
       onPress: () => router.push("/(app)/vitals" as any),
     },
     {
-      label: "Allergies",
+      labelKey: "profile.item.allergies.label",
       subtitle: allergyCount > 0
-        ? `${allergyCount} recorded ${allergyCount === 1 ? "allergy" : "allergies"}${criticalAllergies > 0 ? " • " + criticalAllergies + " critical" : ""}`
-        : "Drug, food, environmental",
+        ? t("profile.item.allergies.subtitleCount", { count: allergyCount }) +
+          (criticalAllergies > 0
+            ? t("profile.item.allergies.subtitleCritical", { count: criticalAllergies })
+            : "")
+        : t("profile.item.allergies.subtitleEmpty"),
       icon: AlertTriangle,
       tone: criticalAllergies > 0 ? ("danger" as const) : ("warning" as const),
       onPress: () => router.push("/(app)/allergies" as any),
     },
     {
-      label: "Vaccinations",
-      subtitle: "Immunization history & due dates",
+      labelKey: "profile.item.vaccinations.label",
+      subtitle: t("profile.item.vaccinations.subtitle"),
       icon: Syringe,
       tone: "info" as const,
       onPress: () => router.push("/(app)/vaccinations" as any),
     },
     {
-      label: "Notes",
-      subtitle: "Personal journal & questions",
+      labelKey: "profile.item.notes.label",
+      subtitle: t("profile.item.notes.subtitle"),
       icon: StickyNote,
       tone: "info" as const,
       onPress: () => router.push("/(app)/notes" as any),
     },
     {
-      label: "Activity log",
-      subtitle: "Who accessed your records",
+      labelKey: "profile.item.activity.label",
+      subtitle: t("profile.item.activity.subtitle"),
       icon: ShieldCheck,
       tone: "warning" as const,
       onPress: () => router.push("/(app)/activity" as any),
     },
     {
-      label: "Share with doctor",
-      subtitle: "Create secure share links for your records",
+      labelKey: "profile.item.share.label",
+      subtitle: t("profile.item.share.subtitle"),
       icon: Share2,
       tone: "primary" as const,
       onPress: () => router.push("/(app)/share" as any),
     },
     {
-      label: "Export my data",
-      subtitle: "Download your full record (JSON, TXT, or FHIR)",
+      labelKey: "profile.item.export.label",
+      subtitle: t("profile.item.export.subtitle"),
       icon: Download,
       tone: "neutral" as const,
       onPress: () => router.push("/(app)/export" as any),
@@ -282,8 +294,8 @@ export default function ProfileScreen() {
     ...(isDoctor
       ? [
           {
-            label: "Doctor portal",
-            subtitle: "Manage your practice",
+            labelKey: "profile.item.doctorPortal.label",
+            subtitle: t("profile.item.doctorPortal.subtitle"),
             icon: Stethoscope,
             tone: "info" as const,
             onPress: () => router.push("/(app)/doctor" as any),
@@ -293,10 +305,12 @@ export default function ProfileScreen() {
     ...(isHospital
       ? [
           {
-            label: isHospitalAdmin ? "Hospital admin" : "Hospital staff",
+            labelKey: isHospitalAdmin
+              ? "profile.item.hospitalAdmin.label"
+              : "profile.item.hospitalStaff.label",
             subtitle: isHospitalAdmin
-              ? "Dashboard, wards, beds, staff"
-              : "Admitted patients & beds",
+              ? t("profile.item.hospitalAdmin.subtitle")
+              : t("profile.item.hospitalStaff.subtitle"),
             icon: Building2,
             tone: "info" as const,
             onPress: () => router.push("/(app)/hospital/dashboard" as any),
@@ -304,8 +318,8 @@ export default function ProfileScreen() {
           ...(isHospitalAdmin
             ? [
                 {
-                  label: "Wards",
-                  subtitle: "Manage wards and beds",
+                  labelKey: "profile.item.wards.label",
+                  subtitle: t("profile.item.wards.subtitle"),
                   icon: BedDouble,
                   tone: "neutral" as const,
                   onPress: () => router.push("/(app)/hospital/wards" as any),
@@ -315,8 +329,8 @@ export default function ProfileScreen() {
           ...(isHospitalAdmin
             ? [
                 {
-                  label: "Staff roster",
-                  subtitle: "Nurses, receptionists, technicians",
+                  labelKey: "profile.item.staffRoster.label",
+                  subtitle: t("profile.item.staffRoster.subtitle"),
                   icon: Users,
                   tone: "neutral" as const,
                   onPress: () => router.push("/(app)/hospital/staff" as any),
@@ -350,14 +364,14 @@ export default function ProfileScreen() {
               { color: colors.text, fontWeight: "800", letterSpacing: -0.5 },
             ]}
           >
-            Profile
+            {t("profile.title")}
           </Text>
           <IconButton
             icon={Bell}
             variant="ghost"
             size="md"
             onPress={() => router.push("/(app)/notifications" as any)}
-            accessibilityLabel="Notifications"
+            accessibilityLabel={t("profile.item.notifications.label")}
             badge={unreadCount > 0 ? unreadCount : undefined}
           />
         </View>
@@ -459,7 +473,7 @@ export default function ProfileScreen() {
                     {userRow?.verified || user?.verified ? (
                       <Pill
                         icon={ShieldCheck}
-                        label="Verified"
+                        label={t("profile.verified")}
                         tone="success"
                         size="sm"
                       />
@@ -480,14 +494,14 @@ export default function ProfileScreen() {
                     icon={Droplet}
                     tone="danger"
                     size="sm"
-                    label="Blood"
+                    label={t("profile.statCard.blood")}
                     value={patient?.bloodGroup || "—"}
                   />
                   <StatCard
                     icon={HeartPulse}
                     tone={bmiInfo?.tone ?? "info"}
                     size="sm"
-                    label="BMI"
+                    label={t("profile.statCard.bmi")}
                     value={bmi ? bmi.toFixed(1) : "—"}
                     hint={bmiInfo?.label}
                   />
@@ -495,9 +509,9 @@ export default function ProfileScreen() {
                     icon={Activity}
                     tone="primary"
                     size="sm"
-                    label="Active"
+                    label={t("profile.statCard.active")}
                     value={String(medCount)}
-                    hint={medCount === 1 ? "medicine" : "medicines"}
+                    hint={t("profile.statCard.medicine", { count: medCount })}
                   />
                 </View>
               )}
@@ -516,7 +530,7 @@ export default function ProfileScreen() {
             <Card
               padded={false}
               onPress={() => router.push("/(app)/edit-profile" as any)}
-              accessibilityLabel="Edit health profile"
+              accessibilityLabel={t("profile.healthCard.accessibilityLabel")}
             >
               <View
                 style={{
@@ -545,7 +559,7 @@ export default function ProfileScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[typography.title.sm, { color: colors.text }]}>
-                    Health profile
+                    {t("profile.healthCard.title")}
                   </Text>
                   <Text
                     style={[
@@ -554,7 +568,7 @@ export default function ProfileScreen() {
                     ]}
                     numberOfLines={2}
                   >
-                    Allergies & conditions visible to your doctors
+                    {t("profile.healthCard.subtitle")}
                   </Text>
                 </View>
                 <ChevronRight
@@ -566,15 +580,15 @@ export default function ProfileScreen() {
               <Divider />
               <View style={{ padding: spacing.lg, gap: spacing.md }}>
                 <SummaryRow
-                  label="ALLERGIES"
-                  empty="None recorded"
+                  label={t("profile.allergiesHeading")}
+                  empty={t("profile.noneRecorded")}
                   items={allergies}
                   tone="danger"
                   icon={AlertTriangle}
                 />
                 <SummaryRow
-                  label="CONDITIONS"
-                  empty="None recorded"
+                  label={t("profile.conditionsHeading")}
+                  empty={t("profile.noneRecorded")}
                   items={conditions}
                   tone="warning"
                   icon={Activity}
@@ -586,7 +600,7 @@ export default function ProfileScreen() {
                       { color: colors.textMuted, letterSpacing: 1.2, alignSelf: "flex-start" },
                     ]}
                   >
-                    EMERGENCY CONTACTS
+                    {t("profile.emergencyContactsHeading")}
                   </Text>
                   <View
                     style={{
@@ -608,8 +622,8 @@ export default function ProfileScreen() {
                       ]}
                     >
                       {emergencyContacts.length > 0
-                        ? `${emergencyContacts.length} on file`
-                        : "None recorded"}
+                        ? t("profile.onFile", { count: emergencyContacts.length })
+                        : t("profile.noneRecorded")}
                     </Text>
                     <Text
                       onPress={() => router.push("/(app)/family" as any)}
@@ -619,7 +633,7 @@ export default function ProfileScreen() {
                       ]}
                       accessibilityRole="link"
                     >
-                      Manage in Family
+                      {t("profile.manageInFamily")}
                     </Text>
                   </View>
                 </View>
@@ -630,15 +644,18 @@ export default function ProfileScreen() {
 
         {/* ─── Account section ─── */}
         <View style={{ marginTop: spacing.lg }}>
-          <SectionHeader title="Account" style={{ paddingHorizontal: spacing.lg }} />
+          <SectionHeader
+            title={t("profile.section.account")}
+            style={{ paddingHorizontal: spacing.lg }}
+          />
           <View style={{ marginHorizontal: spacing.lg }}>
             <Card padded={false}>
               {accountItems.map((item, i) => (
-                <View key={item.label}>
+                <View key={item.labelKey}>
                   <ListItem
                     icon={item.icon}
                     iconTone={item.tone}
-                    title={item.label}
+                    title={t(item.labelKey)}
                     subtitle={item.subtitle}
                     onPress={item.onPress}
                     showChevron
@@ -654,15 +671,18 @@ export default function ProfileScreen() {
         {/* ─── Health section ─── */}
         {!isDoctor && (
           <View style={{ marginTop: spacing.lg }}>
-            <SectionHeader title="Health" style={{ paddingHorizontal: spacing.lg }} />
+            <SectionHeader
+              title={t("profile.section.health")}
+              style={{ paddingHorizontal: spacing.lg }}
+            />
             <View style={{ marginHorizontal: spacing.lg }}>
               <Card padded={false}>
                 {healthItems.map((item, i) => (
-                  <View key={item.label}>
+                  <View key={item.labelKey}>
                     <ListItem
                       icon={item.icon}
                       iconTone={item.tone}
-                      title={item.label}
+                      title={t(item.labelKey)}
                       subtitle={item.subtitle}
                       onPress={item.onPress}
                       showChevron
@@ -678,14 +698,17 @@ export default function ProfileScreen() {
 
         {/* ─── Support section ─── */}
         <View style={{ marginTop: spacing.lg }}>
-          <SectionHeader title="Support" style={{ paddingHorizontal: spacing.lg }} />
+          <SectionHeader
+            title={t("profile.section.support")}
+            style={{ paddingHorizontal: spacing.lg }}
+          />
           <View style={{ marginHorizontal: spacing.lg }}>
             <Card padded={false}>
               <ListItem
                 icon={HelpCircle}
                 iconTone="neutral"
-                title="Help & Support"
-                subtitle="FAQs and contact options"
+                title={t("profile.item.helpSupport.label")}
+                subtitle={t("profile.item.helpSupport.subtitle")}
                 onPress={() => router.push("/(app)/support" as any)}
                 showChevron
                 bordered={false}
@@ -704,7 +727,7 @@ export default function ProfileScreen() {
           }}
         >
           <Button
-            title="Sign out"
+            title={t("profile.logout.confirm")}
             variant="outline"
             icon={LogOut}
             onPress={confirmLogout}
@@ -716,7 +739,7 @@ export default function ProfileScreen() {
               { color: colors.textSubtle, textAlign: "center" },
             ]}
           >
-            HealthHub v0.1 · Patient Foundation
+            {t("profile.footer")}
           </Text>
         </View>
       </ScrollView>

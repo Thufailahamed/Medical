@@ -3,129 +3,122 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
-  Save,
-  Trash2,
-  FileBadge,
-  Stethoscope,
-  NotebookPen,
   FileText,
+  Trash2,
+  ChevronLeft,
+  CheckCircle2,
 } from "lucide-react-native";
 import {
   useMedicalRecord,
-  useEditMedicalRecord,
-  useDeleteMedicalRecord,
+  useUpdateRecord,
+  useDeleteRecord,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
-  ScreenHeader,
-  FormField,
-  TextInput,
-  Button,
-  DateField,
   Card,
-  Chip,
+  Button,
+  TextField,
+  ScreenHeader,
   useToast,
-  Skeleton,
 } from "@/components/ui";
+import { metaFor, type RecordType } from "@/lib/recordImportance";
 
-const RECORD_TYPES = [
-  { value: "lab_report", label: "Lab report" },
-  { value: "imaging", label: "Imaging" },
-  { value: "prescription", label: "Prescription" },
-  { value: "hospital_visit", label: "Hospital visit" },
-  { value: "vaccination", label: "Vaccination" },
-  { value: "surgery", label: "Surgery" },
-  { value: "allergy", label: "Allergy" },
-  { value: "insurance", label: "Insurance" },
-  { value: "fitness", label: "Fitness" },
-  { value: "discharge_summary", label: "Discharge" },
-  { value: "medical_certificate", label: "Certificate" },
-  { value: "operation_note", label: "Op note" },
-  { value: "invoice", label: "Invoice" },
+const RECORD_TYPE_VALUES: RecordType[] = [
+  "lab_report",
+  "prescription",
+  "imaging",
+  "hospital_visit",
+  "vaccination",
+  "surgery",
+  "op_note",
+  "discharge_summary",
+  "referral",
+  "insurance",
+  "pathology",
+  "dental",
+  "other",
 ];
 
 export default function EditRecordScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { spacing, colors, typography } = useTheme();
+  const params = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
+  const { spacing, colors, typography, fontFamily } = useTheme();
   const toast = useToast();
-  const { data, isLoading } = useMedicalRecord(id || "");
-  const edit = useEditMedicalRecord();
-  const del = useDeleteMedicalRecord();
 
-  const [recordType, setRecordType] = useState<string>("");
+  const { data: record, isLoading } = useMedicalRecord(params.id);
+  const updateRec = useUpdateRecord();
+  const deleteRec = useDeleteRecord();
+
+  const [type, setType] = useState<RecordType>("lab_report");
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState<Date>(new Date());
+  const [date, setDate] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [summary, setSummary] = useState("");
   const [notes, setNotes] = useState("");
-  const [hydrated, setHydrated] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Hydrate form once data arrives
   useEffect(() => {
-    if (!data?.record || hydrated) return;
-    const r = data.record;
-    setRecordType(r.recordType || "");
-    setTitle(r.title || "");
-    const parsed = r.date ? new Date(r.date) : null;
-    setDate(parsed && !Number.isNaN(parsed.getTime()) ? parsed : new Date());
-    setDiagnosis(r.diagnosis || "");
-    setSummary(r.summary || "");
-    setNotes(r.notes || "");
-    setHydrated(true);
-  }, [data, hydrated]);
+    if (record) {
+      setType(record.recordType);
+      setTitle(record.title || "");
+      setDate(record.date ? record.date.slice(0, 10) : "");
+      setDiagnosis(record.diagnosis || "");
+      setSummary(record.summary || "");
+      setNotes(record.notes || "");
+    }
+  }, [record]);
 
-  const dirty =
-    hydrated &&
-    (recordType !== data?.record?.recordType ||
-      title !== data?.record?.title ||
-      date.toISOString().slice(0, 10) !== data?.record?.date ||
-      (diagnosis || "") !== (data?.record?.diagnosis || "") ||
-      (summary || "") !== (data?.record?.summary || "") ||
-      (notes || "") !== (data?.record?.notes || ""));
-
-  async function handleSave() {
-    if (!id) return;
+  async function save() {
     if (!title.trim()) {
-      toast.show("Title is required", "warning");
+      toast.show(t("editRecord.toast.titleRequired"), "warning");
       return;
     }
+    setSaving(true);
     try {
-      await edit.mutateAsync({
-        id,
+      await updateRec.mutateAsync({
+        id: params.id,
+        recordType: type,
         title: title.trim(),
-        recordType,
-        date: date.toISOString().slice(0, 10),
+        date,
         diagnosis: diagnosis.trim() || undefined,
         summary: summary.trim() || undefined,
         notes: notes.trim() || undefined,
-      } as any);
-      toast.show("Record updated", "success");
+      });
+      toast.show(t("editRecord.toast.updated"), "success");
       router.back();
     } catch (err: any) {
-      toast.show(err?.message || "Update failed", "danger");
+      toast.show(
+        err?.message || t("editRecord.toast.updateError"),
+        "danger"
+      );
+    } finally {
+      setSaving(false);
     }
   }
 
-  function handleDelete() {
-    if (!id) return;
+  function confirmDelete() {
     Alert.alert(
-      "Delete record?",
-      "This will remove the record and its attachments. This cannot be undone.",
+      t("editRecord.deleteConfirm.title"),
+      t("editRecord.deleteConfirm.body"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("editRecord.deleteConfirm.delete"),
           style: "destructive",
           onPress: async () => {
             try {
-              await del.mutateAsync(id);
-              toast.show("Record deleted", "success");
-              router.replace("/(app)/records" as any);
+              await deleteRec.mutateAsync(params.id);
+              toast.show(t("editRecord.toast.deleted"), "success");
+              router.back();
             } catch (err: any) {
-              toast.show(err?.message || "Failed to delete", "danger");
+              toast.show(
+                err?.message || t("editRecord.toast.deleteError"),
+                "danger"
+              );
             }
           },
         },
@@ -133,130 +126,190 @@ export default function EditRecordScreen() {
     );
   }
 
-  if (isLoading || !hydrated) {
-    return (
-      <Screen padded={false} edges={["top"]}>
-        <ScreenHeader back title="Edit record" />
-        <View style={{ padding: spacing.lg, gap: spacing.md }}>
-          <Skeleton height={64} radius={16} />
-          <Skeleton height={48} radius={12} />
-          <Skeleton height={48} radius={12} />
-          <Skeleton height={120} radius={16} />
-        </View>
-      </Screen>
-    );
-  }
-
   return (
-    <Screen padded={false} edges={["top"]} bottomInset>
+    <Screen padded={false} edges={["top"]}>
       <ScreenHeader
-        back
-        title="Edit record"
-        subtitle="Update details, save changes"
+        title={t("editRecord.title")}
+        subtitle={t("editRecord.subtitle")}
+        onClose={() => router.back()}
       />
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110, gap: spacing.lg }}
+        style={{ backgroundColor: "#FAF9FC" }}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* Type chips */}
-        <View style={{ gap: spacing.xs }}>
-          <Text style={[typography.label.md, { color: colors.textMuted }]}>
-            RECORD TYPE
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: spacing.xs,
-            }}
-          >
-            {RECORD_TYPES.map((rt) => (
-              <Chip
-                key={rt.value}
-                label={rt.label}
-                selected={recordType === rt.value}
-                tone={recordType === rt.value ? "primary" : "neutral"}
-                onPress={() => setRecordType(rt.value)}
-              />
-            ))}
+        {isLoading ? (
+          <View style={{ padding: spacing.lg }}>
+            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+              {t("common.loading", { defaultValue: "Loading…" })}
+            </Text>
           </View>
-        </View>
+        ) : (
+          <View>
+            {/* Attachment note */}
+            <View
+              style={{
+                paddingHorizontal: spacing.lg,
+                paddingTop: spacing.lg,
+                marginBottom: spacing.md,
+              }}
+            >
+              <Card style={{ padding: spacing.md }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.xs,
+                    marginBottom: spacing.xs,
+                  }}
+                >
+                  <FileText size={16} color={colors.primary} />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "700",
+                      color: "#1D1B20",
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    {t("editRecord.attachmentNote")}
+                  </Text>
+                </View>
+              </Card>
+            </View>
 
-        <FormField label="Title" required>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="e.g., Lipid panel — March 2026"
-            leadingIcon={FileBadge}
-          />
-        </FormField>
+            {/* Record type chips */}
+            <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: "#7F7B8C",
+                  letterSpacing: 1,
+                  marginBottom: spacing.xs,
+                  fontFamily: fontFamily.displayBold,
+                }}
+              >
+                {t("editRecord.recordTypeLabel").toUpperCase()}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: spacing.xs }}
+              >
+                {RECORD_TYPE_VALUES.map((rv) => {
+                  const meta = metaFor(rv);
+                  const isSel = type === rv;
+                  return (
+                    <Pressable
+                      key={rv}
+                      onPress={() => setType(rv)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 16,
+                        backgroundColor: isSel ? colors.primary : "#F4F2F8",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <meta.icon
+                        size={13}
+                        color={isSel ? "#FFFFFF" : colors.text}
+                        strokeWidth={2.25}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "700",
+                          color: isSel ? "#FFFFFF" : "#1D1B20",
+                          fontFamily: isSel
+                            ? fontFamily.bodyBold
+                            : fontFamily.body,
+                        }}
+                      >
+                        {t(`records.type.${rv}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
 
-        <FormField label="Date" required>
-          <DateField
-            value={date}
-            onChange={setDate}
-            placeholder="Pick date"
-          />
-        </FormField>
+            {/* Form fields */}
+            <View
+              style={{
+                paddingHorizontal: spacing.lg,
+                gap: spacing.md,
+                marginBottom: spacing.md,
+              }}
+            >
+              <TextField
+                label={t("editRecord.fields.title")}
+                value={title}
+                onChangeText={setTitle}
+                placeholder={t("editRecord.placeholders.title")}
+              />
+              <TextField
+                label={t("editRecord.fields.date")}
+                value={date}
+                onChangeText={setDate}
+                placeholder={t("editRecord.placeholders.date")}
+              />
+              <TextField
+                label={t("editRecord.fields.diagnosis")}
+                value={diagnosis}
+                onChangeText={setDiagnosis}
+                placeholder={t("editRecord.placeholders.diagnosis")}
+                helper={t("editRecord.optionalHelper")}
+                multiline
+              />
+              <TextField
+                label={t("editRecord.fields.summary")}
+                value={summary}
+                onChangeText={setSummary}
+                placeholder={t("editRecord.placeholders.summary")}
+                helper={t("editRecord.optionalHelper")}
+                multiline
+              />
+              <TextField
+                label={t("editRecord.fields.notes")}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder={t("editRecord.placeholders.notes")}
+                helper={t("editRecord.optionalHelper")}
+                multiline
+              />
+            </View>
 
-        <FormField label="Diagnosis" helper="Optional">
-          <TextInput
-            value={diagnosis}
-            onChangeText={setDiagnosis}
-            placeholder="e.g., Hypercholesterolemia"
-            leadingIcon={Stethoscope}
-          />
-        </FormField>
-
-        <FormField label="Summary" helper="Optional">
-          <TextInput
-            value={summary}
-            onChangeText={setSummary}
-            placeholder="Short plain-language summary"
-            leadingIcon={FileText}
-            multiline
-            numberOfLines={2}
-          />
-        </FormField>
-
-        <FormField label="Notes" helper="Optional">
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Anything your doctor should know..."
-            leadingIcon={NotebookPen}
-            multiline
-            numberOfLines={3}
-            tone="soft"
-          />
-        </FormField>
-
-        <Card style={{ padding: spacing.md }}>
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            Attachments can't be edited. Delete and re-upload to change a file.
-          </Text>
-        </Card>
-
-        <Button
-          title="Save changes"
-          icon={Save}
-          onPress={handleSave}
-          loading={edit.isPending}
-          size="lg"
-          fullWidth
-          disabled={!dirty}
-        />
-
-        <Button
-          title="Delete record"
-          icon={Trash2}
-          variant="danger"
-          onPress={handleDelete}
-          loading={del.isPending}
-          size="md"
-          fullWidth
-        />
+            {/* Actions */}
+            <View
+              style={{
+                paddingHorizontal: spacing.lg,
+                gap: spacing.sm,
+              }}
+            >
+              <Button
+                title={t("editRecord.actions.save")}
+                variant="primary"
+                size="lg"
+                loading={saving}
+                onPress={save}
+                leftIcon={<CheckCircle2 size={18} color="#FFFFFF" />}
+              />
+              <Button
+                title={t("editRecord.actions.delete")}
+                variant="ghost"
+                size="md"
+                onPress={confirmDelete}
+                leftIcon={<Trash2 size={16} color={colors.danger || "#FF3B30"} />}
+                textStyle={{ color: colors.danger || "#FF3B30" }}
+              />
+            </View>
+          </View>
+        )}
       </ScrollView>
     </Screen>
   );

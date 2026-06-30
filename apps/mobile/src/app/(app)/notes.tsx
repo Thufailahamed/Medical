@@ -10,6 +10,7 @@ import {
   Check,
   Pencil,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import {
   useNotes,
   useCreateNote,
@@ -33,6 +34,7 @@ import {
 
 export default function NotesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading } = useNotes();
@@ -71,7 +73,7 @@ export default function NotesScreen() {
 
   async function save() {
     if (!body.trim()) {
-      toast.show("Note body cannot be empty", "warning");
+      toast.show(t("notes.validation.bodyRequired"), "warning");
       return;
     }
     try {
@@ -80,37 +82,41 @@ export default function NotesScreen() {
           id: editingId,
           data: { title: title.trim() || null, body: body.trim(), pinned },
         });
-        toast.show("Note updated", "success");
+        toast.show(t("notes.toast.updated"), "success");
       } else {
         await createNote.mutateAsync({
           title: title.trim() || undefined,
           body: body.trim(),
           pinned,
         });
-        toast.show("Note saved", "success");
+        toast.show(t("notes.toast.saved"), "success");
       }
       cancel();
     } catch (err: any) {
-      toast.show(err?.message || "Could not save note", "danger");
+      toast.show(err?.message || t("notes.toast.saveError"), "danger");
     }
   }
 
   function confirmDelete(id: string) {
-    Alert.alert("Delete note?", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteNote.mutateAsync(id);
-            toast.show("Note deleted", "info");
-          } catch (err: any) {
-            toast.show(err?.message || "Could not delete", "danger");
-          }
+    Alert.alert(
+      t("notes.deleteConfirm.title"),
+      t("notes.deleteConfirm.body"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteNote.mutateAsync(id);
+              toast.show(t("notes.toast.deleted"), "info");
+            } catch (err: any) {
+              toast.show(err?.message || t("notes.toast.deleteError"), "danger");
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   }
 
   async function togglePin(n: any) {
@@ -120,7 +126,7 @@ export default function NotesScreen() {
         data: { pinned: !n.pinned },
       });
     } catch (err: any) {
-      toast.show(err?.message || "Could not update", "danger");
+      toast.show(err?.message || t("notes.toast.updateError"), "danger");
     }
   }
 
@@ -128,24 +134,28 @@ export default function NotesScreen() {
     return (
       <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
         <ScreenHeader
-          title={editingId ? "Edit note" : "New note"}
+          title={editingId ? t("notes.composing.editTitle") : t("notes.composing.newTitle")}
           right={
-            <IconButton icon={X} onPress={cancel} accessibilityLabel="Cancel" />
+            <IconButton
+              icon={X}
+              onPress={cancel}
+              accessibilityLabel={t("notes.composing.cancelLabel")}
+            />
           }
         />
         <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-          <FormField label="Title" helper="Optional">
+          <FormField label={t("notes.composing.fieldTitleLabel")} helper={t("notes.composing.titleOptional")}>
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="e.g., Follow-up questions"
+              placeholder={t("notes.composing.titlePlaceholder")}
             />
           </FormField>
-          <FormField label="Note" required>
+          <FormField label={t("notes.composing.bodyLabel")} required>
             <TextInput
               value={body}
               onChangeText={setBody}
-              placeholder="Write your note..."
+              placeholder={t("notes.composing.bodyPlaceholder")}
               multiline
               numberOfLines={10}
               tone="soft"
@@ -154,14 +164,14 @@ export default function NotesScreen() {
           </FormField>
 
           <Button
-            title={pinned ? "Pinned" : "Pin to top"}
+            title={pinned ? t("notes.composing.pinToggle.on") : t("notes.composing.pinToggle.off")}
             variant={pinned ? "primary" : "outline"}
             icon={Pin}
             onPress={() => setPinned(!pinned)}
           />
 
           <Button
-            title={editingId ? "Save changes" : "Save note"}
+            title={editingId ? t("notes.composing.submitEdit") : t("notes.composing.submitNew")}
             onPress={save}
             loading={createNote.isPending || updateNote.isPending}
             icon={Check}
@@ -176,13 +186,13 @@ export default function NotesScreen() {
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
       <ScreenHeader
-        title="Notes"
-        subtitle="Personal journal"
+        title={t("notes.title")}
+        subtitle={t("notes.subtitle")}
         right={
           <IconButton
             icon={Plus}
             onPress={startNew}
-            accessibilityLabel="New note"
+            accessibilityLabel={t("notes.list.newNoteLabel")}
           />
         }
       />
@@ -197,12 +207,16 @@ export default function NotesScreen() {
         <View style={{ padding: spacing.lg }}>
           <EmptyState
             icon={StickyNote}
-            title="No notes yet"
-            message="Use notes to track symptoms, questions for your doctor, or anything else."
+            title={t("notes.empty.title")}
+            message={t("notes.empty.message")}
             tone="neutral"
           />
           <View style={{ alignItems: "center", marginTop: spacing.lg }}>
-            <Button title="Write your first note" onPress={startNew} icon={Plus} />
+            <Button
+              title={t("notes.empty.action")}
+              onPress={startNew}
+              icon={Plus}
+            />
           </View>
         </View>
       ) : (
@@ -227,27 +241,27 @@ export default function NotesScreen() {
                     style={[typography.title.sm, { color: colors.text, flex: 1 }]}
                     numberOfLines={1}
                   >
-                    {n.title || "Untitled"}
+                    {n.title || t("notes.list.untitled")}
                   </Text>
                   <View style={{ flexDirection: "row", gap: 4 }}>
                     <IconButton
                       icon={Pin}
                       size="sm"
                       onPress={() => togglePin(n)}
-                      accessibilityLabel={n.pinned ? "Unpin" : "Pin"}
+                      accessibilityLabel={n.pinned ? t("notes.list.unpinLabel") : t("notes.list.pinLabel")}
                       tint={n.pinned ? colors.primary : colors.textMuted}
                     />
                     <IconButton
                       icon={Pencil}
                       size="sm"
                       onPress={() => startEdit(n)}
-                      accessibilityLabel="Edit"
+                      accessibilityLabel={t("notes.list.editLabel")}
                     />
                     <IconButton
                       icon={Trash2}
                       size="sm"
                       onPress={() => confirmDelete(n.id)}
-                      accessibilityLabel="Delete"
+                      accessibilityLabel={t("notes.list.deleteLabel")}
                       tint={colors.danger}
                     />
                   </View>

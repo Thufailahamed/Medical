@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import {
   useShareLinks,
   useCreateShareLink,
@@ -42,20 +43,21 @@ import {
   useToast,
 } from "@/components/ui";
 
-const DURATIONS = [
-  { value: 1, label: "1 hour" },
-  { value: 24, label: "1 day" },
-  { value: 168, label: "1 week" },
-  { value: 720, label: "30 days" },
-];
-
 export default function ShareScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading, refetch } = useShareLinks();
   const create = useCreateShareLink();
   const revoke = useRevokeShareLink();
+
+  const DURATIONS = [
+    { value: 1, key: "share.duration.1" },
+    { value: 24, key: "share.duration.24" },
+    { value: 168, key: "share.duration.168" },
+    { value: 720, key: "share.duration.720" },
+  ];
 
   const links: ShareLink[] = data?.links || [];
 
@@ -68,16 +70,19 @@ export default function ShareScreen() {
   async function onCreate() {
     try {
       const res = await create.mutateAsync({
-        label: label.trim() || "Shared record",
+        label: label.trim() || t("share.link.labelFallback"),
         scope,
         expiresInHours: hours,
       });
       setLastToken(res.token);
       setSheetOpen(false);
       setLabel("");
-      toast.show({ message: "Share link created", tone: "success" });
+      toast.show({ message: t("share.toast.created"), tone: "success" });
     } catch (e: any) {
-      toast.show({ message: e?.message || "Create failed", tone: "danger" });
+      toast.show({
+        message: e?.message || t("share.toast.createError"),
+        tone: "danger",
+      });
     }
   }
 
@@ -89,42 +94,63 @@ export default function ShareScreen() {
         "";
       const url = `${base}/share/${link.token}`;
       await RNShare.share({
-        message: `HealthHub record: ${link.label || "Shared record"}\n${url}\n\nExpires ${new Date(
-          link.expiresAt
-        ).toLocaleString()}`,
+        message: t("share.shareMessage", {
+          label: link.label || t("share.link.labelFallback"),
+          url,
+          date: new Date(link.expiresAt).toLocaleString(),
+        }),
       });
     } catch (e: any) {
-      toast.show({ message: e?.message || "Share failed", tone: "danger" });
+      toast.show({
+        message: e?.message || t("share.toast.shareError"),
+        tone: "danger",
+      });
     }
   }
 
   function onRevoke(link: ShareLink) {
-    Alert.alert("Revoke link?", "Viewers will no longer be able to access it.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Revoke",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await revoke.mutateAsync(link.id);
-            toast.show({ message: "Link revoked", tone: "success" });
-          } catch (e: any) {
-            toast.show({ message: e?.message || "Revoke failed", tone: "danger" });
-          }
+    Alert.alert(
+      t("share.deleteConfirm.title"),
+      t("share.deleteConfirm.body"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("share.link.revokeButton"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await revoke.mutateAsync(link.id);
+              toast.show({
+                message: t("share.toast.revoked"),
+                tone: "success",
+              });
+            } catch (e: any) {
+              toast.show({
+                message: e?.message || t("share.toast.revokeError"),
+                tone: "danger",
+              });
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   }
 
   function isExpired(l: ShareLink) {
     return new Date(l.expiresAt) < new Date();
   }
 
+  function statusChip(l: ShareLink) {
+    if (l.revoked) return { label: t("share.link.statusRevoked"), tone: "neutral" };
+    if (isExpired(l)) return { label: t("share.link.statusExpired"), tone: "neutral" };
+    return { label: t("share.link.statusActive"), tone: "success" };
+  }
+
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Share with doctor"
-        subtitle="Time-limited links to your record"
+        title={t("share.title")}
+        subtitle={t("share.subtitle")}
         onBack={() => router.back()}
       />
 
@@ -141,7 +167,7 @@ export default function ShareScreen() {
                 { color: colors.text, fontWeight: "800", flex: 1 },
               ]}
             >
-              How it works
+              {t("share.explanation.title")}
             </Text>
           </View>
           <Text
@@ -150,14 +176,12 @@ export default function ShareScreen() {
               { color: colors.textMuted, marginTop: 4, lineHeight: 20 },
             ]}
           >
-            Create a link that anyone (no app required) can open to view your
-            allergies, active medicines, and last 6 months of records. Links
-            expire automatically. You can revoke at any time.
+            {t("share.explanation.body")}
           </Text>
         </Card>
 
         <Button
-          title="Create share link"
+          title={t("share.createButton")}
           icon={Plus}
           onPress={() => setSheetOpen(true)}
           size="lg"
@@ -171,12 +195,13 @@ export default function ShareScreen() {
         ) : links.length === 0 ? (
           <EmptyState
             icon={Share2}
-            title="No links yet"
-            message="Create a time-limited link to share with a doctor."
+            title={t("share.empty.title")}
+            message={t("share.empty.message")}
           />
         ) : (
           links.map((l) => {
             const expired = isExpired(l) || l.revoked;
+            const chip = statusChip(l);
             return (
               <Card key={l.id}>
                 <View
@@ -194,17 +219,9 @@ export default function ShareScreen() {
                     ]}
                     numberOfLines={1}
                   >
-                    {l.label || "Shared record"}
+                    {l.label || t("share.link.labelFallback")}
                   </Text>
-                  {expired ? (
-                    <Chip
-                      label={l.revoked ? "Revoked" : "Expired"}
-                      tone="neutral"
-                      size="sm"
-                    />
-                  ) : (
-                    <Chip label="Active" tone="success" size="sm" />
-                  )}
+                  <Chip label={chip.label} tone={chip.tone as any} size="sm" />
                 </View>
                 <View
                   style={{
@@ -217,30 +234,32 @@ export default function ShareScreen() {
                   <Clock size={12} color={colors.textMuted} />
                   <Text style={[typography.caption, { color: colors.textMuted }]}>
                     {expired
-                      ? `Expired ${new Date(l.expiresAt).toLocaleDateString()}`
-                      : `Expires ${new Date(l.expiresAt).toLocaleString()}`}
+                      ? t("share.link.expiredOn", {
+                          date: new Date(l.expiresAt).toLocaleDateString(),
+                        })
+                      : t("share.link.expiresOn", {
+                          date: new Date(l.expiresAt).toLocaleString(),
+                        })}
                   </Text>
                 </View>
 
-                <View
-                  style={{
-                    flexDirection: "row",
-                    gap: spacing.xs,
-                    marginTop: spacing.sm,
-                  }}
-                >
-                  {!expired && (
+                {!expired && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: spacing.xs,
+                      marginTop: spacing.sm,
+                    }}
+                  >
                     <Button
-                      title="Share"
+                      title={t("share.link.shareButton")}
                       icon={Share2}
                       onPress={() => onShareLink(l)}
                       size="sm"
                       style={{ flex: 1 }}
                     />
-                  )}
-                  {!expired && (
                     <Button
-                      title="Revoke"
+                      title={t("share.link.revokeButton")}
                       icon={Trash2}
                       variant="outline"
                       tone="danger"
@@ -248,8 +267,8 @@ export default function ShareScreen() {
                       size="sm"
                       style={{ flex: 1 }}
                     />
-                  )}
-                </View>
+                  </View>
+                )}
               </Card>
             );
           })
@@ -259,14 +278,14 @@ export default function ShareScreen() {
       <BottomSheet
         visible={sheetOpen}
         onDismiss={() => setSheetOpen(false)}
-        title="Create share link"
+        title={t("share.sheet.title")}
       >
         <View style={{ gap: spacing.md }}>
-          <FormField label="Label (optional)">
+          <FormField label={t("share.field.labelLabel")}>
             <TextInput
               value={label}
               onChangeText={setLabel}
-              placeholder="e.g. Dr Smith visit 2024"
+              placeholder={t("share.field.labelPlaceholder")}
               placeholderTextColor={colors.textSubtle}
               style={{
                 backgroundColor: colors.surface,
@@ -280,22 +299,22 @@ export default function ShareScreen() {
             />
           </FormField>
 
-          <FormField label="Scope">
+          <FormField label={t("share.field.scopeLabel")}>
             <ChipGroup
               options={[
-                { value: "all", label: "All records" },
-                { value: "recent6m", label: "Last 6 months" },
+                { value: "all", label: t("share.scope.all") },
+                { value: "recent6m", label: t("share.scope.recent6m") },
               ]}
               value={scope}
               onChange={setScope}
             />
           </FormField>
 
-          <FormField label="Duration">
+          <FormField label={t("share.field.durationLabel")}>
             <ChipGroup
               options={DURATIONS.map((d) => ({
                 value: String(d.value),
-                label: d.label,
+                label: t(d.key),
               }))}
               value={String(hours)}
               onChange={(v) => setHours(parseInt(v, 10))}
@@ -319,20 +338,19 @@ export default function ShareScreen() {
                 { color: colors.text, flex: 1, lineHeight: 18 },
               ]}
             >
-              Anyone with the link can view your shared data. You can revoke
-              access at any time.
+              {t("share.sheet.warning")}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", gap: spacing.sm }}>
             <Button
-              title="Cancel"
+              title={t("common.cancel")}
               variant="outline"
               onPress={() => setSheetOpen(false)}
               style={{ flex: 1 }}
             />
             <Button
-              title="Create"
+              title={t("share.createButton")}
               icon={CheckCircle2}
               onPress={onCreate}
               loading={create.isPending}

@@ -19,6 +19,7 @@ import {
   X,
   CircleAlert,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import {
   useAllergies,
   useAddAllergy,
@@ -40,14 +41,16 @@ import {
   useToast,
 } from "@/components/ui";
 
-const SEVERITIES = [
-  { value: "mild", label: "Mild", tone: "info" },
-  { value: "moderate", label: "Moderate", tone: "warning" },
-  { value: "severe", label: "Severe", tone: "danger" },
-  { value: "critical", label: "Critical", tone: "danger" },
-] as const;
+type Severity = "mild" | "moderate" | "severe" | "critical";
 
-const SEVERITY_COLOR = {
+const SEVERITIES: { value: Severity; key: string; tone: any }[] = [
+  { value: "mild", key: "allergies.severity.mild", tone: "info" },
+  { value: "moderate", key: "allergies.severity.moderate", tone: "warning" },
+  { value: "severe", key: "allergies.severity.severe", tone: "danger" },
+  { value: "critical", key: "allergies.severity.critical", tone: "danger" },
+];
+
+const SEVERITY_COLOR: Record<Severity, { bg: string; fg: string }> = {
   mild: { bg: "info", fg: "info" },
   moderate: { bg: "warning", fg: "warning" },
   severe: { bg: "dangerSoft", fg: "danger" },
@@ -56,6 +59,7 @@ const SEVERITY_COLOR = {
 
 export default function AllergiesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading, refetch } = useAllergies();
@@ -71,7 +75,7 @@ export default function AllergiesScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Allergy | null>(null);
   const [substance, setSubstance] = useState("");
-  const [severity, setSeverity] = useState<string>("moderate");
+  const [severity, setSeverity] = useState<Severity>("moderate");
   const [reaction, setReaction] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -92,7 +96,7 @@ export default function AllergiesScreen() {
   function openEdit(a: Allergy) {
     setEditing(a);
     setSubstance(a.substance || "");
-    setSeverity(a.severity || "moderate");
+    setSeverity((a.severity as Severity) || "moderate");
     setReaction(a.reaction || "");
     setNotes(a.notes || "");
     setSheetOpen(true);
@@ -106,7 +110,7 @@ export default function AllergiesScreen() {
   async function onSave() {
     const trimmed = substance.trim();
     if (trimmed.length < 2) {
-      toast.show({ message: "Substance required (min 2 chars)", tone: "warning" });
+      toast.show({ message: t("allergies.error.substanceRequired"), tone: "warning" });
       return;
     }
     try {
@@ -120,7 +124,7 @@ export default function AllergiesScreen() {
             notes: notes.trim() || undefined,
           },
         });
-        toast.show({ message: "Allergy updated", tone: "success" });
+        toast.show({ message: t("allergies.toast.updated"), tone: "success" });
       } else {
         await addAllergy.mutateAsync({
           substance: trimmed,
@@ -128,12 +132,12 @@ export default function AllergiesScreen() {
           reaction: reaction.trim() || undefined,
           notes: notes.trim() || undefined,
         });
-        toast.show({ message: "Allergy added", tone: "success" });
+        toast.show({ message: t("allergies.toast.added"), tone: "success" });
       }
       closeSheet();
     } catch (e: any) {
       toast.show({
-        message: e?.message || "Could not save allergy",
+        message: e?.message || t("allergies.toast.saveError"),
         tone: "danger",
       });
     }
@@ -141,20 +145,20 @@ export default function AllergiesScreen() {
 
   function onDelete(a: Allergy) {
     Alert.alert(
-      "Remove allergy?",
-      `This will permanently remove "${a.substance}".`,
+      t("allergies.deleteConfirm.title"),
+      t("allergies.deleteConfirm.body", { substance: a.substance }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Remove",
+          text: t("common.remove"),
           style: "destructive",
           onPress: async () => {
             try {
               await deleteAllergy.mutateAsync(a.id);
-              toast.show({ message: "Allergy removed", tone: "success" });
+              toast.show({ message: t("allergies.toast.removed"), tone: "success" });
             } catch (e: any) {
               toast.show({
-                message: e?.message || "Remove failed",
+                message: e?.message || t("allergies.toast.removeError"),
                 tone: "danger",
               });
             }
@@ -171,19 +175,20 @@ export default function AllergiesScreen() {
         payload: { active: a.active === false },
       });
     } catch (e: any) {
-      toast.show({ message: e?.message || "Update failed", tone: "danger" });
+      toast.show({ message: e?.message || t("allergies.toast.updateError"), tone: "danger" });
     }
   }
+
+  const subtitle =
+    allergies.length === 0
+      ? t("allergies.subtitleEmpty")
+      : t("allergies.subtitleCount", { active: activeCount, total: allergies.length });
 
   return (
     <Screen>
       <ScreenHeader
-        title="Allergies"
-        subtitle={
-          allergies.length === 0
-            ? "Track drugs, food, and environmental triggers"
-            : `${activeCount} active of ${allergies.length}`
-        }
+        title={t("allergies.title")}
+        subtitle={subtitle}
         onBack={() => router.back()}
       />
 
@@ -219,7 +224,7 @@ export default function AllergiesScreen() {
                   { color: "#fff", fontWeight: "800" },
                 ]}
               >
-                Critical allergies on file
+                {t("allergies.banner.title")}
               </Text>
               <Text
                 style={[
@@ -237,8 +242,7 @@ export default function AllergiesScreen() {
                   { color: "#fff", opacity: 0.85, marginTop: 6 },
                 ]}
               >
-                Shown to every doctor with access. Also blocks conflicting
-                medicines at save-time.
+                {t("allergies.banner.description")}
               </Text>
             </View>
           </View>
@@ -250,15 +254,15 @@ export default function AllergiesScreen() {
           ) : allergies.length === 0 ? (
             <EmptyState
               icon={CircleAlert}
-              title="No allergies recorded"
-              message="Add drug, food, latex, or environmental triggers so providers can avoid them."
-              actionLabel="Add allergy"
+              title={t("allergies.empty.title")}
+              message={t("allergies.empty.message")}
+              actionLabel={t("allergies.empty.action")}
               onAction={openAdd}
             />
           ) : (
             <View style={{ gap: spacing.sm }}>
               {allergies.map((a) => {
-                const sev = (a.severity as keyof typeof SEVERITY_COLOR) || "moderate";
+                const sev = (a.severity as Severity) || "moderate";
                 const colorTone = SEVERITY_COLOR[sev] ?? SEVERITY_COLOR.moderate;
                 return (
                   <Pressable
@@ -266,7 +270,7 @@ export default function AllergiesScreen() {
                     onPress={() => openEdit(a)}
                     onLongPress={() => onDelete(a)}
                     accessibilityRole="button"
-                    accessibilityHint="Tap to edit, hold to remove"
+                    accessibilityHint={t("allergies.accessibilityHint")}
                     style={({ pressed }) => ({
                       opacity: pressed ? 0.85 : 1,
                     })}
@@ -314,15 +318,12 @@ export default function AllergiesScreen() {
                               {a.substance}
                             </Text>
                             <Chip
-                              label={
-                                SEVERITIES.find((s) => s.value === sev)?.label ||
-                                sev
-                              }
+                              label={t(SEVERITIES.find((s) => s.value === sev)?.key || "")}
                               tone={colorTone.fg as any}
                               size="sm"
                             />
                             {a.active === false && (
-                              <Chip label="Inactive" tone="neutral" size="sm" />
+                              <Chip label={t("allergies.status.inactive")} tone="neutral" size="sm" />
                             )}
                           </View>
                           {!!a.reaction && (
@@ -354,7 +355,9 @@ export default function AllergiesScreen() {
                                 { color: colors.textSubtle, marginTop: 4 },
                               ]}
                             >
-                              Since {String(a.onsetDate).slice(0, 10)}
+                              {t("allergies.since", {
+                                date: String(a.onsetDate).slice(0, 10),
+                              })}
                             </Text>
                           )}
                         </View>
@@ -362,7 +365,9 @@ export default function AllergiesScreen() {
                           onPress={() => toggleActive(a)}
                           hitSlop={10}
                           accessibilityLabel={
-                            a.active === false ? "Reactivate" : "Deactivate"
+                            a.active === false
+                              ? t("allergies.toggle.reactivateLabel")
+                              : t("allergies.toggle.deactivateLabel")
                           }
                           accessibilityRole="button"
                           style={{
@@ -383,7 +388,9 @@ export default function AllergiesScreen() {
                               },
                             ]}
                           >
-                            {a.active === false ? "Off" : "On"}
+                            {a.active === false
+                              ? t("allergies.toggle.off")
+                              : t("allergies.toggle.on")}
                           </Text>
                         </Pressable>
                       </View>
@@ -405,7 +412,7 @@ export default function AllergiesScreen() {
         }}
       >
         <Button
-          title="Add allergy"
+          title={t("allergies.addButton")}
           icon={Plus}
           onPress={openAdd}
           size="lg"
@@ -415,14 +422,14 @@ export default function AllergiesScreen() {
       <BottomSheet
         visible={sheetOpen}
         onDismiss={closeSheet}
-        title={editing ? "Edit allergy" : "New allergy"}
+        title={editing ? t("allergies.sheet.editTitle") : t("allergies.sheet.newTitle")}
       >
         <ScrollView keyboardShouldPersistTaps="handled">
-          <FormField label="Substance" required>
+          <FormField label={t("allergies.field.substanceLabel")} required>
             <TextInput
               value={substance}
               onChangeText={setSubstance}
-              placeholder="Penicillin, peanuts, latex…"
+              placeholder={t("allergies.field.substancePlaceholder")}
               placeholderTextColor={colors.textSubtle}
               style={{
                 backgroundColor: colors.surface,
@@ -437,22 +444,22 @@ export default function AllergiesScreen() {
             />
           </FormField>
 
-          <FormField label="Severity">
+          <FormField label={t("allergies.field.severityLabel")}>
             <ChipGroup
               options={SEVERITIES.map((s) => ({
                 value: s.value,
-                label: s.label,
+                label: t(s.key),
               }))}
               value={severity}
-              onChange={setSeverity}
+              onChange={(v) => setSeverity(v as Severity)}
             />
           </FormField>
 
-          <FormField label="Reaction (optional)">
+          <FormField label={t("allergies.field.reactionLabel")}>
             <TextInput
               value={reaction}
               onChangeText={setReaction}
-              placeholder="Hives, swelling, anaphylaxis…"
+              placeholder={t("allergies.field.reactionPlaceholder")}
               placeholderTextColor={colors.textSubtle}
               multiline
               style={{
@@ -469,11 +476,11 @@ export default function AllergiesScreen() {
             />
           </FormField>
 
-          <FormField label="Notes (optional)">
+          <FormField label={t("allergies.field.notesLabel")}>
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="Diagnosed 2019, EpiPen carried…"
+              placeholder={t("allergies.field.notesPlaceholder")}
               placeholderTextColor={colors.textSubtle}
               multiline
               style={{
@@ -493,7 +500,7 @@ export default function AllergiesScreen() {
           <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.md }}>
             {editing && (
               <Button
-                title="Remove"
+                title={t("common.remove")}
                 variant="outline"
                 tone="danger"
                 icon={Trash2}
@@ -505,13 +512,13 @@ export default function AllergiesScreen() {
               />
             )}
             <Button
-              title="Cancel"
+              title={t("common.cancel")}
               variant="outline"
               onPress={closeSheet}
               style={{ flex: 1 }}
             />
             <Button
-              title={editing ? "Save" : "Add"}
+              title={editing ? t("common.save") : t("common.add")}
               icon={editing ? undefined : Plus}
               onPress={onSave}
               loading={addAllergy.isPending || updateAllergy.isPending}

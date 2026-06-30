@@ -7,6 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Bell,
   Pill,
@@ -38,68 +39,69 @@ type Pref = { type: string; inApp: boolean; push: boolean };
 
 const TYPES: Array<{
   key: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   Icon: any;
 }> = [
   {
     key: "appointment",
-    label: "Appointments",
-    description: "Booking, reschedule, confirmation, reminders",
+    labelKey: "notificationPreferences.type.appointment.label",
+    descriptionKey: "notificationPreferences.type.appointment.description",
     Icon: CalendarCheck2,
   },
   {
     key: "medicine",
-    label: "Medicines",
-    description: "Reminders, refills, adherence nudges",
+    labelKey: "notificationPreferences.type.medicine.label",
+    descriptionKey: "notificationPreferences.type.medicine.description",
     Icon: Pill,
   },
   {
     key: "lab_ready",
-    label: "Lab results",
-    description: "When lab reports are ready to view",
+    labelKey: "notificationPreferences.type.lab_ready.label",
+    descriptionKey: "notificationPreferences.type.lab_ready.description",
     Icon: FlaskConical,
   },
   {
     key: "prescription",
-    label: "Prescriptions",
-    description: "New prescriptions from your doctor",
+    labelKey: "notificationPreferences.type.prescription.label",
+    descriptionKey: "notificationPreferences.type.prescription.description",
     Icon: FileSignature,
   },
   {
     key: "vaccination",
-    label: "Vaccinations",
-    description: "Immunization schedule alerts",
+    labelKey: "notificationPreferences.type.vaccination.label",
+    descriptionKey: "notificationPreferences.type.vaccination.description",
     Icon: Syringe,
   },
   {
     key: "insurance",
-    label: "Insurance",
-    description: "Claims, expiry, updates",
+    labelKey: "notificationPreferences.type.insurance.label",
+    descriptionKey: "notificationPreferences.type.insurance.description",
     Icon: Shield,
   },
   {
     key: "hospital",
-    label: "Hospital",
-    description: "Admissions, bed updates, walk-ins",
+    labelKey: "notificationPreferences.type.hospital.label",
+    descriptionKey: "notificationPreferences.type.hospital.description",
     Icon: Building2,
   },
   {
     key: "emergency",
-    label: "Emergency",
-    description: "Always-on SOS, alerts (push only, cannot disable)",
+    labelKey: "notificationPreferences.type.emergency.label",
+    descriptionKey: "notificationPreferences.type.emergency.description",
     Icon: Siren,
   },
   {
     key: "general",
-    label: "General",
-    description: "Product updates, tips, announcements",
+    labelKey: "notificationPreferences.type.general.label",
+    descriptionKey: "notificationPreferences.type.general.description",
     Icon: Sparkles,
   },
 ];
 
 export default function NotificationPreferencesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
   const { data } = useNotificationPreferences();
@@ -133,9 +135,9 @@ export default function NotificationPreferencesScreen() {
   async function save() {
     try {
       await update.mutateAsync(local);
-      toast.show("Preferences saved", "success");
+      toast.show(t("notificationPreferences.toast.saved"), "success");
     } catch (err: any) {
-      toast.show(err?.message || "Could not save", "danger");
+      toast.show(err?.message || t("notificationPreferences.toast.saveError"), "danger");
     }
   }
 
@@ -147,8 +149,11 @@ export default function NotificationPreferencesScreen() {
       <ScreenHeader
         back
         onBack={() => router.back()}
-        title="Notifications"
-        subtitle={`${enabledCount} of ${TYPES.length} active`}
+        title={t("notificationPreferences.title")}
+        subtitle={t("notificationPreferences.subtitle", {
+          count: enabledCount,
+          total: TYPES.length,
+        })}
       />
 
       <ScrollView
@@ -175,20 +180,20 @@ export default function NotificationPreferencesScreen() {
               { color: colors.text, flex: 1 },
             ]}
           >
-            {pushOnly} types send push notifications. In-app stays enabled unless
-            you turn it off.
+            {t("notificationPreferences.banner.info", { count: pushOnly })}
           </Text>
         </View>
 
-        {TYPES.map((t) => {
-          const pref = local.find((p) => p.type === t.key) || {
-            type: t.key,
+        {TYPES.map((t2) => {
+          const pref = local.find((p) => p.type === t2.key) || {
+            type: t2.key,
             inApp: true,
             push: true,
           };
-          const emergencyOff = t.key === "emergency";
+          const emergencyOff = t2.key === "emergency";
+          const Icon = t2.Icon;
           return (
-            <Card key={t.key}>
+            <Card key={t2.key}>
               <View style={{ gap: spacing.sm }}>
                 <View
                   style={{
@@ -197,23 +202,27 @@ export default function NotificationPreferencesScreen() {
                     gap: spacing.sm,
                   }}
                 >
-                  <t.Icon size={18} color={colors.primary} />
+                  <Icon size={18} color={colors.primary} />
                   <Text
                     style={[
                       typography.title.sm,
                       { color: colors.text, flex: 1 },
                     ]}
                   >
-                    {t.label}
+                    {t(t2.labelKey)}
                   </Text>
                   {emergencyOff ? (
-                    <PillCmp label="always on" tone="warning" size="sm" />
+                    <PillCmp
+                      label={t("notificationPreferences.alwaysOn")}
+                      tone="warning"
+                      size="sm"
+                    />
                   ) : null}
                 </View>
                 <Text
                   style={[typography.caption, { color: colors.textMuted }]}
                 >
-                  {t.description}
+                  {t(t2.descriptionKey)}
                 </Text>
                 <View
                   style={{
@@ -223,15 +232,15 @@ export default function NotificationPreferencesScreen() {
                   }}
                 >
                   <ToggleRow
-                    label="In-app"
+                    labelKey="notificationPreferences.toggle.inApp"
                     value={pref.inApp}
                     disabled={emergencyOff}
-                    onChange={(v) => setPref(t.key, "inApp", v)}
+                    onChange={(v) => setPref(t2.key, "inApp", v)}
                   />
                   <ToggleRow
-                    label="Push"
+                    labelKey="notificationPreferences.toggle.push"
                     value={pref.push}
-                    onChange={(v) => setPref(t.key, "push", v)}
+                    onChange={(v) => setPref(t2.key, "push", v)}
                   />
                 </View>
               </View>
@@ -243,7 +252,7 @@ export default function NotificationPreferencesScreen() {
           onPress={() => {
             // Reset all
             setLocal(
-              TYPES.map((t) => ({ type: t.key, inApp: true, push: true }))
+              TYPES.map((t2) => ({ type: t2.key, inApp: true, push: true }))
             );
           }}
         >
@@ -253,12 +262,12 @@ export default function NotificationPreferencesScreen() {
               { color: colors.primary, textAlign: "center" },
             ]}
           >
-            Reset all to defaults
+            {t("notificationPreferences.reset")}
           </Text>
         </Pressable>
 
         <Button
-          title="Save"
+          title={t("common.save")}
           icon={Save}
           onPress={save}
           loading={update.isPending}
@@ -269,17 +278,18 @@ export default function NotificationPreferencesScreen() {
 }
 
 function ToggleRow({
-  label,
+  labelKey,
   value,
   onChange,
   disabled,
 }: {
-  label: string;
+  labelKey: string;
   value: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
 }) {
   const { colors, spacing, typography } = useTheme();
+  const { t } = useTranslation();
   return (
     <View
       style={{
@@ -296,7 +306,9 @@ function ToggleRow({
         opacity: disabled ? 0.55 : 1,
       }}
     >
-      <Text style={[typography.label.md, { color: colors.text }]}>{label}</Text>
+      <Text style={[typography.label.md, { color: colors.text }]}>
+        {t(labelKey)}
+      </Text>
       <Switch
         value={value}
         onValueChange={onChange}

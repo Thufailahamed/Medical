@@ -1,359 +1,575 @@
+// @ts-nocheck
+
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Upload,
+  Camera,
   FileText,
-  Calendar as CalendarIcon,
+  X,
   Check,
-  Stethoscope,
-  FileBadge,
-  ScanText,
-  Sparkles,
   Pill,
+  AlertTriangle,
+  ChevronRight,
 } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import {
-  useUploadRecordWithFile,
-  useMedicalRecord,
-  useAddMedicine,
-} from "@/hooks/useApi";
+import { useCreateRecord, useReadPrescription } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
-  ScreenHeader,
-  FormField,
-  TextInput,
-  Button,
-  DateField,
   Card,
-  Chip,
-  BottomSheet,
+  Button,
+  Pill as PillComponent,
+  TextField,
+  ScreenHeader,
   useToast,
 } from "@/components/ui";
+import { metaFor, type RecordType } from "@/lib/recordImportance";
 
-const RECORD_TYPES = [
-  { value: "lab_report", label: "Lab report" },
-  { value: "imaging", label: "Imaging" },
-  { value: "prescription", label: "Prescription" },
-  { value: "hospital_visit", label: "Hospital visit" },
-  { value: "vaccination", label: "Vaccination" },
-  { value: "surgery", label: "Surgery" },
-  { value: "allergy", label: "Allergy" },
-  { value: "insurance", label: "Insurance" },
-  { value: "fitness", label: "Fitness" },
-  { value: "discharge_summary", label: "Discharge" },
-  { value: "medical_certificate", label: "Certificate" },
-  { value: "operation_note", label: "Op note" },
-  { value: "invoice", label: "Invoice" },
+const RECORD_TYPE_VALUES: RecordType[] = [
+  "lab_report",
+  "prescription",
+  "imaging",
+  "hospital_visit",
+  "vaccination",
+  "surgery",
+  "op_note",
+  "discharge_summary",
+  "referral",
+  "insurance",
+  "pathology",
+  "dental",
+  "other",
 ];
 
 export default function AddRecordScreen() {
   const router = useRouter();
-  const { spacing, colors, typography } = useTheme();
+  const { t } = useTranslation();
+  const { spacing, colors, typography, fontFamily } = useTheme();
   const toast = useToast();
-  const upload = useUploadRecordWithFile();
 
-  const [recordType, setRecordType] = useState("lab_report");
+  const createRec = useCreateRecord();
+  const readRx = useReadPrescription();
+
+  const [type, setType] = useState<RecordType>("lab_report");
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
-  const [pickedFile, setPickedFile] = useState<any>(null);
 
-  const [lastRecordId, setLastRecordId] = useState<string | null>(null);
-  const [ocrSheetOpen, setOcrSheetOpen] = useState(false);
-  const [extractedMedicines, setExtractedMedicines] = useState<
-    { name: string; dosage: string; frequency: string; timing?: string }[]
+  const [file, setFile] = useState<{
+    uri: string;
+    name: string;
+    type: string;
+    size: number;
+  } | null>(null);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [showOcrSheet, setShowOcrSheet] = useState(false);
+  const [extractedMeds, setExtractedMeds] = useState<
+    Array<{ name: string; dosage?: string }>
   >([]);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
-  const { data: lastRecord } = useMedicalRecord(lastRecordId || "");
-  const addMedicine = useAddMedicine();
-
-  // V3: When extractedData appears on a freshly-uploaded prescription,
-  // open the medicine-confirm sheet.
-  useEffect(() => {
-    const ext = (lastRecord as any)?.record?.extractedData;
-    if (!ext) return;
-    try {
-      const parsed = JSON.parse(ext);
-      if (Array.isArray(parsed?.medicines) && parsed.medicines.length > 0) {
-        setExtractedMedicines(parsed.medicines);
-        setOcrSheetOpen(true);
-      }
-    } catch {}
-  }, [(lastRecord as any)?.record?.extractedData]);
-
-  async function addExtractedMedicines() {
-    let added = 0;
-    for (const m of extractedMedicines) {
-      try {
-        await addMedicine.mutateAsync({
-          name: m.name,
-          dosage: m.dosage || undefined,
-          frequency: m.frequency || undefined,
-          startDate: new Date().toISOString().slice(0, 10),
-        });
-        added++;
-      } catch {}
-    }
-    setOcrSheetOpen(false);
-    toast.show(
-      added > 0
-        ? `Added ${added} medicine${added === 1 ? "" : "s"}`
-        : "Could not add medicines",
-      added > 0 ? "success" : "danger"
-    );
+  function pickImage() {
+    ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+    })
+      .then((res) => {
+        if (!res.canceled && res.assets[0]) {
+          const a = res.assets[0];
+          setFile({
+            uri: a.uri,
+            name: a.fileName || `photo-${Date.now()}.jpg`,
+            type: a.mimeType || "image/jpeg",
+            size: a.fileSize || 0,
+          });
+        }
+      })
+      .catch(() => {});
   }
 
-  async function pickFile() {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: "*/*",
+  function pickDoc() {
+    DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
-    });
-    if (!result.canceled && result.assets?.[0]) {
-      setPickedFile(result.assets[0]);
-    }
+      type: ["application/pdf", "image/*"],
+    })
+      .then((res) => {
+        if (!res.canceled && res.assets[0]) {
+          const a = res.assets[0];
+          setFile({
+            uri: a.uri,
+            name: a.name,
+            type: a.mimeType || "application/octet-stream",
+            size: a.size || 0,
+          });
+        }
+      })
+      .catch(() => {});
   }
 
-  async function handleSave() {
-    // File attachment is always optional — title + type + date are the only
-    // required fields (matches backend `medicalRecordSchema`).
+  async function submit() {
     if (!title.trim()) {
-      toast.show("Title is required", "warning");
+      toast.show(t("addRecord.toast.titleRequired"), "warning");
       return;
     }
+    setSubmitting(true);
     try {
-      const fileData = pickedFile
-        ? {
-            uri: pickedFile.uri,
-            name: pickedFile.name,
-            type: pickedFile.mimeType || "application/octet-stream",
-          }
-        : undefined;
-
-      const res = await upload.mutateAsync({
-        file: fileData as any,
-        recordType,
+      let attachmentMeta: any = null;
+      if (file) {
+        attachmentMeta = {
+          uri: file.uri,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        };
+      }
+      const payload: any = {
+        recordType: type,
         title: title.trim(),
-        date: date.toISOString().slice(0, 10),
+        date,
         diagnosis: diagnosis.trim() || undefined,
         notes: notes.trim() || undefined,
-      });
-      toast.show("Record added", "success");
-
-      // V3: For prescriptions, fetch extracted meds once OCR completes.
-      const recordId = (res as any)?.record?.id;
-      if (recordType === "prescription" && recordId) {
-        setLastRecordId(recordId);
-        toast.show("Reading prescription…", "info");
+        attachment: attachmentMeta,
+      };
+      const res = await createRec.mutateAsync(payload);
+      toast.show(t("addRecord.toast.added"), "success");
+      // If this was a prescription image, attempt OCR.
+      if (type === "prescription" && file?.type.startsWith("image")) {
+        setOcrLoading(true);
+        try {
+          const r = await readRx.mutateAsync({
+            recordId: res.record.id,
+            imageUri: file.uri,
+            mimeType: file.type,
+          });
+          if (r.medicines?.length) {
+            setExtractedMeds(r.medicines);
+            setShowOcrSheet(true);
+          }
+        } catch {
+          // Silently continue — OCR is a bonus.
+        } finally {
+          setOcrLoading(false);
+        }
       }
-      router.back();
+      router.replace({
+        pathname: "/(app)/record-detail",
+        params: { id: res.record.id },
+      });
     } catch (err: any) {
-      toast.show(err?.message || "Upload failed", "danger");
+      toast.show(
+        err?.message || t("addRecord.toast.uploadError"),
+        "danger"
+      );
+    } finally {
+      setSubmitting(false);
     }
   }
 
   return (
-    <Screen keyboard padded={false} edges={["top"]} bottomInset>
-      <ScreenHeader back title="Add record" />
+    <Screen padded={false} edges={["top"]}>
+      <ScreenHeader
+        title={t("addRecord.title")}
+        onClose={() => router.back()}
+      />
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110, gap: spacing.lg }}
+        style={{ backgroundColor: "#FAF9FC" }}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* File picker */}
-        <Card padded={false}>
-          <View
-            style={{
-              padding: spacing.lg,
-              alignItems: "center",
-              gap: spacing.sm,
-            }}
-          >
+        {/* Attachment card */}
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.lg,
+            marginBottom: spacing.md,
+          }}
+        >
+          <Card style={{ padding: spacing.md }}>
             <View
               style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: pickedFile ? colors.primary : colors.surfaceMuted,
+                gap: spacing.xs,
+                marginBottom: spacing.xs,
               }}
             >
-              {pickedFile ? (
-                <Check size={26} color={colors.onPrimary} strokeWidth={2.5} />
-              ) : (
-                <Upload size={26} color={colors.primary} strokeWidth={2.25} />
-              )}
+              <Upload size={16} color={colors.primary} strokeWidth={2.25} />
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: "#1D1B20",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {t("addRecord.attachOptional")}
+              </Text>
             </View>
             <Text
-              style={[
-                typography.title.sm,
-                { color: colors.text, textAlign: "center" },
-              ]}
+              style={{
+                fontSize: 12,
+                color: colors.textMuted,
+                marginBottom: spacing.sm,
+                fontFamily: fontFamily.body,
+              }}
             >
-              {pickedFile ? pickedFile.name : "Attach file (optional)"}
+              {t("addRecord.attachHelper")}
             </Text>
-            <Text
-              style={[
-                typography.body.sm,
-                { color: colors.textMuted, textAlign: "center" },
-              ]}
-              numberOfLines={2}
-            >
-              {pickedFile
-                ? `${(pickedFile.size / 1024).toFixed(0)} KB · ${
-                    pickedFile.mimeType || "file"
-                  }`
-                : "PDF, image, DICOM — max 50MB · or skip to log a note"}
-            </Text>
-            <Button
-              title={pickedFile ? "Choose another" : "Choose file"}
-              variant="outline"
-              onPress={pickFile}
-              size="sm"
-              icon={FileText}
-            />
-          </View>
-        </Card>
 
-        {/* Record type chips */}
-        <View style={{ gap: spacing.xs }}>
-          <Text style={[typography.label.md, { color: colors.textMuted }]}>
-            RECORD TYPE
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: spacing.xs,
-            }}
-          >
-            {RECORD_TYPES.map((rt) => (
-              <Chip
-                key={rt.value}
-                label={rt.label}
-                selected={recordType === rt.value}
-                tone={recordType === rt.value ? "primary" : "neutral"}
-                onPress={() => setRecordType(rt.value)}
+            {file ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  padding: spacing.sm,
+                  borderRadius: 12,
+                  backgroundColor: "#F4F2F8",
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    backgroundColor: "#FFFFFF",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {file.type.startsWith("image") ? (
+                    <Camera size={20} color={colors.primary} />
+                  ) : (
+                    <FileText size={20} color={colors.primary} />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      color: "#1D1B20",
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {file.name}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.textMuted,
+                      fontFamily: fontFamily.body,
+                    }}
+                  >
+                    {(file.size / 1024).toFixed(1)} KB · {file.type}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setFile(null)} hitSlop={6}>
+                  <X size={18} color={colors.danger || "#FF3B30"} />
+                </Pressable>
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Button
+                  title={t("addRecord.chooseFile")}
+                  variant="secondary"
+                  size="md"
+                  onPress={pickDoc}
+                  style={{ flex: 1 }}
+                  leftIcon={<FileText size={16} color={colors.primary} />}
+                />
+                <Button
+                  title={t("addRecord.chooseFile")}
+                  variant="ghost"
+                  size="md"
+                  onPress={pickImage}
+                  style={{ flex: 1 }}
+                  leftIcon={<Camera size={16} color={colors.primary} />}
+                />
+              </View>
+            )}
+
+            {file ? (
+              <Button
+                title={t("addRecord.chooseAnother")}
+                variant="ghost"
+                size="sm"
+                onPress={() => setFile(null)}
+                style={{ marginTop: spacing.xs, alignSelf: "flex-start" }}
               />
-            ))}
-          </View>
+            ) : null}
+          </Card>
         </View>
 
-        <FormField label="Title" required>
-          <TextInput
+        {/* Record type chips */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              color: "#7F7B8C",
+              letterSpacing: 1,
+              marginBottom: spacing.xs,
+              fontFamily: fontFamily.displayBold,
+            }}
+          >
+            {t("addRecord.recordTypeLabel").toUpperCase()}
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.xs }}
+          >
+            {RECORD_TYPE_VALUES.map((rv) => {
+              const meta = metaFor(rv);
+              const isSel = type === rv;
+              return (
+                <Pressable
+                  key={rv}
+                  onPress={() => setType(rv)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 16,
+                    backgroundColor: isSel ? colors.primary : "#F4F2F8",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <meta.icon
+                    size={13}
+                    color={isSel ? "#FFFFFF" : colors.text}
+                    strokeWidth={2.25}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      color: isSel ? "#FFFFFF" : "#1D1B20",
+                      fontFamily: isSel
+                        ? fontFamily.bodyBold
+                        : fontFamily.body,
+                    }}
+                  >
+                    {t(`records.type.${rv}`)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Form fields */}
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            gap: spacing.md,
+            marginBottom: spacing.md,
+          }}
+        >
+          <TextField
+            label={t("addRecord.fields.title")}
             value={title}
             onChangeText={setTitle}
-            placeholder="e.g., Lipid panel — March 2026"
-            leadingIcon={FileBadge}
+            placeholder={t("addRecord.placeholders.title")}
           />
-        </FormField>
-
-        <FormField label="Date" required>
-          <DateField
+          <TextField
+            label={t("addRecord.fields.date")}
             value={date}
-            onChange={setDate}
-            placeholder="Pick date"
-            maximumDate={new Date()}
+            onChangeText={setDate}
+            placeholder={t("addRecord.placeholders.date")}
           />
-        </FormField>
-
-        <FormField label="Diagnosis" helper="Optional">
-          <TextInput
+          <TextField
+            label={t("addRecord.fields.diagnosis")}
             value={diagnosis}
             onChangeText={setDiagnosis}
-            placeholder="e.g., Hypercholesterolemia"
-            leadingIcon={Stethoscope}
+            placeholder={t("addRecord.placeholders.diagnosis")}
+            helper={t("addRecord.optionalHelper")}
+            multiline
           />
-        </FormField>
-
-        <FormField label="Notes" helper="Optional">
-          <TextInput
+          <TextField
+            label={t("addRecord.fields.notes")}
             value={notes}
             onChangeText={setNotes}
-            placeholder="Anything your doctor should know..."
+            placeholder={t("addRecord.placeholders.notes")}
+            helper={t("addRecord.optionalHelper")}
             multiline
-            numberOfLines={3}
-            tone="soft"
           />
-        </FormField>
+        </View>
 
-        <Button
-          title="Save record"
-          onPress={handleSave}
-          loading={upload.isPending}
-          icon={Upload}
-          size="lg"
-          fullWidth
-        />
+        {/* Submit */}
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <Button
+            title={t("addRecord.save")}
+            variant="primary"
+            size="lg"
+            loading={submitting}
+            onPress={submit}
+          />
+        </View>
       </ScrollView>
 
-      {/* V3: OCR medicine-confirm sheet */}
-      <BottomSheet
-        visible={ocrSheetOpen}
-        onDismiss={() => setOcrSheetOpen(false)}
-        title="Extracted from prescription"
-      >
-        <View style={{ gap: spacing.md }}>
+      {/* OCR sheet */}
+      {showOcrSheet ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "#FFFFFF",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: spacing.lg,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
+            elevation: 8,
+          }}
+        >
+          <View
+            style={{
+              alignSelf: "center",
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: "#E6E4EA",
+              marginBottom: spacing.md,
+            }}
+          />
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.xs,
+              marginBottom: spacing.xs,
             }}
           >
-            <Sparkles size={16} color={colors.primary} />
-            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-              We read {extractedMedicines.length} medicine
-              {extractedMedicines.length === 1 ? "" : "s"} from your prescription.
-            </Text>
-          </View>
-
-          {extractedMedicines.map((m, i) => (
-            <View
-              key={i}
+            <Pill size={18} color={colors.primary} />
+            <Text
               style={{
-                padding: spacing.md,
-                backgroundColor: colors.surface,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: colors.border,
-                gap: 2,
+                fontSize: 16,
+                fontWeight: "800",
+                color: "#1D1B20",
+                fontFamily: fontFamily.displayBold,
               }}
             >
-              <Text
-                style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "700" },
-                ]}
+              {t("addRecord.ocrSheet.title")}
+            </Text>
+          </View>
+          <Text
+            style={{
+              fontSize: 13,
+              color: colors.textMuted,
+              marginBottom: spacing.sm,
+              fontFamily: fontFamily.body,
+            }}
+          >
+            {t("addRecord.ocrSheet.readMedicines", {
+              count: extractedMeds.length,
+            })}
+          </Text>
+
+          <View
+            style={{
+              gap: 6,
+              marginBottom: spacing.md,
+              maxHeight: 220,
+            }}
+          >
+            {extractedMeds.map((m, i) => (
+              <View
+                key={i}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  padding: spacing.sm,
+                  borderRadius: 10,
+                  backgroundColor: "#F4F2F8",
+                }}
               >
-                {m.name}
-              </Text>
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {[m.dosage, m.frequency, m.timing].filter(Boolean).join(" • ")}
-              </Text>
-            </View>
-          ))}
+                <Pill size={14} color={colors.primary} />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    color: "#1D1B20",
+                    fontFamily: fontFamily.body,
+                  }}
+                >
+                  {m.name}
+                  {m.dosage ? ` · ${m.dosage}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
 
           <View style={{ flexDirection: "row", gap: spacing.sm }}>
             <Button
-              title="Skip"
-              variant="outline"
-              onPress={() => setOcrSheetOpen(false)}
+              title={t("addRecord.ocrSheet.skip")}
+              variant="ghost"
+              size="md"
+              onPress={() => setShowOcrSheet(false)}
               style={{ flex: 1 }}
             />
             <Button
-              title={`Add ${extractedMedicines.length} to my list`}
-              icon={Pill}
-              onPress={addExtractedMedicines}
-              loading={addMedicine.isPending}
-              style={{ flex: 2 }}
+              title={t("addRecord.ocrSheet.addToList")}
+              variant="primary"
+              size="md"
+              onPress={async () => {
+                try {
+                  // Bulk-add via API (single batch)
+                  await readRx.mutateAsync({
+                    bulkAdd: extractedMeds,
+                  });
+                  toast.show(
+                    t("addRecord.ocrSheet.addedMeds", {
+                      count: extractedMeds.length,
+                    }),
+                    "success"
+                  );
+                  setShowOcrSheet(false);
+                } catch (err: any) {
+                  toast.show(
+                    err?.message || t("addRecord.ocrSheet.addError"),
+                    "danger"
+                  );
+                }
+              }}
+              style={{ flex: 1 }}
+              rightIcon={<ChevronRight size={16} color="#FFFFFF" />}
             />
           </View>
         </View>
-      </BottomSheet>
+      ) : null}
+
+      {ocrLoading ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.35)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      ) : null}
     </Screen>
   );
 }

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -44,43 +45,52 @@ import {
 // Frequency + timing enums are duplicated rather than re-exported so the
 // mobile bundle doesn't pull in API-only validators. Keep in sync if the
 // server enum changes.
-const FREQUENCIES = [
-  { value: "Once daily", label: "Once daily" },
-  { value: "Twice daily", label: "Twice daily" },
-  { value: "Three times daily", label: "Three times" },
-  { value: "Four times daily", label: "Four times" },
-  { value: "As needed", label: "As needed" },
+const FREQUENCY_VALUES = [
+  "Once daily",
+  "Twice daily",
+  "Three times daily",
+  "Four times daily",
+  "As needed",
 ] as const;
 
-const TIMINGS = [
-  { value: "Before food", label: "Before food" },
-  { value: "After food", label: "After food" },
-  { value: "With food", label: "With food" },
-  { value: "Any time", label: "Any time" },
-  { value: "Morning", label: "Morning" },
-  { value: "Afternoon", label: "Afternoon" },
-  { value: "Evening", label: "Evening" },
-  { value: "Night", label: "Night" },
+const TIMING_VALUES = [
+  "Before food",
+  "After food",
+  "With food",
+  "Any time",
+  "Morning",
+  "Afternoon",
+  "Evening",
+  "Night",
 ] as const;
 
 // M3 + M4: Zod schema. Dates are coerced so RHF can hold Date objects
 // while the server receives YYYY-MM-DD strings. active is required
 // because the form owns the active toggle now.
-const editSchema = z.object({
-  name: z.string().min(1, "Name is required").max(120),
-  dosage: z.string().min(1, "Dosage is required").max(60),
+const makeEditSchema = (t: (k: string) => string) => z.object({
+  name: z.string().min(1, t("addMedicine.errors.nameRequired")).max(120),
+  dosage: z.string().min(1, t("addMedicine.errors.dosageRequired")).max(60),
   frequency: z.enum(
-    FREQUENCIES.map((f) => f.value) as [string, ...string[]]
+    FREQUENCY_VALUES as unknown as [string, ...string[]]
   ),
   timing: z
-    .enum(TIMINGS.map((t) => t.value) as [string, ...string[]])
+    .enum(TIMING_VALUES as unknown as [string, ...string[]])
     .optional(),
-  startDate: z.date({ required_error: "Start date is required" }),
+  startDate: z.date({ required_error: t("addMedicine.errors.startRequired") }),
   endDate: z.date().optional(),
   notes: z.string().max(1000).optional(),
   active: z.boolean(),
 });
-type EditFormData = z.infer<typeof editSchema>;
+type EditFormData = {
+  name: string;
+  dosage: string;
+  frequency: string;
+  timing?: string;
+  startDate: Date;
+  endDate?: Date;
+  notes?: string;
+  active: boolean;
+};
 
 function toDateString(d: Date | undefined): string {
   if (!d) return "";
@@ -98,6 +108,7 @@ function SuggestionRow({
   s: MedicineSuggestion;
   onApply: (s: MedicineSuggestion) => void;
 }) {
+  const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
   const isHistory = s.source === "history";
   const topDosage = s.commonDosages[0];
@@ -108,7 +119,7 @@ function SuggestionRow({
     <Pressable
       onPress={() => onApply(s)}
       accessibilityRole="button"
-      accessibilityLabel={`Use ${s.name}`}
+      accessibilityLabel={t("addMedicine.a11y.use", { name: s.name })}
       style={({ pressed }) => ({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
@@ -160,7 +171,7 @@ function SuggestionRow({
             ? `${topDosage}${topFreq ? ` · ${topFreq}` : ""}${
                 topTiming ? ` · ${topTiming}` : ""
               }`
-            : "Tap to use name"}
+            : t("editMedicine.actions.tapToUse")}
         </Text>
       </View>
       <CornerDownLeft size={14} color={colors.textSubtle} strokeWidth={2.25} />
@@ -172,6 +183,7 @@ export default function EditMedicineScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = (params.id as string) || "";
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
 
@@ -180,6 +192,8 @@ export default function EditMedicineScreen() {
   const stop = useStopMedicine();
 
   const med = data?.medicine;
+
+  const editSchema = makeEditSchema(t);
 
   const {
     control,
@@ -245,6 +259,15 @@ export default function EditMedicineScreen() {
     watchedName.trim().toLowerCase() !== (med?.name ?? "").trim().toLowerCase() &&
     suggestions.length > 0;
 
+  const FREQUENCIES = FREQUENCY_VALUES.map((v) => ({
+    value: v,
+    label: t(`medicine.frequency.${v}`),
+  }));
+  const TIMINGS = TIMING_VALUES.map((v) => ({
+    value: v,
+    label: t(`medicine.timing.${v}`),
+  }));
+
   function applySuggestion(s: MedicineSuggestion) {
     setValue("name", s.name, { shouldValidate: true, shouldDirty: true });
     if (s.commonDosages[0])
@@ -279,10 +302,10 @@ export default function EditMedicineScreen() {
         notes: data.notes?.trim() || undefined,
         active: data.active,
       } as any);
-      toast.show("Saved", "success");
+      toast.show(t("editMedicine.toast.saved"), "success");
       router.back();
     } catch (err: any) {
-      toast.show(err?.message || "Save failed", "danger");
+      toast.show(err?.message || t("editMedicine.toast.saveError"), "danger");
     }
   }
 
@@ -290,17 +313,17 @@ export default function EditMedicineScreen() {
     if (!med) return;
     try {
       await stop.mutateAsync(med.id);
-      toast.show(`${med.name} stopped`, "info");
+      toast.show(t("editMedicine.toast.stopped", { name: med.name }), "info");
       router.back();
     } catch (err: any) {
-      toast.show(err?.message || "Failed to stop", "danger");
+      toast.show(err?.message || t("editMedicine.toast.stopError"), "danger");
     }
   }
 
   if (isLoading || (!med && !error)) {
     return (
       <Screen padded={false} edges={["top"]} bottomInset={false}>
-        <ScreenHeader title="Edit medicine" onBack={() => router.back()} />
+        <ScreenHeader title={t("editMedicine.title")} onBack={() => router.back()} />
         <View
           style={{
             flex: 1,
@@ -317,11 +340,11 @@ export default function EditMedicineScreen() {
   if (error || !med) {
     return (
       <Screen padded={false} edges={["top"]} bottomInset={false}>
-        <ScreenHeader title="Edit medicine" onBack={() => router.back()} />
+        <ScreenHeader title={t("editMedicine.title")} onBack={() => router.back()} />
         <View style={{ padding: spacing.lg }}>
           <Card>
             <Text style={[typography.title.sm, { color: colors.text }]}>
-              Could not load medicine
+              {t("editMedicine.loadError.title")}
             </Text>
             <Text
               style={[
@@ -329,10 +352,10 @@ export default function EditMedicineScreen() {
                 { color: colors.textMuted, marginTop: 4 },
               ]}
             >
-              It may have been deleted, or you may not have access.
+              {t("editMedicine.loadError.body")}
             </Text>
             <Button
-              title="Back"
+              title={t("editMedicine.loadError.back")}
               variant="outline"
               onPress={() => router.back()}
               style={{ marginTop: spacing.md }}
@@ -346,7 +369,7 @@ export default function EditMedicineScreen() {
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Edit medicine"
+        title={t("editMedicine.title")}
         subtitle={med.name}
         onBack={() => router.back()}
       />
@@ -378,7 +401,7 @@ export default function EditMedicineScreen() {
                       { color: colors.text, fontWeight: "700" },
                     ]}
                   >
-                    {value ? "Active" : "Paused"}
+                    {value ? t("editMedicine.active.on") : t("editMedicine.active.off")}
                   </Text>
                   <Text
                     style={[
@@ -387,15 +410,15 @@ export default function EditMedicineScreen() {
                     ]}
                   >
                     {value
-                      ? "Reminders will continue."
-                      : "Reminders are off until you reactivate."}
+                      ? t("editMedicine.active.onSubtitle")
+                      : t("editMedicine.active.offSubtitle")}
                   </Text>
                 </View>
                 <Pressable
                   onPress={() => onChange(!value)}
                   accessibilityRole="switch"
                   accessibilityState={{ checked: !!value }}
-                  accessibilityLabel="Active toggle"
+                  accessibilityLabel={t("editMedicine.active.toggleA11y")}
                   hitSlop={8}
                   style={({ pressed }) => ({
                     width: 52,
@@ -432,7 +455,7 @@ export default function EditMedicineScreen() {
               name="name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <FormField
-                  label="Medicine name"
+                  label={t("medicine.form.nameLabel")}
                   required
                   error={errors.name?.message}
                 >
@@ -445,7 +468,7 @@ export default function EditMedicineScreen() {
                         onBlur();
                         setTimeout(() => setNameFocused(false), 120);
                       }}
-                      placeholder="e.g. Metformin"
+                      placeholder={t("medicine.form.nameEditPlaceholder")}
                       leadingIcon={Pill}
                       invalid={!!errors.name}
                     />
@@ -503,7 +526,7 @@ export default function EditMedicineScreen() {
               name="dosage"
               render={({ field: { onChange, onBlur, value } }) => (
                 <FormField
-                  label="Dosage"
+                  label={t("medicine.form.dosageLabel")}
                   required
                   error={errors.dosage?.message}
                 >
@@ -511,7 +534,7 @@ export default function EditMedicineScreen() {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="e.g., 500mg"
+                    placeholder={t("medicine.form.dosagePlaceholder")}
                     invalid={!!errors.dosage}
                   />
                 </FormField>
@@ -524,7 +547,7 @@ export default function EditMedicineScreen() {
         <Card padded={false}>
           <View style={{ padding: spacing.lg }}>
             <FormField
-              label="Frequency"
+              label={t("medicine.form.frequencyLabel")}
               required
               error={errors.frequency?.message}
             >
@@ -547,9 +570,9 @@ export default function EditMedicineScreen() {
         <Card padded={false}>
           <View style={{ padding: spacing.lg, gap: spacing.sm }}>
             <FormField
-              label="Timing"
+              label={t("medicine.form.timingLabel")}
               error={errors.timing?.message}
-              helper="When to take this medicine"
+              helper={t("medicine.form.timingHelper")}
             >
               <Controller
                 control={control}
@@ -562,7 +585,7 @@ export default function EditMedicineScreen() {
                       onPress={() => onChange(undefined)}
                       accessibilityRole="button"
                       accessibilityState={{ selected: !value }}
-                      accessibilityLabel="No timing"
+                      accessibilityLabel={t("editMedicine.a11y.noTiming")}
                       style={({ pressed }) => ({
                         paddingHorizontal: spacing.md,
                         paddingVertical: 8,
@@ -582,18 +605,18 @@ export default function EditMedicineScreen() {
                           color: !value ? colors.onPrimary : colors.text,
                         }}
                       >
-                        None
+                        {t("editMedicine.timingNone")}
                       </Text>
                     </Pressable>
-                    {TIMINGS.map((t) => {
-                      const sel = t.value === value;
+                    {TIMINGS.map((tt) => {
+                      const sel = tt.value === value;
                       return (
                         <Pressable
-                          key={t.value}
-                          onPress={() => onChange(t.value as any)}
+                          key={tt.value}
+                          onPress={() => onChange(tt.value as any)}
                           accessibilityRole="button"
                           accessibilityState={{ selected: sel }}
-                          accessibilityLabel={t.label}
+                          accessibilityLabel={tt.label}
                           style={({ pressed }) => ({
                             paddingHorizontal: spacing.md,
                             paddingVertical: 8,
@@ -613,9 +636,9 @@ export default function EditMedicineScreen() {
                               color: sel ? colors.onPrimary : colors.text,
                             }}
                           >
-                            {t.label}
+                            {tt.label}
                           </Text>
-                          </Pressable>
+                        </Pressable>
                       );
                     })}
                   </View>
@@ -640,10 +663,10 @@ export default function EditMedicineScreen() {
                 name="startDate"
                 render={({ field: { onChange, value } }) => (
                   <DateField
-                    label="Start date"
+                    label={t("medicine.form.startDateLabel")}
                     value={value}
                     onChange={onChange}
-                    placeholder="When did you start?"
+                    placeholder={t("medicine.form.startDateEditPlaceholder")}
                     error={errors.startDate?.message}
                   />
                 )}
@@ -655,10 +678,10 @@ export default function EditMedicineScreen() {
                 name="endDate"
                 render={({ field: { onChange, value } }) => (
                   <DateField
-                    label="End date (optional)"
+                    label={t("medicine.form.endDateLabel")}
                     value={value}
                     onChange={onChange}
-                    placeholder="When does it end?"
+                    placeholder={t("medicine.form.endDatePlaceholder")}
                     error={errors.endDate?.message}
                   />
                 )}
@@ -675,15 +698,15 @@ export default function EditMedicineScreen() {
               name="notes"
               render={({ field: { onChange, onBlur, value } }) => (
                 <FormField
-                  label="Notes"
-                  helper="Anything to remember"
+                  label={t("medicine.form.notesLabel")}
+                  helper={t("medicine.form.notesHelperEdit")}
                   error={errors.notes?.message}
                 >
                   <TextInput
                     value={value ?? ""}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="e.g., take with warm water"
+                    placeholder={t("medicine.form.notesPlaceholderEdit")}
                     multiline
                     numberOfLines={3}
                     invalid={!!errors.notes}
@@ -708,7 +731,7 @@ export default function EditMedicineScreen() {
         {/* Actions */}
         <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
           <Button
-            title="Save changes"
+            title={t("editMedicine.actions.save")}
             icon={Save}
             onPress={handleSubmit(onSubmit)}
             loading={edit.isPending}
@@ -717,7 +740,7 @@ export default function EditMedicineScreen() {
           />
           {watchedActive ? (
             <Button
-              title="Stop medicine"
+              title={t("editMedicine.actions.stop")}
               icon={Power}
               onPress={onStop}
               loading={stop.isPending}

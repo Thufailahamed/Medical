@@ -15,6 +15,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 import QRCode from "react-native-qrcode-svg";
 import {
@@ -84,6 +85,7 @@ function parseList(v?: string | null): string[] {
 
 export default function EmergencyScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const triggerSOS = useTriggerSOS();
   const { data: qrData, isLoading: qrLoading } = useEmergencyQR();
   const { data: profileData } = usePatientProfile();
@@ -176,7 +178,7 @@ export default function EmergencyScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        toast.show("Location permission required", "warning");
+        toast.show(t("emergency.toast.permission"), "warning");
         return;
       }
       const location = await Location.getCurrentPositionAsync({});
@@ -184,9 +186,9 @@ export default function EmergencyScreen() {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-      toast.show("Emergency alert sent. Help is on the way.", "success");
+      toast.show(t("emergency.toast.sent"), "success");
     } catch (err: any) {
-      toast.show(err?.message || "Could not send alert", "danger");
+      toast.show(err?.message || t("emergency.toast.sendError"), "danger");
     } finally {
       setConfirmOpen(false);
       setPressing(false);
@@ -195,12 +197,12 @@ export default function EmergencyScreen() {
 
   function dial(contactPhone?: string) {
     if (!contactPhone) {
-      toast.show("No phone on file", "warning");
+      toast.show(t("emergency.toast.noPhone"), "warning");
       return;
     }
     const cleaned = contactPhone.replace(/[\s()\-]/g, "");
     Linking.openURL(`tel:${cleaned}`).catch(() =>
-      toast.show("Cannot place a call from this device", "warning")
+      toast.show(t("emergency.toast.cannotCall"), "warning")
     );
   }
 
@@ -221,7 +223,7 @@ export default function EmergencyScreen() {
           <Pressable
             onPress={() => router.push("/(app)/profile")}
             accessibilityRole="button"
-            accessibilityLabel="Open profile"
+            accessibilityLabel={t("emergency.header.accessibilityOpenProfile")}
             hitSlop={6}
           >
             <Avatar
@@ -238,7 +240,7 @@ export default function EmergencyScreen() {
                 { color: colors.textMuted, letterSpacing: 0.6 },
               ]}
             >
-              HEALTHHUB
+              {t("emergency.header.brand")}
             </Text>
             <Text
               style={[
@@ -255,7 +257,7 @@ export default function EmergencyScreen() {
           onPress={() => router.push("/(app)/notifications")}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Notifications"
+          accessibilityLabel={t("emergency.header.accessibilityNotifications")}
           style={({ pressed }) => ({
             width: 40,
             height: 40,
@@ -325,7 +327,7 @@ export default function EmergencyScreen() {
             onLongPress={() => setConfirmOpen(true)}
             delayLongPress={1500}
             accessibilityRole="button"
-            accessibilityLabel="SOS. Press and hold."
+            accessibilityLabel={t("emergency.sos.accessibilityLabel")}
             style={({ pressed }) => ({
               width: 120,
               height: 120,
@@ -365,7 +367,7 @@ export default function EmergencyScreen() {
             },
           ]}
         >
-          Press and hold for 1.5 seconds
+          {t("emergency.sos.hint")}
         </Text>
       </View>
 
@@ -375,7 +377,7 @@ export default function EmergencyScreen() {
           <Pressable
             onPress={() => setShowHealthId((v) => !v)}
             accessibilityRole="button"
-            accessibilityLabel="Toggle health ID"
+            accessibilityLabel={t("emergency.healthId.accessibilityLabel")}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -397,13 +399,13 @@ export default function EmergencyScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
-                Health ID
+                {t("emergency.healthId.title")}
               </Text>
               <Text
                 style={[typography.body.sm, { color: colors.textMuted }]}
                 numberOfLines={1}
               >
-                Critical info for first responders
+                {t("emergency.healthId.subtitle")}
               </Text>
             </View>
             {showHealthId ? (
@@ -444,7 +446,7 @@ export default function EmergencyScreen() {
                       letterSpacing: 0.5,
                     }}
                   >
-                    BLOOD TYPE
+                    {t("emergency.healthId.bloodType")}
                   </Text>
                   <Text
                     style={{
@@ -466,7 +468,7 @@ export default function EmergencyScreen() {
                       letterSpacing: 0.5,
                     }}
                   >
-                    PHONE
+                    {t("emergency.healthId.phone")}
                   </Text>
                   <Text
                     style={{
@@ -483,23 +485,23 @@ export default function EmergencyScreen() {
               </View>
 
               <DataRow
-                label="ALLERGIES"
-                value={allergies.length ? allergies.join(", ") : "None on file"}
+                label={t("emergency.healthId.allergies")}
+                value={allergies.length ? allergies.join(", ") : t("emergency.healthId.noneOnFile")}
                 icon={ShieldAlert}
               />
               <DataRow
-                label="MEDICAL CONDITIONS"
-                value={conditions.length ? conditions.join(", ") : "None on file"}
+                label={t("emergency.healthId.conditions")}
+                value={conditions.length ? conditions.join(", ") : t("emergency.healthId.noneOnFile")}
                 icon={HeartPulse}
               />
               <DataRow
-                label="CURRENT MEDICATIONS"
+                label={t("emergency.healthId.medications")}
                 value={
                   currentMeds.length
                     ? currentMeds
                         .map((m: any) => `${m.name}${m.dosage ? ` ${m.dosage}` : ""}`)
                         .join(", ")
-                    : "None on file"
+                    : t("emergency.healthId.noneOnFile")
                 }
                 icon={Pill}
                 isLast
@@ -513,7 +515,7 @@ export default function EmergencyScreen() {
           <Pressable
             onPress={() => setShowQr((v) => !v)}
             accessibilityRole="button"
-            accessibilityLabel="Toggle health QR"
+            accessibilityLabel={t("emergency.qr.accessibilityLabel")}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -535,13 +537,13 @@ export default function EmergencyScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
-                Health QR
+                {t("emergency.qr.title")}
               </Text>
               <Text
                 style={[typography.body.sm, { color: colors.textMuted }]}
                 numberOfLines={1}
               >
-                Scan to view your emergency profile
+                {t("emergency.qr.subtitle")}
               </Text>
             </View>
             {showQr ? (
@@ -595,7 +597,7 @@ export default function EmergencyScreen() {
                   style={[typography.caption, { color: colors.textMuted }]}
                 >
                   {bloodType ? `${bloodType} • ` : ""}
-                  {contacts.length} contact{contacts.length === 1 ? "" : "s"}
+                  {t("emergency.qr.contactsCount", { count: contacts.length })}
                 </Text>
               </View>
               <Text
@@ -604,7 +606,7 @@ export default function EmergencyScreen() {
                   { color: colors.textMuted, textAlign: "center" },
                 ]}
               >
-                First responders can scan this code to view your allergies, conditions, and emergency contacts.
+                {t("emergency.qr.footer")}
               </Text>
             </View>
           ) : null}
@@ -626,12 +628,12 @@ export default function EmergencyScreen() {
                 { color: colors.text, fontWeight: "800" },
               ]}
             >
-              Emergency contacts
+              {t("emergency.contacts.title")}
             </Text>
             <Pressable
               onPress={() => router.push("/(app)/edit-profile")}
               accessibilityRole="button"
-              accessibilityLabel="Add emergency contact"
+              accessibilityLabel={t("emergency.contacts.addContactLabel")}
               hitSlop={8}
               style={({ pressed }) => ({
                 flexDirection: "row",
@@ -651,7 +653,7 @@ export default function EmergencyScreen() {
                   color: colors.primary,
                 }}
               >
-                Add
+                {t("emergency.contacts.addButton")}
               </Text>
             </Pressable>
           </View>
@@ -676,7 +678,7 @@ export default function EmergencyScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {c.name || "Unnamed contact"}
+                      {c.name || t("emergency.contacts.unnamedContact")}
                     </Text>
                     <Text
                       style={[
@@ -685,13 +687,17 @@ export default function EmergencyScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {[c.relationship, c.phone].filter(Boolean).join(" • ") || "No details yet"}
+                      {[c.relationship, c.phone].filter(Boolean).join(" • ") || t("emergency.contacts.noDetails")}
                     </Text>
                   </View>
                   <Pressable
                     onPress={() => dial(c.phone)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Call ${c.name || "contact"}`}
+                    accessibilityLabel={
+                      c.name
+                        ? t("emergency.contacts.callLabel", { name: c.name })
+                        : t("emergency.contacts.callFallback")
+                    }
                     style={({ pressed }) => ({
                       width: 40,
                       height: 40,
@@ -715,7 +721,7 @@ export default function EmergencyScreen() {
                   { color: colors.text, fontWeight: "800" },
                 ]}
               >
-                No emergency contacts yet
+                {t("emergency.contacts.noContactsTitle")}
               </Text>
               <Text
                 style={[
@@ -723,10 +729,10 @@ export default function EmergencyScreen() {
                   { color: colors.textMuted, textAlign: "center" },
                 ]}
               >
-                Add at least one trusted person in Edit Profile so first responders can reach them.
+                {t("emergency.contacts.noContactsBody")}
               </Text>
               <Button
-                title="Add contact"
+                title={t("emergency.contacts.addContactCta")}
                 icon={Plus}
                 variant="outline"
                 onPress={() => router.push("/(app)/edit-profile")}
@@ -742,7 +748,7 @@ export default function EmergencyScreen() {
       <BottomSheet
         visible={confirmOpen}
         onDismiss={() => setConfirmOpen(false)}
-        title="Confirm emergency alert"
+        title={t("emergency.confirm.title")}
       >
         <View style={{ gap: spacing.md, paddingBottom: spacing.lg }}>
           <Text
@@ -751,7 +757,7 @@ export default function EmergencyScreen() {
               { color: colors.text, textAlign: "center", lineHeight: 22 },
             ]}
           >
-            This sends an emergency signal with your live location. Use only in a real emergency.
+            {t("emergency.confirm.body")}
           </Text>
           <View
             style={{
@@ -761,13 +767,13 @@ export default function EmergencyScreen() {
             }}
           >
             <Button
-              title="Cancel"
+              title={t("emergency.confirm.cancel")}
               variant="outline"
               onPress={() => setConfirmOpen(false)}
               fullWidth
             />
             <Button
-              title="Send alert"
+              title={t("emergency.confirm.send")}
               variant="danger"
               onPress={doSOS}
               loading={triggerSOS.isPending}

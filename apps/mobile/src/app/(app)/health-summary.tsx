@@ -10,6 +10,7 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Share2,
   FileText,
@@ -33,7 +34,8 @@ import {
 
 export default function HealthSummaryScreen() {
   const router = useRouter();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { t } = useTranslation();
+  const { spacing, colors, typography } = useTheme();
   const toast = useToast();
   const { data, isLoading, refetch, isFetching } = useHealthSummary();
 
@@ -41,28 +43,28 @@ export default function HealthSummaryScreen() {
 
   const text = useMemo(() => {
     if (!summary) return "";
-    return renderText(summary);
-  }, [summary]);
+    return renderText(t, summary);
+  }, [summary, t]);
 
   async function onShare() {
     try {
       await Share.share({ message: text });
     } catch (e: any) {
-      toast.show({ message: e?.message || "Share failed", tone: "danger" });
+      toast.show({ message: e?.message || t("healthSummary.shareFailed"), tone: "danger" });
     }
   }
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Health Summary"
-        subtitle="One-page snapshot of your record"
+        title={t("healthSummary.title")}
+        subtitle={t("healthSummary.subtitle")}
         onBack={() => router.back()}
         right={
           <IconButton
             icon={Share2}
             onPress={onShare}
-            accessibilityLabel="Share summary"
+            accessibilityLabel={t("healthSummary.a11yShare")}
           />
         }
       />
@@ -75,38 +77,45 @@ export default function HealthSummaryScreen() {
       ) : !summary ? (
         <EmptyState
           icon={FileText}
-          title="No summary available"
-          message="Add profile information to generate a summary."
+          title={t("healthSummary.emptyTitle")}
+          message={t("healthSummary.emptyBody")}
         />
       ) : (
         <ScrollView
-          contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: 120 }}
+          contentContainerStyle={{
+            padding: spacing.lg,
+            gap: spacing.md,
+            paddingBottom: 120,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {/* Demographics */}
           <Card>
-            <SectionHeader icon={User} title="About you" />
-            <Row label="Name" value={summary.demographics.name} />
+            <SectionHeader icon={User} title={t("healthSummary.sections.about")} />
+            <Row label={t("healthSummary.rows.name")} value={summary.demographics.name} />
             <Row
-              label="Age"
+              label={t("healthSummary.rows.age")}
               value={
                 summary.demographics.age != null
                   ? `${summary.demographics.age}`
                   : null
               }
             />
-            <Row label="Sex" value={summary.demographics.sex} />
-            <Row label="Blood group" value={summary.demographics.bloodGroup} />
+            <Row label={t("healthSummary.rows.sex")} value={summary.demographics.sex} />
+            <Row label={t("healthSummary.rows.bloodGroup")} value={summary.demographics.bloodGroup} />
             <Row
-              label="Height / Weight"
+              label={t("healthSummary.rows.heightWeight")}
               value={
                 summary.demographics.heightCm || summary.demographics.weightKg
-                  ? `${summary.demographics.heightCm ?? "—"} cm / ${summary.demographics.weightKg ?? "—"} kg`
+                  ? t("healthSummary.heightWeightValue", {
+                      height: summary.demographics.heightCm ?? "—",
+                      weight: summary.demographics.weightKg ?? "—",
+                    })
                   : null
               }
             />
             <Row
-              label="BMI"
+              label={t("healthSummary.rows.bmi")}
               value={
                 summary.demographics.bmi != null
                   ? String(summary.demographics.bmi)
@@ -119,7 +128,7 @@ export default function HealthSummaryScreen() {
           <Card>
             <SectionHeader
               icon={AlertTriangle}
-              title="Allergies"
+              title={t("healthSummary.sections.allergies")}
               tone="danger"
               count={summary.allergies.length}
             />
@@ -127,7 +136,7 @@ export default function HealthSummaryScreen() {
               <Text
                 style={[typography.body.sm, { color: colors.textMuted }]}
               >
-                None recorded
+                {t("healthSummary.allergiesEmpty")}
               </Text>
             ) : (
               summary.allergies.map((a, i) => (
@@ -154,8 +163,12 @@ export default function HealthSummaryScreen() {
                       { color: colors.textMuted },
                     ]}
                   >
-                    {a.severity}
-                    {a.reaction ? " • " + a.reaction : ""}
+                    {a.reaction
+                      ? t("healthSummary.severityReaction", {
+                          severity: a.severity,
+                          reaction: a.reaction,
+                        })
+                      : a.severity}
                   </Text>
                 </View>
               ))
@@ -166,14 +179,14 @@ export default function HealthSummaryScreen() {
           <Card>
             <SectionHeader
               icon={Heart}
-              title="Conditions"
+              title={t("healthSummary.sections.conditions")}
               count={summary.conditions.length}
             />
             {summary.conditions.length === 0 ? (
               <Text
                 style={[typography.body.sm, { color: colors.textMuted }]}
               >
-                None on record
+                {t("healthSummary.conditionsEmpty")}
               </Text>
             ) : (
               summary.conditions.map((c, i) => (
@@ -197,14 +210,14 @@ export default function HealthSummaryScreen() {
           <Card>
             <SectionHeader
               icon={Pill}
-              title="Active medicines"
+              title={t("healthSummary.sections.activeMedicines")}
               count={summary.activeMedicines.length}
             />
             {summary.activeMedicines.length === 0 ? (
               <Text
                 style={[typography.body.sm, { color: colors.textMuted }]}
               >
-                None
+                {t("healthSummary.medicinesEmpty")}
               </Text>
             ) : (
               summary.activeMedicines.map((m, i) => (
@@ -233,12 +246,15 @@ export default function HealthSummaryScreen() {
 
           {/* Vitals */}
           <Card>
-            <SectionHeader icon={Activity} title="Recent vitals (30 days)" />
+            <SectionHeader
+              icon={Activity}
+              title={t("healthSummary.sections.vitals")}
+            />
             {summary.recentVitals.length === 0 ? (
               <Text
                 style={[typography.body.sm, { color: colors.textMuted }]}
               >
-                No vitals logged
+                {t("healthSummary.vitalsEmpty")}
               </Text>
             ) : (
               summary.recentVitals.map((v, i) => (
@@ -269,14 +285,14 @@ export default function HealthSummaryScreen() {
           <Card>
             <SectionHeader
               icon={Calendar}
-              title="Upcoming follow-ups"
+              title={t("healthSummary.sections.followUps")}
               count={summary.followUps.length}
             />
             {summary.followUps.length === 0 ? (
               <Text
                 style={[typography.body.sm, { color: colors.textMuted }]}
               >
-                None scheduled
+                {t("healthSummary.followUpsEmpty")}
               </Text>
             ) : (
               summary.followUps.map((f, i) => (
@@ -303,7 +319,7 @@ export default function HealthSummaryScreen() {
                 { color: colors.textMuted, marginBottom: 4 },
               ]}
             >
-              PLAIN TEXT
+              {t("healthSummary.plainText")}
             </Text>
             <Text
               selectable
@@ -387,7 +403,12 @@ function Row({ label, value }: { label: string; value: string | null | undefined
       <Text
         style={[
           typography.body.md,
-          { color: colors.text, fontWeight: "600", textAlign: "right", flexShrink: 1 },
+          {
+            color: colors.text,
+            fontWeight: "600",
+            textAlign: "right",
+            flexShrink: 1,
+          },
         ]}
         numberOfLines={1}
       >
@@ -397,55 +418,103 @@ function Row({ label, value }: { label: string; value: string | null | undefined
   );
 }
 
-function renderText(s: any): string {
+function renderText(t: (k: string, opts?: any) => string, s: any): string {
   const lines: string[] = [];
-  lines.push("HEALTH SUMMARY");
-  lines.push(`Generated: ${s.generatedAt}`);
+  lines.push(t("healthSummary.plainTitle"));
+  lines.push(t("healthSummary.plainGenerated", { when: s.generatedAt }));
   lines.push("");
   const d = s.demographics;
-  if (d.name) lines.push(`Patient: ${d.name}`);
+  if (d.name)
+    lines.push(t("healthSummary.plainPatient", { name: d.name }));
   const demo = [
-    d.age != null ? `Age ${d.age}` : null,
+    d.age != null ? t("healthSummary.plainAge", { age: d.age }) : null,
     d.sex,
-    d.bloodGroup ? `Blood ${d.bloodGroup}` : null,
-    d.heightCm ? `${d.heightCm} cm` : null,
-    d.weightKg ? `${d.weightKg} kg` : null,
-    d.bmi ? `BMI ${d.bmi}` : null,
+    d.bloodGroup ? t("healthSummary.plainBlood", { group: d.bloodGroup }) : null,
+    d.heightCm ? t("healthSummary.plainCm", { n: d.heightCm }) : null,
+    d.weightKg ? t("healthSummary.plainKg", { n: d.weightKg }) : null,
+    d.bmi ? t("healthSummary.plainBmi", { n: d.bmi }) : null,
   ]
     .filter(Boolean)
     .join(" • ");
   if (demo) lines.push(demo);
   lines.push("");
-  lines.push("ALLERGIES");
-  if (s.allergies.length === 0) lines.push("  None recorded");
+  lines.push(t("healthSummary.plainAllergiesTitle"));
+  if (s.allergies.length === 0) lines.push(t("healthSummary.plainAllergiesNone"));
   for (const a of s.allergies)
-    lines.push(`  • ${a.substance} (${a.severity})${a.reaction ? " — " + a.reaction : ""}`);
-  lines.push("");
-  lines.push("CONDITIONS");
-  if (s.conditions.length === 0) lines.push("  None on record");
-  for (const c of s.conditions)
-    lines.push(`  • ${c.title}${c.diagnosedOn ? " (" + c.diagnosedOn + ")" : ""}`);
-  lines.push("");
-  lines.push("ACTIVE MEDICINES");
-  if (s.activeMedicines.length === 0) lines.push("  None");
-  for (const m of s.activeMedicines)
     lines.push(
-      `  • ${m.name}${m.dosage ? " " + m.dosage : ""}${m.frequency ? " " + m.frequency : ""}`
+      a.reaction
+        ? t("healthSummary.plainAllergyRowReaction", {
+            substance: a.substance,
+            severity: a.severity,
+            reaction: a.reaction,
+          })
+        : t("healthSummary.plainAllergyRow", {
+            substance: a.substance,
+            severity: a.severity,
+          })
     );
   lines.push("");
-  lines.push("RECENT VITALS (30d)");
-  if (s.recentVitals.length === 0) lines.push("  None");
+  lines.push(t("healthSummary.plainConditionsTitle"));
+  if (s.conditions.length === 0)
+    lines.push(t("healthSummary.plainConditionsNone"));
+  for (const c of s.conditions)
+    lines.push(
+      c.diagnosedOn
+        ? t("healthSummary.plainConditionRowDate", {
+            title: c.title,
+            date: c.diagnosedOn,
+          })
+        : t("healthSummary.plainConditionRow", { title: c.title })
+    );
+  lines.push("");
+  lines.push(t("healthSummary.plainMedsTitle"));
+  if (s.activeMedicines.length === 0) lines.push(t("healthSummary.plainMedsNone"));
+  for (const m of s.activeMedicines) {
+    if (m.dosage && m.frequency)
+      lines.push(
+        t("healthSummary.plainMedRowAll", {
+          name: m.name,
+          dosage: m.dosage,
+          frequency: m.frequency,
+        })
+      );
+    else if (m.dosage)
+      lines.push(
+        t("healthSummary.plainMedRowDosage", { name: m.name, dosage: m.dosage })
+      );
+    else lines.push(t("healthSummary.plainMedRow", { name: m.name }));
+  }
+  lines.push("");
+  lines.push(t("healthSummary.plainVitalsTitle"));
+  if (s.recentVitals.length === 0) lines.push(t("healthSummary.plainVitalsNone"));
   for (const v of s.recentVitals) {
     const l = v.latest;
     if (!l) continue;
     lines.push(
-      `  • ${v.type.replace(/_/g, " ")}: ${l.value}${l.secondary != null ? "/" + l.secondary : ""} ${l.unit || ""}`
+      t("healthSummary.plainVitalRow", {
+        type: v.type.replace(/_/g, " "),
+        value: l.value,
+        secondary: l.secondary != null ? "/" + l.secondary : "",
+        unit: l.unit || "",
+      })
     );
   }
   lines.push("");
-  lines.push("UPCOMING FOLLOW-UPS");
-  if (s.followUps.length === 0) lines.push("  None scheduled");
+  lines.push(t("healthSummary.plainFollowUpsTitle"));
+  if (s.followUps.length === 0)
+    lines.push(t("healthSummary.plainFollowUpsNone"));
   for (const f of s.followUps)
-    lines.push(`  • ${f.title} — ${f.scheduledAt}${f.provider ? " @ " + f.provider : ""}`);
+    lines.push(
+      f.provider
+        ? t("healthSummary.plainFollowUpRowProvider", {
+            title: f.title,
+            when: f.scheduledAt,
+            provider: f.provider,
+          })
+        : t("healthSummary.plainFollowUpRow", {
+            title: f.title,
+            when: f.scheduledAt,
+          })
+    );
   return lines.join("\n");
 }

@@ -4,17 +4,15 @@ import {
   Text,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   Check,
   X,
   Pill,
-  Clock,
-  Calendar,
   TrendingUp,
 } from "lucide-react-native";
 import {
@@ -26,21 +24,18 @@ import {
   useMarkDoseTaken,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Screen, Card, Button, useToast } from "@/components/ui";
+import { Screen, useToast } from "@/components/ui";
 
 // F3: dose history + adherence analytics.
 // Tabs: Overview (stats + chart), Missed (acknowledge), All (raw log).
-const RANGES = [
-  { value: 7, label: "7 days" },
-  { value: 30, label: "30 days" },
-  { value: 90, label: "90 days" },
-] as const;
+const RANGE_VALUES = [7, 30, 90] as const;
 
 type Tab = "overview" | "missed" | "all";
 
 export default function MedicinesHistoryScreen() {
   const router = useRouter();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { t } = useTranslation();
+  const { spacing, colors, typography } = useTheme();
   const toast = useToast();
 
   const [tab, setTab] = useState<Tab>("overview");
@@ -85,20 +80,26 @@ export default function MedicinesHistoryScreen() {
   async function ackMissed(dose: any) {
     try {
       await skipDose.mutateAsync({ id: dose.id, notes: "Missed (acknowledged)" });
-      toast.show("Acknowledged", "success");
+      toast.show(t("medicinesHistory.toast.acknowledged"), "success");
     } catch (err: any) {
-      toast.show(err?.message || "Could not acknowledge", "danger");
+      toast.show(err?.message || t("medicinesHistory.toast.ackError"), "danger");
     }
   }
 
   async function takeMissed(dose: any) {
     try {
       await markTaken.mutateAsync({ id: dose.id });
-      toast.show("Marked as taken", "success");
+      toast.show(t("medicinesHistory.toast.markedTaken"), "success");
     } catch (err: any) {
-      toast.show(err?.message || "Could not mark", "danger");
+      toast.show(err?.message || t("medicinesHistory.toast.markError"), "danger");
     }
   }
+
+  const TABS: { value: Tab; label: string }[] = [
+    { value: "overview", label: t("medicinesHistory.tabs.overview") },
+    { value: "missed", label: t("medicinesHistory.tabs.missed", { count: missed?.count ?? 0 }) },
+    { value: "all", label: t("medicinesHistory.tabs.all") },
+  ];
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
@@ -127,7 +128,7 @@ export default function MedicinesHistoryScreen() {
           <Pressable
             onPress={() => router.back()}
             accessibilityRole="button"
-            accessibilityLabel="Back"
+            accessibilityLabel={t("medicinesHistory.a11y.back")}
             hitSlop={8}
           >
             <ChevronLeft size={26} color={colors.text} />
@@ -138,21 +139,22 @@ export default function MedicinesHistoryScreen() {
               { color: colors.text, fontWeight: "800", fontSize: 20 },
             ]}
           >
-            Medicine history
+            {t("medicinesHistory.title")}
           </Text>
         </View>
 
         {/* Range selector */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
           <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            {RANGES.map((r) => {
-              const active = days === r.value;
+            {RANGE_VALUES.map((v) => {
+              const active = days === v;
               return (
                 <Pressable
-                  key={r.value}
-                  onPress={() => setDays(r.value)}
+                  key={v}
+                  onPress={() => setDays(v)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
+                  accessibilityLabel={t(`medicinesHistory.range.${v}`)}
                   style={{
                     paddingHorizontal: spacing.md,
                     paddingVertical: 8,
@@ -169,7 +171,7 @@ export default function MedicinesHistoryScreen() {
                       color: active ? colors.onPrimary : colors.textMuted,
                     }}
                   >
-                    {r.label}
+                    {t(`medicinesHistory.range.${v}`)}
                   </Text>
                 </Pressable>
               );
@@ -188,20 +190,15 @@ export default function MedicinesHistoryScreen() {
             borderBottomColor: colors.border,
           }}
         >
-          {(
-            [
-              { value: "overview", label: "Overview" },
-              { value: "missed", label: `Missed (${missed?.count ?? 0})` },
-              { value: "all", label: "All" },
-            ] as { value: Tab; label: string }[]
-          ).map((t) => {
-            const active = tab === t.value;
+          {TABS.map((tt) => {
+            const active = tab === tt.value;
             return (
               <Pressable
-                key={t.value}
-                onPress={() => setTab(t.value)}
+                key={tt.value}
+                onPress={() => setTab(tt.value)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
+                accessibilityLabel={tt.label}
                 style={{
                   paddingVertical: spacing.sm,
                   borderBottomWidth: 2,
@@ -215,7 +212,7 @@ export default function MedicinesHistoryScreen() {
                     color: active ? colors.primary : colors.textMuted,
                   }}
                 >
-                  {t.label}
+                  {tt.label}
                 </Text>
               </Pressable>
             );
@@ -246,7 +243,8 @@ export default function MedicinesHistoryScreen() {
 }
 
 function OverviewTab({ stats, days }: { stats: any; days: number }) {
-  const { spacing, colors, typography, radius } = useTheme();
+  const { t } = useTranslation();
+  const { spacing, colors, typography } = useTheme();
   const daysArr: any[] = stats?.last7Days ?? [];
   const overallTotal = daysArr.reduce((s, d) => s + d.total, 0);
   const overallTaken = daysArr.reduce((s, d) => s + d.taken, 0);
@@ -257,8 +255,10 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
     <View style={{ gap: spacing.md }}>
       {/* Top stat row */}
       <View style={{ flexDirection: "row", gap: spacing.md }}>
-        <Card style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg }}>
-          <Text style={[typography.overline, { color: colors.textMuted }]}>STREAK</Text>
+        <View style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+          <Text style={[typography.overline, { color: colors.textMuted }]}>
+            {t("medicinesHistory.stats.streak")}
+          </Text>
           <Text
             style={{
               fontSize: 36,
@@ -270,11 +270,13 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
             {streak}
           </Text>
           <Text style={[typography.caption, { color: colors.textMuted }]}>
-            days in a row
+            {t("medicinesHistory.stats.streakSubtitle")}
           </Text>
-        </Card>
-        <Card style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg }}>
-          <Text style={[typography.overline, { color: colors.textMuted }]}>ADHERENCE</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+          <Text style={[typography.overline, { color: colors.textMuted }]}>
+            {t("medicinesHistory.stats.adherence")}
+          </Text>
           <Text
             style={{
               fontSize: 36,
@@ -286,13 +288,13 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
             {overallPct}%
           </Text>
           <Text style={[typography.caption, { color: colors.textMuted }]}>
-            over {days} days
+            {t("medicinesHistory.stats.adherenceSubtitle", { count: days })}
           </Text>
-        </Card>
+        </View>
       </View>
 
       {/* Bar chart */}
-      <Card style={{ padding: spacing.md }}>
+      <View style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
         <View
           style={{
             flexDirection: "row",
@@ -303,12 +305,12 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
         >
           <TrendingUp size={16} color={colors.text} />
           <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
-            Daily adherence
+            {t("medicinesHistory.chart.title")}
           </Text>
         </View>
         {daysArr.length === 0 ? (
           <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: spacing.sm }]}>
-            No dose data in this range.
+            {t("medicinesHistory.chart.empty")}
           </Text>
         ) : (
           <View style={{ flexDirection: "row", alignItems: "flex-end", height: 120, gap: 4 }}>
@@ -355,30 +357,30 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
             </Text>
           ))}
         </View>
-      </Card>
+      </View>
 
       {/* Missed/skipped totals */}
-      <Card style={{ padding: spacing.md }}>
+      <View style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
         <Text
           style={[
             typography.title.sm,
             { color: colors.text, fontWeight: "800", marginBottom: spacing.sm },
           ]}
         >
-          Breakdown
+          {t("medicinesHistory.breakdown.title")}
         </Text>
-        <Row label="Taken" value={overallTaken} color={colors.success} />
+        <Row label={t("medicinesHistory.breakdown.taken")} value={overallTaken} color={colors.success} />
         <Row
-          label="Missed"
+          label={t("medicinesHistory.breakdown.missed")}
           value={daysArr.reduce((s, d) => s + (d.missed || 0), 0)}
           color={colors.warning}
         />
         <Row
-          label="Skipped"
+          label={t("medicinesHistory.breakdown.skipped")}
           value={daysArr.reduce((s, d) => s + (d.skipped || 0), 0)}
           color={colors.textMuted}
         />
-      </Card>
+      </View>
     </View>
   );
 }
@@ -423,10 +425,11 @@ function MissedTab({
   onAck: (d: any) => void;
   onTakeLate: (d: any) => void;
 }) {
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   if (doses.length === 0) {
     return (
-      <Card style={{ alignItems: "center", paddingVertical: spacing.xl }}>
+      <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
         <Check size={36} color={colors.success} strokeWidth={2.5} />
         <Text
           style={[
@@ -434,7 +437,7 @@ function MissedTab({
             { color: colors.text, fontWeight: "800", marginTop: spacing.sm },
           ]}
         >
-          Nothing missed
+          {t("medicinesHistory.missedEmpty.title")}
         </Text>
         <Text
           style={[
@@ -442,9 +445,9 @@ function MissedTab({
             { color: colors.textMuted, textAlign: "center", marginTop: 4 },
           ]}
         >
-          All your doses are accounted for. Nice work.
+          {t("medicinesHistory.missedEmpty.body")}
         </Text>
-      </Card>
+      </View>
     );
   }
   return (
@@ -455,7 +458,7 @@ function MissedTab({
         const dateLabel = date.toLocaleDateString();
         const timeLabel = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         return (
-          <Card key={d.id} style={{ padding: spacing.md }}>
+          <View key={d.id} style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border }}>
             <View
               style={{
                 flexDirection: "row",
@@ -472,17 +475,17 @@ function MissedTab({
                   ]}
                   numberOfLines={1}
                 >
-                  {med.name || "Medicine"}
+                  {med.name || t("medicinesHistory.fallbackName")}
                 </Text>
                 <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
-                  {med.dosage || ""} • {dateLabel} at {timeLabel}
+                  {t("medicinesHistory.scheduledAt", { date: dateLabel, time: timeLabel })}
                 </Text>
               </View>
               <View style={{ flexDirection: "row", gap: 6 }}>
                 <Pressable
                   onPress={() => onTakeLate(d)}
                   accessibilityRole="button"
-                  accessibilityLabel="Mark taken late"
+                  accessibilityLabel={t("medicinesHistory.a11y.markTakenLate")}
                   style={{
                     paddingHorizontal: 10,
                     paddingVertical: 8,
@@ -495,7 +498,7 @@ function MissedTab({
                 <Pressable
                   onPress={() => onAck(d)}
                   accessibilityRole="button"
-                  accessibilityLabel="Acknowledge missed"
+                  accessibilityLabel={t("medicinesHistory.a11y.acknowledgeMissed")}
                   style={{
                     paddingHorizontal: 10,
                     paddingVertical: 8,
@@ -507,7 +510,7 @@ function MissedTab({
                 </Pressable>
               </View>
             </View>
-          </Card>
+          </View>
         );
       })}
     </View>
@@ -521,10 +524,11 @@ function AllTab({
   doses: any[];
   medById: Record<string, any>;
 }) {
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   if (doses.length === 0) {
     return (
-      <Card style={{ alignItems: "center", paddingVertical: spacing.xl }}>
+      <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
         <Pill size={36} color={colors.textMuted} strokeWidth={1.5} />
         <Text
           style={[
@@ -532,9 +536,9 @@ function AllTab({
             { color: colors.textMuted, textAlign: "center", marginTop: spacing.sm },
           ]}
         >
-          No dose log in this range.
+          {t("medicinesHistory.allEmpty")}
         </Text>
-      </Card>
+      </View>
     );
   }
   // Group by local date.
@@ -558,8 +562,8 @@ function AllTab({
           <View style={{ gap: 6 }}>
             {items.map((d: any) => {
               const med = medById[d.medicineId] || {};
-              const date = new Date(d.scheduledFor);
-              const timeLabel = date.toLocaleTimeString([], {
+              const doseDate = new Date(d.scheduledFor);
+              const timeLabel = doseDate.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               });
@@ -574,12 +578,12 @@ function AllTab({
                 ? colors.warning
                 : colors.primary;
               const status = taken
-                ? "Taken"
+                ? t("medicinesHistory.status.taken")
                 : skipped
-                ? "Skipped"
+                ? t("medicinesHistory.status.skipped")
                 : missed
-                ? "Missed"
-                : "Upcoming";
+                ? t("medicinesHistory.status.missed")
+                : t("medicinesHistory.status.upcoming");
               return (
                 <View
                   key={d.id}
@@ -607,7 +611,7 @@ function AllTab({
                       style={[typography.body.sm, { color: colors.text, fontWeight: "700" }]}
                       numberOfLines={1}
                     >
-                      {med.name || "Medicine"}
+                      {med.name || t("medicinesHistory.fallbackName")}
                     </Text>
                     <Text style={[typography.caption, { color: colors.textMuted }]}>
                       {timeLabel}

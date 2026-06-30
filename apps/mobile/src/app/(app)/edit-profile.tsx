@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import {
   ArrowLeft,
@@ -30,7 +31,7 @@ import { api } from "@/lib/api";
 import { Screen, Card, Avatar, Button, useToast, DateField } from "@/components/ui";
 
 const BLOOD_GROUPS = ["O+", "A+", "B+", "AB+", "O-", "A-", "B-", "AB-"];
-const GENDERS = ["Male", "Female", "Other"];
+const GENDER_VALUES = ["male", "female", "other"] as const;
 
 type EmergencyContact = {
   name: string;
@@ -40,6 +41,7 @@ type EmergencyContact = {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading } = usePatientProfile();
@@ -84,7 +86,7 @@ export default function EditProfileScreen() {
   async function pickPhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      toast.show("Photo library permission required", "warning");
+      toast.show(t("editProfile.photo.permissionDenied"), "warning");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -102,28 +104,28 @@ export default function EditProfileScreen() {
   async function handleSave() {
     // ─── Client-side validation ──────────────────────────
     if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
-      toast.show("Date of birth must be YYYY-MM-DD", "danger");
+      toast.show(t("editProfile.error.dobFormat"), "danger");
       return;
     }
     if (dateOfBirth) {
       const d = new Date(dateOfBirth);
       if (Number.isNaN(d.getTime()) || d.getTime() > Date.now()) {
-        toast.show("Date of birth is invalid or in the future", "danger");
+        toast.show(t("editProfile.error.dobInvalid"), "danger");
         return;
       }
     }
     const heightNum = height ? parseFloat(height) : NaN;
     const weightNum = weight ? parseFloat(weight) : NaN;
     if (height && (Number.isNaN(heightNum) || heightNum < 50 || heightNum > 250)) {
-      toast.show("Height must be between 50 and 250 cm", "danger");
+      toast.show(t("editProfile.error.heightRange"), "danger");
       return;
     }
     if (weight && (Number.isNaN(weightNum) || weightNum < 10 || weightNum > 400)) {
-      toast.show("Weight must be between 10 and 400 kg", "danger");
+      toast.show(t("editProfile.error.weightRange"), "danger");
       return;
     }
     if (bloodGroup && !BLOOD_GROUPS.includes(bloodGroup)) {
-      toast.show("Pick a blood group from the list", "danger");
+      toast.show(t("editProfile.error.bloodGroup"), "danger");
       return;
     }
     const cleanedContacts = contacts
@@ -135,11 +137,11 @@ export default function EditProfileScreen() {
       .filter((c) => c.name || c.phone);
     for (const c of cleanedContacts) {
       if (!c.name) {
-        toast.show("Each emergency contact needs a name", "danger");
+        toast.show(t("editProfile.error.contactName"), "danger");
         return;
       }
       if (!c.phone || c.phone.length < 7) {
-        toast.show("Each emergency contact needs a valid phone", "danger");
+        toast.show(t("editProfile.error.contactPhone"), "danger");
         return;
       }
     }
@@ -180,10 +182,10 @@ export default function EditProfileScreen() {
         emergencyContacts: cleanedContacts.length ? JSON.stringify(cleanedContacts) : undefined,
       });
 
-      toast.show("Profile updated", "success");
+      toast.show(t("editProfile.toast.saved"), "success");
       router.back();
     } catch (err: any) {
-      toast.show(err?.message || "Could not save", "danger");
+      toast.show(err?.message || t("editProfile.toast.saveError"), "danger");
     } finally {
       setSavingPhoto(false);
     }
@@ -208,7 +210,7 @@ export default function EditProfileScreen() {
           onPress={() => router.back()}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t("editProfile.accessibilityLabel.goBack")}
           style={({ pressed }) => ({
             width: 40,
             height: 40,
@@ -226,14 +228,14 @@ export default function EditProfileScreen() {
             { color: colors.text, fontWeight: "800", fontSize: 18 },
           ]}
         >
-          Edit Profile
+          {t("editProfile.title")}
         </Text>
         <Pressable
           onPress={handleSave}
           disabled={updateProfile.isPending || savingPhoto}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Save profile"
+          accessibilityLabel={t("editProfile.accessibilityLabel.saveProfile")}
           style={({ pressed }) => ({
             paddingHorizontal: spacing.sm,
             paddingVertical: 6,
@@ -253,7 +255,7 @@ export default function EditProfileScreen() {
                 color: colors.primary,
               }}
             >
-              Save
+              {t("editProfile.save")}
             </Text>
           )}
         </Pressable>
@@ -288,12 +290,12 @@ export default function EditProfileScreen() {
                 }}
               />
             ) : (
-              <Avatar name={userRow?.name || "You"} size="2xl" tone="primary" ring />
+              <Avatar name={userRow?.name || t("common.you")} size="2xl" tone="primary" ring />
             )}
             <Pressable
               onPress={pickPhoto}
               accessibilityRole="button"
-              accessibilityLabel="Change photo"
+              accessibilityLabel={t("editProfile.accessibilityLabel.changePhoto")}
               style={({ pressed }) => ({
                 position: "absolute",
                 right: -4,
@@ -334,7 +336,9 @@ export default function EditProfileScreen() {
                   fontWeight: "700",
                 }}
               >
-                {userRow?.verified ? "Verified profile" : "Profile in good standing"}
+                {userRow?.verified
+                  ? t("editProfile.verifiedStatus.verified")
+                  : t("editProfile.verifiedStatus.goodStanding")}
               </Text>
             </View>
           </View>
@@ -360,10 +364,10 @@ export default function EditProfileScreen() {
                 },
               ]}
             >
-              BASICS
+              {t("editProfile.basicsHeading")}
             </Text>
 
-            <LabeledRow label="Blood Group">
+            <LabeledRow label={t("editProfile.bloodGroup.label")}>
               <View
                 style={{
                   flexDirection: "row",
@@ -403,14 +407,14 @@ export default function EditProfileScreen() {
               </View>
             </LabeledRow>
 
-            <LabeledRow label="Gender">
+            <LabeledRow label={t("editProfile.gender.label")}>
               <View style={{ flexDirection: "row", gap: spacing.xs }}>
-                {GENDERS.map((g) => {
-                  const selected = gender?.toLowerCase() === g.toLowerCase();
+                {GENDER_VALUES.map((g) => {
+                  const selected = gender?.toLowerCase() === g;
                   return (
                     <Pressable
                       key={g}
-                      onPress={() => setGender(g.toLowerCase())}
+                      onPress={() => setGender(g)}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
                       style={{
@@ -430,7 +434,7 @@ export default function EditProfileScreen() {
                           color: selected ? colors.primary : colors.text,
                         }}
                       >
-                        {g}
+                        {t(`editProfile.gender.${g}`)}
                       </Text>
                     </Pressable>
                   );
@@ -438,7 +442,7 @@ export default function EditProfileScreen() {
               </View>
             </LabeledRow>
 
-            <LabeledRow label="Date of Birth">
+            <LabeledRow label={t("editProfile.dob.label")}>
               <DateField
                 value={dobDate}
                 onChange={(date) => {
@@ -447,24 +451,24 @@ export default function EditProfileScreen() {
                   const dd = String(date.getDate()).padStart(2, "0");
                   setDateOfBirth(`${yyyy}-${mm}-${dd}`);
                 }}
-                placeholder="Select Date of Birth"
+                placeholder={t("editProfile.dob.placeholder")}
               />
             </LabeledRow>
 
             <View style={{ flexDirection: "row", gap: spacing.md, marginTop: spacing.md }}>
               <NumberField
-                label="HEIGHT"
+                labelKey="editProfile.height.label"
                 value={height}
                 onChange={setHeight}
-                unit="cm"
-                placeholder="170"
+                unitKey="editProfile.height.unit"
+                placeholderKey="editProfile.height.placeholder"
               />
               <NumberField
-                label="WEIGHT"
+                labelKey="editProfile.weight.label"
                 value={weight}
                 onChange={setWeight}
-                unit="kg"
-                placeholder="68"
+                unitKey="editProfile.weight.unit"
+                placeholderKey="editProfile.weight.placeholder"
               />
             </View>
           </Card>
@@ -482,14 +486,17 @@ export default function EditProfileScreen() {
                 },
               ]}
             >
-              HEALTH NOTES
+              {t("editProfile.healthNotesHeading")}
             </Text>
 
-            <LabeledRow label="Allergies" helper="Separate with commas">
+            <LabeledRow
+              label={t("editProfile.allergies.label")}
+              helper={t("editProfile.allergies.helper")}
+            >
               <TextInput
                 value={allergies}
                 onChangeText={setAllergies}
-                placeholder="Penicillin, Shellfish"
+                placeholder={t("editProfile.allergies.placeholder")}
                 placeholderTextColor={colors.textSubtle}
                 multiline
                 numberOfLines={2}
@@ -497,11 +504,14 @@ export default function EditProfileScreen() {
               />
             </LabeledRow>
 
-            <LabeledRow label="Existing conditions" helper="Separate with commas">
+            <LabeledRow
+              label={t("editProfile.conditions.label")}
+              helper={t("editProfile.conditions.helper")}
+            >
               <TextInput
                 value={conditions}
                 onChangeText={setConditions}
-                placeholder="Hypertension, Asthma"
+                placeholder={t("editProfile.conditions.placeholder")}
                 placeholderTextColor={colors.textSubtle}
                 multiline
                 numberOfLines={2}
@@ -526,7 +536,7 @@ export default function EditProfileScreen() {
                   { color: colors.textMuted, fontWeight: "800", letterSpacing: 0.6 },
                 ]}
               >
-                EMERGENCY CONTACTS
+                {t("editProfile.emergencyContactsHeading")}
               </Text>
               <Pressable
                 onPress={() =>
@@ -536,7 +546,7 @@ export default function EditProfileScreen() {
                   ])
                 }
                 accessibilityRole="button"
-                accessibilityLabel="Add contact"
+                accessibilityLabel={t("editProfile.accessibilityLabel.addContact")}
                 style={({ pressed }) => ({
                   flexDirection: "row",
                   alignItems: "center",
@@ -555,7 +565,7 @@ export default function EditProfileScreen() {
                     color: colors.primary,
                   }}
                 >
-                  Add
+                  {t("editProfile.addContactButton")}
                 </Text>
               </Pressable>
             </View>
@@ -568,7 +578,7 @@ export default function EditProfileScreen() {
                   paddingVertical: spacing.sm,
                 }}
               >
-                No emergency contacts yet. Add one so first responders can reach the right people.
+                {t("editProfile.emptyContacts")}
               </Text>
             ) : (
               <View style={{ gap: spacing.md }}>
@@ -599,7 +609,7 @@ export default function EditProfileScreen() {
         ) : (
           <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.xl }}>
             <Button
-              title="Save changes"
+              title={t("editProfile.saveButton")}
               onPress={handleSave}
               loading={updateProfile.isPending || savingPhoto}
               icon={Save}
@@ -647,19 +657,20 @@ function LabeledRow({
 }
 
 function NumberField({
-  label,
+  labelKey,
   value,
   onChange,
-  unit,
-  placeholder,
+  unitKey,
+  placeholderKey,
 }: {
-  label: string;
+  labelKey: string;
   value: string;
   onChange: (v: string) => void;
-  unit: string;
-  placeholder: string;
+  unitKey: string;
+  placeholderKey: string;
 }) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius } = useTheme();
+  const { t } = useTranslation();
   return (
     <View
       style={{
@@ -679,14 +690,14 @@ function NumberField({
           letterSpacing: 0.6,
         }}
       >
-        {label}
+        {t(labelKey)}
       </Text>
       <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 4 }}>
         <TextInput
           value={value}
           onChangeText={onChange}
           keyboardType="numeric"
-          placeholder={placeholder}
+          placeholder={t(placeholderKey)}
           placeholderTextColor={colors.textSubtle}
           style={{
             fontSize: 22,
@@ -704,7 +715,7 @@ function NumberField({
             marginLeft: 4,
           }}
         >
-          {unit}
+          {t(unitKey)}
         </Text>
       </View>
     </View>
@@ -721,6 +732,7 @@ function ContactRow({
   onRemove: () => void;
 }) {
   const { colors, spacing, radius, typography } = useTheme();
+  const { t } = useTranslation();
   return (
     <View
       style={{
@@ -737,7 +749,7 @@ function ContactRow({
         <TextInput
           value={contact.name}
           onChangeText={(v) => onChange({ ...contact, name: v })}
-          placeholder="Name"
+          placeholder={t("editProfile.contact.namePlaceholder")}
           placeholderTextColor={colors.textSubtle}
           style={miniInputStyle(colors, typography)}
         />
@@ -751,7 +763,7 @@ function ContactRow({
         <TextInput
           value={contact.relationship}
           onChangeText={(v) => onChange({ ...contact, relationship: v })}
-          placeholder="Relationship (e.g. Spouse)"
+          placeholder={t("editProfile.contact.relationshipPlaceholder")}
           placeholderTextColor={colors.textSubtle}
           style={miniInputStyle(colors, typography)}
         />
@@ -761,7 +773,7 @@ function ContactRow({
         <TextInput
           value={contact.phone}
           onChangeText={(v) => onChange({ ...contact, phone: v })}
-          placeholder="Phone"
+          placeholder={t("editProfile.contact.phonePlaceholder")}
           placeholderTextColor={colors.textSubtle}
           keyboardType="phone-pad"
           style={miniInputStyle(colors, typography)}
@@ -769,7 +781,7 @@ function ContactRow({
         <Pressable
           onPress={onRemove}
           accessibilityRole="button"
-          accessibilityLabel="Remove contact"
+          accessibilityLabel={t("editProfile.accessibilityLabel.removeContact")}
           hitSlop={6}
           style={({ pressed }) => ({
             width: 32,

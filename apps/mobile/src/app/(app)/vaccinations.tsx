@@ -1,16 +1,15 @@
 // @ts-nocheck
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
   ScrollView,
-  Pressable,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Syringe,
   Plus,
@@ -18,7 +17,6 @@ import {
   CalendarClock,
   AlertCircle,
   Clock,
-  X,
 } from "lucide-react-native";
 import {
   useVaccinations,
@@ -32,7 +30,6 @@ import {
   ScreenHeader,
   Card,
   Chip,
-  ChipGroup,
   BottomSheet,
   FormField,
   Button,
@@ -43,6 +40,7 @@ import {
 
 export default function VaccinationsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { data, isLoading } = useVaccinations();
@@ -81,7 +79,7 @@ export default function VaccinationsScreen() {
   async function save() {
     const name = vaccineName.trim();
     if (name.length < 2) {
-      toast.show({ message: "Vaccine name required", tone: "warning" });
+      toast.show({ message: t("vaccinations.error.nameRequired"), tone: "warning" });
       return;
     }
     try {
@@ -93,28 +91,32 @@ export default function VaccinationsScreen() {
         provider: provider.trim() || undefined,
         notes: notes.trim() || undefined,
       });
-      toast.show({ message: "Vaccination logged", tone: "success" });
+      toast.show({ message: t("vaccinations.toast.logged"), tone: "success" });
       setSheetOpen(false);
     } catch (e: any) {
-      toast.show({ message: e?.message || "Save failed", tone: "danger" });
+      toast.show({
+        message: e?.message || t("vaccinations.toast.saveError"),
+        tone: "danger",
+      });
     }
   }
+
+  const subtitle =
+    administered.length === 0
+      ? t("vaccinations.subtitleEmpty")
+      : t("vaccinations.subtitleCount", { count: administered.length });
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
-        title="Vaccinations"
-        subtitle={
-          administered.length === 0
-            ? "Track your immunization history"
-            : `${administered.length} on record`
-        }
+        title={t("vaccinations.title")}
+        subtitle={subtitle}
         onBack={() => router.back()}
         right={
           <IconButton
             icon={Plus}
             onPress={openSheet}
-            accessibilityLabel="Log vaccination"
+            accessibilityLabel={t("vaccinations.logLabel")}
           />
         }
       />
@@ -132,7 +134,7 @@ export default function VaccinationsScreen() {
               <BannerCard
                 tone="danger"
                 icon={AlertCircle}
-                title={`${overdue.length} overdue`}
+                title={t("vaccinations.banners.overdue", { count: overdue.length })}
                 body={overdue
                   .slice(0, 3)
                   .map((o) => `${o.vaccine} (${o.doseLabel})`)
@@ -143,7 +145,7 @@ export default function VaccinationsScreen() {
               <BannerCard
                 tone="warning"
                 icon={CalendarClock}
-                title={`${due.length} due in 30 days`}
+                title={t("vaccinations.banners.dueCount", { count: due.length })}
                 body={due
                   .slice(0, 3)
                   .map((d) => `${d.vaccine} (${d.doseLabel})`)
@@ -154,8 +156,8 @@ export default function VaccinationsScreen() {
               <BannerCard
                 tone="success"
                 icon={CheckCircle2}
-                title="Up to date"
-                body="No vaccines due in the next 30 days."
+                title={t("vaccinations.banners.upToDate")}
+                body={t("vaccinations.banners.upToDateBody")}
               />
             )}
           </>
@@ -164,14 +166,14 @@ export default function VaccinationsScreen() {
         {/* Administered list */}
         <View style={{ gap: spacing.sm }}>
           <Text style={[typography.overline, { color: colors.textMuted }]}>
-            ADMINISTERED
+            {t("vaccinations.sections.administered")}
           </Text>
           {administered.length === 0 ? (
             <EmptyState
               icon={Syringe}
-              title="No vaccinations logged"
-              message="Add immunizations as you receive them to keep your record complete."
-              actionLabel="Log first vaccination"
+              title={t("vaccinations.empty.title")}
+              message={t("vaccinations.empty.message")}
+              actionLabel={t("vaccinations.logFirstAction")}
               onAction={openSheet}
             />
           ) : (
@@ -237,7 +239,7 @@ export default function VaccinationsScreen() {
         {upcoming.length > 0 && (
           <View style={{ gap: spacing.sm }}>
             <Text style={[typography.overline, { color: colors.textMuted }]}>
-              UPCOMING
+              {t("vaccinations.sections.upcoming")}
             </Text>
             {upcoming.slice(0, 10).map((u, i) => (
               <Card key={`up-${i}`}>
@@ -277,7 +279,10 @@ export default function VaccinationsScreen() {
                     <Text
                       style={[typography.caption, { color: colors.textMuted }]}
                     >
-                      In {u.daysUntil} days • {String(u.dueDate).slice(0, 10)}
+                      {t("vaccinations.upcomingRow", {
+                        days: u.daysUntil,
+                        date: String(u.dueDate).slice(0, 10),
+                      })}
                     </Text>
                   </View>
                 </View>
@@ -294,16 +299,16 @@ export default function VaccinationsScreen() {
           paddingBottom: spacing.lg,
         }}
       >
-        <Button title="Log vaccination" icon={Plus} onPress={openSheet} size="lg" />
+        <Button title={t("vaccinations.logButton")} icon={Plus} onPress={openSheet} size="lg" />
       </View>
 
       <BottomSheet
         visible={sheetOpen}
         onDismiss={() => setSheetOpen(false)}
-        title="Log vaccination"
+        title={t("vaccinations.logLabel")}
       >
         <ScrollView keyboardShouldPersistTaps="handled">
-          <FormField label="From WHO catalog (optional)">
+          <FormField label={t("vaccinations.field.catalogLabel")}>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
               {catalog.slice(0, 20).map((c: any) => (
                 <Chip
@@ -322,14 +327,14 @@ export default function VaccinationsScreen() {
             </View>
           </FormField>
 
-          <FormField label="Vaccine name" required>
+          <FormField label={t("vaccinations.field.nameLabel")} required>
             <TextInput
               value={vaccineName}
-              onChangeText={(t) => {
-                setVaccineName(t);
+              onChangeText={(v) => {
+                setVaccineName(v);
                 if (selectedCatalogId) setSelectedCatalogId(null);
               }}
-              placeholder="e.g. Influenza"
+              placeholder={t("vaccinations.field.namePlaceholder")}
               placeholderTextColor={colors.textSubtle}
               style={{
                 backgroundColor: colors.surface,
@@ -345,7 +350,7 @@ export default function VaccinationsScreen() {
 
           <View style={{ flexDirection: "row", gap: spacing.sm }}>
             <View style={{ flex: 1 }}>
-              <FormField label="Dose">
+              <FormField label={t("vaccinations.field.doseLabel")}>
                 <TextInput
                   value={dose}
                   onChangeText={setDose}
@@ -363,11 +368,11 @@ export default function VaccinationsScreen() {
               </FormField>
             </View>
             <View style={{ flex: 2 }}>
-              <FormField label="Date">
+              <FormField label={t("vaccinations.field.dateLabel")}>
                 <TextInput
                   value={date}
                   onChangeText={setDate}
-                  placeholder="YYYY-MM-DD"
+                  placeholder={t("vaccinations.field.datePlaceholder")}
                   placeholderTextColor={colors.textSubtle}
                   style={{
                     backgroundColor: colors.surface,
@@ -383,11 +388,11 @@ export default function VaccinationsScreen() {
             </View>
           </View>
 
-          <FormField label="Provider">
+          <FormField label={t("vaccinations.field.providerLabel")}>
             <TextInput
               value={provider}
               onChangeText={setProvider}
-              placeholder="Hospital, clinic, or doctor"
+              placeholder={t("vaccinations.field.providerPlaceholder")}
               placeholderTextColor={colors.textSubtle}
               style={{
                 backgroundColor: colors.surface,
@@ -401,11 +406,11 @@ export default function VaccinationsScreen() {
             />
           </FormField>
 
-          <FormField label="Notes">
+          <FormField label={t("vaccinations.field.notesLabel")}>
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="Lot number, reactions, etc."
+              placeholder={t("vaccinations.field.notesPlaceholder")}
               placeholderTextColor={colors.textSubtle}
               multiline
               style={{
@@ -424,13 +429,13 @@ export default function VaccinationsScreen() {
 
           <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.md }}>
             <Button
-              title="Cancel"
+              title={t("common.cancel")}
               variant="outline"
               onPress={() => setSheetOpen(false)}
               style={{ flex: 1 }}
             />
             <Button
-              title="Save"
+              title={t("common.save")}
               icon={CheckCircle2}
               onPress={save}
               loading={addVaccination.isPending}

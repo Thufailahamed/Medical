@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 import {
   Search,
   FileText,
@@ -52,29 +53,28 @@ import { SaveFilterSheet } from "@/components/SaveFilterSheet";
 
 type FilterValue = "all" | RecordType | "archived";
 
-const FILTER_ORDER: { value: FilterValue; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "lab_report", label: "Lab" },
-  { value: "prescription", label: "Rx" },
-  { value: "imaging", label: "Imaging" },
-  { value: "hospital_visit", label: "Visits" },
-  { value: "vaccination", label: "Vaccines" },
-  { value: "surgery", label: "Surgery" },
-  { value: "archived", label: "Archived" },
+const FILTER_VALUES: FilterValue[] = [
+  "all",
+  "lab_report",
+  "prescription",
+  "imaging",
+  "hospital_visit",
+  "vaccination",
+  "surgery",
+  "archived",
 ];
 
 type DateRange = "all" | "30d" | "1y";
 
-const DATE_RANGES: { value: DateRange; label: string; ms: number | null }[] = [
-  { value: "all", label: "All time", ms: null },
-  { value: "1y", label: "Past year", ms: 365 * 24 * 60 * 60 * 1000 },
-  { value: "30d", label: "Past 30 days", ms: 30 * 24 * 60 * 60 * 1000 },
-];
+const DATE_RANGE_VALUES: DateRange[] = ["all", "1y", "30d"];
 
 type SortMode = "newest" | "oldest" | "relevance";
 
+const SORT_ORDER: SortMode[] = ["newest", "oldest", "relevance"];
+
 export default function RecordsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { spacing, colors, typography, fontFamily, radius } = useTheme();
   const toast = useToast();
   const prefs = useRecordsPrefsStore();
@@ -126,8 +126,8 @@ export default function RecordsScreen() {
 
   // Remember searches (debounced via the effect).
   useEffect(() => {
-    const t = search.trim();
-    if (t.length >= 2) prefs.rememberSearch(t);
+    const searchTerm = search.trim();
+    if (searchTerm.length >= 2) prefs.rememberSearch(searchTerm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
@@ -148,10 +148,15 @@ export default function RecordsScreen() {
     ]);
   }, [records, search]);
 
+  const RANGE_MS: Record<DateRange, number | null> = {
+    all: null,
+    "1y": 365 * 24 * 60 * 60 * 1000,
+    "30d": 30 * 24 * 60 * 60 * 1000,
+  };
+
   const filtered = useMemo(() => {
     // Apply range filter locally (server already paginates by 100).
-    const rangeMs =
-      DATE_RANGES.find((r) => r.value === range)?.ms ?? null;
+    const rangeMs = RANGE_MS[range];
     const now = Date.now();
     let list = ranked;
     if (rangeMs) {
@@ -161,8 +166,6 @@ export default function RecordsScreen() {
         return now - d <= rangeMs;
       });
     }
-    // For date sort modes, server already returns sorted. For relevance
-    // mode, searchRecords returns ranked. No re-sort here.
     return list;
   }, [ranked, range]);
 
@@ -180,14 +183,14 @@ export default function RecordsScreen() {
   const tagSuggestions = useMemo(() => {
     const tally = new Map<string, number>();
     for (const r of records as any[]) {
-      for (const t of r.tags || []) {
-        tally.set(t, (tally.get(t) || 0) + 1);
+      for (const tag of r.tags || []) {
+        tally.set(tag, (tally.get(tag) || 0) + 1);
       }
     }
     return Array.from(tally.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
-      .map(([t]) => t);
+      .map(([tag]) => tag);
   }, [records]);
 
   // ─── Group by family member + month-year ─────────────
@@ -195,11 +198,10 @@ export default function RecordsScreen() {
     const sections: { title: string; data: any[] }[] = [];
     const map: Record<string, any[]> = {};
     for (const rec of filtered) {
-      const owner =
-        rec.familyMember?.name
-          ? `${rec.familyMember.name}`
-          : "You";
-      const monthKey = getGroupKey(rec.date);
+      const owner = rec.familyMember?.name
+        ? `${rec.familyMember.name}`
+        : t("records.group.you");
+      const monthKey = getGroupKey(t, rec.date);
       const key = `${owner} · ${monthKey}`;
       if (!map[key]) {
         map[key] = [];
@@ -208,7 +210,7 @@ export default function RecordsScreen() {
       map[key].push(rec);
     }
     return sections;
-  }, [filtered]);
+  }, [filtered, t]);
 
   // ─── Selection helpers ───────────────────────────────
   function toggleSelected(id: string) {
@@ -237,7 +239,7 @@ export default function RecordsScreen() {
     setSort(f.sort || "newest");
     setShowArchivedOnly(!!f.archivedOnly);
     if (f.scope) prefs.setFamilyScope(f.scope === "own" ? "own" : "all");
-    toast.show(`Loaded "${f.name}"`, "info");
+    toast.show(t("records.toast.loadedFilter", { name: f.name }), "info");
   }
 
   function handleSaveCurrentFilter(name: string) {
@@ -249,7 +251,7 @@ export default function RecordsScreen() {
       archivedOnly: showArchivedOnly || filter === "archived",
       scope: prefs.familyScope,
     });
-    toast.show(`Saved "${name}"`, "success");
+    toast.show(t("records.toast.savedFilter", { name }), "success");
   }
 
   // ─── Bulk actions (called from the action bar) ───────
@@ -266,14 +268,17 @@ export default function RecordsScreen() {
         onSuccess: (res: any) => {
           toast.show(
             res.denied?.length
-              ? `Tagged ${res.updated}, ${res.denied.length} denied`
-              : `Tagged ${res.updated}`,
+              ? t("records.toast.taggedPartial", {
+                  updated: res.updated,
+                  denied: res.denied.length,
+                })
+              : t("records.toast.tagged", { count: res.updated }),
             res.denied?.length ? "warning" : "success"
           );
           clearSelection();
         },
         onError: (err: any) =>
-          toast.show(err?.message || "Tag failed", "danger"),
+          toast.show(err?.message || t("records.toast.tagError"), "danger"),
       }
     );
   }
@@ -286,14 +291,17 @@ export default function RecordsScreen() {
         onSuccess: (res: any) => {
           toast.show(
             res.denied?.length
-              ? `Moved ${res.moved}, ${res.denied.length} denied`
-              : `Moved ${res.moved}`,
+              ? t("records.toast.movedPartial", {
+                  moved: res.moved,
+                  denied: res.denied.length,
+                })
+              : t("records.toast.moved", { count: res.moved }),
             res.denied?.length ? "warning" : "success"
           );
           clearSelection();
         },
         onError: (err: any) =>
-          toast.show(err?.message || "Move failed", "danger"),
+          toast.show(err?.message || t("records.toast.moveError"), "danger"),
       }
     );
   }
@@ -320,7 +328,7 @@ export default function RecordsScreen() {
     const meta = metaFor(rec.recordType);
     const catStyle = getCategoryStyle(rec.recordType);
     const IconComponent = meta.icon;
-    const dateLabel = formatItemDateLabel(rec.date);
+    const dateLabel = formatItemDateLabel(t, rec.date);
     const firstAttachment = rec.attachments?.first;
     const isSelected = selection.has(rec.id);
 
@@ -417,7 +425,7 @@ export default function RecordsScreen() {
                   fontFamily: fontFamily.displayBold,
                 }}
               >
-                {meta.label.toUpperCase()}
+                {getRecordTypeLabel(t, rec.recordType).toUpperCase()}
               </Text>
             </View>
           </View>
@@ -458,9 +466,9 @@ export default function RecordsScreen() {
                 marginTop: 6,
               }}
             >
-              {rec.tags.slice(0, 4).map((t: string) => (
+              {rec.tags.slice(0, 4).map((tag: string) => (
                 <View
-                  key={t}
+                  key={tag}
                   style={{
                     paddingHorizontal: 6,
                     paddingVertical: 2,
@@ -476,7 +484,7 @@ export default function RecordsScreen() {
                       fontFamily: fontFamily.bodyBold,
                     }}
                   >
-                    #{t}
+                    #{tag}
                   </Text>
                 </View>
               ))}
@@ -515,7 +523,7 @@ export default function RecordsScreen() {
                       fontFamily: fontFamily.bodyBold,
                     }}
                   >
-                    View Results (PDF)
+                    {t("records.viewResultsPdf")}
                   </Text>
                 </View>
               ) : firstAttachment.type === "image" ? (
@@ -602,7 +610,7 @@ export default function RecordsScreen() {
       >
         <Pressable onPress={() => router.push("/(app)/profile")}>
           <Avatar
-            name={userName || "You"}
+            name={userName || t("records.youFallback")}
             source={userPhoto ? { uri: userPhoto } : undefined}
             size="sm"
           />
@@ -619,7 +627,7 @@ export default function RecordsScreen() {
             },
           ]}
         >
-          {selectionMode ? `${selection.size} selected` : "HealthHub"}
+          {selectionMode ? t("records.selected", { count: selection.size }) : t("records.brandName")}
         </Text>
 
         <Pressable onPress={() => router.push("/(app)/notifications")}>
@@ -685,7 +693,7 @@ export default function RecordsScreen() {
               },
             ]}
           >
-            {selectionMode ? "Manage records" : "Your Records"}
+            {selectionMode ? t("records.manageTitle") : t("records.title")}
           </Text>
           <Text
             style={{
@@ -695,7 +703,7 @@ export default function RecordsScreen() {
               fontFamily: fontFamily.body,
             }}
           >
-            {filtered.length} total
+            {t("records.total", { count: filtered.length })}
           </Text>
         </View>
 
@@ -729,7 +737,7 @@ export default function RecordsScreen() {
               style={{ marginRight: spacing.xs }}
             />
             <TextInput
-              placeholder="Search records, OCR text, doctor…"
+              placeholder={t("records.searchPlaceholder")}
               placeholderTextColor="#9E9AA7"
               value={search}
               onChangeText={setSearch}
@@ -769,17 +777,12 @@ export default function RecordsScreen() {
               padding: 2,
             }}
           >
-            {(
-              [
-                { v: "own", label: "You" },
-                { v: "family", label: "You + Family" },
-              ] as const
-            ).map((opt) => {
-              const sel = prefs.familyScope === opt.v;
+            {(["own", "family"] as const).map((opt) => {
+              const sel = prefs.familyScope === opt;
               return (
                 <Pressable
-                  key={opt.v}
-                  onPress={() => prefs.setFamilyScope(opt.v)}
+                  key={opt}
+                  onPress={() => prefs.setFamilyScope(opt)}
                   style={{
                     paddingHorizontal: 14,
                     paddingVertical: 6,
@@ -795,7 +798,7 @@ export default function RecordsScreen() {
                       fontFamily: sel ? fontFamily.bodyBold : fontFamily.body,
                     }}
                   >
-                    {opt.label}
+                    {opt === "own" ? t("records.scope.own") : t("records.scope.family")}
                   </Text>
                 </Pressable>
               );
@@ -815,7 +818,7 @@ export default function RecordsScreen() {
                 fontFamily: fontFamily.bodyBold,
               }}
             >
-              Save filter
+              {t("records.saveFilter")}
             </Text>
           </Pressable>
         </View>
@@ -840,16 +843,16 @@ export default function RecordsScreen() {
                     Haptics.ImpactFeedbackStyle.Light
                   ).catch(() => {});
                   Alert(
-                    "Delete filter?",
-                    `Remove "${f.name}" from saved filters?`,
+                    t("records.savedFilters.delete.title"),
+                    t("records.savedFilters.delete.message", { name: f.name }),
                     [
-                      { text: "Cancel", style: "cancel" },
+                      { text: t("common.cancel"), style: "cancel" },
                       {
-                        text: "Delete",
+                        text: t("records.savedFilters.delete.remove"),
                         style: "destructive",
                         onPress: () => {
                           prefs.removeFilter(f.id);
-                          toast.show("Filter removed", "info");
+                          toast.show(t("records.savedFilters.removed"), "info");
                         },
                       },
                     ]
@@ -893,14 +896,14 @@ export default function RecordsScreen() {
               gap: spacing.sm,
             }}
           >
-            {FILTER_ORDER.map((f) => {
-              const count = counts[f.value] || 0;
-              const isSelected = filter === f.value;
-              const Icon = f.value === "archived" ? Archive : null;
+            {FILTER_VALUES.map((v) => {
+              const count = counts[v] || 0;
+              const isSelected = filter === v;
+              const Icon = v === "archived" ? Archive : null;
               return (
                 <Pressable
-                  key={f.value}
-                  onPress={() => onFilterChipPress(f.value)}
+                  key={v}
+                  onPress={() => onFilterChipPress(v)}
                   style={{
                     paddingHorizontal: 16,
                     paddingVertical: 10,
@@ -928,7 +931,7 @@ export default function RecordsScreen() {
                         : fontFamily.body,
                     }}
                   >
-                    {f.label}
+                    {t(`records.filter.${v}`)}
                   </Text>
                   <Text
                     style={{
@@ -961,12 +964,12 @@ export default function RecordsScreen() {
           <View
             style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}
           >
-            {DATE_RANGES.map((r) => {
-              const isSelected = range === r.value;
+            {DATE_RANGE_VALUES.map((rv) => {
+              const isSelected = range === rv;
               return (
                 <Pressable
-                  key={r.value}
-                  onPress={() => setRange(r.value)}
+                  key={rv}
+                  onPress={() => setRange(rv)}
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 6,
@@ -986,7 +989,7 @@ export default function RecordsScreen() {
                         : fontFamily.body,
                     }}
                   >
-                    {r.label}
+                    {t(`records.range.${rv}`)}
                   </Text>
                 </Pressable>
               );
@@ -994,11 +997,11 @@ export default function RecordsScreen() {
           </View>
 
           <Pressable
-            onPress={() =>
-              setSort((s) =>
-                s === "newest" ? "oldest" : s === "oldest" ? "relevance" : "newest"
-              )
-            }
+            onPress={() => {
+              const idx = SORT_ORDER.indexOf(sort);
+              const next = SORT_ORDER[(idx + 1) % SORT_ORDER.length];
+              setSort(next);
+            }}
             style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
           >
             <ArrowUpDown size={14} color={colors.primary} />
@@ -1010,11 +1013,7 @@ export default function RecordsScreen() {
                 fontFamily: fontFamily.bodyBold,
               }}
             >
-              {sort === "newest"
-                ? "Newest"
-                : sort === "oldest"
-                ? "Oldest"
-                : "Best match"}
+              {t(`records.sort.${sort}`)}
             </Text>
           </Pressable>
         </View>
@@ -1036,8 +1035,8 @@ export default function RecordsScreen() {
                 fontFamily: fontFamily.body,
               }}
             >
-              {filtered.length} {filtered.length === 1 ? "result" : "results"}
-              {search ? ` for "${search}"` : ""}
+              {t("records.results", { count: filtered.length })}
+              {search ? t("records.resultsFor", { query: search }) : ""}
             </Text>
             <Pressable
               onPress={() => {
@@ -1057,7 +1056,7 @@ export default function RecordsScreen() {
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                Clear filters
+                {t("records.clearFilters")}
               </Text>
             </Pressable>
           </View>
@@ -1077,9 +1076,9 @@ export default function RecordsScreen() {
           <EmptyState
             style={{ marginTop: spacing.xl }}
             icon={FileText}
-            title="No records yet"
-            message="Upload your first record, or log your medical notes."
-            actionLabel="Add record"
+            title={t("records.empty.title")}
+            message={t("records.empty.message")}
+            actionLabel={t("records.empty.action")}
             onAction={() => router.push("/(app)/add-record" as any)}
           />
         ) : filtered.length === 0 ? (
@@ -1098,7 +1097,7 @@ export default function RecordsScreen() {
                   },
                 ]}
               >
-                Nothing matches
+                {t("records.noMatch.title")}
               </Text>
               <Text
                 style={[
@@ -1110,10 +1109,10 @@ export default function RecordsScreen() {
                   },
                 ]}
               >
-                Try a different search term or clear the filters.
+                {t("records.noMatch.body")}
               </Text>
               <Button
-                title="Clear filters"
+                title={t("records.clearFilters")}
                 variant="ghost"
                 size="sm"
                 onPress={() => {
@@ -1215,32 +1214,35 @@ function Alert(
   message: string,
   buttons: Array<{ text: string; style?: "default" | "cancel" | "destructive"; onPress?: () => void }>
 ) {
-  // Lazy require so the bundle stays clean if user never long-presses a saved filter.
   const { Alert: RNAlert } = require("react-native");
   RNAlert.alert(title, message, buttons);
 }
 
-function getGroupKey(dateStr: string) {
+function getRecordTypeLabel(t: (k: string) => string, type: string): string {
+  return t(`records.type.${type}`, { defaultValue: (type || "").replace(/_/g, " ") });
+}
+
+function getGroupKey(t: (k: string) => string, dateStr: string) {
   try {
     const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return "UNKNOWN DATE";
+    if (Number.isNaN(d.getTime())) return t("records.unknownDate");
     return d
       .toLocaleDateString("en-US", { month: "long", year: "numeric" })
       .toUpperCase();
   } catch {
-    return "UNKNOWN DATE";
+    return t("records.unknownDate");
   }
 }
 
-function formatItemDateLabel(dateStr: string) {
+function formatItemDateLabel(t: (k: string) => string, dateStr: string) {
   try {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return dateStr;
     const today = new Date();
-    if (d.toDateString() === today.toDateString()) return "Today";
+    if (d.toDateString() === today.toDateString()) return t("records.date.today");
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
-    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    if (d.toDateString() === yesterday.toDateString()) return t("records.date.yesterday");
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   } catch {
     return dateStr;
