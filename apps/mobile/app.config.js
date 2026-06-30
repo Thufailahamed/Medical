@@ -16,6 +16,8 @@ export default {
         backgroundColor: "#ffffff",
       },
       package: "com.healthcare.app",
+      // arm64 only — avoids Windows CMake/ninja failures on armeabi-v7a
+      abiFilters: ["arm64-v8a"],
     },
     plugins: ["expo-router", "expo-secure-store", "expo-notifications"],
     extra: {
