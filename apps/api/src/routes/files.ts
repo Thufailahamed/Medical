@@ -236,6 +236,35 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
       if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
         c.executionCtx.waitUntil(ocrPromise);
       }
+
+      // Phase 2.1: auto-classification. Only fires for text-extractable
+      // PDFs (binary images stay 'other' until vision model in 2.2).
+      // Calls /ai/classify via loopback, persists the result.
+      if (file.type === "application/pdf") {
+        const classifyUrl = `/files/download/${encodeURIComponent(r2Key)}?stream=1`;
+        const classifyPromise = (async () => {
+          try {
+            const origin = new URL(c.req.url).origin;
+            await fetch(`${origin}/ai/classify`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: c.req.header("Authorization") || "",
+              },
+              body: JSON.stringify({
+                fileUrl: classifyUrl,
+                recordId: record.id,
+                source: "upload",
+              }),
+            });
+          } catch (err) {
+            console.error("[files.upload-with-record] classify failed:", err);
+          }
+        })();
+        if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+          c.executionCtx.waitUntil(classifyPromise);
+        }
+      }
     }
   }
 

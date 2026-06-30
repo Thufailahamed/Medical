@@ -19,8 +19,10 @@ import { buildAckReply } from "./reply";
 interface Env {
   DB: any;
   R2: R2Bucket;
+  AI: any;
   EMAIL_ALIAS_DOMAIN: string;
   DEV_MODE?: string;
+  CLASSIFY_THRESHOLD?: string;
 }
 
 interface CFEmailMessage {
@@ -85,7 +87,8 @@ function buildReplyStream(subject: string, body: string): ReadableStream<Uint8Ar
 
 export async function handleInboundEmail(
   message: CFEmailMessage,
-  env: Env
+  env: Env,
+  ctx?: { waitUntil?: (p: Promise<unknown>) => void }
 ): Promise<void> {
   const db = env.DB;
 
@@ -133,7 +136,13 @@ export async function handleInboundEmail(
   const subject = parsed.subject || "Email import";
 
   const result = await processInboundEmail(
-    { R2: env.R2, DB: db, EMAIL_ALIAS_DOMAIN: env.EMAIL_ALIAS_DOMAIN },
+    {
+      R2: env.R2,
+      DB: db,
+      AI: env.AI,
+      EMAIL_ALIAS_DOMAIN: env.EMAIL_ALIAS_DOMAIN,
+      CLASSIFY_THRESHOLD: env.CLASSIFY_THRESHOLD,
+    },
     {
       userId: recipient.userId,
       email: recipient.email,
@@ -142,7 +151,8 @@ export async function handleInboundEmail(
     source,
     emailMessageId,
     subject,
-    (parsed.attachments ?? []) as any
+    (parsed.attachments ?? []) as any,
+    ctx
   );
 
   // 4. Ack reply — but only if the email looks "real" (had body or

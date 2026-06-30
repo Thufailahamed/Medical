@@ -1173,6 +1173,10 @@
       "hospital_visit": "Visits",
       "vaccination": "Vaccines",
       "surgery": "Surgery",
+      "clinical_note": "Notes",
+      "lab_order": "Lab orders",
+      "follow_up": "Follow-ups",
+      "invoice": "Invoices",
       "archived": "Archived"
     },
     "range": {
@@ -1243,7 +1247,14 @@
       "discharge_summary": "Discharge",
       "medical_certificate": "Certificate",
       "operation_note": "Op note",
-      "invoice": "Invoice"
+      "invoice": "Invoice",
+      "clinical_note": "Clinical note",
+      "lab_order": "Lab order",
+      "follow_up": "Follow-up",
+      "other": "Other"
+    },
+    "aiGuess": {
+      "pill": "AI GUESS"
     }
   },
   "recordDetail": {

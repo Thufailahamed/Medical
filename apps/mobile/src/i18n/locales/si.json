@@ -571,6 +571,22 @@
       "title": "තවම වාර්තා නැත",
       "body": "ඔබේ පළමු වාර්තාව එකතු කරන්න. රසායනාගාර වාර්තා, බෙහෙත් වට්ටෝරු, රූප සහ වැඩිදෙයා සුරක්ෂිත කරන්න."
     },
+    "filter": {
+      "clinical_note": "සටහන්",
+      "lab_order": "රසායනාගාර ඇණවුම්",
+      "follow_up": "පසු විපරම්",
+      "invoice": "ඉන්වොයිසි"
+    },
+    "type": {
+      "clinical_note": "සායනික සටහන",
+      "lab_order": "රසායනාගාර ඇණවුම",
+      "follow_up": "පසු විපරම",
+      "invoice": "ඉන්වොයිසිය",
+      "other": "වෙනත්"
+    },
+    "aiGuess": {
+      "pill": "AI අනුමානය"
+    },
     "unknownDate": "දිනය නොදනී",
     "attachmentCount_one": "ඇමුණුමක්",
     "attachmentCount_other": "ඇමුණුම් {{count}}ක්",

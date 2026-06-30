@@ -16,6 +16,10 @@ DEV_MODE = "false"
 # "records.healthhub.app". Used to compose the `<alias>@<EMAIL_ALIAS_DOMAIN>`
 # address shown to users. Configure in CF dashboard → Email Routing.
 EMAIL_ALIAS_DOMAIN = "records.healthhub.app"
+# Phase 2.1: confidence threshold for auto-classification upgrades.
+# Reject values below this — recordType stays 'other'.
+CLASSIFY_THRESHOLD = "0.6"
+CLASSIFY_CRON_THRESHOLD = "0.7"
 
 [[d1_databases]]
 binding = "DB"
@@ -39,12 +43,14 @@ vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
 #   - "7 * * * *"                          → booking reminders (hourly :07)
 #   - "3,8,13,...,58 * * * *"               → dose reminders (every 5 min)
 #   - "37 3 * * *"                         → refill reminders (daily 09:07 SL)
+#   - "0 5 * * *"                          → reclassify sweep (daily 05:00 SL, Phase 2.1)
 # Off-minute shifts avoid the :00/:05 spike seen by other cron jobs.
 [triggers]
 crons = [
   "7 * * * *",
   "3,8,13,18,23,28,33,38,43,48,53,58 * * * *",
   "37 3 * * *",
+  "0 5 * * *",
 ]
 
 [observability.logs]

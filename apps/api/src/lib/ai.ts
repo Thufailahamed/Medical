@@ -10,7 +10,8 @@ export type AiKind =
   | "lab_explain"
   | "drug_interaction"
   | "chat"
-  | "ocr";
+  | "ocr"
+  | "classify";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 

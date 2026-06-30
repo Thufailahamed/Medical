@@ -110,3 +110,80 @@ export function searchRecords<T extends Record<string, any>>(
 
   return scored.map((s) => s.rec);
 }
+
+// ─── didYouMean ──────────────────────────────────────────
+// When the typed query returns zero results, suggest up to two
+// alternative terms drawn from the existing records' titles / diagnoses
+// / summary fields. Cheap fuzzy match: pick tokens from the candidate
+// pool that share ≥ 2 chars with any token in the failed query. Falls
+// back to the longest candidate token if no overlap.
+//
+// Returns a 0–2 element array of suggested strings. Empty = no
+// reasonable suggestion to offer.
+export function didYouMean<T extends Record<string, any>>(
+  query: string,
+  records: T[],
+  fields: Array<keyof T | ((r: T) => string | undefined)>
+): string[] {
+  const needle = query.trim();
+  if (!needle || records.length === 0) return [];
+
+  // Gather every haystack token from the candidate pool.
+  const pool = new Map<string, number>();
+  for (const rec of records) {
+    const blob = fields
+      .map((f) =>
+        typeof f === "function"
+          ? (f as (r: T) => string | undefined)(rec) || ""
+          : flattenOCR(rec[f])
+      )
+      .join(" ");
+    for (const tok of tokenize(blob)) {
+      pool.set(tok, (pool.get(tok) || 0) + 1);
+    }
+  }
+  if (pool.size === 0) return [];
+
+  const needleTokens = tokenize(needle);
+  if (needleTokens.length === 0) return [];
+
+  // Score each haystack token by best token-prefix overlap with any
+  // needle token. Higher = better suggestion. Skip 1-char tokens.
+  const ranked: Array<{ tok: string; score: number }> = [];
+  for (const [tok] of pool) {
+    if (tok.length < 3) continue;
+    let best = 0;
+    for (const nt of needleTokens) {
+      if (tok === nt) best = Math.max(best, 100);
+      else if (tok.startsWith(nt) || nt.startsWith(tok))
+        best = Math.max(best, 60);
+      else if (tok.length >= 3 && nt.length >= 3 && tok.slice(0, 3) === nt.slice(0, 3))
+        best = Math.max(best, 30);
+    }
+    if (best > 0) ranked.push({ tok, score: best });
+  }
+
+  if (ranked.length === 0) {
+    // No overlap — surface the most common long token from the pool as
+    // a gentle "try something else" hint.
+    let fallback: { tok: string; freq: number } | null = null;
+    for (const [tok, freq] of pool) {
+      if (tok.length < 5) continue;
+      if (!fallback || freq > fallback.freq) fallback = { tok, freq };
+    }
+    return fallback ? [fallback.tok] : [];
+  }
+
+  ranked.sort((a, b) => b.score - a.score);
+  // Dedupe (don't suggest the same token twice if it appears in both
+  // singular + plural forms — first wins).
+  const seen = new Set<string>();
+  const suggestions: string[] = [];
+  for (const { tok } of ranked) {
+    if (seen.has(tok)) continue;
+    seen.add(tok);
+    suggestions.push(tok);
+    if (suggestions.length >= 2) break;
+  }
+  return suggestions;
+}

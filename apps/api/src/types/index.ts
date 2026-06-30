@@ -22,6 +22,10 @@ export interface AppEnvironment {
     // Phase 1.4: domain hosting email aliases for Phase 1.4 ingestion.
     // e.g. "records.healthhub.app" — used in the address handed to users.
     EMAIL_ALIAS_DOMAIN: string;
+    // Phase 2.1: confidence threshold for auto-classification upgrades.
+    // Default 0.6. Cron uses CLASSIFY_CRON_THRESHOLD (default 0.7).
+    CLASSIFY_THRESHOLD?: string;
+    CLASSIFY_CRON_THRESHOLD?: string;
   };
   Variables: {
     user: User;

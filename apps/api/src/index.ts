@@ -33,10 +33,12 @@ import shareRouter from "./routes/share";
 import pushRouter from "./routes/push";
 import walkInsRouter from "./routes/walk-ins";
 import emailRouter from "./routes/email";
+import classificationRouter from "./routes/classification";
 import { handleInboundEmail } from "./email/inbound";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
 import { refillRemindersRouter } from "./cron/refill-reminders";
+import { reclassifyRouter } from "./cron/reclassify";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -105,6 +107,8 @@ app.route("/walk-ins", walkInsRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);
+// Phase 2.1: AI auto-classify + trilingual FTS5 search.
+app.route("/", classificationRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]
@@ -118,6 +122,7 @@ app.route("/", emailRouter);
 app.route("/", bookingRemindersRouter);
 app.route("/", doseRemindersRouter);
 app.route("/", refillRemindersRouter);
+app.route("/", reclassifyRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {
@@ -139,7 +144,7 @@ export default {
   fetch: app.fetch,
   async email(message: any, env: any, ctx: any) {
     try {
-      await handleInboundEmail(message, env);
+      await handleInboundEmail(message, env, ctx);
     } catch (err) {
       // Anti-enumeration: never reply on errors. Drop silently.
       console.error("email handler error:", err);

@@ -146,6 +146,66 @@ export function useMedicalRecords(opts?: UseMedicalRecordsOpts) {
   });
 }
 
+// Phase 2.1: trilingual FTS5 search. Server uses unicode61 tokenizer so
+// Sinhala/Tamil terms inside English-source records are findable. Returns
+// BM25-ranked records, capped server-side at the same `limit` as the
+// regular list. Disabled when query is empty or < 2 chars.
+export function useRecordSearch(query: string, opts?: { limit?: number }) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ["medical-records", "search", trimmed, opts?.limit ?? 50],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set("q", trimmed);
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      return api<{ records: any[]; total: number }>(
+        `/medical-records/me/search?${params.toString()}`
+      );
+    },
+    enabled: trimmed.length >= 2,
+    staleTime: 15_000,
+  });
+}
+
+// Phase 2.1: classification result lives on `record.extractedData` as
+// `{ classification: { recordType, confidence, ... } }`. Returned by the
+// server when auto-classification fired. Mobile currently only reads it
+// for the "AI guess" pill on the records list (D8 — pill only shown
+// when confidence < 0.7, indicating the model isn't sure).
+export type AiClassification = {
+  recordType: string;
+  confidence: number;
+  extracted?: {
+    date?: string;
+    provider?: string;
+    patient_name?: string;
+    key_findings?: string;
+  };
+  modelVersion?: string;
+  classifiedAt?: string;
+};
+
+export function readAiGuess(record: any): AiClassification | null {
+  if (!record) return null;
+  const ed = record.extractedData;
+  if (!ed) return null;
+  let blob: any = ed;
+  if (typeof ed === "string") {
+    try {
+      blob = JSON.parse(ed);
+    } catch {
+      return null;
+    }
+  }
+  const cls = blob?.classification;
+  if (!cls || typeof cls.confidence !== "number") return null;
+  // Only show the pill when the model wasn't confident — that's the
+  // "AI isn't sure, please confirm" state. Strong matches upgrade
+  // recordType silently (no pill needed).
+  if (cls.confidence >= 0.7) return null;
+  return cls as AiClassification;
+}
+
 export function useRecordStats() {
   return useQuery({
     queryKey: ["medical-records", "stats"],

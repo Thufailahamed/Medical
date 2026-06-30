@@ -76,3 +76,60 @@ export async function uploadBuffer(
     httpMetadata: contentType ? { contentType } : undefined,
   });
 }
+
+/**
+ * Fetch raw bytes from R2. Bounded by `maxBytes` — if the object is
+ * larger, only the prefix is returned. Returns `null` on missing object
+ * or transport failure.
+ *
+ * Used by Phase 2.1 classifier for cache-hash input. The classifier
+ * itself uses `fetchR2Text` (text-only) for the model prompt.
+ */
+export async function fetchBuffer(
+  bucket: R2Bucket,
+  key: string,
+  maxBytes: number = 2 * 1024 * 1024
+): Promise<Uint8Array | null> {
+  if (!bucket || !key) return null;
+  try {
+    const obj = await bucket.get(key);
+    if (!obj) return null;
+    const size = obj.size ?? 0;
+    if (size <= maxBytes) {
+      const ab = await obj.arrayBuffer();
+      return new Uint8Array(ab);
+    }
+    const stream = obj.body as ReadableStream | null;
+    if (!stream) return null;
+    const reader = stream.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (total < maxBytes) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const remaining = maxBytes - total;
+      if (value.byteLength <= remaining) {
+        chunks.push(value);
+        total += value.byteLength;
+      } else {
+        chunks.push(value.slice(0, remaining));
+        total = maxBytes;
+        break;
+      }
+    }
+    try {
+      await reader.cancel();
+    } catch {
+      // ignore
+    }
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) {
+      out.set(c, off);
+      off += c.byteLength;
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}

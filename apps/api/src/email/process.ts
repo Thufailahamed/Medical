@@ -10,6 +10,7 @@ import {
   sniffFileType,
   uploadBuffer,
 } from "../lib/storage";
+import { classify, persistClassification } from "../lib/classifier";
 
 // CF imposes a 25MB hard limit per inbound email. Anything beyond is
 // dropped pre-parse; we still cap defensively for raw streams.
@@ -59,12 +60,19 @@ async function recordExists(db: any, emailMessageId: string) {
  * Returns counts the caller uses to compose an ack email.
  */
 export async function processInboundEmail(
-  env: { R2: R2Bucket; DB: any; EMAIL_ALIAS_DOMAIN: string },
+  env: {
+    R2: R2Bucket;
+    DB: any;
+    AI: any;
+    EMAIL_ALIAS_DOMAIN: string;
+    CLASSIFY_THRESHOLD?: string;
+  },
   user: RecipientUser,
   source: Source,
   emailMessageId: string,
   subject: string,
-  attachments: Attach[]
+  attachments: Attach[],
+  ctx?: { waitUntil?: (p: Promise<unknown>) => void }
 ): Promise<ProcessResult> {
   const db = env.DB;
   let received = 0;
@@ -140,6 +148,35 @@ export async function processInboundEmail(
       fileSize: size,
       mimeType: mime,
     });
+
+    // Phase 2.1: auto-classify text-extractable PDFs (D12 — skip binary
+    // images, vision model arrives in 2.2). Fire-and-forget so the ack
+    // reply isn't blocked on AI inference. CF Email Workers expose a
+    // `ctx.waitUntil` — when present, use it; otherwise rely on the
+    // handler's Promise to keep the isolate alive.
+    if (mime === "application/pdf") {
+      const classifyPromise = (async () => {
+        try {
+          const threshold = parseFloat(env.CLASSIFY_THRESHOLD || "0.6");
+          const result = await classify(
+            { AI: env.AI, R2: env.R2, DB: env.DB },
+            {
+              fileUrl: r2Key,
+              recordId: record.id,
+              source: "email-import",
+              userId: user.userId,
+              threshold,
+            }
+          );
+          await persistClassification(env.DB, record.id, result, threshold);
+        } catch (err) {
+          console.error("[email.process] classify failed:", err);
+        }
+      })();
+      if (ctx?.waitUntil) {
+        ctx.waitUntil(classifyPromise);
+      }
+    }
 
     received++;
   }

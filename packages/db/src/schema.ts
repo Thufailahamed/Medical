@@ -180,6 +180,10 @@ export const medicalRecords = sqliteTable(
         "clinical_note",
         "lab_order",
         "follow_up",
+        // Phase 2.1: bucket for AI-unclassifiable records (e.g. binary
+        // images awaiting a vision model, or low-confidence inferences).
+        // User can manually override via PATCH /medical-records/:id.
+        "other",
       ],
     }).notNull(),
     title: text("title").notNull(),

@@ -35,6 +35,8 @@ import {
   useUnreadCount,
   useBulkTagRecords,
   useBulkMoveRecords,
+  useRecordSearch,
+  readAiGuess,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -46,7 +48,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { metaFor, type RecordType } from "@/lib/recordImportance";
-import { searchRecords, flattenOCR } from "@/lib/recordSearch";
+import { searchRecords, flattenOCR, didYouMean } from "@/lib/recordSearch";
 import { useRecordsPrefsStore } from "@/stores/recordsPrefs";
 import { RecordsActionBar } from "@/components/RecordsActionBar";
 import { FamilyPickerSheet } from "@/components/FamilyPickerSheet";
@@ -124,6 +126,16 @@ export default function RecordsScreen() {
 
   const records: any[] = recordsData?.records ?? [];
 
+  // Phase 2.1: trilingual server FTS5 search. Activates only when the
+  // user types ≥ 2 chars. Server returns BM25-ranked records across
+  // own + family scope. Falls back to client scoring while a query is
+  // mid-flight so the existing UX (typing → narrow → expand) still
+  // works without waiting on the network roundtrip.
+  const {
+    data: serverSearch,
+    isFetching: isSearching,
+  } = useRecordSearch(search, { limit: 100 });
+
   const userPhoto = profileData?.patient?.users?.photo;
   const userName = profileData?.patient?.users?.name || "";
 
@@ -137,8 +149,18 @@ export default function RecordsScreen() {
   // ─── Type / date pre-filter on the server already
   // applies those; this block layers client-side relevance
   // ranking on top when q is present and groups by month.
+  //
+  // Phase 2.1: prefer the server FTS result when it's available —
+  // it understands Sinhala/Tamil token boundaries via unicode61, so
+  // it catches cross-script matches that client substring scoring
+  // would miss. Fall back to client scoring only when the server
+  // result hasn't arrived yet.
   const ranked = useMemo(() => {
-    if (!search.trim()) return records;
+    const trimmed = search.trim();
+    if (trimmed.length >= 2 && serverSearch?.records) {
+      return serverSearch.records;
+    }
+    if (!trimmed) return records;
     return searchRecords(records, search, [
       "title",
       "diagnosis",
@@ -149,7 +171,23 @@ export default function RecordsScreen() {
       (r) => r.hospital?.name,
       (r) => flattenOCR(r.extractedData),
     ]);
-  }, [records, search]);
+  }, [records, search, serverSearch]);
+
+  // Phase 2.1: "did you mean" suggestions when the typed query has no
+  // hits at all. Drawn from the local candidate pool only — server
+  // already returned 0 matches, so there's nothing to mine there.
+  const didYouMeanSuggestions = useMemo(() => {
+    const trimmed = search.trim();
+    if (!trimmed || trimmed.length < 2) return [];
+    if (ranked.length > 0) return [];
+    return didYouMean(trimmed, records, [
+      "title",
+      "diagnosis",
+      "summary",
+      (r) => r.doctor?.name,
+      (r) => r.hospital?.name,
+    ]);
+  }, [search, ranked, records]);
 
   const RANGE_MS: Record<DateRange, number | null> = {
     all: null,
@@ -334,6 +372,10 @@ export default function RecordsScreen() {
     const dateLabel = formatItemDateLabel(t, locale, rec.date);
     const firstAttachment = rec.attachments?.first;
     const isSelected = selection.has(rec.id);
+    // Phase 2.1: AI-guess pill when classification ran but wasn't
+    // confident enough to upgrade recordType silently. Tapping opens
+    // the edit screen so the user can confirm / correct.
+    const aiGuess = readAiGuess(rec);
 
     return (
       <Pressable
@@ -460,6 +502,61 @@ export default function RecordsScreen() {
           </Text>
 
           {/* Tags row */}
+          {aiGuess ? (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/(app)/edit-record",
+                  params: { id: rec.id },
+                })
+              }
+              hitSlop={4}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                alignSelf: "flex-start",
+                marginTop: 6,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor: "#FFF7E0",
+                borderWidth: 1,
+                borderColor: "#F0D58A",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: "800",
+                  color: "#8A6D17",
+                  letterSpacing: 0.5,
+                  fontFamily: fontFamily.displayBold,
+                }}
+              >
+                {t("records.aiGuess.pill")}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  color: "#5C4A0F",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {getRecordTypeLabel(t, aiGuess.recordType)}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: "#8A6D17",
+                  fontFamily: fontFamily.body,
+                }}
+              >
+                {Math.round(aiGuess.confidence * 100)}%
+              </Text>
+            </Pressable>
+          ) : null}
           {rec.tags?.length ? (
             <View
               style={{
@@ -1114,6 +1211,44 @@ export default function RecordsScreen() {
               >
                 {t("records.noMatch.body")}
               </Text>
+              {didYouMeanSuggestions.length > 0 ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    gap: 6,
+                    marginTop: spacing.sm,
+                  }}
+                >
+                  {didYouMeanSuggestions.map((s) => (
+                    <Pressable
+                      key={s}
+                      onPress={() => setSearch(s)}
+                      hitSlop={4}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: colors.primary,
+                        backgroundColor: `${colors.primary}14`,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "700",
+                          color: colors.primary,
+                          fontFamily: fontFamily.bodyBold,
+                        }}
+                      >
+                        {s}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
               <Button
                 title={t("records.clearFilters")}
                 variant="ghost"
