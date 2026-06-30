@@ -27,3 +27,5 @@ export async function audit(db: any, input: AuditInput): Promise<void> {
     console.error("audit insert failed:", err);
   }
 }
+
+export { audit as writeAudit };

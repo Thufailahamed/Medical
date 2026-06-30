@@ -49,7 +49,7 @@ ai.use("*", authMiddleware);
 // Extract a usable R2 key from a `fileUrl` (which may be a raw key, an
 // absolute URL, or a local file:// URI). Returns "" if it doesn't look
 // like a key we can fetch from our R2.
-function extractR2Key(input: string): string {
+export function extractR2Key(input: string): string {
   if (!input) return "";
   // Raw key (no scheme)
   if (!/^[a-z]+:\/\//i.test(input)) return input.trim();

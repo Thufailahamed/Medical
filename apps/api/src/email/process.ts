@@ -17,7 +17,7 @@ import { upsertRecordFts } from "../lib/fts";
 // dropped pre-parse; we still cap defensively for raw streams.
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
-export type Source = "email-alias" | "email-from";
+export type Source = "email-alias" | "email-from" | "email-subject-nic";
 
 export interface ProcessResult {
   received: number;

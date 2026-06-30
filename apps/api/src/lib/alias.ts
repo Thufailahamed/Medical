@@ -89,3 +89,35 @@ export async function findUserByEmail(db: any, email: string) {
       }
     : null;
 }
+
+/**
+ * Find a user (and their patient row) by their National ID Card (NIC).
+ * Used for inbound email routing: if an email is sent to records@,
+ * and the subject line contains the patient's NIC, we can file the
+ * attachment into the correct user's locker.
+ */
+export async function findUserByNic(db: any, nic: string) {
+  const normalised = nic.trim().toUpperCase();
+  if (!normalised) return null;
+  const [row] = await db
+    .select({
+      userId: users.id,
+      email: users.email,
+      phone: users.phone,
+      name: users.name,
+      patientId: patients.id,
+      emailAlias: users.emailAlias,
+    })
+    .from(users)
+    .leftJoin(patients, eq(patients.userId, users.id))
+    .where(eq(users.nic, normalised))
+    .limit(1);
+  return row?.patientId
+    ? {
+        userId: row.userId,
+        email: row.email,
+        patientId: row.patientId,
+        emailAlias: row.emailAlias,
+      }
+    : null;
+}

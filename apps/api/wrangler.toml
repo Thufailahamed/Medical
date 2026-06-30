@@ -48,11 +48,8 @@ vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
 # Off-minute shifts avoid the :00/:05 spike seen by other cron jobs.
 [triggers]
 crons = [
-  "7 * * * *",
-  "3,8,13,18,23,28,33,38,43,48,53,58 * * * *",
+  "3,18,33,48 * * * *",
   "37 3 * * *",
-  "0 5 * * *",
-  "42 3 * * *",
 ]
 
 [observability.logs]

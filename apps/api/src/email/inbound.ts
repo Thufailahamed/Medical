@@ -12,16 +12,11 @@
 // Phase 2.1 will move steps 3-4 to a CF Queue when OCR pipeline joins.
 
 import PostalMime from "postal-mime";
-import { findUserByAlias, findUserByEmail } from "../lib/alias";
+import { findUserByAlias, findUserByEmail, findUserByNic } from "../lib/alias";
 import { processInboundEmail, type Source } from "./process";
-import { buildAckReply } from "./reply";
+import { type Env } from "../types";
 
-interface Env {
-  DB: any;
-  R2: R2Bucket;
-  AI: any;
-  EMAIL_ALIAS_DOMAIN: string;
-  DEV_MODE?: string;
+interface EnvExtended extends Env {
   CLASSIFY_THRESHOLD?: string;
 }
 
@@ -62,6 +57,23 @@ function emailFromAddress(addr: string): string | null {
 }
 
 /**
+ * Helper to parse a Sri Lankan National Identity Card (NIC) from the subject line.
+ * Matches old format (9 digits followed by V/X) or new format (12 digits) as a token.
+ */
+function extractNicFromSubject(subject: string): string | null {
+  const oldNicRegex = /\b\d{9}[vVxX]\b/;
+  const newNicRegex = /\b\d{12}\b/;
+
+  const oldMatch = subject.match(oldNicRegex);
+  if (oldMatch) return oldMatch[0].toUpperCase();
+
+  const newMatch = subject.match(newNicRegex);
+  if (newMatch) return newMatch[0];
+
+  return null;
+}
+
+/**
  * Build a raw RFC822 stream suitable for `message.reply()`. CF's
  * EmailMessage expects the form `{ from, to, raw }` where `raw` is the
  * serialised message including headers + body.
@@ -92,7 +104,10 @@ export async function handleInboundEmail(
 ): Promise<void> {
   const db = env.DB;
 
-  // 1. Resolve sender + recipient.
+  // 1. Parse the MIME stream first to obtain headers & subject.
+  const parsed = await PostalMime.parse(message.raw as ReadableStream<Uint8Array>);
+
+  // 2. Resolve sender + recipient.
   const fromEmail = emailFromAddress(message.from);
   const toAlias = aliasFromAddress(message.to);
 
@@ -114,15 +129,21 @@ export async function handleInboundEmail(
     if (recipient) source = "email-from";
   }
 
+  // NIC match path: extract NIC from subject line and lookup user.
+  if (!recipient && parsed.subject) {
+    const nic = extractNicFromSubject(parsed.subject);
+    if (nic) {
+      recipient = await findUserByNic(db, nic);
+      if (recipient) source = "email-subject-nic";
+    }
+  }
+
   // Anti-enumeration: drop silently. No reply, no error. CF considers
   // a successful return as "delivered" — we want that for known users
   // and don't want to leak which addresses exist.
   if (!recipient || !source) {
     return;
   }
-
-  // 2. Parse the MIME stream.
-  const parsed = await PostalMime.parse(message.raw as ReadableStream<Uint8Array>);
 
   // postal-mime lower-cases header names. CF exposes `messageId` (or
   // we fall back to a per-event hash).
