@@ -312,6 +312,20 @@ export const medicineUpdateSchema = z.object({
   familyMemberId: z.string().uuid().nullable().optional(),
 });
 
+// ─── Phase 2.3: Share link creation ───────────────────────
+// Replaces the inline `c.req.json().catch(() => ({}))` parsing that lived
+// in share.ts so every field is shape-validated before persistence. The
+// `familyMemberId` mirrors medicineSchema.familyMemberId verbatim (same
+// nullable semantics: NULL = household / principal, UUID = scope to
+// that family member). Server enforces FM ownership separately.
+export const SHARE_SCOPE_VALUES = ["all", "recent6m"] as const;
+export const createShareLinkSchema = z.object({
+  label: z.string().max(100).optional(),
+  expiresInHours: z.number().int().min(1).max(720).optional(),
+  scope: z.enum(SHARE_SCOPE_VALUES).optional(),
+  familyMemberId: z.string().uuid().nullable().optional(),
+});
+
 export const appointmentSchema = z.object({
   doctorId: z.string().uuid("Invalid doctor id"),
   hospitalId: z.string().uuid("Invalid hospital id"),

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Share as RNShare,
   Pressable,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   Share2,
   Link as LinkIcon,
@@ -20,6 +20,7 @@ import {
   Copy,
   CheckCircle2,
   XCircle,
+  User,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
@@ -47,6 +48,9 @@ import {
 
 export default function ShareScreen() {
   const router = useRouter();
+  // Phase 2.3: prefill FM scope when navigated to from family.tsx or
+  // edit-medicine.tsx. Both screens push us with prefillFmId + name.
+  const params = useLocalSearchParams<{ prefillFmId?: string; prefillFmName?: string }>();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
@@ -69,6 +73,19 @@ export default function ShareScreen() {
   const [scope, setScope] = useState("all");
   const [hours, setHours] = useState(24);
   const [lastToken, setLastToken] = useState<string | null>(null);
+  // Phase 2.3: prefill from route params (set by family.tsx or
+  // edit-medicine.tsx). Persists for the lifetime of the screen; cleared
+  // when the user dismisses the sheet.
+  const [prefillFmId, setPrefillFmId] = useState<string | null>(null);
+  const [prefillFmName, setPrefillFmName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (params.prefillFmId) {
+      setPrefillFmId(String(params.prefillFmId));
+      setPrefillFmName(params.prefillFmName ? String(params.prefillFmName) : null);
+      setSheetOpen(true);
+    }
+  }, [params.prefillFmId, params.prefillFmName]);
 
   async function onCreate() {
     try {
@@ -76,10 +93,16 @@ export default function ShareScreen() {
         label: label.trim() || t("share.link.labelFallback"),
         scope,
         expiresInHours: hours,
+        // Phase 2.3: explicit familyMemberId when the user came in via
+        // an FM entry point. No silent inference from the active FM
+        // header — share actions are high-stakes.
+        familyMemberId: prefillFmId,
       });
       setLastToken(res.token);
       setSheetOpen(false);
       setLabel("");
+      setPrefillFmId(null);
+      setPrefillFmName(null);
       toast.show({ message: t("share.toast.created"), tone: "success" });
     } catch (e: any) {
       toast.show({
@@ -226,6 +249,24 @@ export default function ShareScreen() {
                   </Text>
                   <Chip label={chip.label} tone={chip.tone as any} size="sm" />
                 </View>
+                {/* Phase 2.3: family-member scope badge. Surfaces which FM
+                    this link is for, even when the user is far from the
+                    family-detail screen. */}
+                {l.familyMemberId ? (
+                  <View style={{ marginTop: 4 }}>
+                    <Chip
+                      label={t("share.link.scopeForMember", {
+                        name:
+                          l.familyMember?.name ||
+                          prefillFmName ||
+                          t("share.link.scopeMemberFallback"),
+                      })}
+                      tone="info"
+                      size="sm"
+                      icon={User}
+                    />
+                  </View>
+                ) : null}
                 <View
                   style={{
                     flexDirection: "row",
@@ -280,15 +321,59 @@ export default function ShareScreen() {
 
       <BottomSheet
         visible={sheetOpen}
-        onDismiss={() => setSheetOpen(false)}
-        title={t("share.sheet.title")}
+        onDismiss={() => {
+          setSheetOpen(false);
+          setPrefillFmId(null);
+          setPrefillFmName(null);
+        }}
+        title={
+          prefillFmId
+            ? t("share.sheet.titleForMember", {
+                name: prefillFmName || t("share.link.scopeMemberFallback"),
+              })
+            : t("share.sheet.title")
+        }
       >
         <View style={{ gap: spacing.md }}>
+          {/* Phase 2.3: visible scope callout. Tells the user exactly
+              which family member's data the link will expose. */}
+          {prefillFmId ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.xs,
+                padding: spacing.sm,
+                backgroundColor: colors.primarySoft,
+                borderRadius: radius.md,
+              }}
+            >
+              <User size={16} color={colors.primary} />
+              <Text
+                style={[
+                  typography.body.sm,
+                  { color: colors.text, flex: 1, lineHeight: 18 },
+                ]}
+              >
+                {t("share.sheet.scopingTo", {
+                  name:
+                    prefillFmName || t("share.link.scopeMemberFallback"),
+                })}
+              </Text>
+            </View>
+          ) : null}
+
           <FormField label={t("share.field.labelLabel")}>
             <TextInput
               value={label}
               onChangeText={setLabel}
-              placeholder={t("share.field.labelPlaceholder")}
+              placeholder={
+                prefillFmId
+                  ? t("share.field.labelPlaceholderForMember", {
+                      name: prefillFmName || "",
+                    })
+                  : t("share.field.labelPlaceholder")
+              }
               placeholderTextColor={colors.textSubtle}
               style={{
                 backgroundColor: colors.surface,

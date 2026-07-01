@@ -920,30 +920,44 @@ export const vaccineReminders = sqliteTable("vaccine_reminders", {
 // Phase 2.3.1: `kind` discriminates record-share vs family-invite so the
 // table can host both without a parallel table. `consumedAt` + `redeemedByUserId`
 // are invite-only lifecycle fields (NULL for record-share rows).
-export const shareLinks = sqliteTable("share_links", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  patientId: text("patient_id")
-    .notNull()
-    .references(() => patients.id),
-  token: text("token").notNull().unique(),
-  scope: text("scope").notNull().default("{}"),
-  label: text("label"),
-  expiresAt: text("expires_at").notNull(),
-  revoked: integer("revoked", { mode: "boolean" }).default(false),
-  createdBy: text("created_by")
-    .notNull()
-    .references(() => users.id),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  lastViewedAt: text("last_viewed_at"),
-  // Phase 2.3.1: invite discriminator + lifecycle.
-  kind: text("kind").notNull().default("record_share"),
-  consumedAt: text("consumed_at"),
-  redeemedByUserId: text("redeemed_by_user_id").references(
-    (): any => users.id
-  ),
-});
+export const shareLinks = sqliteTable(
+  "share_links",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    token: text("token").notNull().unique(),
+    scope: text("scope").notNull().default("{}"),
+    label: text("label"),
+    expiresAt: text("expires_at").notNull(),
+    revoked: integer("revoked", { mode: "boolean" }).default(false),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    lastViewedAt: text("last_viewed_at"),
+    // Phase 2.3.1: invite discriminator + lifecycle.
+    kind: text("kind").notNull().default("record_share"),
+    consumedAt: text("consumed_at"),
+    redeemedByUserId: text("redeemed_by_user_id").references(
+      (): any => users.id
+    ),
+    // Phase 2.3: scope a share link to one family member. NULL = household
+    // / principal (today's full-bundle behavior). Set = the public bundle
+    // exposes only that member's medicines + records. See GET /share/:token.
+    familyMemberId: text("family_member_id").references(
+      (): any => familyMembers.id
+    ),
+  },
+  (t) => ({
+    familyMemberIdx: index("idx_share_links_family_member").on(
+      t.familyMemberId
+    ),
+  })
+);
 
 // ─── V3: Share Link Views (audit trail) ─────────────────
 export const shareLinkViews = sqliteTable("share_link_views", {

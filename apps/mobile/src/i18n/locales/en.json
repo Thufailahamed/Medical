@@ -677,16 +677,21 @@
       "expiredOn": "Expired {{date}}",
       "expiresOn": "Expires {{date}}",
       "shareButton": "Share",
-      "revokeButton": "Revoke"
+      "revokeButton": "Revoke",
+      "scopeForMember": "For {{name}}",
+      "scopeMemberFallback": "Family member"
     },
     "shareMessage": "HealthHub record: {{label}}\n{{url}}\n\nExpires {{date}}",
     "sheet": {
       "title": "Create share link",
+      "titleForMember": "Share {{name}}'s records",
+      "scopingTo": "This link will show only this family member's medicines and records.",
       "warning": "Anyone with the link can view your shared data. You can revoke access at any time."
     },
     "field": {
       "labelLabel": "Label (optional)",
       "labelPlaceholder": "e.g. Dr Smith visit 2024",
+      "labelPlaceholderForMember": "e.g. For {{name}}",
       "scopeLabel": "Scope",
       "durationLabel": "Duration"
     },
@@ -890,6 +895,7 @@
     "action": {
       "call": "Call {{name}}",
       "message": "Message {{name}}",
+      "share": "Share {{name}}'s records",
       "remove": "Remove {{name}}"
     },
     "compose": {
@@ -1224,6 +1230,7 @@
   },
   "editMedicine": {
     "title": "Edit medicine",
+    "shareButton": "Share",
     "subtitle": "Edit your medicine details",
     "loadError": {
       "title": "Could not load medicine",

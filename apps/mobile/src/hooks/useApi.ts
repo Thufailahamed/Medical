@@ -2297,6 +2297,10 @@ export function useAddMedicineWithConfirm() {
 }
 
 // ─── V3: Share links ────────────────────────────────────
+// Phase 2.3: `familyMemberId` lets a link be scoped to one family member's
+// medicines + records. NULL on a row = household / principal (today's
+// behavior). The `familyMember` block is server-resolved on the public
+// bundle; the list endpoint returns the id only since it doesn't enrich.
 export type ShareLink = {
   id: string;
   token: string;
@@ -2306,6 +2310,8 @@ export type ShareLink = {
   revoked: boolean;
   createdAt: string;
   lastViewedAt: string | null;
+  familyMemberId?: string | null;
+  familyMember?: { id: string; name: string; relationship: string | null };
 };
 
 export function useShareLinks() {
@@ -2316,6 +2322,23 @@ export function useShareLinks() {
   });
 }
 
+// Phase 2.3: client-side filter of the existing useShareLinks cache by
+// `familyMemberId`. Implemented via `select` so we don't fire a second
+// network call and the cache invalidation on revoke still works.
+export function useShareLinksByFamilyMember(familyMemberId: string | null) {
+  return useQuery({
+    queryKey: ["share", "links"],
+    queryFn: () => api<{ links: ShareLink[] }>("/share/links"),
+    staleTime: 30_000,
+    select: (data) => ({
+      links:
+        familyMemberId == null
+          ? data.links
+          : data.links.filter((l) => l.familyMemberId === familyMemberId),
+    }),
+  });
+}
+
 export function useCreateShareLink() {
   const qc = useQueryClient();
   return useMutation({
@@ -2323,6 +2346,11 @@ export function useCreateShareLink() {
       label?: string;
       scope?: string;
       expiresInHours?: number;
+      // Phase 2.3: optional. NULL/undefined = household share; a UUID
+      // scopes the link to one family member. Mobile UI entry points
+      // always send this explicitly (no silent inference from the
+      // x-active-family-member-id header — share is high-stakes).
+      familyMemberId?: string | null;
     }) =>
       api<{ link: ShareLink; token: string; url: string; expiresAt: string }>(
         "/share/links",

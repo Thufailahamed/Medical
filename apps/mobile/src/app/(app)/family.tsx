@@ -7,6 +7,7 @@ import {
   UserPlus,
   Phone,
   MessageCircle,
+  Share2,
   Trash2,
   Link2Off,
   Lock,
@@ -586,6 +587,24 @@ export default function FamilyScreen() {
                         onPress={() => textNumber(m.phone)}
                         label={t("family.action.message", { name: m.name })}
                       />
+                      {/* Phase 2.3: hand this family member's records to
+                          them via a scoped share link. Pushes to /share
+                          with prefillFmId/Name so the sheet opens with
+                          the FM already locked in. */}
+                      <ActionDot
+                        icon={Share2}
+                        tone="primary"
+                        onPress={() =>
+                          router.push({
+                            pathname: "/share",
+                            params: {
+                              prefillFmId: m.id,
+                              prefillFmName: m.name,
+                            },
+                          })
+                        }
+                        label={t("family.action.share", { name: m.name })}
+                      />
                       {!m.isDeceased ? (
                         <ActionDot
                           icon={m.isLocked ? LockOpen : Lock}
@@ -686,7 +705,7 @@ function ActionDot({
   label,
 }: {
   icon: any;
-  tone: "success" | "info" | "danger" | "warning";
+  tone: "success" | "info" | "danger" | "warning" | "primary";
   onPress: () => void;
   label: string;
 }) {
@@ -698,6 +717,8 @@ function ActionDot({
       ? colors.infoSoft
       : tone === "warning"
       ? colors.warningSoft
+      : tone === "primary"
+      ? colors.primarySoft
       : colors.dangerSoft;
   const fg =
     tone === "success"
@@ -706,6 +727,8 @@ function ActionDot({
       ? colors.info
       : tone === "warning"
       ? colors.warning
+      : tone === "primary"
+      ? colors.primary
       : colors.danger;
   return (
     <Pressable

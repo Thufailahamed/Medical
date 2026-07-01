@@ -20,6 +20,7 @@ import {
   History,
   Sparkles,
   CornerDownLeft,
+  Share2,
 } from "lucide-react-native";
 import {
   useMedicine,
@@ -40,6 +41,7 @@ import {
   TextInput,
   ChipGroup,
   DateField,
+  IconButton,
   useToast,
 } from "@/components/ui";
 
@@ -201,6 +203,16 @@ export default function EditMedicineScreen() {
   );
 
   const med = data?.medicine;
+
+  // Phase 2.3: resolve the FM name for the share prefill when this
+  // medicine is FM-tagged. Falls back to "Family member" if the family
+  // list hasn't loaded yet (rare — both queries race on first paint).
+  const medFmId = med?.familyMemberId as string | null | undefined;
+  const medFmName =
+    medFmId && (familyData as any)?.family
+      ? (familyData as any).family.find((f: any) => f.id === medFmId)
+          ?.name || t("medicine.family.self", { defaultValue: "Family member" })
+      : null;
 
   const editSchema = makeEditSchema(t);
 
@@ -400,6 +412,29 @@ export default function EditMedicineScreen() {
         title={t("editMedicine.title")}
         subtitle={med.name}
         onBack={() => router.back()}
+        right={
+          // Phase 2.3: only show share when this medicine is tagged to a
+          // family member. Household (NULL) medicines have nothing to
+          // scope to.
+          medFmId ? (
+            <IconButton
+              icon={Share2}
+              variant="ghost"
+              onPress={() =>
+                router.push({
+                  pathname: "/share",
+                  params: {
+                    prefillFmId: medFmId,
+                    prefillFmName: medFmName || "",
+                  },
+                })
+              }
+              accessibilityLabel={t("editMedicine.shareButton", {
+                defaultValue: "Share",
+              })}
+            />
+          ) : undefined
+        }
       />
       <ScrollView
         keyboardShouldPersistTaps="handled"
