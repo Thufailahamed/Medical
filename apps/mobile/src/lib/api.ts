@@ -29,6 +29,10 @@ interface ApiOptions {
   headers?: Record<string, string>;
   isFormData?: boolean;
   silent401?: boolean; // suppress the auth error event
+  // Phase 3.1 slice 2: prescription PDF. "blob" returns a raw Blob instead
+  // of JSON so the caller can stream it to disk (expo-file-system) and
+  // hand the URI to expo-sharing.
+  responseType?: "json" | "blob";
 }
 
 // ─── Internal: build headers + run a single request ───────
@@ -37,7 +41,7 @@ async function runRequest<T>(
   options: ApiOptions,
   token: string | null
 ): Promise<T> {
-  const { method = "GET", body, headers = {}, isFormData = false } = options;
+  const { method = "GET", body, headers = {}, isFormData = false, responseType = "json" } = options;
 
   const requestHeaders: Record<string, string> = { ...headers };
   if (token) requestHeaders["Authorization"] = `Bearer ${token}`;
@@ -118,7 +122,9 @@ async function runRequest<T>(
     throw err;
   }
 
-  return response.json();
+  return responseType === "blob"
+    ? (response.blob() as unknown as T)
+    : response.json();
 }
 
 // ─── Public: simple call (matches the old `api` shape) ────

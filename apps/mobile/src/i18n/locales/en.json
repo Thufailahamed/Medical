@@ -863,13 +863,34 @@
       "message": "Log your first reading to start tracking trends."
     },
     "type": {
-      "blood_pressure": { "label": "Blood pressure", "unit": "mmHg" },
-      "blood_sugar": { "label": "Blood sugar", "unit": "mg/dL" },
-      "weight": { "label": "Weight", "unit": "kg" },
-      "heart_rate": { "label": "Heart rate", "unit": "bpm" },
-      "temperature": { "label": "Temperature", "unit": "°C" },
-      "spo2": { "label": "SpO₂", "unit": "%" },
-      "cholesterol": { "label": "Cholesterol", "unit": "mg/dL" }
+      "blood_pressure": {
+        "label": "Blood pressure",
+        "unit": "mmHg"
+      },
+      "blood_sugar": {
+        "label": "Blood sugar",
+        "unit": "mg/dL"
+      },
+      "weight": {
+        "label": "Weight",
+        "unit": "kg"
+      },
+      "heart_rate": {
+        "label": "Heart rate",
+        "unit": "bpm"
+      },
+      "temperature": {
+        "label": "Temperature",
+        "unit": "°C"
+      },
+      "spo2": {
+        "label": "SpO₂",
+        "unit": "%"
+      },
+      "cholesterol": {
+        "label": "Cholesterol",
+        "unit": "mg/dL"
+      }
     },
     "range": {
       "7": "7d",
@@ -1083,10 +1104,22 @@
       }
     },
     "period": {
-      "morning": { "label": "Morning", "range": "08:00 AM — 11:59 AM" },
-      "afternoon": { "label": "Afternoon", "range": "12:00 PM — 04:59 PM" },
-      "evening": { "label": "Evening", "range": "05:00 PM — 08:59 PM" },
-      "night": { "label": "Night", "range": "09:00 PM — 07:59 AM" }
+      "morning": {
+        "label": "Morning",
+        "range": "08:00 AM — 11:59 AM"
+      },
+      "afternoon": {
+        "label": "Afternoon",
+        "range": "12:00 PM — 04:59 PM"
+      },
+      "evening": {
+        "label": "Evening",
+        "range": "05:00 PM — 08:59 PM"
+      },
+      "night": {
+        "label": "Night",
+        "range": "09:00 PM — 07:59 AM"
+      }
     },
     "status": {
       "stopped": "STOPPED",
@@ -2150,7 +2183,8 @@
     "medCount": "{{count}} MED",
     "medCount_one": "{{count}} MED",
     "medCount_other": "{{count}} MEDS",
-    "fuPrefix": "FU"
+    "fuPrefix": "FU",
+    "downloadA11y": "Download prescription PDF for {{name}}"
   },
   "doctorRecords": {
     "backLabel": "‹ Back",
@@ -2211,7 +2245,15 @@
     "reasonPlaceholder": "e.g. Conference, vacation",
     "save": "Save",
     "timeOffFormat": "{{start}} – {{end}}",
-    "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    "days": [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ]
   },
   "doctorLabOrders": {
     "title": "Lab orders",
@@ -2663,5 +2705,19 @@
         "backToLogin": "Back to sign in"
       }
     }
+  },
+  "doctorPrescriptionDetail": {
+    "title": "Prescription",
+    "patient": "Patient",
+    "date": "Date",
+    "diagnosis": "Diagnosis",
+    "notes": "Notes",
+    "medicines": "Medicines",
+    "doctor": "Doctor",
+    "downloadPdf": "Download PDF",
+    "downloading": "Preparing…",
+    "error": "Could not download PDF",
+    "notFound": "Prescription not found",
+    "notFoundBody": "It may have been deleted or you no longer have access."
   }
 }

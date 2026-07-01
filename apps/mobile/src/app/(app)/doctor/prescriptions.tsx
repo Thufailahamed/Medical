@@ -16,26 +16,47 @@ import {
   Pill,
   ChevronRight,
   CalendarDays,
+  Download,
 } from "lucide-react-native";
-import { useDoctorPrescriptions } from "@/hooks/useApi";
+import { useDoctorPrescriptions, downloadPrescriptionPdf } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
   EmptyState,
   Skeleton,
+  IconButton,
+  useToast,
 } from "@/components/ui";
 
 export default function DoctorPrescriptionsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
+  const toast = useToast();
   const { data, isLoading, refetch } = useDoctorPrescriptions();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("");
   const [scope, setScope] = useState<"all" | "recent">("recent");
 
   const all = data?.prescriptions || [];
+
+  // Phase 3.1 slice 2: per-row PDF download. Tapping the download icon
+  // pulls the rendered PDF from the API and opens the OS share sheet so
+  // the doctor can AirDrop, Save to Files, or hand it to another app.
+  // We swallow the error and toast instead of throwing so a single bad
+  // row doesn't break the list.
+  async function handleDownload(id: string) {
+    try {
+      await downloadPrescriptionPdf(id);
+    } catch (err: any) {
+      const msg =
+        err?.message && err.message !== "{}" && err.message !== "[object Object]"
+          ? err.message
+          : t("doctorPrescriptionDetail.error");
+      toast.show(msg, "danger");
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -197,8 +218,8 @@ export default function DoctorPrescriptionsScreen() {
                 key={r.id}
                 onPress={() =>
                   router.push({
-                    pathname: "/doctor/patient-detail",
-                    params: { id: r.patientId },
+                    pathname: "/doctor/prescription-detail",
+                    params: { id: r.id },
                   } as any)
                 }
                 accessibilityRole="button"
@@ -326,6 +347,26 @@ export default function DoctorPrescriptionsScreen() {
                         </Text>
                       ) : null}
                     </View>
+                  </View>
+                  <View pointerEvents="box-only">
+                    <IconButton
+                      icon={Download}
+                      accessibilityLabel={t(
+                        "doctorPrescriptions.downloadA11y",
+                        {
+                          name:
+                            r.patient?.name ||
+                            t("doctorPrescriptions.unknownPatient"),
+                        }
+                      )}
+                      variant="ghost"
+                      onPress={() => handleDownload(r.id)}
+                      style={{
+                        backgroundColor: colors.primarySoft,
+                        borderWidth: 1,
+                        borderColor: colors.primary + "20",
+                      }}
+                    />
                   </View>
                   <ChevronRight
                     size={18}

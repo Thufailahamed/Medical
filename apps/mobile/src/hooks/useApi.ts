@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { api, apiWithRefresh } from "@/lib/api";
 import { setLastAllergies, setLastMeds } from "@/lib/offline-cache";
 
@@ -1257,6 +1259,15 @@ export function useDoctorMe(options?: { enabled?: boolean }) {
   });
 }
 
+export function useDoctorPrescription(id?: string) {
+  return useQuery({
+    enabled: !!id,
+    queryKey: ["doctor", "prescription", id],
+    queryFn: () =>
+      api<{ prescription: any }>(`/doctor/prescriptions/${id}` as string),
+  });
+}
+
 export function useDoctorPrescriptions() {
   return useQuery({
     queryKey: ["doctor", "prescriptions"],
@@ -1294,6 +1305,60 @@ export function useCreatePrescription() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor"] });
     },
+  });
+}
+
+// ─── Phase 3.1 slice 2: Prescription PDF download ─────────
+// Server streams application/pdf from GET /doctor/prescriptions/:id/pdf.
+// We fetch as a Blob, write base64 to the OS cache directory, then hand
+// the file:// URI to expo-sharing so the doctor can AirDrop / Save to
+// Files / Open in another app. Keep this out of React Query — there's
+// nothing to cache and the share action is one-shot.
+export async function downloadPrescriptionPdf(
+  prescriptionId: string
+): Promise<void> {
+  const blob = await api<Blob>("/doctor/prescriptions/" + prescriptionId + "/pdf", {
+    responseType: "blob",
+  });
+  if (!(blob instanceof Blob)) {
+    throw new Error("Unexpected response from server");
+  }
+
+  // Encode the Blob → base64. FileReader works in both Expo and RN.
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Could not read PDF bytes"));
+        return;
+      }
+      // result is "data:application/pdf;base64,XXXX" — strip the prefix.
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(new Error("Could not read PDF bytes"));
+    reader.readAsDataURL(blob);
+  });
+
+  const cacheDir = FileSystem.cacheDirectory;
+  if (!cacheDir) {
+    throw new Error("Cache directory unavailable on this device");
+  }
+  const shortId = prescriptionId.slice(0, 8);
+  const fileUri = `${cacheDir}prescription-${shortId}.pdf`;
+  await FileSystem.writeAsStringAsync(fileUri, base64, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  const available = await Sharing.isAvailableAsync();
+  if (!available) {
+    throw new Error("Sharing is not available on this device");
+  }
+  await Sharing.shareAsync(fileUri, {
+    mimeType: "application/pdf",
+    UTI: "com.adobe.pdf",
+    dialogTitle: "Prescription PDF",
   });
 }
 
