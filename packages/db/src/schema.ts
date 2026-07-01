@@ -939,3 +939,78 @@ export const shareLinkViews = sqliteTable("share_link_views", {
   ip: text("ip"),
   userAgent: text("user_agent"),
 });
+
+// ─── Phase 1.3: WhatsApp onboarding (state machine) ──────
+// One active conversation per WhatsApp phone number. State moves
+// forward through the NIC + DOB + OTP registration flow until `done`,
+// at which point `userId` is wired up and the user can switch to the
+// mobile app. Stale rows (older than 24h in a non-done state) can be
+// safely overwritten by the webhook handler — see whatsapp.ts.
+export const waConversations = sqliteTable(
+  "wa_conversations",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    // E.164 from Meta webhook: e.g. "94771234567". Unique on the latest
+    // active conversation per number.
+    waUserId: text("wa_user_id").notNull(),
+    state: text("state", {
+      enum: ["welcome", "lang", "nic", "dob", "otp", "done", "abandoned"],
+    })
+      .notNull()
+      .default("welcome"),
+    locale: text("locale", { enum: ["en", "si", "ta"] }).default("en"),
+    // Pending NIC + DOB captured during the flow. NIC stored as a bcrypt
+    // hash (same pattern as users.nicHash) — never in plain text.
+    pendingNicHash: text("pending_nic_hash"),
+    // Plain NIC (uppercase) cached temporarily so stepDob can cross-check
+    // the supplied date of birth against the DOB encoded in the NIC.
+    // Cleared on every state transition out of `done` and on conversation
+    // reset. Stored encrypted at the column level is overkill here since
+    // the row is per-user-transient — same access pattern as `users.nic`.
+    pendingNicPlain: text("pending_nic_plain"),
+    pendingDob: text("pending_dob"),
+    // OTP second-factor. Hashed at rest; 5-minute TTL, max 5 attempts.
+    otpCodeHash: text("otp_code_hash"),
+    otpExpiresAt: text("otp_expires_at"),
+    otpAttempts: integer("otp_attempts").notNull().default(0),
+    // Set once `state` reaches "done". Subsequent messages from this
+    // phone number are answered with a "you already registered, open the
+    // app" reply.
+    userId: text("user_id").references((): any => users.id),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    waUserIdx: index("wa_conversations_user_idx").on(t.waUserId),
+    stateIdx: index("wa_conversations_state_idx").on(t.state),
+  })
+);
+
+// Audit log for both inbound and outbound messages. Outbound rows are
+// useful when triaging "what did the bot say to this user?".
+export const waMessages = sqliteTable(
+  "wa_messages",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => waConversations.id),
+    direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+    // Mirrors Meta webhook "type": text | interactive (button/list) |
+    // button (template quick-reply). Stored so replays / debugging work.
+    messageType: text("message_type").notNull().default("text"),
+    body: text("body"),
+    // Raw payload from Meta webhook OR outbound API response. JSON blob.
+    raw: text("raw"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    conversationIdx: index("wa_messages_conversation_idx").on(t.conversationId),
+  })
+);

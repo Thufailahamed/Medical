@@ -49,5 +49,41 @@
         "homeCta": "Open HealthHub"
       }
     }
+  },
+  "whatsapp": {
+    "welcome": {
+      "body": "Welcome to HealthHub 🇱🇰\n\nYour secure health locker. Store records, family history, vaccinations — all in one place.\n\nPick a language to start:",
+      "footer": "HealthHub onboarding"
+    },
+    "lang": {
+      "prompt": "Please choose your language:",
+      "buttonEn": "English",
+      "buttonSi": "සිංහල",
+      "buttonTa": "தமிழ்"
+    },
+    "nic": {
+      "prompt": "Please send your National Identity Card (NIC) number.\n\nOld format: 9 digits + V/X\nNew format: 12 digits",
+      "invalid": "That doesn't look like a valid NIC. Please re-check and send again.\n\nOld format: 9 digits + V/X\nNew format: 12 digits",
+      "registered": "This NIC is already registered. Open the HealthHub app and sign in with your NIC + date of birth."
+    },
+    "dob": {
+      "prompt": "Now send your date of birth.\n\nFormat: YYYY-MM-DD\nExample: 1990-05-12",
+      "invalid": "Date of birth must be in YYYY-MM-DD format and in the past. Example: 1990-05-12"
+    },
+    "otp": {
+      "prompt": "We sent a 6-digit code to your mobile. Please send it here.\n\n(If you didn't receive it, type *resend*)",
+      "invalid": "That code is incorrect. {{remaining}} attempt(s) left.",
+      "expired": "That code has expired. Type *resend* to get a new one.",
+      "locked": "Too many wrong attempts. Type *resend* to start over.",
+      "resent": "A new code has been sent. Please share it here."
+    },
+    "done": {
+      "body": "✅ You're registered!\n\nOpen HealthHub and sign in with your NIC + date of birth. Your records are waiting.",
+      "footer": "Welcome to HealthHub"
+    },
+    "already": {
+      "body": "You're already registered on HealthHub.\n\nOpen the app and sign in with your NIC + date of birth."
+    },
+    "fallback": "Sorry, I didn't understand that. Type *start* to begin again."
   }
 }

@@ -6,7 +6,9 @@ import {
   Keyboard,
   TextInput,
   ActivityIndicator,
+  Linking,
 } from "react-native";
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +24,7 @@ import {
   IdCard,
   Calendar,
   KeyRound,
+  MessageCircle,
 } from "lucide-react-native";
 import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
@@ -173,6 +176,30 @@ export default function LoginScreen() {
 
   const goForgot = () => router.push("/(auth)/forgot-password");
   const goRegister = () => router.push("/(auth)/register" as any);
+
+  // Phase 1.3: WhatsApp onboarding deep-link. The phone number is set
+  // at build time via EXPO_PUBLIC_WA_PHONE. When unset the button is
+  // hidden so the auth landing stays clean for builds that haven't
+  // configured a bot yet.
+  const waPhone =
+    ((Constants.expoConfig as any)?.extra?.waPhone as string | undefined) ||
+    "";
+  const openWhatsApp = async () => {
+    if (!waPhone) return;
+    const url = `https://wa.me/${waPhone}?text=${encodeURIComponent(
+      "Hi HealthHub, I want to register.",
+    )}`;
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (!ok) {
+        toast.show("WhatsApp isn't installed on this device.", "danger");
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      toast.show("Couldn't open WhatsApp. Try again.", "danger");
+    }
+  };
 
   return (
     <Screen
@@ -548,6 +575,41 @@ export default function LoginScreen() {
         </Text>
         <View style={{ flex: 1, height: 1, backgroundColor: "#E6E4EA" }} />
       </View>
+
+      {/* WhatsApp onboarding (Phase 1.3). Hidden when EXPO_PUBLIC_WA_PHONE
+          is unset so unfinished builds don't dangle a useless CTA. */}
+      {waPhone ? (
+        <Pressable
+          onPress={openWhatsApp}
+          accessibilityRole="button"
+          accessibilityLabel="Continue with WhatsApp"
+          hitSlop={8}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: spacing.sm,
+            paddingVertical: spacing.md,
+            marginTop: spacing.md,
+            borderRadius: radius.lg,
+            borderWidth: 1,
+            borderColor: "#25D366",
+            backgroundColor: "#FFFFFF",
+          }}
+        >
+          <MessageCircle size={18} color="#25D366" />
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "700",
+              color: "#128C7E",
+              fontFamily: fontFamily.bodyBold,
+            }}
+          >
+            Continue with WhatsApp
+          </Text>
+        </Pressable>
+      ) : null}
 
       {/* Register footer link */}
       <Pressable

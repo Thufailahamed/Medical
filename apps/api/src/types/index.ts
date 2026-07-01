@@ -32,6 +32,14 @@ export interface AppEnvironment {
     PUBLIC_URL?: string;
     IOS_APP_STORE_URL?: string;
     ANDROID_PLAY_STORE_URL?: string;
+    // Phase 1.3: WhatsApp onboarding webhook. WA_VERIFY_TOKEN is the
+    // value pasted into Meta's dashboard when registering the webhook;
+    // WA_ACCESS_TOKEN is a Meta system-user token with
+    // whatsapp_business_messaging scope. The bot phone_number_id is read
+    // per-message from the inbound payload so it does not need to be
+    // configured here.
+    WA_VERIFY_TOKEN?: string;
+    WA_ACCESS_TOKEN?: string;
   };
   Variables: {
     user: User;

@@ -44,6 +44,7 @@ import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
 import familyActiveRouter from "./routes/family-active";
 import familyInviteRouter from "./routes/family-invites";
 import invitePageRouter from "./routes/invite-page";
+import whatsappRouter from "./routes/whatsapp";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -121,6 +122,7 @@ app.route("/walk-ins", walkInsRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);
+app.route("/", whatsappRouter);
 // Phase 2.1: AI auto-classify + trilingual FTS5 search.
 app.route("/", classificationRouter);
 // Phase 2.3.2: web landing page for family invite links. Mounted at root

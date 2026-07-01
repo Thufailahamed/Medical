@@ -26,6 +26,12 @@ CLASSIFY_CRON_THRESHOLD = "0.7"
 PUBLIC_URL = "https://app.healthhub.app"
 IOS_APP_STORE_URL = "https://apps.apple.com/app/id000000000"
 ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.healthhub"
+# Phase 1.3: WhatsApp onboarding. Set WA_VERIFY_TOKEN to whatever you
+# pasted into the Meta dashboard's webhook "verify token" field. Set
+# WA_ACCESS_TOKEN to a system-user token with whatsapp_business_messaging
+# scope. Phone number id is read from each webhook payload so it does
+# not need to be configured here.
+WA_VERIFY_TOKEN = "wa-verify-token-set-via-secret"
 
 [[d1_databases]]
 binding = "DB"

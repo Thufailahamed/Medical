@@ -40,6 +40,10 @@ export default {
       // Pulled at build time from the shell environment.
       apiUrl: process.env.EXPO_PUBLIC_API_URL || "",
       devMode: process.env.EXPO_PUBLIC_DEV_MODE === "true",
+      // Phase 1.3: WhatsApp onboarding deep-link. Format: digits only
+      // (no `+` or `wa.me/` prefix), e.g. "94771234567". When unset the
+      // "Continue with WhatsApp" button is hidden from the login screen.
+      waPhone: process.env.EXPO_PUBLIC_WA_PHONE || "",
     },
   },
 };
