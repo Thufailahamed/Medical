@@ -44,6 +44,7 @@ import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
 import familyActiveRouter from "./routes/family-active";
 import familyInviteRouter from "./routes/family-invites";
 import invitePageRouter from "./routes/invite-page";
+import familyLockRouter from "./routes/family-lock";
 import whatsappRouter from "./routes/whatsapp";
 import type { AppEnvironment } from "./types";
 
@@ -113,6 +114,7 @@ app.route("/allergies", allergiesRouter);
 app.route("/vaccinations", vaccinationsRouter);
 app.route("/family", familyActiveRouter);
 app.route("/family", familyInviteRouter);
+app.route("/family", familyLockRouter);
 app.route("/timeline", timelineRouter);
 app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);

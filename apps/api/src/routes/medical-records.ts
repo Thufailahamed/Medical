@@ -23,6 +23,10 @@ import {
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import {
+  redactLockedRecords,
+  lockedFmIdsForPrincipal,
+} from "../lib/family-lock";
+import {
   medicalRecordSchema,
   medicalRecordBulkIdsSchema,
   medicalRecordBulkTagSchema,
@@ -328,7 +332,13 @@ medicalRecordsRouter.get("/me", authMiddleware, requireRole("patient"), async (c
     familyMember: r.familyMemberId ? fmMap[r.familyMemberId] || null : null,
   }));
 
-  return c.json({ records: enriched, total, limit, offset });
+  // Phase 2.3.3: family privacy lock — redact records belonging to
+  // locked family members before handing the slice back. Records
+  // tagged to the principal themselves (familyMemberId === null)
+  // pass through untouched.
+  const redacted = redactLockedRecords(enriched, await lockedFmIdsForPrincipal(db, patient.id));
+
+  return c.json({ records: redacted, total, limit, offset });
 });
 
 // ─── Stats for filter chips ───────────────────────────────

@@ -23,6 +23,21 @@
       "acceptedTitle": "Family invite accepted",
       "acceptedBody": "{{name}} accepted your invite to be added as your {{relationship}}."
     },
+    "lock": {
+      "toggleLock": "Lock",
+      "toggleUnlock": "Unlock",
+      "lockedBadge": "Locked",
+      "lockedHint": "Records hidden from family view",
+      "confirmLock": "Lock {{name}}? Their records will be hidden from your family view.",
+      "confirmLockTitle": "Lock family member",
+      "confirmUnlock": "Unlock {{name}}? Their records will appear in your family view again.",
+      "confirmUnlockTitle": "Unlock family member",
+      "toastLocked": "{{name}}'s records are now hidden.",
+      "toastUnlocked": "{{name}}'s records are visible again.",
+      "toastError": "Couldn't update lock. Try again.",
+      "lockedRecordTitle": "[locked]",
+      "lockedRecordBody": "Records hidden by family privacy lock."
+    },
     "invitePage": {
       "someone": "Someone",
       "ogTitle": "{{name}} invited you to HealthHub",

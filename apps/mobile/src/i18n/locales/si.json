@@ -10,6 +10,63 @@
     "add": "එකතු කරන්න",
     "you": "ඔබ"
   },
+  "appLock": {
+    "setup": {
+      "title": "යෙදුම් අගුළ සකසන්න",
+      "subtitle": "මෙම උපාංගයේ ඔබේ වාර්තා පෞද්ගලිකව තබා ගැනීමට ඉලක්කම් 4–6 ක PIN එකක් තෝරන්න.",
+      "create": "PIN එක සාදන්න",
+      "confirm": "PIN එක තහවුරු කරන්න",
+      "mismatch": "PIN එකවල් නොගැළපේ. නැවත උත්සාහ කරන්න.",
+      "successTitle": "ඔබ ආරක්ෂිතයි",
+      "successBody": "ඔබේ PIN සකසා ඇත. HealthHub විවෘත කිරීමේදී එය භාවිත කරන්න.",
+      "useBiometric": "{{name}} සබල කරන්න (නිර්දේශිත)",
+      "skipBiometric": "පසුව සඳහා මඟ හරින්න",
+      "continue": "ඉදිරියට",
+      "weakPin": "1111 හෝ 1234 වැනි පුනරාවර්තන ඉලක්කම් වළක්වන්න."
+    },
+    "unlock": {
+      "title": "ඔබේ PIN ඇතුළත් කරන්න",
+      "subtitle": "HealthHub වෙතට නැවත සාදරයෙන් පිළිගනිමු.",
+      "wrongPin": "PIN වැරදියි. නැවත උත්සාහ කරන්න.",
+      "useBiometric": "{{name}} භාවිත කරන්න",
+      "switchAccount": "වෙනත් ගිණුමක් ලෙස පුරනය වන්න",
+      "forgotPin": "PIN අමතකද? යෙදුම් දත්ත යළි පිහිටුවන්න.",
+      "forgotPinConfirmTitle": "යෙදුම් දත්ත යළි පිහිටුවන්නද?",
+      "forgotPinConfirmBody": "මෙය ඔබේ නොබැඳි වාර්තා සහ PIN මකයි. ඔබේ ගිණුම වෙනත් උපාංගවල තාමත් ක්‍රියා කරයි.",
+      "forgotPinConfirmAction": "යළි පිහිටුවන්න"
+    },
+    "settings": {
+      "title": "යෙදුම් අගුළ",
+      "subtitle": "HealthHub අගුළු කිරීමට PIN හෝ ජෛවමිතික භාවිත කරන්න.",
+      "enabled": "යෙදුම් අගුළ සක්‍රියයි",
+      "disabled": "යෙදුම් අගුළ අක්‍රියයි",
+      "setPin": "PIN සකසන්න",
+      "changePin": "PIN වෙනස් කරන්න",
+      "removePin": "PIN ඉවත් කරන්න",
+      "removePinConfirmTitle": "යෙදුම් අගුළ ඉවත් කරන්නද?",
+      "removePinConfirmBody": "මෙම උපාංගයේ ඕනෑම කෙනෙකුට HealthHub විවෘත කළ හැකි වනු ඇත.",
+      "removePinConfirmAction": "ඉවත් කරන්න",
+      "biometricToggle": "{{name}} භාවිත කරන්න",
+      "biometricUnavailable": "මෙම උපාංගයේ ජෛවමිතික ලබා ගත නොහැක.",
+      "biometricNoEnrolment": "පළමුව ඔබේ උපාංග සැකසුම් වල {{name}} ලියාපදිංචි කරන්න.",
+      "timeout": "මෙයින් පසු අගුළු කරන්න",
+      "timeoutImmediate": "වහාම",
+      "timeout30": "තත්පර 30",
+      "timeout60": "මිනිත්තුවක්",
+      "timeout300": "මිනිත්තු 5",
+      "timeoutNever": "කිසි විටෙකත් (මම අගුළු කරන්නේ නම් පමණි)",
+      "removePinHint": "මෙම උපාංගයේ ඕනෑම කෙනෙකුට යෙදුම විවෘත කළ හැකිය",
+      "stateHeading": "PIN",
+      "biometricHeading": "ජෛවමිතික",
+      "biometricSubtitle": "PIN ටයිප් කිරීම වෙනුවට {{name}} සමඟ අගුළු හරින්න",
+      "timeoutHeading": "ස්වයං-අගුළ"
+    },
+    "errors": {
+      "biometricLocked": "අසාර්ථක උත්සාහයන් වැඩියි. PIN භාවිත කරන්න.",
+      "biometricNoPasscode": "ජෛවමිතික අගුළු කිරීමට උපාංග මුරකේතයක් සකසන්න.",
+      "biometricUnavailable": "ජෛවමිතික අගුළු කිරීම දැන් ලබා ගත නොහැක."
+    }
+  },
   "support": {
     "title": "උදව් සහ සහාය",
     "heroTitle": "අපට කෙසේ උදව් කළ හැකිද?",

@@ -10,6 +10,63 @@
     "add": "Add",
     "you": "You"
   },
+  "appLock": {
+    "setup": {
+      "title": "Set up app lock",
+      "subtitle": "Pick a 4–6 digit PIN to keep your records private on this device.",
+      "create": "Create PIN",
+      "confirm": "Confirm PIN",
+      "mismatch": "PINs don't match. Try again.",
+      "successTitle": "You're protected",
+      "successBody": "Your PIN is set. Use it whenever you open HealthHub.",
+      "useBiometric": "Enable {{name}} (recommended)",
+      "skipBiometric": "Skip for now",
+      "continue": "Continue",
+      "weakPin": "Avoid repeated digits like 1111 or 1234."
+    },
+    "unlock": {
+      "title": "Enter your PIN",
+      "subtitle": "Welcome back to HealthHub.",
+      "wrongPin": "Wrong PIN. Try again.",
+      "useBiometric": "Use {{name}}",
+      "switchAccount": "Sign in as a different user",
+      "forgotPin": "Forgot PIN? Reset app data.",
+      "forgotPinConfirmTitle": "Reset app data?",
+      "forgotPinConfirmBody": "This wipes your offline records and the PIN. Your account still works on other devices.",
+      "forgotPinConfirmAction": "Reset"
+    },
+    "settings": {
+      "title": "App lock",
+      "subtitle": "Use a PIN or biometric to unlock HealthHub.",
+      "enabled": "App lock is on",
+      "disabled": "App lock is off",
+      "setPin": "Set PIN",
+      "changePin": "Change PIN",
+      "removePin": "Remove PIN",
+      "removePinConfirmTitle": "Remove app lock?",
+      "removePinConfirmBody": "Anyone with this device will be able to open HealthHub.",
+      "removePinConfirmAction": "Remove",
+      "biometricToggle": "Use {{name}}",
+      "biometricUnavailable": "Biometric isn't available on this device.",
+      "biometricNoEnrolment": "Enrol {{name}} in your device settings first.",
+      "timeout": "Lock after",
+      "timeoutImmediate": "Immediately",
+      "timeout30": "30 seconds",
+      "timeout60": "1 minute",
+      "timeout300": "5 minutes",
+      "timeoutNever": "Never (until I lock manually)",
+      "removePinHint": "Anyone with this device will be able to open the app",
+      "stateHeading": "PIN",
+      "biometricHeading": "Biometric",
+      "biometricSubtitle": "Unlock with {{name}} instead of typing your PIN",
+      "timeoutHeading": "Auto-lock"
+    },
+    "errors": {
+      "biometricLocked": "Too many failed attempts. Use your PIN.",
+      "biometricNoPasscode": "Set a device passcode to use biometric unlock.",
+      "biometricUnavailable": "Biometric unlock isn't available right now."
+    }
+  },
   "support": {
     "title": "Help & Support",
     "heroTitle": "How can we help?",
@@ -200,6 +257,10 @@
       "changePassword": {
         "label": "Change password",
         "subtitle": "Update your sign-in password"
+      },
+      "appLock": {
+        "label": "App lock",
+        "subtitle": "PIN or biometric to open HealthHub"
       },
       "timeline": {
         "label": "Timeline",

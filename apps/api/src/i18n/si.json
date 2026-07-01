@@ -23,6 +23,21 @@
       "acceptedTitle": "පවුල් ආරාධනාව පිළිගන්න ලදී",
       "acceptedBody": "{{name}} ඔබේ {{relationship}} ලෙස එකතු වීමට ඔබේ ආරාධනාව පිළිගත්තේය."
     },
+    "lock": {
+      "toggleLock": "අගුළු ලබා දමන්න",
+      "toggleUnlock": "අගුළු ඉවත් කරන්න",
+      "lockedBadge": "අගුළු දමා ඇත",
+      "lockedHint": "පවුල් දර්ශනයෙන් වාර්තා සඟවා ඇත",
+      "confirmLock": "{{name}} අගුළු දමන්නද? ඔවුන්ගේ වාර්තා ඔබේ පවුල් දර්ශනයෙන් සඟවනු ඇත.",
+      "confirmLockTitle": "පවුල් සාමාජිකයෙකු අගුළු කරන්න",
+      "confirmUnlock": "{{name}} අගුළු ඉවත් කරන්නද? ඔවුන්ගේ වාර්තා ඔබේ පවුල් දර්ශනයේ නැවත දිස්වේ.",
+      "confirmUnlockTitle": "පවුල් සාමාජිකයෙකුගේ අගුළ ඉවත් කරන්න",
+      "toastLocked": "{{name}} ගේ වාර්තා දැන් සඟවා ඇත.",
+      "toastUnlocked": "{{name}} ගේ වාර්තා නැවත දිස්වේ.",
+      "toastError": "අගුළ යාවත්කාලීන කිරීමට නොහැකි විය. නැවත උත්සාහ කරන්න.",
+      "lockedRecordTitle": "[අගුළු දමා ඇත]",
+      "lockedRecordBody": "පවුල් පෞද්ගලිකත්ව අගුළ මගින් වාර්තා සඟවා ඇත."
+    },
     "invitePage": {
       "someone": "යමෙක්",
       "ogTitle": "{{name}} ඔබව HealthHub වෙතට ආරාධනා කළේය",

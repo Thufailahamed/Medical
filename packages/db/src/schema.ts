@@ -125,6 +125,17 @@ export const familyMembers = sqliteTable("family_members", {
   isDeceased: integer("is_deceased", { mode: "boolean" }).default(false),
   causeOfDeath: text("cause_of_death"),
   notes: text("notes"),
+  // Phase 2.3.3: family-member privacy lock. When true, the principal's
+  // family-context queries (medical records, vitals, medicines, vaccinations)
+  // return a [locked] placeholder for records tagged to this member. The
+  // member themselves can still switch into their own FM context and read
+  // everything — the lock is from the *principal's view*, not the member's.
+  // `lockedBy` records which user (always the principal today, but column
+  // future-proofs for member-self-locking via their own account) flipped
+  // the switch. `lockedAt` is the timestamp.
+  isLocked: integer("is_locked", { mode: "boolean" }).default(false),
+  lockedBy: text("locked_by").references((): any => users.id),
+  lockedAt: text("locked_at"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

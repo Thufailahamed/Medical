@@ -10,6 +10,12 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.healthcare.app",
+      // Phase 2.4: required by Face ID. Description shown in iOS permission
+      // prompt and App Store review.
+      infoPlist: {
+        NSFaceIDUsageDescription:
+          "Unlock HealthHub with Face ID so your health records stay private.",
+      },
     },
     android: {
       adaptiveIcon: {
@@ -18,6 +24,8 @@ export default {
       package: "com.healthcare.app",
       // arm64 only — avoids Windows CMake/ninja failures on armeabi-v7a
       abiFilters: ["arm64-v8a"],
+      // Phase 2.4: fingerprint permission for the biometric unlock path.
+      permissions: ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"],
     },
     plugins: [
       "expo-router",

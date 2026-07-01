@@ -55,8 +55,6 @@ vaccinationsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) 
   const patient = await getOwnPatient(db, userId);
   if (!patient) return c.json({ administered: [], catalog: [] });
 
-  // Administered: medical_records where recordType=vaccination
-  const administered = await db
   // Phase 2.3: family-context filter — when active FM is set, scope to
   // that member's records. Without active FM, list the principal + family
   // union (the historical default — keeps existing installs working).

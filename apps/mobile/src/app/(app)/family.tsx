@@ -9,6 +9,8 @@ import {
   MessageCircle,
   Trash2,
   Link2Off,
+  Lock,
+  LockOpen,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import {
@@ -17,6 +19,7 @@ import {
   useDeleteFamilyMember,
   useFamilyInvites,
   useRevokeFamilyInvite,
+  useToggleFamilyLock,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { parseDob } from "@/lib/format";
@@ -81,6 +84,7 @@ export default function FamilyScreen() {
   const { data, isLoading } = useFamilyMembers();
   const addMember = useAddFamilyMember();
   const deleteMember = useDeleteFamilyMember();
+  const toggleLock = useToggleFamilyLock();
   const { data: inviteData } = useFamilyInvites();
   const revokeInvite = useRevokeFamilyInvite();
   const family: any[] = data?.family || [];
@@ -178,6 +182,43 @@ export default function FamilyScreen() {
           text: t("common.remove"),
           style: "destructive",
           onPress: () => deleteMember.mutate(member.id),
+        },
+      ]
+    );
+  }
+
+  // Phase 2.3.3: privacy lock toggle. Locked members' records vanish
+  // from the principal's family-context views (timeline, vitals, etc.).
+  // Deceased members can't be locked — the gate is on the server.
+  function confirmLockToggle(member: any) {
+    const locked = !!member.isLocked;
+    Alert.alert(
+      locked
+        ? t("family.lock.confirmUnlockTitle")
+        : t("family.lock.confirmLockTitle"),
+      locked
+        ? t("family.lock.confirmUnlock", { name: member.name })
+        : t("family.lock.confirmLock", { name: member.name }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: locked
+            ? t("family.lock.toggleUnlock")
+            : t("family.lock.toggleLock"),
+          style: locked ? "default" : "destructive",
+          onPress: async () => {
+            try {
+              await toggleLock.mutateAsync({ id: member.id, locked: !locked });
+              toast.show(
+                locked
+                  ? t("family.lock.toastUnlocked", { name: member.name })
+                  : t("family.lock.toastLocked", { name: member.name }),
+                "success",
+              );
+            } catch {
+              toast.show(t("family.lock.toastError"), "danger");
+            }
+          },
         },
       ]
     );
@@ -517,9 +558,14 @@ export default function FamilyScreen() {
                     t("family.fallback")
                   }
                   pill={
-                    m.bloodGroup
-                      ? { label: m.bloodGroup, tone: "danger" }
-                      : undefined
+                    m.isLocked
+                      ? {
+                          label: t("family.lock.lockedBadge"),
+                          tone: "warning" as const,
+                        }
+                      : m.bloodGroup
+                        ? { label: m.bloodGroup, tone: "danger" }
+                        : undefined
                   }
                   rightSlot={
                     <View
@@ -540,6 +586,18 @@ export default function FamilyScreen() {
                         onPress={() => textNumber(m.phone)}
                         label={t("family.action.message", { name: m.name })}
                       />
+                      {!m.isDeceased ? (
+                        <ActionDot
+                          icon={m.isLocked ? LockOpen : Lock}
+                          tone="warning"
+                          onPress={() => confirmLockToggle(m)}
+                          label={
+                            m.isLocked
+                              ? t("family.lock.toggleUnlock")
+                              : t("family.lock.toggleLock")
+                          }
+                        />
+                      ) : null}
                       <ActionDot
                         icon={Trash2}
                         tone="danger"
@@ -628,7 +686,7 @@ function ActionDot({
   label,
 }: {
   icon: any;
-  tone: "success" | "info" | "danger";
+  tone: "success" | "info" | "danger" | "warning";
   onPress: () => void;
   label: string;
 }) {
@@ -638,12 +696,16 @@ function ActionDot({
       ? colors.successSoft
       : tone === "info"
       ? colors.infoSoft
+      : tone === "warning"
+      ? colors.warningSoft
       : colors.dangerSoft;
   const fg =
     tone === "success"
       ? colors.success
       : tone === "info"
       ? colors.info
+      : tone === "warning"
+      ? colors.warning
       : colors.danger;
   return (
     <Pressable

@@ -502,6 +502,35 @@ export function useDeleteFamilyMember() {
   });
 }
 
+// Phase 2.3.3: family-member privacy lock. Toggling lock/unlock
+// invalidates `family` (list shows badge) AND any record queries that
+// fan out across FMs (medical-records, etc.) so the redaction flips
+// immediately.
+export function useToggleFamilyLock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, locked }: { id: string; locked: boolean }) =>
+      api<{ ok: boolean; memberId: string; locked: boolean; changed: boolean }>(
+        `/family/members/${id}/lock`,
+        { method: "PATCH", body: { locked } },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["family"] });
+      queryClient.invalidateQueries({ queryKey: ["medical-records"] });
+      queryClient.invalidateQueries({ queryKey: ["family-locks"] });
+    },
+  });
+}
+
+export function useFamilyLocks() {
+  return useQuery({
+    queryKey: ["family-locks"],
+    queryFn: () => api<{ locks: { id: string; name: string; lockedAt: string }[] }>(
+      "/family/members/locks"
+    ),
+  });
+}
+
 // ─── Medicines ───────────────────────────────────────────
 export function useMyMedicines(opts?: { includeInactive?: boolean }) {
   const q = useQuery({

@@ -60,6 +60,7 @@
         "expo-image-picker": "~15.0.7",
         "expo-linear-gradient": "~13.0.2",
         "expo-linking": "~6.3.0",
+        "expo-local-authentication": "15.0.0",
         "expo-localization": "~15.0.3",
         "expo-location": "~17.0.1",
         "expo-modules-autolinking": "1.11.3",
@@ -1186,6 +1187,8 @@
     "expo-linear-gradient": ["expo-linear-gradient@13.0.2", "", { "peerDependencies": { "expo": "*" } }, "sha512-EDcILUjRKu4P1rtWcwciN6CSyGtH7Bq4ll3oTRV7h3h8oSzSilH1g6z7kTAMlacPBKvMnkkWOGzW6KtgMKEiTg=="],
 
     "expo-linking": ["expo-linking@6.3.1", "", { "dependencies": { "expo-constants": "~16.0.0", "invariant": "^2.2.4" } }, "sha512-xuZCntSBGWCD/95iZ+mTUGTwHdy8Sx+immCqbUBxdvZ2TN61P02kKg7SaLS8A4a/hLrSCwrg5tMMwu5wfKr35g=="],
+
+    "expo-local-authentication": ["expo-local-authentication@15.0.0", "", { "dependencies": { "invariant": "^2.2.4" }, "peerDependencies": { "expo": "*" } }, "sha512-oM350lCkonapmaY2xw++N6riuDzsuUKS66JuZzc2QmjP16/ru2sN5GLQ6qYbUu3zamEqECs6pnHvzoFKGBR01g=="],
 
     "expo-localization": ["expo-localization@15.0.3", "", { "dependencies": { "rtl-detect": "^1.0.2" }, "peerDependencies": { "expo": "*" } }, "sha512-IfcmlKuKRlowR9qIzL0e+nGHBeNoF7l2GQaOJstc7HZiPjNJ4J1R4D53ZNf483dt7JSkTRJBihdTadOtOEjRdg=="],
 

@@ -7,8 +7,10 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import { useAppLockGate } from "@/hooks/useAppLockGate";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore } from "@/stores/locale";
+import { useAppLockStore } from "@/stores/appLock";
 import { registerForPushNotifications, onPushResponse } from "@/lib/push";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
@@ -44,6 +46,7 @@ function ThemedStack() {
       >
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
+        <Stack.Screen name="lock" options={{ gestureEnabled: false }} />
       </Stack>
     </>
   );
@@ -51,6 +54,7 @@ function ThemedStack() {
 
 export default function RootLayout() {
   useProtectedRoute();
+  useAppLockGate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [fontsLoaded, fontError] = useFonts({
     Outfit_400Regular: require("@expo-google-fonts/outfit/400Regular/Outfit_400Regular.ttf"),

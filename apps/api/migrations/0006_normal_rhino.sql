@@ -1,4 +1,4 @@
-CREATE TABLE `vaccine_reminders` (
+CREATE TABLE IF NOT EXISTS `vaccine_reminders` (
 	`id` text PRIMARY KEY NOT NULL,
 	`patient_id` text NOT NULL,
 	`vaccine_id` text NOT NULL,

@@ -32,6 +32,7 @@ import {
   FileText,
   Syringe,
   Download,
+  Lock,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -227,6 +228,13 @@ export default function ProfileScreen() {
       icon: KeyRound,
       tone: "neutral" as const,
       onPress: () => router.push("/(app)/change-password" as any),
+    },
+    {
+      labelKey: "profile.item.appLock.label",
+      subtitle: t("profile.item.appLock.subtitle"),
+      icon: Lock,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/app-lock" as any),
     },
   ];
 
