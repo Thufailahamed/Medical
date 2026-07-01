@@ -79,10 +79,10 @@ export async function verifyPin(pin: string, stored: string): Promise<boolean> {
 }
 
 /**
- * Validate a PIN string. 4-6 digits, all numeric, no repeating
- * "1111"-or-similar obviously-weak patterns (user-chosen but we warn
- * via UI; we don't reject — too aggressive for a personal device lock).
+ * Validate a PIN string. Exactly 6 digits, all numeric.
+ * Weak-pattern detection (e.g. "111111") is handled by the UI layer
+ * which warns but doesn't reject — too aggressive for a personal device lock.
  */
 export function isWellFormedPin(pin: string): boolean {
-  return /^\d{4,6}$/.test(pin);
+  return /^\d{6}$/.test(pin);
 }
