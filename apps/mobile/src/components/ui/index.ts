@@ -15,7 +15,7 @@ export { ListItem } from "./ListItem";
 export { StatCard, MetricTile } from "./StatCard";
 export type { StatTone } from "./StatCard";
 export { FormField } from "./FormField";
-export { TextInput } from "./TextInput";
+export { TextInput, TextInput as TextField } from "./TextInput";
 export { DateField } from "./DateField";
 export { Avatar } from "./Avatar";
 export { Skeleton } from "./Skeleton";

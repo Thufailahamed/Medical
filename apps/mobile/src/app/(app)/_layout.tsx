@@ -116,15 +116,7 @@ export default function AppLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="family"
-        options={{
-          title: t("nav.tabs.family"),
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon={Users} focused={focused} />
-          ),
-        }}
-      />
+
       <Tabs.Screen
         name="medicines"
         options={{
@@ -194,6 +186,13 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="email-import"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="family"
         options={{
           href: null,
           tabBarStyle: { display: "none" },

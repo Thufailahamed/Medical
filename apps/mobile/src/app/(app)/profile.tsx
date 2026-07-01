@@ -612,40 +612,21 @@ export default function ProfileScreen() {
                   >
                     {t("profile.emergencyContactsHeading")}
                   </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: spacing.sm,
-                      width: "100%",
-                    }}
+                  <Text
+                    style={[
+                      typography.body.md,
+                      {
+                        color: emergencyContacts.length > 0 ? colors.text : colors.textSubtle,
+                        fontWeight: emergencyContacts.length > 0 ? "600" : "500",
+                        alignSelf: "flex-start",
+                        marginTop: 4,
+                      },
+                    ]}
                   >
-                    <Text
-                      style={[
-                        typography.body.md,
-                        {
-                          color: emergencyContacts.length > 0 ? colors.text : colors.textSubtle,
-                          fontWeight: emergencyContacts.length > 0 ? "600" : "500",
-                          alignSelf: "flex-start",
-                        },
-                      ]}
-                    >
-                      {emergencyContacts.length > 0
-                        ? t("profile.onFile", { count: emergencyContacts.length })
-                        : t("profile.noneRecorded")}
-                    </Text>
-                    <Text
-                      onPress={() => router.push("/(app)/family" as any)}
-                      style={[
-                        typography.label.md,
-                        { color: colors.primary, fontWeight: "700" },
-                      ]}
-                      accessibilityRole="link"
-                    >
-                      {t("profile.manageInFamily")}
-                    </Text>
-                  </View>
+                    {emergencyContacts.length > 0
+                      ? t("profile.onFile", { count: emergencyContacts.length })
+                      : t("profile.noneRecorded")}
+                  </Text>
                 </View>
               </View>
             </Card>
