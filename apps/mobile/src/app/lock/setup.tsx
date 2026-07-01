@@ -25,19 +25,21 @@ import {
   biometricName,
   type BiometricStatus,
 } from "@/lib/biometric";
-import { isWellFormedPin } from "@/lib/appLock";
+import { isWellFormedPin, verifyPin } from "@/lib/appLock";
 import { PinPad, isWeakPin } from "./_components/PinPad";
 
-type Step = "create" | "confirm" | "biometric" | "done";
+type Step = "verify_current" | "create" | "confirm" | "biometric" | "done";
 
 export default function LockSetupScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors, fontFamily, spacing, radius } = useTheme();
   const setPin = useAppLockStore((s) => s.setPin);
+  const pinHash = useAppLockStore((s) => s.pinHash);
   const setBiometricEnabled = useAppLockStore((s) => s.setBiometricEnabled);
 
-  const [step, setStep] = useState<Step>("create");
+  const [step, setStep] = useState<Step>(pinHash ? "verify_current" : "create");
+  const [currentPin, setCurrentPin] = useState("");
   const [firstPin, setFirstPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +68,9 @@ export default function LockSetupScreen() {
 
   // Auto-advance once both stages have a full PIN.
   useEffect(() => {
+    if (step === "verify_current" && currentPin.length === 6) {
+      handleVerifyCurrentSubmit();
+    }
     if (step === "create" && firstPin.length === 6) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       // tiny defer so the last dot fills visually before transition
@@ -76,7 +81,26 @@ export default function LockSetupScreen() {
       handleConfirmSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstPin, confirmPin, step]);
+  }, [currentPin, firstPin, confirmPin, step]);
+
+  async function handleVerifyCurrentSubmit() {
+    if (!pinHash) return;
+    const ok = await verifyPin(currentPin, pinHash);
+    if (ok) {
+      setError(null);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => {},
+      );
+      setStep("create");
+      setCurrentPin("");
+    } else {
+      setError(t("appLock.unlock.wrongPin"));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
+        () => {},
+      );
+      setCurrentPin("");
+    }
+  }
 
   async function handleConfirmSubmit() {
     if (confirmPin !== firstPin) {
@@ -108,24 +132,28 @@ export default function LockSetupScreen() {
   }
 
   const headerTitle =
-    step === "create"
-      ? t("appLock.setup.title")
-      : step === "confirm"
-        ? t("appLock.setup.confirm")
-        : step === "biometric"
-          ? t("appLock.settings.biometricToggle", {
-              name: biometricName_,
-            })
-          : t("appLock.setup.successTitle");
+    step === "verify_current"
+      ? t("appLock.setup.verifyCurrentTitle", "Verify Current PIN")
+      : step === "create"
+        ? t("appLock.setup.title")
+        : step === "confirm"
+          ? t("appLock.setup.confirm")
+          : step === "biometric"
+            ? t("appLock.settings.biometricToggle", {
+                name: biometricName_,
+              })
+            : t("appLock.setup.successTitle");
 
   const headerSubtitle =
-    step === "create"
-      ? t("appLock.setup.subtitle")
-      : step === "confirm"
+    step === "verify_current"
+      ? t("appLock.setup.verifyCurrentSubtitle", "Enter your current PIN to authorize this change.")
+      : step === "create"
         ? t("appLock.setup.subtitle")
-        : step === "biometric"
-          ? t("appLock.setup.useBiometric", { name: biometricName_ })
-          : t("appLock.setup.successBody");
+        : step === "confirm"
+          ? t("appLock.setup.subtitle")
+          : step === "biometric"
+            ? t("appLock.setup.useBiometric", { name: biometricName_ })
+            : t("appLock.setup.successBody");
 
   return (
     <Screen padded={false} scroll={false} edges={["top", "bottom"]}>
@@ -140,7 +168,9 @@ export default function LockSetupScreen() {
         {step !== "create" && step !== "done" ? (
           <Pressable
             onPress={() => {
-              if (step === "confirm") {
+              if (step === "verify_current") {
+                router.back();
+              } else if (step === "confirm") {
                 setFirstPin("");
                 setConfirmPin("");
                 setError(null);
@@ -198,7 +228,18 @@ export default function LockSetupScreen() {
         </View>
 
         <View style={{ flex: 1, justifyContent: "center" }}>
-          {step === "create" ? (
+          {step === "verify_current" ? (
+            <PinPad
+              value={currentPin}
+              onChange={(v) => {
+                setError(null);
+                setCurrentPin(v);
+              }}
+              length={6}
+              error={!!error}
+              hint={error ?? undefined}
+            />
+          ) : step === "create" ? (
             <PinPad
               value={firstPin}
               onChange={(v) => {

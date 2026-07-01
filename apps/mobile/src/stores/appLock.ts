@@ -64,9 +64,9 @@ export const useAppLockStore = create<AppLockState>()(
 
       setPin: async (pin: string) => {
         const pinHash = await hashPin(pin);
-        // First-time setup flips isLocked on so the user can't bypass
-        // by backgrounding the app immediately after creating the PIN.
-        set({ pinHash, isLocked: true, lockedAt: Date.now() });
+        // Setting or changing the PIN keeps the app unlocked so the user
+        // can transition back to the app shell seamlessly.
+        set({ pinHash, isLocked: false, lockedAt: null });
       },
 
       verifyAndUnlock: async (pin: string) => {

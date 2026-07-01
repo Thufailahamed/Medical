@@ -64,16 +64,17 @@ export async function promptBiometric(
       promptMessage,
       cancelLabel,
       fallbackLabel: "Use PIN",
-      disableDeviceFallback: false,
+      disableDeviceFallback: true,
     });
     if (result.success) return "ok";
     if (result.error === "user_cancel" || result.error === "system_cancel") {
       return "canceled";
     }
-    if (result.error === "lockout" || result.error === "lockout_permanent") {
+    const errorStr = (result.error as string) || "";
+    if (errorStr === "lockout" || errorStr === "lockout_permanent") {
       return "locked_out";
     }
-    if (result.error === "passcode_not_set") return "no_passcode";
+    if (errorStr === "passcode_not_set") return "no_passcode";
     return "failed";
   } catch {
     return "failed";

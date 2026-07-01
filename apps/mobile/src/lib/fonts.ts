@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Text, TextInput, StyleSheet, type StyleProp, type TextStyle } from "react-native";
+import { StyleSheet, type StyleProp, type TextStyle } from "react-native";
 
 /** PostScript names from @expo-google-fonts/outfit (must match theme.ts). */
 export const OUTFIT = {
@@ -49,14 +49,3 @@ export function resolveOutfitTextStyle(
   return { ...rest, fontFamily };
 }
 
-/** Default Outfit on bare Text / TextInput (no style prop). */
-export function applyOutfitFontDefaults() {
-  Text.defaultProps = {
-    ...Text.defaultProps,
-    style: { fontFamily: OUTFIT.regular },
-  };
-  TextInput.defaultProps = {
-    ...TextInput.defaultProps,
-    style: { fontFamily: OUTFIT.regular },
-  };
-}

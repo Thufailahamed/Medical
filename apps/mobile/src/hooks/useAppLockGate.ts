@@ -44,10 +44,15 @@ export function useAppLockGate() {
   // ---- Cold-start relock -------------------------------------------------
   // If we already have a PIN (post-hydration) and the in-memory flag
   // hasn't been flipped on, flip it. This is what gates the user behind
-  // /lock on every cold start.
+  // /lock on every cold start. We use a ref to ensure this only fires
+  // once per process lifetime — otherwise the effect re-fires after
+  // verifyAndUnlock sets isLocked=false and immediately re-locks.
+  const coldStartLockedRef = useRef(false);
   useEffect(() => {
     if (!hasHydrated) return;
+    if (coldStartLockedRef.current) return;
     if (pinHash && !isLocked) {
+      coldStartLockedRef.current = true;
       lock();
     }
   }, [hasHydrated, pinHash, isLocked, lock]);
@@ -86,11 +91,13 @@ export function useAppLockGate() {
   // The lock group sits outside (auth) and (app). The decision tree:
   //   - no PIN            + authed       → /lock/setup  (first-time)
   //   - has PIN + locked  + authed       → /lock        (re-authenticate)
+  //   - has PIN + unlocked + on lock     → /(app)       (just verified)
   //   - otherwise                         → let the regular group
   //                                          router handle it
   useEffect(() => {
     if (!hasHydrated) return;
     const inLockGroup = segments[0] === "lock";
+    const isLockScreen = segments[0] === "lock" && segments[1] !== "setup";
 
     if (isAuthenticated && !pinHash && !inLockGroup) {
       router.replace("/lock/setup");
@@ -98,6 +105,11 @@ export function useAppLockGate() {
     }
     if (isAuthenticated && pinHash && isLocked && !inLockGroup) {
       router.replace("/lock");
+      return;
+    }
+    // Successfully unlocked — navigate out of the lock screen.
+    if (isAuthenticated && pinHash && !isLocked && isLockScreen) {
+      router.replace("/(app)");
       return;
     }
     // Auth dropped while we were on /lock: kick back to login.

@@ -9,7 +9,18 @@
 // itself is a defense-in-depth layer in case an attacker lifts the
 // SecureStore blob (rooted device / iCloud backup edge cases).
 
-const ITERATIONS = 50000;
+import { Buffer } from "buffer";
+
+// Polyfill Node.js globals before loading browserify modules
+global.Buffer = Buffer;
+(global as any).process = (global as any).process || {};
+(global as any).process.browser = true;
+(global as any).process.env = (global as any).process.env || {};
+
+// @ts-ignore
+const { pbkdf2Sync } = require("pbkdf2/browser");
+
+const DEFAULT_ITERATIONS = 5000;
 const SALT_BYTES = 12;
 const HASH_BITS = 256;
 
@@ -27,46 +38,36 @@ function fromHex(hex: string): Uint8Array {
   return bytes;
 }
 
-async function deriveBits(secret: string, salt: Uint8Array): Promise<Uint8Array> {
-  const baseKey = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret) as BufferSource,
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  // Slice the salt into a fresh ArrayBuffer-backed view so TypeScript's
-  // strict BufferSource typing (Uint8Array<ArrayBufferLike>) doesn't reject
-  // it: the algorithm needs ArrayBufferView<ArrayBuffer>, not the wider
-  // ArrayBufferLike that includes SharedArrayBuffer.
-  const saltBuf = new Uint8Array(salt.length);
-  saltBuf.set(salt);
-  const bits = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt: saltBuf as BufferSource,
-      iterations: ITERATIONS,
-      hash: "SHA-256",
-    },
-    baseKey,
-    HASH_BITS,
+async function deriveBits(
+  secret: string,
+  salt: Uint8Array,
+  iterations: number
+): Promise<Uint8Array> {
+  const bits = pbkdf2Sync(
+    Buffer.from(secret),
+    Buffer.from(salt),
+    iterations,
+    HASH_BITS / 8,
+    "sha256"
   );
   return new Uint8Array(bits);
 }
 
 export async function hashPin(pin: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-  const bits = await deriveBits(pin, salt);
-  return `pbkdf2s:${ITERATIONS}:${toHex(salt)}:${toHex(bits)}`;
+  const salt = new Uint8Array(SALT_BYTES);
+  global.crypto.getRandomValues(salt);
+  const bits = await deriveBits(pin, salt, DEFAULT_ITERATIONS);
+  return `pbkdf2s:${DEFAULT_ITERATIONS}:${toHex(salt)}:${toHex(bits)}`;
 }
 
 export async function verifyPin(pin: string, stored: string): Promise<boolean> {
   if (!stored || !stored.startsWith("pbkdf2s:")) return false;
   const parts = stored.split(":");
   if (parts.length !== 4) return false;
+  const iterations = parseInt(parts[1], 10);
   const salt = fromHex(parts[2]);
   const expectedHex = parts[3];
-  const bits = await deriveBits(pin, salt);
+  const bits = await deriveBits(pin, salt, iterations);
   const currentHex = toHex(bits);
   if (currentHex.length !== expectedHex.length) return false;
   // Constant-time compare.

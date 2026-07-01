@@ -1,4 +1,21 @@
+import { polyfillWebCrypto } from "expo-standard-web-crypto";
+polyfillWebCrypto();
+
+import { Buffer } from "buffer";
+global.Buffer = Buffer;
+
+// Polyfill Node.js process global for browserify libraries
+(global as any).process = (global as any).process || {};
+(global as any).process.browser = true;
+(global as any).process.env = (global as any).process.env || {};
+
 import { useEffect, useState } from "react";
+import { LogBox } from "react-native";
+LogBox.ignoreLogs([
+  "Support for defaultProps will be removed",
+  "Require cycle: src/components/ui/AppText.tsx",
+]);
+
 import { I18nextProvider } from "react-i18next";
 import { Stack, router } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,7 +31,7 @@ import { useAppLockStore } from "@/stores/appLock";
 import { registerForPushNotifications, onPushResponse } from "@/lib/push";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
-import { applyOutfitFontDefaults } from "@/lib/fonts";
+
 import i18n from "@/i18n";
 
 // NOTE on the hydration race:
@@ -46,7 +63,8 @@ function ThemedStack() {
       >
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
-        <Stack.Screen name="lock" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="lock/index" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="lock/setup" options={{ gestureEnabled: false }} />
       </Stack>
     </>
   );
@@ -95,11 +113,7 @@ export default function RootLayout() {
   const fontsReady = fontsLoaded || !!fontError;
   const ready = hasLocaleHydrated && fontsReady;
 
-  useEffect(() => {
-    if (fontsLoaded) {
-      applyOutfitFontDefaults();
-    }
-  }, [fontsLoaded]);
+
 
   useEffect(() => {
     if (fontError) {
