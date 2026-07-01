@@ -21,6 +21,7 @@ import {
   Card,
   Button,
   TextField,
+  DateField,
   ScreenHeader,
   useToast,
 } from "@/components/ui";
@@ -55,7 +56,7 @@ export default function EditRecordScreen() {
 
   const [type, setType] = useState<RecordType>("lab_report");
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState<Date | undefined>(undefined);
   const [diagnosis, setDiagnosis] = useState("");
   const [summary, setSummary] = useState("");
   const [notes, setNotes] = useState("");
@@ -65,7 +66,7 @@ export default function EditRecordScreen() {
     if (record) {
       setType(record.recordType);
       setTitle(record.title || "");
-      setDate(record.date ? record.date.slice(0, 10) : "");
+      setDate(record.date ? new Date(record.date) : undefined);
       setDiagnosis(record.diagnosis || "");
       setSummary(record.summary || "");
       setNotes(record.notes || "");
@@ -83,7 +84,7 @@ export default function EditRecordScreen() {
         id: params.id,
         recordType: type,
         title: title.trim(),
-        date,
+        date: date ? date.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
         diagnosis: diagnosis.trim() || undefined,
         summary: summary.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -252,11 +253,10 @@ export default function EditRecordScreen() {
                 onChangeText={setTitle}
                 placeholder={t("editRecord.placeholders.title")}
               />
-              <TextField
+              <DateField
                 label={t("editRecord.fields.date")}
                 value={date}
-                onChangeText={setDate}
-                placeholder={t("editRecord.placeholders.date")}
+                onChange={setDate}
               />
               <TextField
                 label={t("editRecord.fields.diagnosis")}

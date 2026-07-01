@@ -24,6 +24,7 @@ import {
   Button,
   Pill as PillComponent,
   TextField,
+  DateField,
   ScreenHeader,
   useToast,
 } from "@/components/ui";
@@ -57,7 +58,7 @@ export default function AddRecordScreen() {
 
   const [type, setType] = useState<RecordType>("lab_report");
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<Date>(new Date());
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -132,7 +133,7 @@ export default function AddRecordScreen() {
       const payload: any = {
         recordType: type,
         title: title.trim(),
-        date,
+        date: date.toISOString().slice(0, 10),
         diagnosis: diagnosis.trim() || undefined,
         notes: notes.trim() || undefined,
         attachment: attachmentMeta,
@@ -285,7 +286,7 @@ export default function AddRecordScreen() {
                   size="md"
                   onPress={pickDoc}
                   style={{ flex: 1 }}
-                  leftIcon={<FileText size={16} color={colors.primary} />}
+                  icon={FileText}
                 />
                 <Button
                   title={t("addRecord.takePhoto", "Take photo")}
@@ -293,7 +294,7 @@ export default function AddRecordScreen() {
                   size="md"
                   onPress={pickImage}
                   style={{ flex: 1 }}
-                  leftIcon={<Camera size={16} color={colors.primary} />}
+                  iconRight={Camera}
                 />
               </View>
             )}
@@ -383,11 +384,10 @@ export default function AddRecordScreen() {
             onChangeText={setTitle}
             placeholder={t("addRecord.placeholders.title")}
           />
-          <TextField
+          <DateField
             label={t("addRecord.fields.date")}
             value={date}
-            onChangeText={setDate}
-            placeholder={t("addRecord.placeholders.date")}
+            onChange={setDate}
           />
           <TextField
             label={t("addRecord.fields.diagnosis")}
