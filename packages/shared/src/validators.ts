@@ -16,6 +16,10 @@ export const registerSchema = z.object({
   ]),
   password: z.string().min(8),
   nic: z.string().optional(),
+  // Phase 3.1 slice 3: optional staff-invite token. When present the
+  // register endpoint will consume it on success — only valid for
+  // role:"hospital_staff" (server-enforced in apps/api/src/routes/auth.ts).
+  inviteToken: z.string().min(8).max(64).optional(),
 });
 
 export const loginSchema = z.object({
@@ -143,4 +147,30 @@ export const aiChatSchema = z.object({
 export const aiOcrSchema = z.object({
   fileUrl: z.string().url().or(z.string().min(1)),
   textHint: z.string().max(8000).optional(),
+});
+
+// ─── Phase 3.1 slice 3: hospital staff invites ────────────
+// Role enum mirrors `hospitalStaff.role` in packages/db/src/schema.ts
+// (`nurse | receptionist | technician | manager | housekeeping |
+// security`). Keep in sync.
+export const HOSPITAL_STAFF_INVITE_ROLES = [
+  "nurse",
+  "receptionist",
+  "technician",
+  "manager",
+  "housekeeping",
+  "security",
+] as const;
+
+export const createStaffInviteSchema = z.object({
+  fullName: z.string().min(1).max(120),
+  email: z.string().email().max(254),
+  phone: z
+    .string()
+    .min(7)
+    .max(16)
+    .regex(/^[+0-9 ()-]+$/, "Phone must be 7-16 digits, may include + ( ) -")
+    .optional(),
+  role: z.enum(HOSPITAL_STAFF_INVITE_ROLES),
+  expiresInHours: z.number().int().min(1).max(24 * 30).optional(),
 });

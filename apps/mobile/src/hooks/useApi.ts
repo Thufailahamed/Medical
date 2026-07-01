@@ -2801,3 +2801,102 @@ export function useCreateVisitSummary() {
     },
   });
 }
+// ─── Phase 3.1 slice 3: hospital staff invites ────────────
+// Mirrors the family-invite hooks above (lines 2485-2559). The
+// preview hook is `silent401` because the deep-link route fires
+// before auth, and the accept hook has no special silent-flag.
+
+export type StaffInviteView = {
+  role: string;
+  fullName: string;
+  email: string;
+  hospitalName: string;
+  hospitalId: string;
+  expiresAt: string;
+};
+
+export type StaffInviteRow = {
+  id: string;
+  hospitalId: string;
+  role: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  expiresAt: string;
+  consumedAt: string | null;
+  consumedByUserId: string | null;
+  revoked: boolean;
+  createdByUserId: string;
+  createdAt: string;
+  token: string | null;
+  deepLink: string | null;
+};
+
+export function useStaffInvites() {
+  return useQuery({
+    queryKey: ["hospital", "staff-invites"],
+    queryFn: () =>
+      api<{ invites: StaffInviteRow[] }>("/hospital-portal/staff/invites"),
+  });
+}
+
+export function useCreateStaffInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      fullName: string;
+      email: string;
+      phone?: string;
+      role: string;
+      expiresInHours?: number;
+    }) =>
+      api<{
+        id: string;
+        token: string;
+        deepLink: string;
+        expiresAt: string;
+      }>("/hospital-portal/staff/invites", { method: "POST", body: payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital", "staff-invites"] });
+    },
+  });
+}
+
+export function useRevokeStaffInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(`/hospital-portal/staff/invites/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital", "staff-invites"] });
+    },
+  });
+}
+
+export function useStaffInvitePreview(token: string | null) {
+  return useQuery({
+    queryKey: ["staff-invite", "preview", token],
+    queryFn: () =>
+      api<StaffInviteView>(`/staff/invites/${token}`, { silent401: true }),
+    enabled: !!token,
+    retry: false,
+  });
+}
+
+export function useAcceptStaffInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) =>
+      api<{
+        hospitalId: string;
+        role: string;
+        alreadyAccepted: boolean;
+      }>(`/staff/invites/${token}/accept`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hospital"] });
+      qc.invalidateQueries({ queryKey: ["hospital", "staff"] });
+    },
+  });
+}

@@ -42,7 +42,17 @@ auth.post("/register", async (c) => {
     return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
 
-  const { email, phone, name, role, password, nic, dob, doctorProfile } = parsed.data;
+  const { email, phone, name, role, password, nic, dob, doctorProfile, inviteToken } = parsed.data;
+
+  // Phase 3.1 slice 3: invite tokens are only valid for hospital_staff
+  // registrations. Reject early with a translated Zod message so we
+  // don't create a user row with no downstream way to link to a hospital.
+  if (inviteToken && role !== "hospital_staff") {
+    return c.json(
+      { error: "Invite tokens are only valid for hospital staff sign-ups" },
+      400
+    );
+  }
 
   // Must have either email or phone
   if (!email && !phone) {
@@ -134,12 +144,35 @@ auth.post("/register", async (c) => {
     isMinor: registerAge !== null && registerAge < 18,
   });
 
+  // Phase 3.1 slice 3: consume the invite token inline so the new user
+  // lands already linked to their hospital — no second "Accept" tap.
+  let inviteConsume: { ok: boolean; error?: string; hospitalId?: string } = {
+    ok: true,
+  };
+  if (inviteToken) {
+    try {
+      const { acceptStaffInvite } = await import("../lib/staff-invite-accept");
+      const result = await acceptStaffInvite(db, inviteToken, dbUser.id);
+      if (!result.ok) {
+        inviteConsume = { ok: false, error: result.error };
+      } else {
+        inviteConsume = { ok: true, hospitalId: result.hospitalId };
+      }
+    } catch (err: any) {
+      inviteConsume = { ok: false, error: err?.message || "Invite consume failed" };
+    }
+  }
+
   return c.json({
     user: dbUser,
     session: {
       access_token: token,
       refresh_token: "dummy-refresh-token",
     },
+    // Phase 3.1 slice 3: surface invite-consume outcome to the client
+    // so the register screen can show a "Linked to <hospital>" toast
+    // (success) or "Could not link invite" warning (failure).
+    inviteConsume,
   }, 201);
 });
 

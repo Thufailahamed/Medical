@@ -8,6 +8,7 @@ import {
   beds,
   bedAssignments,
   hospitalStaff,
+  hospitalStaffInvites,
   patients,
   users,
   doctors,
@@ -23,10 +24,22 @@ import {
   bedStatusSchema,
   bedAssignSchema,
   staffSchema,
+  createStaffInviteSchema,
 } from "@healthcare/shared";
 import type { AppEnvironment } from "../types";
 import { notify } from "../lib/notifications";
 import { flattenTranslated } from "../lib/validation-error";
+import { writeAudit } from "../lib/audit";
+
+/** Opaque random token for staff-invite deep links. Same shape as
+ * family-invite tokens (apps/api/src/routes/family-invites.ts:45-51). */
+function generateStaffInviteToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 const hospitalPortalRouter = new Hono<AppEnvironment>();
 
@@ -761,6 +774,165 @@ hospitalPortalRouter.get("/patients/:id", async (c) => {
     records,
     vitals: vitalRows,
   });
+});
+
+// ─── Phase 3.1 slice 3: staff invites (admin only) ─────────
+// The router-level middleware applies to hospital_admin AND hospital_staff;
+// these three endpoints below are admin-only (receptionists can't
+// invite new staff). We re-check the role inline rather than splitting
+// into a second router because the layout mirrors the sibling routes.
+function requireAdmin(c: any): boolean {
+  return c.get("dbUser")?.role === "hospital_admin";
+}
+
+// POST /hospital-portal/staff/invites
+hospitalPortalRouter.post("/staff/invites", async (c) => {
+  if (!requireAdmin(c)) return c.json({ error: "Admin only" }, 403);
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const hospital = await getHospital(db, userId);
+  if (!hospital) return c.json({ error: "Hospital not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = createStaffInviteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400
+    );
+  }
+  const data = parsed.data;
+  const token = generateStaffInviteToken();
+  const expiresAt = new Date(
+    Date.now() + (data.expiresInHours ?? 24 * 14) * 60 * 60 * 1000
+  ).toISOString();
+
+  const [row] = await db
+    .insert(hospitalStaffInvites)
+    .values({
+      hospitalId: hospital.id,
+      role: data.role,
+      fullName: data.fullName.trim(),
+      email: data.email.trim().toLowerCase(),
+      phone: data.phone?.replace(/\s/g, "") ?? null,
+      token,
+      expiresAt,
+      revoked: false,
+      createdByUserId: userId,
+    } as any)
+    .returning();
+
+  await writeAudit(db, {
+    userId,
+    action: "staff_invite_created",
+    resource: "hospital_staff_invite",
+    resourceId: row.id,
+    details: {
+      role: data.role,
+      email: data.email,
+      hospitalId: hospital.id,
+      expiresAt,
+    },
+  });
+
+  return c.json(
+    {
+      id: row.id,
+      token,
+      // Deep link consumed by the mobile route at
+      // apps/mobile/src/app/invite/staff-[token].tsx. Universal-link
+      // HTTPS fallback is out of scope (see plan §Out of scope).
+      deepLink: `healthcare://staff-invite/${token}`,
+      expiresAt,
+    },
+    201
+  );
+});
+
+// GET /hospital-portal/staff/invites
+hospitalPortalRouter.get("/staff/invites", async (c) => {
+  if (!requireAdmin(c)) return c.json({ error: "Admin only" }, 403);
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const hospital = await getHospital(db, userId);
+  if (!hospital) return c.json({ error: "Hospital not found" }, 404);
+
+  const rows = await db
+    .select()
+    .from(hospitalStaffInvites)
+    .where(eq(hospitalStaffInvites.hospitalId, hospital.id))
+    .orderBy(desc(hospitalStaffInvites.createdAt));
+
+  // Strip the token for already-consumed or revoked rows so a leaked
+  // history listing can't surface stale secrets. Pending entries
+  // include the token because the admin is about to share it.
+  const safeRows = rows.map((r: any) => ({
+    id: r.id,
+    hospitalId: r.hospitalId,
+    role: r.role,
+    fullName: r.fullName,
+    email: r.email,
+    phone: r.phone,
+    expiresAt: r.expiresAt,
+    consumedAt: r.consumedAt,
+    consumedByUserId: r.consumedByUserId,
+    revoked: !!r.revoked,
+    createdByUserId: r.createdByUserId,
+    createdAt: r.createdAt,
+    token: r.consumedAt || r.revoked ? null : r.token,
+    deepLink:
+      r.consumedAt || r.revoked
+        ? null
+        : `healthcare://staff-invite/${r.token}`,
+  }));
+
+  return c.json({ invites: safeRows });
+});
+
+// DELETE /hospital-portal/staff/invites/:id
+hospitalPortalRouter.delete("/staff/invites/:id", async (c) => {
+  if (!requireAdmin(c)) return c.json({ error: "Admin only" }, 403);
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const hospital = await getHospital(db, userId);
+  if (!hospital) return c.json({ error: "Hospital not found" }, 404);
+  const id = c.req.param("id");
+
+  const [existing] = await db
+    .select()
+    .from(hospitalStaffInvites)
+    .where(
+      and(
+        eq(hospitalStaffInvites.id, id),
+        eq(hospitalStaffInvites.hospitalId, hospital.id)
+      )
+    )
+    .limit(1);
+  if (!existing) return c.json({ error: "Invite not found" }, 404);
+  if (existing.consumedAt) {
+    return c.json({ error: "Invite already consumed" }, 410);
+  }
+  if (existing.revoked) {
+    return c.json({ error: "Invite already revoked" }, 410);
+  }
+
+  await db
+    .update(hospitalStaffInvites)
+    .set({ revoked: true } as any)
+    .where(eq(hospitalStaffInvites.id, id));
+
+  await writeAudit(db, {
+    userId,
+    action: "staff_invite_revoked",
+    resource: "hospital_staff_invite",
+    resourceId: id,
+    details: { hospitalId: hospital.id },
+  });
+
+  return c.json({ ok: true });
 });
 
 export default hospitalPortalRouter;

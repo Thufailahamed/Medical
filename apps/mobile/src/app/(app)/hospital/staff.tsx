@@ -4,7 +4,7 @@ import { useState } from "react";
 import { View, Text, Modal, Alert, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Plus, Users, Trash2 } from "lucide-react-native";
+import { Plus, Users, Trash2, UserPlus } from "lucide-react-native";
 import {
   useStaff,
   useCreateStaff,
@@ -143,12 +143,20 @@ export default function StaffScreen() {
         onBack={() => router.back()}
         title={t("hospitalStaff.title")}
         right={
-          <IconButton
-            icon={Plus}
-            onPress={() => setShowForm(true)}
-            accessibilityLabel={t("hospitalStaff.addA11y")}
-            variant="soft"
-          />
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <IconButton
+              icon={UserPlus}
+              onPress={() => router.push("/(app)/hospital/staff-invites" as any)}
+              accessibilityLabel="Staff invites"
+              variant="soft"
+            />
+            <IconButton
+              icon={Plus}
+              onPress={() => setShowForm(true)}
+              accessibilityLabel={t("hospitalStaff.addA11y")}
+              variant="soft"
+            />
+          </View>
         }
       />
 

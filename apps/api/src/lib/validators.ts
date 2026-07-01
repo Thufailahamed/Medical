@@ -446,3 +446,29 @@ export const demoRequestSchema = z.object({
 export const slmcVerifySchema = z.object({
   slmcRegistrationNo: slmcRegistrationNoSchema,
 });
+
+// ─── Phase 3.1 slice 3: hospital staff invites ────────────
+// Role enum mirrors packages/db/src/schema.ts `hospitalStaff.role`
+// (`nurse | receptionist | technician | manager | housekeeping |
+// security`). Keep in sync if either side adds values.
+export const HOSPITAL_STAFF_ROLES = [
+  "nurse",
+  "receptionist",
+  "technician",
+  "manager",
+  "housekeeping",
+  "security",
+] as const;
+
+export const createStaffInviteSchema = z.object({
+  fullName: z.string().min(1).max(120),
+  email: z.string().email().max(254),
+  phone: z
+    .string()
+    .min(7)
+    .max(16)
+    .regex(/^[+0-9 ()-]+$/, "Phone must be 7-16 digits, may include + ( ) -")
+    .optional(),
+  role: z.enum(HOSPITAL_STAFF_ROLES),
+  expiresInHours: z.number().int().min(1).max(24 * 30).optional(),
+});

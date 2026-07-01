@@ -782,6 +782,44 @@ export const hospitalStaff = sqliteTable("hospital_staff", {
     .notNull(),
 });
 
+// ─── Phase 3.1 slice 3: hospital staff invites ────────────
+// Token-based onboarding. Admin generates a row, shares the deep
+// link, recipient registers (or signs in), server consumes the
+// token and links hospitalStaff.userId to the recipient's users.id.
+// Mirror the family-invite pattern (apps/api/src/routes/family-invites.ts).
+export const hospitalStaffInvites = sqliteTable(
+  "hospital_staff_invites",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    hospitalId: text("hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    role: text("role", {
+      enum: ["nurse", "receptionist", "technician", "manager", "housekeeping", "security"],
+    }).notNull(),
+    fullName: text("full_name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    token: text("token").notNull().unique(),
+    expiresAt: text("expires_at").notNull(),
+    consumedAt: text("consumed_at"),
+    consumedByUserId: text("consumed_by_user_id").references(() => users.id),
+    revoked: integer("revoked", { mode: "boolean" }).notNull().default(false),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    hospitalIdx: index("idx_hospital_staff_invites_hospital").on(
+      t.hospitalId,
+      t.createdAt
+    ),
+  })
+);
+
 // ─── V2: Lab Orders (Doctor → Lab) ───────────────────────
 export const labOrders = sqliteTable("lab_orders", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

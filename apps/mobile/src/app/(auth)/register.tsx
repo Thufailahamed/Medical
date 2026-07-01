@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,7 +34,11 @@ import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useSpecialties, useHospitals } from "@/hooks/useApi";
+import {
+  useSpecialties,
+  useHospitals,
+  useStaffInvitePreview,
+} from "@/hooks/useApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Screen, Skeleton, useToast } from "@/components/ui";
 import {
@@ -62,7 +66,7 @@ function ageFromDob(dob: string | null | undefined): number | null {
 
 const schema = z
   .object({
-    role: z.enum(["patient", "doctor"]),
+    role: z.enum(["patient", "doctor", "hospital_staff"]),
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Enter a valid email").optional().or(z.literal("")),
     phone: z.string().optional(),
@@ -150,9 +154,15 @@ type FormData = z.infer<typeof schema>;
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const routeParams = useLocalSearchParams<{ invite?: string }>();
+  const inviteToken = typeof routeParams.invite === "string" ? routeParams.invite : null;
+  const invitePreview = useStaffInvitePreview(inviteToken);
+  const inviteData = invitePreview.data;
   const { colors, spacing, typography, radius, fontFamily, shadow } = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [role, setRole] = useState<"patient" | "doctor">("patient");
+  const [role, setRole] = useState<"patient" | "doctor" | "hospital_staff">(
+    inviteToken ? "hospital_staff" : "patient"
+  );
   const [hospitalQuery, setHospitalQuery] = useState("");
   const [showOtherSpecialty, setShowOtherSpecialty] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -197,6 +207,21 @@ export default function RegisterScreen() {
   const selectedSpecialization = watch("doctorProfile.specialization");
   const selectedHospitalId = watch("doctorProfile.hospitalId");
 
+  // Phase 3.1 slice 3: pre-fill from the staff-invite preview so the
+  // user only needs to set a password. We lock role to "hospital_staff"
+  // and submit `inviteToken` so the server consumes it inline.
+  useEffect(() => {
+    if (!inviteToken || !inviteData) return;
+    setValue("role", "hospital_staff", { shouldValidate: true });
+    setRole("hospital_staff");
+    if (inviteData.fullName) {
+      setValue("name", inviteData.fullName, { shouldValidate: true });
+    }
+    if (inviteData.email) {
+      setValue("email", inviteData.email, { shouldValidate: true });
+    }
+  }, [inviteToken, inviteData, setValue]);
+
   const onSubmit = async (data: FormData) => {
     Keyboard.dismiss();
     setSubmitting(true);
@@ -209,6 +234,12 @@ export default function RegisterScreen() {
         password: data.password,
         role: data.role,
       };
+      // Phase 3.1 slice 3: when arriving via a staff invite, pass the
+      // token so the server can consume it inline after the users row
+      // is created. Mirrors apps/api/src/routes/auth.ts:152-164.
+      if (inviteToken) {
+        body.inviteToken = inviteToken;
+      }
       if (data.role === "doctor") {
         body.doctorProfile = {
           specialization: (data.doctorProfile?.specialization || "").trim(),
@@ -229,6 +260,14 @@ export default function RegisterScreen() {
         await SecureStore.setItemAsync("auth_token", res.session.access_token);
         setUser(res.user);
         toast.show("Account created", "success");
+        // Phase 3.1 slice 3: staff coming from an invite lands directly
+        // on the hospital portal. The server already linked their staff
+        // row to this user (apps/api/src/routes/auth.ts:147-164), so
+        // we skip OTP and the patient home.
+        if (data.role === "hospital_staff") {
+          router.replace("/(app)/hospital/dashboard" as any);
+          return;
+        }
         // Phase 1.2: if patient gave a phone, route through OTP screen
         // for soft 2FA verification before reaching the home stack.
         if (data.role === "patient" && (data.phone || "").trim()) {
@@ -357,7 +396,10 @@ export default function RegisterScreen() {
         </Text>
       </View>
 
-      {/* Segmented role selector */}
+      {/* Segmented role selector — hidden for staff invites since role
+          is forced to hospital_staff. The invite banner below stands
+          in for it. */}
+      {!inviteToken ? (
       <View
         style={{
           flexDirection: "row",
@@ -415,6 +457,42 @@ export default function RegisterScreen() {
           );
         })}
       </View>
+      ) : (
+        // Phase 3.1 slice 3: staff-invite banner replaces the role selector.
+        // Tells the user what hospital they're joining and as which role.
+        <View
+          style={{
+            backgroundColor: colors.primarySoft,
+            borderRadius: radius.md,
+            padding: spacing.md,
+            marginBottom: 24,
+            gap: 6,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "800",
+              color: colors.primary,
+              letterSpacing: 0.8,
+              fontFamily: fontFamily.displayBold,
+              textTransform: "uppercase",
+            }}
+          >
+            {`Joining ${inviteData?.hospitalName || "your hospital"}`}
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: colors.text,
+              fontFamily: fontFamily.bodyBold,
+            }}
+          >
+            {`Role: ${inviteData?.role || role}`}
+          </Text>
+        </View>
+      )}
 
       {/* Form Fields */}
       <View style={{ gap: 16 }}>
@@ -481,7 +559,7 @@ export default function RegisterScreen() {
             can register once their child outgrows the threshold and gets an
             NIC of their own, or a parent can manage them via the Family
             screen. */}
-        {(() => {
+        {role !== "hospital_staff" ? (() => {
           const dobValue = (watch("dob") || "").trim();
           const age = ageFromDob(dobValue);
           const isMinorSelfRegistering =
@@ -528,7 +606,7 @@ export default function RegisterScreen() {
               )}
             />
           );
-        })()}
+        })() : null}
 
         {/* NIC hint — shows the DOB encoded in the NIC. Auto-fills the
             DOB field if the user hasn't typed anything yet so they just

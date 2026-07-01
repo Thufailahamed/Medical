@@ -2719,5 +2719,42 @@
     "error": "Could not download PDF",
     "notFound": "Prescription not found",
     "notFoundBody": "It may have been deleted or you no longer have access."
+  },
+  "hospitalStaffInvites": {
+    "title": "Staff invites",
+    "sendCta": "Send invite",
+    "emptyTitle": "No invites yet",
+    "emptyBody": "Generate a link to onboard nurses, receptionists, and other staff.",
+    "pendingHeading": "PENDING",
+    "historyHeading": "HISTORY",
+    "copyLink": "Copy",
+    "shareLink": "Share",
+    "formTitle": "Send invite",
+    "expiresIn": "Expires in",
+    "fullName": "Full name",
+    "email": "Email",
+    "phone": "Phone (optional)",
+    "role": "Role"
+  },
+  "staffInviteLanding": {
+    "title": "Join your hospital team",
+    "subtitle": "You've been invited to join a hospital on HealthHub.",
+    "hospital": "Hospital",
+    "role": "Role",
+    "name": "Name",
+    "email": "Email",
+    "expires": "Expires",
+    "accepted": "Invite accepted — welcome aboard.",
+    "linked": "You're now linked to {{hospital}}.",
+    "expired": "This invite has expired.",
+    "invalid": "This invite link is invalid or has been revoked.",
+    "error": "Something went wrong loading this invite.",
+    "accept": "Accept invite",
+    "createAccountPrompt": "Create an account to join your hospital team.",
+    "createAccount": "Create account",
+    "haveAccount": "I already have an account",
+    "wrongRole": "This invite is for hospital staff, but you're signed in as {{role}}.",
+    "signOutSwitch": "Sign in as a different user",
+    "dismiss": "Dismiss"
   }
 }

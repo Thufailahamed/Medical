@@ -48,6 +48,7 @@ import familyInviteRouter from "./routes/family-invites";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
 import whatsappRouter from "./routes/whatsapp";
+import staffInvitePublicRouter from "./routes/staff-invites-public";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -137,6 +138,10 @@ app.route("/", classificationRouter);
 // Phase 2.3.2: web landing page for family invite links. Mounted at root
 // so the public URL is /invite/<token>, mirroring the mobile deep-link.
 app.route("/", invitePageRouter);
+// Phase 3.1 slice 3: public staff-invite preview + accept. Mounted at
+// root for the same reason — these endpoints must be reachable without
+// auth so the admin can share a deep link in WhatsApp.
+app.route("/", staffInvitePublicRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]
