@@ -14,6 +14,7 @@ import { z } from "zod";
 import { ArrowRight, ChevronLeft, Heart, KeyRound, ShieldCheck } from "lucide-react-native";
 import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
@@ -40,6 +41,7 @@ export default function VerifyOtpScreen() {
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
 
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
@@ -119,6 +121,7 @@ export default function VerifyOtpScreen() {
       });
 
       if (res.session?.access_token) {
+        queryClient.clear();
         await SecureStore.setItemAsync("auth_token", res.session.access_token);
         setUser(res.user);
         toast.show(

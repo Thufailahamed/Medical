@@ -2,9 +2,12 @@
 
 import { Hono } from "hono";
 import { eq, or, like, desc, and } from "drizzle-orm";
-import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, hospitals, doctorAvailability, doctorTimeOff } from "@healthcare/db";
+import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, hospitals, doctorAvailability, doctorTimeOff, prescriptionSignatures } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { audit } from "../lib/audit";
+import { topSeverity } from "../lib/safety-engine";
+import { runSafetyCheck } from "../lib/safety-runner";
 import type { AppEnvironment } from "../types";
 
 const doctorRouter = new Hono<AppEnvironment>();
@@ -31,7 +34,7 @@ doctorRouter.get("/dashboard", authMiddleware, requireRole("doctor"), async (c) 
     .from(appointments)
     .where(
       and(
-        eq(appointments.doctorId, doctor.doctors.id),
+        eq(appointments.doctorId, doctor.id),
         eq(appointments.date, today)
       )
     )
@@ -41,12 +44,12 @@ doctorRouter.get("/dashboard", authMiddleware, requireRole("doctor"), async (c) 
     .select()
     .from(patients)
     .innerJoin(medicalRecords, eq(patients.id, medicalRecords.patientId))
-    .where(eq(medicalRecords.doctorId, doctor.doctors.id));
+    .where(eq(medicalRecords.doctorId, doctor.id));
 
   const uniquePatients = new Set(totalPatients.map((r) => r.patients.id));
 
   return c.json({
-    doctor: doctor.doctors,
+    doctor,
     stats: {
       todayAppointments: todaysAppointments.length,
       totalPatients: uniquePatients.size,
@@ -99,18 +102,65 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
     return c.json({ error: "Doctor not found" }, 404);
   }
 
+  // Phase E-Rx 3: safety pre-flight. Mirrors the pattern in
+  // `medicines.ts POST /` so doctors see the same 409 confirmation
+  // when a candidate Rx would hit a critical allergy, severe
+  // interaction, or duplicate-therapy wall. X-Confirm-Warning carries
+  // the explicit override after the doctor acknowledges in the UI.
+  const candidateMeds: Array<{
+    name: string;
+    dosage?: string;
+    masterMedicineId?: string | null;
+  }> = Array.isArray(body.medicines) ? body.medicines : [];
+  const safetyWarnings = await runSafetyCheck(db, body.patientId, candidateMeds);
+  const safetyTop = topSeverity(safetyWarnings);
+  const override = c.req.header("X-Confirm-Warning") === "true";
+  const BLOCKING = (w: { severity: string }) =>
+    w.severity === "severe" || w.severity === "critical";
+  if (safetyTop && BLOCKING({ severity: safetyTop }) && !override) {
+    return c.json(
+      {
+        error: "Safety warning",
+        requiresConfirmation: true,
+        warnings: safetyWarnings,
+        severity: safetyTop,
+        message: `Severe safety warning detected (${safetyTop}). Confirm to proceed.`,
+      },
+      409
+    );
+  }
+
   // Create prescription record in prescriptions table
   const [prescription] = await db
     .insert(prescriptions)
     .values({
-      doctorId: doctor.doctors.id,
+      doctorId: doctor.id,
       patientId: body.patientId,
       hospitalId: body.hospitalId,
       diagnosis: body.diagnosis,
       notes: body.notes,
       date: new Date().toISOString().split("T")[0],
+      // Phase E-Rx 6: lifecycle default. The route always writes
+      // "draft" — only POST /sign can flip to "signed". zod .strict()
+      // on the body rejects any client-supplied `status`.
     })
     .returning();
+
+  // Phase E-Rx 3: audit when the doctor overrode safety warnings.
+  // Captures the full warning set in `details` so reviewers can audit
+  // overrides without re-running the engine against stale state.
+  if (override && safetyWarnings.length) {
+    await audit(db, {
+      userId,
+      action: "prescription.create_with_warnings",
+      resource: "prescription",
+      resourceId: prescription?.prescriptions?.id,
+      details: {
+        severity: safetyTop,
+        warnings: safetyWarnings,
+      },
+    });
+  }
 
   // Create medical record (prescription type) linked to the patient
   const [record] = await db
@@ -118,7 +168,7 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
     .values({
       patientId: body.patientId,
       hospitalId: body.hospitalId,
-      doctorId: doctor.doctors.id,
+      doctorId: doctor.id,
       recordType: "prescription",
       title: `Prescription - ${body.diagnosis || "General"}`,
       diagnosis: body.diagnosis,
@@ -132,18 +182,21 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
     await db.insert(medicines).values(
       body.medicines.map((med: any) => ({
         patientId: body.patientId,
-        prescriptionId: prescription.prescriptions.id,
+        prescriptionId: prescription.id,
         name: med.name,
         dosage: med.dosage,
         frequency: med.frequency,
         timing: med.timing,
         startDate: med.startDate || new Date().toISOString().split("T")[0],
         endDate: med.endDate,
+        // Phase E-Rx 1: optional master FK. Doctors picking from the
+        // autocomplete carry this; free-text entries stay NULL.
+        masterMedicineId: med.masterMedicineId ?? null,
       }))
     );
   }
 
-  return c.json({ prescription: prescription.prescriptions }, 201);
+  return c.json({ prescription }, 201);
 });
 
 // ─── Get doctor's prescriptions ──────────────────────────
@@ -177,7 +230,7 @@ doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async 
     .from(medicalRecords)
     .where(
       and(
-        eq(medicalRecords.doctorId, doctor.doctors.id),
+        eq(medicalRecords.doctorId, doctor.id),
         eq(medicalRecords.recordType, "prescription")
       )
     )
@@ -248,6 +301,9 @@ doctorRouter.get(
         notes: prescriptions.notes,
         date: prescriptions.date,
         createdAt: prescriptions.createdAt,
+        status: prescriptions.status,
+        signedAt: prescriptions.signedAt,
+        signedPayloadHash: prescriptions.signedPayloadHash,
         doctorUserId: doctors.userId,
         doctorName: users.name,
         doctorSpecialization: doctors.specialization,
@@ -313,6 +369,9 @@ doctorRouter.get(
         diagnosis: prescriptions.diagnosis,
         notes: prescriptions.notes,
         date: prescriptions.date,
+        status: prescriptions.status,
+        signedAt: prescriptions.signedAt,
+        signedPayloadHash: prescriptions.signedPayloadHash,
         doctorName: users.name,
         doctorUserId: doctors.userId,
         doctorSpecialization: doctors.specialization,
@@ -333,6 +392,34 @@ doctorRouter.get(
     if (row.doctorUserId !== userId) {
       return c.json({ error: "Not your prescription" }, 403);
     }
+
+    // Phase E-Rx 7: PDF rendering requires a signed prescription. The
+    // QR + signature block at the bottom is meaningless on a draft, and
+    // exposing draft PDFs would let the doctor share something that
+    // can't be verified. Sign first via POST /doctor/prescriptions/:id/sign
+    // then re-download.
+    if (row.status !== "signed") {
+      return c.json(
+        {
+          error: "Prescription must be signed before downloading the PDF",
+          status: row.status,
+          prescriptionId: id,
+        },
+        409
+      );
+    }
+
+    // Fetch the signature row so the footer can show the actual
+    // payload hash + signed-at the verifier will see on /verify/:id.
+    const [sig] = await db
+      .select({
+        signedAt: prescriptionSignatures.signedAt,
+        payloadHash: prescriptionSignatures.payloadHash,
+        signatureB64: prescriptionSignatures.signatureB64,
+      })
+      .from(prescriptionSignatures)
+      .where(eq(prescriptionSignatures.prescriptionId, id))
+      .limit(1);
 
     // Patient name + NIC live on `users` (joined through patients.userId).
     const [patientUser] = await db
@@ -558,36 +645,113 @@ doctorRouter.get(
       }
     }
 
-    // ─── Signature block + footer ───────────────────────
-    const sigY = Math.max(margin + 80, y + 20);
-    page.drawText("_____________________________", {
-      x: pageW - margin - 200,
-      y: sigY,
-      size: 11,
+    // ─── Signature block + QR + footer ─────────────────
+    // Phase E-Rx 7: signed prescriptions embed a scannable QR that
+    // points at GET /verify/:id so anyone (pharmacy, patient, regulator)
+    // can confirm authenticity from the printed PDF. The QR target is
+    // the public base URL + prescription id, NOT a deep link into the
+    // mobile app — verification works without the app installed.
+    const sigY = Math.max(margin + 110, y + 20);
+    const verifyUrl = `${(c.env.PUBLIC_URL || "https://app.healthhub.app").replace(/\/+$/, "")}/verify/${id}`;
+
+    // Lazy-load qrcode (same pattern as pdf-lib — keep cold path lean).
+    // `toBuffer` returns a PNG buffer we embed via pdf.embedPng.
+    // The `browser` field in qrcode's package.json maps
+    // `qrcode/lib/index.js` → `qrcode/lib/browser.js` (canvas-backed,
+    // not available in Workers). The bundler additionally collapses
+    // `qrcode` to the bare `core/qrcode.js` which lacks `toBuffer`.
+    // Importing the server entry directly bypasses both mappings;
+    // `server.js` uses pngjs (zero native deps).
+    const qrServer = await import("qrcode/lib/server.js");
+    const qrPngBytes: Buffer = await new Promise((resolve, reject) => {
+      (qrServer as any).toBuffer(
+        verifyUrl,
+        {
+          errorCorrectionLevel: "M",
+          type: "png",
+          margin: 1,
+          width: 256,
+        },
+        (err: Error | null | undefined, buf: Buffer) =>
+          err ? reject(err) : resolve(buf)
+      );
+    });
+    const qrImg = await pdf.embedPng(qrPngBytes);
+
+    // QR lives bottom-right; sized so a phone scanner reliably picks it
+    // up at A4 print resolution. 80pt = ~28mm square.
+    const qrSize = 80;
+    const qrX = pageW - margin - qrSize;
+    const qrY = margin;
+    page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+    page.drawText("Scan to verify", {
+      x: qrX,
+      y: qrY - 10,
+      size: 7,
       font,
-      color: rgb(0.25, 0.25, 0.32),
+      color: rgb(0.45, 0.45, 0.52),
+    });
+
+    // Signed-on + payload hash + verify URL sit to the LEFT of the QR
+    // so a printed page has the cryptographic context in plain text.
+    const sigBlockX = margin;
+    const sigBlockW = qrX - sigBlockX - 12;
+    page.drawText("DIGITALLY SIGNED", {
+      x: sigBlockX,
+      y: sigY,
+      size: 8,
+      font: fontBold,
+      color: rgb(0.45, 0.45, 0.52),
     });
     page.drawText(row.doctorName, {
-      x: pageW - margin - 200,
+      x: sigBlockX,
       y: sigY - 14,
-      size: 10,
+      size: 11,
       font: fontBold,
       color: rgb(0.08, 0.09, 0.16),
     });
     if (row.doctorSpecialization) {
       page.drawText(row.doctorSpecialization, {
-        x: pageW - margin - 200,
+        x: sigBlockX,
         y: sigY - 26,
         size: 9,
         font,
         color: rgb(0.45, 0.45, 0.52),
       });
     }
+    const signedAtLabel = sig?.signedAt || row.signedAt || row.date;
+    page.drawText(`Signed: ${signedAtLabel}`, {
+      x: sigBlockX,
+      y: sigY - 40,
+      size: 9,
+      font,
+      color: rgb(0.25, 0.25, 0.32),
+    });
+    const hashShort = (sig?.payloadHash || row.signedPayloadHash || "").slice(0, 16);
+    if (hashShort) {
+      page.drawText(`Payload hash: ${hashShort}…`, {
+        x: sigBlockX,
+        y: sigY - 52,
+        size: 9,
+        font,
+        color: rgb(0.25, 0.25, 0.32),
+      });
+    }
+    // Verify URL — truncate if too wide for the block (defensive).
+    const urlSize = 8;
+    const urlTrunc = truncate(verifyUrl, sigBlockW, font, urlSize);
+    page.drawText(urlTrunc, {
+      x: sigBlockX,
+      y: sigY - 64,
+      size: urlSize,
+      font,
+      color: rgb(0.35, 0.35, 0.42),
+    });
 
     page.drawText("Generated by HealthHub — for clinical use only.", {
       x: margin,
-      y: margin,
-      size: 8,
+      y: margin - 14,
+      size: 7,
       font,
       color: rgb(0.6, 0.6, 0.66),
     });

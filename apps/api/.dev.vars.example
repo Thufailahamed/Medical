@@ -4,3 +4,8 @@ DEV_MODE=true
 # Supabase (only needed when DEV_MODE=false)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
+
+# Phase E-Rx 6: 32-byte base64 key encryption key for doctor signing
+# private keys. Generate with: openssl rand -base64 32
+# In prod set via: wrangler secret put DOCTOR_KEY_KEK
+DOCTOR_KEY_KEK=replace-me-openssl-rand-base64-32

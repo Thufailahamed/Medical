@@ -13,7 +13,12 @@ import { requireRole } from "../middleware/rbac";
 import { medicineSchema, medicineUpdateSchema } from "../lib/validators";
 import { canAccessPatient } from "../lib/access";
 import { MEDICINE_CATALOG } from "../data/medicines-catalog";
-import { findStaticInteractions } from "../lib/ai";
+import { drugInteractionsMaster } from "@healthcare/db";
+import {
+  checkAllergy as safetyCheckAllergy,
+  checkInteractions as safetyCheckInteractions,
+  topSeverity as safetyTopSeverity,
+} from "../lib/safety-engine";
 import {
   formatLocalDate,
   localDayToUtcRange,
@@ -262,21 +267,21 @@ medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (
 
 // ─── Interaction check (allergy + drug-drug) ──────────────
 // GET /medicines/me/interactions?candidate=amoxicillin
-// Returns { allergies: [...], interactions: [...] } matching the candidate
-// against active medicines + active allergies. Pure fast-path: no LLM.
+// Phase E-Rx 3: routes through `safety-engine` (DB-backed) instead of
+// the legacy in-memory CLASS_GROUPS + findStaticInteractions. Same
+// response shape so the mobile client stays unchanged.
 medicinesRouter.get("/me/interactions", authMiddleware, requireRole("patient"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const patient = await getOwnPatient(db, userId);
   if (!patient) {
-    return c.json({ allergies: [], interactions: [] });
+    return c.json({ allergies: [], interactions: [], hasWarnings: false, severity: null });
   }
 
   const candidate = String(c.req.query("candidate") || "").trim();
   if (!candidate) {
-    return c.json({ allergies: [], interactions: [] });
+    return c.json({ allergies: [], interactions: [], hasWarnings: false, severity: null });
   }
-  const candidateNorm = candidate.toLowerCase();
 
   // Active medicines for this patient
   const activeMeds = await db
@@ -291,85 +296,36 @@ medicinesRouter.get("/me/interactions", authMiddleware, requireRole("patient"), 
     .from(allergies)
     .where(and(eq(allergies.patientId, patient.id), eq(allergies.active, true)));
 
-  // Allergy match: candidate substance matches allergy substance (substring,
-  // case-insensitive, both directions).
-  const allergyMatches = activeAllergies
-    .filter((a: any) => {
-      const sub = (a.substance || "").toLowerCase();
-      if (!sub) return false;
-      return (
-        candidateNorm.includes(sub) ||
-        sub.includes(candidateNorm) ||
-        // Cross-class matches: penicillins / cephalosporins, NSAIDs, etc.
-        crossMatches(candidateNorm, sub)
-      );
-    })
-    .map((a: any) => ({
-      id: a.id,
+  const allergyWarnings = safetyCheckAllergy(
+    [{ name: candidate }],
+    activeAllergies.map((a: any) => ({
       substance: a.substance,
       severity: a.severity,
-      reaction: a.reaction || null,
-    }));
-
-  // Drug-drug interactions: curated table, candidate + each active medicine.
-  const combined = [...activeNames, candidate];
-  const interactions = findStaticInteractions(combined).map((i) => ({
-    medicines: i.medicines,
-    severity: i.severity,
-    note: i.note,
-    source: i.source,
-  }));
-
-  // Also: explicit pair check between candidate and each active (subset
-  // match) — covers cases where curated list names a generic class.
-  for (const m of activeNames) {
-    if (m.toLowerCase() === candidateNorm) continue;
-  }
+      reaction: a.reaction,
+    }))
+  );
+  const interactions = await db
+    .select()
+    .from(drugInteractionsMaster)
+    .where(eq(drugInteractionsMaster.active, true));
+  const interactionWarnings = safetyCheckInteractions(
+    [{ name: candidate }],
+    activeMeds.map((m: any) => ({ name: m.name })),
+    interactions
+  );
+  const allWarnings = [...allergyWarnings, ...interactionWarnings];
+  const topSev = safetyTopSeverity(allWarnings);
 
   return c.json({
     candidate,
     activeMedicines: activeNames,
-    allergies: allergyMatches,
-    interactions,
-    hasWarnings: allergyMatches.length > 0 || interactions.some((i) => i.severity !== "minor"),
-    severity: topSeverity(allergyMatches, interactions),
+    allergies: allergyWarnings,
+    interactions: interactionWarnings,
+    warnings: allWarnings,
+    hasWarnings: allWarnings.length > 0,
+    severity: topSev,
   });
 });
-
-// Severity ordering for top-of-list warning
-function topSeverity(
-  allergies: Array<{ severity: string }>,
-  interactions: Array<{ severity: string }>
-): "minor" | "moderate" | "severe" | "critical" | null {
-  const order = ["minor", "moderate", "severe", "critical"];
-  let best: number = -1;
-  for (const a of allergies) {
-    const i = order.indexOf(a.severity);
-    if (i > best) best = i;
-  }
-  for (const i of interactions) {
-    const j = order.indexOf(i.severity);
-    if (j > best) best = j;
-  }
-  return best >= 0 ? (order[best] as any) : null;
-}
-
-// Lightweight cross-class match for common allergy families. Substring-only,
-// case-insensitive. Safe because it's read-only advisory output.
-const CLASS_GROUPS: Array<{ family: string; members: string[] }> = [
-  { family: "penicillins", members: ["penicillin", "amoxicillin", "ampicillin", "amoxicillin-clavulanate", "piperacillin"] },
-  { family: "cephalosporins", members: ["cephalosporin", "cefalexin", "cefuroxime", "ceftriaxone", "cefepime"] },
-  { family: "nsaids", members: ["nsaid", "ibuprofen", "aspirin", "naproxen", "diclofenac", "ketorolac"] },
-  { family: "sulfonamides", members: ["sulfonamide", "sulfa", "trimethoprim", "sulfamethoxazole"] },
-];
-function crossMatches(a: string, b: string): boolean {
-  for (const g of CLASS_GROUPS) {
-    const aIn = g.members.some((m) => a.includes(m));
-    const bIn = g.members.some((m) => b.includes(m));
-    if (aIn && bIn) return true;
-  }
-  return false;
-}
 
 // ─── Suggest medicine names (autocomplete) ───────────────
 // GET /medicines/suggest?q=metf&limit=8
@@ -572,7 +528,10 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
     return c.json({ error: "Access denied", reason: access.reason }, 403);
   }
 
-  // ─── V3: Interaction guard ──────────────────────────────
+  // ─── V3: Interaction guard (DB-backed via safety-engine) ─
+  // Phase E-Rx 3: swap the in-memory CLASS_GROUPS + findStaticInteractions
+  // for the DB-backed checkers in `safety-engine`. Same 409 + override
+  // shape so the mobile app stays unchanged.
   // Run a fast-path interaction check (allergies + curated drug pairs).
   // If a severe or critical match exists, return 409 with a structured
   // warning body that mobile can render as a confirmation modal.
@@ -588,48 +547,44 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
     .from(allergies)
     .where(and(eq(allergies.patientId, data.patientId), eq(allergies.active, true)));
 
-  const allergyMatches = activeAllergies
-    .filter((a: any) => {
-      const sub = (a.substance || "").toLowerCase();
-      if (!sub) return false;
-      return (
-        candidateNorm.includes(sub) ||
-        sub.includes(candidateNorm) ||
-        crossMatches(candidateNorm, sub)
-      );
-    })
-    .map((a: any) => ({
-      id: a.id,
+  const allergyWarnings = safetyCheckAllergy(
+    [{ name: data.name }],
+    activeAllergies.map((a: any) => ({
       substance: a.substance,
       severity: a.severity,
-      reaction: a.reaction || null,
-    }));
-
-  const drugInteractions = findStaticInteractions([...activeNames, data.name]).map((i) => ({
-    medicines: i.medicines,
-    severity: i.severity,
-    note: i.note,
-  }));
-
-  const criticalAllergy = allergyMatches.find((a) => a.severity === "critical" || a.severity === "severe");
-  const severeInteraction = drugInteractions.find((i) => i.severity === "severe");
-  const blocked = criticalAllergy || severeInteraction;
+      reaction: a.reaction,
+    }))
+  );
+  const interactions = await db
+    .select()
+    .from(drugInteractionsMaster)
+    .where(eq(drugInteractionsMaster.active, true));
+  const interactionWarnings = safetyCheckInteractions(
+    [{ name: data.name }],
+    activeMeds.map((m: any) => ({ name: m.name })),
+    interactions
+  );
+  const allWarnings = [...allergyWarnings, ...interactionWarnings];
+  const topSev = safetyTopSeverity(allWarnings);
+  const BLOCKING = (s?: string | null) => s === "severe" || s === "critical";
+  const blocked = BLOCKING(topSev);
 
   // Only block when the body doesn't carry an explicit override header.
   // This lets the mobile app re-submit after the user confirms despite a warning.
   const override = c.req.header("X-Confirm-Warning") === "true";
 
   if (blocked && !override) {
+    const allergyTop = allWarnings.find((w) => w.type === "allergy");
+    const interactionTop = allWarnings.find((w) => w.type === "interaction");
     return c.json(
       {
-        error: "Interaction warning",
+        error: "Safety warning",
         requiresConfirmation: true,
-        allergies: allergyMatches,
-        interactions: drugInteractions,
-        severity: topSeverity(allergyMatches, drugInteractions),
-        message: criticalAllergy
-          ? `Critical allergy match: ${criticalAllergy.substance}. Confirm to proceed anyway.`
-          : `Severe drug interaction: ${severeInteraction?.note}`,
+        warnings: allWarnings,
+        severity: topSev,
+        message: allergyTop
+          ? `Allergy match: ${allergyTop.medicines?.[1]}. Confirm to proceed anyway.`
+          : `Drug interaction: ${interactionTop?.message}`,
       },
       409
     );
@@ -657,6 +612,9 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
       notes: data.notes,
       active: true,
       familyMemberId,
+      // Phase E-Rx 1: optional link into the master catalogue. Free-text
+      // entries leave this NULL; picks from the master autocomplete set it.
+      masterMedicineId: data.masterMedicineId ?? null,
     })
     .returning();
 

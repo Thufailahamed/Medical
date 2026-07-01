@@ -18,10 +18,13 @@ import {
   FileText,
   CalendarDays,
   IdCard,
+  ShieldCheck,
+  ScanLine,
 } from "lucide-react-native";
 import {
   useDoctorPrescription,
   downloadPrescriptionPdf,
+  useSignPrescription,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -42,9 +45,26 @@ export default function PrescriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, isLoading } = useDoctorPrescription(id);
   const [downloading, setDownloading] = useState(false);
+  const signMutation = useSignPrescription();
 
   const rx = data?.prescription;
   const patient = rx?.patient;
+  const status: string = rx?.status ?? "draft";
+  const isDraft = status === "draft";
+  const isSigned = status === "signed";
+
+  async function onSign() {
+    if (!id) return;
+    try {
+      await signMutation.mutateAsync({ id });
+      toast.show(t("doctorPrescriptionDetail.signedToast"), "success");
+    } catch (err: any) {
+      toast.show(
+        err?.message ?? t("doctorPrescriptionDetail.signError"),
+        "danger"
+      );
+    }
+  }
 
   async function onDownload() {
     if (!id) return;
@@ -297,15 +317,115 @@ export default function PrescriptionDetailScreen() {
             </View>
           </Card>
 
+          {/* Phase E-Rx 6+7: signature status + actions. The
+              status pill mirrors prescriptions.status: signed shows
+              the signedAt + payload hash; draft offers a Sign action;
+              both signed + draft expose a Verify link. */}
+          <Card>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 14,
+                  backgroundColor: isSigned
+                    ? colors.successSoft
+                    : colors.warningSoft ?? colors.surfaceMuted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ShieldCheck
+                  size={18}
+                  color={isSigned ? colors.success : colors.warning ?? colors.textMuted}
+                  strokeWidth={2.2}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    typography.body.md,
+                    { color: colors.text, fontWeight: "700" },
+                  ]}
+                >
+                  {isSigned
+                    ? t("doctorPrescriptionDetail.statusSigned")
+                    : t("doctorPrescriptionDetail.statusDraft")}
+                </Text>
+                {isSigned && rx.signedAt ? (
+                  <Text
+                    style={[
+                      typography.body.sm,
+                      { color: colors.textMuted, marginTop: 2 },
+                    ]}
+                  >
+                    {t("doctorPrescriptionDetail.signedAtLabel")} {rx.signedAt}
+                  </Text>
+                ) : null}
+                {isSigned && rx.signedPayloadHash ? (
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.textSubtle, marginTop: 2 },
+                    ]}
+                  >
+                    {t("doctorPrescriptionDetail.payloadHashLabel")}{" "}
+                    {rx.signedPayloadHash.slice(0, 12)}…
+                  </Text>
+                ) : null}
+              </View>
+              <StatusPill status={status} />
+            </View>
+
+            <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.md }}>
+              {isDraft ? (
+                <Button
+                  title={t("doctorPrescriptionDetail.sign")}
+                  onPress={onSign}
+                  loading={signMutation.isPending}
+                  disabled={signMutation.isPending}
+                  iconLeft={ShieldCheck}
+                  size="md"
+                  style={{ flex: 1 }}
+                />
+              ) : null}
+              <Button
+                title={t("doctorPrescriptionDetail.verify")}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(app)/verify/[id]" as any,
+                    params: { id: id as string },
+                  })
+                }
+                variant="secondary"
+                iconLeft={ScanLine}
+                size="md"
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+
+          {/* Phase E-Rx 7: PDF download is gated server-side on
+              status="signed" — drafts return 409 with a "sign first"
+              message that the toast surfaces. Disable the button
+              client-side too so the doctor sees a clear affordance. */}
           <Button
             title={
               downloading
                 ? t("doctorPrescriptionDetail.downloading")
-                : t("doctorPrescriptionDetail.downloadPdf")
+                : isSigned
+                ? t("doctorPrescriptionDetail.downloadPdf")
+                : t("doctorPrescriptionDetail.signFirstDownload")
             }
             onPress={onDownload}
             loading={downloading}
-            disabled={downloading}
+            disabled={downloading || !isSigned}
             iconRight={Download}
             size="lg"
             fullWidth
@@ -313,6 +433,55 @@ export default function PrescriptionDetailScreen() {
         </ScrollView>
       )}
     </Screen>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const { colors, spacing, radius, typography } = useTheme();
+  const palette = {
+    draft: {
+      bg: colors.warningSoft ?? colors.surfaceMuted,
+      fg: colors.warning ?? colors.textMuted,
+      label: status,
+    },
+    signed: {
+      bg: colors.successSoft,
+      fg: colors.success,
+      label: status,
+    },
+    cancelled: {
+      bg: colors.dangerSoft ?? colors.surfaceMuted,
+      fg: colors.danger ?? colors.textMuted,
+      label: status,
+    },
+    dispensed: {
+      bg: colors.primarySoft,
+      fg: colors.primary,
+      label: status,
+    },
+  }[status] ?? {
+    bg: colors.surfaceMuted,
+    fg: colors.textMuted,
+    label: status,
+  };
+  return (
+    <View
+      style={{
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
+        borderRadius: radius.full,
+        backgroundColor: palette.bg,
+      }}
+    >
+      <Text
+        style={[
+          typography.caption,
+          { color: palette.fg, fontWeight: "700", textTransform: "uppercase" },
+        ]}
+      >
+        {palette.label}
+      </Text>
+    </View>
   );
 }
 

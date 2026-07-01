@@ -42,6 +42,7 @@ import {
   useEditMedicine,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useAuthStore } from "@/stores/auth";
 import {
   Screen,
   Card,
@@ -131,6 +132,14 @@ export default function MedicinesScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (user?.role === "doctor") {
+      router.replace("/(app)/doctor");
+    }
+  }, [user]);
+
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
   const [tab, setTab] = useState<TabValue>("today");

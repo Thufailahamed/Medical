@@ -1308,6 +1308,148 @@ export function useCreatePrescription() {
   });
 }
 
+// ════════════════════════════════════════════════════════════
+// Phase E-Rx: Medicine Master + Safety + Signing hooks
+// ════════════════════════════════════════════════════════════
+
+export type MedicineMaster = {
+  id: string;
+  rxcui: string | null;
+  genericName: string;
+  brandName: string | null;
+  strength: string | null;
+  scheduleClass: string | null;
+  isGeneric: boolean;
+};
+
+// Phase E-Rx 1: master catalogue autocomplete for the doctor
+// prescription form. Debounced upstream by the caller (useDebounce).
+// 60s staleTime — the catalogue is stable within a session.
+export function useMedicineSearch(query: string, enabled = true) {
+  return useQuery({
+    queryKey: ["medicines-master", "search", query],
+    queryFn: () =>
+      api<{ medicines: MedicineMaster[] }>(
+        `/medicines-master/search?q=${encodeURIComponent(query)}&limit=8`
+      ),
+    enabled: enabled && query.length >= 2,
+    staleTime: 60_000,
+  });
+}
+
+export type SafetyCheckCandidate = {
+  name: string;
+  dosage?: string;
+  masterMedicineId?: string;
+};
+
+export type DrugWarning = {
+  type:
+    | "interaction"
+    | "allergy"
+    | "duplicate"
+    | "pregnancy"
+    | "renal"
+    | "liver"
+    | "pediatric"
+    | "controlled";
+  severity: "minor" | "moderate" | "severe" | "critical";
+  medicines?: string[];
+  message: string;
+  recommendation: string;
+  source: string;
+};
+
+// Phase E-Rx 3: live safety pre-flight. Returns warnings for the
+// patient's current active meds + allergies + conditions against the
+// candidate prescription. Doctor UI shows each warning as a card
+// with severity colour; override requires `X-Confirm-Warning: true`
+// on the POST.
+export function useSafetyCheck(
+  payload: { patientId?: string; candidate: SafetyCheckCandidate[] },
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ["safety", "check", payload],
+    queryFn: () =>
+      api<{ warnings: DrugWarning[]; hasWarnings: boolean; severity?: string }>(
+        "/safety/check",
+        { method: "POST", body: payload }
+      ),
+    enabled: enabled && !!payload.patientId && payload.candidate.length > 0,
+    staleTime: 30_000,
+  });
+}
+
+// Phase E-Rx 6: sign a draft prescription. The response carries
+// the new `signatureId`, `signedAt`, and the public `verifyUrl`
+// the doctor can share. Invalidates both the single-prescription
+// detail cache and the list cache so the status pill flips.
+export function useSignPrescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string }) =>
+      api<{
+        prescription: any;
+        signature: any;
+        verifyUrl: string;
+      }>(`/doctor/prescriptions/${vars.id}/sign`, { method: "POST" }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: ["doctor", "prescription", vars.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["doctor", "prescriptions"] });
+    },
+  });
+}
+
+export type VerifyPrescriptionResponse = {
+  valid: boolean;
+  reason?: "payload_mismatch" | "revoked" | "missing_key" | "no_signature";
+  prescription?: any;
+  doctor?: {
+    name: string;
+    slmcRegistrationNo: string | null;
+    publicKey: string;
+  };
+  medicines?: any[];
+  signedAt?: string;
+  payloadHash?: string;
+  signatureB64?: string;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
+};
+
+// Phase E-Rx 6+7: public verification. No auth header needed for
+// the GET — the API exposes `/verify/:id` as a public endpoint so
+// pharmacy scanners + printed prescription recipients can verify.
+export function useVerifyPrescription(id?: string) {
+  return useQuery({
+    queryKey: ["verify", "prescription", id],
+    queryFn: () =>
+      api<VerifyPrescriptionResponse>(`/verify/${id}` as string),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+}
+
+// Phase E-Rx 6: regenerate doctor's signing keypair. Old
+// prescription_signatures rows keep their denormalised public key
+// so prior signatures stay verifiable.
+export function useRegenerateSigningKey() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ keyId: string; createdAt: string }>(
+        "/doctor/regenerate-signing-key",
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["doctor", "me"] });
+    },
+  });
+}
+
 // ─── Phase 3.1 slice 2: Prescription PDF download ─────────
 // Server streams application/pdf from GET /doctor/prescriptions/:id/pdf.
 // We fetch as a Blob, write base64 to the OS cache directory, then hand

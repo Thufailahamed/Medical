@@ -40,6 +40,7 @@ import {
   readAiGuess,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useAuthStore } from "@/stores/auth";
 import {
   Screen,
   Card,
@@ -85,6 +86,14 @@ export default function RecordsScreen() {
   const toast = useToast();
   const prefs = useRecordsPrefsStore();
   const locale = useLocaleStore((s) => s.locale);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (user?.role === "doctor") {
+      router.replace("/(app)/doctor/records");
+    }
+  }, [user]);
+
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
   const { data: stats } = useRecordStats();

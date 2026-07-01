@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { eq, desc } from "drizzle-orm";
 import {
+  users,
   patients,
   medicalRecords,
   files,
@@ -24,6 +25,16 @@ import type { AppEnvironment } from "../types";
 
 const exportRouter = new Hono<AppEnvironment>();
 
+const LOINC_MAP: Record<string, { code: string; display: string }> = {
+  blood_pressure: { code: "85354-9", display: "Blood pressure systolic & diastolic" },
+  heart_rate: { code: "8867-4", display: "Heart rate" },
+  body_temperature: { code: "8310-5", display: "Body temperature" },
+  weight: { code: "29463-7", display: "Body weight" },
+  height: { code: "8302-2", display: "Body height" },
+  spo2: { code: "59408-5", display: "Oxygen saturation in Arterial blood by Pulse oximetry" },
+  blood_sugar: { code: "15074-8", display: "Glucose [Moles/volume] in Blood" },
+};
+
 async function getOwnPatient(db: any, userId: string) {
   const [p] = await db
     .select()
@@ -35,7 +46,7 @@ async function getOwnPatient(db: any, userId: string) {
 
 async function bundlePatient(db: any, patientId: string) {
   const [
-    [patient],
+    patientJoined,
     recs,
     fs,
     meds,
@@ -48,7 +59,15 @@ async function bundlePatient(db: any, patientId: string) {
     ems,
     allr,
   ] = await Promise.all([
-    db.select().from(patients).where(eq(patients.id, patientId)).limit(1),
+    db
+      .select({
+        patient: patients,
+        user: users,
+      })
+      .from(patients)
+      .leftJoin(users, eq(users.id, patients.userId))
+      .where(eq(patients.id, patientId))
+      .limit(1),
     db
       .select()
       .from(medicalRecords)
@@ -66,8 +85,12 @@ async function bundlePatient(db: any, patientId: string) {
     db.select().from(allergies).where(eq(allergies.patientId, patientId)),
   ]);
 
+  const pRow = patientJoined[0]?.patient || null;
+  const uRow = patientJoined[0]?.user || null;
+
   return {
-    patient: patient || null,
+    patient: pRow,
+    user: uRow,
     records: recs,
     files: fs,
     medicines: meds,
@@ -103,8 +126,10 @@ exportRouter.get("/me", authMiddleware, async (c) => {
     lines.push(`Exported: ${payload.exportedAt}`);
     lines.push("");
     const p: any = bundle.patient || {};
-    lines.push(`Patient: ${p.fullName || ""}`);
-    lines.push(`DOB: ${p.dateOfBirth || ""}`);
+    const u: any = bundle.user || {};
+    lines.push(`Patient: ${u.name || p.fullName || ""}`);
+    if (u.nic) lines.push(`NIC: ${u.nic}`);
+    lines.push(`DOB: ${p.dateOfBirth || u.dateOfBirth || ""}`);
     lines.push(`Blood group: ${p.bloodGroup || ""}`);
     lines.push("");
     lines.push(`Allergies (${(bundle.allergies || []).length}):`);
@@ -133,17 +158,43 @@ exportRouter.get("/me", authMiddleware, async (c) => {
   }
 
   if (format === "fhir-bundle") {
-    // Minimal FHIR-flavored bundle (entry array of resources)
     const entries: any[] = [];
     const p: any = bundle.patient;
-    if (p) {
+    const u: any = bundle.user;
+    if (p && u) {
       entries.push({
         resource: {
           resourceType: "Patient",
           id: p.id,
-          name: [{ text: p.fullName }],
-          birthDate: p.dateOfBirth,
-          gender: p.gender || p.sex || undefined,
+          meta: {
+            profile: ["http://hl7.org/fhir/StructureDefinition/Patient"],
+          },
+          identifier: u.nic
+            ? [
+                {
+                  use: "official",
+                  type: {
+                    coding: [
+                      {
+                        system: "http://terminology.hl7.org/CodeSystem/v2-0203",
+                        code: "NI",
+                        display: "National Identifier",
+                      },
+                    ],
+                    text: "National Identity Card (NIC)",
+                  },
+                  system: "http://registrargeneral.gov.lk/nic",
+                  value: u.nic,
+                },
+              ]
+            : [],
+          name: [{ text: u.name }],
+          telecom: [
+            ...(u.phone ? [{ system: "phone", value: u.phone, use: "mobile" }] : []),
+            ...(u.email ? [{ system: "email", value: u.email, use: "home" }] : []),
+          ],
+          gender: p.gender || undefined,
+          birthDate: p.dateOfBirth || u.dateOfBirth || undefined,
         },
       });
     }
@@ -152,7 +203,28 @@ exportRouter.get("/me", authMiddleware, async (c) => {
         resource: {
           resourceType: "AllergyIntolerance",
           id: a.id,
-          code: { text: a.substance },
+          meta: {
+            profile: ["http://hl7.org/fhir/StructureDefinition/AllergyIntolerance"],
+          },
+          clinicalStatus: {
+            coding: [
+              {
+                system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+                code: "active",
+              },
+            ],
+          },
+          patient: { reference: `Patient/${p?.id}` },
+          code: {
+            coding: [
+              {
+                system: "http://snomed.info/sct",
+                code: "414285001",
+                display: "Food allergy",
+              },
+            ],
+            text: a.substance,
+          },
           criticality:
             a.severity === "critical"
               ? "high"
@@ -172,6 +244,11 @@ exportRouter.get("/me", authMiddleware, async (c) => {
         resource: {
           resourceType: "MedicationStatement",
           id: m.id,
+          meta: {
+            profile: ["http://hl7.org/fhir/StructureDefinition/MedicationStatement"],
+          },
+          status: "active",
+          subject: { reference: `Patient/${p?.id}` },
           medicationCodeableConcept: { text: m.name },
           dosage: [
             {
@@ -183,16 +260,45 @@ exportRouter.get("/me", authMiddleware, async (c) => {
       });
     }
     for (const v of bundle.vitals || []) {
+      const typeKey = (v.type || "").toLowerCase().replace(/\s+/g, "_");
+      const loinc = LOINC_MAP[typeKey];
       entries.push({
         resource: {
           resourceType: "Observation",
           id: v.id,
+          meta: {
+            profile: ["http://hl7.org/fhir/StructureDefinition/vitalsigns"],
+          },
           status: "final",
-          code: { text: v.type },
+          category: [
+            {
+              coding: [
+                {
+                  system: "http://terminology.hl7.org/CodeSystem/observation-category",
+                  code: "vital-signs",
+                  display: "Vital Signs",
+                },
+              ],
+            },
+          ],
+          code: {
+            coding: loinc
+              ? [
+                  {
+                    system: "http://loinc.org",
+                    code: loinc.code,
+                    display: loinc.display,
+                  },
+                ]
+              : [],
+            text: v.type,
+          },
+          subject: { reference: `Patient/${p?.id}` },
           effectiveDateTime: v.recordedAt,
           valueQuantity: {
             value: Number(v.value),
             unit: v.unit || undefined,
+            system: "http://unitsofmeasure.org",
           },
         },
       });
@@ -203,7 +309,17 @@ exportRouter.get("/me", authMiddleware, async (c) => {
           resourceType: "DocumentReference",
           id: r.id,
           status: "current",
-          type: { text: r.recordType },
+          subject: { reference: `Patient/${p?.id}` },
+          type: {
+            coding: [
+              {
+                system: "http://snomed.info/sct",
+                code: "371530004",
+                display: "Clinical consultation report",
+              },
+            ],
+            text: r.recordType,
+          },
           date: r.recordDate || r.createdAt,
           description: r.title,
         },

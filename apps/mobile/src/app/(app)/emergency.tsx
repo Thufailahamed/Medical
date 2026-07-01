@@ -94,6 +94,12 @@ export default function EmergencyScreen() {
   const toast = useToast();
   const { spacing, colors, typography, radius, shadow } = useTheme();
 
+  useEffect(() => {
+    if (user?.role === "doctor") {
+      router.replace("/(app)/doctor");
+    }
+  }, [user]);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [showHealthId, setShowHealthId] = useState(true);
   const [showQr, setShowQr] = useState(true);

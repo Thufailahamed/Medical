@@ -181,6 +181,20 @@ export const doctors = sqliteTable(
     // yet — until SLMC publishes one, verification is a flag, not a call.
     slmcRegistrationNo: text("slmc_registration_no"),
     slmcVerifiedAt: text("slmc_verified_at"),
+    // Phase E-Rx 6: RSA-2048 signing keypair, generated server-side on first
+    // sign attempt (see `apps/api/src/lib/signing.ts`). `signing_public_key`
+    // is the SPKI PEM plaintext (served by GET /verify). `signing_private_key_enc`
+    // wraps the PKCS#8 PEM with AES-256-GCM using the Workers Secret
+    // DOCTOR_KEY_KEK as the KEK; format `v1:<iv_b64>:<ct_b64>` where ct
+    // includes the appended auth tag. `signing_key_id` is a UUIDv4 generated
+    // alongside — used as a rotation handle. Historical `prescription_signatures`
+    // denormalise the public key on the signature row, so old keys may be
+    // rotated without invalidating prior signatures.
+    signingPublicKey: text("signing_public_key"),
+    signingPrivateKeyEnc: text("signing_private_key_enc"),
+    signingKeyId: text("signing_key_id"),
+    signingKeyCreatedAt: text("signing_key_created_at"),
+    signingKeyRevokedAt: text("signing_key_revoked_at"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -299,12 +313,23 @@ export const medicines = sqliteTable(
     notes: text("notes"),
     active: integer("active", { mode: "boolean" }).default(true),
     familyMemberId: text("family_member_id").references(() => familyMembers.id),
+    // Phase E-Rx 1: optional FK into `medicines_master`. Nullable — every
+    // existing free-text row stays valid; back-fill is a separate script
+    // and out of scope here. The lookup path is `name` (free-text) for
+    // back-compat; new prescriptions can use the master link for safety
+    // checks + autocomplete.
+    masterMedicineId: text("master_medicine_id").references(
+      (): any => medicinesMaster.id
+    ),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
   (t) => ({
     familyMemberIdx: index("idx_medicines_family_member").on(t.familyMemberId),
+    masterMedicineIdx: index("idx_medicines_master_medicine").on(
+      t.masterMedicineId
+    ),
   })
 );
 
@@ -321,6 +346,21 @@ export const prescriptions = sqliteTable("prescriptions", {
   diagnosis: text("diagnosis"),
   notes: text("notes"),
   date: text("date").notNull(),
+  // Phase E-Rx 6: lifecycle. Default "draft" — only the /sign endpoint may
+  // flip to "signed"; a future pharmacy claim would flip to "dispensed".
+  status: text("status", {
+    enum: ["draft", "signed", "cancelled", "dispensed"],
+  })
+    .notNull()
+    .default("draft"),
+  // Lazy `(): any => ...` breaks the forward-reference cycle with
+  // `prescriptionSignatures` (defined below). Same pattern as
+  // `users.activeFamilyMemberId` above.
+  signatureId: text("signature_id").references(
+    (): any => prescriptionSignatures.id
+  ),
+  signedAt: text("signed_at"),
+  signedPayloadHash: text("signed_payload_hash"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -1130,5 +1170,402 @@ export const waMessages = sqliteTable(
   },
   (t) => ({
     conversationIdx: index("wa_messages_conversation_idx").on(t.conversationId),
+  })
+);
+
+// ════════════════════════════════════════════════════════════
+// E-Rx Phase 1: Master Medicine Database
+// ════════════════════════════════════════════════════════════
+// Centralised canonical catalogue. Replaces the in-memory
+// `apps/api/src/data/medicines-catalog.ts` + per-row free-text names on
+// `medicines`. Backward-compatible: `medicines.name` stays NOT NULL,
+// `medicines.master_medicine_id` is a nullable FK.
+
+// ─── Reference / lookup tables ─────────────────────────────
+export const medicineManufacturers = sqliteTable("medicine_manufacturers", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  country: text("country"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const medicineCategories = sqliteTable("medicine_categories", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const medicineTherapeuticClasses = sqliteTable(
+  "medicine_therapeutic_classes",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    atcCode: text("atc_code").unique(),
+    name: text("name").notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  }
+);
+
+export const medicineDosageForms = sqliteTable("medicine_dosage_forms", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const medicineRoutes = sqliteTable("medicine_routes", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const medicineIngredients = sqliteTable("medicine_ingredients", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  rxnormIngredientId: text("rxnorm_ingredient_id").unique(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Master Medicine rows ──────────────────────────────────
+export const medicinesMaster = sqliteTable(
+  "medicines_master",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    rxcui: text("rxcui").unique(),
+    genericName: text("generic_name").notNull(),
+    brandName: text("brand_name"),
+    strength: text("strength"),
+    dosageFormId: text("dosage_form_id").references(
+      (): any => medicineDosageForms.id
+    ),
+    routeId: text("route_id").references((): any => medicineRoutes.id),
+    categoryId: text("category_id").references(
+      (): any => medicineCategories.id
+    ),
+    atcClassId: text("atc_class_id").references(
+      (): any => medicineTherapeuticClasses.id
+    ),
+    scheduleClass: text("schedule_class"),
+    isGeneric: integer("is_generic", { mode: "boolean" }).default(true),
+    notes: text("notes"),
+    active: integer("active", { mode: "boolean" }).default(true),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    genericNameIdx: index("idx_medicines_master_generic_name").on(
+      t.genericName
+    ),
+    brandNameIdx: index("idx_medicines_master_brand_name").on(t.brandName),
+  })
+);
+
+export const medicinesMasterManufacturers = sqliteTable(
+  "medicines_master_manufacturers",
+  {
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    manufacturerId: text("manufacturer_id")
+      .notNull()
+      .references((): any => medicineManufacturers.id),
+  },
+  (t) => ({
+    pk: uniqueIndex("medicines_master_manufacturers_pk").on(
+      t.medicineId,
+      t.manufacturerId
+    ),
+  })
+);
+
+export const medicinesMasterIngredients = sqliteTable(
+  "medicines_master_ingredients",
+  {
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    ingredientId: text("ingredient_id")
+      .notNull()
+      .references((): any => medicineIngredients.id),
+    strength: text("strength"),
+  },
+  (t) => ({
+    pk: uniqueIndex("medicines_master_ingredients_pk").on(
+      t.medicineId,
+      t.ingredientId
+    ),
+  })
+);
+
+export const medicinesMasterCategories = sqliteTable(
+  "medicines_master_categories",
+  {
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    categoryId: text("category_id")
+      .notNull()
+      .references((): any => medicineCategories.id),
+  },
+  (t) => ({
+    pk: uniqueIndex("medicines_master_categories_pk").on(
+      t.medicineId,
+      t.categoryId
+    ),
+  })
+);
+
+export const medicinesMasterClasses = sqliteTable(
+  "medicines_master_classes",
+  {
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    classId: text("class_id")
+      .notNull()
+      .references((): any => medicineTherapeuticClasses.id),
+  },
+  (t) => ({
+    pk: uniqueIndex("medicines_master_classes_pk").on(
+      t.medicineId,
+      t.classId
+    ),
+  })
+);
+
+// ─── Clinical safety tables (per medicine) ─────────────────
+export const medicineSubstitutions = sqliteTable(
+  "medicine_substitutions",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    substituteId: text("substitute_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    equivalence: text("equivalence"),
+  },
+  (t) => ({
+    pair: uniqueIndex("medicine_substitutions_pair").on(
+      t.medicineId,
+      t.substituteId
+    ),
+  })
+);
+
+export const medicineContraindications = sqliteTable(
+  "medicine_contraindications",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    conditionName: text("condition_name").notNull(),
+    severity: text("severity", {
+      enum: ["minor", "moderate", "severe"],
+    }).notNull(),
+    notes: text("notes"),
+  }
+);
+
+export const medicinePregnancyWarnings = sqliteTable(
+  "medicine_pregnancy_warnings",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    fdaCategory: text("fda_category"),
+    trimester: text("trimester", {
+      enum: ["all", "1", "2", "3"],
+    }).default("all"),
+    severity: text("severity", {
+      enum: ["minor", "moderate", "severe"],
+    }).notNull(),
+    notes: text("notes"),
+  }
+);
+
+export const medicineRenalAdjustments = sqliteTable(
+  "medicine_renal_adjustments",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    egfrMin: real("egfr_min"),
+    egfrMax: real("egfr_max"),
+    doseAdjustment: text("dose_adjustment").notNull(),
+    notes: text("notes"),
+  }
+);
+
+export const medicineLiverAdjustments = sqliteTable(
+  "medicine_liver_adjustments",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    childPugh: text("child_pugh", { enum: ["A", "B", "C"] }).notNull(),
+    doseAdjustment: text("dose_adjustment").notNull(),
+    notes: text("notes"),
+  }
+);
+
+export const medicineControlled = sqliteTable(
+  "medicine_controlled",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    medicineId: text("medicine_id")
+      .notNull()
+      .references((): any => medicinesMaster.id),
+    schedule: text("schedule").notNull(),
+    region: text("region").default("LK"),
+    notes: text("notes"),
+  },
+  (t) => ({
+    medRegion: uniqueIndex("medicine_controlled_med_region").on(
+      t.medicineId,
+      t.region
+    ),
+  })
+);
+
+// ════════════════════════════════════════════════════════════
+// E-Rx Phase 3: Drug Interaction + Allergy Master
+// ════════════════════════════════════════════════════════════
+// Replaces the in-memory `DRUG_INTERACTIONS` array in
+// `apps/api/src/lib/ai.ts` (12 curated entries) and the
+// `CLASS_GROUPS` block in `apps/api/src/routes/medicines.ts`.
+// DB-backed so safety rules can be reviewed/extended without
+// shipping new code.
+
+export const drugInteractionsMaster = sqliteTable(
+  "drug_interactions_master",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    ingredientA: text("ingredient_a").notNull(),
+    ingredientB: text("ingredient_b").notNull(),
+    severity: text("severity", {
+      enum: ["minor", "moderate", "severe"],
+    }).notNull(),
+    mechanism: text("mechanism"),
+    recommendation: text("recommendation").notNull(),
+    source: text("source").default("curated"),
+    active: integer("active", { mode: "boolean" }).default(true),
+  },
+  (t) => ({
+    pair: uniqueIndex("drug_interactions_pair").on(
+      t.ingredientA,
+      t.ingredientB
+    ),
+  })
+);
+
+export const drugAllergiesMaster = sqliteTable(
+  "drug_allergies_master",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    ingredientName: text("ingredient_name").notNull(),
+    family: text("family").notNull(),
+    crossReactives: text("cross_reactives"),
+  },
+  (t) => ({
+    ingredient: uniqueIndex("drug_allergies_ingredient").on(
+      t.ingredientName
+    ),
+  })
+);
+
+// ─── Patient clinical context (structured for safety check) ─
+export const patientConditions = sqliteTable("patient_conditions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  conditionName: text("condition_name").notNull(),
+  icd10: text("icd10"),
+  onsetDate: text("onset_date"),
+  active: integer("active", { mode: "boolean" }).default(true),
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const patientMedicationsHistory = sqliteTable(
+  "patient_medications_history",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    masterMedicineId: text("master_medicine_id").references(
+      (): any => medicinesMaster.id
+    ),
+    freeTextName: text("free_text_name").notNull(),
+    startDate: text("start_date"),
+    endDate: text("end_date"),
+    outcome: text("outcome"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientIdx: index("idx_pmh_patient").on(t.patientId, t.startDate),
+  })
+);
+
+// ════════════════════════════════════════════════════════════
+// E-Rx Phase 6: Prescription Signatures
+// ════════════════════════════════════════════════════════════
+// One row per prescription. `signing_public_key` is denormalised
+// from `doctors.signing_public_key` at sign time so verification
+// works even after the doctor rotates their keypair.
+
+export const prescriptionSignatures = sqliteTable(
+  "prescription_signatures",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    prescriptionId: text("prescription_id")
+      .notNull()
+      .references((): any => prescriptions.id),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    signingKeyId: text("signing_key_id").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    signatureB64: text("signature_b64").notNull(),
+    canonicalPayload: text("canonical_payload").notNull(),
+    signedAt: text("signed_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    revokedAt: text("revoked_at"),
+    revocationReason: text("revocation_reason"),
+    signingPublicKey: text("signing_public_key").notNull(),
+  },
+  (t) => ({
+    rxIdx: uniqueIndex("prescription_signatures_rx").on(t.prescriptionId),
+    doctorIdx: index("prescription_signatures_doctor").on(
+      t.doctorId,
+      t.signedAt
+    ),
   })
 );

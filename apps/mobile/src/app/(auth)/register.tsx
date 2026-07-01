@@ -32,6 +32,7 @@ import {
 } from "lucide-react-native";
 import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -176,6 +177,7 @@ export default function RegisterScreen() {
   const hospitals: any[] = hospitalsData?.hospitals || [];
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
 
   const {
     control,
@@ -257,6 +259,7 @@ export default function RegisterScreen() {
       );
 
       if (res.session?.access_token) {
+        queryClient.clear();
         await SecureStore.setItemAsync("auth_token", res.session.access_token);
         setUser(res.user);
         toast.show("Account created", "success");

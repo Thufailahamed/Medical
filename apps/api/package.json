@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed:medicines": "bun run scripts/seed-medicines.ts"
   },
   "dependencies": {
     "@healthcare/db": "workspace:*",
@@ -14,6 +15,7 @@
     "hono": "^4.5.0",
     "pdf-lib": "^1.17.1",
     "postal-mime": "^2.7.5",
+    "qrcode": "^1.5.4",
     "zod": "^3.23.0"
   },
   "devDependencies": {

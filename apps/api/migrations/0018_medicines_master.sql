@@ -1,2 +1,2 @@
--- Migration 0017: Phase 3.1 slice 3: hospital staff invites
+-- Migration 0018: Phase E-Rx — Master Medicine Database
 -- Marked as completed. Handled in 0009_glossy_invisible_woman.sql.

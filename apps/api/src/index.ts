@@ -12,6 +12,9 @@ import emergencyRoutes from "./routes/emergency";
 import aiRoutes from "./routes/ai";
 import filesRoutes from "./routes/files";
 import medicinesRouter from "./routes/medicines";
+import medicinesMasterRouter from "./routes/medicines-master";
+import safetyRouter from "./routes/safety";
+import signatureRouter from "./routes/signature";
 import doctorRouter from "./routes/doctor";
 import notificationsRouter from "./routes/notifications";
 import hospitalsRouter from "./routes/hospitals";
@@ -100,6 +103,20 @@ app.route("/emergency", emergencyRoutes);
 app.route("/ai", aiRoutes);
 app.route("/files", filesRoutes);
 app.route("/medicines", medicinesRouter);
+// Phase E-Rx 1: master catalogue lookup endpoints. Mounted before
+// /doctor so the doctor prescription form's autocomplete hits the
+// canonical DB-backed endpoint instead of the legacy in-memory
+// `MEDICINE_CATALOG` array (medicines.ts /suggest still uses the
+// in-memory array as a deprecated fallback for one release).
+app.route("/medicines-master", medicinesMasterRouter);
+// Phase E-Rx 3: safety pre-flight. Mounted at /safety so the doctor
+// prescription form can `useSafetyCheck({patientId, candidate})` before
+// posting the create call.
+app.route("/safety", safetyRouter);
+// Phase E-Rx 6: signing + verification. The router exposes both the
+// doctor-only endpoints (mounted at /doctor/* via the router itself)
+// and the public /verify/:id (mounted at root below).
+app.route("/", signatureRouter);
 app.route("/doctor", doctorRouter);
 app.route("/notifications", notificationsRouter);
 app.route("/hospitals", hospitalsRouter);

@@ -283,6 +283,20 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="doctor/prescription-detail"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="verify/[id]"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
         name="doctor/clinical-notes"
         options={{
           href: null,
@@ -326,6 +340,13 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="hospital/staff"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="hospital/staff-invites"
         options={{
           href: null,
           tabBarStyle: { display: "none" },

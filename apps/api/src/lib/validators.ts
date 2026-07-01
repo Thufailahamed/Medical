@@ -295,6 +295,11 @@ export const medicineSchema = z.object({
   // header when omitted. FK to family_members(id) is enforced at the
   // DB layer (see PRAGMA foreign_keys in apps/api/src/lib/db.ts).
   familyMemberId: z.string().uuid().nullable().optional(),
+  // Phase E-Rx 1: optional FK into `medicines_master`. When the user
+  // picks from the master autocomplete we set both `name` and
+  // `masterMedicineId`; free-text-only entries leave this null and
+  // `name` alone populates the row.
+  masterMedicineId: z.string().uuid().nullable().optional(),
 });
 
 export const medicineUpdateSchema = z.object({

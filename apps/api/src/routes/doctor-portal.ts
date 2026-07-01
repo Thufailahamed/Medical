@@ -39,6 +39,8 @@ import { compactQueue } from "../lib/booking";
 import { canAccessPatient } from "../lib/access";
 import { flattenTranslated } from "../lib/validation-error";
 import { upsertRecordFts } from "../lib/fts";
+import { topSeverity } from "../lib/safety-engine";
+import { runSafetyCheck } from "../lib/safety-runner";
 import type { AppEnvironment } from "../types";
 
 const doctorPortalRouter = new Hono<AppEnvironment>();
@@ -1167,6 +1169,31 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
     ? body.prescriptionItems
     : [];
   const createdPrescriptions: any[] = [];
+
+  // Phase E-Rx 3: safety pre-flight for visit-summary prescriptions.
+  // Mirrors `doctor.ts POST /prescriptions` — same 409 + override shape.
+  const safetyCandidates = prescriptionItems
+    .filter((p) => p && p.name)
+    .map((p) => ({ name: String(p.name) }));
+  if (safetyCandidates.length) {
+    const safetyWarnings = await runSafetyCheck(db, patientId, safetyCandidates);
+    const safetyTop = topSeverity(safetyWarnings);
+    const BLOCKING = (s?: string | null) => s === "severe" || s === "critical";
+    const override = c.req.header("X-Confirm-Warning") === "true";
+    if (BLOCKING(safetyTop) && !override) {
+      return c.json(
+        {
+          error: "Safety warning",
+          requiresConfirmation: true,
+          warnings: safetyWarnings,
+          severity: safetyTop,
+          message: `Severe safety warning detected (${safetyTop}). Confirm to proceed.`,
+        },
+        409
+      );
+    }
+  }
+
   if (prescriptionItems.length > 0) {
     for (const p of prescriptionItems) {
       if (!p?.name) continue;

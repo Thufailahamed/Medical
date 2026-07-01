@@ -667,6 +667,28 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {isDoctor && (
+          <View style={{ marginTop: spacing.lg }}>
+            <SectionHeader
+              title={t("profile.section.clinical", "Clinical Suite")}
+              style={{ paddingHorizontal: spacing.lg }}
+            />
+            <View style={{ marginHorizontal: spacing.lg }}>
+              <Card padded={false}>
+                <ListItem
+                  icon={Stethoscope}
+                  iconTone="info"
+                  title={t("profile.item.doctorPortal.label", "Doctor Portal")}
+                  subtitle={t("profile.item.doctorPortal.subtitle", "Access queue, clinical notes & prescriptions")}
+                  onPress={() => router.push("/(app)/doctor" as any)}
+                  showChevron
+                  bordered={false}
+                />
+              </Card>
+            </View>
+          </View>
+        )}
+
         {/* ─── Health section ─── */}
         {!isDoctor && (
           <View style={{ marginTop: spacing.lg }}>

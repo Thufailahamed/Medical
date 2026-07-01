@@ -125,6 +125,12 @@ export default function HomeScreen() {
     }
   }, [profileData?.patient?.users?.preferredLocale, locale]);
 
+  useEffect(() => {
+    if (user?.role === "doctor") {
+      router.replace("/(app)/doctor");
+    }
+  }, [user]);
+
   const patient = profileData?.patient?.patients;
   const todayMeds: any[] = medsData?.medicines ?? [];
   const appointments: any[] = apptsData?.appointments ?? [];

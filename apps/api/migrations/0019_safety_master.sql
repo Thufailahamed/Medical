@@ -1,0 +1,2 @@
+-- Migration 0019: Phase E-Rx — Drug Interaction + Allergy Master + Patient Clinical Context
+-- Marked as completed. Handled in 0009_glossy_invisible_woman.sql.

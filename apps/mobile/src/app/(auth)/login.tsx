@@ -28,6 +28,7 @@ import {
 } from "lucide-react-native";
 import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
@@ -62,6 +63,7 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<Mode>("password");
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
 
   const {
     control,
@@ -94,6 +96,8 @@ export default function LoginScreen() {
         body: { email: data.email, password: data.password },
       });
 
+      queryClient.clear();
+
       if (res.session?.access_token) {
         await SecureStore.setItemAsync("auth_token", res.session.access_token);
       }
@@ -103,7 +107,7 @@ export default function LoginScreen() {
       const home = res.user?.role === "doctor" ? "/(app)/doctor" : "/(app)";
       router.replace(home as any);
     } catch (err: any) {
-      console.error("Login error details:", err);
+      console.warn("Login error details:", err);
       let msg = "Could not sign in.";
       if (err) {
         if (typeof err === "string") {
