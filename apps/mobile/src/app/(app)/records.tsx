@@ -27,6 +27,7 @@ import {
   Bookmark,
   X,
   Check,
+  Plus,
 } from "lucide-react-native";
 import {
   useMedicalRecords,
@@ -46,6 +47,7 @@ import {
   EmptyState,
   Button,
   useToast,
+  FloatingActionButton,
 } from "@/components/ui";
 import { metaFor, type RecordType } from "@/lib/recordImportance";
 import { searchRecords, flattenOCR, didYouMean } from "@/lib/recordSearch";
@@ -1341,6 +1343,14 @@ export default function RecordsScreen() {
         onDismiss={() => setSaveFilterOpen(false)}
         onSave={handleSaveCurrentFilter}
       />
+      {!selectionMode && records.length > 0 ? (
+        <FloatingActionButton
+          icon={Plus}
+          onPress={() => router.push("/(app)/add-record" as any)}
+          aboveTabBar
+          accessibilityLabel={t("records.empty.action")}
+        />
+      ) : null}
     </Screen>
   );
 }

@@ -129,8 +129,10 @@ CREATE TABLE IF NOT EXISTS medicines (
   refill_reminder INTEGER DEFAULT 0,
   notes TEXT,
   active INTEGER DEFAULT 1,
+  family_member_id TEXT REFERENCES family_members(id),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_medicines_family_member ON medicines(family_member_id);
 
 CREATE TABLE IF NOT EXISTS lab_reports (
   id TEXT PRIMARY KEY,

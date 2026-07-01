@@ -17,6 +17,7 @@ import {
   prescriptions,
   labOrders,
   medicalRecords,
+  hospitalStaff,
 } from "@healthcare/db";
 
 export async function getPatientForUser(db: any, userId: string) {
@@ -105,17 +106,28 @@ export async function canAccessPatient(
   }
 
   if (role === "hospital_admin" || role === "hospital_staff") {
-    // Staff linked if any record or appointment places this patient at their hospital.
-    // We treat admin/staff as authorised if the user has any hospital record at all,
-    // bounded by patient's hospital links. This is intentionally lenient for the
-    // portal screens; tighten in a future iteration.
+    // Staff can only access patients who have records at THEIR hospital.
+    // First look up the staff member's hospital, then check for records
+    // at that specific hospital.
+    const [staff] = await db
+      .select({ hospitalId: hospitalStaff.hospitalId })
+      .from(hospitalStaff)
+      .where(eq(hospitalStaff.userId, userId))
+      .limit(1);
+    if (!staff) return { allowed: false, reason: "No hospital staff profile" };
+
     const [mr] = await db
       .select({ id: medicalRecords.id })
       .from(medicalRecords)
-      .where(eq(medicalRecords.patientId, patientId))
+      .where(
+        and(
+          eq(medicalRecords.patientId, patientId),
+          eq(medicalRecords.hospitalId, staff.hospitalId)
+        )
+      )
       .limit(1);
     if (mr) return { allowed: true, patient: p };
-    return { allowed: false, reason: "Staff has no records for this patient" };
+    return { allowed: false, reason: "Staff has no records for this patient at their hospital" };
   }
 
   return { allowed: false, reason: "Role not permitted" };

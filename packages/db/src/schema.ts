@@ -265,25 +265,32 @@ export const files = sqliteTable("files", {
 });
 
 // ─── Medicines ───────────────────────────────────────────
-export const medicines = sqliteTable("medicines", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  patientId: text("patient_id")
-    .notNull()
-    .references(() => patients.id),
-  prescriptionId: text("prescription_id").references(() => prescriptions.id),
-  name: text("name").notNull(),
-  dosage: text("dosage").notNull(),
-  frequency: text("frequency"), // once daily, twice daily, etc.
-  timing: text("timing"), // before food, after food
-  startDate: text("start_date").notNull(),
-  endDate: text("end_date"),
-  refillReminder: integer("refill_reminder", { mode: "boolean" }).default(false),
-  notes: text("notes"),
-  active: integer("active", { mode: "boolean" }).default(true),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+export const medicines = sqliteTable(
+  "medicines",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    prescriptionId: text("prescription_id").references(() => prescriptions.id),
+    name: text("name").notNull(),
+    dosage: text("dosage").notNull(),
+    frequency: text("frequency"), // once daily, twice daily, etc.
+    timing: text("timing"), // before food, after food
+    startDate: text("start_date").notNull(),
+    endDate: text("end_date"),
+    refillReminder: integer("refill_reminder", { mode: "boolean" }).default(false),
+    notes: text("notes"),
+    active: integer("active", { mode: "boolean" }).default(true),
+    familyMemberId: text("family_member_id").references(() => familyMembers.id),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    familyMemberIdx: index("idx_medicines_family_member").on(t.familyMemberId),
+  })
+);
 
 // ─── Prescriptions ───────────────────────────────────────
 export const prescriptions = sqliteTable("prescriptions", {

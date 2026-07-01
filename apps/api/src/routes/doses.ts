@@ -165,9 +165,14 @@ dosesRouter.post("/schedule/today", authMiddleware, async (c) => {
   const patientId = await getPatientId(db, userId);
   if (!patientId) return c.json({ error: "Patient not found" }, 404);
 
+  // Read timezone offset from client header (minutes east of UTC).
+  // Falls back to 330 (Asia/Colombo UTC+5:30) if not provided.
+  const offsetHeader = c.req.header("x-timezone-offset");
+  const offsetMinutes = offsetHeader ? parseInt(offsetHeader, 10) : 330;
+
   // R2: schedule logic lives in lib/medicine-scheduler so the cron can
   // call it server-side too. Idempotent — safe on retry.
-  const { created, date } = await scheduleTodayForPatient(db, patientId);
+  const { created, date } = await scheduleTodayForPatient(db, patientId, offsetMinutes);
   return c.json({ doses: [], count: created, date });
 });
 

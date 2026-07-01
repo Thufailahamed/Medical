@@ -19,14 +19,18 @@ import { slotsForFrequency } from "./medicine-slots";
  * Ensures today's doses exist for one patient: reads active medicines,
  * inserts dose rows for any (medicineId, HH:MM) slot that doesn't yet
  * have a row in today's local-day window. Returns #rows created.
+ *
+ * @param offsetMinutes - user's UTC offset in minutes (e.g. 330 for
+ *   Asia/Colombo UTC+5:30). Defaults to 330 (Sri Lanka) when omitted.
  */
 export async function scheduleTodayForPatient(
   db: any,
-  patientId: string
+  patientId: string,
+  offsetMinutes: number = 330
 ): Promise<{ created: number; date: string }> {
-  const today = localToday();
+  const today = localToday(offsetMinutes);
   const { startUtc: dayStartIso, endUtc: dayEndIso } =
-    localDayToUtcRange(today);
+    localDayToUtcRange(today, offsetMinutes);
   const now = new Date();
 
   const activeMeds = await db
@@ -47,14 +51,14 @@ export async function scheduleTodayForPatient(
       )
     );
   const existingKey = new Set(
-    existing.map((e: any) => `${e.medicineId}@${localHHMM(e.scheduledFor)}`)
+    existing.map((e: any) => `${e.medicineId}@${localHHMM(e.scheduledFor, offsetMinutes)}`)
   );
 
   let created = 0;
   for (const med of activeMeds) {
     const m: any = (med as any).medicines || med;
-    const start = m.startDate || today;
-    const end = m.endDate || today;
+    const start = m.startDate ?? today;
+    const end = m.endDate ?? today;
     if (today < start || today > end) continue;
 
     for (const time of slotsForFrequency(m.frequency, m.timing)) {
@@ -63,7 +67,7 @@ export async function scheduleTodayForPatient(
 
       const [hh, mm] = time.split(":").map((n) => parseInt(n, 10));
       const scheduled = new Date(now);
-      scheduled.setHours(hh || 9, mm || 0, 0, 0);
+      scheduled.setHours(hh ?? 9, mm ?? 0, 0, 0);
 
       await db.insert(medicineDoses).values({
         medicineId: m.id,
@@ -83,9 +87,10 @@ export async function scheduleTodayForPatient(
  * the schedule-today fan-out to patients who actually need it.
  */
 export async function patientsWithActiveMedsToday(
-  db: any
+  db: any,
+  offsetMinutes: number = 330
 ): Promise<string[]> {
-  const today = localToday();
+  const today = localToday(offsetMinutes);
   // startDate <= today AND (endDate IS NULL OR endDate >= today).
   // SQLite D1 supports the IS NULL branch via or() + isNull().
   const rows: any[] = await db
@@ -107,12 +112,13 @@ export async function patientsWithActiveMedsToday(
  * Returns aggregate counts.
  */
 export async function scheduleTodayForAllPatients(
-  db: any
+  db: any,
+  offsetMinutes: number = 330
 ): Promise<{ patients: number; created: number }> {
-  const patientIds = await patientsWithActiveMedsToday(db);
+  const patientIds = await patientsWithActiveMedsToday(db, offsetMinutes);
   let created = 0;
   for (const pid of patientIds) {
-    const r = await scheduleTodayForPatient(db, pid);
+    const r = await scheduleTodayForPatient(db, pid, offsetMinutes);
     created += r.created;
   }
   return { patients: patientIds.length, created };

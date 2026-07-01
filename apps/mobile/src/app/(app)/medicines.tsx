@@ -201,20 +201,39 @@ export default function MedicinesScreen() {
   const list: any[] =
     tab === "today" ? todayMeds?.medicines ?? [] : allMeds?.medicines ?? [];
 
-  // Persisted taken state from /doses/me (keyed by medicineId for today)
+  // Persisted taken state from /doses/me (keyed by medicineId -> array of doses)
+  // A medicine can have multiple doses per day (e.g. twice daily), so we store
+  // an array per medicineId. A medicine is "taken" only when ALL its doses are taken.
   const doseMap = useMemo(() => {
-    const m: Record<string, { id: string; taken: boolean; skipped: boolean }> = {};
+    const m: Record<string, Array<{ id: string; taken: boolean; skipped: boolean }>> = {};
     const doses: any[] = todayDoses?.doses || [];
     for (const d of doses) {
-      const key = d.medicine_doses?.medicineId || d.medicineId;
-      m[key] = {
-        id: d.medicine_doses?.id || d.id,
-        taken: !!(d.medicine_doses?.takenAt || d.takenAt),
-        skipped: !!(d.medicine_doses?.skipped || d.skipped),
-      };
+      const key = d.medicineId;
+      if (!m[key]) m[key] = [];
+      m[key].push({
+        id: d.id,
+        taken: !!d.takenAt,
+        skipped: !!d.skipped,
+      });
     }
     return m;
   }, [todayDoses]);
+
+  // Helper: is a medicine fully taken (all doses taken)?
+  const isMedicineTaken = useCallback(
+    (medId: string) => {
+      const doses = doseMap[medId];
+      if (!doses || doses.length === 0) return false;
+      return doses.every((d) => d.taken);
+    },
+    [doseMap]
+  );
+
+  // Helper: get all dose IDs for a medicine
+  const getDoseIds = useCallback(
+    (medId: string) => (doseMap[medId] || []).map((d) => d.id),
+    [doseMap]
+  );
 
   // Group by period
   const periods = useMemo(() => {
@@ -235,7 +254,7 @@ export default function MedicinesScreen() {
   );
 
   const totalCount = list.length;
-  const takenCount = list.filter((m) => doseMap[m.id]?.taken).length;
+  const takenCount = list.filter((m) => isMedicineTaken(m.id)).length;
   const remainingCount = totalCount - takenCount;
   const adherence = totalCount > 0 ? Math.round((takenCount / totalCount) * 100) : 0;
 
@@ -260,18 +279,21 @@ export default function MedicinesScreen() {
   }
 
   async function toggleTaken(med: any) {
-    const dose = doseMap[med.id];
+    const doses = doseMap[med.id] || [];
     try {
-      if (dose?.taken) {
-        await untakeDose.mutateAsync(dose.id);
-        toast.show(t("medicines.toast.markedNotTaken", { name: med.name }), "info");
-      } else if (dose?.id) {
-        await markTaken.mutateAsync({ id: dose.id });
-        toast.show(t("medicines.toast.markedTaken", { name: med.name }), "success");
-      } else {
-        // No dose scheduled yet — schedule now and immediately mark taken
-        const res = await scheduleToday.mutateAsync();
+      if (doses.length === 0) {
+        // No doses scheduled yet — schedule now and immediately mark taken
+        await scheduleToday.mutateAsync();
         refetchDoses();
+        toast.show(t("medicines.toast.markedTaken", { name: med.name }), "success");
+      } else if (isMedicineTaken(med.id)) {
+        // All doses taken → untake all
+        await Promise.all(doses.map((d) => untakeDose.mutateAsync(d.id)));
+        toast.show(t("medicines.toast.markedNotTaken", { name: med.name }), "info");
+      } else {
+        // Some or no doses taken → mark all untaken doses as taken
+        const untaken = doses.filter((d) => !d.taken);
+        await Promise.all(untaken.map((d) => markTaken.mutateAsync({ id: d.id })));
         toast.show(t("medicines.toast.markedTaken", { name: med.name }), "success");
       }
     } catch (err: any) {
@@ -737,7 +759,7 @@ export default function MedicinesScreen() {
                     />
 
                     {items.map((med) => {
-                      const isTaken = !!doseMap[med.id]?.taken;
+                      const isTaken = isMedicineTaken(med.id);
                       const isInactive = med.active === false;
                       return (
                         <Pressable
@@ -1006,7 +1028,7 @@ export default function MedicinesScreen() {
           {selectedMed && tab === "today" && selectedMed.active !== false ? (
             <Button
               title={
-                doseMap[selectedMed.id]?.taken
+                isMedicineTaken(selectedMed.id)
                   ? t("medicines.sheet.markNotTaken")
                   : t("medicines.sheet.markTaken")
               }

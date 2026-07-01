@@ -40,16 +40,17 @@ async function getOwnPatient(db: any, userId: string) {
 async function scheduleTodayForMedicine(
   db: any,
   medicineRow: any,
-  today: string
+  today: string,
+  offsetMinutes: number = 330
 ) {
-  const start = medicineRow.startDate || today;
-  const end = medicineRow.endDate || today;
+  const start = medicineRow.startDate ?? today;
+  const end = medicineRow.endDate ?? today;
   if (today < start || today > end) return 0;
 
   // B1 (timezone): use local-day UTC range, not literal T00/T23 bounds
   // from a UTC date string. Same fix as the standalone /doses/schedule/today
   // handler so behaviour is identical whether scheduling on add or on demand.
-  const { startUtc: dayStart, endUtc: dayEnd } = localDayToUtcRange(today);
+  const { startUtc: dayStart, endUtc: dayEnd } = localDayToUtcRange(today, offsetMinutes);
   const existing = await db
     .select()
     .from(medicineDoses)
@@ -61,7 +62,7 @@ async function scheduleTodayForMedicine(
       )
     );
   const existingTimes = new Set(
-    existing.map((e: any) => localHHMM(e.scheduledFor))
+    existing.map((e: any) => localHHMM(e.scheduledFor, offsetMinutes))
   );
 
   let created = 0;
@@ -69,7 +70,7 @@ async function scheduleTodayForMedicine(
     if (existingTimes.has(time)) continue;
     const [hh, mm] = time.split(":").map(Number);
     const scheduled = new Date();
-    scheduled.setHours(hh || 9, mm || 0, 0, 0);
+    scheduled.setHours(hh ?? 9, mm ?? 0, 0, 0);
     await db.insert(medicineDoses).values({
       medicineId: medicineRow.id,
       patientId: medicineRow.patientId,
@@ -97,20 +98,23 @@ medicinesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => 
   // medicines tagged for that member. Medicines without a familyMemberId
   // are "household" (e.g. paracetamol shared) and always show.
   const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
-  const fmFilter = activeFm ? eq(medicines.familyMemberId, activeFm) : undefined;
+  const baseFilter = includeInactive
+    ? eq(medicines.patientId, patient.id)
+    : and(eq(medicines.patientId, patient.id), eq(medicines.active, true));
 
   const list = await db
     .select()
     .from(medicines)
     .where(
-      fmFilter
-        ? fmFilter
-        : includeInactive
-        ? eq(medicines.patientId, patient.id)
-        : and(
-            eq(medicines.patientId, patient.id),
-            eq(medicines.active, true)
+      activeFm
+        ? and(
+            baseFilter,
+            or(
+              eq(medicines.familyMemberId, activeFm),
+              isNull(medicines.familyMemberId)
+            )
           )
+        : baseFilter
     )
     .orderBy(medicines.createdAt);
 
@@ -657,8 +661,11 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
     .returning();
 
   // Auto-schedule today's doses for the new medicine.
-  const today = new Date().toISOString().slice(0, 10);
-  const dosesCreated = await scheduleTodayForMedicine(db, medicine, today);
+  // Read timezone offset from client header (minutes east of UTC).
+  const offsetHeader = c.req.header("x-timezone-offset");
+  const offsetMinutes = offsetHeader ? parseInt(offsetHeader, 10) : 330;
+  const today = localToday(offsetMinutes);
+  const dosesCreated = await scheduleTodayForMedicine(db, medicine, today, offsetMinutes);
 
   return c.json({ medicine, dosesCreated, warningsAcknowledged: blocked ? true : false }, 201);
 });
@@ -720,18 +727,18 @@ medicinesRouter.put("/:id", authMiddleware, requireRole("patient", "doctor"), as
     return c.json({ error: "Access denied", reason: access.reason }, 403);
   }
 
+  // Validate input with Zod (same schema as PATCH)
+  const parsed = medicineUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c) },
+      400
+    );
+  }
+
   const [updated] = await db
     .update(medicines)
-    .set({
-      name: body.name,
-      dosage: body.dosage,
-      frequency: body.frequency,
-      timing: body.timing,
-      endDate: body.endDate,
-      refillReminder: body.refillReminder,
-      notes: body.notes,
-      active: body.active,
-    })
+    .set(parsed.data as any)
     .where(eq(medicines.id, medicineId))
     .returning();
 

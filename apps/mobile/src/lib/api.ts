@@ -52,6 +52,12 @@ async function runRequest<T>(
   if (activeFmId) {
     requestHeaders["x-active-family-member-id"] = activeFmId;
   }
+  // Forward device timezone offset (minutes east of UTC) so the server
+  // can compute "today" in the user's wall-clock day, not UTC.
+  // e.g. UTC+5:30 => 330, UTC-5 => -300
+  requestHeaders["x-timezone-offset"] = String(
+    -new Date().getTimezoneOffset()
+  );
 
   if (!isFormData && body && !requestHeaders["Content-Type"]) {
     requestHeaders["Content-Type"] = "application/json";
