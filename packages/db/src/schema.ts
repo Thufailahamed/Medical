@@ -160,23 +160,39 @@ export const hospitals = sqliteTable("hospitals", {
 });
 
 // ─── Doctors ─────────────────────────────────────────────
-export const doctors = sqliteTable("doctors", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-  hospitalId: text("hospital_id").references(() => hospitals.id),
-  specialization: text("specialization").notNull(),
-  registrationNumber: text("registration_number"),
-  qualification: text("qualification"),
-  experience: integer("experience"), // years
-  consultationFee: real("consultation_fee"),
-  availableSlots: text("available_slots"), // JSON array
-  rating: real("rating"),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+export const doctors = sqliteTable(
+  "doctors",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    hospitalId: text("hospital_id").references(() => hospitals.id),
+    specialization: text("specialization").notNull(),
+    registrationNumber: text("registration_number"),
+    qualification: text("qualification"),
+    experience: integer("experience"), // years
+    consultationFee: real("consultation_fee"),
+    availableSlots: text("available_slots"), // JSON array
+    rating: real("rating"),
+    // Phase 3.1: SLMC compliance. `slmc_registration_no` is the official
+    // Sri Lanka Medical Council number; `slmc_verified_at` is set by our
+    // manual review pass (NULL until verified). No external API exists
+    // yet — until SLMC publishes one, verification is a flag, not a call.
+    slmcRegistrationNo: text("slmc_registration_no"),
+    slmcVerifiedAt: text("slmc_verified_at"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    // Partial unique — multiple NULL rows are allowed (only verified /
+    // pending doctors have a number).
+    slmcRegistrationNoUnique: uniqueIndex(
+      "idx_doctors_slmc_registration_no"
+    ).on(t.slmcRegistrationNo),
+  })
+);
 
 // ─── Medical Records ─────────────────────────────────────
 export const medicalRecords = sqliteTable(
@@ -971,6 +987,38 @@ export const shareLinkViews = sqliteTable("share_link_views", {
   ip: text("ip"),
   userAgent: text("user_agent"),
 });
+
+// ─── Phase 3.1: Request-a-Demo lead capture ──────────────
+// Public POST from the .doctor Request-a-Demo form (or the mobile
+// /auth/request-demo screen). Admin read for the sales team. No auth
+// on insert — leads are anonymous until qualified. Rate-limit is a
+// TODO for CF Rate Limiting binding.
+export const demoRequests = sqliteTable(
+  "demo_requests",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    clinicName: text("clinic_name"),
+    contactName: text("contact_name").notNull(),
+    contactRole: text("contact_role"),
+    phone: text("phone").notNull(),
+    email: text("email").notNull(),
+    nic: text("nic"),
+    slmcRegistrationNo: text("slmc_registration_no"),
+    specialty: text("specialty"),
+    clinicSize: text("clinic_size"),
+    message: text("message"),
+    status: text("status").notNull().default("new"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    statusCreatedIdx: index("idx_demo_requests_status_created").on(
+      t.status,
+      t.createdAt
+    ),
+  })
+);
 
 // ─── Phase 1.3: WhatsApp onboarding (state machine) ──────
 // One active conversation per WhatsApp phone number. State moves

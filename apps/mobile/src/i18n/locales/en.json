@@ -2627,5 +2627,41 @@
     "legacyHeading": "Send from your verified email",
     "legacyBody": "You can also send from {{email}} — we'll route by sender even without the alias.",
     "legacyAction": "Open mail"
+  },
+  "auth": {
+    "login": {
+      "demoLink": "Are you a doctor or clinic? Request a demo →"
+    },
+    "requestDemo": {
+      "title": "Request a demo",
+      "subtitle": "Tell us about your clinic and we'll be in touch within 1 business day.",
+      "field": {
+        "clinicName": "Clinic name",
+        "contactName": "Your name",
+        "contactRole": "Your role",
+        "phone": "Phone number",
+        "email": "Email",
+        "nic": "NIC (optional)",
+        "slmcRegistrationNo": "SLMC registration number (optional)",
+        "slmcHelper": "If you're a registered doctor — 4-8 digits, optional letter suffix.",
+        "specialty": "Specialty",
+        "clinicSize": "Clinic size",
+        "message": "Anything else we should know? (optional)"
+      },
+      "errors": {
+        "contactNameRequired": "Name is required",
+        "phoneRequired": "Phone is required",
+        "phoneInvalid": "Phone must be 7-16 digits",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Enter a valid email"
+      },
+      "submit": "Send request",
+      "submitting": "Sending…",
+      "success": {
+        "title": "Thanks — we'll be in touch",
+        "body": "Our team will reply within 1 business day. Reach out from the login screen if you need anything sooner.",
+        "backToLogin": "Back to sign in"
+      }
+    }
   }
 }

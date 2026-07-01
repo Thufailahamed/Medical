@@ -380,3 +380,69 @@ export const medicalRecordBulkMoveSchema = z.object({
   // null = unassign back to the patient
   familyMemberId: z.string().min(1).nullable(),
 });
+
+// ─── Phase 3.1: SLMC + Request-a-Demo ─────────────────────
+// SLMC numbers are heuristic — SLMC doesn't publish a format spec. Real
+// numbers look like "12345" or "12345A". Uppercase normalisation on the
+// server so callers can pass either case.
+export const slmcRegistrationNoSchema = z
+  .string()
+  .regex(/^\d{4,8}[A-Z]?$/, "SLMC number must be 4-8 digits, optional uppercase letter suffix")
+  .transform((v) => v.toUpperCase());
+
+// Demo request body — public POST. Required contact details, optional
+// clinic + SLMC info. Rate-limit is a CF binding TODO.
+export const DEMO_CONTACT_ROLES = [
+  "Doctor",
+  "Receptionist",
+  "Manager",
+  "Other",
+] as const;
+export const DEMO_CLINIC_SIZES = [
+  "Solo",
+  "2-5 doctors",
+  "6+ doctors",
+  "Polyclinic",
+  "Hospital",
+] as const;
+export const DEMO_SPECIALTIES = [
+  "General practice",
+  "Cardiology",
+  "Dermatology",
+  "Endocrinology",
+  "Gastroenterology",
+  "General surgery",
+  "Internal medicine",
+  "Neurology",
+  "Obstetrics & gynaecology",
+  "Oncology",
+  "Ophthalmology",
+  "Orthopaedics",
+  "Paediatrics",
+  "Psychiatry",
+  "Radiology",
+  "Urology",
+  "Other",
+] as const;
+export const demoRequestSchema = z.object({
+  clinicName: z.string().max(120).optional(),
+  contactName: z.string().min(1).max(120),
+  contactRole: z.enum(DEMO_CONTACT_ROLES).optional(),
+  phone: z
+    .string()
+    .min(7)
+    .max(16)
+    .regex(/^[+0-9 ()-]+$/, "Phone must be 7-16 digits, may include + ( ) -"),
+  email: z.string().email().max(254),
+  nic: z.string().max(20).optional(),
+  slmcRegistrationNo: slmcRegistrationNoSchema.optional().or(z.literal("")),
+  specialty: z.enum(DEMO_SPECIALTIES).optional(),
+  clinicSize: z.enum(DEMO_CLINIC_SIZES).optional(),
+  message: z.string().max(2000).optional(),
+});
+
+// SLMC verify payload — used by /slmc/verify (authenticated doctor).
+// Distinct from demoRequestSchema because the SLMC number is required here.
+export const slmcVerifySchema = z.object({
+  slmcRegistrationNo: slmcRegistrationNoSchema,
+});

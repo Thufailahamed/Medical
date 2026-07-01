@@ -35,6 +35,8 @@ import pushRouter from "./routes/push";
 import walkInsRouter from "./routes/walk-ins";
 import emailRouter from "./routes/email";
 import classificationRouter from "./routes/classification";
+import demoRouter from "./routes/demo";
+import slmcRouter from "./routes/slmc";
 import { handleInboundEmail } from "./email/inbound";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
@@ -120,6 +122,11 @@ app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);
 app.route("/share", shareRouter);
 app.route("/push", pushRouter);
+// Phase 3.1: demo-request lead capture. Mounted at root with explicit
+// paths so the public POST is reachable without a /demo prefix.
+app.route("/", demoRouter);
+// Phase 3.1: SLMC verification for doctor accounts.
+app.route("/", slmcRouter);
 app.route("/walk-ins", walkInsRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.

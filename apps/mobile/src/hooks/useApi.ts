@@ -83,6 +83,34 @@ export function useRotateEmailAlias() {
   });
 }
 
+// ─── Phase 3.1: Request-a-Demo lead capture ──────────────
+// Unauthenticated POST — no `Authorization` header is sent because the
+// api() helper at apps/mobile/src/lib/api.ts silently drops it for the
+// unauth context (see useRequestDemoForUnauth wrapper).
+export type DemoRequestPayload = {
+  clinicName?: string;
+  contactName: string;
+  contactRole?: string;
+  phone: string;
+  email: string;
+  nic?: string;
+  slmcRegistrationNo?: string;
+  specialty?: string;
+  clinicSize?: string;
+  message?: string;
+};
+
+export function useRequestDemo() {
+  return useMutation({
+    mutationFn: (payload: DemoRequestPayload) =>
+      api<{ id: string; status: string }>("/demo-requests", {
+        method: "POST",
+        body: payload,
+      }),
+    // No cache invalidation — public endpoint.
+  });
+}
+
 export function useUpdatePatientProfile() {
   const queryClient = useQueryClient();
   return useMutation({

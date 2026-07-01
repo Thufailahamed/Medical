@@ -176,6 +176,7 @@ export default function LoginScreen() {
 
   const goForgot = () => router.push("/(auth)/forgot-password");
   const goRegister = () => router.push("/(auth)/register" as any);
+  const goDemo = () => router.push("/(auth)/request-demo" as any);
 
   // Phase 1.3: WhatsApp onboarding deep-link. The phone number is set
   // at build time via EXPO_PUBLIC_WA_PHONE. When unset the button is
@@ -623,6 +624,34 @@ export default function LoginScreen() {
           <Text style={{ color: colors.primary, fontWeight: "700", fontFamily: fontFamily.bodyBold }}>
             Create account
           </Text>
+        </Text>
+      </Pressable>
+
+      {/* Phase 3.1: Request-a-Demo secondary CTA. Lives under the
+          primary create-account link so it doesn't compete for the
+          password / NIC flow above. */}
+      <Pressable
+        onPress={goDemo}
+        accessibilityRole="link"
+        accessibilityLabel="Request a demo — opens a form for clinics and doctors"
+        hitSlop={8}
+        style={{
+          alignItems: "center",
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.md,
+          marginBottom: spacing.lg,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 14,
+            color: colors.primary,
+            fontWeight: "700",
+            fontFamily: fontFamily.bodyBold,
+            textAlign: "center",
+          }}
+        >
+          Are you a doctor or clinic? Request a demo →
         </Text>
       </Pressable>
     </Screen>
