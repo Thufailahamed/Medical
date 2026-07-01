@@ -31,10 +31,12 @@ import {
   usePatientProfile,
   useMedicineSuggestions,
   useMedicineInteractions,
+  useFamilyMembers,
   type MedicineSuggestion,
   type InteractionsResponse,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useActiveFamilyMemberStore } from "@/stores/activeFamilyMember";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   Screen,
@@ -75,6 +77,10 @@ type FormData = {
   startDate: Date;
   endDate?: Date;
   notes?: string;
+  // null = "Self / household" (apply to principal patient). UUID =
+  // tag this medicine for a specific family member. Default seeds
+  // from useActiveFamilyMemberStore so the active view stays sticky.
+  familyMemberId?: string | null;
 };
 
 function SuggestionRow({
@@ -168,6 +174,10 @@ export default function AddMedicineScreen() {
   const toast = useToast();
   const addMedicine = useAddMedicineWithConfirm();
   const { data: profileData } = usePatientProfile();
+  const { data: familyData } = useFamilyMembers();
+  const activeFamilyMemberId = useActiveFamilyMemberStore(
+    (s) => s.activeFamilyMemberId
+  );
 
   const schema = z.object({
     name: z.string().min(2, t("addMedicine.errors.nameRequired")),
@@ -177,6 +187,8 @@ export default function AddMedicineScreen() {
     startDate: z.date(),
     endDate: z.date().optional(),
     notes: z.string().max(500).optional(),
+    // null is valid: "household" medicine, no specific member tag.
+    familyMemberId: z.string().nullable().optional(),
   });
 
   const FREQUENCIES = FREQUENCY_VALUES.map((v) => ({
@@ -187,6 +199,15 @@ export default function AddMedicineScreen() {
     value: v,
     label: t(`medicine.timing.${v}`),
   }));
+  // Chip-row picker: "Self / household" first, then each family member
+  // by name. ChipGroup expects string values, so map null → "".
+  const FAMILY_OPTIONS = [
+    { value: "", label: t("medicine.family.self", { defaultValue: "Self" }) },
+    ...((familyData as any)?.family || []).map((f: any) => ({
+      value: f.id as string,
+      label: f.name as string,
+    })),
+  ];
 
   const {
     control,
@@ -204,6 +225,9 @@ export default function AddMedicineScreen() {
       timing: "",
       startDate: new Date(),
       notes: "",
+      // Seed the picker from the active family-member store; falls
+      // back to "Self / household" when nothing is selected yet.
+      familyMemberId: activeFamilyMemberId ?? null,
     },
     mode: "onChange",
   });
@@ -266,6 +290,12 @@ export default function AddMedicineScreen() {
           timing: data.timing,
           notes: data.notes || undefined,
           startDate: data.startDate.toISOString().slice(0, 10),
+          // null clears the tag (household); undefined means "let the
+          // server fall back to the active family member header".
+          familyMemberId:
+            data.familyMemberId === undefined
+              ? undefined
+              : data.familyMemberId,
         },
         confirmOverride: override,
       });
@@ -274,7 +304,7 @@ export default function AddMedicineScreen() {
     } catch (err: any) {
       if (err?.status === 409 && err?.body?.requiresConfirmation) {
         setPendingWarnings(err.body);
-        setPendingPayload({ patientId, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate });
+        setPendingPayload({ patientId, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate, familyMemberId: data.familyMemberId });
         setShowConfirmModal(true);
       } else {
         const msg = err?.message || t("addMedicine.toast.error");
@@ -287,7 +317,7 @@ export default function AddMedicineScreen() {
   const onSubmit = async (data: FormData) => {
     if (interactions && hasBlockingWarning) {
       setPendingWarnings(interactions);
-      setPendingPayload({ patientId: profileData?.patient?.patients?.id, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate });
+      setPendingPayload({ patientId: profileData?.patient?.patients?.id, name: data.name, dosage: data.dosage, frequency: data.frequency, timing: data.timing, notes: data.notes, startDate: data.startDate, familyMemberId: data.familyMemberId });
       setShowConfirmModal(true);
       return;
     }
@@ -571,6 +601,27 @@ export default function AddMedicineScreen() {
                     value={value}
                     onChange={onChange}
                     placeholder={t("medicine.form.startDatePlaceholder")}
+                  />
+                )}
+              />
+            </FormField>
+
+            {/* Phase 2.3: tag the medicine for a specific family member.
+                "Self / household" = null. Selection survives to the API. */}
+            <FormField
+              label={t("medicine.form.familyLabel", { defaultValue: "For" })}
+              helper={t("medicine.form.familyHelper", {
+                defaultValue: "Tag this medicine for a family member.",
+              })}
+            >
+              <Controller
+                control={control}
+                name="familyMemberId"
+                render={({ field: { onChange, value } }) => (
+                  <ChipGroup
+                    options={FAMILY_OPTIONS}
+                    value={value ?? ""}
+                    onChange={(v) => onChange(v === "" ? null : v)}
                   />
                 )}
               />

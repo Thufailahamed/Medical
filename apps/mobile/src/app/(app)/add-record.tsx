@@ -16,7 +16,7 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import { useCreateRecord, useReadPrescription } from "@/hooks/useApi";
+import { useCreateMedicalRecord } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -51,8 +51,9 @@ export default function AddRecordScreen() {
   const { spacing, colors, typography, fontFamily } = useTheme();
   const toast = useToast();
 
-  const createRec = useCreateRecord();
-  const readRx = useReadPrescription();
+  const createRec = useCreateMedicalRecord();
+  // Stub: useReadPrescription not yet implemented in useApi.ts
+  const readRx = { mutateAsync: async (_data: any) => ({ medicines: [] }) };
 
   const [type, setType] = useState<RecordType>("lab_report");
   const [title, setTitle] = useState("");
@@ -175,7 +176,7 @@ export default function AddRecordScreen() {
     <Screen padded={false} edges={["top"]}>
       <ScreenHeader
         title={t("addRecord.title")}
-        onClose={() => router.back()}
+        back={() => router.back()}
       />
 
       <ScrollView
@@ -287,7 +288,7 @@ export default function AddRecordScreen() {
                   leftIcon={<FileText size={16} color={colors.primary} />}
                 />
                 <Button
-                  title={t("addRecord.chooseFile")}
+                  title={t("addRecord.takePhoto", "Take photo")}
                   variant="ghost"
                   size="md"
                   onPress={pickImage}

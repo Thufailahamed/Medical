@@ -12,8 +12,8 @@ import {
 } from "lucide-react-native";
 import {
   useMedicalRecord,
-  useUpdateRecord,
-  useDeleteRecord,
+  useEditMedicalRecord,
+  useDeleteMedicalRecord,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -50,8 +50,8 @@ export default function EditRecordScreen() {
   const toast = useToast();
 
   const { data: record, isLoading } = useMedicalRecord(params.id);
-  const updateRec = useUpdateRecord();
-  const deleteRec = useDeleteRecord();
+  const updateRec = useEditMedicalRecord();
+  const deleteRec = useDeleteMedicalRecord();
 
   const [type, setType] = useState<RecordType>("lab_report");
   const [title, setTitle] = useState("");

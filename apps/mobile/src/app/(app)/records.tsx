@@ -778,25 +778,43 @@ export default function RecordsScreen() {
           style={{
             flexDirection: "row",
             justifyContent: "space-between",
-            alignItems: "baseline",
+            alignItems: "center",
             paddingHorizontal: spacing.lg,
             marginTop: spacing.lg,
             marginBottom: spacing.xs,
           }}
         >
-          <Text
-            style={[
-              typography.display.sm,
-              {
-                color: "#1D1B20",
-                fontWeight: "800",
-                fontSize: 26,
-                fontFamily: fontFamily.displayBold,
-              },
-            ]}
-          >
-            {selectionMode ? t("records.manageTitle") : t("records.title")}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <Text
+              style={[
+                typography.display.sm,
+                {
+                  color: "#1D1B20",
+                  fontWeight: "800",
+                  fontSize: 26,
+                  fontFamily: fontFamily.displayBold,
+                },
+              ]}
+            >
+              {selectionMode ? t("records.manageTitle") : t("records.title")}
+            </Text>
+            {!selectionMode ? (
+              <Pressable
+                onPress={() => router.push("/(app)/add-record" as any)}
+                style={({ pressed }) => ({
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: `${colors.primary}12`,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Plus size={18} color={colors.primary} strokeWidth={2.5} />
+              </Pressable>
+            ) : null}
+          </View>
           <Text
             style={{
               fontSize: 14,
@@ -1343,14 +1361,6 @@ export default function RecordsScreen() {
         onDismiss={() => setSaveFilterOpen(false)}
         onSave={handleSaveCurrentFilter}
       />
-      {!selectionMode && records.length > 0 ? (
-        <FloatingActionButton
-          icon={Plus}
-          onPress={() => router.push("/(app)/add-record" as any)}
-          aboveTabBar
-          accessibilityLabel={t("records.empty.action")}
-        />
-      ) : null}
     </Screen>
   );
 }

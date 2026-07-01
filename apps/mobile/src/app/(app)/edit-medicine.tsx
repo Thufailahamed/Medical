@@ -26,9 +26,11 @@ import {
   useEditMedicine,
   useStopMedicine,
   useMedicineSuggestions,
+  useFamilyMembers,
   type MedicineSuggestion,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useActiveFamilyMemberStore } from "@/stores/activeFamilyMember";
 import {
   Screen,
   ScreenHeader,
@@ -80,6 +82,8 @@ const makeEditSchema = (t: (k: string) => string) => z.object({
   endDate: z.date().optional(),
   notes: z.string().max(1000).optional(),
   active: z.boolean(),
+  // null = "household" / not tagged to a specific family member.
+  familyMemberId: z.string().nullable().optional(),
 });
 type EditFormData = {
   name: string;
@@ -90,6 +94,7 @@ type EditFormData = {
   endDate?: Date;
   notes?: string;
   active: boolean;
+  familyMemberId?: string | null;
 };
 
 function toDateString(d: Date | undefined): string {
@@ -190,6 +195,10 @@ export default function EditMedicineScreen() {
   const { data, isLoading, error } = useMedicine(id);
   const edit = useEditMedicine();
   const stop = useStopMedicine();
+  const { data: familyData } = useFamilyMembers();
+  const activeFamilyMemberId = useActiveFamilyMemberStore(
+    (s) => s.activeFamilyMemberId
+  );
 
   const med = data?.medicine;
 
@@ -213,6 +222,11 @@ export default function EditMedicineScreen() {
       endDate: undefined,
       notes: "",
       active: true,
+      // Pre-populate from loaded medicine; falls back to the active
+      // family-member store then to null ("Self / household").
+      familyMemberId: (med?.familyMemberId as string | null | undefined) ??
+        activeFamilyMemberId ??
+        null,
     },
     mode: "onChange",
   });
@@ -234,6 +248,8 @@ export default function EditMedicineScreen() {
         endDate: end,
         notes: med.notes ?? "",
         active: med.active !== false,
+        familyMemberId:
+          (med.familyMemberId as string | null | undefined) ?? null,
       });
       setHydrated(true);
     }
@@ -267,6 +283,15 @@ export default function EditMedicineScreen() {
     value: v,
     label: t(`medicine.timing.${v}`),
   }));
+  // Chip-row picker: "Self / household" first, then each family member.
+  // ChipGroup expects string values, so map null → "".
+  const FAMILY_OPTIONS = [
+    { value: "", label: t("medicine.family.self", { defaultValue: "Self" }) },
+    ...((familyData as any)?.family || []).map((f: any) => ({
+      value: f.id as string,
+      label: f.name as string,
+    })),
+  ];
 
   function applySuggestion(s: MedicineSuggestion) {
     setValue("name", s.name, { shouldValidate: true, shouldDirty: true });
@@ -301,6 +326,9 @@ export default function EditMedicineScreen() {
         endDate: data.endDate ? toDateString(data.endDate) : undefined,
         notes: data.notes?.trim() || undefined,
         active: data.active,
+        // Reassign the medicine to a different family member (or
+        // null = household). Always send so a clear-edit is preserved.
+        familyMemberId: data.familyMemberId ?? null,
       } as any);
       toast.show(t("editMedicine.toast.saved"), "success");
       router.back();
@@ -642,6 +670,31 @@ export default function EditMedicineScreen() {
                       );
                     })}
                   </View>
+                )}
+              />
+            </FormField>
+          </View>
+        </Card>
+
+        {/* Phase 2.3: family-member picker (chip row). "Self / household"
+            = null; a UUID reassigns the medicine to a specific member. */}
+        <Card padded={false}>
+          <View style={{ padding: spacing.lg, gap: spacing.sm }}>
+            <FormField
+              label={t("medicine.form.familyLabel", { defaultValue: "For" })}
+              helper={t("medicine.form.familyHelper", {
+                defaultValue: "Tag this medicine for a family member.",
+              })}
+            >
+              <Controller
+                control={control}
+                name="familyMemberId"
+                render={({ field: { onChange, value } }) => (
+                  <ChipGroup
+                    options={FAMILY_OPTIONS}
+                    value={value ?? ""}
+                    onChange={(v) => onChange(v === "" ? null : v)}
+                  />
                 )}
               />
             </FormField>

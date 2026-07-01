@@ -638,7 +638,7 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
   // Phase 2.3: explicit body.familyMemberId wins; otherwise the
   // active-FM context resolves to a default. NULL stays NULL
   // ("household" medicine, applies to principal by default).
-  const explicitFm = (data as any).familyMemberId ?? null;
+  const explicitFm = data.familyMemberId ?? null;
   const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
   const familyMemberId = explicitFm || activeFm || null;
 
@@ -657,7 +657,7 @@ medicinesRouter.post("/", authMiddleware, requireRole("patient", "doctor", "hosp
       notes: data.notes,
       active: true,
       familyMemberId,
-    } as any)
+    })
     .returning();
 
   // Auto-schedule today's doses for the new medicine.
@@ -700,7 +700,7 @@ medicinesRouter.patch("/:id", authMiddleware, async (c) => {
 
   const [updated] = await db
     .update(medicines)
-    .set(parsed.data as any)
+    .set(parsed.data)
     .where(eq(medicines.id, medicineId))
     .returning();
 
@@ -738,7 +738,7 @@ medicinesRouter.put("/:id", authMiddleware, requireRole("patient", "doctor"), as
 
   const [updated] = await db
     .update(medicines)
-    .set(parsed.data as any)
+    .set(parsed.data)
     .where(eq(medicines.id, medicineId))
     .returning();
 

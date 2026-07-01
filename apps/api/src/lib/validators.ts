@@ -290,6 +290,11 @@ export const medicineSchema = z.object({
   endDate: z.string().min(1).optional(), // YYYY-MM-DD
   refillReminder: z.boolean().optional(),
   notes: z.string().max(1000).optional(),
+  // Tag a medicine for a specific family member. NULL = household /
+  // principal patient. Server falls back to the active family member
+  // header when omitted. FK to family_members(id) is enforced at the
+  // DB layer (see PRAGMA foreign_keys in apps/api/src/lib/db.ts).
+  familyMemberId: z.string().uuid().nullable().optional(),
 });
 
 export const medicineUpdateSchema = z.object({
@@ -302,6 +307,9 @@ export const medicineUpdateSchema = z.object({
   refillReminder: z.boolean().optional(),
   notes: z.string().max(1000).optional(),
   active: z.boolean().optional(),
+  // Reassign medicine to another family member. NULL clears the tag
+  // and reverts it to "household".
+  familyMemberId: z.string().uuid().nullable().optional(),
 });
 
 export const appointmentSchema = z.object({

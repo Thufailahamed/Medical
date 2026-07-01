@@ -57,6 +57,13 @@
       "when": 1782890529042,
       "tag": "0007_red_wrecking_crew",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1782909380855,
+      "tag": "0008_flat_penance",
+      "breakpoints": true
     }
   ]
 }
