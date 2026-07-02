@@ -12,7 +12,12 @@ const DEV_USER = {
 
 export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
   // ── Dev mode bypass ────────────────────────────────────
-  if (c.env.DEV_MODE === "true") {
+  // Only short-circuit to the dev stub when no real Authorization
+  // header was supplied. That way dev tools can still exercise the
+  // JWT path (e.g. multi-role smoke tests) without restarting wrangler
+  // every time we need to act as a doctor / hospital admin.
+  const hasBearer = c.req.header("Authorization")?.startsWith("Bearer ");
+  if (c.env.DEV_MODE === "true" && !hasBearer) {
     const db = c.get("db");
 
     // Ensure dev user exists in D1

@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   ShieldCheck,
   ShieldAlert,
+  Plus,
+  Trash2,
 } from "lucide-react-native";
 import {
   useSearchPatients,
@@ -56,6 +58,61 @@ const PRESET_MEDS = [
 
 const COMMON_DOSAGES = ["250mg", "500mg", "1g", "5mg", "10mg", "20mg"];
 
+// ─── Medicine entry shape ───────────────────────────────────
+// One MedicineEntry per line on the prescription. The local id
+// (`key`) is for React lists only — never sent to the server.
+// The `slots` object captures which time-of-day checkboxes are
+// selected; `frequency` is derived from slot count.
+type Slots = {
+  morning: boolean;
+  noon: boolean;
+  evening: boolean;
+  night: boolean;
+};
+
+type MedicineEntry = {
+  key: string;
+  name: string;
+  dosage: string;
+  slots: Slots;
+  timing: "" | "Before food" | "After food" | "With food" | "Any time";
+  durationDays: number;
+  ongoing: boolean;
+  masterMedicineId: string | null;
+};
+
+function emptyEntry(): MedicineEntry {
+  return {
+    key: Math.random().toString(36).slice(2, 10),
+    name: "",
+    dosage: "",
+    slots: { morning: false, noon: false, evening: false, night: false },
+    timing: "",
+    durationDays: 7,
+    ongoing: false,
+    masterMedicineId: null,
+  };
+}
+
+function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
+function slotsToFrequency(s: Slots): string | null {
+  const n = (s.morning ? 1 : 0) + (s.noon ? 1 : 0) + (s.evening ? 1 : 0) + (s.night ? 1 : 0);
+  if (n === 0) return null;
+  if (n === 1) return "Once daily";
+  if (n === 2) return "Twice daily";
+  if (n === 3) return "Three times daily";
+  return "Four times daily";
+}
+
 export default function PrescriptionScreen() {
   const router = useRouter();
   const { spacing, colors, typography, radius } = useTheme();
@@ -72,38 +129,43 @@ export default function PrescriptionScreen() {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
-  const [medName, setMedName] = useState("");
-  const [medDosage, setMedDosage] = useState("");
-  const [medFrequency, setMedFrequency] = useState("");
-  // Phase E-Rx 1: optional FK to the master catalogue. Set when the
-  // doctor picks a suggestion; remains NULL for free-text entries.
-  const [medMasterId, setMedMasterId] = useState<string | null>(null);
+  // Phase 4: medicines are an array, not a single entry. The form
+  // starts with one empty entry so the doctor has somewhere to type;
+  // tapping "+ Add medicine" appends another.
+  const [medicines, setMedicines] = useState<MedicineEntry[]>([emptyEntry()]);
 
-  // Debounced master search — only fires when there are 2+ chars.
-  // Re-runs only when medName changes, not when the suggestion
-  // picker sets it (we don't want to refetch after a tap).
-  const [medQuery, setMedQuery] = useState("");
-  const debouncedMedQuery = useDebounce(medQuery, 250);
-  const { data: medResults } = useMedicineSearch(debouncedMedQuery);
+  function updateEntry(key: string, patch: Partial<MedicineEntry>) {
+    setMedicines((prev) =>
+      prev.map((m) => (m.key === key ? { ...m, ...patch } : m))
+    );
+  }
+
+  function removeEntry(key: string) {
+    setMedicines((prev) =>
+      prev.length > 1 ? prev.filter((m) => m.key !== key) : prev
+    );
+  }
+
+  function addEntry() {
+    setMedicines((prev) => [...prev, emptyEntry()]);
+  }
 
   // Phase E-Rx 3: safety pre-flight. Fires once a patient is picked AND
-  // a medicine name is typed. Calling `useSafetyCheck` returns either
-  // the live warning set (when blocking) or `undefined` when the form
-  // is incomplete. The override modal collects a free-text reason
-  // before re-submitting with `X-Confirm-Warning: true`.
+  // at least one medicine has a name. The full list of named medicines
+  // (not just the one being typed) feeds the candidate payload so the
+  // engine can catch pairwise interactions across the whole Rx.
   const patientIdForCheck =
     selectedPatient?.patients?.id || selectedPatient?.id || patientId;
-  const safetyEnabled = !!patientIdForCheck && !!medName.trim();
+  const namedMedicines = medicines.filter((m) => m.name.trim());
+  const safetyEnabled = !!patientIdForCheck && namedMedicines.length > 0;
   const safetyPayload = safetyEnabled
     ? {
         patientId: patientIdForCheck,
-        candidate: [
-          {
-            name: medName.trim(),
-            dosage: medDosage.trim() || undefined,
-            masterMedicineId: medMasterId || undefined,
-          },
-        ] as SafetyCheckCandidate[],
+        candidate: namedMedicines.map((m) => ({
+          name: m.name.trim(),
+          dosage: m.dosage.trim() || undefined,
+          masterMedicineId: m.masterMedicineId || undefined,
+        })) as SafetyCheckCandidate[],
       }
     : null;
   const { data: safetyResult } = useSafetyCheck(
@@ -114,23 +176,44 @@ export default function PrescriptionScreen() {
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
 
-  const FREQUENCIES = [
-    { value: "Once daily", label: t("doctorPrescription.freqOnce") },
-    { value: "Twice daily", label: t("doctorPrescription.freqTwice") },
-    { value: "Three times daily", label: t("doctorPrescription.freqThree") },
+  const TIMING_OPTIONS = [
+    { value: "Before food", label: t("doctorPrescription.timingBefore") },
+    { value: "After food", label: t("doctorPrescription.timingAfter") },
+    { value: "With food", label: t("doctorPrescription.timingWith") },
+    { value: "Any time", label: t("doctorPrescription.timingAny") },
   ];
 
-  // Phase E-Rx 3: single entrypoint that handles validation, the
-  // safety override modal, the POST, and error handling. `force` is
-  // set to true when the doctor has acknowledged warnings and tapped
-  // "Override and create" inside the bottom sheet.
+  // Phase E-Rx 3: validate the medicines array, surface safety
+  // warnings, then POST. `force` is set when the doctor has tapped
+  // "Override and create" in the bottom sheet.
   async function handleCreate(force = false) {
     const patient =
       selectedPatient ||
       searchResults?.patients?.find?.((p: any) => (p.patients?.id || p.id) === patientId);
-    if (!patient || !medName || !medDosage) {
-      toast.show(t("doctorPrescription.medicineRequired"), "warning");
+    if (!patient) {
+      toast.show(t("doctorPrescription.searchPatients"), "warning");
       return;
+    }
+    if (medicines.length === 0) {
+      toast.show(t("doctorPrescription.emptyMedicinesTitle"), "warning");
+      return;
+    }
+
+    // Per-entry validation: name + dosage required, slots required.
+    for (let i = 0; i < medicines.length; i++) {
+      const m = medicines[i];
+      if (!m.name.trim()) {
+        toast.show(t("doctorPrescription.medicineErrorEmpty"), "warning");
+        return;
+      }
+      if (!m.dosage.trim()) {
+        toast.show(t("doctorPrescription.medicineErrorDosage"), "warning");
+        return;
+      }
+      if (slotsToFrequency(m.slots) === null) {
+        toast.show(t("doctorPrescription.medicineErrorSlots"), "warning");
+        return;
+      }
     }
 
     // Block on severe/critical unless `force` is set. Mirrors the
@@ -143,21 +226,26 @@ export default function PrescriptionScreen() {
       return;
     }
 
+    const startDate = todayISO();
     try {
       await createPrescription.mutateAsync(
         {
           patientId: patient.patients?.id || patient.id || patientId,
           diagnosis,
           notes,
-          medicines: [
-            {
-              name: medName,
-              dosage: medDosage,
-              frequency: medFrequency,
-              // Phase E-Rx 1: link to the master catalogue when picked.
-              masterMedicineId: medMasterId ?? null,
-            },
-          ],
+          medicines: medicines.map((m) => {
+            const freq = slotsToFrequency(m.slots) as string;
+            const endDate = m.ongoing ? undefined : addDays(startDate, m.durationDays);
+            return {
+              name: m.name,
+              dosage: m.dosage,
+              frequency: freq,
+              timing: m.timing || undefined,
+              startDate,
+              endDate,
+              masterMedicineId: m.masterMedicineId ?? null,
+            };
+          }),
         },
         {
           // Send the override header when the doctor explicitly
@@ -172,20 +260,22 @@ export default function PrescriptionScreen() {
     }
   }
 
-  function pickMasterMedicine(m: {
-    id: string;
-    genericName: string;
-    brandName?: string | null;
-    strength?: string | null;
-  }) {
+  function pickMasterMedicine(
+    entryKey: string,
+    m: {
+      id: string;
+      genericName: string;
+      brandName?: string | null;
+      strength?: string | null;
+    }
+  ) {
     // Display: prefer "Brand Generic Strength" when brand present,
-    // fall back to "Generic Strength". Store the generic name in
-    // medName so the `medicines.name` column stays clean + matches
+    // fall back to "Generic Strength". Store the display name in
+    // `name` so the `medicines.name` column stays clean + matches
     // other system matches (interaction check, adherence view).
     const left = m.brandName ? `${m.brandName} (${m.genericName})` : m.genericName;
-    setMedName(m.strength ? `${left} ${m.strength}` : left);
-    setMedMasterId(m.id);
-    setMedQuery(""); // collapse the suggestion list
+    const display = m.strength ? `${left} ${m.strength}` : left;
+    updateEntry(entryKey, { name: display, masterMedicineId: m.id });
   }
 
   if (selectedPatient) {
@@ -272,126 +362,6 @@ export default function PrescriptionScreen() {
                 />
               </FormField>
 
-              <FormField label={t("doctorPrescription.medicine")} required>
-                <TextInput
-                  value={medName}
-                  onChangeText={(v) => {
-                    setMedName(v);
-                    // Only refetch when the user is typing freely —
-                    // when a suggestion was just picked, we clear
-                    // `medQuery` so we don't refetch on the same name.
-                    setMedQuery(v);
-                    setMedMasterId(null);
-                  }}
-                  placeholder={t("doctorPrescription.medicinePlaceholder")}
-                  leadingIcon={PillIcon}
-                />
-              </FormField>
-
-              {/* Phase E-Rx 1: master catalogue autocomplete. Shows when
-                  the user has typed 2+ chars and the debounced query
-                  returns results. Tap to fill `medName` + link the
-                  master FK; the prescription POST carries both. */}
-              {medResults?.medicines && medResults.medicines.length > 0 && medQuery.length >= 2 && !medMasterId ? (
-                <View
-                  style={{
-                    borderRadius: radius.md,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    paddingVertical: spacing.xs,
-                  }}
-                >
-                  {medResults.medicines.slice(0, 5).map((m: any, idx: number) => (
-                    <View
-                      key={m.id}
-                      style={{
-                        paddingHorizontal: spacing.md,
-                        paddingVertical: spacing.sm,
-                        borderBottomWidth:
-                          idx === Math.min(4, medResults.medicines.length - 1) ? 0 : 1,
-                        borderBottomColor: colors.border,
-                      }}
-                    >
-                      <ListItem
-                        title={m.brandName ? `${m.brandName} (${m.genericName})` : m.genericName}
-                        subtitle={[m.strength, m.scheduleClass].filter(Boolean).join(" • ") || undefined}
-                        iconTone="primary"
-                        mediaSlot={
-                          <Avatar
-                            name={m.genericName}
-                            size="sm"
-                            tone="soft"
-                          />
-                        }
-                        onPress={() => pickMasterMedicine(m)}
-                      />
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {/* Active master-link badge so the doctor can see the
-                  prescription is anchored to the catalogue. */}
-              {medMasterId ? (
-                <PillCmp
-                  icon={PillIcon}
-                  label={`Master linked ${medResults?.medicines?.find?.((x: any) => x.id === medMasterId)?.genericName ?? ""}`.trim()}
-                  tone="success"
-                  size="sm"
-                />
-              ) : null}
-
-              <View style={{ gap: spacing.xs }}>
-                <Text style={[typography.label.md, { color: colors.textMuted }]}>
-                  {t("doctorPrescription.quickPick")}
-                </Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                  {PRESET_MEDS.map((m) => (
-                    <PillCmp
-                      key={m}
-                      label={m}
-                      tone={medName === m ? "primary" : "neutral"}
-                      size="sm"
-                      onPress={() => setMedName(m)}
-                    />
-                  ))}
-                </View>
-              </View>
-
-              <FormField label={t("doctorPrescription.dosage")} required>
-                <TextInput
-                  value={medDosage}
-                  onChangeText={setMedDosage}
-                  placeholder={t("doctorPrescription.dosagePlaceholder")}
-                />
-              </FormField>
-
-              <View style={{ gap: spacing.xs }}>
-                <Text style={[typography.label.md, { color: colors.textMuted }]}>
-                  {t("doctorPrescription.commonDosages")}
-                </Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                  {COMMON_DOSAGES.map((d) => (
-                    <PillCmp
-                      key={d}
-                      label={d}
-                      tone={medDosage === d ? "accent" : "neutral"}
-                      size="sm"
-                      onPress={() => setMedDosage(d)}
-                    />
-                  ))}
-                </View>
-              </View>
-
-              <FormField label={t("doctorPrescription.frequency")}>
-                <ChipGroup
-                  options={FREQUENCIES}
-                  value={medFrequency}
-                  onChange={setMedFrequency}
-                />
-              </FormField>
-
               <FormField label={t("doctorPrescription.notes")}>
                 <TextInput
                   value={notes}
@@ -403,6 +373,77 @@ export default function PrescriptionScreen() {
                   tone="soft"
                 />
               </FormField>
+            </View>
+          </Card>
+
+          {/* Phase 4: medicines list. Each entry renders its own
+              MedicineCard with name + autocomplete, dosage, time-slot
+              multi-select, food-relation chips, and duration. Tapping
+              the + button appends an empty entry; tapping the trash
+              removes one (always keeps at least one entry visible). */}
+          <Card padded={false}>
+            <View
+              style={{
+                paddingHorizontal: spacing.lg,
+                paddingTop: spacing.lg,
+                paddingBottom: spacing.sm,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={[typography.label.lg, { color: colors.textMuted }]}>
+                {t("doctorPrescription.medicinesHeading")}
+              </Text>
+              <Text
+                style={[typography.body.sm, { color: colors.textMuted, fontWeight: "700" }]}
+              >
+                {medicines.length}
+              </Text>
+            </View>
+            <View style={{ padding: spacing.lg, gap: spacing.md }}>
+              {medicines.map((m, idx) => (
+                <MedicineCard
+                  key={m.key}
+                  entry={m}
+                  index={idx}
+                  canRemove={medicines.length > 1}
+                  onChange={(patch) => updateEntry(m.key, patch)}
+                  onRemove={() => removeEntry(m.key)}
+                  onPickMaster={(master) => pickMasterMedicine(m.key, master)}
+                  slotsLabel={t("doctorPrescription.slotsLabel")}
+                  slotLabels={{
+                    morning: t("doctorPrescription.slotMorning"),
+                    noon: t("doctorPrescription.slotNoon"),
+                    evening: t("doctorPrescription.slotEvening"),
+                    night: t("doctorPrescription.slotNight"),
+                  }}
+                  timingLabel={t("doctorPrescription.timingFoodLabel")}
+                  timingOptions={TIMING_OPTIONS}
+                  durationLabel={t("doctorPrescription.durationLabel")}
+                  durationStartLabel={t("doctorPrescription.durationStart")}
+                  durationEndLabel={t("doctorPrescription.durationEnd")}
+                  durationDaysLabel={(n) => t("doctorPrescription.durationDays", { count: n })}
+                  ongoingLabel={t("doctorPrescription.durationOngoing")}
+                  medicineLabel={t("doctorPrescription.medicineCard", {
+                    count: idx + 1,
+                  })}
+                  removeLabel={t("doctorPrescription.removeMedicine")}
+                  medicinePlaceholder={t("doctorPrescription.medicinePlaceholder")}
+                  dosageLabel={t("doctorPrescription.dosage")}
+                  dosagePlaceholder={t("doctorPrescription.dosagePlaceholder")}
+                  startDate={todayISO()}
+                />
+              ))}
+
+              <Button
+                title={t("doctorPrescription.addMedicine")}
+                iconLeft={Plus}
+                variant="secondary"
+                size="md"
+                fullWidth
+                onPress={addEntry}
+              />
             </View>
           </Card>
 
@@ -477,23 +518,28 @@ export default function PrescriptionScreen() {
 
         {results.length > 0 ? (
           <View style={{ gap: spacing.sm }}>
-            {results.map((p) => (
-              <ListItem
-                key={p.id}
-                variant="contact"
-                iconTone="primary"
-                title={p.name || t("doctorPrescription.patientFallback")}
-                subtitle={p.phone || t("doctorPrescription.tapToPrescribe")}
-                mediaSlot={
-                  <Avatar
-                    name={p.name}
-                    size="md"
-                    tone="primary"
-                    source={p.photo ? { uri: p.photo } : undefined}
-                  />
-                }
-                pill={{ label: t("doctorPrescription.pillPrescribe"), tone: "primary" }}
-                trailing={
+            {results.map((p) => {
+              const pId = p.patients?.id || p.id;
+              const pName = p.users?.name || p.name;
+              const pPhone = p.users?.phone || p.phone;
+              const pPhoto = p.users?.photo || p.photo;
+              return (
+                <ListItem
+                  key={pId}
+                  variant="contact"
+                  iconTone="primary"
+                  title={pName || t("doctorPrescription.patientFallback")}
+                  subtitle={pPhone || t("doctorPrescription.tapToPrescribe")}
+                  mediaSlot={
+                    <Avatar
+                      name={pName}
+                      size="md"
+                      tone="primary"
+                      source={pPhoto ? { uri: pPhoto } : undefined}
+                    />
+                  }
+                  pill={{ label: t("doctorPrescription.pillPrescribe"), tone: "primary" }}
+                  trailing={
                   <View
                     style={{
                       width: 36,
@@ -509,7 +555,8 @@ export default function PrescriptionScreen() {
                 }
                 onPress={() => setSelectedPatient(p)}
               />
-            ))}
+            );
+          })}
           </View>
         ) : searchQuery.length > 0 ? (
           <EmptyState
@@ -528,6 +575,371 @@ export default function PrescriptionScreen() {
         )}
       </View>
     </Screen>
+  );
+}
+
+// ─── MedicineCard ──────────────────────────────────────────
+// One card per medicine on the prescription. Owns its own input
+// state (controlled by parent via `entry` + `onChange`) and runs
+// the master-catalogue autocomplete locally — each entry has its
+// own debounced query so typing in one card doesn't show results
+// under another.
+//
+// Layout per card:
+//   [medicine X header — trash icon]
+//   [Name input + master autocomplete]
+//   [Quick-pick pills]
+//   [Dosage input + common dosages]
+//   [When to take: 4 slot pills, multi-select]
+//   [Food relation: chip group]
+//   [Duration: days input + ongoing toggle]
+//
+// The frequency string sent to the server is derived from the
+// slot count via `slotsToFrequency`. The DB column `medicines.timing`
+// stores the food relation; time slots are NOT stored separately —
+// they're compressed into `frequency` because that matches what the
+// PDF renders and what the verify endpoint signs.
+
+function MedicineCard({
+  entry,
+  index,
+  canRemove,
+  onChange,
+  onRemove,
+  onPickMaster,
+  slotsLabel,
+  slotLabels,
+  timingLabel,
+  timingOptions,
+  durationLabel,
+  durationStartLabel,
+  durationEndLabel,
+  durationDaysLabel,
+  ongoingLabel,
+  medicineLabel,
+  removeLabel,
+  medicinePlaceholder,
+  dosageLabel,
+  dosagePlaceholder,
+  startDate,
+}: {
+  entry: MedicineEntry;
+  index: number;
+  canRemove: boolean;
+  onChange: (patch: Partial<MedicineEntry>) => void;
+  onRemove: () => void;
+  onPickMaster: (m: any) => void;
+  slotsLabel: string;
+  slotLabels: { morning: string; noon: string; evening: string; night: string };
+  timingLabel: string;
+  timingOptions: { value: string; label: string }[];
+  durationLabel: string;
+  durationStartLabel: string;
+  durationEndLabel: string;
+  durationDaysLabel: (n: number) => string;
+  ongoingLabel: string;
+  medicineLabel: string;
+  removeLabel: string;
+  medicinePlaceholder: string;
+  dosageLabel: string;
+  dosagePlaceholder: string;
+  startDate: string;
+}) {
+  const { spacing, colors, typography, radius } = useTheme();
+  const [localQuery, setLocalQuery] = useState("");
+  const debouncedLocal = useDebounce(localQuery, 250);
+  const { data: localResults } = useMedicineSearch(debouncedLocal);
+
+  const slotEntries: Array<{ key: keyof Slots; label: string }> = [
+    { key: "morning", label: slotLabels.morning },
+    { key: "noon", label: slotLabels.noon },
+    { key: "evening", label: slotLabels.evening },
+    { key: "night", label: slotLabels.night },
+  ];
+
+  const endDatePreview = entry.ongoing
+    ? "—"
+    : addDays(startDate, Math.max(1, entry.durationDays || 1));
+
+  return (
+    <View
+      style={{
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.bgElevated,
+        padding: spacing.md,
+        gap: spacing.md,
+      }}
+    >
+      {/* Header row: index + name + remove */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.sm,
+          }}
+        >
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: colors.primarySoft,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "800",
+                color: colors.primary,
+              }}
+            >
+              {index + 1}
+            </Text>
+          </View>
+          <Text style={[typography.title.sm, { color: colors.text }]}>
+            {medicineLabel}
+          </Text>
+        </View>
+        {canRemove ? (
+          <Pressable
+            onPress={onRemove}
+            accessibilityRole="button"
+            accessibilityLabel={removeLabel}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: pressed ? colors.dangerSoft : "transparent",
+            })}
+          >
+            <Trash2 size={16} color={colors.danger} strokeWidth={2.2} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {/* Name + autocomplete */}
+      <FormField label="Medicine" required>
+        <TextInput
+          value={entry.name}
+          onChangeText={(v) => {
+            onChange({ name: v, masterMedicineId: null });
+            setLocalQuery(v);
+          }}
+          placeholder={medicinePlaceholder}
+          leadingIcon={PillIcon}
+        />
+      </FormField>
+      {localResults?.medicines &&
+      localResults.medicines.length > 0 &&
+      localQuery.length >= 2 &&
+      !entry.masterMedicineId ? (
+        <View
+          style={{
+            borderRadius: radius.md,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            paddingVertical: spacing.xs,
+          }}
+        >
+          {localResults.medicines.slice(0, 5).map((m: any, idx: number) => (
+            <View
+              key={m.id}
+              style={{
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                borderBottomWidth:
+                  idx === Math.min(4, localResults.medicines.length - 1) ? 0 : 1,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <ListItem
+                title={m.brandName ? `${m.brandName} (${m.genericName})` : m.genericName}
+                subtitle={[m.strength, m.scheduleClass].filter(Boolean).join(" • ") || undefined}
+                iconTone="primary"
+                mediaSlot={
+                  <Avatar name={m.genericName} size="sm" tone="soft" />
+                }
+                onPress={() => {
+                  onPickMaster(m);
+                  setLocalQuery("");
+                }}
+              />
+            </View>
+          ))}
+        </View>
+      ) : null}
+      {entry.masterMedicineId ? (
+        <PillCmp
+          icon={PillIcon}
+          label={`Master linked`}
+          tone="success"
+          size="sm"
+        />
+      ) : null}
+
+      {/* Quick-pick fallback when catalogue is empty */}
+      {localQuery.length >= 2 &&
+      (!localResults?.medicines || localResults.medicines.length === 0) ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {PRESET_MEDS.filter((p) =>
+            p.toLowerCase().includes(localQuery.toLowerCase())
+          )
+            .slice(0, 4)
+            .map((p) => (
+              <PillCmp
+                key={p}
+                label={p}
+                tone="neutral"
+                size="sm"
+                onPress={() => {
+                  onChange({ name: p });
+                  setLocalQuery("");
+                }}
+              />
+            ))}
+        </View>
+      ) : null}
+
+      {/* Dosage */}
+      <FormField label={dosageLabel} required>
+        <TextInput
+          value={entry.dosage}
+          onChangeText={(v) => onChange({ dosage: v })}
+          placeholder={dosagePlaceholder}
+        />
+      </FormField>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {COMMON_DOSAGES.map((d) => (
+          <PillCmp
+            key={d}
+            label={d}
+            tone={entry.dosage === d ? "accent" : "neutral"}
+            size="sm"
+            onPress={() => onChange({ dosage: d })}
+          />
+        ))}
+      </View>
+
+      {/* Time slots — multi-select */}
+      <FormField label={slotsLabel}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {slotEntries.map(({ key, label }) => {
+            const selected = entry.slots[key];
+            return (
+              <PillCmp
+                key={key}
+                label={label}
+                tone={selected ? "primary" : "neutral"}
+                size="sm"
+                onPress={() =>
+                  onChange({
+                    slots: { ...entry.slots, [key]: !selected },
+                  })
+                }
+              />
+            );
+          })}
+        </View>
+        {slotsToFrequency(entry.slots) ? (
+          <Text
+            style={[
+              typography.caption,
+              { color: colors.textMuted, marginTop: 4 },
+            ]}
+          >
+            {slotsToFrequency(entry.slots)}
+          </Text>
+        ) : null}
+      </FormField>
+
+      {/* Food relation — single-select chip group */}
+      <FormField label={timingLabel}>
+        <ChipGroup
+          options={timingOptions}
+          value={entry.timing}
+          onChange={(v) => onChange({ timing: v as MedicineEntry["timing"] })}
+        />
+      </FormField>
+
+      {/* Duration — days + ongoing toggle */}
+      <FormField label={durationLabel}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              value={String(entry.durationDays)}
+              onChangeText={(v) => {
+                const n = parseInt(v.replace(/[^0-9]/g, ""), 10);
+                onChange({ durationDays: isNaN(n) ? 0 : n });
+              }}
+              keyboardType="number-pad"
+              placeholder="7"
+              editable={!entry.ongoing}
+              tone={entry.ongoing ? "soft" : undefined}
+            />
+          </View>
+          <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+            {durationDaysLabel(Math.max(1, entry.durationDays))}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => onChange({ ongoing: !entry.ongoing })}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: entry.ongoing }}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.sm,
+            paddingVertical: spacing.xs,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <View
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: 5,
+              borderWidth: 2,
+              borderColor: entry.ongoing ? colors.primary : colors.border,
+              backgroundColor: entry.ongoing ? colors.primary : "transparent",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {entry.ongoing ? (
+              <Text style={{ color: colors.onPrimary, fontSize: 11, fontWeight: "900" }}>
+                ✓
+              </Text>
+            ) : null}
+          </View>
+          <Text style={[typography.body.sm, { color: colors.text }]}>
+            {ongoingLabel}
+          </Text>
+        </Pressable>
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.textSubtle, marginTop: 4 },
+          ]}
+        >
+          {durationStartLabel}: {startDate}    {durationEndLabel}: {endDatePreview}
+        </Text>
+      </FormField>
+    </View>
   );
 }
 

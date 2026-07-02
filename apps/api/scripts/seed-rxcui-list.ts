@@ -129,6 +129,44 @@ export const SEED_MEDICINES: SeedMedicine[] = [
 
   // ─── Dengue / supportive (SL-relevant) ────────────────────
   { rxcui: "407990", genericName: "Paracetamol + Caffeine", strength: "500 mg / 65 mg", atcCode: "N02BE51", atcName: "Paracetamol combinations excl. psycholeptics", category: "Analgesic combo", dosageForm: "Tablet", route: "Oral", scheduleClass: "OTC", isGeneric: true },
+
+  // ─── Helminthic / deworming (Highly common in Asia) ──────
+  { rxcui: "6672", genericName: "Mebendazole", brandName: "Vermox", strength: "100 mg", atcCode: "P02CA01", atcName: "Benzimidazole derivatives", category: "Anthelmintic", dosageForm: "Tablet", route: "Oral", scheduleClass: "OTC", isGeneric: true },
+  { rxcui: "602", genericName: "Albendazole", brandName: "Alben", strength: "400 mg", atcCode: "P02CA03", atcName: "Benzimidazole derivatives", category: "Anthelmintic", dosageForm: "Tablet", route: "Oral", scheduleClass: "OTC", isGeneric: true },
+
+  // ─── Vitamin B / C & Supplements (Asia-relevant) ─────────
+  { rxcui: "1151", genericName: "Ascorbic Acid", brandName: "Ceecon", strength: "500 mg", atcCode: "A11G", atcName: "Ascorbic acid (vitamin C)", category: "Supplement", dosageForm: "Tablet", route: "Oral", scheduleClass: "OTC", isGeneric: true },
+  { rxcui: "1187440", genericName: "Vitamin B1 + B6 + B12", brandName: "Neurobion", strength: "100 mg / 200 mg / 200 mcg", atcCode: "A11DB", atcName: "Vitamin B1 in combination with vitamin B6 and/or vitamin B12", category: "Supplement", dosageForm: "Tablet", route: "Oral", scheduleClass: "OTC", isGeneric: false },
+
+  // ─── Antihistamines / Cold (Sri Lanka common) ─────────────
+  { rxcui: "2403", genericName: "Chlorpheniramine", brandName: "Piriton", strength: "4 mg", atcCode: "R06AB04", atcName: "Substituted alkylamines", category: "Antihistamine", dosageForm: "Tablet", route: "Oral", scheduleClass: "OTC", isGeneric: true },
+
+  // ─── GI Antispasmodics & Antacids (Sri Lanka Gastritis) ───
+  { rxcui: "9524", genericName: "Hyoscine Butylbromide", brandName: "Buscopan", strength: "10 mg", atcCode: "A03BB01", atcName: "Belladonna alkaloids", category: "Antispasmodic", dosageForm: "Tablet", route: "Oral", scheduleClass: "POM", isGeneric: true },
+  { rxcui: "1162791", genericName: "Aluminum Hydroxide + Magnesium Hydroxide + Simethicone", brandName: "Mucaine", strength: "291 mg / 98 mg / 25 mg per 5ml", atcCode: "A02AF02", atcName: "Antacids with antiflatulents", category: "Antacid", dosageForm: "Suspension", route: "Oral", scheduleClass: "OTC", isGeneric: false },
+  { rxcui: "864319", genericName: "Oral Rehydration Salts", brandName: "Jeewani", strength: "4.1 g per sachet", atcCode: "A07CA", atcName: "Oral rehydration salt formulations", category: "Rehydration", dosageForm: "Powder", route: "Oral", scheduleClass: "OTC", isGeneric: true },
+  { rxcui: "6916", genericName: "Metoclopramide", brandName: "Plasil", strength: "10 mg", atcCode: "A03FA01", atcName: "Propulsives", category: "Antiemetic", dosageForm: "Tablet", route: "Oral", scheduleClass: "POM", isGeneric: true },
+
+  // ─── Antihypertensive & Cardiac (Sri Lanka specific) ──────
+  { rxcui: "6868", genericName: "Methyldopa", brandName: "Aldomet", strength: "250 mg", atcCode: "C02AB01", atcName: "Methyldopa (levorotatory)", category: "Antihypertensive", dosageForm: "Tablet", route: "Oral", scheduleClass: "POM", isGeneric: true },
+  { rxcui: "7396", genericName: "Nifedipine", brandName: "Adalat", strength: "20 mg", atcCode: "C08CA05", atcName: "Dihydropyridines", category: "Antihypertensive", dosageForm: "Tablet", route: "Oral", scheduleClass: "POM", isGeneric: true },
+  { rxcui: "7434", genericName: "Nitroglycerin", brandName: "Angised", strength: "0.5 mg", atcCode: "C01DA02", atcName: "Organic nitrates", category: "Antianginal", dosageForm: "Tablet", route: "Sublingual", scheduleClass: "POM", isGeneric: true },
+  { rxcui: "6061", genericName: "Isosorbide Mononitrate", brandName: "Imdur", strength: "20 mg", atcCode: "C01DA14", atcName: "Organic nitrates", category: "Antianginal", dosageForm: "Tablet", route: "Oral", scheduleClass: "POM", isGeneric: true },
+
+  // ─── Respiratory inhalers (Asia common) ───────────────────
+  { rxcui: "859088", genericName: "Budesonide + Formoterol", brandName: "Symbicort", strength: "200 mcg / 6 mcg", atcCode: "R03AK07", atcName: "Formoterol and budesonide", category: "Bronchodilator combo", dosageForm: "Inhaler", route: "Inhalation", scheduleClass: "POM", isGeneric: false },
+  { rxcui: "859080", genericName: "Fluticasone + Salmeterol", brandName: "Seretide", strength: "125 mcg / 25 mcg", atcCode: "R03AK06", atcName: "Salmeterol and fluticasone", category: "Bronchodilator combo", dosageForm: "Inhaler", route: "Inhalation", scheduleClass: "POM", isGeneric: false },
+
+  // ─── Antivirals & Lipids ──────────────────────────────────
+  { rxcui: "4256", genericName: "Fenofibrate", brandName: "Lipanthyl", strength: "200 mg", atcCode: "C10AB05", atcName: "Fibrates", category: "Antilipemic", dosageForm: "Capsule", route: "Oral", scheduleClass: "POM", isGeneric: true },
+  { rxcui: "290", genericName: "Acyclovir", brandName: "Zovirax", strength: "400 mg", atcCode: "J05AB01", atcName: "Nucleosides and nucleotides", category: "Antiviral", dosageForm: "Tablet", route: "Oral", scheduleClass: "POM", isGeneric: true },
+
+  // ─── Neurological / Pain ──────────────────────────────────
+  { rxcui: "25480", genericName: "Gabapentin", brandName: "Neurontin", strength: "300 mg", atcCode: "N03AX12", atcName: "Other antiepileptics", category: "Anticonvulsant", dosageForm: "Capsule", route: "Oral", scheduleClass: "POM", isGeneric: true },
+  { rxcui: "187832", genericName: "Pregabalin", brandName: "Lyrica", strength: "75 mg", atcCode: "N03AX16", atcName: "Other antiepileptics", category: "Anticonvulsant", dosageForm: "Capsule", route: "Oral", scheduleClass: "POM", isGeneric: true },
+
+  // ─── Oral Contraceptives (Family Planning Asia) ───────────
+  { rxcui: "630208", genericName: "Ethinyl Estradiol + Levonorgestrel", brandName: "Mithuri", strength: "0.03 mg / 0.15 mg", atcCode: "G03AA07", atcName: "Levonorgestrel and ethinylestradiol", category: "Contraceptive", dosageForm: "Tablet", route: "Oral", scheduleClass: "POM", isGeneric: false },
 ];
 
 // Curated drug interaction rules — seed straight into
