@@ -98,10 +98,65 @@ export default function AvailabilityScreen() {
     }
   }, [data]);
 
-  function patchDay(idx: number, p: Partial<DaySchedule>) {
+  function addShift(dayOfWeek: number) {
+    const dayShifts = schedule.filter((s) => s.dayOfWeek === dayOfWeek);
+    let nextStart = "14:00";
+    let nextEnd = "17:00";
+    if (dayShifts.length > 0) {
+      const lastShift = dayShifts[dayShifts.length - 1];
+      const [h, m] = lastShift.endTime.split(":").map(Number);
+      const startHour = Math.min(23, h + 1);
+      const endHour = Math.min(23, startHour + 3);
+      nextStart = `${String(startHour).padStart(2, "0")}:00`;
+      nextEnd = `${String(endHour).padStart(2, "0")}:00`;
+    }
+    setSchedule((prev) => [
+      ...prev,
+      {
+        dayOfWeek,
+        startTime: nextStart,
+        endTime: nextEnd,
+        slotMinutes: 30,
+        active: true,
+      },
+    ]);
+  }
+
+  function removeShift(flatIdx: number) {
+    setSchedule((prev) => prev.filter((_, i) => i !== flatIdx));
+  }
+
+  function updateShift(flatIdx: number, p: Partial<DaySchedule>) {
     setSchedule((prev) =>
-      prev.map((d, i) => (i === idx ? { ...d, ...p } : d))
+      prev.map((item, i) => (i === flatIdx ? { ...item, ...p } : item))
     );
+  }
+
+  function toggleDayActive(dayOfWeek: number, val: boolean) {
+    setSchedule((prev) => {
+      const dayShifts = prev.filter((s) => s.dayOfWeek === dayOfWeek);
+      if (val) {
+        if (dayShifts.length === 0) {
+          return [
+            ...prev,
+            {
+              dayOfWeek,
+              startTime: "09:00",
+              endTime: "17:00",
+              slotMinutes: 30,
+              active: true,
+            },
+          ];
+        }
+        return prev.map((s) =>
+          s.dayOfWeek === dayOfWeek ? { ...s, active: true } : s
+        );
+      } else {
+        return prev.map((s) =>
+          s.dayOfWeek === dayOfWeek ? { ...s, active: false } : s
+        );
+      }
+    });
   }
 
   async function save() {
@@ -130,8 +185,15 @@ export default function AvailabilityScreen() {
     );
   }
 
-  const activeCount = schedule.filter((d) => d.active).length;
-  const minSlot = Math.min(...schedule.map((d) => d.slotMinutes || 30));
+  const activeDays = new Set(
+    schedule.filter((d) => d.active).map((d) => d.dayOfWeek)
+  );
+  const activeCount = activeDays.size;
+
+  const activeShifts = schedule.filter((d) => d.active);
+  const minSlot = activeShifts.length > 0
+    ? Math.min(...activeShifts.map((d) => d.slotMinutes || 30))
+    : 30;
 
   return (
     <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
@@ -159,82 +221,156 @@ export default function AvailabilityScreen() {
         >
           <SectionHeader title={t("doctorAvailability.weeklySchedule")} />
 
-          {schedule.map((d, idx) => (
-            <Card key={d.dayOfWeek} padded={false}>
-              <View style={{ padding: spacing.lg, gap: spacing.md }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.sm,
-                  }}
-                >
-                  <Clock4
-                    size={18}
-                    color={d.active ? colors.primary : colors.textSubtle}
-                    strokeWidth={2.2}
-                  />
-                  <Text
-                    style={[
-                      typography.title.sm,
-                      { color: colors.text, flex: 1 },
-                    ]}
-                  >
-                    {days[d.dayOfWeek]}
-                  </Text>
-                  <Switch
-                    value={d.active}
-                    onValueChange={(v) => patchDay(idx, { active: v })}
-                    trackColor={{ true: colors.primary, false: colors.border }}
-                  />
-                </View>
+          {Array.from({ length: 7 }).map((_, dOfWeek) => {
+            const dayShifts = schedule
+              .map((s, flatIdx) => ({ ...s, flatIdx }))
+              .filter((s) => s.dayOfWeek === dOfWeek);
+            const isDayActive = dayShifts.some((s) => s.active);
 
-                {d.active ? (
+            return (
+              <Card key={dOfWeek} padded={false}>
+                <View style={{ padding: spacing.lg, gap: spacing.md }}>
                   <View
                     style={{
                       flexDirection: "row",
+                      alignItems: "center",
                       gap: spacing.sm,
                     }}
                   >
-                    <View style={{ flex: 1 }}>
-                      <FormField label={t("doctorAvailability.start")}>
-                        <TextInput
-                          value={d.startTime}
-                          onChangeText={(v) => patchDay(idx, { startTime: v })}
-                          placeholder={t("doctorAvailability.timePlaceholder")}
-                          keyboardType="numbers-and-punctuation"
-                        />
-                      </FormField>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <FormField label={t("doctorAvailability.end")}>
-                        <TextInput
-                          value={d.endTime}
-                          onChangeText={(v) => patchDay(idx, { endTime: v })}
-                          placeholder={t("doctorAvailability.timePlaceholder")}
-                          keyboardType="numbers-and-punctuation"
-                        />
-                      </FormField>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <FormField label={t("doctorAvailability.slotMin")}>
-                        <TextInput
-                          value={String(d.slotMinutes)}
-                          onChangeText={(v) =>
-                            patchDay(idx, {
-                              slotMinutes: parseInt(v, 10) || 30,
-                            })
-                          }
-                          placeholder="30"
-                          keyboardType="number-pad"
-                        />
-                      </FormField>
-                    </View>
+                    <Clock4
+                      size={18}
+                      color={isDayActive ? colors.primary : colors.textSubtle}
+                      strokeWidth={2.2}
+                    />
+                    <Text
+                      style={[
+                        typography.title.sm,
+                        { color: colors.text, flex: 1 },
+                      ]}
+                    >
+                      {days[dOfWeek]}
+                    </Text>
+                    <Switch
+                      value={isDayActive}
+                      onValueChange={(v) => toggleDayActive(dOfWeek, v)}
+                      trackColor={{ true: colors.primary, false: colors.border }}
+                    />
                   </View>
-                ) : null}
-              </View>
-            </Card>
-          ))}
+
+                  {isDayActive ? (
+                    <View style={{ gap: spacing.lg }}>
+                      {dayShifts
+                        .filter((s) => s.active)
+                        .map((s, idx) => (
+                          <View
+                            key={s.flatIdx}
+                            style={{
+                              borderTopWidth: idx > 0 ? 1 : 0,
+                              borderTopColor: colors.border,
+                              paddingTop: idx > 0 ? spacing.md : 0,
+                              gap: spacing.sm,
+                            }}
+                          >
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  typography.overline,
+                                  { color: colors.textMuted, letterSpacing: 0.6 },
+                                ]}
+                              >
+                                {t("doctorAvailability.shiftNumber", {
+                                  num: idx + 1,
+                                })}
+                              </Text>
+                              <Pressable
+                                onPress={() => removeShift(s.flatIdx)}
+                                hitSlop={8}
+                                style={({ pressed }) => ({
+                                  opacity: pressed ? 0.6 : 1,
+                                })}
+                              >
+                                <Trash2
+                                  size={16}
+                                  color={colors.danger}
+                                  strokeWidth={2}
+                                />
+                              </Pressable>
+                            </View>
+
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                gap: spacing.sm,
+                              }}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <FormField label={t("doctorAvailability.start")}>
+                                  <TextInput
+                                    value={s.startTime}
+                                    onChangeText={(v) =>
+                                      updateShift(s.flatIdx, { startTime: v })
+                                    }
+                                    placeholder={t(
+                                      "doctorAvailability.timePlaceholder"
+                                    )}
+                                    keyboardType="numbers-and-punctuation"
+                                  />
+                                </FormField>
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <FormField label={t("doctorAvailability.end")}>
+                                  <TextInput
+                                    value={s.endTime}
+                                    onChangeText={(v) =>
+                                      updateShift(s.flatIdx, { endTime: v })
+                                    }
+                                    placeholder={t(
+                                      "doctorAvailability.timePlaceholder"
+                                    )}
+                                    keyboardType="numbers-and-punctuation"
+                                  />
+                                </FormField>
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <FormField
+                                  label={t("doctorAvailability.slotMin")}
+                                >
+                                  <TextInput
+                                    value={String(s.slotMinutes)}
+                                    onChangeText={(v) =>
+                                      updateShift(s.flatIdx, {
+                                        slotMinutes: parseInt(v, 10) || 30,
+                                      })
+                                    }
+                                    placeholder="30"
+                                    keyboardType="number-pad"
+                                  />
+                                </FormField>
+                              </View>
+                            </View>
+                          </View>
+                        ))}
+
+                      <Button
+                        title={t("doctorAvailability.addShift")}
+                        variant="ghost"
+                        size="sm"
+                        icon={Plus}
+                        onPress={() => addShift(dOfWeek)}
+                        style={{ alignSelf: "flex-start" }}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              </Card>
+            );
+          })}
 
           <Button
             title={t("doctorAvailability.saveSchedule")}

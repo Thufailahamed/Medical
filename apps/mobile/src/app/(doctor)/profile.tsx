@@ -44,7 +44,7 @@ import {
   useUnreadCount,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Card, Skeleton, Button } from "@/components/ui";
+import { Screen, Card, Skeleton, Button } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
 
@@ -242,19 +242,13 @@ export default function DoctorProfileScreen() {
 
   if (isLoading || !doctor || !dbUser) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.bg,
-          paddingTop: spacing.lg,
-        }}
-      >
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+      <Screen padded={false} edges={["top"]} bottomInset={false}>
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md, paddingTop: spacing.lg }}>
           <Skeleton height={180} radius={24} />
           <Skeleton height={140} radius={20} />
           <Skeleton height={220} radius={20} />
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -273,7 +267,7 @@ export default function DoctorProfileScreen() {
   const verified = dbUser?.verified;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <Screen padded={false} edges={["top"]} tabBarOffset={false} bottomInset={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -281,6 +275,26 @@ export default function DoctorProfileScreen() {
           gap: spacing.lg,
         }}
       >
+        {/* ─── Page Header ─── */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.xs,
+          }}
+        >
+          <Text
+            style={[
+              typography.display.sm,
+              { color: colors.text, fontWeight: "800", letterSpacing: -0.5 },
+            ]}
+          >
+            {t("doctorProfile.title")}
+          </Text>
+        </View>
         {/* ─── Hero identity card ─── */}
         <View
           style={{
@@ -811,6 +825,6 @@ export default function DoctorProfileScreen() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
