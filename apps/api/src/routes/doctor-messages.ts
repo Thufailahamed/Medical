@@ -12,6 +12,8 @@ import {
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
+import { txWrite } from "../lib/tx";
+import { atomicIncrement } from "../lib/status-guard";
 import type { AppEnvironment } from "../types";
 
 const doctorMessagesRouter = new Hono<AppEnvironment>();
@@ -216,6 +218,15 @@ doctorMessagesRouter.get("/conversations/:id/messages", async (c) => {
 
 // ─── Send a message ──────────────────────────────────────
 // POST /doctor-messages/conversations/:id/messages  { body }
+//
+// P2 atomicity: previously this endpoint did a read-modify-write on
+// `patientUnread` (`(conv.patientUnread || 0) + 1`) — two concurrent
+// sends would both read the same value and both write back the same
+// incremented value, losing one of the increments. Now we use SQL
+// arithmetic (`patientUnread = patientUnread + 1`) inside the same
+// transaction that inserts the message, so the unread counter is
+// race-free. The lastMessageAt / lastMessagePreview fields are
+// updated in the same transaction.
 doctorMessagesRouter.post("/conversations/:id/messages", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
@@ -231,7 +242,7 @@ doctorMessagesRouter.post("/conversations/:id/messages", async (c) => {
   }
 
   const [conv] = await db
-    .select()
+    .select({ id: messagesConversations.id, patientId: messagesConversations.patientId })
     .from(messagesConversations)
     .where(
       and(
@@ -243,28 +254,39 @@ doctorMessagesRouter.post("/conversations/:id/messages", async (c) => {
   if (!conv) return c.json({ error: "Conversation not found" }, 404);
 
   const now = new Date().toISOString();
-  const [inserted] = await db
-    .insert(messages)
-    .values({
+
+  const inserted = await txWrite(db, async (tx) => {
+    const [m] = await tx
+      .insert(messages)
+      .values({
+        conversationId,
+        senderRole: "doctor",
+        senderId: userId,
+        body: messageBody,
+        createdAt: now,
+      } as any)
+      .returning();
+
+    // SQL-side atomic increment — no lost updates under concurrent sends.
+    await atomicIncrement(
+      tx,
+      messagesConversations,
       conversationId,
-      senderRole: "doctor",
-      senderId: userId,
-      body: messageBody,
-      createdAt: now,
-    } as any)
-    .returning();
+      { patientUnread: 1 }
+    );
+    await tx
+      .update(messagesConversations)
+      .set({
+        lastMessageAt: now,
+        lastMessagePreview: messageBody.slice(0, 140),
+        lastMessageSender: "doctor",
+      })
+      .where(eq(messagesConversations.id, conversationId));
 
-  await db
-    .update(messagesConversations)
-    .set({
-      lastMessageAt: now,
-      lastMessagePreview: messageBody.slice(0, 140),
-      lastMessageSender: "doctor",
-      patientUnread: (conv.patientUnread || 0) + 1,
-    })
-    .where(eq(messagesConversations.id, conversationId));
+    return m;
+  });
 
-  // Notify the patient.
+  // Notify the patient (best-effort, outside the tx).
   const [patientRow] = await db
     .select({ userId: patients.userId })
     .from(patients)
@@ -275,8 +297,7 @@ doctorMessagesRouter.post("/conversations/:id/messages", async (c) => {
       db,
       userId: patientRow.userId,
       type: "general",
-      title: `Message from Dr. ${(doctor as any).doctors?.userId ? "" : ""}`.trim() ||
-        "New message from your doctor",
+      title: "New message from your doctor",
       body: messageBody.slice(0, 140),
       data: { conversationId, senderRole: "doctor" },
     });

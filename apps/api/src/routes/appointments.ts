@@ -377,7 +377,7 @@ appointmentsRouter.put(
       .where(eq(appointments.id, appointmentId))
       .limit(1);
 
-    if (!existing || existing.doctorId !== (doctor as any).doctors?.id && existing.doctorId !== doctor.id) {
+    if (!existing || existing.doctorId !== doctor.id) {
       return c.json({ error: "Appointment not found or access denied" }, 404);
     }
 

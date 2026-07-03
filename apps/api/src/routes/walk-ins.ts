@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, desc, gte, lt, or, like } from "drizzle-orm";
+import { eq, and, desc, gte, lt, or, like, sql } from "drizzle-orm";
 import {
   walkIns,
   doctors,
@@ -12,6 +12,8 @@ import {
   medicalRecords,
   appointments,
   prescriptions,
+  labOrders,
+  messagesConversations,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -302,6 +304,14 @@ walkInsRouter.patch("/:id", authMiddleware, async (c) => {
 
 // ─── Search patients for walk-in registration ────────────
 // GET /walk-ins/search?q=...
+//
+// P0 audit fix: previously this returned arbitrary patients matching
+// the LIKE query to ANY caller with role doctor|staff|admin. For
+// doctors — who should only see patients they have a relationship
+// with — we now scope the LIKE results to the doctor's known patient
+// set (same union as /doctor/search-patients). Hospital admin/staff
+// keep the unscoped search since they're doing front-desk
+// registration.
 walkInsRouter.get(
   "/search",
   authMiddleware,
@@ -313,10 +323,84 @@ walkInsRouter.get(
   ),
   async (c) => {
     const db = c.get("db");
+    const userId = c.get("userId");
+    const role = (c.get("dbUser") as any)?.role;
     const q = (c.req.query("q") || "").trim();
     if (!q || q.length < 2) return c.json({ patients: [] });
 
     const pat = `%${q.replace(/[%_]/g, "")}%`;
+
+    // Doctor: limit LIKE results to known-patient set.
+    if (role === "doctor") {
+      const [doctorRow] = await db
+        .select({ id: doctors.id })
+        .from(doctors)
+        .where(eq(doctors.userId, userId))
+        .limit(1);
+      if (!doctorRow) return c.json({ patients: [] });
+
+      const [a, b, c2, d, e, f] = await Promise.all([
+        db
+          .selectDistinct({ pid: appointments.patientId })
+          .from(appointments)
+          .where(eq(appointments.doctorId, doctorRow.id)),
+        db
+          .selectDistinct({ pid: prescriptions.patientId })
+          .from(prescriptions)
+          .where(eq(prescriptions.doctorId, doctorRow.id)),
+        db
+          .selectDistinct({ pid: labOrders.patientId })
+          .from(labOrders)
+          .where(eq(labOrders.doctorId, doctorRow.id)),
+        db
+          .selectDistinct({ pid: medicalRecords.patientId })
+          .from(medicalRecords)
+          .where(eq(medicalRecords.doctorId, doctorRow.id)),
+        db
+          .selectDistinct({ pid: walkIns.patientId })
+          .from(walkIns)
+          .where(eq(walkIns.doctorId, doctorRow.id)),
+        db
+          .selectDistinct({ pid: messagesConversations.patientId })
+          .from(messagesConversations)
+          .where(eq(messagesConversations.doctorId, doctorRow.id)),
+      ]);
+      const allowed = new Set<string>();
+      for (const r of a) allowed.add((r as any).pid);
+      for (const r of b) allowed.add((r as any).pid);
+      for (const r of c2) allowed.add((r as any).pid);
+      for (const r of d) allowed.add((r as any).pid);
+      for (const r of e) allowed.add((r as any).pid);
+      for (const r of f) allowed.add((r as any).pid);
+      if (allowed.size === 0) return c.json({ patients: [] });
+
+      const rows = await db
+        .select({
+          pid: patients.id,
+          pname: users.name,
+          pphone: users.phone,
+          pnic: users.nic,
+        })
+        .from(patients)
+        .innerJoin(users, eq(users.id, patients.userId))
+        .where(
+          and(
+            or(
+              like(users.name, pat),
+              like(users.nic, pat),
+              like(users.phone, pat)
+            ),
+            sql`${patients.id} IN (${sql.join(
+              Array.from(allowed).map((id) => sql`${id}`),
+              sql`, `
+            )})`
+          )
+        )
+        .limit(20);
+      return c.json({ patients: rows });
+    }
+
+    // Hospital admin / staff / super_admin: open search.
     const rows = await db
       .select()
       .from(patients)

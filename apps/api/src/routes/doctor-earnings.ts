@@ -9,6 +9,7 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { txWrite } from "../lib/tx";
 import type { AppEnvironment } from "../types";
 
 const doctorEarningsRouter = new Hono<AppEnvironment>();
@@ -209,6 +210,14 @@ doctorEarningsRouter.get("/payouts", async (c) => {
 // ─── Request payout ───────────────────────────────────────
 // POST /doctor-earnings/payouts  { periodStart, periodEnd }
 // Groups unassigned revenue events into a new payout row with status=pending.
+//
+// P2 atomicity: previously a SUM() + INSERT + bulk UPDATE — two
+// simultaneous payout requests could both see the same eventCount,
+// both insert a payout, and both UPDATE the events (last-write-wins
+// on payoutId). Now wrapped in a single tx with the
+// UNIQUE(doctor_id, period_start, period_end) constraint added in
+// migration 0025 as a second line of defence — a duplicate request
+// raises a unique violation and returns 409.
 doctorEarningsRouter.post("/payouts", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
@@ -231,54 +240,76 @@ doctorEarningsRouter.post("/payouts", async (c) => {
     return c.json({ error: "periodEnd must be after periodStart" }, 400);
   }
 
-  // Aggregate unassigned events in the window.
-  const agg = await db
-    .select({
-      total: sql<number>`coalesce(sum(${doctorRevenueEvents.amountLkr}), 0)`.as("total"),
-      count: sql<number>`count(*)`.as("count"),
-    })
-    .from(doctorRevenueEvents)
-    .where(
-      and(
-        eq(doctorRevenueEvents.doctorId, doctor.id),
-        sql`${doctorRevenueEvents.payoutId} IS NULL`,
-        gte(doctorRevenueEvents.occurredAt, `${periodStart} 00:00:00`),
-        lt(doctorRevenueEvents.occurredAt, `${periodEnd} 23:59:59`)
-      )
-    );
+  try {
+    const payout = await txWrite(db, async (tx) => {
+      const agg = await tx
+        .select({
+          total: sql<number>`coalesce(sum(${doctorRevenueEvents.amountLkr}), 0)`.as("total"),
+          count: sql<number>`count(*)`.as("count"),
+        })
+        .from(doctorRevenueEvents)
+        .where(
+          and(
+            eq(doctorRevenueEvents.doctorId, doctor.id),
+            sql`${doctorRevenueEvents.payoutId} IS NULL`,
+            gte(doctorRevenueEvents.occurredAt, `${periodStart} 00:00:00`),
+            lt(doctorRevenueEvents.occurredAt, `${periodEnd} 23:59:59`)
+          )
+        );
 
-  const amountLkr = Number(agg[0]?.total || 0);
-  const eventCount = Number(agg[0]?.count || 0);
-  if (eventCount === 0) {
-    return c.json({ error: "No revenue events in this window" }, 400);
+      const amountLkr = Number(agg[0]?.total || 0);
+      const eventCount = Number(agg[0]?.count || 0);
+      if (eventCount === 0) {
+        const err: any = new Error("No revenue events in this window");
+        err.statusCode = 400;
+        throw err;
+      }
+
+      const [p] = await tx
+        .insert(doctorPayouts)
+        .values({
+          doctorId: doctor.id,
+          periodStart,
+          periodEnd,
+          amountLkr,
+          eventCount,
+          status: "pending",
+        } as any)
+        .returning();
+
+      // Attach events to this payout.
+      await tx
+        .update(doctorRevenueEvents)
+        .set({ payoutId: p.id })
+        .where(
+          and(
+            eq(doctorRevenueEvents.doctorId, doctor.id),
+            sql`${doctorRevenueEvents.payoutId} IS NULL`,
+            gte(doctorRevenueEvents.occurredAt, `${periodStart} 00:00:00`),
+            lt(doctorRevenueEvents.occurredAt, `${periodEnd} 23:59:59`)
+          )
+        );
+      return p;
+    });
+    return c.json({ payout }, 201);
+  } catch (err: any) {
+    const m = String(err?.message || "").toLowerCase();
+    if (m.includes("unique") || m.includes("constraint")) {
+      // Concurrent request beat us — payout already exists for this
+      // (doctor, period).
+      return c.json(
+        {
+          error:
+            "A payout for this period has already been requested. Refresh and check existing payouts.",
+        },
+        409
+      );
+    }
+    if (err.statusCode === 400) {
+      return c.json({ error: err.message }, 400);
+    }
+    throw err;
   }
-
-  const [payout] = await db
-    .insert(doctorPayouts)
-    .values({
-      doctorId: doctor.id,
-      periodStart,
-      periodEnd,
-      amountLkr,
-      eventCount,
-      status: "pending",
-    } as any)
-    .returning();
-
-  // Attach events to this payout.
-  await db
-    .update(doctorRevenueEvents)
-    .set({ payoutId: payout.id })
-    .where(
-      and(
-        eq(doctorRevenueEvents.doctorId, doctor.id),
-        sql`${doctorRevenueEvents.payoutId} IS NULL`,
-        gte(doctorRevenueEvents.occurredAt, `${periodStart} 00:00:00`),
-        lt(doctorRevenueEvents.occurredAt, `${periodEnd} 23:59:59`)
-      )
-    );
-
-  return c.json({ payout }, 201);
 });
 
 // ─── Update payout (admin hook) ──────────────────────────

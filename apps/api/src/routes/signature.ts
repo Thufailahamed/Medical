@@ -39,6 +39,8 @@ import {
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { audit } from "../lib/audit";
+import { txWrite } from "../lib/tx";
+import { withStatusGuard } from "../lib/status-guard";
 import {
   generateKeyPair,
   importPrivateKey,
@@ -159,32 +161,78 @@ router.post(
     const privateKey = await importPrivateKey(signingPrivateKeyEnc, env);
     const signatureB64 = await signPayload(payload, privateKey);
 
-    // Persist signature row. `signingPublicKey` is denormalised so
-    // verification keeps working after a key rotation.
-    const [sig] = await db
-      .insert(prescriptionSignatures)
-      .values({
-        prescriptionId,
-        doctorId: doctor.id,
-        signingKeyId,
-        payloadHash,
-        signatureB64,
-        canonicalPayload: payload,
-        signingPublicKey,
-      } as any)
-      .returning();
-
-    // Flip prescription status.
+    // P2 atomicity: the previous version did INSERT signature + UPDATE
+    // prescription as two independent writes. Two concurrent sign
+    // requests both observed status='draft' and both inserted
+    // signature rows — the verification path picked the "latest" via
+    // ORDER BY signedAt DESC, but both signatures existed with no
+    // way to dedupe. Now:
+    //   1. Insert signature row.
+    //   2. Use withStatusGuard to flip status from ['draft'] → 'signed'
+    //      atomically. If another request already flipped, the
+    //      conditional UPDATE matches zero rows and we return 409.
+    //   3. Wrap the whole batch in a single tx so the signature and
+    //      status flip either both commit or both roll back.
+    //
+    // The (prescription_id) UNIQUE index added in migration 0025
+    // makes the INSERT the second-line defence: even if withStatusGuard
+    // somehow lost the race, the second signature insert will fail
+    // with a unique-constraint violation and the route returns 409.
     const signedAt = new Date().toISOString();
-    await db
-      .update(prescriptions)
-      .set({
-        status: "signed",
-        signedAt,
-        signedPayloadHash: payloadHash,
-        signatureId: sig?.id ?? null,
-      } as any)
-      .where(eq(prescriptions.id, prescriptionId));
+
+    let sig: any;
+    let statusFlipped = false;
+    try {
+      const result = await txWrite(db, async (tx) => {
+        const [s] = await tx
+          .insert(prescriptionSignatures)
+          .values({
+            prescriptionId,
+            doctorId: doctor.id,
+            signingKeyId,
+            payloadHash,
+            signatureB64,
+            canonicalPayload: payload,
+            signingPublicKey,
+          } as any)
+          .returning();
+
+        const guard = await withStatusGuard(
+          tx,
+          prescriptions,
+          prescriptionId,
+          ["draft"],
+          {
+            status: "signed",
+            signedAt,
+            signedPayloadHash: payloadHash,
+            signatureId: s?.id ?? null,
+          }
+        );
+        return { sig: s, flipped: guard.changed };
+      });
+      sig = result.sig;
+      statusFlipped = result.flipped;
+    } catch (err: any) {
+      const m = String(err?.message || "").toLowerCase();
+      if (m.includes("unique") || m.includes("constraint")) {
+        // Concurrent sign request beat us — the row is already signed.
+        return c.json(
+          { error: "Already signed", prescriptionId },
+          409
+        );
+      }
+      throw err;
+    }
+
+    if (!statusFlipped) {
+      // Signature row inserted but status didn't flip — another
+      // request already flipped it. Roll forward the cache / return 409.
+      return c.json(
+        { error: "Already signed", prescriptionId },
+        409
+      );
+    }
 
     await audit(db, {
       userId,

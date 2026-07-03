@@ -1,8 +1,8 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, or, like, desc, and } from "drizzle-orm";
-import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, hospitals, doctorAvailability, doctorTimeOff, prescriptionSignatures } from "@healthcare/db";
+import { eq, or, like, desc, and, sql } from "drizzle-orm";
+import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, labOrders, walkIns, messagesConversations, hospitals, doctorAvailability, doctorTimeOff, prescriptionSignatures } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { audit } from "../lib/audit";
@@ -46,7 +46,43 @@ doctorRouter.get("/dashboard", authMiddleware, requireRole("doctor"), async (c) 
     .innerJoin(medicalRecords, eq(patients.id, medicalRecords.patientId))
     .where(eq(medicalRecords.doctorId, doctor.id));
 
-  const uniquePatients = new Set(totalPatients.map((r) => r.patients.id));
+  // P0 audit fix: previously `totalPatients` only counted patients with
+  // a medical_records row authored by THIS doctor. Patients reached
+  // through appointments/prescriptions/lab orders/walk-ins/messaging
+  // were invisible to the dashboard. Union the five evidence tables.
+  const [apptPatientIds] = await db
+    .select({ pid: appointments.patientId })
+    .from(appointments)
+    .where(eq(appointments.doctorId, doctor.id))
+    .groupBy(appointments.patientId);
+  const [rxPatientIds] = await db
+    .select({ pid: prescriptions.patientId })
+    .from(prescriptions)
+    .where(eq(prescriptions.doctorId, doctor.id))
+    .groupBy(prescriptions.patientId);
+  const [labPatientIds] = await db
+    .select({ pid: labOrders.patientId })
+    .from(labOrders)
+    .where(eq(labOrders.doctorId, doctor.id))
+    .groupBy(labOrders.patientId);
+  const [wiPatientIds] = await db
+    .select({ pid: walkIns.patientId })
+    .from(walkIns)
+    .where(eq(walkIns.doctorId, doctor.id))
+    .groupBy(walkIns.patientId);
+  const [msgPatientIds] = await db
+    .select({ pid: messagesConversations.patientId })
+    .from(messagesConversations)
+    .where(eq(messagesConversations.doctorId, doctor.id))
+    .groupBy(messagesConversations.patientId);
+
+  const uniquePatients = new Set<string>();
+  for (const r of totalPatients) uniquePatients.add(r.patients.id);
+  for (const r of apptPatientIds ?? []) uniquePatients.add((r as any).pid);
+  for (const r of rxPatientIds ?? []) uniquePatients.add((r as any).pid);
+  for (const r of labPatientIds ?? []) uniquePatients.add((r as any).pid);
+  for (const r of wiPatientIds ?? []) uniquePatients.add((r as any).pid);
+  for (const r of msgPatientIds ?? []) uniquePatients.add((r as any).pid);
 
   return c.json({
     doctor,
@@ -59,9 +95,18 @@ doctorRouter.get("/dashboard", authMiddleware, requireRole("doctor"), async (c) 
 });
 
 // ─── Search patients ─────────────────────────────────────
+//
+// P0 audit fix: this endpoint previously returned up to 20 arbitrary
+// patients matching the LIKE query, regardless of whether the doctor
+// had ever treated them. Now we restrict results to patients the
+// doctor has at least one of: appointment, prescription, lab order,
+// medical record, walk-in, or active messaging conversation with.
+// Hospital admin/staff still get the unscoped search via
+// /walk-ins/search (front-desk registration path).
 doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), async (c) => {
   const query = c.req.query("q");
   const db = c.get("db");
+  const userId = c.get("userId");
 
   if (!query || query.length < 2) {
     return c.json({ patients: [] });
@@ -70,15 +115,74 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
   // Sanitize query to prevent injection
   const safeQuery = query.replace(/[%_]/g, "\\$&");
 
+  // Resolve doctor row first so we can scope by doctorId.
+  const [doctor] = await db
+    .select({ id: doctors.id })
+    .from(doctors)
+    .where(eq(doctors.userId, userId))
+    .limit(1);
+  if (!doctor) return c.json({ patients: [] });
+
+  // Build the union of patient ids this doctor has any relationship with.
+  const [doctorRow] = await Promise.all([
+    (async () => {
+      const [a, b, c2, d, e, f] = await Promise.all([
+        db
+          .selectDistinct({ pid: appointments.patientId })
+          .from(appointments)
+          .where(eq(appointments.doctorId, doctor.id)),
+        db
+          .selectDistinct({ pid: prescriptions.patientId })
+          .from(prescriptions)
+          .where(eq(prescriptions.doctorId, doctor.id)),
+        db
+          .selectDistinct({ pid: labOrders.patientId })
+          .from(labOrders)
+          .where(eq(labOrders.doctorId, doctor.id)),
+        db
+          .selectDistinct({ pid: medicalRecords.patientId })
+          .from(medicalRecords)
+          .where(eq(medicalRecords.doctorId, doctor.id)),
+        db
+          .selectDistinct({ pid: walkIns.patientId })
+          .from(walkIns)
+          .where(eq(walkIns.doctorId, doctor.id)),
+        db
+          .selectDistinct({ pid: messagesConversations.patientId })
+          .from(messagesConversations)
+          .where(eq(messagesConversations.doctorId, doctor.id)),
+      ]);
+      const set = new Set<string>();
+      for (const r of a) set.add((r as any).pid);
+      for (const r of b) set.add((r as any).pid);
+      for (const r of c2) set.add((r as any).pid);
+      for (const r of d) set.add((r as any).pid);
+      for (const r of e) set.add((r as any).pid);
+      for (const r of f) set.add((r as any).pid);
+      return set;
+    })(),
+  ]);
+
+  if (doctorRow.size === 0) return c.json({ patients: [] });
+
   const results = await db
-    .select()
+    .select({
+      patient: patients,
+      user: users,
+    })
     .from(patients)
     .innerJoin(users, eq(patients.userId, users.id))
     .where(
-      or(
-        like(users.name, `%${safeQuery}%`),
-        like(users.nic, `%${safeQuery}%`),
-        like(users.phone, `%${safeQuery}%`)
+      and(
+        or(
+          like(users.name, `%${safeQuery}%`),
+          like(users.nic, `%${safeQuery}%`),
+          like(users.phone, `%${safeQuery}%`)
+        ),
+        sql`${patients.id} IN (${sql.join(
+          Array.from(doctorRow).map((id) => sql`${id}`),
+          sql`, `
+        )})`
       )
     )
     .limit(20);

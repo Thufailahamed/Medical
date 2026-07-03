@@ -1737,3 +1737,99 @@ export const doctorRxTemplates = sqliteTable(
     ),
   })
 );
+
+// ════════════════════════════════════════════════════════════
+// Doctor↔Patient Enterprise Architecture: care team table
+// ════════════════════════════════════════════════════════════
+// Migration 0024. Single source of truth for "doctor X has access to
+// patient Y". The earlier union of appointments / prescriptions /
+// lab_orders / medical_records / walk_ins / messages_conversations
+// still works as evidence (e.g. to auto-populate rows on first
+// interaction), but the access middleware consults care_team_members
+// FIRST.
+//
+// `role` covers the relationship semantics:
+//   primary_care   — patient's main doctor (auto-issued on first
+//                    appointment / prescription / lab order /
+//                    medical record / walk-in / message).
+//   specialist     — invited by primary_care for a second opinion;
+//                    `consent_record_id` references the patient-
+//                    issued share-link token.
+//   covering       — covering doctor during the primary's leave
+//                    (auto-issued on walk-ins to a different doctor).
+//   on_call        — triage doctor for the hospital; can see patients
+//                    only while they have an active slot.
+//   family_view    — patient's chosen family representative.
+//
+// `scope` limits what the doctor sees:
+//   full          — all PHI.
+//   episodes_only — records from this doctor only, no other-doctor
+//                    prescriptions / labs.
+//   records_only  — read-only access to records; cannot prescribe.
+//
+// `status` lifecycle:
+//   active → paused (doctor temporarily unavailable)
+//   active → revoked (patient removed the doctor)
+// Both terminal states retain the row for audit. Re-issuing a revoked
+// role creates a NEW row (different id); the partial UNIQUE index
+// allows multiple revoked rows for the same triple.
+export const careTeamMembers = sqliteTable(
+  "care_team_members",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    role: text("role", {
+      enum: [
+        "primary_care",
+        "specialist",
+        "covering",
+        "on_call",
+        "family_view",
+      ],
+    }).notNull(),
+    scope: text("scope", {
+      enum: ["full", "episodes_only", "records_only"],
+    })
+      .notNull()
+      .default("full"),
+    status: text("status", {
+      enum: ["active", "paused", "revoked"],
+    })
+      .notNull()
+      .default("active"),
+    invitedByUserId: text("invited_by_user_id").references(() => users.id),
+    invitedAt: text("invited_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    acceptedAt: text("accepted_at"),
+    revokedAt: text("revoked_at"),
+    revokedByUserId: text("revoked_by_user_id").references(() => users.id),
+    consentRecordId: text("consent_record_id"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    // Drizzle has no partial-index builder — the partial-unique index
+    // is created in migration 0024 as a raw CREATE UNIQUE INDEX ...
+    // WHERE clause. Drizzle sees this index for query planning and
+    // rejects duplicate inserts that match the WHERE predicate.
+    doctorStatusIdx: index("care_team_doctor_status_idx").on(
+      t.doctorId,
+      t.status
+    ),
+    patientStatusIdx: index("care_team_patient_status_idx").on(
+      t.patientId,
+      t.status
+    ),
+  })
+);

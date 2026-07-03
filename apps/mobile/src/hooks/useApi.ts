@@ -1302,8 +1302,20 @@ export function useCreatePrescription() {
         method: "POST",
         body: data,
       }),
-    onSuccess: () => {
+    onSuccess: (_res, vars) => {
       queryClient.invalidateQueries({ queryKey: ["doctor"] });
+      // P4 audit fix: also invalidate the doctor-portal patient summary
+      // bundle so a second visit to /patient-detail sees the new
+      // prescription immediately. Without this the doctor's view of
+      // "current patient medications" lags behind reality.
+      if (vars?.patientId) {
+        queryClient.invalidateQueries({
+          queryKey: ["doctor-portal", "patient", vars.patientId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["medical-records", vars.patientId],
+        });
+      }
     },
   });
 }
@@ -1773,6 +1785,16 @@ export function useUpdateLabOrder() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["doctor-portal", "lab-orders"] });
+      // P4 audit fix: a lab-order status flip changes what the doctor's
+      // patient-summary bundle shows. Re-fetch the patient summaries
+      // rather than letting the user discover stale data on next open.
+      // We don't have the patientId in the mutation arg, so we
+      // invalidate the broad prefix — TanStack will only re-fetch
+      // queries that were actually mounted.
+      qc.invalidateQueries({
+        queryKey: ["doctor-portal", "patient"],
+        exact: false,
+      });
     },
   });
 }
@@ -1828,6 +1850,13 @@ export function useUpdateAppointmentStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["doctor-portal"] });
       qc.invalidateQueries({ queryKey: ["appointments"] });
+      // P4 audit fix: a completed appointment may also have created a
+      // revenue event; the patient-summary bundle's labOrders / past
+      // appointments list refreshes too.
+      qc.invalidateQueries({
+        queryKey: ["doctor-portal", "patient"],
+        exact: false,
+      });
     },
   });
 }
@@ -2940,6 +2969,17 @@ export function useCreateVisitSummary() {
       });
       queryClient.invalidateQueries({ queryKey: ["doctor-portal", "queue"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      // P4 audit fix: visit-summary writes prescriptions, lab mirrors,
+      // follow-ups, AND may flip the appointment status. The
+      // patient-summary bundle should re-fetch on next open so
+      // doctor doesn't see stale activeMeds / lab orders.
+      if (variables?.patientId) {
+        queryClient.invalidateQueries({
+          queryKey: ["doctor-portal", "patient", variables.patientId],
+        });
+      }
+      // Earnings may have a new revenue event (if appointment flipped).
+      queryClient.invalidateQueries({ queryKey: ["doctor-earnings"] });
     },
   });
 }

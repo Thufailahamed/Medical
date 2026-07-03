@@ -44,6 +44,7 @@ import doctorMessagesRouter from "./routes/doctor-messages";
 import doctorScheduleRouter from "./routes/doctor-schedule";
 import doctorEarningsRouter from "./routes/doctor-earnings";
 import doctorRxTemplatesRouter from "./routes/doctor-rx-templates";
+import careTeamRouter from "./routes/care-team";
 import { handleInboundEmail } from "./email/inbound";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
@@ -154,6 +155,9 @@ app.route("/doctor-messages", doctorMessagesRouter);
 app.route("/doctor-schedule", doctorScheduleRouter);
 app.route("/doctor-earnings", doctorEarningsRouter);
 app.route("/doctor-rx-templates", doctorRxTemplatesRouter);
+// Doctor↔Patient enterprise architecture: explicit care team
+// membership table. Source of truth for "doctor X can read patient Y".
+app.route("/care-team", careTeamRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);

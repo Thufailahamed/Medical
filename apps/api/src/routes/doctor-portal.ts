@@ -38,7 +38,16 @@ import { audit } from "../lib/audit";
 import { recordRevenueEvent } from "../lib/revenue";
 import { compactQueue } from "../lib/booking";
 import { canAccessPatient } from "../lib/access";
+import {
+  redactLockedRecords,
+  lockedFmIdsForPrincipal,
+} from "../lib/family-lock";
 import { flattenTranslated } from "../lib/validation-error";
+import { txWrite, UniqueViolation } from "../lib/tx";
+import {
+  withStatusGuard,
+  atomicIncrement,
+} from "../lib/status-guard";
 import { upsertRecordFts } from "../lib/fts";
 import { topSeverity } from "../lib/safety-engine";
 import { runSafetyCheck } from "../lib/safety-runner";
@@ -149,6 +158,16 @@ doctorPortalRouter.get("/queue", async (c) => {
 
 // ─── Patient summary (doctor view) ───────────────────────
 // GET /doctor-portal/patients/:id/summary
+//
+// P0 audit fix: previously this endpoint read any patient's records by
+// id without a relationship gate — any doctor with a profile could
+// fetch the full PHI bundle. Now:
+//   1. canAccessPatient() enforces the doctor↔patient relationship
+//      (appointment / prescription / lab order / medical record /
+//      walk-in / messages conversation / patient-issued share link).
+//   2. Family-member privacy lock is honoured via redactLockedRecords,
+//      so a locked FM's diagnoses/notes are scrubbed even though the
+//      record still appears in the timeline.
 doctorPortalRouter.get("/patients/:id/summary", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
@@ -157,6 +176,14 @@ doctorPortalRouter.get("/patients/:id/summary", async (c) => {
 
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const access = await canAccessPatient(db, userId, "doctor", patientId);
+  if (!access.allowed) {
+    return c.json(
+      { error: access.reason || "Forbidden", code: "no_relationship" },
+      403
+    );
+  }
 
   // Patient profile + linked user
   const [patientRow] = await db
@@ -172,12 +199,18 @@ doctorPortalRouter.get("/patients/:id/summary", async (c) => {
   if (!patientRow) return c.json({ error: "Patient not found" }, 404);
 
   // Records (recent 50)
-  const records = await db
+  const rawRecords = await db
     .select()
     .from(medicalRecords)
     .where(eq(medicalRecords.patientId, patientId))
     .orderBy(desc(medicalRecords.date))
     .limit(50);
+
+  // P0: family privacy lock — doctor sees record slots for locked FMs
+  // but PHI is scrubbed. Doctors still see the record exists so they
+  // can ask the patient to unlock if a consult requires it.
+  const lockedFmIds = await lockedFmIdsForPrincipal(db, patientId);
+  const records = redactLockedRecords(rawRecords, lockedFmIds);
 
   // Active medicines
   const activeMeds = await db
@@ -1118,6 +1151,16 @@ doctorPortalRouter.get("/records", async (c) => {
 //     followUp?:          { followUpDate, title, notes? },
 //     markAppointmentCompleted?: boolean,
 //   }
+//
+// P2 atomicity refactor: visit-summary used to be six sequential writes
+// (visit record + N prescriptions + N mirrors + N lab mirrors +
+// follow-up + appointment status flip) — a crash mid-loop left orphan
+// prescriptions without their chart mirror, or a "completed" appointment
+// with no actual clinical record. Now the entire payload is wrapped in
+// a single SQLite transaction. If anything in the loop throws, SQLite
+// rolls the whole batch back. Read-only safety/wellness checks remain
+// outside the transaction so a 409 surface exactly the same way as
+// before.
 doctorPortalRouter.post("/visit-summary", async (c) => {
   const userId = c.get("userId");
   const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role;
@@ -1157,34 +1200,13 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // 1) Create the visit record (clinical_note recordType) — link to appointment
-  const [visit] = await db
-    .insert(medicalRecords)
-    .values({
-      patientId,
-      hospitalId: doctor.hospitalId || null,
-      doctorId: doctor.id,
-      recordType: "clinical_note",
-      title,
-      diagnosis,
-      summary,
-      notes,
-      date: today,
-      appointmentId,
-    } as any)
-    .returning();
-
-  // Phase 2.1: FTS5 sync — visit record joins the search index.
-  if (visit) await upsertRecordFts(db, visit);
-
-  // 2) Prescriptions
   const prescriptionItems: any[] = Array.isArray(body.prescriptionItems)
     ? body.prescriptionItems
     : [];
-  const createdPrescriptions: any[] = [];
+  const labOrderItems: any[] = Array.isArray(body.labOrders) ? body.labOrders : [];
 
-  // Phase E-Rx 3: safety pre-flight for visit-summary prescriptions.
-  // Mirrors `doctor.ts POST /prescriptions` — same 409 + override shape.
+  // Safety pre-flight OUTSIDE the transaction. Pure-read: warns if any
+  // prescription item has a critical allergy / severe interaction.
   const safetyCandidates = prescriptionItems
     .filter((p) => p && p.name)
     .map((p) => ({ name: String(p.name) }));
@@ -1207,10 +1229,32 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
     }
   }
 
-  if (prescriptionItems.length > 0) {
+  // ─── ATOMIC WRITE BATCH ─────────────────────────────────
+  const result = await txWrite(db, async (tx) => {
+    // 1) Visit record
+    const [visit] = await tx
+      .insert(medicalRecords)
+      .values({
+        patientId,
+        hospitalId: doctor.hospitalId || null,
+        doctorId: doctor.id,
+        recordType: "clinical_note",
+        title,
+        diagnosis,
+        summary,
+        notes,
+        date: today,
+        appointmentId,
+      } as any)
+      .returning();
+
+    if (visit) await upsertRecordFts(tx, visit);
+
+    // 2) Prescriptions + their chart mirrors
+    const createdPrescriptions: any[] = [];
     for (const p of prescriptionItems) {
       if (!p?.name) continue;
-      const [rx] = await db
+      const [rx] = await tx
         .insert(prescriptions)
         .values({
           patientId,
@@ -1220,8 +1264,7 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
           notes: p.instructions ? String(p.instructions).slice(0, 1000) : null,
         } as any)
         .returning();
-      // Attach a medical_record mirror for visibility in records list
-      const [rxRecord] = await db
+      const [rxRecord] = await tx
         .insert(medicalRecords)
         .values({
           patientId,
@@ -1237,73 +1280,143 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
           appointmentId,
         } as any)
         .returning();
-      // Phase 2.1: FTS5 sync — prescription mirror joins the search index.
-      if (rxRecord) await upsertRecordFts(db, rxRecord);
+      if (rxRecord) await upsertRecordFts(tx, rxRecord);
       createdPrescriptions.push({ prescription: rx, record: rxRecord });
     }
-  }
 
-  // 3) Lab orders
-  const labOrders: any[] = Array.isArray(body.labOrders) ? body.labOrders : [];
-  const createdLabs: any[] = [];
-  for (const l of labOrders) {
-    if (!l?.testName) continue;
-    const [labRec] = await db
-      .insert(medicalRecords)
-      .values({
-        patientId,
-        hospitalId: doctor.hospitalId || null,
-        doctorId: doctor.id,
-        recordType: "lab_order",
-        title: `Lab order: ${String(l.testName).slice(0, 100)}`,
-        notes: l.instructions ? String(l.instructions).slice(0, 500) : null,
-        date: today,
-        appointmentId,
-      } as any)
-      .returning();
-    // Phase 2.1: FTS5 sync — lab-order mirror joins the search index.
-    if (labRec) await upsertRecordFts(db, labRec);
-    createdLabs.push(labRec);
-  }
+    // 3) Lab-order mirrors
+    const createdLabs: any[] = [];
+    for (const l of labOrderItems) {
+      if (!l?.testName) continue;
+      const [labRec] = await tx
+        .insert(medicalRecords)
+        .values({
+          patientId,
+          hospitalId: doctor.hospitalId || null,
+          doctorId: doctor.id,
+          recordType: "lab_order",
+          title: `Lab order: ${String(l.testName).slice(0, 100)}`,
+          notes: l.instructions ? String(l.instructions).slice(0, 500) : null,
+          date: today,
+          appointmentId,
+        } as any)
+        .returning();
+      if (labRec) await upsertRecordFts(tx, labRec);
+      createdLabs.push(labRec);
+    }
 
-  // 4) Follow-up
-  let createdFollowUp: any = null;
-  if (body.followUp?.followUpDate && body.followUp?.title) {
-    const fu = body.followUp;
-    const [fuRec] = await db
-      .insert(medicalRecords)
-      .values({
-        patientId,
-        hospitalId: doctor.hospitalId || null,
-        doctorId: doctor.id,
-        recordType: "follow_up",
-        title: String(fu.title).slice(0, 200),
-        notes: fu.notes ? String(fu.notes).slice(0, 1000) : null,
-        followUpDate: String(fu.followUpDate).slice(0, 10),
-        date: today,
-        appointmentId,
-      } as any)
-      .returning();
-    // Phase 2.1: FTS5 sync — follow-up mirror joins the search index.
-    if (fuRec) await upsertRecordFts(db, fuRec);
-    createdFollowUp = fuRec;
-  }
+    // 4) Follow-up
+    let createdFollowUp: any = null;
+    if (body.followUp?.followUpDate && body.followUp?.title) {
+      const fu = body.followUp;
+      const [fuRec] = await tx
+        .insert(medicalRecords)
+        .values({
+          patientId,
+          hospitalId: doctor.hospitalId || null,
+          doctorId: doctor.id,
+          recordType: "follow_up",
+          title: String(fu.title).slice(0, 200),
+          notes: fu.notes ? String(fu.notes).slice(0, 1000) : null,
+          followUpDate: String(fu.followUpDate).slice(0, 10),
+          date: today,
+          appointmentId,
+        } as any)
+        .returning();
+      // Phase 2.1: FTS5 sync — follow-up mirror joins the search index.
+      if (fuRec) await upsertRecordFts(tx, fuRec);
+      createdFollowUp = fuRec;
+    }
 
-  // 5) Mark appointment completed (if provided)
-  if (body.appointmentId && body.markAppointmentCompleted !== false) {
-    const apptId = String(body.appointmentId);
-    await db
-      .update(appointments)
-      .set({ status: "completed" as any })
-      .where(eq(appointments.id, apptId));
-  }
+    // 5) Mark appointment completed (if requested) — guarded by
+    // withStatusGuard so two concurrent completions can't both
+    // succeed. Returns the previous status so callers can detect
+    // the race.
+    let completedAppointment: { id: string; previousStatus: string } | null = null;
+    if (body.appointmentId && body.markAppointmentCompleted !== false) {
+      const apptId = String(body.appointmentId);
+      const [ownAppt] = await tx
+        .select({ id: appointments.id, status: appointments.status })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.id, apptId),
+            eq(appointments.doctorId, doctor.id)
+          )
+        )
+        .limit(1);
+      if (ownAppt) {
+        const guard = await withStatusGuard(
+          tx,
+          appointments,
+          ownAppt.id,
+          ["scheduled", "confirmed", "in_progress"],
+          { status: "completed" }
+        );
+        if (guard.changed) {
+          await tx.insert(appointmentStatusHistory).values({
+            appointmentId: ownAppt.id,
+            fromStatus: ownAppt.status,
+            toStatus: "completed",
+            changedByUserId: userId,
+          } as any);
+          completedAppointment = {
+            id: ownAppt.id,
+            previousStatus: ownAppt.status,
+          };
+        }
+      }
+    }
 
-  return c.json(
-    {
+    return {
       visit,
       prescriptions: createdPrescriptions,
       labOrders: createdLabs,
       followUp: createdFollowUp,
+      completedAppointment,
+    };
+  });
+
+  // ─── POST-TX SIDE EFFECTS ─────────────────────────────────
+  // Best-effort: notifications, audit, and revenue event recording.
+  // These do not block the HTTP response on success/failure. Audit
+  // failures are silently dropped (the audit module logs them
+  // internally) — the patient's chart is already correct.
+  if (result.visit) {
+    audit(db, {
+      userId,
+      action: "visit_summary.create",
+      resource: "visit_summary",
+      resourceId: (result.visit as any).id,
+      details: {
+        patientId,
+        prescriptionCount: result.prescriptions.length,
+        labOrderCount: result.labOrders.length,
+        followUp: !!result.followUp,
+        appointmentCompleted: !!result.completedAppointment,
+      },
+    }).catch(() => {});
+  }
+
+  if (result.completedAppointment) {
+    // Revenue event for the just-completed appointment. recordRevenueEvent
+    // is idempotent via the (doctor, source_kind, source_id) UNIQUE
+    // index, so retries are safe.
+    recordRevenueEvent({
+      db,
+      doctorId: doctor.id,
+      sourceKind: "appointment",
+      sourceId: result.completedAppointment.id,
+      patientId,
+    }).catch(() => {});
+  }
+
+  return c.json(
+    {
+      visit: result.visit,
+      prescriptions: result.prescriptions,
+      labOrders: result.labOrders,
+      followUp: result.followUp,
     },
     201
   );

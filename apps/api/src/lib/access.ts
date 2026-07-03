@@ -18,6 +18,10 @@ import {
   labOrders,
   medicalRecords,
   hospitalStaff,
+  walkIns,
+  messagesConversations,
+  shareLinks,
+  careTeamMembers,
 } from "@healthcare/db";
 
 export async function getPatientForUser(db: any, userId: string) {
@@ -55,6 +59,26 @@ export async function canAccessPatient(
       .where(eq(doctors.userId, userId))
       .limit(1);
     if (!doc) return { allowed: false, reason: "No doctor profile" };
+
+    // P1: care_team_members is the SOURCE OF TRUTH. The patient
+    // actively maintains this row — they can revoke it at any time
+    // and the doctor's access disappears immediately. The legacy
+    // evidence union (appointments / prescriptions / lab orders /
+    // medical records / walk-ins / messages / share-links) is the
+    // fallback for historical data that pre-dates the backfill or
+    // for cases where the patient hasn't yet issued an explicit row.
+    const [ctm] = await db
+      .select({ id: careTeamMembers.id, scope: careTeamMembers.scope })
+      .from(careTeamMembers)
+      .where(
+        and(
+          eq(careTeamMembers.patientId, patientId),
+          eq(careTeamMembers.doctorId, doc.id),
+          eq(careTeamMembers.status, "active")
+        )
+      )
+      .limit(1);
+    if (ctm) return { allowed: true, patient: p, scope: (ctm as any).scope };
 
     // Any of: appointment, prescription, lab_order, medical_record for this patient by this doctor.
     const [a] = await db
@@ -101,6 +125,48 @@ export async function canAccessPatient(
       )
       .limit(1);
     if (mr) return { allowed: true, patient: p };
+
+    // Walk-in check-in for the same doctor counts as a relationship.
+    const [wi] = await db
+      .select({ id: walkIns.id })
+      .from(walkIns)
+      .where(
+        and(
+          eq(walkIns.patientId, patientId),
+          eq(walkIns.doctorId, doc.id)
+        )
+      )
+      .limit(1);
+    if (wi) return { allowed: true, patient: p };
+
+    // Active messaging thread between this doctor and patient.
+    const [mc] = await db
+      .select({ id: messagesConversations.id })
+      .from(messagesConversations)
+      .where(
+        and(
+          eq(messagesConversations.patientId, patientId),
+          eq(messagesConversations.doctorId, doc.id)
+        )
+      )
+      .limit(1);
+    if (mc) return { allowed: true, patient: p };
+
+    // Patient has issued a non-revoked, non-expired share link to this
+    // doctor's user id — explicit consent, allow access.
+    const [sl] = await db
+      .select({ id: shareLinks.id })
+      .from(shareLinks)
+      .where(
+        and(
+          eq(shareLinks.patientId, patientId),
+          eq(shareLinks.createdBy, userId),
+          eq(shareLinks.revoked, false),
+          sql`${shareLinks.expiresAt} > CURRENT_TIMESTAMP`
+        )
+      )
+      .limit(1);
+    if (sl) return { allowed: true, patient: p };
 
     return { allowed: false, reason: "Doctor has no relationship with this patient" };
   }

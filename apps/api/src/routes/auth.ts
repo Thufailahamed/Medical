@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { users, patients, doctors, otpCodes } from "@healthcare/db";
 import {
   registerSchema,
@@ -294,6 +294,23 @@ auth.post("/login-by-nic", async (c) => {
 // Resolves the destination (mobile or email) either from the request body
 // or from the user's profile, mints a 6-digit code, stores its hash with
 // 5-minute TTL, and logs the plain code for now (no SMS gateway wired).
+//
+// P4 audit fix: previously this endpoint had no rate limit and
+// always inserted a fresh row. Two consequences:
+//   (a) concurrent retry floods the otp_codes table with N unconsumed
+//       rows — /verify-otp then picks the freshest, leaving N-1
+//       still-valid codes floating around. Anyone who captured any
+//       one of them can still verify until expiry.
+//   (b) brute-force surface scales linearly with retries because the
+//       per-row `attempts` cap is checked per row, not globally.
+//
+// Now:
+//   - Rate limit: max 5 sends / 5 minutes per (target + channel).
+//   - Cooldown: 30 seconds between consecutive sends on the same
+//     (target + channel).
+//   - Pre-prune: any previous unconsumed rows for the same
+//     (target + channel) are expired on a new send so /verify-otp
+//     only ever sees one live candidate.
 auth.post("/send-otp", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const parsed = sendOtpSchema.safeParse(body);
@@ -319,9 +336,67 @@ auth.post("/send-otp", async (c) => {
     return c.json({ error: `No ${channel} on file for this user` }, 400);
   }
 
+  const now = Date.now();
+
+  // Rate limit + cooldown. Count sends in the last 5 minutes for this
+  // (target, channel); reject if over the ceiling. Also reject if the
+  // most recent send on this (target, channel) was within the last
+  // 30 seconds — prevents accidental double-tap from being a brute-force
+  // amplifier.
+  const recentSends = await db
+    .select({ createdAt: otpCodes.createdAt })
+    .from(otpCodes)
+    .where(
+      and(
+        eq(otpCodes.target, destination),
+        eq(otpCodes.channel, channel)
+      )
+    )
+    .all();
+
+  const last5min = recentSends.filter(
+    (r) => now - new Date(r.createdAt).getTime() < 5 * 60 * 1000
+  );
+  if (last5min.length >= 5) {
+    return c.json(
+      {
+        error:
+          "Too many OTP requests. Try again in a few minutes.",
+        retryAfterSec: 60,
+      },
+      429
+    );
+  }
+  const mostRecent = recentSends
+    .map((r) => new Date(r.createdAt).getTime())
+    .sort((a, b) => b - a)[0];
+  if (mostRecent && now - mostRecent < 30 * 1000) {
+    return c.json(
+      {
+        error: "Please wait 30 seconds before requesting another OTP.",
+        retryAfterSec: 30,
+      },
+      429
+    );
+  }
+
+  // Pre-prune prior unconsumed rows on this target/channel so
+  // /verify-otp can only ever see the latest one we just inserted.
+  const nowIso = new Date(now).toISOString();
+  await db
+    .update(otpCodes)
+    .set({ consumedAt: nowIso })
+    .where(
+      and(
+        eq(otpCodes.target, destination),
+        eq(otpCodes.channel, channel),
+        isNull(otpCodes.consumedAt)
+      )
+    );
+
   const code = generateOtpCode();
   const codeHash = await hashSecret(code);
-  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString();
+  const expiresAt = new Date(now + OTP_TTL_MINUTES * 60 * 1000).toISOString();
 
   await db.insert(otpCodes).values({
     id: crypto.randomUUID(),
@@ -401,6 +476,21 @@ auth.post("/verify-otp", async (c) => {
     .update(otpCodes)
     .set({ consumedAt: new Date().toISOString() })
     .where(eq(otpCodes.id, otp.id));
+
+  // P4 audit fix: also mark any sibling unconsumed rows as consumed
+  // so a previously-captured code from a prior /send-otp is
+  // immediately invalidated on a successful verify. Cheap — at
+  // most 1 row after the rate-limit pruning was added in P4.
+  await db
+    .update(otpCodes)
+    .set({ consumedAt: new Date().toISOString() })
+    .where(
+      and(
+        eq(otpCodes.userId, dbUser.id),
+        eq(otpCodes.channel, channel),
+        isNull(otpCodes.consumedAt)
+      )
+    );
 
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
   const otpAge = ageAtRegistration(dbUser.dateOfBirth);
