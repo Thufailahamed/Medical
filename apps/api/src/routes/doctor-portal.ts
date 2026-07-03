@@ -35,6 +35,7 @@ import {
 } from "@healthcare/shared";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
+import { recordRevenueEvent } from "../lib/revenue";
 import { compactQueue } from "../lib/booking";
 import { canAccessPatient } from "../lib/access";
 import { flattenTranslated } from "../lib/validation-error";
@@ -891,6 +892,18 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
     ["scheduled", "confirmed", "in_progress"].includes(own.status)
   ) {
     await compactQueue(db, own.doctorId, own.date, own.time);
+  }
+
+  // Phase 4: billable event when the doctor marks the appointment
+  // completed. Idempotent via the unique index.
+  if (parsed.data.status === "completed" && own.status !== "completed") {
+    await recordRevenueEvent({
+      db,
+      doctorId: own.doctorId,
+      sourceKind: "appointment",
+      sourceId: id,
+      patientId: own.patientId,
+    });
   }
 
   return c.json({ appointment: row?.appointments || row });

@@ -3042,3 +3042,345 @@ export function useAcceptStaffInvite() {
     },
   });
 }
+
+// ════════════════════════════════════════════════════════════
+// Doctor Portal Expansion: messages, schedule, earnings, rx templates
+// ════════════════════════════════════════════════════════════
+
+// ─── Doctor Inbox / Messages ─────────────────────────────
+export type DoctorConversation = {
+  id: string;
+  patientId: string;
+  patient: { id: string; userId: string; name: string; photo: string | null };
+  lastMessageAt: string;
+  lastMessagePreview: string | null;
+  lastMessageSender: "doctor" | "patient" | null;
+  doctorUnread: number;
+  patientUnread: number;
+  createdAt: string;
+};
+
+export type DoctorMessage = {
+  id: string;
+  conversationId: string;
+  senderRole: "doctor" | "patient";
+  senderId: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type DoctorConversationsResponse = {
+  conversations: DoctorConversation[];
+  totalUnread: number;
+};
+
+export type DoctorConversationDetail = {
+  conversation: DoctorConversation;
+  patient: {
+    id: string;
+    userId: string;
+    name: string;
+    photo: string | null;
+    phone: string | null;
+  } | null;
+  messages: DoctorMessage[];
+};
+
+export function useDoctorConversations() {
+  return useQuery({
+    queryKey: ["doctor", "messages", "conversations"],
+    queryFn: () =>
+      apiWithRefresh<DoctorConversationsResponse>(
+        "/doctor-messages/conversations"
+      ),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useDoctorConversation(id: string | string[] | undefined) {
+  return useQuery({
+    queryKey: ["doctor", "messages", "conversation", id],
+    queryFn: () =>
+      apiWithRefresh<DoctorConversationDetail>(
+        `/doctor-messages/conversations/${id}/messages`
+      ),
+    enabled: !!id,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useStartConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patientId: string) =>
+      api<{ conversation: DoctorConversation; created: boolean }>(
+        "/doctor-messages/conversations",
+        { method: "POST", body: { patientId } }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor", "messages", "conversations"] });
+    },
+  });
+}
+
+export function useSendDoctorMessage(conversationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      api<{ message: DoctorMessage }>(
+        `/doctor-messages/conversations/${conversationId}/messages`,
+        { method: "POST", body: { body } }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["doctor", "messages", "conversation", conversationId],
+      });
+      qc.invalidateQueries({ queryKey: ["doctor", "messages", "conversations"] });
+    },
+  });
+}
+
+export function useMarkConversationRead(conversationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean }>(
+        `/doctor-messages/conversations/${conversationId}/read`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["doctor", "messages", "conversation", conversationId],
+      });
+      qc.invalidateQueries({ queryKey: ["doctor", "messages", "conversations"] });
+    },
+  });
+}
+
+// ─── Doctor Schedule ──────────────────────────────────────
+export type ScheduleEvent = {
+  id: string;
+  kind: "appointment" | "walkin" | "followup" | "timeoff";
+  date: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string | null;
+  patientId: string | null;
+  patientName: string | null;
+  title: string | null;
+  queueNumber: number | null;
+  priority: string | null;
+};
+
+export function useDoctorScheduleRange(from: string, to: string) {
+  return useQuery({
+    queryKey: ["doctor", "schedule", from, to],
+    queryFn: () => {
+      const params = new URLSearchParams({ from, to });
+      return apiWithRefresh<{
+        from: string;
+        to: string;
+        count: number;
+        events: ScheduleEvent[];
+      }>(`/doctor-schedule/range?${params.toString()}`);
+    },
+    enabled: !!from && !!to,
+    refetchInterval: 60_000,
+  });
+}
+
+// ─── Doctor Earnings ──────────────────────────────────────
+export type EarningsSummary = {
+  period: string;
+  start: string;
+  end: string;
+  totalLkr: number;
+  visitCount: number;
+  avgPerVisitLkr: number;
+  previousPeriod: { start: string; end: string; totalLkr: number };
+  trendPct: number;
+  pendingPayoutLkr: number;
+  consultationFee: number;
+};
+
+export function useDoctorEarningsSummary(period = "month") {
+  return useQuery({
+    queryKey: ["doctor", "earnings", "summary", period],
+    queryFn: () =>
+      apiWithRefresh<EarningsSummary>(
+        `/doctor-earnings/summary?period=${encodeURIComponent(period)}`
+      ),
+  });
+}
+
+export function useDoctorEarningsTimeseries(opts: {
+  from: string;
+  to: string;
+  bucket?: "day" | "week";
+}) {
+  return useQuery({
+    queryKey: ["doctor", "earnings", "timeseries", opts],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        from: opts.from,
+        to: opts.to,
+        bucket: opts.bucket || "day",
+      });
+      return apiWithRefresh<{
+        bucket: string;
+        from: string;
+        to: string;
+        series: { bucket: string; total: number; count: number }[];
+      }>(`/doctor-earnings/timeseries?${params.toString()}`);
+    },
+    enabled: !!opts.from && !!opts.to,
+  });
+}
+
+export type Payout = {
+  id: string;
+  doctorId: string;
+  periodStart: string;
+  periodEnd: string;
+  amountLkr: number;
+  eventCount: number;
+  status: "pending" | "paid" | "failed";
+  reference: string | null;
+  paidAt: string | null;
+  createdAt: string;
+};
+
+export function useDoctorPayouts(limit = 20) {
+  return useQuery({
+    queryKey: ["doctor", "earnings", "payouts", limit],
+    queryFn: () =>
+      apiWithRefresh<{ payouts: Payout[] }>(
+        `/doctor-earnings/payouts?limit=${limit}`
+      ),
+  });
+}
+
+export function useCreatePayout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { periodStart: string; periodEnd: string }) =>
+      api<{ payout: Payout }>("/doctor-earnings/payouts", {
+        method: "POST",
+        body: input,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor", "earnings"] });
+    },
+  });
+}
+
+// ─── Doctor Rx Templates ─────────────────────────────────
+export type MedicineEntry = {
+  name: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
+  slots?: { label: string; time: string; dose: string }[];
+  timing?: string;
+  [key: string]: any;
+};
+
+export type RxTemplate = {
+  id: string;
+  doctorId: string;
+  name: string;
+  diagnosis: string | null;
+  medicines: MedicineEntry[];
+  notes: string | null;
+  specialty: string | null;
+  useCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function useDoctorRxTemplates() {
+  return useQuery({
+    queryKey: ["doctor", "rx-templates"],
+    queryFn: () =>
+      apiWithRefresh<{ templates: RxTemplate[] }>("/doctor-rx-templates"),
+  });
+}
+
+export function useDoctorRxTemplate(id: string | string[] | undefined) {
+  return useQuery({
+    queryKey: ["doctor", "rx-templates", id],
+    queryFn: () =>
+      apiWithRefresh<{ template: RxTemplate }>(
+        `/doctor-rx-templates/${id}`
+      ),
+    enabled: !!id,
+  });
+}
+
+export function useCreateRxTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      diagnosis?: string;
+      medicines: MedicineEntry[];
+      notes?: string;
+      specialty?: string;
+    }) =>
+      api<{ template: RxTemplate }>("/doctor-rx-templates", {
+        method: "POST",
+        body: input,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor", "rx-templates"] });
+    },
+  });
+}
+
+export function useUpdateRxTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      id: string;
+      name?: string;
+      diagnosis?: string;
+      medicines?: MedicineEntry[];
+      notes?: string;
+    }) => {
+      const { id, ...rest } = input;
+      return api<{ template: RxTemplate }>(`/doctor-rx-templates/${id}`, {
+        method: "PATCH",
+        body: rest,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor", "rx-templates"] });
+    },
+  });
+}
+
+export function useDeleteRxTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(`/doctor-rx-templates/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor", "rx-templates"] });
+    },
+  });
+}
+
+export function useRecordRxTemplateUse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(`/doctor-rx-templates/${id}/use`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor", "rx-templates"] });
+    },
+  });
+}

@@ -17,6 +17,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
+import { recordRevenueEvent } from "../lib/revenue";
 import type { AppEnvironment } from "../types";
 
 const walkInsRouter = new Hono<AppEnvironment>();
@@ -273,6 +274,20 @@ walkInsRouter.patch("/:id", authMiddleware, async (c) => {
     .set(updates)
     .where(eq(walkIns.id, id))
     .returning();
+
+  // Phase 4: billable event. Recorded when the walk-in flips to
+  // `completed`; the unique index on (doctor, source_kind, source_id)
+  // makes this safe to retry.
+  if (body.status === "completed") {
+    await recordRevenueEvent({
+      db,
+      doctorId: own.doctorId,
+      sourceKind: "walkin",
+      sourceId: id,
+      patientId: own.patientId,
+      occurredAt: updates.consultationEndedAt || undefined,
+    });
+  }
 
   await audit(db, {
     userId,

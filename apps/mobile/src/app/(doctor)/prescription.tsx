@@ -18,12 +18,16 @@ import {
   ShieldAlert,
   Plus,
   Trash2,
+  Layers,
 } from "lucide-react-native";
 import {
   useSearchPatients,
   useCreatePrescription,
   useMedicineSearch,
   useSafetyCheck,
+  useDoctorRxTemplates,
+  useRecordRxTemplateUse,
+  type MedicineEntry as TemplateMedicine,
 } from "@/hooks/useApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -115,7 +119,7 @@ function slotsToFrequency(s: Slots): string | null {
 
 export default function PrescriptionScreen() {
   const router = useRouter();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, fontFamily } = useTheme();
   const { t } = useTranslation();
   const toast = useToast();
   const { patientId } = useLocalSearchParams<{ patientId?: string }>();
@@ -133,6 +137,44 @@ export default function PrescriptionScreen() {
   // starts with one empty entry so the doctor has somewhere to type;
   // tapping "+ Add medicine" appends another.
   const [medicines, setMedicines] = useState<MedicineEntry[]>([emptyEntry()]);
+
+  // Phase 4.2: saved prescription templates. Tapping a chip fills the
+  // medicine list (and diagnosis if empty) from the saved entry shape.
+  const { data: templateData } = useDoctorRxTemplates();
+  const recordTemplateUse = useRecordRxTemplateUse();
+  const templates = templateData?.templates || [];
+
+  function applyTemplate(tpl: { id: string; medicines: TemplateMedicine[]; diagnosis: string | null }) {
+    if (!tpl.medicines?.length) return;
+    const converted: MedicineEntry[] = tpl.medicines.map((m) => ({
+      key: Math.random().toString(36).slice(2, 10),
+      name: m.name || "",
+      dosage: m.dosage || "",
+      slots: frequencyToSlots(m.frequency),
+      timing: "" as const,
+      durationDays: parseDurationDays(m.duration) || 7,
+      ongoing: false,
+      masterMedicineId: null,
+    }));
+    setMedicines(converted);
+    if (!diagnosis && tpl.diagnosis) setDiagnosis(tpl.diagnosis);
+    recordTemplateUse.mutate(tpl.id);
+  }
+
+  function frequencyToSlots(freq?: string | null): Slots {
+    const f = (freq || "").toLowerCase();
+    if (f.includes("once") || f.includes("1")) return { morning: true, noon: false, evening: false, night: false };
+    if (f.includes("twice") || f.includes("2")) return { morning: true, noon: false, evening: true, night: false };
+    if (f.includes("three") || f.includes("3")) return { morning: true, noon: true, evening: true, night: false };
+    if (f.includes("four") || f.includes("4")) return { morning: true, noon: true, evening: true, night: true };
+    return { morning: true, noon: false, evening: false, night: false };
+  }
+
+  function parseDurationDays(d?: string | null): number {
+    if (!d) return 0;
+    const m = String(d).match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
 
   function updateEntry(key: string, patch: Partial<MedicineEntry>) {
     setMedicines((prev) =>
@@ -375,6 +417,106 @@ export default function PrescriptionScreen() {
               </FormField>
             </View>
           </Card>
+
+          {/* Phase 4.2: saved prescription templates. Chip carousel so
+              the doctor can autofill the medicine list with one tap.
+              Hidden when no templates exist (avoid empty UI). */}
+          {templates.length > 0 && (
+            <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: spacing.sm,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Layers size={14} color={colors.textMuted} strokeWidth={2.2} />
+                  <Text
+                    style={[
+                      typography.label.lg,
+                      { color: colors.textMuted },
+                    ]}
+                  >
+                    {t("doctorPrescription.templatesHeading")}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => router.push("/(doctor)/rx-templates" as any)}
+                  hitSlop={6}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: colors.primary,
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    {t("doctorPrescription.manage")}
+                  </Text>
+                </Pressable>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingRight: spacing.lg }}
+              >
+                {templates.map((tpl) => {
+                  const count = (tpl.medicines || []).length;
+                  return (
+                    <Pressable
+                      key={tpl.id}
+                      onPress={() => applyTemplate(tpl as any)}
+                      style={({ pressed }) => ({
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        borderRadius: radius.pill,
+                        backgroundColor: pressed ? colors.primary : colors.primarySoft,
+                        borderWidth: 1,
+                        borderColor: colors.primary,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "700",
+                          color: pressed ? "#FFFFFF" : colors.primary,
+                          fontFamily: fontFamily.bodyBold,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {tpl.name}
+                      </Text>
+                      <View
+                        style={{
+                          paddingHorizontal: 6,
+                          paddingVertical: 1,
+                          borderRadius: 999,
+                          backgroundColor: pressed ? "rgba(255,255,255,0.25)" : colors.primary,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            fontWeight: "800",
+                            color: "#FFFFFF",
+                            fontFamily: fontFamily.displayBold,
+                          }}
+                        >
+                          {count}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Phase 4: medicines list. Each entry renders its own
               MedicineCard with name + autocomplete, dosage, time-slot

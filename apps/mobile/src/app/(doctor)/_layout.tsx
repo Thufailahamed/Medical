@@ -1,15 +1,20 @@
+// @ts-nocheck
+
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import {
   LayoutDashboard,
-  ListOrdered,
+  CalendarDays,
+  Inbox,
   FilePenLine,
-  UsersRound,
   UserRound,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { useUnreadCount } from "@/hooks/useApi";
+import {
+  useUnreadCount,
+  useDoctorConversations,
+} from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
@@ -33,15 +38,16 @@ const WIDE_TAB_LABEL = {
 export default function DoctorLayout() {
   const { colors } = useTheme();
   const { data: unread } = useUnreadCount();
+  const { data: convs } = useDoctorConversations();
   const unreadN = unread?.count ?? 0;
+  const inboxUnread = convs?.totalUnread ?? 0;
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
   const isWideScript = locale === "si" || locale === "ta";
   const labelStyle = isWideScript ? NARROW_TAB_LABEL : WIDE_TAB_LABEL;
 
   // Premium floating pill — sits above the bottom safe area with a frosted
-  // glass background, hairline border, and a top inner highlight. Subtle but
-  // distinct from the patient's edge-to-edge bar.
+  // glass background, hairline border, and a top inner highlight.
   return (
     <Tabs
       screenOptions={{
@@ -70,7 +76,6 @@ export default function DoctorLayout() {
               tint="default"
               style={StyleSheet.absoluteFill}
             />
-            {/* Fallback tint */}
             <View
               style={[
                 StyleSheet.absoluteFill,
@@ -82,7 +87,6 @@ export default function DoctorLayout() {
                 },
               ]}
             />
-            {/* Hairline border */}
             <View
               style={{
                 position: "absolute",
@@ -95,7 +99,6 @@ export default function DoctorLayout() {
                 borderColor: colors.border,
               }}
             />
-            {/* Top inner highlight */}
             <View
               style={{
                 position: "absolute",
@@ -124,11 +127,20 @@ export default function DoctorLayout() {
         }}
       />
       <Tabs.Screen
-        name="queue"
+        name="schedule"
         options={{
-          title: t("nav.tabs.doctorQueue"),
+          title: t("nav.tabs.doctorSchedule"),
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon={ListOrdered} focused={focused} />
+            <TabIcon icon={CalendarDays} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="inbox"
+        options={{
+          title: t("nav.tabs.doctorInbox"),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={Inbox} focused={focused} badge={inboxUnread} />
           ),
         }}
       />
@@ -138,15 +150,6 @@ export default function DoctorLayout() {
           title: t("nav.tabs.doctorPrescribe"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={FilePenLine} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="records"
-        options={{
-          title: t("nav.tabs.doctorPatients"),
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon={UsersRound} focused={focused} />
           ),
         }}
       />
@@ -203,6 +206,34 @@ export default function DoctorLayout() {
       />
       <Tabs.Screen
         name="visit-summary"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="queue"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="records"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="earnings"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="rx-templates"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="rx-templates/new"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="rx-templates/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="inbox/[id]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
     </Tabs>

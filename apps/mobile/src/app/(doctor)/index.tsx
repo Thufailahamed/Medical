@@ -26,6 +26,9 @@ import {
   Stethoscope,
   Users,
   BadgeCheck,
+  CalendarDays,
+  Wallet,
+  Inbox,
 } from "lucide-react-native";
 import {
   useDoctorDashboard,
@@ -517,24 +520,24 @@ export default function DoctorHub() {
             <SectionLabel title={t("doctor.sectionQuickActions")} />
             <View style={{ flexDirection: "row", gap: spacing.md }}>
               <QuickTile
-                icon={Clock4}
-                label={t("doctor.tiles.queueTitle")}
+                icon={CalendarDays}
+                label={t("schedule.title")}
                 tone="primary"
-                onPress={() => router.push("/queue" as any)}
+                onPress={() => router.push("/schedule" as any)}
               />
               <QuickTile
-                icon={Search}
-                label={t("doctor.tiles.searchTitle")}
+                icon={Wallet}
+                label={t("earnings.title")}
                 tone="warning"
-                onPress={() => router.push("/prescription" as any)}
+                onPress={() => router.push("/earnings" as any)}
               />
             </View>
             <View style={{ flexDirection: "row", gap: spacing.md }}>
               <QuickTile
-                icon={Edit3}
-                label={t("doctor.tiles.notesTitle")}
+                icon={Inbox}
+                label={t("inbox.title")}
                 tone="accent"
-                onPress={() => router.push("/clinical-notes" as any)}
+                onPress={() => router.push("/inbox" as any)}
               />
               <QuickTile
                 icon={FlaskConical}

@@ -11,7 +11,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, Redirect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   Bell,
@@ -125,12 +125,6 @@ export default function HomeScreen() {
     }
   }, [profileData?.patient?.users?.preferredLocale, locale]);
 
-  useEffect(() => {
-    if (user?.role === "doctor") {
-      router.replace("/(doctor)" as any);
-    }
-  }, [user]);
-
   const patient = profileData?.patient?.patients;
   const todayMeds: any[] = medsData?.medicines ?? [];
   const appointments: any[] = apptsData?.appointments ?? [];
@@ -196,6 +190,10 @@ export default function HomeScreen() {
   };
 
   const timingMeta = useMemo(() => buildTimingMeta(t), [t]);
+
+  if (user?.role === "doctor") {
+    return <Redirect href="/(doctor)" />;
+  }
 
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset={false} bottomInset={false}>

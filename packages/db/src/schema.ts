@@ -1569,3 +1569,171 @@ export const prescriptionSignatures = sqliteTable(
     ),
   })
 );
+
+// ════════════════════════════════════════════════════════════
+// Doctor Portal Expansion: messages, earnings, rx templates
+// ════════════════════════════════════════════════════════════
+
+// ─── Doctor ↔ Patient Messages ────────────────────────────
+// `messages_conversations` is a 1:1 thread per (doctor, patient). One
+// row per pair, upserted on either side starting a chat. Unread
+// counters live on the row so the inbox list doesn't recount
+// messages every render.
+export const messagesConversations = sqliteTable(
+  "messages_conversations",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    lastMessageAt: text("last_message_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    lastMessagePreview: text("last_message_preview"),
+    lastMessageSender: text("last_message_sender"), // "doctor" | "patient"
+    doctorUnread: integer("doctor_unread").notNull().default(0),
+    patientUnread: integer("patient_unread").notNull().default(0),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    doctorPatientUnique: uniqueIndex(
+      "messages_conversations_doctor_patient_idx"
+    ).on(t.doctorId, t.patientId),
+    doctorRecentIdx: index("messages_conversations_doctor_recent_idx").on(
+      t.doctorId,
+      t.lastMessageAt
+    ),
+    patientRecentIdx: index("messages_conversations_patient_recent_idx").on(
+      t.patientId,
+      t.lastMessageAt
+    ),
+  })
+);
+
+export const messages = sqliteTable(
+  "messages",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references((): any => messagesConversations.id, { onDelete: "cascade" }),
+    senderRole: text("sender_role", {
+      enum: ["doctor", "patient"],
+    }).notNull(),
+    senderId: text("sender_id").notNull(),
+    body: text("body").notNull(),
+    readAt: text("read_at"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    conversationCreatedIdx: index("messages_conversation_created_idx").on(
+      t.conversationId,
+      t.createdAt
+    ),
+  })
+);
+
+// ─── Doctor Earnings + Payouts ─────────────────────────────
+// `doctor_revenue_events` is one row per billable visit (created in
+// API when appointment/walk-in flips to `completed`). The unique
+// index on (doctor, source_kind, source_id) makes the insert
+// idempotent so retries from the API don't double-count.
+export const doctorRevenueEvents = sqliteTable(
+  "doctor_revenue_events",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    sourceKind: text("source_kind", {
+      enum: ["appointment", "walkin"],
+    }).notNull(),
+    sourceId: text("source_id").notNull(),
+    patientId: text("patient_id").references(() => patients.id),
+    amountLkr: real("amount_lkr").notNull(),
+    occurredAt: text("occurred_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    payoutId: text("payout_id").references((): any => doctorPayouts.id),
+  },
+  (t) => ({
+    doctorOccurredIdx: index("doctor_revenue_events_doctor_occurred_idx").on(
+      t.doctorId,
+      t.occurredAt
+    ),
+    sourceUnique: uniqueIndex("doctor_revenue_events_source_idx").on(
+      t.doctorId,
+      t.sourceKind,
+      t.sourceId
+    ),
+  })
+);
+
+export const doctorPayouts = sqliteTable(
+  "doctor_payouts",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    periodStart: text("period_start").notNull(), // YYYY-MM-DD
+    periodEnd: text("period_end").notNull(),
+    amountLkr: real("amount_lkr").notNull(),
+    eventCount: integer("event_count").notNull(),
+    status: text("status", {
+      enum: ["pending", "paid", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    reference: text("reference"),
+    paidAt: text("paid_at"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    doctorIdx: index("doctor_payouts_doctor_idx").on(
+      t.doctorId,
+      t.createdAt
+    ),
+  })
+);
+
+// ─── Doctor Rx Templates ──────────────────────────────────
+// Saved prescription templates. `medicines_json` is a JSON-encoded
+// array of MedicineEntry rows from the prescription composer (slots,
+// dosage, duration, etc.). `use_count` ranks the picker by frequency.
+export const doctorRxTemplates = sqliteTable(
+  "doctor_rx_templates",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    name: text("name").notNull(),
+    diagnosis: text("diagnosis"),
+    medicinesJson: text("medicines_json").notNull(),
+    notes: text("notes"),
+    specialty: text("specialty"),
+    useCount: integer("use_count").notNull().default(0),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    doctorIdx: index("doctor_rx_templates_doctor_idx").on(
+      t.doctorId,
+      t.useCount
+    ),
+  })
+);
