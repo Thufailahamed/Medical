@@ -104,7 +104,7 @@ export default function LoginScreen() {
 
       setUser(res.user);
       toast.show("Welcome back", "success");
-      const home = res.user?.role === "doctor" ? "/(app)/doctor" : "/(app)";
+      const home = res.user?.role === "doctor" ? "/(doctor)" : "/(app)";
       router.replace(home as any);
     } catch (err: any) {
       console.warn("Login error details:", err);

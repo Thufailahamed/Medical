@@ -75,7 +75,7 @@ export function useProtectedRoute() {
     } else if (isAuthenticated && inAuthGroup) {
       const home =
         (useAuthStore.getState().user as any)?.role === "doctor"
-          ? "/(app)/doctor"
+          ? "/(doctor)"
           : "/(app)";
       router.replace(home as any);
     }

@@ -1,13 +1,12 @@
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { Home, ClipboardList, Pill, Siren, UserRound, Users, Clock4, Search, Stethoscope } from "lucide-react-native";
+import { Home, ClipboardList, Pill, Siren, UserRound } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
-import { useAuthStore } from "@/stores/auth";
 
 // Sinhala + Tamil glyphs render ~1.3x wider than Latin at the same font size.
 // Trim fontSize + letterSpacing for those locales to keep the 5 labels from
@@ -26,15 +25,13 @@ const WIDE_TAB_LABEL = {
 };
 
 export default function AppLayout() {
-  const { colors, typography, shadow } = useTheme();
+  const { colors } = useTheme();
   const { data: unread } = useUnreadCount();
   const unreadN = unread?.count ?? 0;
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
   const isWideScript = locale === "si" || locale === "ta";
   const labelStyle = isWideScript ? NARROW_TAB_LABEL : WIDE_TAB_LABEL;
-  const user = useAuthStore((s) => s.user);
-  const isDoctor = user?.role === "doctor";
 
   return (
     <Tabs
@@ -104,7 +101,6 @@ export default function AppLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.home"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={Home} focused={focused} badge={unreadN} />
@@ -114,18 +110,15 @@ export default function AppLayout() {
       <Tabs.Screen
         name="records"
         options={{
-          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.records"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={ClipboardList} focused={focused} />
           ),
         }}
       />
-
       <Tabs.Screen
         name="medicines"
         options={{
-          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.medicines"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={Pill} focused={focused} />
@@ -135,7 +128,6 @@ export default function AppLayout() {
       <Tabs.Screen
         name="emergency"
         options={{
-          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.emergency"),
           tabBarIcon: ({ focused }) => (
             <TabIcon
@@ -149,457 +141,177 @@ export default function AppLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.profile"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={UserRound} focused={focused} />
           ),
         }}
       />
-      {/* Hidden routes — these are sub-pages, not tabs */}
+
+      {/* Hidden sub-pages — pushed, not tabs */}
       <Tabs.Screen
         name="appointments"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="book-appointment"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="edit-profile"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="add-medicine"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="add-record"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="email-import"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="family"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor"
-        options={{
-          ...(isDoctor
-            ? {
-                title: t("nav.tabs.doctorHome"),
-                tabBarIcon: ({ focused }: { focused: boolean }) => (
-                  <TabIcon icon={Home} focused={focused} badge={unreadN} />
-                ),
-              }
-            : {
-                href: null,
-                tabBarStyle: { display: "none" },
-              }),
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/queue"
-        options={{
-          ...(isDoctor
-            ? {
-                title: t("nav.tabs.doctorQueue"),
-                tabBarIcon: ({ focused }: { focused: boolean }) => (
-                  <TabIcon icon={Clock4} focused={focused} />
-                ),
-              }
-            : {
-                href: null,
-                tabBarStyle: { display: "none" },
-              }),
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/patient-detail"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/clinical-note"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/prescription"
-        options={{
-          ...(isDoctor
-            ? {
-                title: t("nav.tabs.doctorPrescribe"),
-                tabBarIcon: ({ focused }: { focused: boolean }) => (
-                  <TabIcon icon={Search} focused={focused} />
-                ),
-              }
-            : {
-                href: null,
-                tabBarStyle: { display: "none" },
-              }),
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/lab-order"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/lab-orders"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/follow-ups"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/follow-up-new"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/availability"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/profile"
-        options={{
-          ...(isDoctor
-            ? {
-                title: t("nav.tabs.doctorProfile"),
-                tabBarIcon: ({ focused }: { focused: boolean }) => (
-                  <TabIcon icon={UserRound} focused={focused} />
-                ),
-              }
-            : {
-                href: null,
-                tabBarStyle: { display: "none" },
-              }),
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/prescriptions"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/prescription-detail"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="verify/[id]"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/clinical-notes"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/visit-summary"
-        options={{
-          href: null,
-          tabBarStyle: isDoctor ? undefined : { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="doctor/records"
-        options={{
-          ...(isDoctor
-            ? {
-                title: t("nav.tabs.doctorPatients"),
-                tabBarIcon: ({ focused }: { focused: boolean }) => (
-                  <TabIcon icon={Users} focused={focused} />
-                ),
-              }
-            : {
-                href: null,
-                tabBarStyle: { display: "none" },
-              }),
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/dashboard"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/wards"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/ward-detail"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/staff"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/staff-invites"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/patients"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/patient-detail"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="hospital/walk-ins"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="ai/summary"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="ai/lab-explain"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="ai/drug-check"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="ai/chat"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="ai/ocr"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="record-detail"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="edit-record"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="edit-medicine"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="medicines-history"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="notifications"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="notes"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="vitals"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="support"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="activity"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="appearance"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="change-password"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="share"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="timeline"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="allergies"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="vaccinations"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="health-summary"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="export"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="appointment-detail"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="notification-preferences"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
         name="app-lock"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="verify/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
     </Tabs>
   );

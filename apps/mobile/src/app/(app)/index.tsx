@@ -127,7 +127,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (user?.role === "doctor") {
-      router.replace("/(app)/doctor");
+      router.replace("/(doctor)" as any);
     }
   }, [user]);
 

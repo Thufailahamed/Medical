@@ -96,7 +96,7 @@ export default function EmergencyScreen() {
 
   useEffect(() => {
     if (user?.role === "doctor") {
-      router.replace("/(app)/doctor");
+      router.replace("/(doctor)" as any);
     }
   }, [user]);
 

@@ -20,14 +20,12 @@ import {
   ChevronRight,
   FileText,
   Edit3,
-  UserRound,
   FlaskConical,
   CalendarClock,
   ClipboardList,
   Stethoscope,
   Users,
-  Plus,
-  Activity,
+  BadgeCheck,
 } from "lucide-react-native";
 import {
   useDoctorDashboard,
@@ -55,7 +53,7 @@ import {
 export default function DoctorHub() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, fontFamily, layout, shadow } =
+  const { spacing, colors, typography, radius, fontFamily, layout } =
     useTheme();
   const user = useAuthStore((s) => s.user);
 
@@ -117,6 +115,7 @@ export default function DoctorHub() {
   const userPhoto = doctorData?.doctor?.users?.photo;
   const userName = user?.name || "";
   const specialization = doctorData?.doctor?.doctors?.specialization;
+  const verified = doctorData?.doctor?.users?.verified;
 
   const hour = new Date().getHours();
   const greeting =
@@ -180,34 +179,34 @@ export default function DoctorHub() {
           paddingBottom: layout.tabBarHeight + spacing.lg,
         }}
       >
-        {/* ─── App header ─── */}
+        {/* ─── Slim app bar ─── */}
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.md,
+            paddingTop: spacing.sm,
             paddingBottom: spacing.sm,
           }}
         >
-          <Pressable onPress={() => router.push("/doctor/profile" as any)}>
+          <Pressable onPress={() => router.push("/profile" as any)} hitSlop={6}>
             {userPhoto ? (
               <Image
                 source={{ uri: userPhoto }}
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
                   backgroundColor: colors.surfaceMuted,
                 }}
               />
             ) : (
               <View
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -215,7 +214,7 @@ export default function DoctorHub() {
               >
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: "800",
                     color: colors.primary,
                   }}
@@ -226,18 +225,17 @@ export default function DoctorHub() {
             )}
           </Pressable>
 
-          <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-            >
+          <View style={{ flex: 1, alignItems: "center", gap: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text
                 style={[
                   typography.title.lg,
                   {
-                    color: colors.primary,
+                    color: colors.text,
                     fontWeight: "800",
-                    fontSize: 22,
+                    fontSize: 18,
                     fontFamily: fontFamily.displayBold,
+                    letterSpacing: -0.3,
                   },
                 ]}
               >
@@ -269,66 +267,57 @@ export default function DoctorHub() {
                   typography.caption,
                   { color: colors.textMuted, marginTop: -1 },
                 ]}
+                numberOfLines={1}
               >
                 {specialization}
               </Text>
             ) : null}
           </View>
 
-          <View
-            style={{
-              flexDirection: "row",
+          <Pressable
+            onPress={() => router.push("/notifications" as any)}
+            accessibilityRole="button"
+            accessibilityLabel={t("doctor.notificationsA11y")}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 20,
               alignItems: "center",
-              gap: spacing.xs,
-            }}
+              justifyContent: "center",
+              opacity: pressed ? 0.7 : 1,
+              backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+            })}
           >
-            <Pressable
-              onPress={() => router.push("/notifications" as any)}
-              accessibilityRole="button"
-              accessibilityLabel={t("doctor.notificationsA11y")}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-                backgroundColor: pressed
-                  ? colors.surfaceMuted
-                  : "transparent",
-              })}
-            >
-              <Bell size={24} color={colors.primary} strokeWidth={2} />
-              {unreadN > 0 ? (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: colors.danger || "#FF3B30",
-                  }}
-                />
-              ) : null}
-            </Pressable>
-          </View>
+            <Bell size={22} color={colors.primary} strokeWidth={2.1} />
+            {unreadN > 0 ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: colors.danger || "#FF3B30",
+                }}
+              />
+            ) : null}
+          </Pressable>
         </View>
 
-        {/* ─── Sky hero ─── */}
+        {/* ─── Hero card ─── */}
         <View
           style={{
             marginHorizontal: spacing.lg,
             borderRadius: radius.xxl,
             overflow: "hidden",
             padding: spacing.xl,
-            elevation: 4,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.12,
-            shadowRadius: 10,
+            elevation: 5,
+            shadowColor: "#001B3F",
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.18,
+            shadowRadius: 14,
           }}
         >
           <LinearGradient
@@ -347,7 +336,7 @@ export default function DoctorHub() {
               width: 140,
               height: 140,
               borderRadius: 70,
-              backgroundColor: "rgba(255, 255, 255, 0.07)",
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
             }}
           />
           <View
@@ -394,8 +383,8 @@ export default function DoctorHub() {
                   typography.display.lg,
                   {
                     color: "#FFFFFF",
-                    fontSize: 36,
-                    lineHeight: 42,
+                    fontSize: 34,
+                    lineHeight: 40,
                     letterSpacing: -0.6,
                     fontWeight: "800",
                     marginTop: 4,
@@ -406,12 +395,44 @@ export default function DoctorHub() {
                 Dr. {firstName}
               </Text>
 
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 8,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "#34D399",
+                  }}
+                />
+                <Text
+                  style={{
+                    color: "rgba(255, 255, 255, 0.9)",
+                    fontSize: 13,
+                    lineHeight: 18,
+                    fontWeight: "600",
+                    fontFamily: fontFamily.body,
+                  }}
+                >
+                  {t("doctor.onDuty")}
+                </Text>
+                {verified ? (
+                  <BadgeCheck size={14} color="#34D399" strokeWidth={2.4} />
+                ) : null}
+              </View>
+
               <Text
                 style={{
-                  color: "rgba(255, 255, 255, 0.8)",
-                  fontSize: 14,
-                  lineHeight: 20,
-                  marginTop: 8,
+                  color: "rgba(255, 255, 255, 0.75)",
+                  fontSize: 13,
+                  lineHeight: 18,
+                  marginTop: 6,
                   fontFamily: fontFamily.body,
                 }}
               >
@@ -426,7 +447,7 @@ export default function DoctorHub() {
                 tone="primary"
                 label={`${todayCount}`}
                 sublabel={t("doctor.todayAppointments")}
-                centerColor="rgba(255, 255, 255, 0.08)"
+                centerColor="rgba(255, 255, 255, 0.10)"
               />
             </View>
           </View>
@@ -463,7 +484,35 @@ export default function DoctorHub() {
             gap: spacing.xl,
           }}
         >
-          {/* Quick Actions 2x2 Grid */}
+          {/* Stats strip */}
+          <View style={{ gap: spacing.sm }}>
+            <SectionLabel title={t("doctor.statsStrip.label")} />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <StatTile
+                icon={Clock4}
+                label={t("doctor.stats.inQueue")}
+                value={upcoming}
+                tone="primary"
+                onPress={() => router.push("/queue" as any)}
+              />
+              <StatTile
+                icon={FileText}
+                label={t("doctor.stats.rxWritten")}
+                value={rxCount}
+                tone="info"
+                onPress={() => router.push("/prescriptions" as any)}
+              />
+              <StatTile
+                icon={Edit3}
+                label={t("doctor.stats.notes")}
+                value={notesCount}
+                tone="accent"
+                onPress={() => router.push("/clinical-notes" as any)}
+              />
+            </View>
+          </View>
+
+          {/* Quick Actions 2x2 */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel title={t("doctor.sectionQuickActions")} />
             <View style={{ flexDirection: "row", gap: spacing.md }}>
@@ -471,13 +520,13 @@ export default function DoctorHub() {
                 icon={Clock4}
                 label={t("doctor.tiles.queueTitle")}
                 tone="primary"
-                onPress={() => router.push("/doctor/queue" as any)}
+                onPress={() => router.push("/queue" as any)}
               />
               <QuickTile
                 icon={Search}
                 label={t("doctor.tiles.searchTitle")}
                 tone="warning"
-                onPress={() => router.push("/doctor/prescription" as any)}
+                onPress={() => router.push("/prescription" as any)}
               />
             </View>
             <View style={{ flexDirection: "row", gap: spacing.md }}>
@@ -485,37 +534,15 @@ export default function DoctorHub() {
                 icon={Edit3}
                 label={t("doctor.tiles.notesTitle")}
                 tone="accent"
-                onPress={() => router.push("/doctor/clinical-notes" as any)}
+                onPress={() => router.push("/clinical-notes" as any)}
               />
               <QuickTile
                 icon={FlaskConical}
                 label={t("doctor.tiles.labTitle")}
                 tone="info"
-                onPress={() => router.push("/doctor/lab-orders" as any)}
+                onPress={() => router.push("/lab-orders" as any)}
               />
             </View>
-          </View>
-
-          {/* Stats row */}
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <StatBlock
-              icon={Clock4}
-              label={t("doctor.stats.inQueue")}
-              value={upcoming}
-              tone="primary"
-            />
-            <StatBlock
-              icon={FileText}
-              label={t("doctor.stats.rxWritten")}
-              value={rxCount}
-              tone="info"
-            />
-            <StatBlock
-              icon={Edit3}
-              label={t("doctor.stats.notes")}
-              value={notesCount}
-              tone="accent"
-            />
           </View>
 
           {/* Today's Queue Preview */}
@@ -526,7 +553,7 @@ export default function DoctorHub() {
                 queueList.length > 0
                   ? {
                       label: t("doctor.viewAll"),
-                      onPress: () => router.push("/doctor/queue" as any),
+                      onPress: () => router.push("/queue" as any),
                     }
                   : undefined
               }
@@ -550,7 +577,7 @@ export default function DoctorHub() {
                     item={item}
                     onPress={() =>
                       router.push({
-                        pathname: "/doctor/patient-detail" as any,
+                        pathname: "/patient-detail" as any,
                         params: { id: item.patientId },
                       })
                     }
@@ -568,7 +595,7 @@ export default function DoctorHub() {
                 icon={FileText}
                 title={t("doctor.tiles.rxTitle")}
                 subtitle={t("doctor.tiles.rxSubtitle", { count: rxCount })}
-                onPress={() => router.push("/doctor/prescriptions" as any)}
+                onPress={() => router.push("/prescriptions" as any)}
               />
               <LinkTile
                 icon={CalendarClock}
@@ -576,13 +603,13 @@ export default function DoctorHub() {
                 subtitle={t("doctor.tiles.followSubtitle", {
                   count: followCount,
                 })}
-                onPress={() => router.push("/doctor/follow-ups" as any)}
+                onPress={() => router.push("/follow-ups" as any)}
               />
               <LinkTile
                 icon={ClipboardList}
                 title={t("doctor.tiles.hoursTitle")}
                 subtitle={t("doctor.tiles.hoursSubtitle")}
-                onPress={() => router.push("/doctor/availability" as any)}
+                onPress={() => router.push("/availability" as any)}
               />
               <LinkTile
                 icon={Users}
@@ -590,7 +617,7 @@ export default function DoctorHub() {
                 subtitle={t("doctor.tiles.recordsSubtitle", {
                   count: rxCount + notesCount + labCount,
                 })}
-                onPress={() => router.push("/doctor/records" as any)}
+                onPress={() => router.push("/records" as any)}
               />
             </View>
           </View>
@@ -755,16 +782,18 @@ function QuickTile({
   );
 }
 
-function StatBlock({
+function StatTile({
   icon: Icon,
   label,
   value,
   tone = "primary",
+  onPress,
 }: {
   icon: any;
   label: string;
   value: number | string;
   tone?: "primary" | "info" | "accent" | "warning" | "success";
+  onPress?: () => void;
 }) {
   const { colors, spacing, typography, radius } = useTheme();
   const tones: Record<string, { bg: string; fg: string }> = {
@@ -775,7 +804,7 @@ function StatBlock({
     success: { bg: colors.successSoft, fg: colors.success },
   };
   const tn = tones[tone] ?? tones.primary;
-  return (
+  const Body = (
     <View
       style={{
         flex: 1,
@@ -817,6 +846,17 @@ function StatBlock({
         {label}
       </Text>
     </View>
+  );
+  if (!onPress) return Body;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.85 : 1 })}
+    >
+      {Body}
+    </Pressable>
   );
 }
 

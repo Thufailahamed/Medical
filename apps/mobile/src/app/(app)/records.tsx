@@ -90,7 +90,7 @@ export default function RecordsScreen() {
 
   useEffect(() => {
     if (user?.role === "doctor") {
-      router.replace("/(app)/doctor/records");
+      router.replace("/(doctor)/records" as any);
     }
   }, [user]);
 

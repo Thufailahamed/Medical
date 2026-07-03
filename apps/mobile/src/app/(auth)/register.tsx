@@ -286,7 +286,7 @@ export default function RegisterScreen() {
           return;
         }
         const home =
-          (data.role as string) === "doctor" ? "/(app)/doctor" : "/(app)";
+          (data.role as string) === "doctor" ? "/(doctor)" : "/(app)";
         router.replace(home as any);
       } else {
         toast.show(

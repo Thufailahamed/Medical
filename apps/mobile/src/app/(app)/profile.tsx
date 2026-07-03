@@ -116,6 +116,13 @@ export default function ProfileScreen() {
     }
   }, [authFailureCount]);
 
+  // Doctors have their own portal; route them there if they deep-link here.
+  useEffect(() => {
+    if (user?.role === "doctor") {
+      router.replace("/(doctor)/profile" as any);
+    }
+  }, [user]);
+
   const patient = profileData?.patient?.patients;
   const userRow = profileData?.patient?.users;
   const photoUri = userRow?.photo;
@@ -316,7 +323,7 @@ export default function ProfileScreen() {
             subtitle: t("profile.item.doctorPortal.subtitle"),
             icon: Stethoscope,
             tone: "info" as const,
-            onPress: () => router.push("/(app)/doctor" as any),
+            onPress: () => router.push("/(doctor)" as any),
           },
         ]
       : []),
@@ -680,7 +687,7 @@ export default function ProfileScreen() {
                   iconTone="info"
                   title={t("profile.item.doctorPortal.label", "Doctor Portal")}
                   subtitle={t("profile.item.doctorPortal.subtitle", "Access queue, clinical notes & prescriptions")}
-                  onPress={() => router.push("/(app)/doctor" as any)}
+                  onPress={() => router.push("/(doctor)" as any)}
                   showChevron
                   bordered={false}
                 />

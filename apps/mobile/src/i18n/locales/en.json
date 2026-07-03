@@ -2016,6 +2016,9 @@
       "rxWritten": "RX WRITTEN",
       "notes": "NOTES"
     },
+    "statsStrip": {
+      "label": "TODAY'S PULSE"
+    },
     "tiles": {
       "recordsTitle": "Patient records",
       "recordsSubtitle_one": "{{count}} across your patients",
@@ -2082,7 +2085,11 @@
     "notificationsTitle": "Notifications",
     "notificationsUnread_one": "{{count}} unread",
     "notificationsUnread_other": "{{count}} unread",
-    "notificationsCaughtUp": "All caught up"
+    "notificationsCaughtUp": "All caught up",
+    "myRxTitle": "My prescriptions",
+    "myRxSubtitle_one": "{{count}} on file",
+    "myRxSubtitle_other": "{{count}} on file",
+    "myRxA11y": "Open my prescriptions"
   },
   "doctorQueue": {
     "title": "Today's queue",

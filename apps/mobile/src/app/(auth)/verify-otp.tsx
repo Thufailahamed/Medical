@@ -128,7 +128,7 @@ export default function VerifyOtpScreen() {
           mode === "login" ? "Welcome back" : "Account verified",
           "success",
         );
-        const home = res.user?.role === "doctor" ? "/(app)/doctor" : "/(app)";
+        const home = res.user?.role === "doctor" ? "/(doctor)" : "/(app)";
         router.replace(home as any);
       } else {
         router.replace("/(auth)/login" as any);
