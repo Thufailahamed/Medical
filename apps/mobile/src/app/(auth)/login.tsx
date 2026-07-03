@@ -14,115 +14,99 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Mail,
-  Lock,
+  Phone,
   ArrowRight,
   Heart,
-  Eye,
-  EyeOff,
   ShieldCheck,
-  IdCard,
-  Calendar,
-  KeyRound,
   MessageCircle,
 } from "lucide-react-native";
 import { api } from "@/lib/api";
-import * as SecureStore from "expo-secure-store";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
-import { isStructurallyValidNic, nicMatchesDob, parseDob } from "@/lib/format";
 
-type Mode = "password" | "nic";
-
-const passwordSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
-});
-
-const nicSchema = z.object({
-  nic: z
+// SL mobile number validation: 07X XXXXXXX (10 digits) or +94 7X XXXXXXX
+const phoneSchema = z.object({
+  phone: z
     .string()
-    .refine(isStructurallyValidNic, {
-      message: "Enter a valid NIC (old: 9 digits + V/X, new: 12 digits)",
-    }),
-  dob: z.string().refine((s) => parseDob(s) !== null, {
-    message: "Enter a valid past date (YYYY-MM-DD)",
-  }),
+    .min(1, "Phone number is required")
+    .refine(
+      (v) => {
+        const digits = v.replace(/[\s\-().+]/g, "");
+        // 10-digit local: 07XXXXXXXX
+        if (/^07[0-9]\d{7}$/.test(digits)) return true;
+        // 11-digit with country code: 947XXXXXXXX
+        if (/^947[0-9]\d{7}$/.test(digits)) return true;
+        // With + prefix already stripped
+        return false;
+      },
+      { message: "Enter a valid Sri Lankan mobile number (07X XXXX XXX)" },
+    ),
 });
 
-type PasswordData = z.infer<typeof passwordSchema>;
-type NicData = z.infer<typeof nicSchema>;
+type PhoneData = z.infer<typeof phoneSchema>;
 
 export default function LoginScreen() {
   const router = useRouter();
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [mode, setMode] = useState<Mode>("password");
   const toast = useToast();
-  const setUser = useAuthStore((s) => s.setUser);
-  const queryClient = useQueryClient();
 
   const {
     control,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<PasswordData>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: { email: "", password: "" },
+  } = useForm<PhoneData>({
+    resolver: zodResolver(phoneSchema),
+    defaultValues: { phone: "" },
     mode: "onBlur",
   });
 
-  const {
-    control: nicControl,
-    handleSubmit: handleNicSubmit,
-    setError: setNicError,
-    formState: { errors: nicErrors },
-  } = useForm<NicData>({
-    resolver: zodResolver(nicSchema),
-    defaultValues: { nic: "", dob: "" },
-    mode: "onBlur",
-  });
-
-  const onSubmit = async (data: PasswordData) => {
+  const onSubmit = async (data: PhoneData) => {
     Keyboard.dismiss();
     setSubmitting(true);
     try {
-      const res = await api<{ user: any; session: any }>("/auth/login", {
+      const res = await api<{
+        otpSent: boolean;
+        userId: string;
+        channel: string;
+        target: string;
+        expiresAt: string;
+        devCode?: string;
+      }>("/auth/login-by-phone", {
         method: "POST",
-        body: { email: data.email, password: data.password },
+        body: { phone: data.phone },
       });
 
-      queryClient.clear();
-
-      if (res.session?.access_token) {
-        await SecureStore.setItemAsync("auth_token", res.session.access_token);
+      if (!res.otpSent) {
+        toast.show("Could not send verification code", "danger");
+        return;
       }
 
-      setUser(res.user);
-      toast.show("Welcome back", "success");
-      const home = res.user?.role === "doctor" ? "/(doctor)" : "/(app)";
-      router.replace(home as any);
+      router.push({
+        pathname: "/(auth)/verify-otp",
+        params: {
+          userId: res.userId,
+          channel: "mobile",
+          target: res.target,
+          mode: "login",
+          preSent: "true",
+          devCode: res.devCode || "",
+        },
+      } as any);
     } catch (err: any) {
-      console.warn("Login error details:", err);
+      console.warn("Login error:", err);
       let msg = "Could not sign in.";
       if (err) {
         if (typeof err === "string") {
           msg = err;
-        } else if (err.message && typeof err.message === "string" && err.message !== "{}" && err.message !== "[object Object]") {
+        } else if (
+          err.message &&
+          typeof err.message === "string" &&
+          err.message !== "{}" &&
+          err.message !== "[object Object]"
+        ) {
           msg = err.message;
-        } else {
-          try {
-            msg = JSON.stringify(err);
-            if (msg === "{}" || msg === "[]" || !msg) {
-              msg = err.toString ? err.toString() : "Could not sign in.";
-            }
-          } catch {
-            msg = "Could not sign in.";
-          }
         }
       }
       setError("root", { message: msg });
@@ -132,60 +116,10 @@ export default function LoginScreen() {
     }
   };
 
-  const onNicSubmit = async (data: NicData) => {
-    Keyboard.dismiss();
-    setSubmitting(true);
-    try {
-      const res = await api<{ user: any; session?: any; nextStep?: string }>(
-        "/auth/login-by-nic",
-        {
-          method: "POST",
-          body: { nic: data.nic.toUpperCase(), dob: data.dob },
-        },
-      );
-      if (!res.session?.access_token || !res.user) {
-        toast.show("Could not sign in", "danger");
-        return;
-      }
-      // Issue is short-lived token; send OTP and route through verify screen.
-      const sendRes = await api<{ sent: boolean; target: string }>(
-        "/auth/send-otp",
-        {
-          method: "POST",
-          body: {
-            userId: res.user.id,
-            channel: "mobile",
-            purpose: "login",
-          },
-        },
-      );
-      toast.show(`Code sent to ${sendRes.target}`, "info");
-      router.replace({
-        pathname: "/(auth)/verify-otp",
-        params: {
-          userId: res.user.id,
-          channel: "mobile",
-          target: sendRes.target,
-          mode: "login",
-        },
-      } as any);
-    } catch (err: any) {
-      const msg = err?.message ?? "Invalid credentials";
-      setNicError("root", { message: msg });
-      toast.show(msg, "danger");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const goForgot = () => router.push("/(auth)/forgot-password");
   const goRegister = () => router.push("/(auth)/register" as any);
   const goDemo = () => router.push("/(auth)/request-demo" as any);
 
-  // Phase 1.3: WhatsApp onboarding deep-link. The phone number is set
-  // at build time via EXPO_PUBLIC_WA_PHONE. When unset the button is
-  // hidden so the auth landing stays clean for builds that haven't
-  // configured a bot yet.
+  // Phase 1.3: WhatsApp onboarding deep-link.
   const waPhone =
     ((Constants.expoConfig as any)?.extra?.waPhone as string | undefined) ||
     "";
@@ -240,7 +174,7 @@ export default function LoginScreen() {
       </View>
 
       {/* Heading Section */}
-      <View style={{ marginTop: 48, marginBottom: 24 }}>
+      <View style={{ marginTop: 48, marginBottom: 32 }}>
         <Text
           style={{
             fontSize: 34,
@@ -261,128 +195,24 @@ export default function LoginScreen() {
             lineHeight: 22,
           }}
         >
-          {mode === "password"
-            ? "Sign in to continue managing your health."
-            : "Use your national ID + date of birth — we'll send a code to verify."}
+          Enter your mobile number to receive a verification code.
         </Text>
       </View>
 
-      {/* Mode toggle */}
-      <View
-        style={{
-          flexDirection: "row",
-          backgroundColor: "#FFFFFF",
-          borderRadius: 24,
-          borderWidth: 1,
-          borderColor: "#E6E4EA",
-          padding: 3,
-          marginBottom: 24,
-        }}
-      >
-        {([
-          { value: "password", label: "Email + password", icon: Lock },
-          { value: "nic", label: "National ID + OTP", icon: KeyRound },
-        ] as const).map(({ value, label, icon: Icon }) => {
-          const active = mode === value;
-          return (
-            <Pressable
-              key={value}
-              onPress={() => setMode(value)}
-              accessibilityRole="button"
-              accessibilityLabel={`Login with ${label}`}
-              accessibilityState={{ selected: active }}
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                paddingVertical: 10,
-                borderRadius: 21,
-                backgroundColor: active ? colors.primarySoft : "transparent",
-              }}
-            >
-              <Icon
-                size={14}
-                color={active ? colors.primary : "#7F7B8C"}
-                strokeWidth={2.5}
-              />
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "700",
-                  color: active ? colors.primary : "#7F7B8C",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* Form Fields */}
-      {mode === "password" ? (
+      {/* Phone number form */}
       <View style={{ gap: 20 }}>
-        {/* Email Field */}
         <Controller
           control={control}
-          name="email"
+          name="phone"
           render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Email"
+            <PhoneInput
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              placeholder="you@example.com"
-              icon={Mail}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              error={errors.email?.message}
+              error={errors.phone?.message}
             />
           )}
         />
-
-        {/* Password Field */}
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Password"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="Enter your password"
-              icon={Lock}
-              secureTextEntry={!showPassword}
-              rightIcon={showPassword ? EyeOff : Eye}
-              onRightIconPress={() => setShowPassword(!showPassword)}
-              error={errors.password?.message}
-            />
-          )}
-        />
-
-        {/* Forgot Password Link */}
-        <Pressable
-          onPress={goForgot}
-          accessibilityRole="link"
-          hitSlop={8}
-          style={{ alignSelf: "flex-end", marginTop: -8 }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "700",
-              color: colors.primary,
-              fontFamily: fontFamily.bodyBold,
-            }}
-          >
-            Forgot password?
-          </Text>
-        </Pressable>
 
         {/* Error Banner */}
         {errors.root ? (
@@ -395,7 +225,7 @@ export default function LoginScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.sm,
-              marginTop: 10,
+              marginTop: 4,
             }}
           >
             <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
@@ -410,7 +240,7 @@ export default function LoginScreen() {
           </View>
         ) : null}
 
-        {/* Sign In Button */}
+        {/* Send OTP Button */}
         <Pressable
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
@@ -418,107 +248,12 @@ export default function LoginScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: submitting ? `${colors.primary}80` : colors.primary,
+            backgroundColor: submitting
+              ? `${colors.primary}80`
+              : colors.primary,
             height: 52,
             borderRadius: 26,
-            marginTop: 20,
-            opacity: pressed ? 0.8 : 1,
-            gap: 8,
-          })}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "700",
-                  color: "#FFFFFF",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                Sign in
-              </Text>
-              <ArrowRight size={18} color="#FFFFFF" strokeWidth={2} />
-            </>
-          )}
-        </Pressable>
-      </View>
-      ) : (
-      // ─── NIC + DOB login flow ──────────────────────────────────
-      <View style={{ gap: 20 }}>
-        <Controller
-          control={nicControl}
-          name="nic"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="National ID"
-              value={value}
-              onChangeText={(t) => onChange(t.toUpperCase())}
-              onBlur={onBlur}
-              placeholder="200012345678 or 123456789V"
-              icon={IdCard}
-              autoCapitalize="characters"
-              error={nicErrors.nic?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={nicControl}
-          name="dob"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Date of birth"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="YYYY-MM-DD"
-              icon={Calendar}
-              keyboardType="numbers-and-punctuation"
-              autoComplete="birthdate-full"
-              error={nicErrors.dob?.message}
-            />
-          )}
-        />
-
-        {nicErrors.root ? (
-          <View
-            style={{
-              backgroundColor: colors.dangerSoft,
-              paddingVertical: spacing.sm,
-              paddingHorizontal: spacing.md,
-              borderRadius: radius.md,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.sm,
-              marginTop: 10,
-            }}
-          >
-            <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
-            <Text
-              style={[
-                typography.caption,
-                { color: colors.danger, fontWeight: "600", flex: 1 },
-              ]}
-            >
-              {nicErrors.root.message}
-            </Text>
-          </View>
-        ) : null}
-
-        <Pressable
-          onPress={handleNicSubmit(onNicSubmit)}
-          disabled={submitting}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: submitting ? `${colors.primary}80` : colors.primary,
-            height: 52,
-            borderRadius: 26,
-            marginTop: 20,
+            marginTop: 8,
             opacity: pressed ? 0.8 : 1,
             gap: 8,
           })}
@@ -546,15 +281,15 @@ export default function LoginScreen() {
           style={{
             fontSize: 12,
             color: "#7F7B8C",
-            marginTop: 4,
+            marginTop: 2,
             fontFamily: fontFamily.body,
             lineHeight: 18,
+            textAlign: "center",
           }}
         >
-          We'll text a 6-digit code to the mobile number on your account.
+          We'll text a 6-digit code to verify your identity.
         </Text>
       </View>
-      )}
 
       {/* Divider */}
       <View
@@ -562,7 +297,7 @@ export default function LoginScreen() {
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.sm,
-          marginTop: 24,
+          marginTop: 28,
         }}
       >
         <View style={{ flex: 1, height: 1, backgroundColor: "#E6E4EA" }} />
@@ -581,8 +316,7 @@ export default function LoginScreen() {
         <View style={{ flex: 1, height: 1, backgroundColor: "#E6E4EA" }} />
       </View>
 
-      {/* WhatsApp onboarding (Phase 1.3). Hidden when EXPO_PUBLIC_WA_PHONE
-          is unset so unfinished builds don't dangle a useless CTA. */}
+      {/* WhatsApp onboarding */}
       {waPhone ? (
         <Pressable
           onPress={openWhatsApp}
@@ -621,19 +355,34 @@ export default function LoginScreen() {
         onPress={goRegister}
         accessibilityRole="link"
         hitSlop={8}
-        style={{ alignItems: "center", paddingVertical: spacing.xs, marginBottom: 40 }}
+        style={{
+          alignItems: "center",
+          paddingVertical: spacing.xs,
+          marginTop: 20,
+          marginBottom: 40,
+        }}
       >
-        <Text style={{ fontSize: 15, color: "#7F7B8C", fontFamily: fontFamily.body }}>
+        <Text
+          style={{
+            fontSize: 15,
+            color: "#7F7B8C",
+            fontFamily: fontFamily.body,
+          }}
+        >
           New to HealthHub?{" "}
-          <Text style={{ color: colors.primary, fontWeight: "700", fontFamily: fontFamily.bodyBold }}>
+          <Text
+            style={{
+              color: colors.primary,
+              fontWeight: "700",
+              fontFamily: fontFamily.bodyBold,
+            }}
+          >
             Create account
           </Text>
         </Text>
       </Pressable>
 
-      {/* Phase 3.1: Request-a-Demo secondary CTA. Lives under the
-          primary create-account link so it doesn't compete for the
-          password / NIC flow above. */}
+      {/* Demo request link */}
       <Pressable
         onPress={goDemo}
         accessibilityRole="link"
@@ -662,30 +411,17 @@ export default function LoginScreen() {
   );
 }
 
-function CustomUnderlineInput({
-  label,
+// ─── Phone input with +94 prefix ───────────────────────────
+function PhoneInput({
   value,
   onChangeText,
-  placeholder,
-  icon: Icon,
-  secureTextEntry,
-  rightIcon: RightIcon,
-  onRightIconPress,
-  error,
   onBlur,
-  ...props
+  error,
 }: {
-  label: string;
   value: string;
   onChangeText: (v: string) => void;
-  placeholder: string;
-  icon: any;
-  secureTextEntry?: boolean;
-  rightIcon?: any;
-  onRightIconPress?: () => void;
-  error?: string;
   onBlur?: () => void;
-  [key: string]: any;
+  error?: string;
 }) {
   const { colors, fontFamily } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -704,9 +440,17 @@ function CustomUnderlineInput({
             textTransform: "uppercase",
           }}
         >
-          {label}
+          Mobile number
         </Text>
-        <Text style={{ fontSize: 11, color: colors.danger || "#FF3B30", marginLeft: 2 }}>*</Text>
+        <Text
+          style={{
+            fontSize: 11,
+            color: colors.danger || "#FF3B30",
+            marginLeft: 2,
+          }}
+        >
+          *
+        </Text>
       </View>
 
       {/* Input Row */}
@@ -716,17 +460,50 @@ function CustomUnderlineInput({
           alignItems: "center",
           paddingBottom: 8,
           borderBottomWidth: focused ? 2 : 1,
-          borderBottomColor: focused ? colors.primary : "#E6E4EA",
+          borderBottomColor: error
+            ? colors.danger || "#FF3B30"
+            : focused
+            ? colors.primary
+            : "#E6E4EA",
         }}
       >
-        <Icon size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
-        
+        <Phone size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+
+        {/* Country code badge */}
+        <View
+          style={{
+            backgroundColor: "#F5F3FA",
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 8,
+            marginRight: 8,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "700",
+              color: "#1D1B20",
+              fontFamily: fontFamily.bodyBold,
+            }}
+          >
+            +94
+          </Text>
+        </View>
+
         <TextInput
           value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
+          onChangeText={(t) => {
+            // Strip non-digits, allow + at start
+            const clean = t.replace(/[^0-9+]/g, "");
+            onChangeText(clean);
+          }}
+          placeholder="77 123 4567"
           placeholderTextColor="#C4C0CC"
-          secureTextEntry={secureTextEntry}
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+          maxLength={15}
           onFocus={() => setFocused(true)}
           onBlur={() => {
             setFocused(false);
@@ -734,19 +511,13 @@ function CustomUnderlineInput({
           }}
           style={{
             flex: 1,
-            fontSize: 15,
+            fontSize: 18,
             color: "#1D1B20",
             fontFamily: fontFamily.body,
             padding: 0,
+            letterSpacing: 1,
           }}
-          {...props}
         />
-
-        {RightIcon && (
-          <Pressable onPress={onRightIconPress} hitSlop={8}>
-            <RightIcon size={18} color="#C4C0CC" />
-          </Pressable>
-        )}
       </View>
 
       {/* Error text */}

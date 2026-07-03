@@ -78,6 +78,13 @@
       "when": 1783085361970,
       "tag": "0010_happy_micromax",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1783089577303,
+      "tag": "0011_volatile_ezekiel_stane",
+      "breakpoints": true
     }
   ]
 }

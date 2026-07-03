@@ -9,3 +9,9 @@ SUPABASE_ANON_KEY=your-anon-key
 # private keys. Generate with: openssl rand -base64 32
 # In prod set via: wrangler secret put DOCTOR_KEY_KEK
 DOCTOR_KEY_KEK=replace-me-openssl-rand-base64-32
+
+# Phase 4: SMS OTP (SMSLenz)
+SMS_PROVIDER=console
+SMSLENZ_USER_ID=1958
+SMSLENZ_API_KEY=your-smslenz-api-key
+SMS_SENDER_ID=SMSlenzDEMO

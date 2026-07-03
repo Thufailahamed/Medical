@@ -4,6 +4,7 @@ import {
   nicMatchesDob,
   normalizeNic as normalizeNicLib,
 } from "./nic";
+import { normalizeSLPhone } from "./phone";
 
 // ─── Phase 1.2: SL National Identity Card ──────────────────
 // Structural validation + DOB cross-check lives in `./nic`. We re-export
@@ -476,4 +477,18 @@ export const createStaffInviteSchema = z.object({
     .optional(),
   role: z.enum(HOSPITAL_STAFF_ROLES),
   expiresInHours: z.number().int().min(1).max(24 * 30).optional(),
+});
+
+// ─── Phase 4: phone-only login ────────────────────────────
+
+/** Login by phone — triggers OTP send to the phone number. */
+export const loginByPhoneSchema = z.object({
+  phone: z
+    .string()
+    .min(9, "Phone number is too short")
+    .max(15, "Phone number is too long")
+    .refine((v) => normalizeSLPhone(v) !== null, {
+      message: "Enter a valid Sri Lankan mobile number (07X)",
+    })
+    .transform((v) => normalizeSLPhone(v)!),
 });

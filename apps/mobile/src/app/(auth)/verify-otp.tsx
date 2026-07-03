@@ -36,6 +36,8 @@ export default function VerifyOtpScreen() {
     target?: string;
     purpose?: string;
     mode?: Mode;
+    preSent?: string;
+    devCode?: string;
   }>();
 
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
@@ -99,6 +101,12 @@ export default function VerifyOtpScreen() {
 
   useEffect(() => {
     // Auto-send on first mount so the user is not stuck on an empty screen.
+    if (params.preSent === "true") {
+      if (params.devCode) {
+        setOtpHint(params.devCode);
+      }
+      return;
+    }
     (async () => {
       const hint = await callSendOtp();
       if (hint) setOtpHint(hint);

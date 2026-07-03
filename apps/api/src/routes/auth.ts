@@ -7,6 +7,7 @@ import {
   registerSchema,
   loginSchema,
   loginByNicSchema,
+  loginByPhoneSchema,
   sendOtpSchema,
   verifyOtpSchema,
   normalizeNic,
@@ -25,6 +26,8 @@ import {
   maskTarget,
 } from "../lib/crypto";
 import { nicVerificationLevel } from "../lib/nic";
+import { normalizeSLPhone } from "../lib/phone";
+import { createSmsProvider, formatOtpMessage } from "../lib/sms";
 import type { AppEnvironment } from "../types";
 
 const auth = new Hono<AppEnvironment>();
@@ -290,6 +293,111 @@ auth.post("/login-by-nic", async (c) => {
   });
 });
 
+// ─── Login by phone (OTP — primary login) ────────────────
+// Phone-only passwordless login. Looks up user by phone,
+// generates OTP, sends via SMS, returns userId for verify step.
+auth.post("/login-by-phone", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = loginByPhoneSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
+  }
+  const phone = parsed.data.phone; // Already normalized to +94XXXXXXXXX
+  const db = c.get("db");
+
+  const [dbUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.phone, phone))
+    .limit(1);
+
+  if (!dbUser) {
+    // Anti-enumeration: same shape as success but with a fake delay.
+    await new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
+    return c.json({ error: "Invalid credentials" }, 401);
+  }
+
+  const now = Date.now();
+
+  // Rate limit + cooldown (same logic as /send-otp)
+  const recentSends = await db
+    .select({ createdAt: otpCodes.createdAt })
+    .from(otpCodes)
+    .where(
+      and(
+        eq(otpCodes.target, phone),
+        eq(otpCodes.channel, "mobile")
+      )
+    )
+    .all();
+
+  const last5min = recentSends.filter(
+    (r) => now - new Date(r.createdAt).getTime() < 5 * 60 * 1000
+  );
+  if (last5min.length >= 5) {
+    return c.json(
+      { error: "Too many OTP requests. Try again in a few minutes.", retryAfterSec: 60 },
+      429
+    );
+  }
+  const mostRecent = recentSends
+    .map((r) => new Date(r.createdAt).getTime())
+    .sort((a, b) => b - a)[0];
+  if (mostRecent && now - mostRecent < 30 * 1000) {
+    return c.json(
+      { error: "Please wait 30 seconds before requesting another OTP.", retryAfterSec: 30 },
+      429
+    );
+  }
+
+  // Pre-prune prior unconsumed OTPs
+  const nowIso = new Date(now).toISOString();
+  await db
+    .update(otpCodes)
+    .set({ consumedAt: nowIso })
+    .where(
+      and(
+        eq(otpCodes.target, phone),
+        eq(otpCodes.channel, "mobile"),
+        isNull(otpCodes.consumedAt)
+      )
+    );
+
+  const code = generateOtpCode();
+  const codeHash = await hashSecret(code);
+  const expiresAt = new Date(now + OTP_TTL_MINUTES * 60 * 1000).toISOString();
+
+  await db.insert(otpCodes).values({
+    id: crypto.randomUUID(),
+    userId: dbUser.id,
+    channel: "mobile",
+    target: phone,
+    codeHash,
+    expiresAt,
+    attempts: 0,
+  });
+
+  // Send SMS via configured provider
+  const sms = createSmsProvider(c.env);
+  const message = formatOtpMessage(code);
+  const smsResult = await sms.sendSms(phone, message);
+
+  if (!smsResult.success) {
+    console.error(`[login-by-phone] SMS send failed: ${smsResult.error}`);
+  }
+
+  const isDev = c.env.DEV_MODE === "true" || c.env.ENVIRONMENT === "development";
+
+  return c.json({
+    otpSent: true,
+    userId: dbUser.id,
+    channel: "mobile",
+    target: maskTarget(phone),
+    expiresAt,
+    ...(isDev ? { devCode: code } : {}),
+  });
+});
+
 // ─── Send OTP ────────────────────────────────────────────
 // Resolves the destination (mobile or email) either from the request body
 // or from the user's profile, mints a 6-digit code, stores its hash with
@@ -408,20 +516,30 @@ auth.post("/send-otp", async (c) => {
     attempts: 0,
   });
 
-  // No SMS/email gateway yet — log the code so the developer can copy it
-  // out of the API logs during development.
-  console.log(
-    `[otp] channel=${channel} target=${maskTarget(destination)} purpose=${purpose} code=${code} expiresAt=${expiresAt}`,
-  );
+  // Send via configured SMS/email provider
+  if (channel === "mobile") {
+    const sms = createSmsProvider(c.env);
+    const message = formatOtpMessage(code);
+    const smsResult = await sms.sendSms(destination, message);
+    if (!smsResult.success) {
+      console.error(`[otp] SMS send failed: ${smsResult.error}`);
+    }
+  } else {
+    // Email channel — no provider wired yet, log for dev.
+    console.log(
+      `[otp] channel=${channel} target=${maskTarget(destination)} purpose=${purpose} code=${code} expiresAt=${expiresAt}`,
+    );
+  }
+
+  const isDev = c.env.DEV_MODE === "true" || c.env.ENVIRONMENT === "development";
 
   return c.json({
     sent: true,
     channel,
     target: maskTarget(destination),
     expiresAt,
-    // During dev: include the code so the mobile app can auto-fill.
-    // REMOVE before any real deployment.
-    devCode: code,
+    // Only include devCode in development — never in production.
+    ...(isDev ? { devCode: code } : {}),
   });
 });
 

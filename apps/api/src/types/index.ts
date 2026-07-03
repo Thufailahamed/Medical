@@ -40,6 +40,11 @@ export interface AppEnvironment {
     // configured here.
     WA_VERIFY_TOKEN?: string;
     WA_ACCESS_TOKEN?: string;
+    // Phase 4: SMS OTP via SMSLenz (or console fallback).
+    SMS_PROVIDER?: string;       // "smslenz" | "console"
+    SMSLENZ_USER_ID?: string;    // From SMSLenz dashboard
+    SMSLENZ_API_KEY?: string;    // Secret
+    SMS_SENDER_ID?: string;      // e.g. "HealthHub" or "SMSlenzDEMO"
   };
   Variables: {
     user: User;

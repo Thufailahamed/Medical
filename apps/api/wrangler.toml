@@ -32,6 +32,11 @@ ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.heal
 # scope. Phone number id is read from each webhook payload so it does
 # not need to be configured here.
 WA_VERIFY_TOKEN = "wa-verify-token-set-via-secret"
+# Phase 4: SMS OTP. SMS_PROVIDER controls which gateway is active:
+# "smslenz" uses the SMSLenz API; "console" logs to stdout (dev default).
+# SMSLENZ_USER_ID and SMSLENZ_API_KEY are set via `wrangler secret put`.
+SMS_PROVIDER = "smslenz"
+SMS_SENDER_ID = "SMSlenzDEMO"
 
 [[d1_databases]]
 binding = "DB"
