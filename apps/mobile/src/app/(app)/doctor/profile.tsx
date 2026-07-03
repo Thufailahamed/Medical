@@ -7,9 +7,11 @@ import {
   ScrollView,
   Pressable,
   Linking,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Stethoscope,
   Phone,
@@ -27,6 +29,7 @@ import {
   CalendarDays,
   FileText,
   Bell,
+  LogOut,
 } from "lucide-react-native";
 import {
   useDoctorMe,
@@ -39,8 +42,9 @@ import {
   useUnreadCount,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Screen, ScreenHeader, Card, Skeleton } from "@/components/ui";
+import { Screen, ScreenHeader, Card, Skeleton, Button } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
+import { api } from "@/lib/api";
 
 function InfoRow({
   icon: Icon,
@@ -176,9 +180,30 @@ function StatBlock({
 
 export default function DoctorProfileScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
-  const user = useAuthStore((s) => s.user);
+  const { user, logout } = useAuthStore();
+
+  function confirmLogout() {
+    Alert.alert(
+      t("profile.logout.title"),
+      t("profile.logout.body"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("profile.logout.confirm"), style: "destructive", onPress: handleLogout },
+      ]
+    );
+  }
+
+  async function handleLogout() {
+    try {
+      await api("/auth/logout", { method: "POST" });
+    } catch {}
+    queryClient.clear();
+    logout();
+    router.replace("/(auth)/login" as any);
+  }
 
   const { data, isLoading } = useDoctorMe();
   const { data: dashboard } = useDoctorDashboard();
@@ -579,6 +604,31 @@ export default function DoctorProfileScreen() {
               )}
             </View>
           </Card>
+        </View>
+
+        {/* ─── Sign out + app info ─── */}
+        <View
+          style={{
+            marginTop: spacing.lg,
+            gap: spacing.lg,
+            alignItems: "center",
+          }}
+        >
+          <Button
+            title={t("profile.logout.confirm")}
+            variant="outline"
+            icon={LogOut}
+            onPress={confirmLogout}
+            fullWidth
+          />
+          <Text
+            style={[
+              typography.caption,
+              { color: colors.textSubtle, textAlign: "center" },
+            ]}
+          >
+            {t("profile.footer")}
+          </Text>
         </View>
       </ScrollView>
     </Screen>

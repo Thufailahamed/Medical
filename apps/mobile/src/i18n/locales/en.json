@@ -1989,6 +1989,28 @@
     "onDuty": "On duty",
     "viewProfileA11y": "View doctor profile",
     "notificationsA11y": "Notifications",
+    "brand": "Healers",
+    "quickAddA11y": "Quick actions",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "todayAppointments": "Today",
+    "appointmentsLabel": "appointments",
+    "heroChipQueue": "{{count}} in queue",
+    "heroChipPatients": "{{count}} patients",
+    "heroChipAlerts": "{{count}} alerts",
+    "heroChipNoAlerts": "All clear",
+    "sectionQuickActions": "Quick actions",
+    "sectionTodayQueue": "Today's queue",
+    "sectionQuickLinks": "Quick links",
+    "viewAll": "View all",
+    "emptyQueueTitle": "No patients waiting",
+    "emptyQueueBody": "Your queue is clear for now",
+    "patientWaiting": "Waiting",
+    "patientInProgress": "In progress",
+    "patientCompleted": "Completed",
     "stats": {
       "inQueue": "IN QUEUE",
       "rxWritten": "RX WRITTEN",
@@ -2696,7 +2718,12 @@
       "family": "Family",
       "medicines": "Medicines",
       "emergency": "Emergency",
-      "profile": "Profile"
+      "profile": "Profile",
+      "doctorHome": "Home",
+      "doctorQueue": "Queue",
+      "doctorPrescribe": "Prescribe",
+      "doctorPatients": "Patients",
+      "doctorProfile": "Profile"
     }
   },
   "emailImport": {

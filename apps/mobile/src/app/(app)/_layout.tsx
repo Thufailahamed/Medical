@@ -1,12 +1,13 @@
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { Home, ClipboardList, Pill, Siren, UserRound, Users } from "lucide-react-native";
+import { Home, ClipboardList, Pill, Siren, UserRound, Users, Clock4, Search, Stethoscope } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
+import { useAuthStore } from "@/stores/auth";
 
 // Sinhala + Tamil glyphs render ~1.3x wider than Latin at the same font size.
 // Trim fontSize + letterSpacing for those locales to keep the 5 labels from
@@ -32,6 +33,8 @@ export default function AppLayout() {
   const locale = useLocaleStore((s) => s.locale);
   const isWideScript = locale === "si" || locale === "ta";
   const labelStyle = isWideScript ? NARROW_TAB_LABEL : WIDE_TAB_LABEL;
+  const user = useAuthStore((s) => s.user);
+  const isDoctor = user?.role === "doctor";
 
   return (
     <Tabs
@@ -101,6 +104,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.home"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={Home} focused={focused} badge={unreadN} />
@@ -110,6 +114,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="records"
         options={{
+          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.records"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={ClipboardList} focused={focused} />
@@ -120,6 +125,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="medicines"
         options={{
+          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.medicines"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={Pill} focused={focused} />
@@ -129,6 +135,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="emergency"
         options={{
+          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.emergency"),
           tabBarIcon: ({ focused }) => (
             <TabIcon
@@ -142,6 +149,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="profile"
         options={{
+          ...(isDoctor ? { href: null } : {}),
           title: t("nav.tabs.profile"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={UserRound} focused={focused} />
@@ -201,92 +209,128 @@ export default function AppLayout() {
       <Tabs.Screen
         name="doctor"
         options={{
-          href: null,
-          tabBarStyle: { display: "none" },
+          ...(isDoctor
+            ? {
+                title: t("nav.tabs.doctorHome"),
+                tabBarIcon: ({ focused }: { focused: boolean }) => (
+                  <TabIcon icon={Home} focused={focused} badge={unreadN} />
+                ),
+              }
+            : {
+                href: null,
+                tabBarStyle: { display: "none" },
+              }),
         }}
       />
       <Tabs.Screen
         name="doctor/queue"
         options={{
-          href: null,
-          tabBarStyle: { display: "none" },
+          ...(isDoctor
+            ? {
+                title: t("nav.tabs.doctorQueue"),
+                tabBarIcon: ({ focused }: { focused: boolean }) => (
+                  <TabIcon icon={Clock4} focused={focused} />
+                ),
+              }
+            : {
+                href: null,
+                tabBarStyle: { display: "none" },
+              }),
         }}
       />
       <Tabs.Screen
         name="doctor/patient-detail"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/clinical-note"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/prescription"
         options={{
-          href: null,
-          tabBarStyle: { display: "none" },
+          ...(isDoctor
+            ? {
+                title: t("nav.tabs.doctorPrescribe"),
+                tabBarIcon: ({ focused }: { focused: boolean }) => (
+                  <TabIcon icon={Search} focused={focused} />
+                ),
+              }
+            : {
+                href: null,
+                tabBarStyle: { display: "none" },
+              }),
         }}
       />
       <Tabs.Screen
         name="doctor/lab-order"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/lab-orders"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/follow-ups"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/follow-up-new"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/availability"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/profile"
         options={{
-          href: null,
-          tabBarStyle: { display: "none" },
+          ...(isDoctor
+            ? {
+                title: t("nav.tabs.doctorProfile"),
+                tabBarIcon: ({ focused }: { focused: boolean }) => (
+                  <TabIcon icon={UserRound} focused={focused} />
+                ),
+              }
+            : {
+                href: null,
+                tabBarStyle: { display: "none" },
+              }),
         }}
       />
       <Tabs.Screen
         name="doctor/prescriptions"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/prescription-detail"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
@@ -300,21 +344,30 @@ export default function AppLayout() {
         name="doctor/clinical-notes"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/visit-summary"
         options={{
           href: null,
-          tabBarStyle: { display: "none" },
+          tabBarStyle: isDoctor ? undefined : { display: "none" },
         }}
       />
       <Tabs.Screen
         name="doctor/records"
         options={{
-          href: null,
-          tabBarStyle: { display: "none" },
+          ...(isDoctor
+            ? {
+                title: t("nav.tabs.doctorPatients"),
+                tabBarIcon: ({ focused }: { focused: boolean }) => (
+                  <TabIcon icon={Users} focused={focused} />
+                ),
+              }
+            : {
+                href: null,
+                tabBarStyle: { display: "none" },
+              }),
         }}
       />
       <Tabs.Screen

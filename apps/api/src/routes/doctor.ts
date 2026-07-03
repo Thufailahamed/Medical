@@ -623,7 +623,7 @@ doctorRouter.get(
 
       for (const med of medRows) {
         const duration = med.endDate
-          ? `${med.startDate} → ${med.endDate}`
+          ? `${med.startDate} - ${med.endDate}`
           : "ongoing";
         const cells = [
           med.name ?? "—",
