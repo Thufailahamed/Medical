@@ -240,6 +240,22 @@ export default function DoctorLayout() {
         name="inbox/[id]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="clinics/new"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="tenants/index"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="tenants/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="relationships/index"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

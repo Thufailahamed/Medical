@@ -65,7 +65,14 @@ export function TenantSwitcher() {
     label = c?.name ?? "Clinic";
     Icon = Stethoscope;
   }
-  if (!label) return null;
+  if (!label) {
+    if (myHospitals.length > 0 || myClinics.length > 0) {
+      label = "Select workspace";
+      Icon = Building2;
+    } else {
+      return null;
+    }
+  }
 
   async function persist(
     type: "hospital" | "clinic" | null,

@@ -3,7 +3,7 @@
 // Pulls from GET /me/tenants (same store that powers the top-bar
 // switcher). Each row is tappable → tenants/[id] detail.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Pressable,
   RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   Building2,
   Stethoscope,
@@ -56,9 +56,11 @@ export default function DoctorTenants() {
     }
   }
 
-  useEffect(() => {
-    if (myHospitals.length === 0 && myClinics.length === 0) load();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [])
+  );
 
   function go(kind: TenantKind, id: string) {
     // Set active tenant so the destination's data loads scoped.
@@ -91,8 +93,9 @@ export default function DoctorTenants() {
         </Text>
         {myHospitals.length === 0 ? (
           <EmptyState
+            icon={Building2}
             title="No hospitals yet"
-            description="Ask an admin to add you, or join via an invite link."
+            message="Ask an admin to add you, or join via an invite link."
           />
         ) : (
           myHospitals.map((h: TenantRef) => (
@@ -173,8 +176,9 @@ export default function DoctorTenants() {
         </View>
         {myClinics.length === 0 ? (
           <EmptyState
+            icon={Stethoscope}
             title="No clinics yet"
-            description="Create your own clinic to invite partners + patients."
+            message="Create your own clinic to invite partners + patients."
           />
         ) : (
           myClinics.map((c: TenantRef) => (

@@ -667,6 +667,62 @@ export default function DoctorProfileScreen() {
           </Pressable>
 
           <Pressable
+            onPress={() => router.push("/tenants" as any)}
+            accessibilityLabel="Manage workspaces"
+          >
+            <Card padded={false}>
+              <View
+                style={{
+                  padding: spacing.lg,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.md,
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    backgroundColor: "#EFF6FF",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Building2
+                    size={20}
+                    color="#3B82F6"
+                    strokeWidth={2.25}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      typography.title.sm,
+                      { color: colors.text, fontWeight: "700" },
+                    ]}
+                  >
+                    Workspaces
+                  </Text>
+                  <Text
+                    style={[
+                      typography.body.sm,
+                      { color: colors.textMuted, marginTop: 2 },
+                    ]}
+                  >
+                    Manage clinics and hospitals
+                  </Text>
+                </View>
+                <ChevronRight
+                  size={18}
+                  color={colors.textSubtle}
+                  strokeWidth={2.2}
+                />
+              </View>
+            </Card>
+          </Pressable>
+
+          <Pressable
             onPress={() => router.push("/prescriptions" as any)}
             accessibilityLabel={t("doctorProfile.myRxA11y")}
           >
