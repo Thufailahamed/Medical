@@ -111,7 +111,11 @@ export async function upsertActiveCareTeam(
     return { inserted: true, id: r?.id };
   } catch (err: any) {
     const m = String(err?.message || "").toLowerCase();
-    if (m.includes("unique") || m.includes("constraint")) {
+    // Drizzle / D1 surfaces UNIQUE violations with messages containing
+    // "unique constraint". Surface those as "already exists",
+    // propagate anything else (NOT NULL, FK, etc.) so the caller can
+    // surface a real error to the client.
+    if (m.includes("unique")) {
       return { inserted: false };
     }
     throw err;

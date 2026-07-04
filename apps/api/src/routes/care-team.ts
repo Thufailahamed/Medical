@@ -244,7 +244,12 @@ careTeamRouter.post("/", async (c) => {
     if (link.consumedAt) {
       return c.json({ error: "Consent token already redeemed" }, 409);
     }
-    if (link.expiresAt < sql`CURRENT_TIMESTAMP`) {
+    // Compare expiresAt (ISO string) against wall-clock now. We can't
+    // use `sql\`CURRENT_TIMESTAMP\`` here because the `<` comparison
+    // would happen in JS-land on a SQL wrapper object (always-truthy
+    // string coercion), not at the D1 layer — leading to all tokens
+    // being flagged expired in production.
+    if (new Date(link.expiresAt).getTime() < Date.now()) {
       return c.json({ error: "Consent token expired" }, 403);
     }
     consentRecordId = link.id;

@@ -464,9 +464,13 @@ export default function DoctorHub() {
               flexWrap: "wrap",
             }}
           >
-            <HeroChip label={t("doctor.heroChipQueue", { count: upcoming })} />
+            <HeroChip
+              label={t("doctor.heroChipQueue", { count: upcoming })}
+              onPress={() => router.push("/queue" as any)}
+            />
             <HeroChip
               label={t("doctor.heroChipPatients", { count: totalPatients })}
+              onPress={() => router.push("/care-team" as any)}
             />
             <HeroChip
               label={
@@ -616,6 +620,14 @@ export default function DoctorHub() {
               />
               <LinkTile
                 icon={Users}
+                title={t("careTeam.title")}
+                subtitle={t("careTeam.doctorSubtitle", {
+                  count: totalPatients,
+                })}
+                onPress={() => router.push("/care-team" as any)}
+              />
+              <LinkTile
+                icon={Stethoscope}
                 title={t("doctor.tiles.recordsTitle")}
                 subtitle={t("doctor.tiles.recordsSubtitle", {
                   count: rxCount + notesCount + labCount,
@@ -634,9 +646,17 @@ export default function DoctorHub() {
 
 /* ─── Sub-components ─── */
 
-function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
+function HeroChip({
+  label,
+  dot,
+  onPress,
+}: {
+  label: string;
+  dot?: boolean;
+  onPress?: () => void;
+}) {
   const { spacing, typography } = useTheme();
-  return (
+  const content = (
     <View
       style={{
         flexDirection: "row",
@@ -669,6 +689,19 @@ function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
       </Text>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
 }
 
 function SectionLabel({

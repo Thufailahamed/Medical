@@ -1,0 +1,394 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/i18n/si.json</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/i18n</a> si.json</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>4/4</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>4/4</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">{
+  "validation": {
+    "specializationRequired": "විශේෂතාවය අවශ්‍යයි",
+    "specializationRequiredDoctor": "වෛද්‍ය ගිණුම් සඳහා විශේෂතාවය අවශ්‍යයි",
+    "invalidDoctorId": "වෛද්‍ය හැඳුනුම්පත වැරදියි",
+    "invalidHospitalId": "රෝහල් හැඳුනුම්පත වැරදියි",
+    "invalidDateFormat": "දිනය YYYY-MM-DD ආකෘතියෙන් විය යුතුය",
+    "invalidTimeFormat": "වේලාව HH:MM (24පැය) ආකෘතියෙන් විය යුතුය",
+    "reasonTooLong": "හේතුව අක්ෂර 500 ට අඩු විය යුතුය"
+  },
+  "notifications": {
+    "vaccination": {
+      "title": "එන්නත් මතක් කිරීම",
+      "bodyOverdue_one": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකට පෙර ලබා දීමට නියමිත විය ({{date}}).",
+      "bodyOverdue_other": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකට පෙර ලබා දීමට නියමිත විය ({{date}}).",
+      "bodyDueToday": "{{vaccine}} {{dose}} වැනි මාත්‍රාව අද ලබා දීමට නියමිතය.",
+      "bodyDueSoon_one": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකින් ලබා දීමට නියමිතය ({{date}}).",
+      "bodyDueSoon_other": "{{vaccine}} {{dose}} වැනි මාත්‍රාව {{count}} දිනකින් ලබා දීමට නියමිතය ({{date}})."
+    }
+  },
+  "family": {
+    "invite": {
+      "acceptedTitle": "පවුල් ආරාධනාව පිළිගන්න ලදී",
+      "acceptedBody": "{{name}} ඔබේ {{relationship}} ලෙස එකතු වීමට ඔබේ ආරාධනාව පිළිගත්තේය."
+    },
+    "lock": {
+      "toggleLock": "අගුළු ලබා දමන්න",
+      "toggleUnlock": "අගුළු ඉවත් කරන්න",
+      "lockedBadge": "අගුළු දමා ඇත",
+      "lockedHint": "පවුල් දර්ශනයෙන් වාර්තා සඟවා ඇත",
+      "confirmLock": "{{name}} අගුළු දමන්නද? ඔවුන්ගේ වාර්තා ඔබේ පවුල් දර්ශනයෙන් සඟවනු ඇත.",
+      "confirmLockTitle": "පවුල් සාමාජිකයෙකු අගුළු කරන්න",
+      "confirmUnlock": "{{name}} අගුළු ඉවත් කරන්නද? ඔවුන්ගේ වාර්තා ඔබේ පවුල් දර්ශනයේ නැවත දිස්වේ.",
+      "confirmUnlockTitle": "පවුල් සාමාජිකයෙකුගේ අගුළ ඉවත් කරන්න",
+      "toastLocked": "{{name}} ගේ වාර්තා දැන් සඟවා ඇත.",
+      "toastUnlocked": "{{name}} ගේ වාර්තා නැවත දිස්වේ.",
+      "toastError": "අගුළ යාවත්කාලීන කිරීමට නොහැකි විය. නැවත උත්සාහ කරන්න.",
+      "lockedRecordTitle": "[අගුළු දමා ඇත]",
+      "lockedRecordBody": "පවුල් පෞද්ගලිකත්ව අගුළ මගින් වාර්තා සඟවා ඇත."
+    },
+    "invitePage": {
+      "someone": "යමෙක්",
+      "ogTitle": "{{name}} ඔබව HealthHub වෙතට ආරාධනා කළේය",
+      "ogDescription": "ආරාධනාව පිළිගැනීමට HealthHub හි සබැඳිය විවෘත කරන්න.",
+      "invitedBy": "{{name}} ඔබව ආරාධනා කළේය",
+      "heroTitle": "HealthHub වෙතට සම්බන්ධ වන්න",
+      "inviteLine": "{{inviter}} ඔබව ඔවුන්ගේ {{relationship}} ලෙස එකතු කිරීමට කැමතිය",
+      "inviteLineNoRel": "{{inviter}} ඔබව ඔවුන්ගේ HealthHub වෙතට එකතු කිරීමට කැමතිය",
+      "alreadyAccepted": "දැනටමත් පිළිගන්න ලදී",
+      "openInApp": "HealthHub හි විවෘත කරන්න",
+      "appStore": "App Store",
+      "playStore": "Google Play",
+      "expiresOn": "සබැඳිය කල් ඉකුත් වන්නේ {{date}}",
+      "footer": "ආරක්ෂිත පවුල් සෞඛ්‍ය වාර්තා",
+      "invalid": {
+        "missingTitle": "ආරාධනා සබැඳිය මග හැරී ඇත",
+        "missingBody": "ඔබ විවෘත කළ සබැඳිය අසම්පූර්ණය.",
+        "notFoundTitle": "ආරාධනාව හමු නොවීය",
+        "notFoundBody": "මෙම ආරාධනාව නොපවතී හෝ ඉවත් කර ඇත.",
+        "revokedTitle": "ආරාධනාව අවලංගු කරන ලදී",
+        "revokedBody": "යවන්නා මෙම ආරාධනාව අවලංගු කළේය. නව සබැඳියක් ඉල්ලන්න.",
+        "expiredTitle": "ආරාධනාව කල් ඉකුත් වී ඇත",
+        "expiredBody": "මෙම ආරාධනාව කල් ඉකුත් වී ඇත. නව සබැඳියක් ඉල්ලන්න.",
+        "homeCta": "HealthHub විවෘත කරන්න"
+      }
+    }
+  },
+  "whatsapp": {
+    "welcome": {
+      "body": "HealthHub වෙතට සාදරයෙන් පිළිගනිමු 🇱🇰\n\nඔබේ ආරක්ෂිත සෞඛ්‍ය ලොකරය. වෛද්‍ය වාර්තා, පවුල් ඉතිහාසය, එන්නත් — සියල්ල එක තැනක.\n\nආරම්භ කිරීමට භාෂාවක් තෝරන්න:",
+      "footer": "HealthHub ලියාපදිංචිය"
+    },
+    "lang": {
+      "prompt": "කරුණාකර ඔබේ භාෂාව තෝරන්න:",
+      "buttonEn": "English",
+      "buttonSi": "සිංහල",
+      "buttonTa": "தமிழ்"
+    },
+    "nic": {
+      "prompt": "කරුණාකර ඔබේ ජාතික හැඳුනුම්පත් අංකය (NIC) එවන්න.\n\nපරණ ආකෘතිය: ඉලක්කම් 9 + V/X\nනව ආකෘතිය: ඉලක්කම් 12",
+      "invalid": "එය වලංගු NIC අංකයක් නොවේ. කරුණාකර පරීක්ෂා කර නැවත එවන්න.\n\nපරණ ආකෘතිය: ඉලක්කම් 9 + V/X\nනව ආකෘතිය: ඉලක්කම් 12",
+      "registered": "මෙම NIC දැනටමත් ලියාපදිංචි කර ඇත. HealthHub යෙදුම විවෘත කර ඔබේ NIC + උපන් දිනය සමඟ පුරනය වන්න."
+    },
+    "dob": {
+      "prompt": "දැන් ඔබේ උපන් දිනය එවන්න.\n\nආකෘතිය: YYYY-MM-DD\nඋදාහරණය: 1990-05-12",
+      "invalid": "උපන් දිනය YYYY-MM-DD ආකෘතියෙන් වී අතීතයේ විය යුතුය. උදාහරණය: 1990-05-12"
+    },
+    "otp": {
+      "prompt": "අපි ඉලක්කම් 6 ක කේතයක් ඔබේ ජංගම දුරකථනයට එව්වෙමු. කරුණාකර එය මෙහි බෙදා ගන්න.\n\n(නොලැබුණි නම් *resend* ලෙස ටයිප් කරන්න)",
+      "invalid": "එම කේතය වැරදියි. ඉතිරි උත්සාහයන්: {{remaining}}",
+      "expired": "එම කේතය කල් ඉකුත් වී ඇත. නව කේතයක් සඳහා *resend* ලෙස ටයිප් කරන්න.",
+      "locked": "වැරදි උත්සාහයන් වැඩියි. නැවත ආරම්භ කිරීමට *resend* ලෙස ටයිප් කරන්න.",
+      "resent": "නව කේතයක් එවා ඇත. කරුණාකර එය මෙහි බෙදා ගන්න."
+    },
+    "done": {
+      "body": "✅ ඔබ ලියාපදිංචි වී ඇත!\n\nHealthHub යෙදුම විවෘත කර ඔබේ NIC + උපන් දිනය සමඟ පුරනය වන්න. ඔබේ වාර්තා ඉන්නවා.",
+      "footer": "HealthHub වෙතට සාදරයෙන් පිළිගනිමු"
+    },
+    "already": {
+      "body": "ඔබ දැනටමත් HealthHub හි ලියාපදිංචි වී ඇත.\n\nයෙදුම විවෘත කර ඔබේ NIC + උපන් දිනය සමඟ පුරනය වන්න."
+    },
+    "fallback": "සමාවෙන්න, මට එය තේරුම් ගියේ නැත. නැවත ආරම්භ කිරීමට *start* ලෙස ටයිප් කරන්න."
+  }
+}</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-07-04T07:04:18.236Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

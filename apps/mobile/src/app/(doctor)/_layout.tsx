@@ -165,6 +165,10 @@ export default function DoctorLayout() {
 
       {/* Hidden sub-pages — pushed, not tabs */}
       <Tabs.Screen
+        name="care-team"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
         name="patient-detail"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
