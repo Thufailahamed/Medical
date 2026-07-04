@@ -57,7 +57,40 @@ export const tenantContextMiddleware = async (
   c: any,
   next: any
 ): Promise<any> => {
-  const userId = c.get("userId");
+  let userId = c.get("userId");
+  let dbUser = c.get("dbUser");
+
+  // Fallback: If authMiddleware hasn't run yet but a Bearer token is present,
+  // resolve it inline so tenantContextMiddleware can query memberships.
+  if (!userId) {
+    const authHeader = c.req.header("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+      try {
+        const { verifyToken } = await import("../lib/crypto");
+        const decoded = await verifyToken(token, secret);
+        if (decoded && decoded.sub) {
+          const db = c.get("db") || createDb(c.env.DB);
+          const [u] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, decoded.sub))
+            .limit(1);
+          if (u) {
+            userId = u.id;
+            dbUser = u;
+            c.set("userId", u.id);
+            c.set("dbUser", u);
+            c.set("user", { id: u.id, email: u.email, role: u.role });
+          }
+        }
+      } catch (err) {
+        // ignore - let downstream authMiddleware reject if needed
+      }
+    }
+  }
+
   if (!userId) return next(); // unauthenticated — let auth handle it
 
   const db = c.get("db") || createDb(c.env.DB);
