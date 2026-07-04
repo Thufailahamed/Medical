@@ -52,6 +52,7 @@ import {
   EmptyState,
   DoseRing,
 } from "@/components/ui";
+import { TenantSwitcher } from "@/components/TenantSwitcher";
 
 export default function DoctorHub() {
   const router = useRouter();
@@ -276,6 +277,7 @@ export default function DoctorHub() {
               </Text>
             ) : null}
           </View>
+          <TenantSwitcher />
 
           <Pressable
             onPress={() => router.push("/notifications" as any)}

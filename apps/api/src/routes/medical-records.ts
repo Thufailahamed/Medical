@@ -472,6 +472,23 @@ medicalRecordsRouter.post("/", authMiddleware, requireRole("doctor", "hospital_s
     return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
 
+  // Phase MTN-1: tenant guard. If a hospital header is set, the record
+  // MUST be created at that hospital.
+  const activeHospitalId = c.get("activeHospitalId") || null;
+  if (
+    activeHospitalId &&
+    parsed.data.hospitalId &&
+    parsed.data.hospitalId !== activeHospitalId
+  ) {
+    return c.json(
+      {
+        error: "hospitalId in body does not match active tenant",
+        reason: "tenant_mismatch",
+      },
+      400
+    );
+  }
+
   const targetPatientId: string | undefined = body.patientId;
   if (!targetPatientId) {
     return c.json({ error: "patientId is required" }, 400);

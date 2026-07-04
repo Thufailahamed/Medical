@@ -2,6 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore } from "@/stores/locale";
 import { useActiveFamilyMemberStore } from "@/stores/activeFamilyMember";
+import { useActiveTenantStore } from "@/stores/tenant-store";
 import { intlLocale } from "./format";
 
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -55,6 +56,17 @@ async function runRequest<T>(
   const activeFmId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
   if (activeFmId) {
     requestHeaders["x-active-family-member-id"] = activeFmId;
+  }
+  // Phase MTN-1: forward active tenant so list endpoints scope to the
+  // chosen hospital/clinic. Mutex by design — server returns 400 if
+  // both headers are set. Header wins over the user's persisted
+  // column, which the server uses as offline fallback.
+  const activeHospId = useActiveTenantStore.getState().activeHospitalId;
+  const activeClinicId = useActiveTenantStore.getState().activeClinicId;
+  if (activeHospId) {
+    requestHeaders["x-active-hospital-id"] = activeHospId;
+  } else if (activeClinicId) {
+    requestHeaders["x-active-clinic-id"] = activeClinicId;
   }
   // Forward device timezone offset (minutes east of UTC) so the server
   // can compute "today" in the user's wall-clock day, not UTC.

@@ -43,22 +43,57 @@ type PendingQuery = {
 };
 
 class MockD1 {
-  tables: Record<string, TableState> = {};
+  // Tables storage — keys are normalized to camelCase. Exposed via
+  // a Proxy so legacy snake_case access (db.tables["care_team_members"])
+  // also works for backwards compat with existing tests.
+  private _tables: Record<string, TableState> = {};
+  get tables(): Record<string, TableState> {
+    return new Proxy(this._tables, {
+      get: (_t, key: string) => {
+        if (typeof key !== "string") return undefined;
+        const camel = toCamel(key);
+        return this._tables[camel] ?? this._tables[key];
+      },
+      has: (_t, key: string) => {
+        if (typeof key !== "string") return false;
+        const camel = toCamel(key);
+        return camel in this._tables || key in this._tables;
+      },
+      ownKeys: (_t) => Reflect.ownKeys(this._tables),
+      getOwnPropertyDescriptor: (_t, key) => {
+        if (typeof key !== "string") return undefined;
+        const camel = toCamel(key);
+        const real = this._tables[camel] ?? this._tables[key];
+        if (!real) return undefined;
+        return {
+          enumerable: true,
+          configurable: true,
+          value: real,
+          writable: true,
+        };
+      },
+    }) as any;
+  }
   // Pending where-predicate registrations, keyed by table.
   private predicates = new Map<string, Array<(row: any) => boolean>>();
   // Capture latest WHERE per (table, op) so the resolver can apply.
   private latestWhere = new Map<string, (row: any) => boolean>();
   // Last-error throw for unique-constraint simulation.
   private throwOnInsert: ((table: string, row: Row) => Error | null) | null = null;
+  // Field combinations that must be unique per table (mirrors Drizzle
+  // UNIQUE / partial UNIQUE indexes). On insert we check existing rows
+  // and throw if any match the inserted values on these fields.
+  private uniqueOn: Map<string, Array<{ fields: string[]; partialStatus?: string }>> = new Map();
 
   seed(table: string, rows: Row[] | Row) {
-    if (!this.tables[table]) {
-      this.tables[table] = { rows: [], insertSeq: 0, nextId: 1 };
+    const camel = toCamel(table);
+    if (!this._tables[camel]) {
+      this._tables[camel] = { rows: [], insertSeq: 0, nextId: 1 };
     }
     const arr = Array.isArray(rows) ? rows : [rows];
     for (const r of arr) {
-      this.tables[table].rows.push({ ...r });
-      this.tables[table].insertSeq++;
+      this._tables[camel].rows.push({ ...r });
+      this._tables[camel].insertSeq++;
     }
   }
 
@@ -69,7 +104,27 @@ class MockD1 {
   // Make the next insert into `table` throw `err`. Mirrors Drizzle's
   // UNIQUE-constraint rejection in SQLite.
   failNextInsert(table: string, err: Error) {
-    this.throwOnInsert = (t, row) => (t === table ? err : null);
+    const camel = toCamel(table);
+    this.throwOnInsert = (t, row) => (t === camel || t === table ? err : null);
+  }
+
+  // Register a uniqueness rule on `table`. When inserting a row into
+  // `table`, if any existing row already has the same values for
+  // `fields` (and optionally matches `partialStatus` on its status
+  // column), throw a UNIQUE-constraint error to mirror SQLite.
+  //   db.setUniqueOn("hospitalDoctors", ["hospitalId", "doctorId"])
+  //   db.setUniqueOn("careTeamMembers",
+  //                  ["patientId", "doctorId", "role"],
+  //                  { partialStatus: "active" })
+  setUniqueOn(
+    table: string,
+    fields: string[],
+    opts: { partialStatus?: string } = {}
+  ) {
+    const camel = toCamel(table);
+    const existing = this.uniqueOn.get(camel) ?? [];
+    existing.push({ fields, partialStatus: opts.partialStatus });
+    this.uniqueOn.set(camel, existing);
   }
 
   // ─── Drizzle surface ────────────────────────────────────
@@ -119,13 +174,13 @@ class MockD1 {
     const syms = Object.getOwnPropertySymbols(table ?? {});
     for (const s of syms) {
       if (String(s).includes("drizzle:Name")) {
-        return table[s];
+        return toCamel(table[s] as string);
       }
     }
     // Last-resort heuristics for stub test tables.
-    return (
-      table?._?.name ?? table?.name ?? table?.tableName ?? String(table)
-    );
+    const raw =
+      table?._?.name ?? table?.name ?? table?.tableName ?? String(table);
+    return toCamel(String(raw));
   }
   _maybeThrowInsert(table: string, row: Row) {
     if (this.throwOnInsert) {
@@ -134,6 +189,30 @@ class MockD1 {
         // One-shot: clear so next insert succeeds.
         this.throwOnInsert = null;
         throw err;
+      }
+    }
+    const rules = this.uniqueOn.get(table);
+    if (rules && rules.length && (this as any)._tables[table]) {
+      const state = (this as any)._tables[table];
+      for (const r of rules) {
+        // Partial UNIQUE only applies when the inserted row carries
+        // the partialStatus (e.g. status='active'). Rows outside the
+        // partial set never clash.
+        if (r.partialStatus && row.status !== r.partialStatus) continue;
+        const clash = state.rows.find((existing: any) => {
+          if (r.partialStatus && existing.status !== r.partialStatus) {
+            return false;
+          }
+          for (const f of r.fields) {
+            if (existing[f] !== row[f]) return false;
+          }
+          return true;
+        });
+        if (clash) {
+          throw new Error(
+            `UNIQUE constraint failed: ${table}_${r.fields.join("_")}`
+          );
+        }
       }
     }
   }
@@ -213,7 +292,7 @@ class SelectBuilder {
   }
   private run(): any[] {
     if (!this.q.table) return [];
-    const state = this.db.tables[this.q.table];
+    const state = (this.db as any)._tables?.[this.q.table] ?? this.db.tables[this.q.table];
     if (!state) return [];
     let rows: any[] = state.rows.map((r) => ({ ...r }));
     if (this.q.predicate) rows = rows.filter(this.q.predicate);
@@ -258,7 +337,7 @@ function mergeJoinData(
 ): any {
   const out = { ...primaryRow };
   for (const j of joins) {
-    const joinedRows = db.tables[j.table]?.rows ?? [];
+    const joinedRows = (db as any)._tables?.[j.table]?.rows ?? db.tables[j.table]?.rows ?? [];
     const eqInfo = parseEqCols(j.on);
     let matched: any = null;
     if (eqInfo) {
@@ -396,10 +475,10 @@ class InsertBuilder {
   values(row: Row | Row[]) {
     const arr = Array.isArray(row) ? row : [row];
     const tableName = this.db._tableName(this.table);
-    if (!this.db.tables[tableName]) {
-      this.db.tables[tableName] = { rows: [], insertSeq: 0, nextId: 1 };
+    if (!(this.db as any)._tables[tableName]) {
+      (this.db as any)._tables[tableName] = { rows: [], insertSeq: 0, nextId: 1 };
     }
-    const state = this.db.tables[tableName];
+    const state = (this.db as any)._tables[tableName];
     for (const r of arr) {
       const withDefaults = { ...r };
       if (withDefaults.id == null) {
@@ -633,6 +712,10 @@ function parsePredicate(
   };
 }
 
+function toCamel(s: string): string {
+  return s.replace(/_([a-z])/g, (_m, c) => c.toUpperCase());
+}
+
 function columnBelongsToTable(
   db: MockD1,
   col: any,
@@ -641,7 +724,9 @@ function columnBelongsToTable(
   if (!col || !primaryTable) return false;
   const colTable = col?.table;
   if (!colTable) return false;
-  return db._tableName(colTable) === primaryTable;
+  // Both sides are normalized to camelCase to match the mock's row
+  // storage convention (see db._tableName).
+  return db._tableName(colTable) === toCamel(primaryTable);
 }
 
 // Drizzle column `.name` is snake_case (e.g. "patient_id") but the

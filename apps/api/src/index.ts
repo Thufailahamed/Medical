@@ -4,6 +4,7 @@ import { logger } from "hono/logger";
 import { createDb } from "./lib/db";
 import { localeMiddleware } from "./middleware/locale";
 import { familyContextMiddleware } from "./middleware/family-context";
+import { tenantContextMiddleware } from "./middleware/tenant-context";
 import authRoutes from "./routes/auth";
 import patientsRoutes from "./routes/patients";
 import medicalRecordsRoutes from "./routes/medical-records";
@@ -45,6 +46,13 @@ import doctorScheduleRouter from "./routes/doctor-schedule";
 import doctorEarningsRouter from "./routes/doctor-earnings";
 import doctorRxTemplatesRouter from "./routes/doctor-rx-templates";
 import careTeamRouter from "./routes/care-team";
+import clinicsRouter from "./routes/clinics";
+import hospitalDoctorsRouter from "./routes/hospital-doctors";
+import hospitalPatientsRouter from "./routes/hospital-patients";
+import clinicDoctorsRouter from "./routes/clinic-doctors";
+import clinicPatientsRouter from "./routes/clinic-patients";
+import doctorPatientRelationshipsRouter from "./routes/doctor-patient-relationships";
+import meTenantsRouter from "./routes/me-tenants";
 import { handleInboundEmail } from "./email/inbound";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
@@ -85,6 +93,14 @@ app.use("*", localeMiddleware);
 // on `c.get("activeFamilyMemberId")`. No-op for unauthenticated
 // requests — let auth handle them.
 app.use("*", familyContextMiddleware);
+
+// ─── Tenant-context middleware (Phase MTN-1) ─────────────
+// Reads `x-active-hospital-id` / `x-active-clinic-id` headers
+// (mutex, falls back to `users.active_tenant_*` columns). Validates
+// membership and stashes on `c.get("activeHospitalId")` /
+// `c.get("activeClinicId")`. No-op for unauthenticated requests
+// (cron + email handlers + health probes pass through unchanged).
+app.use("*", tenantContextMiddleware);
 
 // ─── Health check ────────────────────────────────────────
 app.get("/", (c) => {
@@ -158,6 +174,15 @@ app.route("/doctor-rx-templates", doctorRxTemplatesRouter);
 // Doctor↔Patient enterprise architecture: explicit care team
 // membership table. Source of truth for "doctor X can read patient Y".
 app.route("/care-team", careTeamRouter);
+// Phase MTN-1: multi-tenant hospital network — clinics + membership
+// tables + clinical-context relationships + tenant switcher.
+app.route("/clinics", clinicsRouter);
+app.route("/hospital-doctors", hospitalDoctorsRouter);
+app.route("/hospital-patients", hospitalPatientsRouter);
+app.route("/clinic-doctors", clinicDoctorsRouter);
+app.route("/clinic-patients", clinicPatientsRouter);
+app.route("/doctor-patient-relationships", doctorPatientRelationshipsRouter);
+app.route("/me", meTenantsRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);

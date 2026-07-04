@@ -2232,11 +2232,24 @@ export function useDeleteStaff() {
   });
 }
 
+// Phase MTN-1: tenant-scoped hospital doctor listing. Replaces the
+// legacy /hospital-portal/doctors read (which was scoped to a single
+// hospital_id FK on doctors).
+export function useHospitalDoctors() {
+  return useQuery({
+    queryKey: ["hospital-portal", "doctors"],
+    queryFn: () => api<any[]>("/hospital-doctors"),
+    refetchInterval: 60_000,
+  });
+}
+
 export function useHospitalPatients() {
+  // Phase MTN-1: use the tenant-scoped route. The active tenant
+  // header (set by TenantSwitcher) drives scope; no hospitalId param
+  // required.
   return useQuery({
     queryKey: ["hospital-portal", "patients"],
-    queryFn: () =>
-      api<{ patients: any[] }>("/hospital-portal/patients"),
+    queryFn: () => api<{ patients: any[] }>("/hospital-patients"),
     refetchInterval: 60_000,
   });
 }

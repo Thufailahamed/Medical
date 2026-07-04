@@ -34,6 +34,30 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
   }
   const data = parsed.data;
 
+  // Phase MTN-1: tenant guard. If x-active-hospital-id is set, the
+  // appointment MUST be at that hospital. Patients can't book across
+  // hospitals mid-session.
+  const activeHospitalId = c.get("activeHospitalId") || null;
+  const activeClinicId = c.get("activeClinicId") || null;
+  if (activeHospitalId && data.hospitalId && data.hospitalId !== activeHospitalId) {
+    return c.json(
+      {
+        error: "hospitalId in body does not match active tenant header",
+        reason: "tenant_mismatch",
+      },
+      400
+    );
+  }
+  if (activeClinicId && data.hospitalId && data.hospitalId !== activeClinicId) {
+    return c.json(
+      {
+        error: "clinicId in body does not match active tenant header",
+        reason: "tenant_mismatch",
+      },
+      400
+    );
+  }
+
   // 1. Reject past dates. Today is allowed.
   const today = new Date().toISOString().slice(0, 10);
   if (data.date < today) {

@@ -29,6 +29,7 @@ import {
   patients,
   users,
   shareLinks,
+  doctorPatientRelationships,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -181,6 +182,16 @@ careTeamRouter.post("/", async (c) => {
   let insertedRole: string = "primary_care";
   let insertedScope: string = "full";
   let notes: string | null = null;
+  // Phase MTN-1: optional tenant context. Header wins, then body.
+  let contextType: "hospital" | "clinic" | null =
+    (c.req.header("x-active-hospital-id") && "hospital") ||
+    (c.req.header("x-active-clinic-id") && "clinic") ||
+    null;
+  let contextId: string | null =
+    c.req.header("x-active-hospital-id") ||
+    c.req.header("x-active-clinic-id") ||
+    null;
+  let relationshipId: string | null = null;
 
   if (role === "patient") {
     const parsed = careTeamAddSchema.safeParse(body);
@@ -200,6 +211,11 @@ careTeamRouter.post("/", async (c) => {
     insertedRole = parsed.data.role;
     insertedScope = parsed.data.scope;
     notes = parsed.data.notes ?? null;
+    // Optional body override for context
+    if ((body as any).contextType && (body as any).contextId) {
+      contextType = (body as any).contextType;
+      contextId = (body as any).contextId;
+    }
   } else if (role === "doctor") {
     const parsed = careTeamJoinSchema.safeParse(body);
     if (!parsed.success) {
@@ -218,6 +234,10 @@ careTeamRouter.post("/", async (c) => {
     insertedRole = parsed.data.role;
     insertedScope = parsed.data.scope;
     notes = parsed.data.notes ?? null;
+    if ((body as any).contextType && (body as any).contextId) {
+      contextType = (body as any).contextType;
+      contextId = (body as any).contextId;
+    }
 
     // Resolve consent. Single-use: consumedAt set on first use; a
     // doctor who already redeemed a token can't reuse it.
@@ -261,6 +281,45 @@ careTeamRouter.post("/", async (c) => {
     return c.json({ error: "patientId and doctorId required" }, 400);
   }
 
+  // Phase MTN-1: when context is set, create a corresponding clinical
+  // relationship row (so the doctor appears in patient/doctor lists at
+  // that tenant). Both writes happen in sequence — relationship first,
+  // then care-team grant linking back via relationshipId. Either can
+  // 409 — we catch and translate to the legacy duplicate-active error.
+  if (contextType && contextId) {
+    try {
+      const [dpr] = await db
+        .insert(doctorPatientRelationships)
+        .values({
+          doctorId,
+          patientId,
+          contextType,
+          contextId,
+          relationshipKind: "consulting",
+          status: "active",
+        })
+        .returning();
+      relationshipId = dpr.id;
+    } catch (e: any) {
+      if (!String(e?.message).includes("UNIQUE")) throw e;
+      // Relationship already exists — fetch its id for linking.
+      const [existing] = await db
+        .select({ id: doctorPatientRelationships.id })
+        .from(doctorPatientRelationships)
+        .where(
+          and(
+            eq(doctorPatientRelationships.doctorId, doctorId),
+            eq(doctorPatientRelationships.patientId, patientId),
+            eq(doctorPatientRelationships.contextType, contextType),
+            eq(doctorPatientRelationships.contextId, contextId),
+            eq(doctorPatientRelationships.status, "active")
+          )
+        )
+        .limit(1);
+      relationshipId = existing?.id || null;
+    }
+  }
+
   // Insert; the partial UNIQUE index (status='active') rejects
   // duplicates. We catch the unique-constraint error and return 409.
   try {
@@ -277,6 +336,9 @@ careTeamRouter.post("/", async (c) => {
           role === "patient" ? sql`CURRENT_TIMESTAMP` : null,
         consentRecordId,
         notes,
+        contextType,
+        contextId,
+        relationshipId,
       })
       .returning();
 

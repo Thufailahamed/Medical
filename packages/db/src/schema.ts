@@ -54,6 +54,15 @@ export const users = sqliteTable("users", {
   // language without relying on a per-request Accept-Language header.
   // NULL = "en" (the safe default for legacy rows).
   preferredLocale: text("preferred_locale"),
+  // Phase MTN-1 (Multi-Tenant Network): server-side durable active-tenant
+  // pointer. Mirror of `activeFamilyMemberId` for hospital/clinic scope.
+  // Mobile PATCHes both header (per-request) and column (durable). Header
+  // wins when present; otherwise the column is consulted. NULL = no
+  // active tenant (header-less or legacy client).
+  activeTenantType: text("active_tenant_type", {
+    enum: ["hospital", "clinic"],
+  }),
+  activeTenantId: text("active_tenant_id"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -63,6 +72,10 @@ export const users = sqliteTable("users", {
 },
 (t) => ({
   emailAliasUnique: uniqueIndex("users_email_alias_unique").on(t.emailAlias),
+  activeTenantIdx: index("users_active_tenant_idx").on(
+    t.activeTenantType,
+    t.activeTenantId
+  ),
 }));
 
 // ─── OTP codes (Phase 1.2) ────────────────────────────────
@@ -1811,6 +1824,22 @@ export const careTeamMembers = sqliteTable(
     revokedByUserId: text("revoked_by_user_id").references(() => users.id),
     consentRecordId: text("consent_record_id"),
     notes: text("notes"),
+    // Phase MTN-1 (Multi-Tenant Network): optional tenant scope for the
+    // access grant. NULL = global (legacy semantics: doctor sees the
+    // patient across every hospital/clinic the patient touches). When
+    // set, the access grant is restricted to records at the named
+    // context — `contextType` is 'hospital' or 'clinic'; `contextId`
+    // is the tenant's id. The doctor must also be a member of the
+    // named tenant for the grant to be usable (enforced at POST).
+    contextType: text("context_type", {
+      enum: ["hospital", "clinic"],
+    }),
+    contextId: text("context_id"),
+    // Optional FK to the clinical-relationship row that triggered this
+    // access grant. Set when the patient's "add to care team" flow is
+    // driven by an existing doctor_patient_relationships row. NULL
+    // preserves backwards compatibility for legacy grants.
+    relationshipId: text("relationship_id"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -1831,5 +1860,376 @@ export const careTeamMembers = sqliteTable(
       t.patientId,
       t.status
     ),
+  })
+);
+
+// ════════════════════════════════════════════════════════════
+// Phase MTN-1: Multi-Tenant Hospital Network — membership tables
+// ════════════════════════════════════════════════════════════
+// Six new tables to replace the single-FK `doctors.hospital_id` model
+// with full M:N membership across hospitals and clinics.
+//
+// Design invariants:
+//   1. `hospital_doctors` / `hospital_patients` are the ONLY source of
+//      truth for "who belongs to which hospital". `doctors.hospital_id`
+//      is kept for the booking UI's "primary hospital" badge but new
+//      reads MUST consult the membership tables.
+//   2. `clinic_doctors` / `clinic_patients` mirror the hospital pattern
+//      for clinics. `clinic_doctors` allows multiple doctors per clinic
+//      (owners, partners, associates, locums) per the locked decision.
+//   3. `doctor_patient_relationships` is the NEW clinical-context table
+//      — it replaces the implicit "doctor treats patient" signal that
+//      used to live in appointments/prescriptions/lab_orders/etc. A
+//      `(doctor, patient, contextType, contextId)` row represents the
+//      doctor's clinical role at that tenant. `care_team_members` stays
+//      for patient-driven access grants.
+//   4. All FK columns are indexed. UNIQUE constraints enforce
+//      membership invariants. Partial UNIQUE indexes (created via raw
+//      SQL migrations — Drizzle can't emit partial predicates) prevent
+//      duplicate active rows after status transitions.
+
+// ─── Clinics (NEW) ─────────────────────────────────────────
+// First-class tenant owned by at least one doctor. Mirrors the
+// `hospitals` table shape so the same UI components can render both.
+// `userId` is the initial owner (matches the `hospitals.userId` pattern);
+// actual multi-doctor membership lives in `clinic_doctors`.
+export const clinics = sqliteTable("clinics", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  name: text("name").notNull(),
+  license: text("license"),
+  address: text("address"),
+  phone: text("phone"),
+  location: text("location"), // JSON: { lat, lng }
+  specializations: text("specializations"), // JSON array
+  rating: real("rating"),
+  // Short code used in MRN generation (e.g. CL-ABC-0001). Optional so
+  // freshly-created clinics get auto-assigned codes by a separate
+  // generator (see 0028 migration).
+  shortCode: text("short_code"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Hospital ↔ Doctor (REPLACES doctors.hospital_id role) ──
+// M:N membership. One row per (hospital, doctor) pair. Status changes
+// in-place (active ↔ suspended ↔ inactive) — no row duplication, so the
+// audit trail is implicit via updatedAt. Soft-leave sets `leftAt`.
+export const hospitalDoctors = sqliteTable(
+  "hospital_doctors",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    hospitalId: text("hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    department: text("department"),
+    role: text("role", {
+      enum: ["consultant", "visiting", "resident", "on_call", "admin"],
+    }).notNull().default("consultant"),
+    status: text("status", {
+      enum: ["active", "inactive", "suspended"],
+    })
+      .notNull()
+      .default("active"),
+    joinedAt: text("joined_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    leftAt: text("left_at"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    pairUnique: uniqueIndex("hospital_doctors_pair_unique").on(
+      t.hospitalId,
+      t.doctorId
+    ),
+    hospitalStatusIdx: index("hospital_doctors_hospital_status_idx").on(
+      t.hospitalId,
+      t.status
+    ),
+    doctorStatusIdx: index("hospital_doctors_doctor_status_idx").on(
+      t.doctorId,
+      t.status
+    ),
+  })
+);
+
+// ─── Hospital ↔ Patient ────────────────────────────────────
+// M:N registration. Each row carries the hospital-scoped MRN (Medical
+// Record Number) which MUST be unique within the hospital. The
+// (hospital_id, patient_id) pair is also unique — a patient registered
+// at a hospital has exactly one row. Re-registration after discharge
+// updates `status` and bumps `registeredAt` (rare; audit row gets a
+// separate id if needed — see migration 0036).
+export const hospitalPatients = sqliteTable(
+  "hospital_patients",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    hospitalId: text("hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    mrn: text("mrn").notNull(),
+    status: text("status", {
+      enum: ["registered", "discharged", "deceased"],
+    })
+      .notNull()
+      .default("registered"),
+    registeredAt: text("registered_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    dischargedAt: text("discharged_at"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    mrnUnique: uniqueIndex("hospital_patients_mrn_unique").on(
+      t.hospitalId,
+      t.mrn
+    ),
+    pairUnique: uniqueIndex("hospital_patients_pair_unique").on(
+      t.hospitalId,
+      t.patientId
+    ),
+    patientStatusIdx: index("hospital_patients_patient_status_idx").on(
+      t.patientId,
+      t.status
+    ),
+    hospitalStatusIdx: index("hospital_patients_hospital_status_idx").on(
+      t.hospitalId,
+      t.status
+    ),
+  })
+);
+
+// ─── Clinic ↔ Doctor (multi-doctor per locked decision) ────
+// A doctor can hold multiple roles in the same clinic over time
+// (owner → partner). The active partial UNIQUE on
+// (clinic_id, doctor_id, role) WHERE status='active' is created via raw
+// SQL in migration 0031 — Drizzle can't emit partial predicates. The
+// full UNIQUE on (clinic_id, doctor_id) prevents the same doctor from
+// holding two ACTIVE rows of any role simultaneously.
+export const clinicDoctors = sqliteTable(
+  "clinic_doctors",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    clinicId: text("clinic_id")
+      .notNull()
+      .references(() => clinics.id),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    role: text("role", {
+      enum: ["owner", "partner", "associate", "locum", "on_call"],
+    })
+      .notNull()
+      .default("owner"),
+    // Revenue-share percentage (0-100). Sum across owners of a clinic
+    // is enforced at the API layer (see `routes/clinics.ts` PATCH).
+    ownershipPct: real("ownership_pct").notNull().default(0),
+    status: text("status", {
+      enum: ["active", "inactive", "suspended"],
+    })
+      .notNull()
+      .default("active"),
+    joinedAt: text("joined_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    leftAt: text("left_at"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    pairUnique: uniqueIndex("clinic_doctors_pair_unique").on(
+      t.clinicId,
+      t.doctorId
+    ),
+    clinicStatusIdx: index("clinic_doctors_clinic_status_idx").on(
+      t.clinicId,
+      t.status
+    ),
+    doctorStatusIdx: index("clinic_doctors_doctor_status_idx").on(
+      t.doctorId,
+      t.status
+    ),
+  })
+);
+
+// ─── Clinic ↔ Patient ──────────────────────────────────────
+// Patient registered at a clinic (similar semantics to
+// hospital_patients). MRN unique per clinic.
+export const clinicPatients = sqliteTable(
+  "clinic_patients",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    clinicId: text("clinic_id")
+      .notNull()
+      .references(() => clinics.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    mrn: text("mrn").notNull(),
+    status: text("status", {
+      enum: ["registered", "discharged", "deceased"],
+    })
+      .notNull()
+      .default("registered"),
+    registeredAt: text("registered_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    dischargedAt: text("discharged_at"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    mrnUnique: uniqueIndex("clinic_patients_mrn_unique").on(
+      t.clinicId,
+      t.mrn
+    ),
+    pairUnique: uniqueIndex("clinic_patients_pair_unique").on(
+      t.clinicId,
+      t.patientId
+    ),
+    patientStatusIdx: index("clinic_patients_patient_status_idx").on(
+      t.patientId,
+      t.status
+    ),
+    clinicStatusIdx: index("clinic_patients_clinic_status_idx").on(
+      t.clinicId,
+      t.status
+    ),
+  })
+);
+
+// ─── Doctor ↔ Patient clinical context (NEW) ───────────────
+// THE heart of the multi-tenant model. A row here means "doctor X has
+// a clinical relationship with patient Y at tenant Z". The tenant is
+// either a hospital OR a clinic — pinned by (contextType, contextId).
+// Both fields are NOT NULL: every clinical relationship is tenant-
+// scoped. NULL contexts would defeat the model, hence a CHECK
+// constraint at the migration level.
+//
+// `relationshipKind`:
+//   primary_care   — patient's main doctor at this tenant
+//   consulting     — single-visit or short-term consultation
+//   covering       — covering for another doctor's leave
+//   referred_to    — patient referred to this doctor (from elsewhere)
+//   referred_from  — this doctor referred the patient out
+//   on_call        — triage / emergency duty
+//   second_opinion — patient sought a second opinion
+//
+// `isPrimary` flags the patient's main relationship at this tenant —
+// used by the UI to surface the "your doctor at <hospital>" pill.
+// Multiple primary flags per (patient, tenant) is prevented by a
+// partial UNIQUE INDEX on (patient_id, context_type, context_id)
+// WHERE is_primary=1 AND status='active' — created in 0033 raw SQL.
+//
+// `referredByDoctorId` is a self-FK for tracking referral chains.
+//
+// Lifecycle: status transitions in-place (active → ended). `endedAt`
+// is set on transition. Re-activation (e.g. transferred back) creates
+// a NEW row with a fresh `startedAt`. The partial UNIQUE on
+// (doctor_id, patient_id, context_type, context_id) WHERE status='active'
+// permits any number of ended rows per triple but at most one active.
+export const doctorPatientRelationships = sqliteTable(
+  "doctor_patient_relationships",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    contextType: text("context_type", {
+      enum: ["hospital", "clinic"],
+    })
+      .notNull(),
+    contextId: text("context_id").notNull(),
+    relationshipKind: text("relationship_kind", {
+      enum: [
+        "primary_care",
+        "consulting",
+        "covering",
+        "referred_to",
+        "referred_from",
+        "on_call",
+        "second_opinion",
+      ],
+    })
+      .notNull()
+      .default("consulting"),
+    status: text("status", {
+      enum: ["active", "ended", "transferred"],
+    })
+      .notNull()
+      .default("active"),
+    isPrimary: integer("is_primary", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    startedAt: text("started_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    endedAt: text("ended_at"),
+    referredByDoctorId: text("referred_by_doctor_id").references(
+      (): any => doctorPatientRelationships.id
+    ),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    doctorStatusIdx: index("dpr_doctor_status_idx").on(t.doctorId, t.status),
+    patientStatusIdx: index("dpr_patient_status_idx").on(
+      t.patientId,
+      t.status
+    ),
+    contextStatusIdx: index("dpr_context_status_idx").on(
+      t.contextType,
+      t.contextId,
+      t.status
+    ),
+    // CHECK constraint on (contextType IS NOT NULL AND contextId IS NOT
+    // NULL) is added via raw SQL migration since Drizzle's check builder
+    // is unreliable across drivers. The partial UNIQUE INDEX on
+    // (doctor_id, patient_id, context_type, context_id) WHERE
+    // status='active' and the partial UNIQUE on (patient_id, context_type,
+    // context_id) WHERE is_primary=1 AND status='active' are also raw
+    // SQL in 0033.
   })
 );

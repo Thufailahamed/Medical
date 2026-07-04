@@ -23,6 +23,7 @@ import {
   appointmentStatusHistory,
   walkIns,
   files,
+  hospitalDoctors,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -66,6 +67,59 @@ async function getDoctor(db: any, userId: string) {
     .where(eq(doctors.userId, userId))
     .limit(1);
   return d;
+}
+
+// Phase MTN-1: tenant resolver for doctor-portal create handlers.
+// Priority chain:
+//   1. x-active-hospital-id / x-active-clinic-id header (per-request)
+//   2. c.get("activeHospitalId") / c.get("activeClinicId") (tenant middleware)
+//   3. doctor.hospital_id (legacy single-FK)
+async function resolveActiveTenant(
+  db: any,
+  c: any,
+  doctor: any
+): Promise<{
+  hospitalId: string | null;
+  clinicId: string | null;
+  isActive: boolean;
+}> {
+  const hospitalHeader = c.req.header("x-active-hospital-id") || null;
+  const clinicHeader = c.req.header("x-active-clinic-id") || null;
+  const hospitalMw = c.get("activeHospitalId") || null;
+  const clinicMw = c.get("activeClinicId") || null;
+
+  // Header + middleware must agree when both are set (mutex).
+  // Header wins, but we verify membership exists.
+  if (hospitalHeader) {
+    const [hd] = await db
+      .select({ id: hospitalDoctors.id })
+      .from(hospitalDoctors)
+      .where(
+        and(
+          eq(hospitalDoctors.hospitalId, hospitalHeader),
+          eq(hospitalDoctors.doctorId, doctor.id),
+          eq(hospitalDoctors.status, "active")
+        )
+      )
+      .limit(1);
+    if (hd) return { hospitalId: hospitalHeader, clinicId: null, isActive: true };
+  }
+  if (clinicHeader) {
+    return { hospitalId: null, clinicId: clinicHeader, isActive: true };
+  }
+  if (hospitalMw) {
+    return { hospitalId: hospitalMw, clinicId: null, isActive: true };
+  }
+  if (clinicMw) {
+    return { hospitalId: null, clinicId: clinicMw, isActive: true };
+  }
+  // Legacy fallback
+  return {
+    hospitalId:
+        c.get("activeHospitalId") || doctor.hospitalId || null,
+    clinicId: null,
+    isActive: false,
+  };
 }
 
 // ─── Today's queue ───────────────────────────────────────
@@ -304,7 +358,11 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
     .insert(medicalRecords)
     .values({
       patientId: parsed.data.patientId,
-      hospitalId: parsed.data.hospitalId || doctor.hospitalId || null,
+      hospitalId:
+        parsed.data.hospitalId ||
+        c.get("activeHospitalId") ||
+        doctor.hospitalId ||
+        null,
       doctorId: doctor.id,
       recordType: "clinical_note",
       title: parsed.data.title,
@@ -408,7 +466,11 @@ doctorPortalRouter.post("/follow-ups", async (c) => {
     .insert(medicalRecords)
     .values({
       patientId: parsed.data.patientId,
-      hospitalId: parsed.data.hospitalId || doctor.hospitalId || null,
+      hospitalId:
+        parsed.data.hospitalId ||
+        c.get("activeHospitalId") ||
+        doctor.hospitalId ||
+        null,
       doctorId: doctor.id,
       recordType: "follow_up",
       title: parsed.data.title,
@@ -560,7 +622,11 @@ doctorPortalRouter.post("/lab-orders", async (c) => {
     .values({
       doctorId: doctor.id,
       patientId: parsed.data.patientId,
-      hospitalId: parsed.data.hospitalId || doctor.hospitalId || null,
+      hospitalId:
+        parsed.data.hospitalId ||
+        c.get("activeHospitalId") ||
+        doctor.hospitalId ||
+        null,
       tests: JSON.stringify(parsed.data.tests),
       priority: parsed.data.priority,
       status: "ordered",
@@ -574,7 +640,11 @@ doctorPortalRouter.post("/lab-orders", async (c) => {
     .insert(medicalRecords)
     .values({
       patientId: parsed.data.patientId,
-      hospitalId: parsed.data.hospitalId || doctor.hospitalId || null,
+      hospitalId:
+        parsed.data.hospitalId ||
+        c.get("activeHospitalId") ||
+        doctor.hospitalId ||
+        null,
       doctorId: doctor.id,
       recordType: "lab_order",
       title: `Lab order — ${parsed.data.tests.join(", ")}`,
@@ -1246,7 +1316,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
       .insert(medicalRecords)
       .values({
         patientId,
-        hospitalId: doctor.hospitalId || null,
+        hospitalId:
+        c.get("activeHospitalId") || doctor.hospitalId || null,
         doctorId: doctor.id,
         recordType: "clinical_note",
         title,
@@ -1269,7 +1340,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         .values({
           patientId,
           doctorId: doctor.id,
-          hospitalId: doctor.hospitalId || null,
+          hospitalId:
+        c.get("activeHospitalId") || doctor.hospitalId || null,
           diagnosis: diagnosis || title,
           notes: p.instructions ? String(p.instructions).slice(0, 1000) : null,
         } as any)
@@ -1278,7 +1350,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         .insert(medicalRecords)
         .values({
           patientId,
-          hospitalId: doctor.hospitalId || null,
+          hospitalId:
+        c.get("activeHospitalId") || doctor.hospitalId || null,
           doctorId: doctor.id,
           recordType: "prescription",
           title: `Prescription: ${String(p.name).slice(0, 100)}`,
@@ -1302,7 +1375,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         .insert(medicalRecords)
         .values({
           patientId,
-          hospitalId: doctor.hospitalId || null,
+          hospitalId:
+        c.get("activeHospitalId") || doctor.hospitalId || null,
           doctorId: doctor.id,
           recordType: "lab_order",
           title: `Lab order: ${String(l.testName).slice(0, 100)}`,
@@ -1323,7 +1397,8 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         .insert(medicalRecords)
         .values({
           patientId,
-          hospitalId: doctor.hospitalId || null,
+          hospitalId:
+        c.get("activeHospitalId") || doctor.hospitalId || null,
           doctorId: doctor.id,
           recordType: "follow_up",
           title: String(fu.title).slice(0, 200),

@@ -50,7 +50,33 @@ hospitalPortalRouter.use(
 );
 
 // ─── helpers ─────────────────────────────────────────────
-async function getHospital(db: any, userId: string) {
+// Phase MTN-1: tenant resolution chain — header → JWT user → null.
+// Header takes priority so a super-admin / chain admin can switch
+// context per request without changing the JWT. Returns null if no
+// tenant can be resolved.
+async function resolveHospital(
+  db: any,
+  userId: string,
+  headerId: string | null,
+  middlewareSetId: string | null
+) {
+  if (headerId) {
+    const [h] = await db
+      .select()
+      .from(hospitals)
+      .where(and(eq(hospitals.id, headerId), eq(hospitals.userId, userId)))
+      .limit(1);
+    if (h) return h;
+  }
+  if (middlewareSetId) {
+    const [h] = await db
+      .select()
+      .from(hospitals)
+      .where(and(eq(hospitals.id, middlewareSetId), eq(hospitals.userId, userId)))
+      .limit(1);
+    if (h) return h;
+  }
+  // Fall back to "any hospital owned by this user".
   const [h] = await db
     .select()
     .from(hospitals)
@@ -64,7 +90,9 @@ async function getHospital(db: any, userId: string) {
 hospitalPortalRouter.get("/dashboard", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const headerId = c.req.header("x-active-hospital-id") || null;
+  const middlewareId = c.get("activeHospitalId") || null;
+  const hospital = await resolveHospital(db, userId, headerId, middlewareId);
 
   // If the caller isn't a hospital principal, return aggregate across all
   // hospitals (super-admin style). For v2 we scope to the caller's hospital
@@ -181,7 +209,12 @@ hospitalPortalRouter.get("/dashboard", async (c) => {
 hospitalPortalRouter.get("/wards", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ wards: [] });
 
   const rows = await db
@@ -197,7 +230,12 @@ hospitalPortalRouter.get("/wards", async (c) => {
 hospitalPortalRouter.post("/wards", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const body = await c.req.json();
@@ -227,7 +265,12 @@ hospitalPortalRouter.post("/wards", async (c) => {
 hospitalPortalRouter.put("/wards/:id", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const id = c.req.param("id");
@@ -260,7 +303,12 @@ hospitalPortalRouter.put("/wards/:id", async (c) => {
 hospitalPortalRouter.delete("/wards/:id", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const id = c.req.param("id");
@@ -295,7 +343,12 @@ hospitalPortalRouter.delete("/wards/:id", async (c) => {
 hospitalPortalRouter.get("/beds", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ beds: [] });
 
   const wardId = c.req.query("wardId");
@@ -338,7 +391,12 @@ hospitalPortalRouter.get("/beds", async (c) => {
 hospitalPortalRouter.post("/beds", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const body = await c.req.json();
@@ -377,7 +435,12 @@ hospitalPortalRouter.post("/beds", async (c) => {
 hospitalPortalRouter.put("/beds/:id/status", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const id = c.req.param("id");
@@ -412,7 +475,12 @@ hospitalPortalRouter.put("/beds/:id/status", async (c) => {
 hospitalPortalRouter.post("/beds/:id/assign", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const bedId = c.req.param("id");
@@ -501,7 +569,12 @@ hospitalPortalRouter.post("/beds/:id/assign", async (c) => {
 hospitalPortalRouter.post("/beds/:id/discharge", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const bedId = c.req.param("id");
@@ -573,7 +646,12 @@ hospitalPortalRouter.post("/beds/:id/discharge", async (c) => {
 hospitalPortalRouter.get("/staff", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ staff: [] });
 
   const rows = await db
@@ -589,7 +667,12 @@ hospitalPortalRouter.get("/staff", async (c) => {
 hospitalPortalRouter.post("/staff", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const body = await c.req.json();
@@ -621,7 +704,12 @@ hospitalPortalRouter.post("/staff", async (c) => {
 hospitalPortalRouter.put("/staff/:id", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const id = c.req.param("id");
@@ -655,7 +743,12 @@ hospitalPortalRouter.put("/staff/:id", async (c) => {
 hospitalPortalRouter.delete("/staff/:id", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const id = c.req.param("id");
@@ -680,7 +773,12 @@ hospitalPortalRouter.delete("/staff/:id", async (c) => {
 hospitalPortalRouter.get("/patients", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ patients: [] });
 
   const rows = await db
@@ -717,7 +815,12 @@ hospitalPortalRouter.get("/patients", async (c) => {
 hospitalPortalRouter.get("/patients/:id", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const patientId = c.req.param("id");
@@ -790,7 +893,12 @@ hospitalPortalRouter.post("/staff/invites", async (c) => {
   if (!requireAdmin(c)) return c.json({ error: "Admin only" }, 403);
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const body = await c.req.json().catch(() => ({}));
@@ -857,7 +965,12 @@ hospitalPortalRouter.get("/staff/invites", async (c) => {
   if (!requireAdmin(c)) return c.json({ error: "Admin only" }, 403);
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
 
   const rows = await db
@@ -897,7 +1010,12 @@ hospitalPortalRouter.delete("/staff/invites/:id", async (c) => {
   if (!requireAdmin(c)) return c.json({ error: "Admin only" }, 403);
   const userId = c.get("userId");
   const db = c.get("db");
-  const hospital = await getHospital(db, userId);
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
   if (!hospital) return c.json({ error: "Hospital not found" }, 404);
   const id = c.req.param("id");
 

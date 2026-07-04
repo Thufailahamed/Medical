@@ -42,6 +42,7 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
 import { ActiveMemberPill } from "@/components/ActiveMemberPill";
+import { TenantSwitcher } from "@/components/TenantSwitcher";
 import { intlLocale, fmtWeekdayShort, fmtMonthShort } from "@/lib/format";
 import {
   usePatientProfile,
@@ -312,6 +313,7 @@ export default function HomeScreen() {
             </Text>
             <ActiveMemberPill />
           </View>
+          <TenantSwitcher />
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
             <Pressable

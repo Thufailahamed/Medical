@@ -164,6 +164,25 @@ walkInsRouter.post(
       return c.json({ error: "patientId and doctorId required" }, 400);
     }
 
+    // Phase MTN-1: tenant guard.
+    const activeHospitalId = c.get("activeHospitalId") || null;
+    const requestHospitalId = body?.hospitalId
+      ? String(body.hospitalId)
+      : null;
+    if (
+      activeHospitalId &&
+      requestHospitalId &&
+      activeHospitalId !== requestHospitalId
+    ) {
+      return c.json(
+        {
+          error: "hospitalId does not match active tenant",
+          reason: "tenant_mismatch",
+        },
+        400
+      );
+    }
+
     // Validate patient + doctor exist
     const [p] = await db
       .select()
