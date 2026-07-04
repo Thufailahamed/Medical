@@ -38,10 +38,10 @@ SELECT DISTINCT
 FROM (
 	SELECT `doctor_id`, `patient_id`, `hospital_id`, MIN(`ts`) AS `first_seen`
 	FROM (
-		SELECT `doctor_id`, `patient_id`, `hospital_id`, `scheduled_for` AS `ts`
+		SELECT `doctor_id`, `patient_id`, `hospital_id`, `date` AS `ts`
 		  FROM `appointments` WHERE `hospital_id` IS NOT NULL
 		UNION ALL
-		SELECT `doctor_id`, `patient_id`, `hospital_id`, `issued_at` AS `ts`
+		SELECT `doctor_id`, `patient_id`, `hospital_id`, `date` AS `ts`
 		  FROM `prescriptions` WHERE `hospital_id` IS NOT NULL
 		UNION ALL
 		SELECT lo.`doctor_id`, lo.`patient_id`, lo.`hospital_id`, lo.`ordered_at` AS `ts`
@@ -50,7 +50,7 @@ FROM (
 		SELECT `doctor_id`, `patient_id`, `hospital_id`, `date` AS `ts`
 		  FROM `medical_records` WHERE `hospital_id` IS NOT NULL
 		UNION ALL
-		SELECT `doctor_id`, `patient_id`, `hospital_id`, `checked_in_at` AS `ts`
+		SELECT `doctor_id`, `patient_id`, `hospital_id`, `arrived_at` AS `ts`
 		  FROM `walk_ins` WHERE `hospital_id` IS NOT NULL
 	)
 	GROUP BY `doctor_id`, `patient_id`, `hospital_id`

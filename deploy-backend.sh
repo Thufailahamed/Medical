@@ -12,7 +12,7 @@
 set -e
 
 # Clear screen
-clear
+# clear
 
 echo "=========================================================="
 echo "🚀 HealthHub Backend & Database Deployment Script"

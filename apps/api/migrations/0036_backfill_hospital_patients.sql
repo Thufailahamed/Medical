@@ -40,17 +40,19 @@ FROM (
 		ROW_NUMBER() OVER (PARTITION BY `hospital_id` ORDER BY MIN(`first_seen`)) AS `seq`
 	FROM (
 		-- 1. bed assignments (most explicit)
-		SELECT ba.`patient_id`, ba.`hospital_id`, ba.`assigned_at` AS `first_seen`
+		SELECT ba.`patient_id`, w.`hospital_id`, ba.`assigned_at` AS `first_seen`
 		  FROM `bed_assignments` ba
-		 WHERE ba.`hospital_id` IS NOT NULL
+		  JOIN `beds` bd ON ba.`bed_id` = bd.`id`
+		  JOIN `wards` w ON bd.`ward_id` = w.`id`
+		 WHERE w.`hospital_id` IS NOT NULL
 		UNION ALL
 		-- 2. walk-ins (OPD check-in)
-		SELECT w.`patient_id`, w.`hospital_id`, w.`checked_in_at` AS `first_seen`
+		SELECT w.`patient_id`, w.`hospital_id`, w.`arrived_at` AS `first_seen`
 		  FROM `walk_ins` w
 		 WHERE w.`hospital_id` IS NOT NULL
 		UNION ALL
 		-- 3. appointments
-		SELECT a.`patient_id`, a.`hospital_id`, a.`scheduled_for` AS `first_seen`
+		SELECT a.`patient_id`, a.`hospital_id`, a.`date` AS `first_seen`
 		  FROM `appointments` a
 		 WHERE a.`hospital_id` IS NOT NULL
 		UNION ALL
