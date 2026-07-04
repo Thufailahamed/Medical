@@ -58,6 +58,50 @@ export const followUpSchema = z.object({
   followUpDate: z.string().min(1), // YYYY-MM-DD
 });
 
+// ─── Doctor↔Patient Care Team (Phase 1) ─────────────────
+// Patient-initiated: pick a known doctor + their role on the team.
+export const careTeamAddSchema = z.object({
+  doctorId: z.string().min(1),
+  role: z
+    .enum(["primary_care", "specialist", "covering", "on_call", "family_view"])
+    .default("primary_care"),
+  scope: z
+    .enum(["full", "episodes_only", "records_only"])
+    .default("full"),
+  notes: z.string().max(500).optional(),
+});
+
+// Doctor-initiated: requires a patient-issued share link token
+// (created via POST /care-team/invites).
+export const careTeamJoinSchema = z.object({
+  patientId: z.string().min(1),
+  consentToken: z.string().min(8).max(64),
+  role: z
+    .enum(["primary_care", "specialist", "covering", "on_call", "family_view"])
+    .default("specialist"),
+  scope: z
+    .enum(["full", "episodes_only", "records_only"])
+    .default("full"),
+  notes: z.string().max(500).optional(),
+});
+
+export const careTeamPatchSchema = z.object({
+  status: z.enum(["active", "paused", "revoked"]).optional(),
+  scope: z.enum(["full", "episodes_only", "records_only"]).optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export const careTeamInviteSchema = z.object({
+  role: z
+    .enum(["primary_care", "specialist", "covering", "on_call", "family_view"])
+    .default("primary_care"),
+  scope: z
+    .enum(["full", "episodes_only", "records_only"])
+    .default("full"),
+  // Hours the link stays valid. Defaults to 7 days. Cap at 30 days.
+  ttlHours: z.number().int().min(1).max(24 * 30).default(24 * 7),
+});
+
 // ─── V2: Ward ───────────────────────────────────────────
 export const wardSchema = z.object({
   name: z.string().min(1).max(100),

@@ -202,3 +202,77 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+// ─── Doctor↔Patient Care Team (Phase 1) ─────────────────
+//
+// Single source of truth for "this doctor can see this patient".
+// Backfilled automatically on first appointment / prescription /
+// lab order / medical record / walk-in / message; patient can revoke
+// at any time (status flips to "revoked", row preserved for audit).
+
+export type CareTeamRole =
+  | "primary_care"
+  | "specialist"
+  | "covering"
+  | "on_call"
+  | "family_view";
+
+export type CareTeamScope = "full" | "episodes_only" | "records_only";
+
+export type CareTeamStatus = "active" | "paused" | "revoked";
+
+export interface CareTeamMember {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  role: CareTeamRole;
+  scope: CareTeamScope;
+  status: CareTeamStatus;
+  invitedByUserId: string | null;
+  invitedAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  revokedByUserId: string | null;
+  consentRecordId: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Enriched row returned by GET /care-team (joins doctor + user for the UI).
+export interface CareTeamMemberWithDoctor extends CareTeamMember {
+  doctorName: string;
+  doctorSpecialization: string;
+  doctorPhoto: string | null;
+  doctorHospitalId: string | null;
+}
+
+// Enriched row returned by GET /care-team/reverse (joins patient + user).
+export interface CareTeamPatientForDoctor {
+  careTeamId: string;
+  patientId: string;
+  patientName: string;
+  patientNic: string | null;
+  patientPhone: string | null;
+  patientPhoto: string | null;
+  patientDob: string | null;
+  patientGender: string | null;
+  role: CareTeamRole;
+  scope: CareTeamScope;
+  status: CareTeamStatus;
+  invitedAt: string;
+  acceptedAt: string | null;
+}
+
+export type ShareLinkKind =
+  | "record_share"
+  | "care_team_invite"
+  | "family_invite";
+
+export interface CareTeamInvitePayload {
+  token: string;
+  expiresAt: string;
+  patientName: string;
+  role: CareTeamRole;
+  scope: CareTeamScope;
+}

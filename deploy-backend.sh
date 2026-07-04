@@ -33,19 +33,7 @@ npx wrangler d1 migrations apply healthcare-db --remote
 echo "✅ Remote migrations applied."
 echo ""
 
-echo "💻 Step 3: Applying database migrations to local D1 (LOCAL DEV)..."
-# Best-effort: skip on failure. Remote is the source of truth for prod.
-if npx wrangler d1 migrations apply healthcare-db --local 2>&1 | tee /tmp/local_migrate.log; then
-  echo "✅ Local migrations applied."
-else
-  echo ""
-  echo "⚠️  Local migration apply failed — likely pre-existing schema drift."
-  echo "   Remote + Worker deploy still succeeded; local DB is dev-only."
-  echo "   To fully reset local: rm .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite*"
-  echo "   Then re-run: npx wrangler d1 execute healthcare-db --local --file ./schema.sql"
-  echo "   Then:       npx wrangler d1 migrations apply healthcare-db --local"
-  echo "   (see /tmp/local_migrate.log for the failure detail)"
-fi
+# Step 3 (Local migrations) has been removed at user request.
 echo ""
 
 echo "🌐 Step 4: Deploying API Worker to Cloudflare..."

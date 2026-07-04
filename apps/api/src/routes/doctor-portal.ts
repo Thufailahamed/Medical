@@ -47,6 +47,7 @@ import { txWrite, UniqueViolation } from "../lib/tx";
 import {
   withStatusGuard,
   atomicIncrement,
+  upsertActiveCareTeam,
 } from "../lib/status-guard";
 import { upsertRecordFts } from "../lib/fts";
 import { topSeverity } from "../lib/safety-engine";
@@ -583,6 +584,15 @@ doctorPortalRouter.post("/lab-orders", async (c) => {
     .returning();
   // Phase 2.1: FTS5 sync.
   if (labMirror) await upsertRecordFts(db, labMirror);
+
+  // Phase 1: backfill care team. Idempotent — existing primary_care
+  // row stays, this is no-op on conflict.
+  await upsertActiveCareTeam(db, {
+    patientId: parsed.data.patientId,
+    doctorId: doctor.id,
+    role: "primary_care",
+    invitedByUserId: userId,
+  });
 
   // Notify lab staff — hospital-scoped first, global fallback.
   const orderId = order?.lab_orders?.id || order?.id;

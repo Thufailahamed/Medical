@@ -10,6 +10,7 @@ import { flattenTranslated } from "../lib/validation-error";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { ACTIVE_STATUSES, MAX_PER_SLOT, compactQueue } from "../lib/booking";
+import { upsertActiveCareTeam } from "../lib/status-guard";
 import type { AppEnvironment } from "../types";
 
 const appointmentsRouter = new Hono<AppEnvironment>();
@@ -133,6 +134,16 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
     title: "Appointment Booked",
     body: `Your appointment is on ${data.date} at ${data.time}. Queue #${queueNumber}`,
     data: { appointmentId: inserted?.id, status: "scheduled" },
+  });
+
+  // 6. Phase 1: backfill care_team_members so the patient appears on
+  // the doctor's accessible list immediately. Idempotent on partial
+  // UNIQUE — patient revoke + re-book will skip cleanly.
+  await upsertActiveCareTeam(db, {
+    patientId,
+    doctorId: data.doctorId,
+    role: "primary_care",
+    invitedByUserId: userId,
   });
 
   if (doctorUserId && doctorUserId !== userId) {

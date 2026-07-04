@@ -3424,3 +3424,63 @@ export function useRecordRxTemplateUse() {
     },
   });
 }
+
+// ─── Care Team (Phase 1) ─────────────────────────────────
+// Patient-side: list + add/remove doctors from their care team, and
+// create single-use invite tokens for doctors to redeem. Doctor-side:
+// reverse list shows patients who added the doctor.
+export function useCareTeam(patientId: string | null) {
+  return useQuery({
+    queryKey: ["care-team", patientId],
+    enabled: !!patientId,
+    queryFn: () =>
+      api<{ members: any[] }>(`/care-team?patientId=${encodeURIComponent(patientId!)}`),
+  });
+}
+
+export function useAddCareTeamMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { doctorId: string; role: string; scope?: string; notes?: string }) =>
+      api<{ member: any }>("/care-team", { method: "POST", body: data }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["care-team"] });
+    },
+  });
+}
+
+export function useUpdateCareTeamMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: string; status?: string; scope?: string; notes?: string }) =>
+      api<{ member: any }>(`/care-team/${id}`, { method: "PATCH", body: patch }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["care-team"] });
+    },
+  });
+}
+
+export function useCreateCareTeamInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { role?: string; scope?: string; ttlHours?: number } = {}) =>
+      api<{
+        token: string;
+        expiresAt: string;
+        patientName: string | null;
+        role: string;
+        scope: string;
+      }>("/care-team/invites", { method: "POST", body: data }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["care-team", "invites"] });
+    },
+  });
+}
+
+// Doctor-side reverse view: list patients who added this doctor.
+export function useDoctorCareTeamPatients() {
+  return useQuery({
+    queryKey: ["care-team", "reverse"],
+    queryFn: () => api<{ patients: any[]; count: number }>("/care-team/reverse"),
+  });
+}

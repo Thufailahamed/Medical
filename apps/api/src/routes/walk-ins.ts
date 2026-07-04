@@ -20,6 +20,7 @@ import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { recordRevenueEvent } from "../lib/revenue";
+import { upsertActiveCareTeam } from "../lib/status-guard";
 import type { AppEnvironment } from "../types";
 
 const walkInsRouter = new Hono<AppEnvironment>();
@@ -191,6 +192,15 @@ walkInsRouter.post(
         assignedByUserId: userId,
       } as any)
       .returning();
+
+    // Phase 1: backfill care team. Walk-ins to a different doctor
+    // than the patient's primary become "covering" role automatically.
+    await upsertActiveCareTeam(db, {
+      patientId,
+      doctorId,
+      role: "covering",
+      invitedByUserId: userId,
+    });
 
     // Notify doctor
     const doctorUserId = (d as any)?.userId;

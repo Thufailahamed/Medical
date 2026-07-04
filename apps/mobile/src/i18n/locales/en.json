@@ -1026,6 +1026,54 @@
       "error": "Could not {{action}} invite. Please try again."
     }
   },
+  "careTeam": {
+    "title": "Care team",
+    "subtitle": "Doctors who can see your records.",
+    "add": "Add doctor",
+    "addTitle": "Add a doctor",
+    "searchPlaceholder": "Doctor name or specialty",
+    "noResults": "No matching doctors.",
+    "confirmAdd": "Add to care team",
+    "added": "Added to your care team.",
+    "alreadyAdded": "This doctor is already on your care team.",
+    "roleLabel": "Role",
+    "scopeLabel": "Access level",
+    "role": {
+      "primary_care": "Primary care",
+      "specialist": "Specialist",
+      "covering": "Covering",
+      "on_call": "On call",
+      "family_view": "Family view"
+    },
+    "scope": {
+      "full": "Full records",
+      "episodes_only": "Episodes only",
+      "records_only": "Records only"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "revoked": "Removed"
+    },
+    "pause": "Pause",
+    "resume": "Resume",
+    "revoke": "Remove",
+    "revokeTitle": "Remove from care team?",
+    "revokeBody": "{{name}} will lose access to your records.",
+    "revoked": "Removed.",
+    "statusChanged": "Status updated to {{status}}.",
+    "issueInvite": "Invite a new doctor",
+    "issuing": "Creating invite…",
+    "inviteHelp": "Generate a one-time link a doctor can use to join your care team. Expires in 7 days.",
+    "inviteMessage": "{{name}} invites you to their HealthHub care team.",
+    "inviteToken": "Invite token",
+    "emptyTitle": "No doctors yet",
+    "emptyBody": "Add a doctor you've seen, or generate an invite link.",
+    "doctorTitle": "My care team",
+    "doctorSubtitle": "{{count}} patient{{count, plural, one {} other {s}}} granted you access",
+    "doctorEmptyTitle": "No patients yet",
+    "doctorEmptyBody": "Patients appear here when they add you to their care team."
+  },
   "medicine": {
     "frequency": {
       "Once daily": "Once daily",

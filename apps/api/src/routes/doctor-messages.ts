@@ -13,7 +13,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
 import { txWrite } from "../lib/tx";
-import { atomicIncrement } from "../lib/status-guard";
+import { atomicIncrement, upsertActiveCareTeam } from "../lib/status-guard";
 import type { AppEnvironment } from "../types";
 
 const doctorMessagesRouter = new Hono<AppEnvironment>();
@@ -119,6 +119,17 @@ doctorMessagesRouter.post("/conversations", async (c) => {
     .insert(messagesConversations)
     .values({ doctorId: doctor.id, patientId } as any)
     .returning();
+
+  // Phase 1: backfill care team. Messaging counts as a relationship —
+  // give the doctor "primary_care" role on the team (patient can
+  // adjust later via PATCH /care-team).
+  await upsertActiveCareTeam(db, {
+    patientId,
+    doctorId: doctor.id,
+    role: "primary_care",
+    invitedByUserId: userId,
+  });
+
   return c.json({ conversation: created, created: true }, 201);
 });
 
