@@ -16,6 +16,7 @@ import {
   Building2,
   Stethoscope,
   ChevronRight,
+  ArrowLeft,
 } from "lucide-react-native";
 import { Screen, Card, Pill, EmptyState } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -83,6 +84,20 @@ export default function DoctorTenants() {
           <RefreshControl refreshing={loading} onRefresh={load} />
         }
       >
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          style={{
+            marginBottom: spacing.md,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <ArrowLeft size={18} color={colors.text} />
+          <Text style={{ color: colors.text, fontWeight: "600" }}>Back</Text>
+        </Pressable>
+
         <Text
           style={[
             typography.title.lg,

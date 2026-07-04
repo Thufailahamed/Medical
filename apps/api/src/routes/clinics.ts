@@ -482,4 +482,22 @@ clinicRouter.delete("/:id/patients/:pid", async (c) => {
   return c.json({ ok: true }, 200);
 });
 
+// ── DELETE /clinics/:id ──────────────────────────────────
+clinicRouter.delete("/:id", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+
+  const guard = await ensureOwner(db, id, userId);
+  if (!guard.ok) return c.json({ error: guard.reason }, guard.status);
+
+  // Delete memberships first to satisfy foreign key constraints.
+  await db.delete(clinicDoctors).where(eq(clinicDoctors.clinicId, id));
+  await db.delete(clinicPatients).where(eq(clinicPatients.clinicId, id));
+  // Finally delete the clinic
+  await db.delete(clinics).where(eq(clinics.id, id));
+
+  return c.json({ ok: true, message: "Clinic deleted successfully" }, 200);
+});
+
 export default clinicRouter;

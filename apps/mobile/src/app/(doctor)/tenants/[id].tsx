@@ -9,9 +9,11 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Users } from "lucide-react-native";
 import { Screen, Card, Pill, EmptyState } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
@@ -33,6 +35,42 @@ export default function DoctorTenantDetail() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const clinicRef = useActiveTenantStore((s) =>
+    activeHosp ? null : s.myClinics.find((c) => c.id === id)
+  );
+  const isOwner = clinicRef?.role === "owner";
+
+  async function handleDelete() {
+    Alert.alert(
+      "Delete Clinic",
+      "Are you sure you want to permanently delete this clinic? This will discharge all patients and remove all staff. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await api(`/clinics/${id}`, { method: "DELETE" });
+              // Clear active clinic if this was the active one
+              if (activeClinic === id) {
+                useActiveTenantStore.getState().setActiveClinic(null);
+              }
+              // Go back
+              router.back();
+            } catch (e: any) {
+              Alert.alert("Error", e?.message || "Failed to delete clinic");
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
 
   // Pull members for the active tenant — API differs by context.
   async function load() {
@@ -99,7 +137,11 @@ export default function DoctorTenantDetail() {
         {error ? (
           <Text style={{ color: colors.danger }}>{error}</Text>
         ) : members.length === 0 ? (
-          <EmptyState title="No members" description="Add doctors to start collaborating." />
+          <EmptyState
+            icon={Users}
+            title="No members"
+            message="Add doctors to start collaborating."
+          />
         ) : (
           members.map((m) => (
             <Card key={m.id} style={{ marginBottom: spacing.sm }}>
@@ -114,6 +156,33 @@ export default function DoctorTenantDetail() {
             </Card>
           ))
         )}
+        {/* Render delete button for clinic owners */}
+        {!activeHosp && isOwner ? (
+          <View style={{ marginTop: spacing.xl }}>
+            <Pressable
+              onPress={handleDelete}
+              disabled={deleting}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? "rgba(239, 68, 68, 0.1)" : "transparent",
+                borderWidth: 1,
+                borderColor: colors.danger,
+                paddingVertical: spacing.md,
+                borderRadius: 12,
+                alignItems: "center",
+                opacity: deleting ? 0.6 : 1,
+              })}
+            >
+              {deleting ? (
+                <ActivityIndicator color={colors.danger} />
+              ) : (
+                <Text style={{ color: colors.danger, fontWeight: "800" }}>
+                  Delete Clinic
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        ) : null}
       </ScrollView>
     </Screen>
   );

@@ -121,4 +121,25 @@ describe("clinics route", () => {
     const res = await jsonReq(app2, `/clinics/${created.id}/doctors`, { doctorId: "doc3", role: "associate" });
     expect(res.status).toBe(403);
   });
+
+  it("deletes a clinic if caller is the owner", async () => {
+    const { app, db } = await build({ id: "u1", role: "doctor" });
+    db.seed("doctors", { id: "doc1", userId: "u1" });
+    db.seed("clinics", { id: "clinic1", userId: "u1", name: "Delete Me" });
+    db.seed("clinic_doctors", {
+      id: "cd1",
+      clinicId: "clinic1",
+      doctorId: "doc1",
+      role: "owner",
+      status: "active",
+    });
+
+    const res = await jsonReq(app, "/clinics/clinic1", undefined, "DELETE");
+    expect(res.status).toBe(200);
+    const body = await res.json() as any;
+    expect(body.ok).toBe(true);
+
+    expect(db.tables["clinics"]?.rows.length).toBe(0);
+    expect(db.tables["clinic_doctors"]?.rows.length).toBe(0);
+  });
 });

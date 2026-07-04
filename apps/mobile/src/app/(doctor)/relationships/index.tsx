@@ -101,8 +101,9 @@ export default function DoctorRelationships() {
         </Text>
         {rels.length === 0 ? (
           <EmptyState
+            icon={Building2}
             title="No active relationships"
-            description="Add a patient from a hospital or clinic to start one."
+            message="Add a patient from a hospital or clinic to start one."
           />
         ) : (
           grouped.map(([key, items]) => {
