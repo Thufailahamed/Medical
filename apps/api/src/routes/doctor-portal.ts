@@ -26,6 +26,7 @@ import {
   hospitalDoctors,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { latestByType, classifyAlerts } from "../lib/vitals-derived";
 import { requireRole } from "../middleware/rbac";
 import {
   clinicalNoteSchema,
@@ -303,13 +304,17 @@ doctorPortalRouter.get("/patients/:id/summary", async (c) => {
     .orderBy(desc(labOrders.orderedAt))
     .limit(30);
 
-  // Vitals (recent 50)
+  // Vitals (recent 50) — plus registry-driven latest-by-type + alerts
+  // so the doctor's patient-detail view can render at-a-glance status
+  // cards without re-classifying client-side.
   const vitalRows = await db
     .select()
     .from(vitals)
     .where(eq(vitals.patientId, patientId))
     .orderBy(desc(vitals.recordedAt))
     .limit(50);
+  const latestByTypeRows = latestByType(vitalRows as any[], { patient: patientRow.patient });
+  const alertRows = classifyAlerts(vitalRows as any[], { patient: patientRow.patient });
 
   // Past appointments with this doctor
   const pastAppts = await db
@@ -333,6 +338,11 @@ doctorPortalRouter.get("/patients/:id/summary", async (c) => {
     labReports: labsRows,
     labOrders: orderRows,
     vitals: vitalRows,
+    latestVitals: latestByTypeRows,
+    vitalsAlerts: {
+      count: alertRows.length,
+      items: alertRows.slice(0, 10),
+    },
     pastAppointments: pastAppts,
   });
 });

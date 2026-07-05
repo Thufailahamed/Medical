@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -18,6 +19,14 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 import type { Patient, MedicalRecord, Appointment } from "@healthcare/shared";
+import type {
+  VitalType,
+  Classification,
+  DerivedBlock,
+  LatestByType,
+  VitalAlert,
+  VitalContext,
+} from "@healthcare/shared/vitals";
 
 // ─── Patient Profile ─────────────────────────────────────
 export type PatientProfileResponse = {
@@ -825,6 +834,10 @@ export function useAddVital() {
       api<{ vital: any }>("/vitals", { method: "POST", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vitals"] });
+      queryClient.invalidateQueries({ queryKey: ["vitals", "derived"] });
+      queryClient.invalidateQueries({ queryKey: ["vitals", "alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["wellness"] });
+      queryClient.invalidateQueries({ queryKey: ["health-summary"] });
     },
   });
 }
@@ -836,6 +849,10 @@ export function useDeleteVital() {
       api(`/vitals/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vitals"] });
+      queryClient.invalidateQueries({ queryKey: ["vitals", "derived"] });
+      queryClient.invalidateQueries({ queryKey: ["vitals", "alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["wellness"] });
+      queryClient.invalidateQueries({ queryKey: ["health-summary"] });
     },
   });
 }
@@ -2942,6 +2959,43 @@ export function useVitalsSeries(opts: {
   });
 }
 
+// ─── Vitals: derived metrics block ─────────────────────────
+export function useVitalsDerived() {
+  return useQuery({
+    queryKey: ["vitals", "derived"],
+    queryFn: () =>
+      api<{ derived: DerivedBlock; latestByType: LatestByType[] }>(
+        "/vitals/me/derived",
+      ),
+    staleTime: 60_000,
+  });
+}
+
+// ─── Vitals: out-of-range alerts (last 30d by default) ─────
+export function useVitalsAlerts(days = 30) {
+  return useQuery({
+    queryKey: ["vitals", "alerts", days],
+    queryFn: () =>
+      api<{ alerts: VitalAlert[]; count: number; days: number }>(
+        `/vitals/me/alerts?days=${days}`,
+      ),
+    staleTime: 60_000,
+  });
+}
+
+// ─── Vitals: parallel sparkline series for home cards ─────
+// react-query batches the underlying useQuery calls when the keys
+// match, so we wrap each into its own hook call site for parity with
+// the existing `useVitalsSeries`.
+export function useVitalsSparkline(type: VitalType, days = 7) {
+  const from = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d.toISOString();
+  }, [days]);
+  return useVitalsSeries({ type, from });
+}
+
 // ─── Doctor: Visit Summary (one-shot SOAP write-up) ───────
 export type VisitSummaryInput = {
   patientId: string;
@@ -3495,5 +3549,200 @@ export function useDoctorCareTeamPatients() {
   return useQuery({
     queryKey: ["care-team", "reverse"],
     queryFn: () => api<{ patients: any[]; count: number }>("/care-team/reverse"),
+  });
+}
+
+// ─── Phase v3: Unified records hub ────────────────────────
+export function useUnifiedRecords(opts?: { kind?: string; familyMemberId?: string; limit?: number }) {
+  return useQuery({
+    queryKey: ["medical-records", "unified", opts ?? {}],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (opts?.kind) params.set("kind", opts.kind);
+      if (opts?.familyMemberId) params.set("familyMemberId", opts.familyMemberId);
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      const qs = params.toString();
+      return api<{ counts: Record<string, number>; records: any[] }>(
+        `/medical-records/me/canonical${qs ? `?${qs}` : ""}`,
+      );
+    },
+  });
+}
+
+export function useRecordByKind(kind: string, limit = 50) {
+  return useQuery({
+    queryKey: ["medical-records", "by-kind", kind, limit],
+    enabled: !!kind,
+    queryFn: () => api<{ items: any[] }>(`/medical-records/by-kind/${kind}?limit=${limit}`),
+  });
+}
+
+export function useRecordRevisions(recordId: string | null) {
+  return useQuery({
+    queryKey: ["medical-records", "revisions", recordId],
+    enabled: !!recordId,
+    queryFn: () => api<{ items: any[] }>(`/medical-records/${recordId}/revisions`),
+  });
+}
+
+export function useRecordEnvelope(id: string | null) {
+  return useQuery({
+    queryKey: ["medical-records", "envelope", id],
+    enabled: !!id,
+    queryFn: () => api<{ id: string; envelope: any; version: string }>(`/medical-records/${id}/envelope`),
+  });
+}
+
+export function useWriteRecordEnvelope() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { kind: string; title: string; summary?: string; notes?: string; tags?: string[]; familyMemberId?: string }) =>
+      api<{ id: string; envelopeVersion: string }>("/medical-records/envelope", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["medical-records"] });
+    },
+  });
+}
+
+// ─── Phase v3: Consents ────────────────────────────────
+export function useConsentsMine() {
+  return useQuery({
+    queryKey: ["consents", "mine"],
+    queryFn: () => api<{ items: any[] }>("/consents/me"),
+  });
+}
+
+export function useConsentsIssued() {
+  return useQuery({
+    queryKey: ["consents", "issued"],
+    queryFn: () => api<{ items: any[] }>("/consents/issued"),
+  });
+}
+
+export function useConsentAudit() {
+  return useQuery({
+    queryKey: ["consents", "audit"],
+    queryFn: () => api<{ items: any[] }>("/consents/audit"),
+  });
+}
+
+export function useIssueConsent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      purpose: string;
+      recipientUserId?: string;
+      recipientToken?: string;
+      familyMemberId?: string;
+      durationDays?: number;
+      expiresAt?: string;
+      label?: string;
+      scope?: Record<string, unknown>;
+    }) => api<{ id: string; expiresAt: string }>("/consents", { method: "POST", body: data }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["consents"] });
+    },
+  });
+}
+
+export function useRevokeConsent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ revoked: boolean }>(`/consents/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["consents"] });
+    },
+  });
+}
+
+// ─── Phase v3: DSAR ────────────────────────────────────
+export function useDsarExport() {
+  return useMutation({
+    mutationFn: () =>
+      api<{ id: string; status: string; bundle: any }>("/dsar/export", { method: "POST" }),
+  });
+}
+
+export function useDsarErasure() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (notes?: string) =>
+      api<{ id: string; status: string; result: any }>("/dsar/erasure", {
+        method: "POST",
+        body: { notes },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dsar"] });
+      qc.invalidateQueries({ queryKey: ["consents"] });
+    },
+  });
+}
+
+export function useDsarRectification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { fields: Array<{ recordId: string; field: string; proposedValue: string }>; notes?: string }) =>
+      api<{ id: string; status: string }>("/dsar/rectification", {
+        method: "POST",
+        body: { ...data, purpose: "rectification" },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dsar"] });
+    },
+  });
+}
+
+export function useDsarJobs() {
+  return useQuery({
+    queryKey: ["dsar", "jobs"],
+    queryFn: () => api<{ items: any[] }>("/dsar/jobs"),
+  });
+}
+
+// ─── Phase v3: Files presign ────────────────────────────
+export function usePresignFile() {
+  return useMutation({
+    mutationFn: (data: { fileId: string; recipientUserId?: string }) =>
+      api<{ token: string; expiresAt: string; url: string }>("/files/presign", {
+        method: "POST",
+        body: data,
+      }),
+  });
+}
+
+export function useFileDownloadAudit() {
+  return useQuery({
+    queryKey: ["files", "audit"],
+    queryFn: () => api<{ items: any[] }>("/files/audit"),
+  });
+}
+
+// ─── Phase v3: QR ephemeral tokens ─────────────────────
+export function useIssueQrToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { maxScans?: number; ttlHours?: number; familyMemberId?: string } = {}) =>
+      api<{ token: string; expiresAt: string; maxScans: number; url: string }>("/emergency/qr/issue", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["qr-tokens"] });
+    },
+  });
+}
+
+export function useRevokeQrToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) =>
+      api<{ revoked: boolean }>(`/emergency/qr/${token}/revoke`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["qr-tokens"] });
+    },
   });
 }

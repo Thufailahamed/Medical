@@ -22,17 +22,16 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
+import { LOINC_MAP as SHARED_LOINC } from "@healthcare/shared/vitals";
+import { derivedBlock, latestByType } from "../lib/vitals-derived";
 
 const exportRouter = new Hono<AppEnvironment>();
 
+// Centralised in @healthcare/shared so the API and mobile use the same codes.
+// Older keys (`body_temperature`, etc.) kept as aliases for back-compat.
 const LOINC_MAP: Record<string, { code: string; display: string }> = {
-  blood_pressure: { code: "85354-9", display: "Blood pressure systolic & diastolic" },
-  heart_rate: { code: "8867-4", display: "Heart rate" },
-  body_temperature: { code: "8310-5", display: "Body temperature" },
-  weight: { code: "29463-7", display: "Body weight" },
-  height: { code: "8302-2", display: "Body height" },
-  spo2: { code: "59408-5", display: "Oxygen saturation in Arterial blood by Pulse oximetry" },
-  blood_sugar: { code: "15074-8", display: "Glucose [Moles/volume] in Blood" },
+  ...SHARED_LOINC,
+  body_temperature: SHARED_LOINC.temperature,
 };
 
 async function getOwnPatient(db: any, userId: string) {
@@ -102,6 +101,8 @@ async function bundlePatient(db: any, patientId: string) {
     insurancePolicies: ins,
     emergencyHistory: ems,
     allergies: allr,
+    derived: derivedBlock({ rows: vit, patient: pRow }),
+    latestVitals: latestByType(vit, { patient: pRow }),
   };
 }
 
@@ -302,6 +303,58 @@ exportRouter.get("/me", authMiddleware, async (c) => {
           },
         },
       });
+    }
+
+    // Derived components — MAP / pulse pressure / WHR / BMR / BMI.
+    // Emitted as additional Observation resources flagged via
+    // `derived: true` extension so consumers know they were computed
+    // rather than measured. v1 only; richer FHIR Provenance later.
+    const derivedBundle = bundle.derived;
+    if (derivedBundle) {
+      const derivedObs = [
+        { id: `derived-map-${p?.id}`, code: "8478-0", display: "Mean arterial pressure", value: derivedBundle.map, unit: "mmHg" },
+        { id: `derived-pp-${p?.id}`, code: "8491-3", display: "Pulse pressure", value: derivedBundle.pulsePressure, unit: "mmHg" },
+        { id: `derived-whr-${p?.id}`, code: "28730-0", display: "Waist-hip ratio", value: derivedBundle.whr, unit: "" },
+        { id: `derived-bmr-${p?.id}`, code: "1731-9", display: "Basal metabolic rate", value: derivedBundle.bmr, unit: "kcal/day" },
+        { id: `derived-bmi-${p?.id}`, code: "39156-5", display: "Body mass index", value: derivedBundle.bmi, unit: "kg/m2" },
+      ];
+      for (const d of derivedObs) {
+        if (d.value == null) continue;
+        entries.push({
+          resource: {
+            resourceType: "Observation",
+            id: d.id,
+            status: "final",
+            category: [
+              {
+                coding: [
+                  {
+                    system: "http://terminology.hl7.org/CodeSystem/observation-category",
+                    code: "vital-signs",
+                  },
+                ],
+              },
+            ],
+            code: { coding: [{ system: "http://loinc.org", code: d.code, display: d.display }] },
+            subject: { reference: `Patient/${p?.id}` },
+            effectiveDateTime: new Date().toISOString(),
+            derivedFrom: (bundle.latestVitals || []).map((l: any) => ({
+              reference: l.latest ? `Observation/${l.type}-${p?.id}` : undefined,
+            })).filter((r: any) => r.reference),
+            valueQuantity: {
+              value: d.value,
+              unit: d.unit || undefined,
+              system: "http://unitsofmeasure.org",
+            },
+            extension: [
+              {
+                url: "http://healthhub.app/fhir/StructureDefinition/derived",
+                valueBoolean: true,
+              },
+            ],
+          },
+        });
+      }
     }
     for (const r of bundle.records || []) {
       entries.push({

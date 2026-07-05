@@ -634,7 +634,7 @@ export default function DoctorHub() {
                 subtitle={t("doctor.tiles.recordsSubtitle", {
                   count: rxCount + notesCount + labCount,
                 })}
-                onPress={() => router.push("/records" as any)}
+                onPress={() => router.push("/records-v2" as any)}
               />
             </View>
           </View>

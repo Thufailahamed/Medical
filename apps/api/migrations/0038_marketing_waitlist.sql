@@ -36,7 +36,7 @@
 --   noise. Different table, different admin filter, different
 --   export.
 
-CREATE TABLE `marketing_waitlist` (
+CREATE TABLE IF NOT EXISTS `marketing_waitlist` (
   `id` TEXT PRIMARY KEY,
   `email` TEXT NOT NULL,
   `role` TEXT NOT NULL DEFAULT 'patient',
@@ -53,15 +53,15 @@ CREATE TABLE `marketing_waitlist` (
 -- hit the unique index. The application normalises to lowercase
 -- + trim before insert (see routes/marketing.ts); the index
 -- enforces the resulting canonical form.
-CREATE UNIQUE INDEX `marketing_waitlist_email_unique` ON `marketing_waitlist` (`email`);--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `marketing_waitlist_email_unique` ON `marketing_waitlist` (`email`);--> statement-breakpoint
 
 -- Admin list query: "show everyone waiting, newest first,
 -- excluding the ones we've already invited." Putting invited_at
 -- first in the index lets SQLite do a fast range scan for the
 -- common "still waiting" filter (`invited_at IS NULL`).
-CREATE INDEX `idx_marketing_waitlist_pending` ON `marketing_waitlist` (`invited_at`, `created_at`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `idx_marketing_waitlist_pending` ON `marketing_waitlist` (`invited_at`, `created_at`);--> statement-breakpoint
 
 -- Source attribution — useful when running multiple landing
 -- pages or campaign variants. Cheap to maintain, hard to add
 -- later without backfill.
-CREATE INDEX `idx_marketing_waitlist_source` ON `marketing_waitlist` (`source`, `created_at`);
+CREATE INDEX IF NOT EXISTS `idx_marketing_waitlist_source` ON `marketing_waitlist` (`source`, `created_at`);

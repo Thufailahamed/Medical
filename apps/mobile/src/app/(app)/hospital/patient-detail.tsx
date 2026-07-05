@@ -18,8 +18,10 @@ import {
 import {
   useAdmittedPatient,
   useDischargeBed,
+  useConsentsMine,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { classifyReading } from "@healthcare/shared/vitals";
 import {
   Screen,
   ScreenHeader,
@@ -233,23 +235,52 @@ export default function HospitalPatientDetail() {
         </Card>
 
         <Card>
-          <SectionHeader title={t("hospitalPatientDetail.recentVitals")} />
-          {vitals && vitals.length > 0 ? (
-            vitals.slice(0, 10).map((v: any, idx: number) => (
-              <View key={v.id}>
-                {idx > 0 ? <Divider /> : null}
-                <ListItem
-                  icon={Activity}
-                  iconTone="primary"
-                  title={v.type.replace(/_/g, " ")}
-                  subtitle={fmtDateTime(new Date(v.recordedAt), locale)}
-                  pill={{
-                    label: `${v.value}${v.secondaryValue ? `/${v.secondaryValue}` : ""} ${v.unit}`,
-                    tone: "primary",
-                  }}
+          <SectionHeader
+            title={t("hospitalPatientDetail.recentVitals")}
+            right={
+              data?.vitalsAlerts && data.vitalsAlerts.count > 0 ? (
+                <PillCmp
+                  size="sm"
+                  tone="danger"
+                  label={t("hospitalPatientDetail.abnormalCount", {
+                    count: data.vitalsAlerts.count,
+                  })}
                 />
-              </View>
-            ))
+              ) : undefined
+            }
+            // Phase v3: hospital sees only consent-scoped rows; banner below
+            // summarises what this hospital is allowed to see.
+          />
+          {vitals && vitals.length > 0 ? (
+            vitals.slice(0, 10).map((v: any, idx: number) => {
+              const cls = classifyReading({
+                type: v.type,
+                value: Number(v.value),
+                secondary: v.secondaryValue != null ? Number(v.secondaryValue) : null,
+                context: v.context ?? null,
+              });
+              const tone =
+                cls.classification === "normal"
+                  ? "success"
+                  : cls.classification === "critical" || cls.classification === "high"
+                  ? "danger"
+                  : "warning";
+              return (
+                <View key={v.id}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    icon={Activity}
+                    iconTone="primary"
+                    title={v.type.replace(/_/g, " ")}
+                    subtitle={fmtDateTime(new Date(v.recordedAt), locale)}
+                    pill={{
+                      label: `${v.value}${v.secondaryValue ? `/${v.secondaryValue}` : ""} ${v.unit}`,
+                      tone: tone as any,
+                    }}
+                  />
+                </View>
+              );
+            })
           ) : (
             <EmptyState icon={HeartPulse} title={t("hospitalPatientDetail.noVitals")} />
           )}

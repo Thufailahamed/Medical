@@ -205,7 +205,13 @@
     "addMedicine": "மருந்தை சேர்",
     "addMedicineSubtitle": "நினைவூட்டிகளை அமை",
     "emailImport": "மின்னஞ்சல் மூலம் பதிவுகள்",
-    "emailImportSubtitle": "PDF மற்றும் அறிக்கைகளை தனிப்பட்ட முகவரிக்கு அனுப்பு"
+    "emailImportSubtitle": "PDF மற்றும் அறிக்கைகளை தனிப்பட்ட முகவரிக்கு அனுப்பு",
+    "item": {
+      "recordsV2": {
+        "label": "சுகாதார பதிவுகள் (v2)",
+        "subtitle": "ஒருங்கிணைந்த மையம் · மறைகுறியாக்கப்பட்டது"
+      }
+    }
   },
   "emergency": {
     "title": "அவசரம்",
@@ -517,6 +523,12 @@
       "vitals": "உயிர் அறிகுறிகள்"
     },
     "bmiRow": "BMI {{bmi}} • {{category}}",
+    "vitalsGlance": {
+      "title": "உயிர் அறிகுறி கண்ணோட்டம்",
+      "last7d": "கடந்த 7 நாட்கள்",
+      "openAll": "அனைத்தையும் காண்",
+      "addReading": "படிப்பைப் பதிவு செய்"
+    },
     "fab": {
       "title": "விரைவு சேர்",
       "logDose": {
@@ -684,6 +696,19 @@
     "aiGuess": {
       "pill": "AI யூகம்"
     },
+    "hero": {
+      "totalLabel": "மொத்தம்",
+      "encrypted": "முனை-முதல்-முனை குறியாக்கம்",
+      "recent": "இந்த மாதம் {{count}}",
+      "noRecent": "இந்த மாதம் புதியது இல்லை",
+      "secure": "தனிப்பட்டது",
+      "lastLabel": "கடைசி பதிவு"
+    },
+    "actions": {
+      "share": "பகிர்",
+      "export": "ஏற்றுமதி",
+      "add": "சேர்"
+    },
     "unknownDate": "தேதி தெரியவில்லை",
     "attachmentCount_one": "இணைப்பு",
     "attachmentCount_other": "{{count}} இணைப்புகள்",
@@ -793,7 +818,13 @@
   "vitals": {
     "title": "உயிர் அறிகுறிகள்",
     "subtitle": "பதிவு செய்து போக்குகளைக் காண்க",
+    "subtitleWithCount_one": "{{count}} கண்காணிக்கப்படுகிறது · {{alerts}} எச்சரிக்கை",
+    "subtitleWithCount_other": "{{count}} கண்காணிக்கப்படுகிறது · {{alerts}} எச்சரிக்கைகள்",
+    "latest": "சமீபத்திய",
     "logLabel": "உயிர் அறிகுறியைப் பதிவு செய்",
+    "alertsHeading": "வரம்புக்கு வெளியே உள்ள படிப்புகள்",
+    "noAlerts": "அனைத்து சமீபத்திய படிப்புகளும் வரம்புக்குள் உள்ளன",
+    "derivedHeading": "கணிக்கப்பட்ட அளவீடுகள்",
     "compose": {
       "title": "உயிர் அறிகுறியைப் பதிவு செய்",
       "typeLabel": "வகை",
@@ -805,7 +836,34 @@
       "notesLabel": "குறிப்புகள்",
       "notesHelper": "கூடுதல் சூழலைச் சேர்",
       "notesPlaceholder": "எ.கா: காலை உணவுக்கு முன்",
-      "saveButton": "சேமி"
+      "saveButton": "சேமி",
+      "contextLabel": "சூழல்"
+    },
+    "classification": {
+      "normal": "சாதாரண",
+      "elevated": "உயர்ந்த",
+      "high": "அதிகம்",
+      "low": "குறைவு",
+      "critical": "ஆபத்தான"
+    },
+    "context": {
+      "resting": "ஓய்வில்",
+      "fasting": "உண்ணாநிலை",
+      "post_meal": "சாப்பாட்டுக்குப் பிறகு",
+      "pre_meal": "சாப்பாட்டுக்கு முன்",
+      "post_medication": "மருந்துக்குப் பிறகு",
+      "pre_medication": "மருந்துக்கு முன்",
+      "exercise": "உடற்பயிற்சிக்குப் பிறகு",
+      "standing": "நிற்கும்",
+      "supine": "படுத்த",
+      "random": "ஏதோ ஒரு"
+    },
+    "derived": {
+      "map": "MAP",
+      "pulsePressure": "துடிப்பு அழுத்தம்",
+      "whr": "இடுப்பு-இடை விகிதம்",
+      "bmr": "BMR",
+      "bmi": "BMI"
     },
     "chart": {
       "trendHeading": "போக்குகள்",
@@ -862,7 +920,15 @@
       },
       "cholesterol": {
         "label": "கொலஸ்ட்ரால்"
-      }
+      },
+      "respiratory_rate":    { "label": "சுவாச வீதம்" },
+      "hrv_rmssd":           { "label": "HRV (RMSSD)" },
+      "body_fat_pct":        { "label": "கொழுப்பு விகிதம்" },
+      "waist_circumference": { "label": "இடை சுற்றளவு" },
+      "hip_circumference":   { "label": "இடுப்பு சுற்றளவு" },
+      "pain_scale":          { "label": "வலி" },
+      "peak_flow":           { "label": "உச்ச காற்றோட்டம்" },
+      "height":              { "label": "உயரம்" }
     }
   },
   "allergies": {
@@ -1078,5 +1144,92 @@
     "legacyHeading": "உங்கள் சரிபார்க்கப்பட்ட மின்னஞ்சலில் இருந்து அனுப்பு",
     "legacyBody": "{{email}} இலிருந்தும் அனுப்பலாம் — முகவரி இல்லாவிட்டாலும் அனுப்புநர் மூலம் வழிசெலுத்துவோம்.",
     "legacyAction": "அஞ்சலைத் திற"
+  },
+  "recordsHub": {
+    "title": "சுகாதார பதிவுகள்",
+    "activeConsents": "செயலில் உள்ள ஒப்புதல்கள்",
+    "issueConsent": "ஒப்புதல் வழங்கு",
+    "tabs": { "all": "அனைத்தும்", "timeline": "நேரக்கோடு", "sharing": "பகிர்வு" },
+  "hero": {
+    "eyebrow": "சுகாதார பதிவுகள்",
+    "encrypted": "மறைகுறியாக்கம் & ஒத்திசைவு",
+    "lastActivity": "கடைசி சேர்ப்பு {{when}}",
+    "loading": "உங்கள் நூலகம் ஏற்றப்படுகிறது…",
+    "noProfile": "நோயாளி",
+    "bloodGroup": "இரத்த வகை {{value}}",
+    "ageYears": "{{n}} வயது",
+    "total": "பதிவுகள்",
+    "noActivity": "இன்னும் செயல்பாடு இல்லை"
+  },
+    "quickActions": {
+      "share": "பகிர்",
+      "export": "ஏற்றுமதி",
+      "add": "சேர்"
+    },
+    "stats": {
+      "total": "மொத்த பதிவுகள்",
+      "activeConsents": "செயலில் உள்ள ஒப்புதல்கள்",
+      "locked": "பூட்டப்பட்டது",
+      "shared": "பகிரப்பட்டது"
+    },
+  "smartFolders": {
+    "title": "ஸ்மார்ட் கோப்புறைகள்",
+    "allergies": "ஒவ்வாமை",
+    "vaccinations": "தடுப்பூசிகள்",
+    "labReports": "ஆய்வக அறிக்கைகள்",
+    "prescriptions": "மருந்துச் சீட்டுகள்",
+    "imaging": "பட மருத்துவம்",
+    "recent30": "கடைசி 30 நாட்கள்",
+    "seeAll": "அனைத்தும் பார்",
+    "recordsLabel": "பதிவுகள்"
+  },
+    "search": {
+      "placeholder": "பதிவுகள், மருத்துவர்கள், OCR தேடு…"
+    },
+    "empty": {
+      "title": "உங்கள் பதிவு நூலகம் காலியாக உள்ளது",
+      "body": "முதல் ஆய்வக அறிக்கை, ஸ்கேன் அல்லது மருந்துச் சீட்டை + சேர்க்கவும்.",
+      "action": "பதிவைச் சேர்"
+    },
+  "row": {
+    "diagnosis": "நோய் கண்டறிதல்",
+    "files_one": "{{count}} கோப்பு",
+    "files_other": "{{count}} கோப்புகள்",
+    "tagsLabel": "குறிச்சொற்கள்",
+    "fallbackTitle": "பெயரிடப்படாதது"
+  }
+  },
+  "consent": {
+    "purpose": {
+      "emergency": "அவசரங்களுக்கு",
+      "family_view": "குடும்ப உறுப்பினர்களுக்கு",
+      "insurance": "காப்பீட்டு உரிமைகளுக்கு",
+      "research": "ஆராய்ச்சிக்கு",
+      "referral": "பரிந்துரைகளுக்கு",
+      "lab_share": "ஆய்வக பகிர்வு"
+    }
+  },
+  "dsar": {
+    "title": "தரவு உரிமைகள்",
+    "exportTitle": "எனது தரவை ஏற்றுமதி செய்",
+    "exportBody": "உங்கள் அனைத்து தரவின் கடத்தக்கூடிய, மறைகுறியாக்கப்பட்ட நகலைப் பெறுங்கள்.",
+    "erasureTitle": "எனது தரவை அழி",
+    "erasureBody": "உங்கள் சுயவிவரத்தை நிரந்தரமாக அநாமதேயமாக்கு.",
+    "rectifyTitle": "திருத்தம் கோரு",
+    "rectifyBody": "உங்கள் கோரிக்கையை 30 நாட்களுக்குள் மதிப்பாய்வு செய்து பதிலளிப்போம்."
+  },
+  "qrToken": {
+    "title": "அவசர QR",
+    "subtitle": "நேர-வரம்பு. ஒவ்வொரு ஸ்கேனும் பதிவு செய்யப்படும்."
+  },
+
+  "doctorPatientDetail": {
+    "empty": "இன்னும் நோயாளிகள் இல்லை",
+    "emptyBody": "பதிவு அணுகலை வழங்கும் நோயாளிகள் இங்கே தோன்றுவார்கள்.",
+    "recordsTab": "பதிவுகள்",
+    "consentBanner": "உங்களுக்கு ஒப்புதல் உள்ள பதிவுகள் மட்டுமே காட்டப்படும்"
+  },
+  "hospitalPatientDetail": {
+    "recordsTab": "பதிவுகள் (ஒருங்கிணைந்த)"
   }
 }

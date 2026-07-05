@@ -1,11 +1,18 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
-import { files, medicalRecords, patients } from "@healthcare/db";
+import { eq, and, gt, isNull } from "drizzle-orm";
+import {
+  files,
+  medicalRecords,
+  patients,
+  fileDownloadTokens,
+} from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { upsertRecordFts } from "../lib/fts";
+import { audit } from "../lib/audit";
+import { canAccessRecord } from "../lib/access";
 import type { AppEnvironment } from "../types";
 
 const filesRouter = new Hono<AppEnvironment>();
@@ -370,6 +377,125 @@ filesRouter.delete("/:id", authMiddleware, async (c) => {
   await db.delete(files).where(eq(files.id, fileId));
 
   return c.json({ message: "File deleted" });
+});
+
+// ─── Phase v3: Presigned download tokens ────────────────────
+// Short-lived tokens (5 min) bound to (fileId, recipientUserId). The
+// `/files/download/:token` path is unauthenticated; the token itself
+// is the credential and may only be consumed once per TTL.
+
+filesRouter.post("/presign", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const body = await c.req.json().catch(() => ({}));
+  const fileId = String(body.fileId ?? "");
+  const recipientUserId = body.recipientUserId ? String(body.recipientUserId) : null;
+  if (!fileId) return c.json({ error: "fileId_required" }, 400);
+
+  const [row] = await db
+    .select({ file: files, record: medicalRecords })
+    .from(files)
+    .leftJoin(medicalRecords, eq(files.recordId, medicalRecords.id))
+    .where(eq(files.id, fileId))
+    .limit(1);
+  if (!row?.file) return c.json({ error: "not_found" }, 404);
+
+  // Access check: caller must be able to access the parent record (if
+  // any). If no recordId, the file is standalone and we restrict to the
+  // upload owner / patient.
+  if (row.record) {
+    const access = await canAccessRecord(db, userId, c.get("userRole") ?? "patient", row.record as any);
+    if (!access.allowed) return c.json({ error: "forbidden" }, 403);
+  } else {
+    const patientId = await getPatientIdFromUser(db, userId);
+    if (!patientId) return c.json({ error: "forbidden" }, 403);
+  }
+
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  const token = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+  await db.insert(fileDownloadTokens).values({
+    token,
+    fileId,
+    issuedByUserId: userId,
+    recipientUserId,
+    expiresAt,
+  });
+  await audit(db, {
+    userId,
+    action: "file_presign_issued",
+    resource: "file",
+    resourceId: fileId,
+    details: { recipient: recipientUserId },
+  });
+  return c.json({ token, expiresAt, url: `/files/download/${token}` }, 201);
+});
+
+filesRouter.get("/download/:token", async (c) => {
+  const db = c.get("db");
+  const token = c.req.param("token");
+  const [row] = await db
+    .select()
+    .from(fileDownloadTokens)
+    .where(eq(fileDownloadTokens.token, token))
+    .limit(1);
+  if (!row) return c.json({ error: "not_found" }, 404);
+  const now = new Date().toISOString();
+  if (row.expiresAt <= now) {
+    return c.json({ error: "expired" }, 410);
+  }
+  if (row.consumedAt) {
+    return c.json({ error: "replay_detected", firstConsumedAt: row.consumedAt }, 410);
+  }
+  const [file] = await db.select().from(files).where(eq(files.id, row.fileId)).limit(1);
+  if (!file) return c.json({ error: "file_missing" }, 404);
+
+  // Single-use: mark consumed before streaming so replays fail.
+  await db
+    .update(fileDownloadTokens)
+    .set({
+      consumedAt: now,
+      ip: c.req.header("cf-connecting-ip") ?? null,
+      userAgent: c.req.header("user-agent") ?? null,
+    })
+    .where(eq(fileDownloadTokens.token, token));
+
+  await audit(db, {
+    userId: row.issuedByUserId,
+    action: "file_downloaded",
+    resource: "file",
+    resourceId: file.id,
+    details: { token, recipient: row.recipientUserId },
+  });
+
+  // Stream R2 bytes
+  try {
+    const obj = await c.env.R2.get(file.r2Key);
+    if (!obj) return c.json({ error: "r2_missing" }, 404);
+    return new Response(obj.body as ReadableStream, {
+      headers: {
+        "Content-Type": file.mimeType ?? "application/octet-stream",
+        "Cache-Control": "private, max-age=0, no-store",
+        "Content-Disposition": `inline; filename="${file.fileName}"`,
+      },
+    });
+  } catch (err) {
+    return c.json({ error: "r2_failure", reason: (err as Error).message }, 502);
+  }
+});
+
+filesRouter.get("/audit", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  // Return the issuing user's recent presign + download rows.
+  const rows = await db
+    .select()
+    .from(fileDownloadTokens)
+    .where(eq(fileDownloadTokens.issuedByUserId, userId));
+  return c.json({ items: rows });
 });
 
 export default filesRouter;

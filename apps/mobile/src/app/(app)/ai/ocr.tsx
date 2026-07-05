@@ -72,7 +72,7 @@ export default function AiOcrScreen() {
       setResult(null);
       setUploadedUrl(null);
     } catch (err: any) {
-      toast.show(err?.message || t("aiOcr.pickFailed"), "danger");
+      toast.show(err?.message || t("aiOcr.pickImageError"), "danger");
     }
   }
 
@@ -106,7 +106,7 @@ export default function AiOcrScreen() {
       });
       setResult(res);
     } catch (err: any) {
-      toast.show(err?.message || t("aiOcr.ocrFailed"), "danger");
+      toast.show(err?.message || t("aiOcr.ocrError"), "danger");
     }
   }
 
@@ -142,7 +142,7 @@ export default function AiOcrScreen() {
             >
               <ScanText size={20} color={colors.accent} strokeWidth={2.2} />
               <Text style={[typography.title.sm, { color: colors.text }]}>
-                {t("aiOcr.pickHeading")}
+                {t("aiOcr.pickImageHeading")}
               </Text>
             </View>
 
@@ -165,7 +165,7 @@ export default function AiOcrScreen() {
                   />
                 </View>
                 <Button
-                  title={t("aiOcr.remove")}
+                  title={t("aiOcr.removeButton")}
                   icon={Trash2}
                   variant="ghost"
                   size="sm"
@@ -176,31 +176,31 @@ export default function AiOcrScreen() {
             ) : (
               <EmptyState
                 icon={ImageIcon}
-                title={t("aiOcr.noImageTitle")}
-                message={t("aiOcr.noImageBody")}
+                title={t("aiOcr.imageEmptyTitle")}
+                message={t("aiOcr.imageEmptyBody")}
                 tone="neutral"
               />
             )}
 
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Button
-                title={t("aiOcr.camera")}
-                icon={Camera}
-                variant="outline"
-                size="md"
-                fullWidth={false}
-                onPress={() => pickFrom("camera")}
-                style={{ flex: 1 }}
-              />
-              <Button
-                title={t("aiOcr.gallery")}
-                icon={ImageIcon}
-                variant="outline"
-                size="md"
-                fullWidth={false}
-                onPress={() => pickFrom("gallery")}
-                style={{ flex: 1 }}
-              />
+            <View style={{ flexDirection: "row", gap: spacing.sm, width: "100%" }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title={t("aiOcr.cameraButton")}
+                  icon={Camera}
+                  variant="outline"
+                  size="md"
+                  onPress={() => pickFrom("camera")}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title={t("aiOcr.galleryButton")}
+                  icon={ImageIcon}
+                  variant="outline"
+                  size="md"
+                  onPress={() => pickFrom("gallery")}
+                />
+              </View>
             </View>
           </View>
         </Card>
@@ -218,15 +218,16 @@ export default function AiOcrScreen() {
           </View>
         </Card>
 
-        <Button
-          title={t("aiOcr.readAction")}
-          icon={Sparkles}
-          size="lg"
-          fullWidth={false}
-          onPress={runOcr}
-          loading={aiOcr.isPending || upload.isPending}
-          disabled={!imageUri}
-        />
+        <View style={{ width: "100%" }}>
+          <Button
+            title={t("aiOcr.readButton")}
+            icon={Sparkles}
+            size="lg"
+            onPress={runOcr}
+            loading={aiOcr.isPending || upload.isPending}
+            disabled={!imageUri}
+          />
+        </View>
 
         {aiOcr.isPending ? (
           <View style={{ gap: spacing.md }}>
@@ -265,7 +266,7 @@ export default function AiOcrScreen() {
 
             {result.medicines && result.medicines.length > 0 ? (
               <Card>
-                <SectionHeader title={t("aiOcr.sections.medicines")} />
+                <SectionHeader title={t("aiOcr.medicinesSection")} />
                 <View
                   style={{
                     padding: spacing.lg,
@@ -330,7 +331,7 @@ export default function AiOcrScreen() {
                       { color: colors.textMuted, textAlign: "center" },
                     ]}
                   >
-                    {t("aiOcr.noMedicines")}
+                    {t("aiOcr.noMeds")}
                   </Text>
                 </View>
               </Card>
@@ -338,7 +339,7 @@ export default function AiOcrScreen() {
 
             {(result.doctor || result.date || result.diagnosis) ? (
               <Card>
-                <SectionHeader title={t("aiOcr.sections.header")} />
+                <SectionHeader title={t("aiOcr.headerInfoSection")} />
                 <View
                   style={{
                     padding: spacing.lg,
@@ -348,17 +349,17 @@ export default function AiOcrScreen() {
                 >
                   {result.doctor ? (
                     <Text style={[typography.body.sm, { color: colors.text }]}>
-                      {t("aiOcr.field.doctor", { value: result.doctor })}
+                      {t("aiOcr.doctorField", { name: result.doctor })}
                     </Text>
                   ) : null}
                   {result.date ? (
                     <Text style={[typography.body.sm, { color: colors.text }]}>
-                      {t("aiOcr.field.date", { value: result.date })}
+                      {t("aiOcr.dateField", { date: result.date })}
                     </Text>
                   ) : null}
                   {result.diagnosis ? (
                     <Text style={[typography.body.sm, { color: colors.text }]}>
-                      {t("aiOcr.field.diagnosis", { value: result.diagnosis })}
+                      {t("aiOcr.diagnosisField", { diagnosis: result.diagnosis })}
                     </Text>
                   ) : null}
                 </View>

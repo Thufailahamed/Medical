@@ -1,14 +1,15 @@
 import React from "react";
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
-import type { LucideIcon } from "lucide-react-native";
+import { Folder, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone } from "@/theme/tone";
 import { Button } from "./Button";
 
 type Props = {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: string;
   message?: string;
+  body?: string;
   actionLabel?: string;
   onAction?: () => void;
   tone?: "primary" | "accent" | "accent2" | "neutral";
@@ -16,9 +17,10 @@ type Props = {
 };
 
 export function EmptyState({
-  icon: Icon,
+  icon: Icon = Folder,
   title,
   message,
+  body,
   actionLabel,
   onAction,
   tone = "primary",
@@ -26,6 +28,7 @@ export function EmptyState({
 }: Props) {
   const { colors, spacing, typography, radius } = useTheme();
   const { bg, fg } = useTone(tone);
+  const displayMessage = message || body;
 
   return (
     <View
@@ -62,14 +65,14 @@ export function EmptyState({
         >
           {title}
         </Text>
-        {message ? (
+        {displayMessage ? (
           <Text
             style={[
               typography.body.md,
               { color: colors.textMuted, textAlign: "center" },
             ]}
           >
-            {message}
+            {displayMessage}
           </Text>
         ) : null}
       </View>

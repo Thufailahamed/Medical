@@ -275,6 +275,19 @@ export const medicalRecords = sqliteTable(
     // Phase 1.4: dedupe key for CF Email Routing retries. NULL for non-email
     // records. Unique index rejects duplicate inserts from the same event.
     emailMessageId: text("email_message_id"),
+    // Phase v3: unified envelope + tamper-evidence chain
+    kind: text("kind"), // registry key (e.g. "lab_report") — added in 0029
+    encryptedPayload: text("encrypted_payload"),
+    encryptedPayloadKekId: text("encrypted_payload_kek_id"),
+    encryptedPayloadDekWrapped: text("encrypted_payload_dek_wrapped"),
+    iv: text("iv"),
+    authTag: text("auth_tag"),
+    envelopeVersion: text("envelope_version"),
+    schemaVersion: text("schema_version"),
+    rehashedAt: text("rehashed_at"),
+    prevRecordHash: text("prev_record_hash"),
+    lockedByUserId: text("locked_by_user_id"),
+    lockedUntil: text("locked_until"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -562,14 +575,25 @@ export const vitals = sqliteTable("vitals", {
       "temperature",
       "spo2",
       "cholesterol",
+      "respiratory_rate",
+      "hrv_rmssd",
+      "body_fat_pct",
+      "waist_circumference",
+      "hip_circumference",
+      "pain_scale",
+      "peak_flow",
     ],
   }).notNull(),
   value: real("value").notNull(),
   unit: text("unit").notNull(),
   // For BP (systolic/diastolic pair)
   secondaryValue: real("secondary_value"),
+  // Surrounding context (e.g. fasting, post-meal, post-exercise) — affects
+  // classification thresholds. Free text for flexibility, app layer validates
+  // against the VITAL_CONTEXTS enum in @healthcare/shared/vitals.
+  context: text("context"),
   recordedAt: text("recorded_at").notNull(),
-  source: text("source").default("manual"), // manual, device, imported
+  source: text("source").default("manual"), // manual, device, imported, apple_health, google_fit
   notes: text("notes"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
@@ -2274,3 +2298,134 @@ export const doctorPatientRelationships = sqliteTable(
     // SQL in 0033.
   })
 );
+
+// ─── Phase v3: Unified records envelope + revisions ───────────────
+export const recordRevisions = sqliteTable(
+  "record_revisions",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => medicalRecords.id, { onDelete: "cascade" }),
+    revisionNumber: integer("revision_number").notNull(),
+    encryptedPayloadSnapshot: text("encrypted_payload_snapshot"),
+    editedByUserId: text("edited_by_user_id"),
+    editedAt: text("edited_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    diffSummary: text("diff_summary"),
+  },
+  (t) => ({
+    recordRevisionUnique: uniqueIndex("record_revisions_record_number_unique").on(
+      t.recordId,
+      t.revisionNumber
+    ),
+  })
+);
+
+export const documentDicomMetadata = sqliteTable(
+  "document_dicom_metadata",
+  {
+    fileId: text("file_id")
+      .primaryKey()
+      .references(() => files.id, { onDelete: "cascade" }),
+    studyInstanceUid: text("study_instance_uid"),
+    seriesInstanceUid: text("series_instance_uid"),
+    sopInstanceUid: text("sop_instance_uid"),
+    modality: text("modality"),
+    bodyPart: text("body_part"),
+    studyDate: text("study_date"),
+    manufacturer: text("manufacturer"),
+    metadataJson: text("metadata_json"),
+  }
+);
+
+export const fileDownloadTokens = sqliteTable("file_download_tokens", {
+  token: text("token").primaryKey(),
+  fileId: text("file_id")
+    .notNull()
+    .references(() => files.id, { onDelete: "cascade" }),
+  issuedByUserId: text("issued_by_user_id").notNull(),
+  recipientUserId: text("recipient_user_id"),
+  expiresAt: text("expires_at").notNull(),
+  consumedAt: text("consumed_at"),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  auditAction: text("audit_action"),
+});
+
+export const dsarRequests = sqliteTable(
+  "dsar_requests",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull(),
+    purpose: text("purpose", {
+      enum: ["export", "erasure", "rectification"],
+    }).notNull(),
+    status: text("status", {
+      enum: ["queued", "approved", "processing", "completed", "cancelled", "failed"],
+    })
+      .default("queued")
+      .notNull(),
+    requestedAt: text("requested_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    approvedAt: text("approved_at"),
+    completedAt: text("completed_at"),
+    cancelledAt: text("cancelled_at"),
+    notes: text("notes"),
+    resultUrl: text("result_url"),
+    resultExpiresAt: text("result_expires_at"),
+    approverUserId: text("approver_user_id"),
+  }
+);
+
+// ─── Phase v3: Granular consent + QR ephemeral tokens ──────────────
+export const consentGrants = sqliteTable(
+  "consent_grants",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    familyMemberId: text("family_member_id").references(() => familyMembers.id),
+    grantedToUserId: text("granted_to_user_id"),
+    grantedToToken: text("granted_to_token"),
+    purpose: text("purpose", {
+      enum: [
+        "emergency",
+        "family_view",
+        "insurance",
+        "research",
+        "referral",
+        "lab_share",
+      ],
+    }).notNull(),
+    scopeJson: text("scope_json").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    revokedAt: text("revoked_at"),
+    revokedByUserId: text("revoked_by_user_id"),
+    consentRecordId: text("consent_record_id"),
+    grantedAt: text("granted_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    grantedByUserId: text("granted_by_user_id").notNull(),
+    label: text("label"),
+  }
+);
+
+export const qrAccessTokens = sqliteTable("qr_access_tokens", {
+  token: text("token").primaryKey(),
+  patientId: text("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  familyMemberId: text("family_member_id").references(() => familyMembers.id),
+  encryptedPayload: text("encrypted_payload").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  maxScans: integer("max_scans").notNull().default(5),
+  scansJson: text("scans_json").notNull().default("[]"),
+  revokedAt: text("revoked_at"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});

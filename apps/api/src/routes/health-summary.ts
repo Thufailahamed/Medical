@@ -3,7 +3,7 @@
 // Supports `?format=json|text`. Same render every time — not AI-generated.
 
 import { Hono } from "hono";
-import { eq, and, desc, gte } from "drizzle-orm";
+import { eq, and, desc, gte, asc } from "drizzle-orm";
 import {
   patients,
   allergies,
@@ -14,6 +14,8 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
+import { bmi, bmiCategory, type VitalType } from "@healthcare/shared/vitals";
+import { derivedBlock, latestByType, classifyAlerts } from "../lib/vitals-derived";
 
 const summaryRouter = new Hono<AppEnvironment>();
 
@@ -34,7 +36,6 @@ summaryRouter.get("/me", authMiddleware, async (c) => {
 
   const format = (c.req.query("format") || "json").toLowerCase();
 
-  // Parallel-ish reads
   const allergyRows = await db
     .select()
     .from(allergies)
@@ -81,7 +82,7 @@ summaryRouter.get("/me", authMiddleware, async (c) => {
     .select()
     .from(appointments)
     .where(eq(appointments.patientId, patient.id))
-    .orderBy(appointments.scheduledAt)
+    .orderBy(asc(appointments.scheduledAt))
     .limit(10);
   const followUps = upcomingAppts
     .filter((a: any) =>
@@ -116,6 +117,13 @@ summaryRouter.get("/me", authMiddleware, async (c) => {
     };
   });
 
+  // New: registry-driven derived + alerts
+  const derived = derivedBlock({ rows: recentVitals, patient });
+  const latest = latestByType(recentVitals, { patient });
+  const alerts = classifyAlerts(recentVitals, { patient });
+  const bmiVal = bmi(patient.height, patient.weight);
+  const bmiCat = bmiVal != null ? bmiCategory(bmiVal) : null;
+
   const summary = {
     generatedAt: new Date().toISOString(),
     demographics: {
@@ -124,9 +132,11 @@ summaryRouter.get("/me", authMiddleware, async (c) => {
       age: computeAge(patient.dateOfBirth),
       sex: patient.gender || patient.sex || null,
       bloodGroup: patient.bloodGroup || null,
-      heightCm: patient.heightCm || null,
-      weightKg: patient.weightKg || null,
-      bmi: computeBMI(patient.heightCm, patient.weightKg),
+      heightCm: patient.heightCm ?? null,
+      weightKg: patient.weightKg ?? null,
+      bmi: bmiVal,
+      bmiCategory: bmiCat?.category ?? null,
+      derived,
     },
     allergies: allergyRows.map((a: any) => ({
       substance: a.substance,
@@ -141,12 +151,18 @@ summaryRouter.get("/me", authMiddleware, async (c) => {
       since: m.startDate,
     })),
     recentVitals: recentVitalsSummary,
-    followUps: followUps.map((a: any) => ({
+    latestVitals: latest,
+    alerts: {
+      count: alerts.length,
+      items: alerts.slice(0, 10),
+    },
+    followUps: upcomingAppts.map((a: any) => ({
       title: a.reason || a.type || "Appointment",
       scheduledAt: a.scheduledAt,
       location: a.location,
       provider: a.providerName,
-    })),
+      status: a.status,
+    })).slice(0, 5),
     lifestyle: {
       smoker: patient.smoker || null,
       alcohol: patient.alcoholUse || null,
@@ -163,19 +179,14 @@ summaryRouter.get("/me", authMiddleware, async (c) => {
   return c.json(summary);
 });
 
+// (asc is imported at the top of the file alongside the other drizzle helpers.)
+
 function computeAge(dob: string | null): number | null {
   if (!dob) return null;
   const birth = new Date(dob);
   if (isNaN(birth.getTime())) return null;
   const diff = Date.now() - birth.getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
-}
-
-function computeBMI(h?: number | null, w?: number | null): number | null {
-  if (!h || !w) return null;
-  const m = h / 100;
-  if (m <= 0) return null;
-  return Math.round((w / (m * m)) * 10) / 10;
 }
 
 function renderText(s: any): string {
@@ -192,9 +203,18 @@ function renderText(s: any): string {
     d.bloodGroup ? `Blood ${d.bloodGroup}` : null,
     d.heightCm ? `${d.heightCm} cm` : null,
     d.weightKg ? `${d.weightKg} kg` : null,
-    d.bmi ? `BMI ${d.bmi}` : null,
+    d.bmi ? `BMI ${d.bmi}${d.bmiCategory ? ` (${d.bmiCategory})` : ""}` : null,
   ].filter(Boolean);
   if (demoBits.length) lines.push(demoBits.join(" • "));
+
+  const dv = d.derived;
+  const derivedBits = [
+    dv?.map != null ? `MAP ${dv.map}` : null,
+    dv?.pulsePressure != null ? `PP ${dv.pulsePressure}` : null,
+    dv?.whr != null ? `WHR ${dv.whr}` : null,
+    dv?.bmr != null ? `BMR ${dv.bmr}` : null,
+  ].filter(Boolean);
+  if (derivedBits.length) lines.push(derivedBits.join(" • "));
   lines.push("");
 
   lines.push("ALLERGIES");
@@ -226,6 +246,13 @@ function renderText(s: any): string {
     lines.push(
       `  • ${v.type.replace(/_/g, " ")}: ${l.value}${l.secondary != null ? "/" + l.secondary : ""} ${l.unit || ""}`
     );
+  }
+  if (s.alerts && s.alerts.count > 0) {
+    lines.push("");
+    lines.push(`ALERTS (${s.alerts.count})`);
+    for (const a of s.alerts.items) {
+      lines.push(`  ⚠ ${a.type}: ${a.value}${a.secondary != null ? "/" + a.secondary : ""} ${a.unit || ""} — ${a.classification}${a.note ? " (" + a.note + ")" : ""}`);
+    }
   }
   lines.push("");
 

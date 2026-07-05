@@ -236,6 +236,29 @@ export default function ExportScreen() {
         >
           {t("export.footer")}
         </Text>
+
+        <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
+          <AppText variant="title.sm">{t("dsar.title", "Data rights")}</AppText>
+          <AppText variant="body.sm" color="muted">
+            {t("dsar.exportBody", "Receive a portable, encrypted copy of all your data.")}
+          </AppText>
+          <Button
+            label={t("dsar.exportTitle", "Export my data")}
+            onPress={async () => {
+              try {
+                const r = await fetch(`${API_BASE}/dsar/export`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                });
+                if (!r.ok) throw new Error(`DSAR export failed: ${r.status}`);
+                toast.show({ message: "Export ready", tone: "success" });
+              } catch (e: any) {
+                toast.show({ message: e?.message ?? "Failed", tone: "danger" });
+              }
+            }}
+            icon={FileText}
+          />
+        </View>
       </ScrollView>
     </Screen>
   );

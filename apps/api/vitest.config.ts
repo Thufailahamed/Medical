@@ -21,9 +21,11 @@ export default defineConfig({
     testTimeout: 10_000,
   },
   resolve: {
-    alias: {
-      "@healthcare/db": new URL("../../packages/db/src/index.ts", import.meta.url).pathname,
-      "@healthcare/shared": new URL("../../packages/shared/src/index.ts", import.meta.url).pathname,
-    },
+    alias: [
+      { find: /^@healthcare\/shared\/(.+)$/, replacement: new URL("../../packages/shared/src/$1", import.meta.url).pathname },
+      { find: /^@healthcare\/shared$/, replacement: new URL("../../packages/shared/src/index.ts", import.meta.url).pathname },
+      { find: /^@healthcare\/db\/(.+)$/, replacement: new URL("../../packages/db/src/$1", import.meta.url).pathname },
+      { find: /^@healthcare\/db$/, replacement: new URL("../../packages/db/src/index.ts", import.meta.url).pathname },
+    ],
   },
 });

@@ -5,6 +5,19 @@ import { eq, and, desc, gte, lte, asc } from "drizzle-orm";
 import { vitals, symptoms, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
+import {
+  VITAL_REGISTRY,
+  VITAL_TYPES,
+  VITAL_SOURCES,
+  VITAL_CONTEXTS,
+  defaultUnit,
+  addVitalSchema,
+  type VitalType,
+  type VitalContext,
+  type VitalSource,
+  type LatestByType,
+} from "@healthcare/shared/vitals";
+import { derivedBlock, latestByType, classifyAlerts } from "../lib/vitals-derived";
 
 const vitalsRouter = new Hono<AppEnvironment>();
 
@@ -15,6 +28,15 @@ async function getPatientId(db: any, userId: string) {
     .where(eq(patients.userId, userId))
     .limit(1);
   return p?.id || null;
+}
+
+async function getOwnPatient(db: any, userId: string) {
+  const [p] = await db
+    .select()
+    .from(patients)
+    .where(eq(patients.userId, userId))
+    .limit(1);
+  return p || null;
 }
 
 // ─── List vitals ─────────────────────────────────────────
@@ -28,7 +50,12 @@ vitalsRouter.get("/me", authMiddleware, async (c) => {
   const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 200);
 
   const conditions = [eq(vitals.patientId, patientId)];
-  if (type) conditions.push(eq(vitals.type, type as any));
+  if (type) {
+    if (!(VITAL_TYPES as readonly string[]).includes(type)) {
+      return c.json({ error: `type must be one of: ${VITAL_TYPES.join(", ")}` }, 400);
+    }
+    conditions.push(eq(vitals.type, type as any));
+  }
 
   const rows = await db
     .select()
@@ -48,31 +75,31 @@ vitalsRouter.post("/", authMiddleware, async (c) => {
   if (!patientId) return c.json({ error: "Patient not found" }, 404);
 
   const body = await c.req.json();
-  const allowed = [
-    "blood_pressure",
-    "blood_sugar",
-    "weight",
-    "height",
-    "heart_rate",
-    "temperature",
-    "spo2",
-    "cholesterol",
-  ];
-  if (!allowed.includes(body.type)) {
-    return c.json({ error: `type must be one of: ${allowed.join(", ")}` }, 400);
+  const parsed = addVitalSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Invalid payload", details: parsed.error.flatten() },
+      400,
+    );
+  }
+  const v = parsed.data;
+
+  if (v.type === "blood_pressure" && (v.secondaryValue == null || !Number.isFinite(v.secondaryValue))) {
+    return c.json({ error: "blood_pressure requires secondaryValue (diastolic)" }, 400);
   }
 
   const [row] = await db
     .insert(vitals)
     .values({
       patientId,
-      type: body.type,
-      value: Number(body.value),
-      unit: body.unit || defaultUnit(body.type),
-      secondaryValue: body.secondaryValue != null ? Number(body.secondaryValue) : null,
-      recordedAt: body.recordedAt || new Date().toISOString(),
-      source: body.source || "manual",
-      notes: body.notes || null,
+      type: v.type as VitalType,
+      value: v.value,
+      unit: v.unit || defaultUnit(v.type as VitalType),
+      secondaryValue: v.secondaryValue != null ? v.secondaryValue : null,
+      context: (v.context ?? null) as VitalContext | null,
+      recordedAt: v.recordedAt || new Date().toISOString(),
+      source: (v.source ?? "manual") as VitalSource,
+      notes: v.notes ?? null,
     } as any)
     .returning();
 
@@ -111,6 +138,9 @@ vitalsRouter.get("/me/series", authMiddleware, async (c) => {
   const to = c.req.query("to");
 
   if (!type) return c.json({ error: "type is required" }, 400);
+  if (!(VITAL_TYPES as readonly string[]).includes(type)) {
+    return c.json({ error: `type must be one of: ${VITAL_TYPES.join(", ")}` }, 400);
+  }
 
   const conditions: any[] = [
     eq(vitals.patientId, patientId),
@@ -131,6 +161,7 @@ vitalsRouter.get("/me/series", authMiddleware, async (c) => {
     secondary: r.secondaryValue != null ? Number(r.secondaryValue) : null,
     id: r.id,
     unit: r.unit,
+    context: r.context ?? null,
   }));
 
   let stats = null;
@@ -146,15 +177,78 @@ vitalsRouter.get("/me/series", authMiddleware, async (c) => {
     stats = { min, max, avg, latest, delta, count: values.length };
   }
 
+  // Add classification for the latest point
+  let latestClassification: string | null = null;
+  if (points.length > 0) {
+    const lastRow = rows[rows.length - 1];
+    const patient = await getOwnPatient(db, userId);
+    const alerts = classifyAlerts([lastRow], { patient });
+    if (alerts.length > 0) {
+      latestClassification = alerts[0].classification;
+    }
+  }
+
   return c.json({
     type,
     range: { from: from || null, to: to || null },
     points,
     stats,
+    latestClassification,
   });
 });
 
-// ─── Symptoms list ───────────────────────────────────────
+// ─── Derived metrics block ────────────────────────────────
+// Returns MAP / pulse pressure / WHR / BMR / BMI computed from latest
+// readings and the patient profile. Pure derived math — no extra
+// storage required.
+vitalsRouter.get("/me/derived", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const patientId = await getPatientId(db, userId);
+  if (!patientId) {
+    return c.json({
+      derived: { map: null, pulsePressure: null, whr: null, bmr: null, bmi: null, bmiCategory: null },
+      latestByType: [],
+    });
+  }
+
+  const patient = await getOwnPatient(db, userId);
+  const allRows = await db
+    .select()
+    .from(vitals)
+    .where(eq(vitals.patientId, patientId))
+    .orderBy(desc(vitals.recordedAt))
+    .limit(500);
+
+  const derived = derivedBlock({ rows: allRows, patient });
+  const lbt: LatestByType[] = latestByType(allRows, { patient });
+  return c.json({ derived, latestByType: lbt });
+});
+
+// ─── Out-of-range alerts (last 30 days by default) ────────
+vitalsRouter.get("/me/alerts", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const patientId = await getPatientId(db, userId);
+  if (!patientId) return c.json({ alerts: [], count: 0 });
+
+  const days = Math.min(parseInt(c.req.query("days") || "30", 10), 365);
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const patient = await getOwnPatient(db, userId);
+  const rows = await db
+    .select()
+    .from(vitals)
+    .where(and(eq(vitals.patientId, patientId), gte(vitals.recordedAt, since.toISOString())))
+    .orderBy(desc(vitals.recordedAt))
+    .limit(500);
+
+  const alerts = classifyAlerts(rows, { patient });
+  return c.json({ alerts, count: alerts.length, days });
+});
+
+// ─── Symptoms list ────────────────────────────────────────
 vitalsRouter.get("/symptoms/me", authMiddleware, async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
@@ -217,27 +311,14 @@ vitalsRouter.delete("/symptoms/:id", authMiddleware, async (c) => {
   return c.json({ message: "Symptom deleted" });
 });
 
-function defaultUnit(type: string): string {
-  switch (type) {
-    case "blood_pressure":
-      return "mmHg";
-    case "blood_sugar":
-      return "mg/dL";
-    case "weight":
-      return "kg";
-    case "height":
-      return "cm";
-    case "heart_rate":
-      return "bpm";
-    case "temperature":
-      return "°C";
-    case "spo2":
-      return "%";
-    case "cholesterol":
-      return "mg/dL";
-    default:
-      return "";
-  }
-}
+// Re-export registry helpers for clients that may want to look them up.
+// (Not strictly needed for the API surface itself but keeps the module
+// self-contained for shared consumers.)
+export const __meta = {
+  types: VITAL_TYPES,
+  contexts: VITAL_CONTEXTS,
+  sources: VITAL_SOURCES,
+  registry: VITAL_REGISTRY,
+};
 
 export default vitalsRouter;

@@ -40,6 +40,8 @@ import {
   FileSearch,
   Share2,
   FileText,
+  Heart,
+  Scale,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
@@ -55,9 +57,13 @@ import {
   useUnreadCount,
   useWellness,
   useTodayDoses,
+  useVitalsDerived,
+  useVitalsSparkline,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
+import { Sparkline } from "@/components/vitals";
+import { VITAL_REGISTRY, type VitalType } from "@healthcare/shared/vitals";
 import {
   Screen,
   Card,
@@ -1137,6 +1143,12 @@ export default function HomeScreen() {
             <WellnessCard />
           </View>
 
+          {/* Vitals at a glance — sparkline row */}
+          <View style={{ gap: spacing.sm }}>
+            <SectionLabel title={t("home.vitalsGlance.title")} />
+            <VitalsGlanceCard />
+          </View>
+
           {/* Coming up */}
           {appointments.length > 0 ? (
             <View style={{ gap: spacing.sm }}>
@@ -1997,6 +2009,118 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
         </Text>
       </View>
     </View>
+  );
+}
+
+// ─── Vitals glance (4 mini sparkline cards) ─────────────────────────────
+function VitalsGlanceCard() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { spacing, colors, typography } = useTheme();
+  const { data: derivedData } = useVitalsDerived();
+  const { data: bpSeries } = useVitalsSparkline("blood_pressure", 7);
+  const { data: hrSeries } = useVitalsSparkline("heart_rate", 7);
+  const { data: spo2Series } = useVitalsSparkline("spo2", 7);
+  const { data: wtSeries } = useVitalsSparkline("weight", 7);
+
+  const latestByType = derivedData?.latestByType ?? [];
+  const latest = (type: any) => latestByType.find((l) => l.type === type)?.latest;
+
+  const tiles: Array<{ type: any; series: any; icon: any }> = [
+    { type: "blood_pressure", series: bpSeries, icon: Heart },
+    { type: "heart_rate", series: hrSeries, icon: Activity },
+    { type: "spo2", series: spo2Series, icon: Activity },
+    { type: "weight", series: wtSeries, icon: Scale },
+  ];
+
+  return (
+    <Pressable
+      onPress={() => router.push("/(app)/vitals")}
+      accessibilityRole="button"
+      accessibilityLabel={t("home.vitalsGlance.openAll")}
+    >
+      <Card padded={false}>
+        <View
+          style={{
+            padding: spacing.md,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+            {t("home.vitalsGlance.title")}
+          </Text>
+          <Text style={[typography.caption, { color: colors.textMuted }]}>
+            {t("home.vitalsGlance.last7d")}
+          </Text>
+        </View>
+        <View style={{ padding: spacing.sm, gap: spacing.xs }}>
+          {tiles.map(({ type, series, icon: Icon }) => {
+            const l = latest(type);
+            const def = VITAL_REGISTRY[type as VitalType];
+            const reading = l
+              ? l.secondary != null
+                ? `${l.value}/${l.secondary}`
+                : `${l.value}`
+              : "—";
+            const unit = l?.unit || def?.unit || "";
+            const cls = l?.classification ?? "normal";
+            const stroke =
+              cls === "critical" || cls === "high"
+                ? colors.danger
+                : cls === "elevated" || cls === "low"
+                ? colors.warning
+                : colors.success;
+            return (
+              <View
+                key={type}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  paddingVertical: spacing.xs,
+                }}
+              >
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.primarySoft,
+                  }}
+                >
+                  <Icon size={16} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    {def?.label ?? type}
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
+                    <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+                      {reading}
+                    </Text>
+                    <Text style={[typography.caption, { color: colors.textMuted }]}>{unit}</Text>
+                  </View>
+                </View>
+                <View style={{ width: 80 }}>
+                  <Sparkline
+                    points={series?.points ?? []}
+                    width={80}
+                    height={28}
+                    stroke={stroke}
+                  />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </Card>
+    </Pressable>
   );
 }
 

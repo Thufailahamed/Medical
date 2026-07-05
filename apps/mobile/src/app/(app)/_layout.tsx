@@ -65,7 +65,7 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="records"
+        name="records-v2"
         options={{
           title: t("nav.tabs.records"),
           tabBarIcon: ({ focused }) => (
@@ -288,6 +288,26 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="hospital/doctors"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="records"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="records-v2/[id]/files"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="records-v2/[id]/history"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="records-v2/[id]/lock"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="records-v2/[id]/share"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
     </Tabs>

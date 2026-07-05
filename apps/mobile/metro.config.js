@@ -81,6 +81,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
+// Add specific subpath mappings for @healthcare/shared to allow Metro to resolve them
+extraNodeModules['@healthcare/shared/vitals'] = path.resolve(workspaceRoot, 'packages/shared/src/vitals.ts');
+extraNodeModules['@healthcare/shared/types'] = path.resolve(workspaceRoot, 'packages/shared/src/types.ts');
+extraNodeModules['@healthcare/shared/validators'] = path.resolve(workspaceRoot, 'packages/shared/src/validators.ts');
+extraNodeModules['@healthcare/shared/records'] = path.resolve(workspaceRoot, 'packages/shared/src/records.ts');
+
 config.resolver.extraNodeModules = extraNodeModules;
 
 module.exports = config;

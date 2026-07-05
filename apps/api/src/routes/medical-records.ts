@@ -19,6 +19,15 @@ import {
   doctors,
   hospitals,
   familyMembers,
+  recordRevisions,
+  allergies,
+  vitals,
+  symptoms,
+  patientNotes,
+  prescriptions,
+  labReports,
+  labOrders,
+  medicines,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -36,6 +45,14 @@ import { canAccessPatient, canAccessRecord } from "../lib/access";
 import { audit } from "../lib/audit";
 import { flattenTranslated } from "../lib/validation-error";
 import { upsertRecordFts, removeRecordFts } from "../lib/fts";
+import {
+  encryptEnvelope,
+  decryptEnvelope,
+  hasEnvelope,
+  recordChainHash,
+} from "../lib/envelope-crypto";
+import { recordUploadEnvelopeSchema, type RecordKind } from "@healthcare/shared/records";
+import { listByKind, findByHash } from "../lib/records-v3-source";
 import type { AppEnvironment } from "../types";
 
 const medicalRecordsRouter = new Hono<AppEnvironment>();
@@ -1002,6 +1019,201 @@ medicalRecordsRouter.get("/me/prescriptions", authMiddleware, requireRole("patie
     .orderBy(desc(medicalRecords.date));
 
   return c.json({ prescriptions: records });
+});
+
+// ─── Phase v3: Unified canonical view ─────────────────────────────
+// GET /medical-records/me/canonical
+// Aggregates medical_records + allergies + vitals + symptoms + patientNotes +
+// prescriptions + labReports + labOrders + medicines + vaccinations into a
+// single response keyed by category. The mobile records-v2 hub uses this.
+
+medicalRecordsRouter.get("/me/canonical", authMiddleware, requireRole("patient"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const patient = await getOwnPatient(db, userId);
+  if (!patient) return c.json({ error: "patient_not_found" }, 404);
+
+  const [records, allergyRows, vitalsRows, symptomRows, notesRows, rxRows, labRows, orderRows, medRows] =
+    await Promise.all([
+      db.select().from(medicalRecords).where(eq(medicalRecords.patientId, patient.id)),
+      db.select().from(allergies).where(eq(allergies.patientId, patient.id)),
+      db.select().from(vitals).where(eq(vitals.patientId, patient.id)),
+      db.select().from(symptoms).where(eq(symptoms.patientId, patient.id)),
+      db.select().from(patientNotes).where(eq(patientNotes.patientId, patient.id)),
+      db.select().from(prescriptions).where(eq(prescriptions.patientId, patient.id)),
+      db.select().from(labReports).where(eq(labReports.patientId, patient.id)),
+      db.select().from(labOrders).where(eq(labOrders.patientId, patient.id)),
+      db.select().from(medicines).where(eq(medicines.patientId, patient.id)),
+    ]);
+
+  const vaccRows = records.filter(
+    (r: any) => r.kind === "vaccination" || r.recordType === "vaccination"
+  );
+
+  return c.json({
+    patientId: patient.id,
+    counts: {
+      records: records.length,
+      allergies: allergyRows.length,
+      vitals: vitalsRows.length,
+      symptoms: symptomRows.length,
+      notes: notesRows.length,
+      prescriptions: rxRows.length,
+      labReports: labRows.length,
+      labOrders: orderRows.length,
+      medicines: medRows.length,
+      vaccinations: vaccRows.length,
+    },
+    records,
+    allergies: allergyRows,
+    vitals: vitalsRows,
+    symptoms: symptomRows,
+    notes: notesRows,
+    prescriptions: rxRows,
+    labReports: labRows,
+    labOrders: orderRows,
+    medicines: medRows,
+    vaccinations: vaccRows,
+  });
+});
+
+// ─── Phase v3: POST /medical-records/ — envelope write ────────────
+// New canonical writer. Accepts the envelope schema, encrypts the payload,
+// writes the row with hash-chain links, and writes an initial revision.
+
+medicalRecordsRouter.post("/envelope", authMiddleware, requireRole("patient"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const patient = await getOwnPatient(db, userId);
+  if (!patient) return c.json({ error: "patient_not_found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = recordUploadEnvelopeSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "validation_failed", details: flattenTranslated(parsed.error) }, 400);
+  }
+  const env = parsed.data;
+
+  const envRow = await encryptEnvelope(c.env as Record<string, unknown>, env);
+
+  // Compute hash chain link to the patient's previous record (by createdAt)
+  const [prev] = await db
+    .select({ id: medicalRecords.id, prevRecordHash: medicalRecords.prevRecordHash })
+    .from(medicalRecords)
+    .where(eq(medicalRecords.patientId, patient.id))
+    .orderBy(desc(medicalRecords.createdAt))
+    .limit(1);
+  const recordId = crypto.randomUUID();
+  const newHash = await recordChainHash({
+    patientId: patient.id,
+    recordId,
+    envelope: envRow.encryptedPayload,
+    prevHash: prev?.prevRecordHash ?? null,
+  });
+
+  await db.insert(medicalRecords).values({
+    id: recordId,
+    patientId: patient.id,
+    recordType: env.kind, // legacy column mirrored from `kind`
+    kind: env.kind,
+    title: env.title,
+    diagnosis: env.diagnosis ?? null,
+    summary: env.summary ?? null,
+    notes: env.notes ?? null,
+    date: env.recordDate ?? new Date().toISOString(),
+    status: "completed",
+    familyMemberId: env.familyMemberId ?? null,
+    tags: env.tags ? JSON.stringify(env.tags) : null,
+    source: "user_upload",
+    encryptedPayload: envRow.encryptedPayload,
+    encryptedPayloadKekId: envRow.encryptedPayloadKekId,
+    encryptedPayloadDekWrapped: envRow.encryptedPayloadDekWrapped,
+    iv: envRow.iv,
+    authTag: envRow.authTag,
+    envelopeVersion: envRow.envelopeVersion,
+    schemaVersion: envRow.schemaVersion,
+    rehashedAt: new Date().toISOString(),
+    prevRecordHash: newHash,
+  });
+
+  await db.insert(recordRevisions).values({
+    recordId,
+    revisionNumber: 1,
+    encryptedPayloadSnapshot: envRow.encryptedPayload,
+    editedByUserId: userId,
+    diffSummary: "Initial write",
+  });
+
+  await audit(db, {
+    userId,
+    action: "record_envelope_write",
+    resource: "medical_record",
+    resourceId: recordId,
+    details: { kind: env.kind },
+  });
+
+  return c.json({ id: recordId, envelopeVersion: envRow.envelopeVersion }, 201);
+});
+
+// GET /medical-records/:id/envelope — fetch + decrypt
+medicalRecordsRouter.get("/:id/envelope", authMiddleware, async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const [row] = await db.select().from(medicalRecords).where(eq(medicalRecords.id, id)).limit(1);
+  if (!row) return c.json({ error: "not_found" }, 404);
+  const access = await canAccessRecord(db, userId, c.get("userRole") ?? "patient", row);
+  if (!access.allowed) return c.json({ error: "forbidden" }, 403);
+  if (!hasEnvelope(row)) return c.json({ error: "not_enveloped" }, 404);
+  try {
+    const decrypted = await decryptEnvelope(c.env as Record<string, unknown>, row);
+    return c.json({ id: row.id, envelope: decrypted, version: row.envelopeVersion });
+  } catch (err) {
+    await audit(db, {
+      userId,
+      action: "field_decrypt_failed",
+      resource: "medical_record",
+      resourceId: id,
+      details: { reason: (err as Error).message },
+    });
+    return c.json({ error: "decrypt_failed" }, 500);
+  }
+});
+
+// GET /medical-records/:id/revisions
+medicalRecordsRouter.get("/:id/revisions", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const rows = await db
+    .select()
+    .from(recordRevisions)
+    .where(eq(recordRevisions.recordId, id));
+  return c.json({ items: rows });
+});
+
+// ─── Phase v3: Kind-sourced listing ──────────────────────────────
+// GET /medical-records/by-kind/:kind?limit=50
+medicalRecordsRouter.get("/by-kind/:kind", authMiddleware, requireRole("patient"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const kind = c.req.param("kind") as RecordKind;
+  const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
+  const patient = await getOwnPatient(db, userId);
+  if (!patient) return c.json({ error: "patient_not_found" }, 404);
+  const items = await listByKind(db, patient.id, kind, limit);
+  return c.json({ items });
+});
+
+// GET /medical-records/by-hash/:hash
+medicalRecordsRouter.get("/by-hash/:hash", authMiddleware, requireRole("patient"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const hash = c.req.param("hash");
+  const patient = await getOwnPatient(db, userId);
+  if (!patient) return c.json({ error: "patient_not_found" }, 404);
+  const row = await findByHash(db, patient.id, hash);
+  if (!row) return c.json({ error: "not_found" }, 404);
+  return c.json(row);
 });
 
 export default medicalRecordsRouter;

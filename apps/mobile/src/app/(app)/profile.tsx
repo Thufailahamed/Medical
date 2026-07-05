@@ -43,6 +43,7 @@ import {
   useMyMedicines,
   useAllergies,
   useDoctorMe,
+  useVitalsAlerts,
 } from "@/hooks/useApi";
 import { api } from "@/lib/api";
 import {
@@ -107,6 +108,7 @@ export default function ProfileScreen() {
   const { data: familyData } = useFamilyMembers();
   const { data: medicinesData } = useMyMedicines();
   const { data: allergiesData } = useAllergies();
+  const { data: vitalsAlertsData } = useVitalsAlerts(30);
 
   // If the API layer reports an unrecoverable 401, sign the user out.
   useEffect(() => {
@@ -153,6 +155,7 @@ export default function ProfileScreen() {
   );
   const medCount = activeMeds.length;
   const allergyCount = allergiesData?.allergies?.length ?? 0;
+  const abnormalCount = vitalsAlertsData?.count ?? 0;
   const criticalAllergies =
     allergiesData?.allergies?.filter(
       (a: any) => a.severity === "critical" && a.active !== false
@@ -254,6 +257,13 @@ export default function ProfileScreen() {
       onPress: () => router.push("/(app)/timeline" as any),
     },
     {
+      labelKey: "profile.item.recordsV2.label",
+      subtitle: t("profile.item.recordsV2.subtitle", "Unified hub · encrypted"),
+      icon: ClipboardList,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/records-v2" as any),
+    },
+    {
       labelKey: "profile.item.healthSummary.label",
       subtitle: t("profile.item.healthSummary.subtitle"),
       icon: FileText,
@@ -262,11 +272,13 @@ export default function ProfileScreen() {
     },
     {
       labelKey: "profile.item.vitals.label",
-      subtitle: medCount > 0
+      subtitle: abnormalCount > 0
+        ? t("profile.item.vitals.subtitleAlert", { count: abnormalCount })
+        : medCount > 0
         ? t("profile.item.vitals.subtitleCount", { count: medCount })
         : t("profile.item.vitals.subtitleEmpty"),
       icon: Activity,
-      tone: "info" as const,
+      tone: abnormalCount > 0 ? ("danger" as const) : ("info" as const),
       onPress: () => router.push("/(app)/vitals" as any),
     },
     {

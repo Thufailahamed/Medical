@@ -205,7 +205,13 @@
     "addMedicine": "ඖෂධයක් එකතු කරන්න",
     "addMedicineSubtitle": "මතක කිරීම් සකසන්න",
     "emailImport": "ඊමේල් හරහා වාර්තා",
-    "emailImportSubtitle": "පුද්ගලික ලිපිනයකට PDF සහ වාර්තා යවන්න"
+    "emailImportSubtitle": "පුද්ගලික ලිපිනයකට PDF සහ වාර්තා යවන්න",
+    "item": {
+      "recordsV2": {
+        "label": "සෞඛ්‍ය වාර්තා (v2)",
+        "subtitle": "ඒකාබද්ධ හබ් · සංකේතනය කළ"
+      }
+    }
   },
   "emergency": {
     "title": "හදිසි අවස්ථා",
@@ -517,6 +523,12 @@
       "vitals": "ප්‍රතිෂ් ors"
     },
     "bmiRow": "BMI {{bmi}} • {{category}}",
+    "vitalsGlance": {
+      "title": "මිනුම් දළ විමසුම",
+      "last7d": "පසුගිය දින 7",
+      "openAll": "සියල්ල බලන්න",
+      "addReading": "මිනුමක් සටහන් කරන්න"
+    },
     "fab": {
       "title": "ඉක්මනින් එකතු කරන්න",
       "logDose": {
@@ -684,6 +696,19 @@
     "aiGuess": {
       "pill": "AI අනුමානය"
     },
+    "hero": {
+      "totalLabel": "මුළු",
+      "encrypted": "අන්ත අන්ත සංකේතනය",
+      "recent": "මෙම මාසයේ {{count}}ක්",
+      "noRecent": "මෙම මාසයේ අලුත් දෙයක් නෑ",
+      "secure": "පෞද්ගලිකයි",
+      "lastLabel": "අන්තිම වාර්තාව"
+    },
+    "actions": {
+      "share": "බෙදාගන්න",
+      "export": "නිර්යාත කරන්න",
+      "add": "එකතු කරන්න"
+    },
     "unknownDate": "දිනය නොදනී",
     "attachmentCount_one": "ඇමුණුමක්",
     "attachmentCount_other": "ඇමුණුම් {{count}}ක්",
@@ -793,7 +818,13 @@
   "vitals": {
     "title": "සෞඛ්‍ය මිනුම්",
     "subtitle": "මිනුම් සටහන් කර ප්‍රවණතා බලන්න",
+    "subtitleWithCount_one": "{{count}} මිනුමක් · {{alerts}} අනතුරු ඇඟවීමක්",
+    "subtitleWithCount_other": "{{count}} මිනුමක් · {{alerts}} අනතුරු ඇඟවීම්",
+    "latest": "නවතම",
     "logLabel": "මිනුමක් සටහන් කරන්න",
+    "alertsHeading": "පරාසයෙන් පිටත කියවීම්",
+    "noAlerts": "සියලුම මිනුම් පරාසය තුළය",
+    "derivedHeading": "ගණනය කළ මිනුම්",
     "compose": {
       "title": "මිනුමක් සටහන් කරන්න",
       "typeLabel": "වර්ගය",
@@ -805,7 +836,34 @@
       "notesLabel": "සටහන්",
       "notesHelper": "අමතර සන්දර්භය එකතු කරන්න",
       "notesPlaceholder": "උදා: උදේ ආහාරයට පෙර",
-      "saveButton": "සුරක්ෂිත කරන්න"
+      "saveButton": "සුරක්ෂිත කරන්න",
+      "contextLabel": "සන්දර්භය"
+    },
+    "classification": {
+      "normal": "සාමාන්‍ය",
+      "elevated": "ඉහළ",
+      "high": "ඉතා ඉහළ",
+      "low": "පහළ",
+      "critical": "අවදානම්"
+    },
+    "context": {
+      "resting": "විවේකයේ",
+      "fasting": "නිරාහරණය",
+      "post_meal": "ආහාරයෙන් පසු",
+      "pre_meal": "ආහාරයට පෙර",
+      "post_medication": "ඖෂධයෙන් පසු",
+      "pre_medication": "ඖෂධයට පෙර",
+      "exercise": "ව්‍යායාමයෙන් පසු",
+      "standing": "නැගී සිටින",
+      "supine": "හැඬිරිදිව",
+      "random": "අහඹු"
+    },
+    "derived": {
+      "map": "MAP",
+      "pulsePressure": "පන්ස් පීඩනය",
+      "whr": "ඉණ-උකුණ අනුපාරමිතිය",
+      "bmr": "BMR",
+      "bmi": "BMI"
     },
     "chart": {
       "trendHeading": "ප්‍රවණතා",
@@ -842,27 +900,21 @@
       "message": "ඔබේ පළමු කියවීම එකතු කරන්න"
     },
     "type": {
-      "blood_pressure": {
-        "label": "රුධිර පීඩනය"
-      },
-      "blood_sugar": {
-        "label": "රුධිර සීනි"
-      },
-      "weight": {
-        "label": "බර"
-      },
-      "heart_rate": {
-        "label": "හෘද ස්පන්දන වේගය"
-      },
-      "temperature": {
-        "label": "උෂ්ණත්වය"
-      },
-      "spo2": {
-        "label": "SpO₂"
-      },
-      "cholesterol": {
-        "label": "කොලෙස්ටරෝල්"
-      }
+      "blood_pressure":      { "label": "රුධිර පීඩනය" },
+      "blood_sugar":         { "label": "රුධිර සීනි" },
+      "weight":              { "label": "බර" },
+      "height":              { "label": "උස" },
+      "heart_rate":          { "label": "හෘද ස්පන්දන වේගය" },
+      "temperature":         { "label": "උෂ්ණත්වය" },
+      "spo2":                { "label": "SpO₂" },
+      "cholesterol":         { "label": "කොලෙස්ටරෝල්" },
+      "respiratory_rate":    { "label": "ශ්වසන වේගය" },
+      "hrv_rmssd":           { "label": "HRV (RMSSD)" },
+      "body_fat_pct":        { "label": "මේද ප්‍රතිශතය" },
+      "waist_circumference": { "label": "ඉණ වට ප්‍රමාණය" },
+      "hip_circumference":   { "label": "උකුණ වට ප්‍රමාණය" },
+      "pain_scale":          { "label": "වේදනාව" },
+      "peak_flow":           { "label": "උපරිම ප්‍රවාහය" }
     }
   },
   "allergies": {
@@ -1078,5 +1130,92 @@
     "legacyHeading": "ඔබේ සත්‍යාපිත ඊමේල් ලිපිනයෙන් යවන්න",
     "legacyBody": "ඔබට {{email}} වෙතින් ද යැවිය හැක — අපි යවන්නා අනුව මාර්ගගත කරන්නෙමු.",
     "legacyAction": "තැපැල් විවෘත කරන්න"
+  },
+  "recordsHub": {
+    "title": "සෞඛ්‍ය වාර්තා",
+    "activeConsents": "ක්‍රියාකාරී අනුමැති",
+    "issueConsent": "අනුමැතිය නිකුත් කරන්න",
+    "tabs": { "all": "සියල්ල", "timeline": "කාලරේඛාව", "sharing": "බෙදාගැනීම" },
+  "hero": {
+    "eyebrow": "සෞඛ්‍ය වාර්තා",
+    "encrypted": "සංකේතනය කළ සහ සමමාන්තරික",
+    "lastActivity": "අවසන් එකතුව {{when}}",
+    "loading": "ඔබේ පුස්තකාලය පූරණය වෙමින්…",
+    "noProfile": "රෝගී",
+    "bloodGroup": "ලේ වර්ගය {{value}}",
+    "ageYears": "වයස {{n}}",
+    "total": "වාර්තා",
+    "noActivity": "තවම ක්‍රියාකාරකම් නැත"
+  },
+    "quickActions": {
+      "share": "බෙදාගන්න",
+      "export": "නිර්යාත කරන්න",
+      "add": "එකතු කරන්න"
+    },
+    "stats": {
+      "total": "මුළු වාර්තා",
+      "activeConsents": "ක්‍රියාකාරී අනුමැති",
+      "locked": "අගුළු දැමූ",
+      "shared": "බෙදාගත්"
+    },
+  "smartFolders": {
+    "title": "ස්මාර්ට් ෆෝල්ඩර",
+    "allergies": "ආසාත්මිකතා",
+    "vaccinations": "එන්නත්",
+    "labReports": "රසායනාගාර වාර්තා",
+    "prescriptions": "බෙහෙත් වට්ටෝරු",
+    "imaging": "රූප ක්‍රම",
+    "recent30": "අවසන් දින 30",
+    "seeAll": "සියල්ල බලන්න",
+    "recordsLabel": "ගණන්"
+  },
+    "search": {
+      "placeholder": "වාර්තා, වෛද්‍යවරු, OCR සොයන්න…"
+    },
+    "empty": {
+      "title": "ඔබේ වාර්තා පුස්තකාලය හිස්ය",
+      "body": "පළමු රසායනාගාර වාර්තාව, ස්කෑන් හෝ බෙහෙත් වට්ටෝරුව එකතු කිරීමට + ඔබන්න.",
+      "action": "වාර්තාවක් එකතු කරන්න"
+    },
+  "row": {
+    "diagnosis": "රෝග විනිශ්චය",
+    "files_one": "ගොනු {{count}}",
+    "files_other": "ගොනු {{count}}",
+    "tagsLabel": "ටැග්",
+    "fallbackTitle": "නම් නොකළ"
+  }
+  },
+  "consent": {
+    "purpose": {
+      "emergency": "හදිසි අවස්ථා",
+      "family_view": "පවුලේ සාමාජිකයින් සඳහා",
+      "insurance": "රක්ෂණ හිමිකම් සඳහා",
+      "research": "පර්යේෂණ සඳහා",
+      "referral": "යොමු කිරීම් සඳහා",
+      "lab_share": "රසායනාගාර ආරාධනා"
+    }
+  },
+  "dsar": {
+    "title": "දත්ත අයිතිවාසිකම්",
+    "exportTitle": "මගේ දත්ත අපනයනය කරන්න",
+    "exportBody": "ඔබේ සියලු දත්ත වල අංකුරු පිටපතක් ලබා ගන්න.",
+    "erasureTitle": "මගේ දත්ත මකන්න",
+    "erasureBody": "ඔබේ පැතිකඩ සදාකාලිකව නම් රහිත කරන්න.",
+    "rectifyTitle": "නිවැරදි කිරීමක් ඉල්ලන්න",
+    "rectifyBody": "අපි ඉල්ලීම සමාලෝචනය කර දින 30 කින් පිළිතුරු දෙන්නෙමු."
+  },
+  "qrToken": {
+    "title": "හදිසි QR",
+    "subtitle": "කාල-සීමාව. සෑම ස්කෑන් එකක්ම ලොග් වේ."
+  },
+
+  "doctorPatientDetail": {
+    "empty": "තවම රෝගීන් නැත",
+    "emptyBody": "ඔබට වාර්තා ප්‍රවේශය දෙන රෝගීන් මෙහි පෙන්වනු ඇත.",
+    "recordsTab": "වාර්තා",
+    "consentBanner": "ඔබට අනුමැතිය ඇති වාර්තා පමණක් පෙන්වනු ලැබේ"
+  },
+  "hospitalPatientDetail": {
+    "recordsTab": "වාර්තා (ඒකාබද්ධ)"
   }
 }

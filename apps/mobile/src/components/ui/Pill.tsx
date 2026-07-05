@@ -16,7 +16,8 @@ export type PillTone =
   | "info";
 
 type Props = {
-  label: string;
+  label?: string;
+  children?: React.ReactNode;
   tone?: PillTone;
   icon?: LucideIcon;
   size?: "sm" | "md";
@@ -25,7 +26,7 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function Pill({ label, tone = "neutral", icon: Icon, size = "md", outlined, onPress, style }: Props) {
+export function Pill({ label, children, tone = "neutral", icon: Icon, size = "md", outlined, onPress, style }: Props) {
   const { spacing, radius, typography } = useTheme();
   const { fg, bg } = useTone(tone);
 
@@ -48,12 +49,28 @@ export function Pill({ label, tone = "neutral", icon: Icon, size = "md", outline
     alignSelf: "flex-start",
   };
 
-  const inner = (
-    <>
-      {Icon ? <Icon size={iconSize} color={fg} strokeWidth={3} /> : null}
+  const renderContent = () => {
+    if (children) {
+      if (React.isValidElement(children)) {
+        return children;
+      }
+      return (
+        <Text style={[font, { color: fg, fontWeight: "700" as const }]} numberOfLines={1}>
+          {children}
+        </Text>
+      );
+    }
+    return (
       <Text style={[font, { color: fg, fontWeight: "700" as const }]} numberOfLines={1}>
         {label}
       </Text>
+    );
+  };
+
+  const inner = (
+    <>
+      {Icon ? <Icon size={iconSize} color={fg} strokeWidth={3} /> : null}
+      {renderContent()}
     </>
   );
 

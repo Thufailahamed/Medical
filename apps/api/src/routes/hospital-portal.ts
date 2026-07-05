@@ -30,6 +30,7 @@ import type { AppEnvironment } from "../types";
 import { notify } from "../lib/notifications";
 import { flattenTranslated } from "../lib/validation-error";
 import { writeAudit } from "../lib/audit";
+import { latestByType, classifyAlerts } from "../lib/vitals-derived";
 
 /** Opaque random token for staff-invite deep links. Same shape as
  * family-invite tokens (apps/api/src/routes/family-invites.ts:45-51). */
@@ -870,12 +871,20 @@ hospitalPortalRouter.get("/patients/:id", async (c) => {
     .orderBy(desc(vitals.recordedAt))
     .limit(30);
 
+  const latestByTypeRows = latestByType(vitalRows as any[], { patient: patientRow?.patient });
+  const alertRows = classifyAlerts(vitalRows as any[], { patient: patientRow?.patient });
+
   return c.json({
     admission,
     patient: patientRow?.patient,
     user: patientRow?.user,
     records,
     vitals: vitalRows,
+    latestVitals: latestByTypeRows,
+    vitalsAlerts: {
+      count: alertRows.length,
+      items: alertRows.slice(0, 10),
+    },
   });
 });
 

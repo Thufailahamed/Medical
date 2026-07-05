@@ -8,6 +8,8 @@ compatibility_flags = ["nodejs_compat"]
 [alias]
 "@healthcare/db" = "../../packages/db/src/index.ts"
 "@healthcare/shared" = "../../packages/shared/src/index.ts"
+"@healthcare/shared/vitals" = "../../packages/shared/src/vitals.ts"
+"@healthcare/shared/records" = "../../packages/shared/src/records.ts"
 
 [vars]
 ENVIRONMENT = "development"

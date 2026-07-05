@@ -11,7 +11,10 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
@@ -28,6 +31,9 @@ import {
   X,
   Check,
   Plus,
+  Clock,
+  Share2,
+  ListFilter,
 } from "lucide-react-native";
 import {
   useMedicalRecords,
@@ -37,6 +43,7 @@ import {
   useBulkTagRecords,
   useBulkMoveRecords,
   useRecordSearch,
+  useConsentsMine,
   readAiGuess,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -58,18 +65,15 @@ import { FamilyPickerSheet } from "@/components/FamilyPickerSheet";
 import { TagPickerSheet } from "@/components/TagPickerSheet";
 import { SaveFilterSheet } from "@/components/SaveFilterSheet";
 
-type FilterValue = "all" | RecordType | "archived";
+type ViewTab = "all" | "timeline" | "sharing";
 
-const FILTER_VALUES: FilterValue[] = [
-  "all",
-  "lab_report",
-  "prescription",
-  "imaging",
-  "hospital_visit",
-  "vaccination",
-  "surgery",
-  "archived",
-];
+const VIEW_TABS: ViewTab[] = ["all", "timeline", "sharing"];
+
+const TAB_META: Record<ViewTab, { icon: React.ComponentType<any> }> = {
+  all: { icon: ListFilter },
+  timeline: { icon: Clock },
+  sharing: { icon: Share2 },
+};
 
 type DateRange = "all" | "30d" | "1y";
 
@@ -97,14 +101,14 @@ export default function RecordsScreen() {
   const { data: profileData } = usePatientProfile();
   const { data: unread } = useUnreadCount();
   const { data: stats } = useRecordStats();
+  const { data: consentsMine } = useConsentsMine();
   const bulkTag = useBulkTagRecords();
   const bulkMove = useBulkMoveRecords();
 
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterValue>("all");
+  const [tab, setTab] = useState<ViewTab>("all");
   const [range, setRange] = useState<DateRange>("all");
   const [sort, setSort] = useState<SortMode>("newest");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
 
   // ─── Selection state ─────────────────────────────────
   const [selection, setSelection] = useState<Set<string>>(new Set());
@@ -116,16 +120,25 @@ export default function RecordsScreen() {
   const [saveFilterOpen, setSaveFilterOpen] = useState(false);
 
   // ─── Server query opts ───────────────────────────────
+  // "all"      → return every record (default scope).
+  // "timeline" → same as "all" but the client enforces strict date-desc
+  //              grouping + renders the date stamp prominently. The server
+  //              is asked for the freshest slice first.
+  // "sharing"  → only records that have an active consent grant, so the
+  //              user can see exactly what's shared with hospitals/doctors.
   const queryOpts = useMemo(
     () => ({
-      limit: 100,
+      limit: tab === "sharing" ? 200 : 100,
       query: search.trim() || undefined,
-      type: filter !== "all" && filter !== "archived" ? filter : undefined,
-      archived: showArchivedOnly || filter === "archived" ? ("only" as const) : undefined,
       scope: prefs.familyScope === "own" ? ("own" as const) : ("family" as const),
-      sort: search.trim() && sort === "relevance" ? ("relevance" as const) : (sort as "newest" | "oldest"),
+      sort:
+        search.trim() && sort === "relevance"
+          ? ("relevance" as const)
+          : tab === "timeline"
+          ? ("newest" as const)
+          : (sort as "newest" | "oldest"),
     }),
-    [search, filter, sort, showArchivedOnly, prefs.familyScope]
+    [search, sort, prefs.familyScope, tab]
   );
 
   const {
@@ -206,6 +219,23 @@ export default function RecordsScreen() {
     "30d": 30 * 24 * 60 * 60 * 1000,
   };
 
+  // Set of record IDs that currently have an active consent grant — drives
+  // the "sharing" tab. Computed once from the consent list so the filter
+  // remains cheap even when consents have large scope blobs.
+  const sharedRecordIds = useMemo(() => {
+    const out = new Set<string>();
+    const items = (consentsMine as any)?.items ?? [];
+    for (const c of items) {
+      if (c.status && c.status !== "active") continue;
+      const scope = c.scope ?? {};
+      const ids: string[] = Array.isArray(scope.recordIds)
+        ? scope.recordIds
+        : [];
+      for (const id of ids) if (id) out.add(id);
+    }
+    return out;
+  }, [consentsMine]);
+
   const filtered = useMemo(() => {
     // Apply range filter locally (server already paginates by 100).
     const rangeMs = RANGE_MS[range];
@@ -218,18 +248,25 @@ export default function RecordsScreen() {
         return now - d <= rangeMs;
       });
     }
-    return list;
-  }, [ranked, range]);
-
-  // ─── Per-filter counts (from current page) ───────────
-  const counts = useMemo(() => {
-    const base: Record<string, number> = { all: records.length };
-    for (const r of records as any[]) {
-      base[r.recordType] = (base[r.recordType] || 0) + 1;
+    // Sharing tab: keep only records covered by an active consent.
+    if (tab === "sharing") {
+      list = list.filter((rec: any) => sharedRecordIds.has(rec.id));
     }
-    base.archived = records.filter((r: any) => r.archivedAt).length;
+    return list;
+  }, [ranked, range, tab, sharedRecordIds]);
+
+  // ─── Per-tab counts (drives the segmented control badges) ──
+  const counts = useMemo(() => {
+    const base: Record<string, number> = {
+      all: records.length,
+      timeline: records.length,
+      sharing: 0,
+    };
+    for (const r of records as any[]) {
+      if (sharedRecordIds.has(r.id)) base.sharing += 1;
+    }
     return base;
-  }, [records]);
+  }, [records, sharedRecordIds]);
 
   // ─── Top tag suggestions from the current page ────────
   const tagSuggestions = useMemo(() => {
@@ -246,15 +283,31 @@ export default function RecordsScreen() {
   }, [records]);
 
   // ─── Group by family member + month-year ─────────────
+  // "timeline" tab → ignore family grouping, sort strict date desc, and
+  // bucket by YYYY-MM so the rendered sections read like a true timeline.
+  // ─── Group by family member + month-year ─────────────
+  // Sort across ALL tabs: newest first by createdAt (falling back to
+  // record date). Timeline tab ignores family grouping; all/sharing keep
+  // it. Sections are emitted in the order their earliest record appears,
+  // so months always read newest-first regardless of which tab is open.
   const groupedSections = useMemo(() => {
     const sections: { title: string; data: any[] }[] = [];
     const map: Record<string, any[]> = {};
-    for (const rec of filtered) {
+    // Sort by createdAt desc (then by date desc as a stable fallback)
+    // for every tab so the list always reads newest-first.
+    const sorted = [...filtered].sort((a: any, b: any) => {
+      const ca = new Date(a.createdAt || a.date).getTime();
+      const cb = new Date(b.createdAt || b.date).getTime();
+      const da = Number.isNaN(ca) ? new Date(a.date).getTime() : ca;
+      const db = Number.isNaN(cb) ? new Date(b.date).getTime() : cb;
+      return (Number.isNaN(db) ? 0 : db) - (Number.isNaN(da) ? 0 : da);
+    });
+    for (const rec of sorted) {
       const owner = rec.familyMember?.name
         ? `${rec.familyMember.name}`
         : t("records.group.you");
       const monthKey = getGroupKey(t, locale, rec.date);
-      const key = `${owner} · ${monthKey}`;
+      const key = tab === "timeline" ? monthKey : `${owner} · ${monthKey}`;
       if (!map[key]) {
         map[key] = [];
         sections.push({ title: key, data: map[key] });
@@ -262,7 +315,7 @@ export default function RecordsScreen() {
       map[key].push(rec);
     }
     return sections;
-  }, [filtered, t]);
+  }, [filtered, t, tab, locale]);
 
   // ─── Selection helpers ───────────────────────────────
   function toggleSelected(id: string) {
@@ -286,10 +339,9 @@ export default function RecordsScreen() {
   // ─── Saved filter apply/save ─────────────────────────
   function applySavedFilter(f: any) {
     setSearch(f.query || "");
-    setFilter(f.type || (f.archivedOnly ? "archived" : "all"));
+    setTab("all");
     setRange(f.range || "all");
     setSort(f.sort || "newest");
-    setShowArchivedOnly(!!f.archivedOnly);
     if (f.scope) prefs.setFamilyScope(f.scope === "own" ? "own" : "all");
     toast.show(t("records.toast.loadedFilter", { name: f.name }), "info");
   }
@@ -297,10 +349,8 @@ export default function RecordsScreen() {
   function handleSaveCurrentFilter(name: string) {
     prefs.saveFilter(name, {
       query: search.trim() || undefined,
-      type: filter !== "all" && filter !== "archived" ? filter : undefined,
       range,
       sort,
-      archivedOnly: showArchivedOnly || filter === "archived",
       scope: prefs.familyScope,
     });
     toast.show(t("records.toast.savedFilter", { name }), "success");
@@ -356,11 +406,6 @@ export default function RecordsScreen() {
           toast.show(err?.message || t("records.toast.moveError"), "danger"),
       }
     );
-  }
-
-  function onFilterChipPress(v: FilterValue) {
-    setFilter(v);
-    setShowArchivedOnly(v === "archived");
   }
 
   function getCategoryStyle(type: string) {
@@ -706,7 +751,7 @@ export default function RecordsScreen() {
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
-      {/* ─── Top App Bar ─────────────────────────────────── */}
+      {/* ─── Top App Bar (compact) ─────────────────────────── */}
       <View
         style={{
           flexDirection: "row",
@@ -715,8 +760,6 @@ export default function RecordsScreen() {
           paddingHorizontal: spacing.lg,
           paddingVertical: 14,
           backgroundColor: "#FFFFFF",
-          borderBottomWidth: 1,
-          borderBottomColor: "#F4F2F8",
         }}
       >
         <Pressable onPress={() => router.push("/(app)/profile")}>
@@ -783,58 +826,186 @@ export default function RecordsScreen() {
           paddingBottom: selectionMode ? 200 : 150,
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: spacing.lg,
-            marginTop: spacing.lg,
-            marginBottom: spacing.xs,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        {/* ─── Hero (round rectangular, gradient — mirrors home page) ─ */}
+        {!selectionMode ? (
+          <View
+            style={{
+              marginHorizontal: spacing.lg,
+              borderRadius: radius.xxxl,
+              overflow: "hidden",
+              shadowColor: "#0B2B64",
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.18,
+              shadowRadius: 24,
+              elevation: 6,
+            }}
+          >
+            {/* Base gradient */}
+            <LinearGradient
+              colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            {/* Radial accent overlays */}
+            <View
+              style={{
+                position: "absolute",
+                top: -80,
+                right: -60,
+                width: 220,
+                height: 220,
+                borderRadius: 110,
+                backgroundColor: "rgba(56, 189, 248, 0.32)",
+              }}
+            />
+            <View
+              style={{
+                position: "absolute",
+                bottom: -100,
+                left: -60,
+                width: 240,
+                height: 240,
+                borderRadius: 120,
+                backgroundColor: "rgba(14, 165, 233, 0.28)",
+              }}
+            />
+            {/* Top sheen */}
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 1,
+                backgroundColor: "rgba(255, 255, 255, 0.25)",
+              }}
+            />
+
+            <View style={{ padding: spacing.lg }}>
+              {/* Header row: title + add button */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: spacing.md,
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "800",
+                      color: "rgba(255,255,255,0.7)",
+                      letterSpacing: 1.4,
+                      fontFamily: fontFamily.displayBold,
+                    }}
+                  >
+                    {t("records.hero.eyebrow")}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 28,
+                      lineHeight: 34,
+                      letterSpacing: -0.6,
+                      fontWeight: "800",
+                      marginTop: 2,
+                      fontFamily: fontFamily.displayBold,
+                    }}
+                  >
+                    {t("records.title")}
+                  </Text>
+                </View>
+
+                <Pressable
+                  onPress={() => router.push("/(app)/add-record" as any)}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("records.hero.add")}
+                  style={({ pressed }) => ({
+                    width: 40,
+                    height: 40,
+                    borderRadius: 14,
+                    backgroundColor: "rgba(255,255,255,0.18)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.25)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: pressed ? 0.85 : 1,
+                  })}
+                >
+                  <Plus size={20} color="#FFFFFF" strokeWidth={2.5} />
+                </Pressable>
+              </View>
+
+              {/* Glass mini card — stats */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 8,
+                  marginTop: spacing.xs,
+                }}
+              >
+                <HeroStat
+                  value={filtered.length}
+                  label={t("records.hero.total")}
+                />
+                <HeroStat
+                  value={counts.sharing || 0}
+                  label={t("records.hero.shared")}
+                  accent
+                />
+                <HeroStat
+                  value={prefs.savedFilters.length}
+                  label={t("records.hero.folders")}
+                />
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {/* ─── Section title (visible in selection mode; hero hides it) ─ */}
+        {selectionMode ? (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: spacing.lg,
+              marginTop: spacing.md,
+              marginBottom: spacing.xs,
+            }}
+          >
             <Text
               style={[
                 typography.display.sm,
                 {
                   color: "#1D1B20",
                   fontWeight: "800",
-                  fontSize: 26,
+                  fontSize: 22,
                   fontFamily: fontFamily.displayBold,
                 },
               ]}
             >
-              {selectionMode ? t("records.manageTitle") : t("records.title")}
+              {t("records.manageTitle")}
             </Text>
-            {!selectionMode ? (
-              <Pressable
-                onPress={() => router.push("/(app)/add-record" as any)}
-                style={({ pressed }) => ({
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: `${colors.primary}12`,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Plus size={18} color={colors.primary} strokeWidth={2.5} />
-              </Pressable>
-            ) : null}
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#7F7B8C",
+                fontWeight: "500",
+                fontFamily: fontFamily.body,
+              }}
+            >
+              {t("records.selected", { count: selection.size })}
+            </Text>
           </View>
-          <Text
-            style={{
-              fontSize: 14,
-              color: "#7F7B8C",
-              fontWeight: "500",
-              fontFamily: fontFamily.body,
-            }}
-          >
-            {t("records.total", { count: filtered.length })}
-          </Text>
-        </View>
+        ) : null}
 
         {/* ─── Search Bar ─────────────────────────────────── */}
         <View
@@ -952,18 +1123,17 @@ export default function RecordsScreen() {
           </Pressable>
         </View>
 
-        {/* ─── Saved filters row ──────────────────────────── */}
+        {/* ─── Smart folders row (evenly aligned, smaller icons) ── */}
         {prefs.savedFilters.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
+          <View
+            style={{
+              flexDirection: "row",
               paddingHorizontal: spacing.lg,
-              gap: spacing.xs,
+              gap: 6,
               marginBottom: spacing.sm,
             }}
           >
-            {prefs.savedFilters.map((f) => (
+            {prefs.savedFilters.slice(0, 4).map((f) => (
               <Pressable
                 key={f.id}
                 onPress={() => applySavedFilter(f)}
@@ -988,88 +1158,106 @@ export default function RecordsScreen() {
                   );
                 }}
                 style={{
+                  flex: 1,
                   flexDirection: "row",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 4,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 999,
+                  paddingHorizontal: 8,
+                  paddingVertical: 8,
+                  borderRadius: 12,
                   borderWidth: 1,
                   borderColor: colors.border,
                   backgroundColor: "#FFFFFF",
+                  minWidth: 0,
                 }}
               >
-                <Bookmark size={12} color={colors.primary} />
+                <Bookmark size={11} color={colors.primary} strokeWidth={2.25} />
                 <Text
+                  numberOfLines={1}
                   style={{
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: "700",
                     color: colors.text,
                     fontFamily: fontFamily.bodyBold,
+                    flexShrink: 1,
                   }}
                 >
                   {f.name}
                 </Text>
               </Pressable>
             ))}
-          </ScrollView>
+          </View>
         ) : null}
 
-        {/* ─── Filter chips with counts ───────────────────── */}
-        <View style={{ marginBottom: spacing.md }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: spacing.lg,
-              gap: spacing.sm,
+        {/* ─── View tabs: All / Timeline / Sharing (evenly split, vertical) ── */}
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            marginBottom: spacing.md,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              backgroundColor: "#F4F2F8",
+              borderRadius: 16,
+              padding: 4,
+              gap: 4,
             }}
           >
-            {FILTER_VALUES.map((v) => {
+            {VIEW_TABS.map((v) => {
+              const isSelected = tab === v;
+              const Icon = TAB_META[v].icon;
               const count = counts[v] || 0;
-              const isSelected = filter === v;
-              const Icon = v === "archived" ? Archive : null;
               return (
                 <Pressable
                   key={v}
-                  onPress={() => onFilterChipPress(v)}
+                  onPress={() => setTab(v)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={t(`records.view.${v}`)}
+                  hitSlop={4}
                   style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 20,
-                    backgroundColor: isSelected ? colors.primary : "#F4F2F8",
-                    flexDirection: "row",
+                    flex: 1,
+                    paddingVertical: 8,
+                    paddingHorizontal: 6,
+                    borderRadius: 12,
+                    backgroundColor: isSelected ? colors.surface : "transparent",
                     alignItems: "center",
-                    gap: 6,
+                    justifyContent: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: isSelected ? 0.06 : 0,
+                    shadowRadius: 2,
+                    elevation: isSelected ? 1 : 0,
                   }}
                 >
-                  {Icon ? (
-                    <Icon
-                      size={14}
-                      color={isSelected ? "#FFFFFF" : colors.textMuted}
-                      strokeWidth={2.25}
-                    />
-                  ) : null}
+                  <Icon
+                    size={15}
+                    color={isSelected ? colors.primary : colors.textMuted}
+                    strokeWidth={2.25}
+                  />
                   <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "600",
-                      color: isSelected ? "#FFFFFF" : "#3F3844",
-                      fontFamily: isSelected
-                        ? fontFamily.bodySemibold
-                        : fontFamily.body,
-                    }}
-                  >
-                    {t(`records.filter.${v}`)}
-                  </Text>
-                  <Text
+                    numberOfLines={1}
                     style={{
                       fontSize: 12,
-                      fontWeight: "500",
-                      color: isSelected
-                        ? "rgba(255,255,255,0.7)"
-                        : "#8E8A9A",
-                      fontFamily: fontFamily.body,
+                      fontWeight: "700",
+                      color: isSelected ? colors.text : "#3F3844",
+                      fontFamily: isSelected ? fontFamily.bodyBold : fontFamily.body,
+                      marginTop: 3,
+                    }}
+                  >
+                    {t(`records.view.${v}`)}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "700",
+                      color: isSelected ? colors.primary : "#8E8A9A",
+                      fontFamily: fontFamily.bodyBold,
+                      marginTop: 1,
                     }}
                   >
                     {count}
@@ -1077,7 +1265,7 @@ export default function RecordsScreen() {
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         </View>
 
         {/* ─── Date range + sort row ───────────────────────── */}
@@ -1387,6 +1575,58 @@ function Alert(
 
 function getRecordTypeLabel(t: (k: string) => string, type: string): string {
   return t(`records.type.${type}`, { defaultValue: (type || "").replace(/_/g, " ") });
+}
+
+// Glass stat tile used inside the records hero. Mirrors the glass pills
+// in the home page hero so the visual language stays consistent.
+function HeroStat({
+  value,
+  label,
+  accent = false,
+}: {
+  value: number | string;
+  label: string;
+  accent?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 14,
+        backgroundColor: accent
+          ? "rgba(255,255,255,0.22)"
+          : "rgba(255,255,255,0.12)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.2)",
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          color: "#FFFFFF",
+          fontSize: 18,
+          fontWeight: "800",
+          letterSpacing: -0.4,
+        }}
+      >
+        {value}
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          color: "rgba(255,255,255,0.85)",
+          fontSize: 10.5,
+          fontWeight: "700",
+          marginTop: 2,
+          letterSpacing: 0.4,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
 }
 
 function getGroupKey(t: (k: string) => string, locale: ReturnType<typeof useLocaleStore.getState>["locale"], dateStr: string) {

@@ -48,6 +48,8 @@ import doctorEarningsRouter from "./routes/doctor-earnings";
 import doctorRxTemplatesRouter from "./routes/doctor-rx-templates";
 import careTeamRouter from "./routes/care-team";
 import clinicsRouter from "./routes/clinics";
+import consentsRouter from "./routes/consents";
+import dsarRouter from "./routes/dsar";
 import hospitalDoctorsRouter from "./routes/hospital-doctors";
 import hospitalPatientsRouter from "./routes/hospital-patients";
 import clinicDoctorsRouter from "./routes/clinic-doctors";
@@ -198,6 +200,9 @@ app.route("/doctor-rx-templates", doctorRxTemplatesRouter);
 // Doctor↔Patient enterprise architecture: explicit care team
 // membership table. Source of truth for "doctor X can read patient Y".
 app.route("/care-team", careTeamRouter);
+// Phase v3: granular per-purpose consent + DSAR workflows.
+app.route("/consents", consentsRouter);
+app.route("/dsar", dsarRouter);
 // Phase MTN-1: multi-tenant hospital network — clinics + membership
 // tables + clinical-context relationships + tenant switcher.
 app.route("/clinics", clinicsRouter);

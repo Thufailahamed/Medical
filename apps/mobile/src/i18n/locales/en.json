@@ -8,6 +8,7 @@
     "delete": "Delete",
     "remove": "Remove",
     "add": "Add",
+    "clear": "Clear",
     "you": "You"
   },
   "appLock": {
@@ -274,7 +275,9 @@
         "label": "Vitals",
         "subtitleEmpty": "BP, glucose, weight trends",
         "subtitleCount_one": "{{count}} active medicine",
-        "subtitleCount_other": "{{count}} active medicines"
+        "subtitleCount_other": "{{count}} active medicines",
+        "subtitleAlert_one": "{{count}} reading out of range",
+        "subtitleAlert_other": "{{count}} readings out of range"
       },
       "allergies": {
         "label": "Allergies",
@@ -326,6 +329,10 @@
       "helpSupport": {
         "label": "Help & Support",
         "subtitle": "FAQs and contact options"
+      },
+      "recordsV2": {
+        "label": "Health records (v2)",
+        "subtitle": "Unified hub · encrypted"
       }
     }
   },
@@ -820,7 +827,13 @@
   "vitals": {
     "title": "Vitals",
     "subtitle": "Track trends over time",
+    "subtitleWithCount": "{{count}} tracked · {{alerts}} alert",
+    "subtitleWithCount_other": "{{count}} tracked · {{alerts}} alerts",
+    "latest": "Latest",
     "logLabel": "Log vital",
+    "alertsHeading": "Out-of-range readings",
+    "noAlerts": "All recent readings are in range",
+    "derivedHeading": "Derived metrics",
     "compose": {
       "title": "Log a vital",
       "typeLabel": "TYPE",
@@ -832,7 +845,34 @@
       "valuePlaceholderBP": "120",
       "valuePlaceholderDefault": "72",
       "secondaryPlaceholder": "80",
-      "saveButton": "Save reading"
+      "saveButton": "Save reading",
+      "contextLabel": "CONTEXT"
+    },
+    "classification": {
+      "normal": "Normal",
+      "elevated": "Elevated",
+      "high": "High",
+      "low": "Low",
+      "critical": "Critical"
+    },
+    "context": {
+      "resting": "Resting",
+      "fasting": "Fasting",
+      "post_meal": "Post-meal",
+      "pre_meal": "Pre-meal",
+      "post_medication": "After medication",
+      "pre_medication": "Before medication",
+      "exercise": "After exercise",
+      "standing": "Standing",
+      "supine": "Lying down",
+      "random": "Random"
+    },
+    "derived": {
+      "map": "MAP",
+      "pulsePressure": "Pulse pressure",
+      "whr": "Waist-hip ratio",
+      "bmr": "BMR",
+      "bmi": "BMI"
     },
     "toast": {
       "logged": "{{label}} logged",
@@ -863,34 +903,21 @@
       "message": "Log your first reading to start tracking trends."
     },
     "type": {
-      "blood_pressure": {
-        "label": "Blood pressure",
-        "unit": "mmHg"
-      },
-      "blood_sugar": {
-        "label": "Blood sugar",
-        "unit": "mg/dL"
-      },
-      "weight": {
-        "label": "Weight",
-        "unit": "kg"
-      },
-      "heart_rate": {
-        "label": "Heart rate",
-        "unit": "bpm"
-      },
-      "temperature": {
-        "label": "Temperature",
-        "unit": "°C"
-      },
-      "spo2": {
-        "label": "SpO₂",
-        "unit": "%"
-      },
-      "cholesterol": {
-        "label": "Cholesterol",
-        "unit": "mg/dL"
-      }
+      "blood_pressure": { "label": "Blood pressure", "unit": "mmHg" },
+      "blood_sugar":    { "label": "Blood sugar",    "unit": "mg/dL" },
+      "weight":         { "label": "Weight",         "unit": "kg" },
+      "height":         { "label": "Height",         "unit": "cm" },
+      "heart_rate":     { "label": "Heart rate",     "unit": "bpm" },
+      "temperature":    { "label": "Temperature",    "unit": "°C" },
+      "spo2":           { "label": "SpO₂",           "unit": "%" },
+      "cholesterol":    { "label": "Cholesterol",    "unit": "mg/dL" },
+      "respiratory_rate":   { "label": "Respiratory rate",   "unit": "br/min" },
+      "hrv_rmssd":          { "label": "HRV (RMSSD)",        "unit": "ms" },
+      "body_fat_pct":       { "label": "Body fat",           "unit": "%" },
+      "waist_circumference":{ "label": "Waist",              "unit": "cm" },
+      "hip_circumference":  { "label": "Hip",                "unit": "cm" },
+      "pain_scale":         { "label": "Pain",               "unit": "/10" },
+      "peak_flow":          { "label": "Peak flow",          "unit": "L/min" }
     },
     "range": {
       "7": "7d",
@@ -1410,6 +1437,14 @@
       },
       "removed": "Filter removed"
     },
+    "hero": {
+      "eyebrow": "YOUR LIBRARY",
+      "title": "Records",
+      "add": "Add record",
+      "total": "Total",
+      "shared": "Shared",
+      "folders": "Smart folders"
+    },
     "toast": {
       "loadedFilter": "Loaded \"{{name}}\"",
       "savedFilter": "Saved \"{{name}}\"",
@@ -1441,6 +1476,19 @@
     },
     "aiGuess": {
       "pill": "AI GUESS"
+    },
+    "hero": {
+      "totalLabel": "TOTAL",
+      "encrypted": "End-to-end encrypted",
+      "recent": "{{count}} this month",
+      "noRecent": "Nothing new this month",
+      "secure": "Private by design",
+      "lastLabel": "LAST RECORD"
+    },
+    "actions": {
+      "share": "Share",
+      "export": "Export",
+      "add": "Add"
     }
   },
   "recordDetail": {
@@ -1849,6 +1897,12 @@
       "vitals": "Vitals"
     },
     "bmiRow": "BMI {{bmi}} • {{category}}",
+    "vitalsGlance": {
+      "title": "Vitals at a glance",
+      "last7d": "Last 7 days",
+      "openAll": "Open vitals",
+      "addReading": "Log a vital"
+    },
     "fab": {
       "title": "Quick add",
       "logDose": {
@@ -2568,8 +2622,11 @@
     "noActiveMeds": "No active medicines",
     "labReportsHeading": "Lab reports",
     "noLabReports": "No lab reports",
-    "vitalsHeading": "Vitals",
-    "noVitals": "No vitals recorded"
+    "vitalsHeading": "Vitals (latest)",
+    "noVitals": "No vitals recorded",
+    "alertsHeading": "Out-of-range readings",
+    "abnormalCount_one": "{{count}} out of range",
+    "abnormalCount_other": "{{count}} out of range"
   },
   "hospitalDashboard": {
     "title": "Hospital",
@@ -2768,6 +2825,8 @@
     "admittedAt": "Admitted {{datetime}}",
     "recentVitals": "Recent vitals",
     "noVitals": "No vitals recorded",
+    "abnormalCount_one": "{{count}} out of range",
+    "abnormalCount_other": "{{count}} out of range",
     "records": "Records",
     "noRecords": "No records yet"
   },
@@ -3001,5 +3060,125 @@
     "durationPlaceholder": "7 days",
     "instructionsPlaceholder": "After food, with water",
     "addMed": "Add medicine"
+  },
+  "recordsHub": {
+    "title": "Health records",
+    "activeConsents": "active consents",
+    "issueConsent": "Issue consent",
+    "tabs": {
+      "all": "All",
+      "timeline": "Timeline",
+      "sharing": "Sharing"
+    },
+  "hero": {
+    "eyebrow": "Health records",
+    "encrypted": "Encrypted & synced",
+    "lastActivity": "Last add {{when}}",
+    "loading": "Loading your library…",
+    "noProfile": "Patient",
+    "bloodGroup": "Blood group {{value}}",
+    "ageYears": "{{n}} yrs",
+    "total": "records",
+    "noActivity": "no activity yet"
+  },
+    "quickActions": {
+      "share": "Share",
+      "export": "Export",
+      "add": "Add",
+      "import": "Import"
+    },
+    "stats": {
+      "total": "Total records",
+      "activeConsents": "Active consents",
+      "locked": "Locked",
+      "shared": "Shared"
+    },
+  "smartFolders": {
+    "title": "Smart folders",
+    "allergies": "Allergies",
+    "vaccinations": "Vaccinations",
+    "labReports": "Lab reports",
+    "prescriptions": "Prescriptions",
+    "imaging": "Imaging",
+    "recent30": "Last 30 days",
+    "seeAll": "See all",
+    "recordsLabel": "records"
+  },
+    "search": {
+      "placeholder": "Search records, doctors, OCR…"
+    },
+    "empty": {
+      "title": "Your record library is empty",
+      "body": "Tap + to add your first lab report, scan, or prescription.",
+      "action": "Add record",
+      "filteredTitle": "No matches in this filter",
+      "filteredBody": "Try a different folder or clear the filter to see everything."
+    },
+    "timeline": {
+      "emptyTitle": "No timeline events yet",
+      "emptyBody": "Records, vitals, and medicines will appear here as you add them."
+    },
+    "sharing": {
+      "title": "Sharing",
+      "activeN": "{{n}} active",
+      "totalN": "{{count}} consent{{count, plural, one {} other {s}}} total",
+      "active": "Active",
+      "encrypted": "Encrypted",
+      "issueNew": "Issue new",
+      "noConsentsTitle": "No consents yet",
+      "noConsentsBody": "Issue a consent to share specific records with family, doctors or insurers.",
+      "fallbackLabel": "this consent",
+      "activeBadge": "Active",
+      "revokedBadge": "Revoked",
+      "activePurpose": "{{purpose}}",
+      "revokedPurpose": "{{purpose}} · revoked {{when}}",
+      "expires": " · until {{when}}",
+      "revokeTitle": "Revoke this consent?",
+      "revokeBody": "Sharing will stop immediately for: {{label}}",
+      "revoke": "Revoke",
+      "revoked": "Consent revoked",
+      "revokeFailed": "Could not revoke"
+    },
+  "activeFilterLabel": "Active filter",
+  "row": {
+    "diagnosis": "Diagnosis",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "tagsLabel": "Tags",
+    "fallbackTitle": "Untitled"
+  }
+  },
+  "consent": {
+    "purpose": {
+      "emergency": "For emergencies",
+      "family_view": "For family members",
+      "insurance": "For insurance claims",
+      "research": "For research (de-identified)",
+      "referral": "For referrals",
+      "lab_share": "For lab orders"
+    }
+  },
+  "dsar": {
+    "title": "Data rights",
+    "exportTitle": "Export my data",
+    "exportBody": "Receive a portable, encrypted copy of all your data.",
+    "erasureTitle": "Erase my data",
+    "erasureBody": "Permanently anonymise your profile.",
+    "rectifyTitle": "Request a correction",
+    "rectifyBody": "We will review your request and respond within 30 days."
+  },
+  "qrToken": {
+    "title": "Emergency QR",
+    "subtitle": "Time-boxed. Each scan is logged."
+  },
+
+  "doctorPatientDetail": {
+    "empty": "No patients yet",
+    "emptyBody": "Patients who grant you record access will appear here.",
+    "recordsTab": "Records",
+    "consentBanner": "Only records you have consent to view are shown"
+  },
+  "hospitalPatientDetail": {
+    "recordsTab": "Records (unified)"
   }
 }

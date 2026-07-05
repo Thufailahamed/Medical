@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -17,7 +17,7 @@ import {
   Cake,
   Phone,
 } from "lucide-react-native";
-import { usePatientSummary } from "@/hooks/useApi";
+import { usePatientSummary, useVitalsSeries } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -32,6 +32,7 @@ import {
   Divider,
   Button,
 } from "@/components/ui";
+import { LatestStatusCard, AlertsCard } from "@/components/vitals";
 
 type Tab = "summary" | "records" | "meds" | "labs" | "vitals";
 
@@ -416,26 +417,48 @@ export default function DoctorPatientDetail() {
         )}
 
         {tab === "vitals" && (
-          <Card>
-            <SectionHeader title={t("doctorPatientDetail.vitalsHeading")} />
-            {data.vitals && data.vitals.length > 0 ? (
-              data.vitals.slice(0, 30).map((v: any, idx: number) => (
-                <View key={v.id}>
-                  {idx > 0 ? <Divider /> : null}
-                  <ListItem
-                    title={v.type.replace(/_/g, " ")}
-                    subtitle={fmtDate(new Date(v.recordedAt), locale)}
-                    pill={{
-                      label: `${v.value}${v.secondaryValue ? `/${v.secondaryValue}` : ""} ${v.unit}`,
-                      tone: "primary",
-                    }}
-                  />
-                </View>
-              ))
+          <View style={{ gap: spacing.md }}>
+            {data.vitalsAlerts && data.vitalsAlerts.count > 0 ? (
+              <AlertsCard alerts={data.vitalsAlerts.items ?? []} title={t("doctorPatientDetail.alertsHeading")} />
+            ) : null}
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+                {t("doctorPatientDetail.vitalsHeading")}
+              </Text>
+              {data.vitalsAlerts && data.vitalsAlerts.count > 0 ? (
+                <PillCmp
+                  size="sm"
+                  tone="danger"
+                  label={t("doctorPatientDetail.abnormalCount", { count: data.vitalsAlerts.count })}
+                />
+              ) : null}
+            </View>
+
+            {data.latestVitals && data.latestVitals.length > 0 ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.sm,
+                }}
+              >
+                {data.latestVitals.map((l: any) => (
+                  <View key={l.type} style={{ flexBasis: "48%", flexGrow: 1 }}>
+                    <DoctorLatestVitalTile latest={l} />
+                  </View>
+                ))}
+              </View>
             ) : (
               <EmptyState icon={Stethoscope} title={t("doctorPatientDetail.noVitals")} />
             )}
-          </Card>
+          </View>
         )}
       </View>
     </Screen>
@@ -456,5 +479,29 @@ function Stat({ label, value }: { label: string; value: number }) {
         {label}
       </Text>
     </View>
+  );
+}
+
+// Per-type tile with a 7-day sparkline fetched inline. Lives here rather
+// than inside the shared LatestStatusCard because the doctor's chart
+// needs the patient-scoped series endpoint behaviour; portal-side cards
+// stay generic.
+function DoctorLatestVitalTile({ latest }: { latest: any }) {
+  const from = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString();
+  }, []);
+  const { data: series } = useVitalsSeries({
+    type: latest.type,
+    from,
+    enabled: !!latest.type,
+  });
+  return (
+    <LatestStatusCard
+      latest={latest}
+      sparkline={series?.points ?? []}
+      compact={false}
+    />
   );
 }

@@ -178,7 +178,24 @@ export default function EmergencyScreen() {
     }),
     [userRow, user, profileName, bloodType, allergies, conditions, phone, contacts]
   );
-  const qrString = JSON.stringify(qrPayload);
+  const qrString = useMemo(() => {
+    // Custom base64 helper for React Native
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const str = JSON.stringify(qrPayload);
+    let base64 = "";
+    for (let i = 0; i < str.length; i += 3) {
+      const c1 = str.charCodeAt(i);
+      const c2 = i + 1 < str.length ? str.charCodeAt(i + 1) : NaN;
+      const c3 = i + 2 < str.length ? str.charCodeAt(i + 2) : NaN;
+      const byte1 = c1 >> 2;
+      const byte2 = ((c1 & 3) << 4) | (Number.isNaN(c2) ? 0 : c2 >> 4);
+      const byte3 = Number.isNaN(c2) ? 64 : ((c2 & 15) << 2) | (Number.isNaN(c3) ? 0 : c3 >> 6);
+      const byte4 = Number.isNaN(c3) ? 64 : c3 & 63;
+      base64 += chars.charAt(byte1) + chars.charAt(byte2) + chars.charAt(byte3) + chars.charAt(byte4);
+    }
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
+    return `${apiUrl}/emergency/card/view?data=${encodeURIComponent(base64)}`;
+  }, [qrPayload]);
 
   async function doSOS() {
     try {
@@ -569,7 +586,7 @@ export default function EmergencyScreen() {
                 gap: spacing.md,
               }}
             >
-              {qrLoading ? (
+              {!profileData && !cached ? (
                 <ActivityIndicator color={colors.primary} />
               ) : (
                 <View
