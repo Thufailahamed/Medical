@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Portal design tokens — scoped under [data-app="portal"] so they
+   never bleed into marketing pages.
+   Tailwind v4 reads `--color-*` from any cascade context — defining
+   them on `[data-app="portal"]` makes utility classes like
+   `bg-brand` resolve to portal colors only inside the portal tree.
+   ============================================================ */
+
+[data-app="portal"] {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f1f3f7;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --text: #0f172a;
+  --text-soft: #475569;
+  --text-muted: #94a3b8;
+
+  --brand: #0ea5e9;
+  --brand-soft: #e0f2fe;
+  --brand-strong: #0369a1;
+
+  --success: #10b981;
+  --success-soft: #d1fae5;
+  --warn: #f59e0b;
+  --warn-soft: #fef3c7;
+  --danger: #ef4444;
+  --danger-soft: #fee2e2;
+  --violet: #8b5cf6;
+  --violet-soft: #ede9fe;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 10px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
+
+  --sidebar-w: 248px;
+  --topbar-h: 56px;
+
+  /* Map Tailwind v4 utility classes → portal tokens. Defining these
+     here (instead of via @theme) keeps them strictly inside the portal
+     subtree — marketing pages keep their own editorial tokens. */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-soft: var(--text-soft);
+  --color-text-muted: var(--text-muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+
+  font-family:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Reset box-sizing + button font inside the portal subtree. */
+[data-app="portal"],
+[data-app="portal"] * {
+  box-sizing: border-box;
+}
+[data-app="portal"] button {
+  font-family: inherit;
+}
+
+/* Thin, neutral scrollbars — keep the chart-heavy pages tidy. */
+[data-app="portal"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-app="portal"] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+[data-app="portal"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Focus ring helper. */
+[data-app="portal"] .focus-ring:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Common helpers used across many portal components. */
+@utility surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+@utility card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}

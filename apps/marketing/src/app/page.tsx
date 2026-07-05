@@ -687,7 +687,9 @@ export default function HomePage() {
           <span className="pulse"></span>
           <span><span data-nav-count>147</span> in beta</span>
         </span>
-        <Link className="nav__link hidden-mobile" href="/login">Sign in</Link>
+        <Link className="nav__link hidden-mobile" href="/portal/login">
+          Clinician sign in
+        </Link>
         <a className="btn btn--primary nav__btn" href="#waitlist">
           Get the app
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>

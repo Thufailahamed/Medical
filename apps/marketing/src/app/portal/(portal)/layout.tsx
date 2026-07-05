@@ -1,0 +1,65 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+import { useAuthStore } from "@/portal/stores/auth";
+import { Sidebar } from "@/portal/components/shell/Sidebar";
+import { Topbar } from "@/portal/components/shell/Topbar";
+
+/**
+ * (portal) route group layout:
+ *   - On mount, gates the URL by checking the auth store
+ *   - If no token → /login (with `next` to come back here)
+ *   - If a non-doctor role → /403
+ *   - Otherwise renders the sidebar + topbar shell around the page
+ *
+ * We can't pre-render at build time because the auth state lives in
+ * localStorage; the AuthBoot component runs the /auth/me call once we
+ * know a token exists.
+ */
+export default function PortalLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthStore((s) => s.hydrated);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!token) {
+      const next = encodeURIComponent(window.location.pathname);
+      router.replace(`/login?next=${next}`);
+      return;
+    }
+    if (user && user.role && user.role !== "doctor") {
+      router.replace("/portal/403");
+    }
+  }, [hydrated, token, user, router]);
+
+  // Avoid a flash of empty shell while zustand rehydrates.
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-text-soft">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!token) return null;
+
+  return (
+    <div className="min-h-screen flex bg-bg">
+      <Sidebar />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Topbar />
+        <main className="flex-1 min-w-0 px-4 md:px-6 py-5 max-w-[1600px] w-full mx-auto">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
