@@ -10,7 +10,7 @@ export function Card({ children, className, padding = true, ...rest }: CardProps
   return (
     <div
       className={cn(
-        "rounded-[14px] border border-border bg-surface shadow-[var(--shadow-sm)]",
+        "rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] transition-all duration-200 hover:shadow-[var(--shadow-md)]",
         padding && "p-4 md:p-5",
         className
       )}
@@ -40,7 +40,7 @@ export function CardHeader({
       )}
     >
       <div className="min-w-0">
-        <div className="text-sm font-semibold text-text">{title}</div>
+        <div className="text-sm font-bold text-text tracking-tight">{title}</div>
         {subtitle ? (
           <div className="text-xs text-text-soft mt-0.5">{subtitle}</div>
         ) : null}

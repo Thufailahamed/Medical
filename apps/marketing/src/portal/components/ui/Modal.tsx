@@ -46,7 +46,7 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60"
       role="dialog"
       aria-modal="true"
       onMouseDown={(e) => {
@@ -55,7 +55,7 @@ export function Modal({
     >
       <div
         className={cn(
-          "w-full bg-surface rounded-[14px] shadow-[var(--shadow-lg)] border border-border overflow-hidden flex flex-col max-h-[90vh]",
+          "w-full bg-surface rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] border border-border overflow-hidden flex flex-col max-h-[90vh]",
           sizeMap[size]
         )}
       >
@@ -112,7 +112,7 @@ export function Drawer({
   const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl" };
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex justify-end bg-slate-900/60"
       role="dialog"
       aria-modal="true"
       onMouseDown={(e) => {

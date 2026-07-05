@@ -26,7 +26,7 @@ export function Empty({
           {icon}
         </div>
       ) : null}
-      <div className="text-sm font-medium text-text">{title}</div>
+      <div className="text-sm font-bold text-text">{title}</div>
       {description ? (
         <div className="mt-1 text-xs text-text-soft max-w-sm">{description}</div>
       ) : null}

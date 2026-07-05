@@ -40,6 +40,21 @@ export default function PortalLayout({
     }
   }, [hydrated, token, user, router]);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.overflowX;
+    const prevBody = body.style.overflowX;
+
+    html.style.overflowX = "visible";
+    body.style.overflowX = "visible";
+
+    return () => {
+      html.style.overflowX = prevHtml;
+      body.style.overflowX = prevBody;
+    };
+  }, []);
+
   // Avoid a flash of empty shell while zustand rehydrates.
   if (!hydrated) {
     return (
@@ -52,9 +67,9 @@ export default function PortalLayout({
   if (!token) return null;
 
   return (
-    <div className="min-h-screen flex bg-bg">
+    <div className="h-screen flex bg-bg overflow-hidden">
       <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-y-auto">
         <Topbar />
         <main className="flex-1 min-w-0 px-4 md:px-6 py-5 max-w-[1600px] w-full mx-auto">
           {children}

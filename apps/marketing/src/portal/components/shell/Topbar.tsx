@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Search, LogOut, Settings as SettingsIcon } from "lucide-react";
+import {
+  Search,
+  LogOut,
+  Settings as SettingsIcon,
+  Bell,
+  Command,
+  ChevronDown,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
 import { Avatar } from "@/portal/components/ui/Avatar";
@@ -15,16 +24,34 @@ import { cn } from "@/portal/lib/utils";
 export function Topbar() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  // ⌘K shortcut
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.key === "Escape") {
+        searchRef.current?.blur();
+        setSearchFocused(false);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   function onSubmitSearch(e: React.FormEvent) {
@@ -39,77 +66,202 @@ export function Topbar() {
     router.replace("/portal/login");
   }
 
+  const initials = user?.name
+    ? user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+    : "DR";
+
   return (
     <header
       className={cn(
-        "h-[var(--topbar-h)] bg-surface border-b border-border sticky top-0 z-20 px-4 flex items-center gap-3"
+        "sticky top-0 z-20 h-[var(--topbar-h)] flex items-center justify-between gap-4 px-6 md:px-8 lg:px-10 transition-shadow duration-300",
+        "bg-surface border-b border-border",
+        searchFocused && "shadow-[0_4px_12px_rgba(0,0,0,0.03)]"
       )}
     >
+      {/* ── Search bar ────────────────────────────────────────────────────── */}
       <form onSubmit={onSubmitSearch} className="flex-1 max-w-xl relative">
-        <Search
-          size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          placeholder="Search patients, NIC, phone…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-8 pl-9 pr-3 rounded-md border border-border bg-surface-2/40 text-sm text-text placeholder:text-text-muted focus-ring focus:border-brand focus:bg-surface"
-          aria-label="Search"
-        />
+        <div className={cn(
+          "relative flex items-center rounded-xl transition-all duration-200",
+          searchFocused
+            ? "ring-2 ring-brand/20 border-brand/40 bg-white shadow-sm"
+            : "border-border/80 bg-surface-2/50 hover:bg-surface-2/80 hover:border-border",
+          "border"
+        )}>
+          <Search
+            size={15}
+            className={cn(
+              "absolute left-3.5 transition-colors duration-200",
+              searchFocused ? "text-brand" : "text-text-muted"
+            )}
+            aria-hidden="true"
+          />
+          <input
+            ref={searchRef}
+            type="search"
+            placeholder="Search patients, NIC, phone…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            className="w-full h-10 pl-10 pr-20 bg-transparent text-sm text-text placeholder:text-text-muted outline-none"
+            aria-label="Search"
+          />
+
+          {/* ⌘K hint */}
+          {!searchFocused && !search && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-surface border border-border text-[10px] font-semibold text-text-muted leading-none">
+                <Command size={10} />K
+              </kbd>
+            </div>
+          )}
+
+          {/* Clear button */}
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearch(""); searchRef.current?.focus(); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
       </form>
 
-      <div className="ml-auto flex items-center gap-2">
+      {/* ── Right section ─────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2.5">
         <LocaleSwitcher />
         <TenantSwitcher />
 
-        <div className="relative" ref={ref}>
+        {/* Notifications */}
+        <button
+          type="button"
+          className="relative h-10 w-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2/60 border border-transparent hover:border-border/40 transition-all duration-200"
+          aria-label="Notifications"
+        >
+          <Bell size={17} strokeWidth={1.8} />
+          {/* Unread dot — static for now; wire to real data later */}
+          {/* <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-500 border-[1.5px] border-white" /> */}
+        </button>
+
+        {/* Separator */}
+        <div className="h-5 w-px bg-border mx-1 hidden md:block" />
+
+        {/* ── User menu ───────────────────────────────────────────────────── */}
+        <div className="relative" ref={menuRef}>
           <button
             type="button"
-            onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-2 h-8 pl-1.5 pr-2 rounded-md hover:bg-surface-2 focus-ring"
+            onClick={() => setMenuOpen((o) => !o)}
+            className={cn(
+              "flex items-center gap-2 h-10 pl-1.5 pr-2.5 rounded-xl transition-all duration-200 border border-transparent",
+              menuOpen
+                ? "bg-surface-2 border-border shadow-sm"
+                : "hover:bg-surface-2/60 hover:border-border/40"
+            )}
             aria-haspopup="menu"
-            aria-expanded={open}
+            aria-expanded={menuOpen}
           >
-            <Avatar name={user?.name} size="sm" />
+            {/* Avatar with online dot */}
+            <div className="relative">
+              <div
+                className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
+                style={{
+                  background: "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
+                }}
+              >
+                {initials}
+              </div>
+              <span
+                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white"
+                style={{
+                  background: "linear-gradient(135deg, #34D399, #10B981)",
+                  boxShadow: "0 0 6px rgba(52,211,153,0.5)",
+                }}
+              />
+            </div>
+
             <div className="hidden sm:flex flex-col items-start leading-tight">
-              <span className="text-xs font-medium text-text truncate max-w-[140px]">
+              <span className="text-[13px] font-semibold text-text truncate max-w-[140px]">
                 {user?.name ?? "Doctor"}
               </span>
-              <span className="text-[10px] text-text-muted capitalize">
+              <span className="text-[10px] text-text-muted capitalize font-medium">
                 {user?.role ?? "doctor"}
               </span>
             </div>
+
+            <ChevronDown
+              size={13}
+              className={cn(
+                "hidden sm:block text-text-muted transition-transform duration-200",
+                menuOpen && "rotate-180"
+              )}
+            />
           </button>
 
-          {open ? (
-            <div className="absolute right-0 mt-1 w-56 rounded-md border border-border bg-surface shadow-[var(--shadow-md)] z-30 overflow-hidden">
-              <div className="px-3 py-2 border-b border-border">
-                <div className="text-xs font-medium text-text truncate">
-                  {user?.name ?? "Doctor"}
-                </div>
-                <div className="text-[11px] text-text-soft truncate">
-                  {user?.email ?? user?.phone ?? ""}
+          {/* ── Dropdown ───────────────────────────────────────────────────── */}
+          {menuOpen && (
+            <div className="absolute right-0 mt-1.5 w-64 rounded-xl border border-border/80 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] z-30 overflow-hidden animate-in">
+              {/* User info header */}
+              <div className="px-4 py-3 border-b border-border/60" style={{
+                background: "linear-gradient(135deg, rgba(14,165,233,0.04) 0%, rgba(2,132,199,0.02) 100%)",
+              }}>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md flex-shrink-0"
+                    style={{
+                      background: "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
+                      boxShadow: "0 4px 12px rgba(14,165,233,0.25)",
+                    }}
+                  >
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-text truncate">
+                      {user?.name ?? "Doctor"}
+                    </div>
+                    <div className="text-[11px] text-text-muted truncate mt-0.5">
+                      {user?.email ?? user?.phone ?? ""}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <Link
-                href="/portal/settings"
-                onClick={() => setOpen(false)}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-2 flex items-center gap-2"
-              >
-                <SettingsIcon size={14} /> Settings
-              </Link>
-              <button
-                type="button"
-                onClick={onLogout}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-2 flex items-center gap-2 text-danger"
-              >
-                <LogOut size={14} /> Sign out
-              </button>
+
+              {/* Menu items */}
+              <div className="py-1.5">
+                <Link
+                  href="/portal/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full text-left px-4 py-2.5 text-[13px] font-medium hover:bg-surface-2/60 flex items-center gap-2.5 transition-colors group"
+                >
+                  <span className="h-7 w-7 rounded-lg bg-surface-2 flex items-center justify-center group-hover:bg-sky-50 transition-colors">
+                    <SettingsIcon size={14} className="text-text-muted group-hover:text-sky-600 transition-colors" />
+                  </span>
+                  <span className="text-text">Settings</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="w-full text-left px-4 py-2.5 text-[13px] font-medium hover:bg-red-50/60 flex items-center gap-2.5 transition-colors group"
+                >
+                  <span className="h-7 w-7 rounded-lg bg-surface-2 flex items-center justify-center group-hover:bg-red-50 transition-colors">
+                    <LogOut size={14} className="text-text-muted group-hover:text-red-500 transition-colors" />
+                  </span>
+                  <span className="text-red-600">Sign out</span>
+                </button>
+              </div>
+
+              {/* Footer branding */}
+              <div className="px-4 py-2.5 border-t border-border/60 flex items-center gap-1.5" style={{
+                background: "rgba(248,250,252,0.6)",
+              }}>
+                <Sparkles size={10} className="text-sky-400" />
+                <span className="text-[10px] font-semibold text-text-muted tracking-wide">HEALTHHUB</span>
+                <span className="text-[10px] text-text-muted/60">· Doctor Portal</span>
+              </div>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </header>

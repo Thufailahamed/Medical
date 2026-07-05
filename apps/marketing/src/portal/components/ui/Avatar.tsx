@@ -15,13 +15,15 @@ const sizeMap = {
   lg: "h-14 w-14 text-base",
 } as const;
 
-const palettes = [
-  "from-sky-500 to-sky-700",
-  "from-emerald-500 to-emerald-700",
-  "from-violet-500 to-violet-700",
-  "from-rose-500 to-rose-700",
-  "from-amber-500 to-amber-700",
-  "from-teal-500 to-teal-700",
+// Mobile app uses semi-transparent tinted backgrounds, not gradients.
+// Each palette entry: [bg class, text class]
+const palettes: [string, string][] = [
+  ["bg-sky-100", "text-sky-700"],
+  ["bg-emerald-100", "text-emerald-700"],
+  ["bg-violet-100", "text-violet-700"],
+  ["bg-rose-100", "text-rose-700"],
+  ["bg-amber-100", "text-amber-700"],
+  ["bg-teal-100", "text-teal-700"],
 ];
 
 function hash(s: string) {
@@ -32,13 +34,14 @@ function hash(s: string) {
 
 export function Avatar({ name, src, size = "md", className }: AvatarProps) {
   const label = initials(name);
-  const palette = palettes[hash(name ?? "anon") % palettes.length];
+  const [bg, fg] = palettes[hash(name ?? "anon") % palettes.length];
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center text-white font-semibold bg-gradient-to-br overflow-hidden shrink-0",
+        "rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0",
         sizeMap[size],
-        palette,
+        bg,
+        fg,
         className
       )}
       aria-hidden={src ? "false" : "true"}

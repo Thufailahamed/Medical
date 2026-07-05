@@ -28,10 +28,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1220] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-sky-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Decorative background blobs to match the premium Aurora effect */}
       <div className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-coral-500/10 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: "rgba(255,122,89,0.06)" }} />
+      <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md z-10">
         <Link href="/" className="flex justify-center items-center gap-3">
@@ -51,10 +51,10 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md z-10">
-        <div className="bg-[#111A2E] py-8 px-4 shadow-2xl border border-slate-800/80 sm:rounded-2xl sm:px-10">
+        <div className="bg-sky-800/80 backdrop-blur-sm py-8 px-4 shadow-2xl border border-sky-700/50 sm:rounded-2xl sm:px-10">
           
           {/* Role selector tabs */}
-          <div className="flex p-1 bg-[#090F1B] rounded-xl mb-6">
+          <div className="flex p-1 bg-sky-900/50 rounded-xl mb-6">
             <button
               onClick={() => setRole("hospital")}
               className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   placeholder={role === "hospital" ? "HOSP-COLOMBO-04" : "LAB-DURDANS-C3"}
                   value={portalCode}
                   onChange={(e) => setPortalCode(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-800 rounded-xl bg-[#090F1B] placeholder-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm font-sans"
+                  className="appearance-none block w-full px-4 py-3 border border-sky-700/50 rounded-xl bg-sky-900/50 placeholder-sky-300/50 text-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all text-sm font-sans"
                 />
               </div>
             </div>
@@ -107,7 +107,7 @@ export default function LoginPage() {
                   placeholder={role === "hospital" ? "SLMC-DR-4819" : "LAB-TECH-7890"}
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-800 rounded-xl bg-[#090F1B] placeholder-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm font-sans"
+                  className="appearance-none block w-full px-4 py-3 border border-sky-700/50 rounded-xl bg-sky-900/50 placeholder-sky-300/50 text-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all text-sm font-sans"
                 />
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-800 rounded-xl bg-[#090F1B] placeholder-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm font-sans"
+                  className="appearance-none block w-full px-4 py-3 border border-sky-700/50 rounded-xl bg-sky-900/50 placeholder-sky-300/50 text-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all text-sm font-sans"
                 />
               </div>
             </div>
@@ -135,7 +135,7 @@ export default function LoginPage() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-sky-500 focus:ring-sky-500 border-slate-800 rounded bg-[#090F1B]"
+                  className="h-4 w-4 text-sky-400 focus:ring-sky-400 border-sky-700 rounded bg-sky-900/50"
                 />
                 <label htmlFor="remember-me" className="ml-2 text-slate-400">
                   Remember this terminal

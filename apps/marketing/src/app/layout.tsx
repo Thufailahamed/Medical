@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MedLocker — your health, finally in one place.",
-  description: "MedLocker is a private, beautifully designed health companion for you and your family. Records, medicines, vitals, AI insights and your care team — all in your pocket. Built in Sri Lanka.",
+  title: "HealthHub — your health, finally in one place.",
+  description: "HealthHub is a private, beautifully designed health companion for you and your family. Records, medicines, vitals, AI insights and your care team — all in your pocket. Built in Sri Lanka.",
   other: {
     "theme-color": "#FBF9F4"
   },
   openGraph: {
     type: "website",
-    title: "MedLocker — your health, finally in one place.",
+    title: "HealthHub — your health, finally in one place.",
     description: "A private, beautifully designed health companion. Records, medicines, vitals, AI insights, and your care team — all in your pocket. Built in Sri Lanka.",
     images: "https://healthhub.app/og-image.png",
     url: "https://healthhub.app",

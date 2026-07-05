@@ -193,6 +193,102 @@ auth.post("/login", async (c) => {
 
   // Get user from D1 database
   let dbUser = null;
+
+  // Dev mode bypass for developer login
+  if (c.env.DEV_MODE === "true" && email === "dev-doctor@healthhub.local") {
+    const DEV_DOCTOR_USER_ID = "dev-doctor-user-001";
+    const { hospitals, hospitalDoctors, clinics, clinicDoctors } = await import("@healthcare/db");
+
+    // 1. Ensure user exists
+    [dbUser] = await db.select().from(users).where(eq(users.id, DEV_DOCTOR_USER_ID)).limit(1);
+    if (!dbUser) {
+      [dbUser] = await db.insert(users).values({
+        id: DEV_DOCTOR_USER_ID,
+        supabaseId: DEV_DOCTOR_USER_ID,
+        email: "dev-doctor@healthhub.local",
+        name: "Dr. Dev",
+        role: "doctor",
+      }).returning();
+    }
+
+    // 2. Ensure doctor entry exists
+    let [dbDoctor] = await db.select().from(doctors).where(eq(doctors.userId, DEV_DOCTOR_USER_ID)).limit(1);
+    if (!dbDoctor) {
+      [dbDoctor] = await db.insert(doctors).values({
+        id: "dev-doctor-001",
+        userId: DEV_DOCTOR_USER_ID,
+        specialization: "General Practice",
+        registrationNumber: "SLMC-12345",
+        slmcRegistrationNo: "SLMC-12345",
+        slmcVerifiedAt: new Date().toISOString(),
+      }).returning();
+    }
+
+    // 3. Ensure hospital exists and link doctor
+    let [dbHospital] = await db.select().from(hospitals).where(eq(hospitals.id, "dev-hospital-001")).limit(1);
+    if (!dbHospital) {
+      await db.insert(hospitals).values({
+        id: "dev-hospital-001",
+        userId: DEV_DOCTOR_USER_ID,
+        name: "City General Hospital (Dev)",
+        license: "LIC-DEV-001",
+        address: "Colombo, Sri Lanka",
+      });
+    }
+
+    let [dbHospitalDoctor] = await db.select().from(hospitalDoctors).where(and(eq(hospitalDoctors.hospitalId, "dev-hospital-001"), eq(hospitalDoctors.doctorId, "dev-doctor-001"))).limit(1);
+    if (!dbHospitalDoctor) {
+      await db.insert(hospitalDoctors).values({
+        id: "dev-hdoc-001",
+        hospitalId: "dev-hospital-001",
+        doctorId: "dev-doctor-001",
+        role: "admin",
+        status: "active",
+      });
+    }
+
+    // 4. Ensure clinic exists and link doctor
+    let [dbClinic] = await db.select().from(clinics).where(eq(clinics.id, "dev-clinic-001")).limit(1);
+    if (!dbClinic) {
+      await db.insert(clinics).values({
+        id: "dev-clinic-001",
+        userId: DEV_DOCTOR_USER_ID,
+        name: "Test clinic (Dev)",
+        license: "LIC-CL-DEV-001",
+        address: "Kandy, Sri Lanka",
+      });
+    }
+
+    let [dbClinicDoctor] = await db.select().from(clinicDoctors).where(and(eq(clinicDoctors.clinicId, "dev-clinic-001"), eq(clinicDoctors.doctorId, "dev-doctor-001"))).limit(1);
+    if (!dbClinicDoctor) {
+      await db.insert(clinicDoctors).values({
+        id: "dev-cdoc-001",
+        clinicId: "dev-clinic-001",
+        doctorId: "dev-doctor-001",
+        role: "owner",
+        ownershipPct: 100,
+        status: "active",
+      });
+    }
+
+    // Generate JWT token
+    const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+    const token = await generateToken(dbUser.id, jwtSecret, {
+      nic: null,
+      dob: null,
+      nicVerificationLevel: null,
+      isMinor: false,
+    });
+
+    return c.json({
+      user: dbUser,
+      session: {
+        access_token: token,
+        refresh_token: "dummy-refresh-token",
+      },
+    });
+  }
+
   if (email) {
     [dbUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   } else if (phone) {

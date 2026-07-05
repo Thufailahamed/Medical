@@ -8,7 +8,7 @@ import {
 import { cn } from "@/portal/lib/utils";
 
 const inputBase =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted transition-colors focus-ring focus:border-brand focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
+  "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted transition-colors focus-ring focus:border-brand focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
 
 interface FieldShellProps {
   label?: ReactNode;

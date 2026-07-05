@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "MedLocker Portal",
+    "appName": "HealthHub Portal",
     "search": "Search",
     "save": "Save",
     "cancel": "Cancel",
@@ -279,7 +279,8 @@
     "arrived": "Arrived",
     "complete": "Complete",
     "noShow": "No-show",
-    "startConsult": "Start consult"
+    "startConsult": "Start consult",
+    "unknownPatient": "Unknown patient"
   },
   "appointments": {
     "title": "Appointments",
@@ -291,7 +292,47 @@
     "status_in_progress": "In progress",
     "status_completed": "Completed",
     "status_cancelled": "Cancelled",
-    "status_no_show": "No-show"
+    "status_no_show": "No-show",
+    "empty": "No appointments for this date",
+    "bookForPatient": "Book for patient",
+    "details": "Appointment Details",
+    "reschedule": "Reschedule",
+    "cancelAppointment": "Cancel appointment",
+    "cancelConfirm": "Are you sure you want to cancel this appointment?",
+    "rescheduled": "Appointment rescheduled",
+    "cancelled": "Appointment cancelled",
+    "newDate": "New date",
+    "newTime": "New time",
+    "patient": "Patient",
+    "queueNumber": "Queue #",
+    "reason": "Reason",
+    "openChart": "Open chart"
+  },
+  "bookAppointment": {
+    "title": "Book Appointment",
+    "subtitle": "Schedule an appointment for a patient",
+    "selectPatient": "Select Patient",
+    "searchPatient": "Search by name, NIC, phone…",
+    "selectDate": "Select Date",
+    "selectTime": "Select Time",
+    "confirm": "Confirm Booking",
+    "patient": "Patient",
+    "date": "Date",
+    "time": "Time",
+    "reason": "Reason (optional)",
+    "reasonPlaceholder": "e.g. Follow-up for blood pressure",
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "noSlots": "No available slots for this date",
+    "booked": "Appointment booked successfully",
+    "selectPatientFirst": "Please select a patient first",
+    "back": "Back",
+    "next": "Next",
+    "confirmBooking": "Book Appointment",
+    "summary": "Booking Summary",
+    "noPatientResults": "No patients match your search",
+    "searchHint": "Type at least 2 characters to search"
   },
   "earnings": {
     "title": "Earnings",

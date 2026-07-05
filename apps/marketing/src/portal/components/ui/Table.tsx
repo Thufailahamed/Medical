@@ -3,7 +3,7 @@ import { cn } from "@/portal/lib/utils";
 
 export function Table({ children, className, ...rest }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-[14px] border border-border bg-surface">
+    <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-border bg-surface">
       <table
         className={cn("w-full text-sm border-collapse", className)}
         {...rest}

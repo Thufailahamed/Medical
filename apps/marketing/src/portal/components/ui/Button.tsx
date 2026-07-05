@@ -16,23 +16,23 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-medium rounded-md transition-colors focus-ring select-none disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex items-center justify-center gap-2 font-semibold rounded-full transition-all duration-150 focus-ring select-none disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97]";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-brand text-white hover:bg-brand-strong active:bg-brand-strong shadow-sm",
+    "bg-brand text-white hover:bg-brand-strong shadow-[0_4px_16px_rgba(2,132,199,0.30)] hover:shadow-[0_6px_24px_rgba(2,132,199,0.40)]",
   secondary:
-    "bg-surface text-text border border-border hover:bg-surface-2 active:bg-surface-2",
-  ghost: "bg-transparent text-text hover:bg-surface-2 active:bg-surface-2",
+    "bg-surface-2 text-text border border-border hover:bg-surface hover:border-border-strong",
+  ghost: "bg-transparent text-text-soft hover:bg-surface-2 hover:text-text active:bg-surface-2",
   danger:
-    "bg-danger text-white hover:bg-red-600 active:bg-red-600 shadow-sm",
+    "bg-danger text-white hover:bg-red-700 shadow-[0_4px_16px_rgba(220,38,38,0.30)] hover:shadow-[0_6px_24px_rgba(220,38,38,0.40)]",
   link: "bg-transparent text-brand hover:underline underline-offset-2 px-0",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-9 px-4 text-sm",
-  lg: "h-11 px-5 text-base",
+  sm: "h-8 px-3.5 text-xs",
+  md: "h-9 px-5 text-sm",
+  lg: "h-11 px-6 text-sm",
   icon: "h-9 w-9 p-0",
 };
 

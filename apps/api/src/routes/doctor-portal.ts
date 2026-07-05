@@ -24,6 +24,7 @@ import {
   walkIns,
   files,
   hospitalDoctors,
+  hospitalPatients,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { latestByType, classifyAlerts } from "../lib/vitals-derived";
@@ -38,7 +39,7 @@ import {
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { recordRevenueEvent } from "../lib/revenue";
-import { compactQueue } from "../lib/booking";
+import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT } from "../lib/booking";
 import { canAccessPatient } from "../lib/access";
 import {
   redactLockedRecords,
@@ -1515,6 +1516,380 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
     },
     201
   );
+});
+
+// ─── Search patients (hospital-scoped) ──────────────────
+// GET /doctor-portal/search-patients?q=...
+// Searches patients registered at the doctor's active hospital.
+// Falls back to care-team accessible patients if no hospital context.
+doctorPortalRouter.get("/search-patients", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const query = (c.req.query("q") || "").trim();
+
+  if (!query || query.length < 2) {
+    return c.json({ patients: [] });
+  }
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const tenant = await resolveActiveTenant(db, c, doctor);
+  const safeQuery = query.replace(/[%_]/g, "\\$&");
+
+  // If doctor has an active hospital, search patients registered there.
+  if (tenant.hospitalId) {
+    const results = await db
+      .select({
+        patient: patients,
+        user: users,
+      })
+      .from(hospitalPatients)
+      .innerJoin(patients, eq(hospitalPatients.patientId, patients.id))
+      .innerJoin(users, eq(patients.userId, users.id))
+      .where(
+        and(
+          eq(hospitalPatients.hospitalId, tenant.hospitalId),
+          or(
+            like(users.name, `%${safeQuery}%`),
+            like(users.nic, `%${safeQuery}%`),
+            like(users.phone, `%${safeQuery}%`)
+          )
+        )
+      )
+      .limit(20);
+    return c.json({ patients: results });
+  }
+
+  // Fallback: search within care-team accessible patients.
+  const { accessiblePatientsFor } = await import("../lib/access");
+  const accessibleIds = await accessiblePatientsFor(db, userId, "doctor");
+  if (accessibleIds.length === 0) return c.json({ patients: [] });
+
+  const results = await db
+    .select({
+      patient: patients,
+      user: users,
+    })
+    .from(patients)
+    .innerJoin(users, eq(patients.userId, users.id))
+    .where(
+      and(
+        or(
+          like(users.name, `%${safeQuery}%`),
+          like(users.nic, `%${safeQuery}%`),
+          like(users.phone, `%${safeQuery}%`)
+        ),
+        sql`${patients.id} IN (${sql.join(
+          accessibleIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
+    )
+    .limit(20);
+  return c.json({ patients: results });
+});
+
+// ─── Book appointment for patient ───────────────────────
+// POST /doctor-portal/appointments
+//   Body: { patientId, date, time, reason? }
+doctorPortalRouter.post("/appointments", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const patientId = String(body?.patientId || "").trim();
+  const date = String(body?.date || "").trim();
+  const time = String(body?.time || "").trim();
+  const reason = body?.reason ? String(body.reason).trim() : null;
+
+  // Validate inputs
+  if (!patientId) return c.json({ error: "patientId is required" }, 400);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return c.json({ error: "date must be YYYY-MM-DD" }, 400);
+  if (!/^\d{2}:\d{2}$/.test(time)) return c.json({ error: "time must be HH:MM (24h)" }, 400);
+
+  // Reject past dates
+  const today = new Date().toISOString().slice(0, 10);
+  if (date < today) return c.json({ error: "Cannot book a past date" }, 400);
+  if (date === today) {
+    const [hh, mm] = time.split(":").map(Number);
+    const now = new Date();
+    if (hh * 60 + mm <= now.getHours() * 60 + now.getMinutes()) {
+      return c.json({ error: "Cannot book a time in the past" }, 400);
+    }
+  }
+
+  // Verify patient exists
+  const [patient] = await db
+    .select({ id: patients.id, userId: patients.userId })
+    .from(patients)
+    .where(eq(patients.id, patientId))
+    .limit(1);
+  if (!patient) return c.json({ error: "Patient not found" }, 404);
+
+  // Resolve hospital
+  const tenant = await resolveActiveTenant(db, c, doctor);
+  const hospitalId = tenant.hospitalId || doctor.hospitalId;
+  if (!hospitalId) return c.json({ error: "No hospital context — set an active tenant" }, 400);
+
+  // Atomic slot check + insert
+  let inserted: any = null;
+  let queueNumber = 0;
+  try {
+    const txResult = await db.transaction(async (tx) => {
+      const sameSlot = await tx
+        .select({ status: appointments.status })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.doctorId, doctor.id),
+            eq(appointments.date, date),
+            eq(appointments.time, time)
+          )
+        );
+      const activeCount = sameSlot.filter((r: any) =>
+        ACTIVE_STATUSES.includes(r.status)
+      ).length;
+      if (activeCount >= MAX_PER_SLOT) {
+        return { error: "This slot is fully booked" as const };
+      }
+      queueNumber = activeCount + 1;
+
+      const [row] = await tx
+        .insert(appointments)
+        .values({
+          doctorId: doctor.id,
+          patientId,
+          hospitalId,
+          date,
+          time,
+          reason,
+          queueNumber,
+          status: "scheduled",
+        } as any)
+        .returning();
+      return { row };
+    });
+
+    if ("error" in txResult) {
+      return c.json({ error: txResult.error }, 409);
+    }
+    inserted = txResult.row;
+  } catch {
+    return c.json({ error: "Could not book — slot may have just been taken" }, 409);
+  }
+
+  // Notify the patient
+  await notify({
+    db,
+    userId: patient.userId,
+    type: "appointment",
+    title: "Appointment booked by doctor",
+    body: `Your doctor booked an appointment for you on ${date} at ${time}. Queue #${queueNumber}`,
+    data: { appointmentId: inserted?.id, status: "scheduled" },
+  });
+
+  // Auto-upsert care team
+  await upsertActiveCareTeam(db, {
+    patientId,
+    doctorId: doctor.id,
+    role: "primary_care",
+    invitedByUserId: userId,
+  });
+
+  return c.json(
+    { appointment: inserted?.appointments || inserted, queueNumber },
+    201
+  );
+});
+
+// ─── Reschedule appointment (doctor) ────────────────────
+// PATCH /doctor-portal/appointments/:id/reschedule
+//   Body: { date, time }
+doctorPortalRouter.patch("/appointments/:id/reschedule", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const appointmentId = c.req.param("id");
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const date = String(body?.date || "").trim();
+  const time = String(body?.time || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+    return c.json({ error: "date (YYYY-MM-DD) and time (HH:MM) required" }, 400);
+  }
+
+  // Reject past dates
+  const today = new Date().toISOString().slice(0, 10);
+  if (date < today) return c.json({ error: "Cannot reschedule to a past date" }, 400);
+  if (date === today) {
+    const [hh, mm] = time.split(":").map(Number);
+    const now = new Date();
+    if (hh * 60 + mm <= now.getHours() * 60 + now.getMinutes()) {
+      return c.json({ error: "Cannot reschedule to a time in the past" }, 400);
+    }
+  }
+
+  // Ownership check
+  const [existing] = await db
+    .select()
+    .from(appointments)
+    .where(and(eq(appointments.id, appointmentId), eq(appointments.doctorId, doctor.id)))
+    .limit(1);
+  if (!existing) return c.json({ error: "Appointment not found" }, 404);
+
+  if (["cancelled", "completed", "no_show"].includes(existing.status)) {
+    return c.json(
+      { error: `Cannot reschedule an appointment that is ${existing.status}` },
+      409
+    );
+  }
+  if (existing.date === date && existing.time === time) {
+    return c.json({ appointment: existing, queueNumber: existing.queueNumber });
+  }
+
+  // Atomic slot recheck
+  let inserted: any = null;
+  let queueNumber = existing.queueNumber ?? 0;
+  try {
+    const tx = await db.transaction(async (t) => {
+      const sameSlot = await t
+        .select({ status: appointments.status })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.doctorId, doctor.id),
+            eq(appointments.date, date),
+            eq(appointments.time, time)
+          )
+        );
+      const active = sameSlot.filter((r: any) =>
+        ACTIVE_STATUSES.includes(r.status)
+      ).length;
+      if (active >= MAX_PER_SLOT) {
+        return { error: "This slot is fully booked" as const };
+      }
+      const [row] = await t
+        .update(appointments)
+        .set({ date, time, queueNumber: active + 1 } as any)
+        .where(eq(appointments.id, appointmentId))
+        .returning();
+      return { row };
+    });
+    if ("error" in tx) {
+      return c.json({ error: tx.error }, 409);
+    }
+    inserted = tx.row;
+    queueNumber = inserted?.queueNumber ?? queueNumber;
+  } catch {
+    return c.json({ error: "Could not reschedule" }, 409);
+  }
+
+  // Compact old slot + audit + notify patient
+  await compactQueue(db, doctor.id, existing.date, existing.time);
+  await audit(db, {
+    userId,
+    action: "appointment.reschedule",
+    resource: "appointment",
+    resourceId: appointmentId,
+    details: {
+      fromDate: existing.date,
+      fromTime: existing.time,
+      toDate: date,
+      toTime: time,
+    },
+  });
+
+  // Notify patient
+  const [patientRow] = await db
+    .select({ userId: patients.userId })
+    .from(patients)
+    .where(eq(patients.id, existing.patientId))
+    .limit(1);
+  if (patientRow) {
+    await notify({
+      db,
+      userId: patientRow.userId,
+      type: "appointment",
+      title: "Appointment rescheduled",
+      body: `Your appointment was moved from ${existing.date} ${existing.time} to ${date} ${time}.`,
+      data: {
+        appointmentId,
+        fromDate: existing.date,
+        fromTime: existing.time,
+        toDate: date,
+        toTime: time,
+      },
+    });
+  }
+
+  return c.json({ appointment: inserted?.appointments || inserted, queueNumber });
+});
+
+// ─── Cancel appointment (doctor) ────────────────────────
+// DELETE /doctor-portal/appointments/:id
+doctorPortalRouter.delete("/appointments/:id", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const appointmentId = c.req.param("id");
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  // Ownership check
+  const [existing] = await db
+    .select()
+    .from(appointments)
+    .where(and(eq(appointments.id, appointmentId), eq(appointments.doctorId, doctor.id)))
+    .limit(1);
+  if (!existing) return c.json({ error: "Appointment not found" }, 404);
+
+  if (["cancelled", "completed", "no_show"].includes(existing.status)) {
+    return c.json(
+      { error: `Cannot cancel an appointment that is ${existing.status}` },
+      409
+    );
+  }
+
+  const [updated] = await db
+    .update(appointments)
+    .set({ status: "cancelled" })
+    .where(eq(appointments.id, appointmentId))
+    .returning();
+
+  // Notify patient
+  const [patientRow] = await db
+    .select({ userId: patients.userId })
+    .from(patients)
+    .where(eq(patients.id, existing.patientId))
+    .limit(1);
+  if (patientRow) {
+    await notify({
+      db,
+      userId: patientRow.userId,
+      type: "appointment",
+      title: "Appointment cancelled",
+      body: `Your appointment on ${existing.date} at ${existing.time} was cancelled by the doctor.`,
+      data: { appointmentId, status: "cancelled" },
+    });
+  }
+
+  // Audit + queue compaction
+  await audit(db, {
+    userId,
+    action: "appointment.cancel",
+    resource: "appointment",
+    resourceId: appointmentId,
+    details: { from: existing.status, to: "cancelled" },
+  });
+  await compactQueue(db, doctor.id, existing.date, existing.time);
+
+  return c.json({ appointment: updated });
 });
 
 export default doctorPortalRouter;

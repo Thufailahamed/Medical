@@ -32,6 +32,7 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
         .insert(users)
         .values({
           id: DEV_USER.id,
+          supabaseId: DEV_USER.id,
           email: DEV_USER.email,
           name: "Dev User",
           role: "patient",

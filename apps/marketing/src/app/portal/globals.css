@@ -1,48 +1,134 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 /* ============================================================
-   Portal design tokens — scoped under [data-app="portal"] so they
-   never bleed into marketing pages.
-   Tailwind v4 reads `--color-*` from any cascade context — defining
-   them on `[data-app="portal"]` makes utility classes like
-   `bg-brand` resolve to portal colors only inside the portal tree.
+   Portal design tokens — matching mobile app sky-blue theme.
+   Scoped under [data-app="portal"] so they never bleed.
    ============================================================ */
 
+/* Expose color tokens at :root so Tailwind v4 can generate utilities. */
+:root {
+  --color-bg: #F0F9FF;
+  --color-surface: #ffffff;
+  --color-surface-2: #F8FAFC;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-text: #0F172A;
+  --color-text-soft: #475569;
+  --color-text-muted: #94A3B8;
+
+  --color-brand: #0284C7;
+  --color-brand-soft: #E0F2FE;
+  --color-brand-strong: #0369A1;
+
+  --color-success: #059669;
+  --color-success-soft: #ECFDF5;
+  --color-warn: #D97706;
+  --color-warn-soft: #FFFBEB;
+  --color-danger: #DC2626;
+  --color-danger-soft: #FEF2F2;
+  --color-info: #0284C7;
+  --color-info-soft: #F0F9FF;
+  --color-accent: #059669;
+  --color-accent-soft: #ECFDF5;
+
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
 [data-app="portal"] {
-  --bg: #f7f8fa;
+  /* --- Raw palette (mobile app palette.sky / palette.slate / etc.) --- */
+  --sky-50: #F0F9FF;
+  --sky-100: #E0F2FE;
+  --sky-200: #BAE6FD;
+  --sky-300: #7DD3FC;
+  --sky-400: #38BDF8;
+  --sky-500: #0EA5E9;
+  --sky-600: #0284C7;
+  --sky-700: #0369A1;
+  --sky-800: #075985;
+  --sky-900: #0C4A6E;
+
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+
+  --emerald-50: #ECFDF5;
+  --emerald-100: #D1FAE5;
+  --emerald-400: #34D399;
+  --emerald-500: #10B981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+
+  --red-50: #FEF2F2;
+  --red-100: #FEE2E2;
+  --red-500: #EF4444;
+  --red-600: #DC2626;
+  --red-700: #B91C1C;
+
+  --amber-50: #FFFBEB;
+  --amber-100: #FEF3C7;
+  --amber-500: #F59E0B;
+  --amber-600: #D97706;
+  --amber-700: #B45309;
+
+  --coral-500: #FF7A59;
+
+  /* --- Semantic tokens (matching mobile theme.ts lightColors) --- */
+  --bg: #F0F9FF;
   --surface: #ffffff;
-  --surface-2: #f1f3f7;
-  --border: #e5e7eb;
-  --border-strong: #d1d5db;
-  --text: #0f172a;
+  --surface-2: #F8FAFC;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text: #0F172A;
   --text-soft: #475569;
-  --text-muted: #94a3b8;
+  --text-muted: #94A3B8;
 
-  --brand: #0ea5e9;
-  --brand-soft: #e0f2fe;
-  --brand-strong: #0369a1;
+  --brand: #0284C7;
+  --brand-soft: #E0F2FE;
+  --brand-strong: #0369A1;
 
-  --success: #10b981;
-  --success-soft: #d1fae5;
-  --warn: #f59e0b;
-  --warn-soft: #fef3c7;
-  --danger: #ef4444;
-  --danger-soft: #fee2e2;
-  --violet: #8b5cf6;
-  --violet-soft: #ede9fe;
+  --success: #059669;
+  --success-soft: #ECFDF5;
+  --warn: #D97706;
+  --warn-soft: #FFFBEB;
+  --danger: #DC2626;
+  --danger-soft: #FEF2F2;
+  --info: #0284C7;
+  --info-soft: #F0F9FF;
+  --accent: #059669;
+  --accent-soft: #ECFDF5;
 
-  --radius: 10px;
-  --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 10px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
-
+  /* --- Layout --- */
+  --radius: 14px;
+  --radius-lg: 20px;
   --sidebar-w: 248px;
-  --topbar-h: 56px;
+  --topbar-h: 64px;
 
-  /* Map Tailwind v4 utility classes → portal tokens. Defining these
-     here (instead of via @theme) keeps them strictly inside the portal
-     subtree — marketing pages keep their own editorial tokens. */
+  /* --- Shadows (matching mobile shadow tokens) --- */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
+  --shadow-hero: 0 8px 32px rgba(3, 105, 161, 0.22);
+  --shadow-primary: 0 4px 16px rgba(2, 132, 199, 0.30);
+  --shadow-danger: 0 4px 16px rgba(220, 38, 38, 0.30);
+
+  /* --- Glassmorphism (mobile app's signature) --- */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-hero-bg: rgba(255, 255, 255, 0.12);
+  --glass-hero-border: rgba(255, 255, 255, 0.18);
+
+  /* --- Font --- */
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Map Tailwind v4 utility classes → portal tokens. */
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -60,19 +146,21 @@
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
-  --color-violet: var(--violet);
-  --color-violet-soft: var(--violet-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
 
-  font-family:
-    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg);
   color: var(--text);
 }
 
-/* Reset box-sizing + button font inside the portal subtree. */
+/* ============================================================
+   Base resets
+   ============================================================ */
 [data-app="portal"],
 [data-app="portal"] * {
   box-sizing: border-box;
@@ -81,7 +169,9 @@
   font-family: inherit;
 }
 
-/* Thin, neutral scrollbars — keep the chart-heavy pages tidy. */
+/* ============================================================
+   Scrollbars
+   ============================================================ */
 [data-app="portal"] ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -94,13 +184,111 @@
   background: transparent;
 }
 
-/* Focus ring helper. */
+/* ============================================================
+   Cursor override (marketing hides cursor for custom effect)
+   ============================================================ */
+[data-app="portal"],
+[data-app="portal"] * {
+  cursor: auto !important;
+}
+
+/* ============================================================
+   Focus ring
+   ============================================================ */
 [data-app="portal"] .focus-ring:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
-/* Common helpers used across many portal components. */
+/* ============================================================
+   Glassmorphism utilities (matching mobile app's BlurView effects)
+   ============================================================ */
+@utility glass {
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+
+@utility glass-hero {
+  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 50%, #0C8B8C 100%);
+  border-radius: var(--radius-lg);
+  color: #ffffff;
+}
+
+@utility glass-panel {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: var(--glass-hero-bg);
+  border: 1px solid var(--glass-hero-border);
+}
+
+/* ============================================================
+   Hero gradient (mobile app's signature deep-navy-to-teal gradient)
+   ============================================================ */
+@utility hero-gradient {
+  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0C8B8C 100%);
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative orbs inside hero sections */
+.hero-gradient::before,
+.hero-gradient::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero-gradient::before {
+  top: -20%;
+  right: -10%;
+  width: 60%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(125, 211, 252, 0.25) 0%, transparent 60%);
+}
+.hero-gradient::after {
+  bottom: -30%;
+  left: -10%;
+  width: 50%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.15) 0%, transparent 60%);
+}
+
+/* ============================================================
+   Colored shadows (mobile app uses blue-tinted shadows)
+   ============================================================ */
+@utility shadow-hero {
+  box-shadow: var(--shadow-hero);
+}
+@utility shadow-primary {
+  box-shadow: var(--shadow-primary);
+}
+@utility shadow-danger {
+  box-shadow: var(--shadow-danger);
+}
+
+/* ============================================================
+   Button pill shape (mobile app uses full-rounded pill buttons)
+   ============================================================ */
+@utility btn-pill {
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+/* ============================================================
+   Card with hover lift (mobile app cards lift on press)
+   ============================================================ */
+@utility card-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ============================================================
+   Common component utilities
+   ============================================================ */
 @utility surface {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -113,3 +301,162 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
+
+/* ============================================================
+   Sidebar — Premium Design
+   ============================================================ */
+
+/* Scrollbar styling */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125,211,252,0.1) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(125,211,252,0.12);
+  border-radius: 999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(125,211,252,0.22);
+}
+
+/* Group label */
+.sidebar-group-label {
+  color: rgba(125,211,252,0.55) !important;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+/* Nav links */
+.sidebar-link {
+  color: rgba(186,230,253,0.75) !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  transition: all 200ms cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+
+.sidebar-link:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255,255,255,0.04) !important;
+}
+
+.sidebar-link[aria-current="page"] {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* Active indicator animation */
+.sidebar-active-indicator {
+  animation: sidebar-active-in 250ms cubic-bezier(0.4,0,0.2,1) both;
+}
+
+@keyframes sidebar-active-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+/* Footer buttons */
+.sidebar-btn {
+  color: rgba(186,230,253,0.6) !important;
+  background-color: transparent !important;
+  border: none !important;
+  transition: all 200ms ease;
+}
+
+.sidebar-btn:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.sidebar-doctor-email {
+  color: rgba(186,230,253,0.5) !important;
+}
+
+.sidebar-footer-btn {
+  color: rgba(186,230,253,0.5) !important;
+  transition: all 200ms ease;
+  border: 1px solid transparent !important;
+}
+
+.sidebar-footer-btn:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+
+.sidebar-footer-btn-danger:hover {
+  color: #FCA5A5 !important;
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239,68,68,0.1) !important;
+}
+
+/* Footer background blend */
+.sidebar-footer-bg {
+  position: relative;
+}
+.sidebar-footer-bg::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(125,211,252,0.1) 50%, transparent 100%);
+}
+
+/* ============================================================
+   Dashboard — Premium Styles
+   ============================================================ */
+
+/* Hero banner gradient */
+.dashboard-hero {
+  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%);
+  box-shadow:
+    0 8px 32px rgba(3, 105, 161, 0.22),
+    0 2px 8px rgba(14, 116, 144, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Dashboard cards — refined depth */
+.dashboard-card {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.dashboard-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+/* Stat card hover shine effect */
+@keyframes stat-shine {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(200%); }
+}
+
+/* Topbar dropdown entrance animation */
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-in {
+  animation: animate-in 180ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+

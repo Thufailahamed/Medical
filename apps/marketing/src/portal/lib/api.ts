@@ -144,4 +144,6 @@ export const qk = {
   safetyCheck: (payload: unknown) => ["safety", "check", JSON.stringify(payload)] as const,
   medicinesMasterSearch: (q: string) =>
     ["medicines-master", "search", q] as const,
+  portalPatientSearch: (q: string) =>
+    ["doctor-portal", "search-patients", q] as const,
 };
