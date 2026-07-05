@@ -71,13 +71,19 @@ export function useProtectedRoute() {
     const inAuthGroup = segments[0] === "(auth)";
 
     if (!isAuthenticated && !inAuthGroup) {
-      router.replace("/(auth)/login");
+      const t = setTimeout(() => {
+        router.replace("/(auth)/login");
+      }, 0);
+      return () => clearTimeout(t);
     } else if (isAuthenticated && inAuthGroup) {
       const home =
         (useAuthStore.getState().user as any)?.role === "doctor"
           ? "/(doctor)"
           : "/(app)";
-      router.replace(home as any);
+      const t = setTimeout(() => {
+        router.replace(home as any);
+      }, 0);
+      return () => clearTimeout(t);
     }
   }, [isAuthenticated, isLoading, segments]);
 }

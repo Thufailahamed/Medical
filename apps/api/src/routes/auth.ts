@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { users, patients, doctors, otpCodes } from "@healthcare/db";
 import {
   registerSchema,
@@ -305,10 +305,16 @@ auth.post("/login-by-phone", async (c) => {
   const phone = parsed.data.phone; // Already normalized to +94XXXXXXXXX
   const db = c.get("db");
 
+  const localPhone = "0" + phone.slice(3); // e.g. +94777313847 -> 0777313847
   const [dbUser] = await db
     .select()
     .from(users)
-    .where(eq(users.phone, phone))
+    .where(
+      or(
+        eq(users.phone, phone),
+        eq(users.phone, localPhone)
+      )
+    )
     .limit(1);
 
   if (!dbUser) {

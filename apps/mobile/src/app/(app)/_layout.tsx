@@ -40,61 +40,18 @@ export default function AppLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: {
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 88,
-          backgroundColor: "transparent",
-          borderTopWidth: 0,
-          paddingBottom: Platform.OS === "ios" ? 28 : 18,
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          height: Platform.OS === "ios" ? 88 : 72,
+          paddingBottom: Platform.OS === "ios" ? 28 : 12,
           paddingTop: 10,
-          elevation: 0,
+          elevation: 8,
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
         },
-        tabBarBackground: () => (
-          <View style={StyleSheet.absoluteFill}>
-            <BlurView
-              intensity={Platform.OS === "ios" ? 80 : 60}
-              tint="default"
-              style={StyleSheet.absoluteFill}
-            />
-            {/* Fallback / Android tint */}
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor:
-                    Platform.OS === "android"
-                      ? colors.bgElevated
-                      : "rgba(255,255,255,0.55)",
-                },
-              ]}
-            />
-            {/* Top hairline */}
-            <View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: StyleSheet.hairlineWidth,
-                backgroundColor: colors.border,
-              }}
-            />
-            {/* Inner highlight */}
-            <View
-              style={{
-                position: "absolute",
-                top: StyleSheet.hairlineWidth,
-                left: 0,
-                right: 0,
-                height: 1,
-                backgroundColor: "rgba(255,255,255,0.6)",
-                opacity: Platform.OS === "android" ? 0 : 0.5,
-              }}
-            />
-          </View>
-        ),
         tabBarLabelStyle: labelStyle,
       }}
     >
@@ -311,6 +268,26 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="verify/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="care-team"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="care-team-add"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="tenants/index"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="tenants/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="hospital/doctors"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
     </Tabs>

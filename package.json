@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev:marketing": "bun run --filter @healthcare/marketing dev",
     "dev:api": "bun run --filter @healthcare/api dev",
     "dev:mobile": "bun run --filter @healthcare/mobile start",
     "db:generate": "bun run --filter @healthcare/db generate",

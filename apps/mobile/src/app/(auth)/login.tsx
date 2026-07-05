@@ -23,6 +23,9 @@ import {
 import { api } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
+import * as SecureStore from "expo-secure-store";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/stores/auth";
 
 // SL mobile number validation: 07X XXXXXXX (10 digits) or +94 7X XXXXXXX
 const phoneSchema = z.object({
@@ -50,6 +53,58 @@ export default function LoginScreen() {
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const toast = useToast();
+  const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
+
+  const quickLogin = async (phone: string) => {
+    Keyboard.dismiss();
+    setSubmitting(true);
+    try {
+      // 1. Send OTP to get devCode
+      const res = await api<{
+        otpSent: boolean;
+        userId: string;
+        channel: string;
+        target: string;
+        expiresAt: string;
+        devCode?: string;
+      }>("/auth/login-by-phone", {
+        method: "POST",
+        body: { phone },
+      });
+
+      if (!res.otpSent || !res.devCode) {
+        toast.show("Could not get dev verification code", "danger");
+        return;
+      }
+
+      // 2. Auto-verify the OTP using the devCode
+      const verifyRes = await api<{ user: any; session?: any }>("/auth/verify-otp", {
+        method: "POST",
+        body: {
+          userId: res.userId,
+          channel: "mobile",
+          code: res.devCode,
+        },
+      });
+
+      if (verifyRes.session?.access_token) {
+        queryClient.clear();
+        await SecureStore.setItemAsync("auth_token", verifyRes.session.access_token);
+        setUser(verifyRes.user);
+        toast.show("Quick login successful!", "success");
+        const home = verifyRes.user?.role === "doctor" ? "/(doctor)" : "/(app)";
+        router.replace(home as any);
+      } else {
+        toast.show("Failed to log in", "danger");
+      }
+    } catch (err: any) {
+      console.warn("Quick login error:", err);
+      toast.show(err?.message || "Quick login failed", "danger");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const {
     control,
@@ -381,6 +436,60 @@ export default function LoginScreen() {
           </Text>
         </Text>
       </Pressable>
+
+      {/* Quick Dev Login Buttons */}
+      {__DEV__ ? (
+        <View style={{ gap: spacing.sm, marginVertical: spacing.md }}>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              color: "#7F7B8C",
+              textAlign: "center",
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}
+          >
+            🛠️ Dev Quick Login
+          </Text>
+          <View style={{ flexDirection: "row", gap: spacing.md, justifyContent: "center" }}>
+            <Pressable
+              onPress={() => quickLogin("0777313847")}
+              disabled={submitting}
+              style={{
+                flex: 1,
+                backgroundColor: "#F5F3FA",
+                borderWidth: 1,
+                borderColor: colors.primary,
+                paddingVertical: spacing.md,
+                borderRadius: 12,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>
+                As Doctor
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => quickLogin("0771234567")}
+              disabled={submitting}
+              style={{
+                flex: 1,
+                backgroundColor: "#F5F3FA",
+                borderWidth: 1,
+                borderColor: colors.accent || "#008080",
+                paddingVertical: spacing.md,
+                borderRadius: 12,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: colors.accent || "#008080", fontWeight: "800", fontSize: 13 }}>
+                As Patient
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       {/* Demo request link */}
       <Pressable

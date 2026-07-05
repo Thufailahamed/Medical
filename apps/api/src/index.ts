@@ -41,6 +41,7 @@ import emailRouter from "./routes/email";
 import classificationRouter from "./routes/classification";
 import demoRouter from "./routes/demo";
 import slmcRouter from "./routes/slmc";
+import marketingRouter from "./routes/marketing";
 import doctorMessagesRouter from "./routes/doctor-messages";
 import doctorScheduleRouter from "./routes/doctor-schedule";
 import doctorEarningsRouter from "./routes/doctor-earnings";
@@ -71,10 +72,29 @@ const app = new Hono<AppEnvironment>();
 
 // ─── Global middleware ───────────────────────────────────
 app.use("*", logger());
+// CORS allowlist: the Expo mobile app (localhost:8081 in dev,
+// exp.host preview builds) + the marketing landing page
+// (healthhub.app and localhost for local previews of the
+// marketing site). Add additional origins here as we ship
+// more subdomains (e.g. doctor.healthhub.app).
 app.use("*", cors({
-  origin: ["http://localhost:8081", "https://*.exp.host"],
-  allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  origin: [
+    "http://localhost:8081",
+    "https://*.exp.host",
+    "https://healthhub.app",
+    "https://www.healthhub.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+  ],
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowHeaders: ["Content-Type", "Authorization"],
+  // Allow the marketing site to read the JSON response from
+  // the waitlist POST (default is no credentials; we want
+  // same-origin + the listed cross-origins to work cleanly).
+  credentials: false,
+  maxAge: 86400,
 }));
 
 // ─── DB middleware ────────────────────────────────────────
@@ -164,6 +184,10 @@ app.route("/push", pushRouter);
 // Phase 3.1: demo-request lead capture. Mounted at root with explicit
 // paths so the public POST is reachable without a /demo prefix.
 app.route("/", demoRouter);
+// Marketing site: public waitlist POST + super-admin read. Mounted at
+// root for the same reason — the form on healthhub.app posts to
+// /waitlist with no auth.
+app.route("/", marketingRouter);
 // Phase 3.1: SLMC verification for doctor accounts.
 app.route("/", slmcRouter);
 app.route("/walk-ins", walkInsRouter);

@@ -1111,6 +1111,47 @@ export const demoRequests = sqliteTable(
   })
 );
 
+// ─── Marketing-site waitlist ────────────────────────────
+//
+// Public POST from the marketing landing page (no auth).
+// Captures the email + role for the private-beta rollout.
+//
+// We keep this separate from `demo_requests` on purpose —
+// the waitlist is a top-of-funnel consumer capture with no
+// qualified lead context (no clinic, no SLMC, no message),
+// while demo_requests is a sales-pipeline table. Conflating
+// them in the admin would mean sales deals mixed in with
+// "I just want to try the app" noise.
+//
+// Application normalises email to lowercase + trim before
+// insert; the unique index enforces canonical form. A duplicate
+// POST returns 200 (already on the list), not 409 — the form
+// always shows a friendly success.
+export const marketingWaitlist = sqliteTable(
+  "marketing_waitlist",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    email: text("email").notNull(),
+    role: text("role").notNull().default("patient"),
+    source: text("source"),
+    referrer: text("referrer"),
+    userAgent: text("user_agent"),
+    invitedAt: text("invited_at"),
+    invitedSlot: integer("invited_slot"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    emailUnique: uniqueIndex("marketing_waitlist_email_unique").on(t.email),
+    pendingIdx: index("idx_marketing_waitlist_pending").on(
+      t.invitedAt,
+      t.createdAt
+    ),
+    sourceIdx: index("idx_marketing_waitlist_source").on(t.source, t.createdAt),
+  })
+);
+
 // ─── Phase 1.3: WhatsApp onboarding (state machine) ──────
 // One active conversation per WhatsApp phone number. State moves
 // forward through the NIC + DOB + OTP registration flow until `done`,

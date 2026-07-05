@@ -9,8 +9,10 @@ import {
   StyleSheet,
   Image,
   RefreshControl,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { useRouter, useFocusEffect, Redirect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -43,7 +45,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
 import { ActiveMemberPill } from "@/components/ActiveMemberPill";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
-import { intlLocale, fmtWeekdayShort, fmtMonthShort } from "@/lib/format";
+import { intlLocale } from "@/lib/format";
 import {
   usePatientProfile,
   useAllergies,
@@ -87,12 +89,21 @@ function buildTimingMeta(t: (k: string) => string): Record<TimingKey, { label: s
   };
 }
 
+// Period color tokens for the new schedule cards. Kept independent of theme
+// tones so the visual identity reads clearly regardless of light/dark scheme.
+const PERIOD_ACCENT: Record<TimingKey, { color: string; soft: string; ring: [string, string] }> = {
+  morning:   { color: "#F59E0B", soft: "#FEF3C7", ring: ["#FBBF24", "#F59E0B"] },
+  afternoon: { color: "#0EA5E9", soft: "#E0F2FE", ring: ["#38BDF8", "#0284C7"] },
+  evening:   { color: "#FF7A59", soft: "#FFE4D9", ring: ["#FF9670", "#E85F3D"] },
+  night:     { color: "#6366F1", soft: "#E0E7FF", ring: ["#818CF8", "#4F46E5"] },
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { spacing, typography, colors, radius, fontFamily, layout } = useTheme();
+  const { spacing, typography, colors, radius, fontFamily, layout, shadow } = useTheme();
   const toast = useToast();
 
   const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = usePatientProfile();
@@ -117,8 +128,6 @@ export default function HomeScreen() {
     }, [refetchProfile, refetchMeds, refetchAppts, refetchUnread, refetchWellness, refetchDoses])
   );
 
-  // Phase 2.2.1: rehydrate local locale from server so future pushes
-  // (vaccination cron, etc.) match what the user sees in the app.
   useEffect(() => {
     const remote = profileData?.patient?.users?.preferredLocale;
     if (remote && remote !== locale && (remote === "en" || remote === "si" || remote === "ta")) {
@@ -209,7 +218,7 @@ export default function HomeScreen() {
         }
         contentContainerStyle={{ paddingBottom: layout.tabBarHeight + spacing.lg }}
       >
-        {/* V3: critical allergy banner */}
+        {/* ─── Critical allergy banner ─── */}
         {(() => {
           const criticalAllergies =
             (allergiesData?.allergies ?? []).filter(
@@ -224,39 +233,58 @@ export default function HomeScreen() {
               style={{
                 marginHorizontal: spacing.lg,
                 marginTop: spacing.sm,
-                padding: spacing.md,
                 borderRadius: radius.lg,
-                backgroundColor: colors.danger,
-                flexDirection: "row",
-                gap: spacing.sm,
-                alignItems: "flex-start",
+                overflow: "hidden",
               }}
             >
-              <ShieldAlert size={20} color="#fff" strokeWidth={2.25} style={{ marginTop: 2 }} />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[typography.title.sm, { color: "#fff", fontWeight: "800" }]}
+              <LinearGradient
+                colors={["#DC2626", "#B91C1C"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  padding: spacing.md,
+                  flexDirection: "row",
+                  gap: spacing.sm,
+                  alignItems: "flex-start",
+                }}
+              >
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  {criticalAllergies.length === 1
-                    ? t("home.criticalAllergy_one", {
-                        substance: criticalAllergies[0].substance,
-                      })
-                    : t("home.criticalAllergy_other", {
-                        count: criticalAllergies.length,
-                      })}
-                </Text>
-                <Text
-                  style={[typography.caption, { color: "#fff", opacity: 0.9, marginTop: 2 }]}
-                >
-                  {t("home.viewDetails")}
-                </Text>
-              </View>
-              <ChevronRight size={18} color="#fff" />
+                  <ShieldAlert size={16} color="#fff" strokeWidth={2.5} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[typography.title.sm, { color: "#fff", fontWeight: "800" }]}
+                  >
+                    {criticalAllergies.length === 1
+                      ? t("home.criticalAllergy_one", {
+                          substance: criticalAllergies[0].substance,
+                        })
+                      : t("home.criticalAllergy_other", {
+                          count: criticalAllergies.length,
+                        })}
+                  </Text>
+                  <Text
+                    style={[typography.caption, { color: "#fff", opacity: 0.9, marginTop: 2 }]}
+                  >
+                    {t("home.viewDetails")}
+                  </Text>
+                </View>
+                <ChevronRight size={18} color="#fff" />
+              </LinearGradient>
             </Pressable>
           );
         })()}
 
-        {/* ─── App header ─── */}
+        {/* ─── App header (premium) ─── */}
         <View
           style={{
             flexDirection: "row",
@@ -267,37 +295,79 @@ export default function HomeScreen() {
             paddingBottom: spacing.sm,
           }}
         >
-          <Pressable onPress={() => router.push("/(app)/profile")}>
+          <Pressable
+            onPress={() => router.push("/(app)/profile")}
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.a11y.profile")}
+          >
             {userPhoto ? (
-              <Image
-                source={{ uri: userPhoto }}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: colors.surfaceMuted,
-                }}
-              />
-            ) : (
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
+              <View>
+                <Image
+                  source={{ uri: userPhoto }}
                   style={{
-                    fontSize: 14,
-                    fontWeight: "800",
-                    color: colors.primary,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: colors.surfaceMuted,
+                    borderWidth: 2,
+                    borderColor: colors.surface,
+                  }}
+                />
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: -1,
+                    right: -1,
+                    width: 14,
+                    height: 14,
+                    borderRadius: 7,
+                    backgroundColor: "#10B981",
+                    borderWidth: 2.5,
+                    borderColor: colors.surface,
+                  }}
+                />
+              </View>
+            ) : (
+              <View>
+                <LinearGradient
+                  colors={["#38BDF8", "#0284C7"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 2,
+                    borderColor: colors.surface,
                   }}
                 >
-                  {(userName || "?")[0]?.toUpperCase()}
-                </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "800",
+                      color: "#FFFFFF",
+                      letterSpacing: -0.3,
+                    }}
+                  >
+                    {(userName || "?")[0]?.toUpperCase()}
+                  </Text>
+                </LinearGradient>
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: -1,
+                    right: -1,
+                    width: 14,
+                    height: 14,
+                    borderRadius: 7,
+                    backgroundColor: "#10B981",
+                    borderWidth: 2.5,
+                    borderColor: colors.surface,
+                  }}
+                />
               </View>
             )}
           </Pressable>
@@ -306,14 +376,19 @@ export default function HomeScreen() {
             <Text
               style={[
                 typography.title.lg,
-                { color: colors.primary, fontWeight: "800", fontSize: 22, fontFamily: fontFamily.displayBold }
+                {
+                  color: colors.primary,
+                  fontWeight: "800",
+                  fontSize: 17,
+                  fontFamily: fontFamily.displayBold,
+                  letterSpacing: -0.3,
+                },
               ]}
             >
               {t("home.brand")}
             </Text>
             <ActiveMemberPill />
           </View>
-          <TenantSwitcher />
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
             <Pressable
@@ -324,14 +399,17 @@ export default function HomeScreen() {
               style={({ pressed }) => ({
                 width: 40,
                 height: 40,
-                borderRadius: 20,
+                borderRadius: 14,
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-                backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+                opacity: pressed ? 0.85 : 1,
+                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                ...shadow.sm,
               })}
             >
-              <Plus size={24} color={colors.primary} strokeWidth={2.25} />
+              <Plus size={20} color={colors.primary} strokeWidth={2.5} />
             </Pressable>
 
             <Pressable
@@ -342,14 +420,17 @@ export default function HomeScreen() {
               style={({ pressed }) => ({
                 width: 40,
                 height: 40,
-                borderRadius: 20,
+                borderRadius: 14,
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-                backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+                opacity: pressed ? 0.85 : 1,
+                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                ...shadow.sm,
               })}
             >
-              <Bell size={24} color={colors.primary} strokeWidth={2} />
+              <Bell size={18} color={colors.text} strokeWidth={2} />
               {unread?.count ? (
                 <View
                   style={{
@@ -359,7 +440,9 @@ export default function HomeScreen() {
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: colors.danger || "#FF3B30",
+                    backgroundColor: "#DC2626",
+                    borderWidth: 1.5,
+                    borderColor: colors.surface,
                   }}
                 />
               ) : null}
@@ -367,240 +450,328 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ─── Sky hero ─── */}
+        {/* ─── Hero (premium glassmorphism) ─── */}
         <View
           style={{
             marginHorizontal: spacing.lg,
-            borderRadius: radius.xxl,
+            borderRadius: radius.xxxl,
             overflow: "hidden",
-            padding: spacing.xl,
-            elevation: 4,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.12,
-            shadowRadius: 10,
+            ...shadow.hero,
           }}
         >
+          {/* Base gradient — deeper, more saturated than before */}
           <LinearGradient
-            colors={["#0B2B64", "#0C8B8C"]}
+            colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
 
+          {/* Radial accent overlay (top-right) — gives depth */}
           <View
             style={{
               position: "absolute",
-              top: -40,
-              right: -30,
-              width: 140,
-              height: 140,
-              borderRadius: 70,
-              backgroundColor: "rgba(255, 255, 255, 0.07)",
+              top: -100,
+              right: -80,
+              width: 280,
+              height: 280,
+              borderRadius: 140,
+              backgroundColor: "rgba(56, 189, 248, 0.35)",
             }}
           />
+          {/* Radial accent overlay (bottom-left) */}
           <View
             style={{
               position: "absolute",
-              bottom: -60,
-              left: -40,
-              width: 160,
-              height: 160,
-              borderRadius: 80,
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              bottom: -120,
+              left: -80,
+              width: 300,
+              height: 300,
+              borderRadius: 150,
+              backgroundColor: "rgba(14, 165, 233, 0.3)",
+            }}
+          />
+          {/* Soft white sheen top */}
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 1,
+              backgroundColor: "rgba(255, 255, 255, 0.25)",
             }}
           />
 
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <View style={{ flex: 1, marginRight: spacing.md }}>
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-                style={[
-                  typography.overline,
-                  { color: "rgba(255,255,255,0.75)", letterSpacing: 1.2, fontFamily: fontFamily.displayBold }
-                ]}
-              >
-                {headerDate}
-              </Text>
+          <View style={{ padding: spacing.xl }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ flex: 1, marginRight: spacing.md }}>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    typography.overline,
+                    {
+                      color: "rgba(255,255,255,0.7)",
+                      letterSpacing: 1.4,
+                      fontFamily: fontFamily.displayBold,
+                    },
+                  ]}
+                >
+                  {headerDate}
+                </Text>
 
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-                style={[
-                  typography.display.lg,
-                  {
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  style={{
                     color: "#FFFFFF",
-                    fontSize: 36,
-                    lineHeight: 42,
-                    letterSpacing: -0.6,
+                    fontSize: 34,
+                    lineHeight: 40,
+                    letterSpacing: -0.8,
                     fontWeight: "800",
                     marginTop: 4,
                     fontFamily: fontFamily.displayBold,
-                  },
-                ]}
-              >
-                {firstName}
-              </Text>
-
-              {wellnessData?.topTip ? (
-                <Text
-                  style={{
-                    color: "rgba(255, 255, 255, 0.85)",
-                    fontSize: 14,
-                    lineHeight: 20,
-                    marginTop: 8,
-                    fontStyle: "italic",
-                    fontFamily: fontFamily.body,
                   }}
                 >
-                  "{wellnessData.topTip}"
+                  {firstName}
                 </Text>
-              ) : (
-                <Text
-                  style={{
-                    color: "rgba(255, 255, 255, 0.8)",
-                    fontSize: 14,
-                    lineHeight: 20,
-                    marginTop: 8,
-                    fontFamily: fontFamily.body,
-                  }}
-                >
-                  {t("home.welcomeDefault")}
-                </Text>
-              )}
-            </View>
 
-            <View style={{ alignItems: "center", justifyContent: "center" }}>
-              <DoseRing
-                value={adherence / 100}
-                size={96}
-                tone="primary"
-                label={`${adherence}%`}
-                sublabel={t("home.doses")}
-                centerColor="rgba(255, 255, 255, 0.08)"
-              />
-            </View>
-          </View>
+                {wellnessData?.topTip ? (
+                  <Text
+                    numberOfLines={2}
+                    style={{
+                      color: "rgba(255, 255, 255, 0.85)",
+                      fontSize: 13,
+                      lineHeight: 19,
+                      marginTop: 6,
+                      fontFamily: fontFamily.body,
+                    }}
+                  >
+                    "{wellnessData.topTip}"
+                  </Text>
+                ) : (
+                  <Text
+                    numberOfLines={2}
+                    style={{
+                      color: "rgba(255, 255, 255, 0.8)",
+                      fontSize: 13,
+                      lineHeight: 19,
+                      marginTop: 6,
+                      fontFamily: fontFamily.body,
+                    }}
+                  >
+                    {t("home.welcomeDefault")}
+                  </Text>
+                )}
+              </View>
 
-          {(nextMed || appointments[0]) && (
-            <View
-              style={{
-                marginTop: spacing.lg,
-                padding: spacing.md + 2,
-                borderRadius: radius.xl,
-                backgroundColor: "rgba(255, 255, 255, 0.12)",
-                borderWidth: 1,
-                borderColor: "rgba(255, 255, 255, 0.12)",
-              }}
-            >
-              <Text
+              {/* Premium gradient ring with glow */}
+              <View
                 style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  color: "rgba(255, 255, 255, 0.65)",
-                  letterSpacing: 1.2,
-                  marginBottom: 8,
-                  fontFamily: fontFamily.displayBold,
+                  width: 96,
+                  height: 96,
+                  borderRadius: 48,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#38BDF8",
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.6,
+                  shadowRadius: 14,
+                  elevation: 8,
                 }}
               >
-                {t("home.upcomingTodayLabel")}
-              </Text>
-
-              {nextMed && (
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: appointments[0] ? 8 : 0,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      backgroundColor: "rgba(255, 255, 255, 0.15)",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Pill size={13} color="#FFFFFF" />
-                  </View>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontSize: 14,
-                      color: "#FFFFFF",
-                      fontWeight: "600",
-                      fontFamily: fontFamily.bodySemibold,
-                    }}
-                  >
-                    {nextMed.name} · {nextMed.timing}
-                  </Text>
-                </View>
-              )}
-
-              {appointments[0] && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <View
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      backgroundColor: "rgba(255, 255, 255, 0.15)",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Clock size={13} color="#FFFFFF" />
-                  </View>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontSize: 14,
-                      color: "#FFFFFF",
-                      fontWeight: "600",
-                      fontFamily: fontFamily.bodySemibold,
-                    }}
-                  >
-                    {t("home.doctorAt", {
-                      name: appointments[0].doctorName,
-                      time: appointments[0].time,
-                    })}
-                  </Text>
-                </View>
-              )}
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 48,
+                    borderWidth: 2,
+                    borderColor: "rgba(255,255,255,0.18)",
+                  } as any}
+                />
+                <DoseRing
+                  value={adherence / 100}
+                  size={92}
+                  tone="primary"
+                  label={`${adherence}%`}
+                  sublabel={t("home.doses")}
+                  centerColor="rgba(255, 255, 255, 0.08)"
+                />
+              </View>
             </View>
-          )}
 
-          <View
-            style={{
-              flexDirection: "row",
-              gap: spacing.xs,
-              marginTop: spacing.lg,
-              flexWrap: "wrap",
-            }}
-          >
-            <HeroChip
-              label={
-                patient?.bloodGroup
-                  ? t("home.bloodChip", { group: patient.bloodGroup })
-                  : t("home.bloodEmpty")
-              }
-            />
-            <HeroChip label={bmi ? `${bmi} BMI` : t("home.bmiEmpty")} />
-            <HeroChip
-              label={
-                unread?.count
-                  ? t("home.alerts", { count: unread.count })
-                  : t("home.noAlerts")
-              }
-              dot={!unread?.count}
-            />
+            {/* Glassmorphism "Upcoming today" panel */}
+            {(nextMed || appointments[0]) && (
+              <View
+                style={{
+                  marginTop: spacing.lg,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.18)",
+                }}
+              >
+                {Platform.OS === "ios" ? (
+                  <BlurView
+                    intensity={30}
+                    tint="dark"
+                    style={StyleSheet.absoluteFill}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      { backgroundColor: "rgba(255,255,255,0.12)" },
+                    ]}
+                  />
+                )}
+                <View style={{ padding: spacing.md + 2 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: "#34D399",
+                        shadowColor: "#34D399",
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.8,
+                        shadowRadius: 4,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: "800",
+                        color: "rgba(255, 255, 255, 0.85)",
+                        letterSpacing: 1.4,
+                        fontFamily: fontFamily.displayBold,
+                      }}
+                    >
+                      {t("home.upcomingTodayLabel")}
+                    </Text>
+                  </View>
+
+                  {nextMed && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        marginBottom: appointments[0] ? 8 : 0,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 9,
+                          backgroundColor: "rgba(255, 255, 255, 0.18)",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Pill size={14} color="#FFFFFF" strokeWidth={2.5} />
+                      </View>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          flex: 1,
+                          fontSize: 13.5,
+                          color: "#FFFFFF",
+                          fontWeight: "600",
+                          fontFamily: fontFamily.bodySemibold,
+                        }}
+                      >
+                        {nextMed.name}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 11.5,
+                          color: "rgba(255,255,255,0.75)",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {nextMed.timing}
+                      </Text>
+                    </View>
+                  )}
+
+                  {appointments[0] && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 9,
+                          backgroundColor: "rgba(255, 255, 255, 0.18)",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Clock size={14} color="#FFFFFF" strokeWidth={2.5} />
+                      </View>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          flex: 1,
+                          fontSize: 13.5,
+                          color: "#FFFFFF",
+                          fontWeight: "600",
+                          fontFamily: fontFamily.bodySemibold,
+                        }}
+                      >
+                        {t("home.doctorAt", {
+                          name: appointments[0].doctorName,
+                          time: appointments[0].time,
+                        })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Glass pills row */}
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 6,
+                marginTop: spacing.md,
+                flexWrap: "wrap",
+              }}
+            >
+              <GlassPill
+                label={
+                  patient?.bloodGroup
+                    ? t("home.bloodChip", { group: patient.bloodGroup })
+                    : t("home.bloodEmpty")
+                }
+              />
+              <GlassPill label={bmi ? `${bmi} BMI` : t("home.bmiEmpty")} />
+              <GlassPill
+                label={
+                  unread?.count
+                    ? t("home.alerts", { count: unread.count })
+                    : t("home.noAlerts")
+                }
+                dot={!unread?.count}
+              />
+            </View>
           </View>
         </View>
 
@@ -612,6 +783,7 @@ export default function HomeScreen() {
             gap: spacing.xl,
           }}
         >
+          {/* Quick Actions */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel title={t("home.sectionQuickActions")} />
             <View style={{ flexDirection: "row", gap: spacing.md }}>
@@ -644,84 +816,155 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {/* AI Section (premium dark) */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel title={t("home.sectionAi")} />
-            <Card padded={false}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.sm,
-                  padding: spacing.md,
-                }}
+            <View
+              style={{
+                borderRadius: 28,
+                overflow: "hidden",
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.06,
+                shadowRadius: 16,
+                elevation: 3,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <LinearGradient
+                colors={["#FFFFFF", "#F0F7FF"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ padding: spacing.lg, position: "relative" }}
               >
+                {/* Subtle blue glow orbs */}
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    backgroundColor: colors.accentSoft,
+                    position: "absolute",
+                    top: -80,
+                    right: -40,
+                    width: 220,
+                    height: 220,
+                    borderRadius: 110,
+                    backgroundColor: "rgba(56, 189, 248, 0.12)",
+                  }}
+                />
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: -90,
+                    left: -30,
+                    width: 200,
+                    height: 200,
+                    borderRadius: 100,
+                    backgroundColor: "rgba(99, 102, 241, 0.08)",
+                  }}
+                />
+
+                <View
+                  style={{
+                    flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "center",
+                    gap: spacing.sm,
+                    position: "relative",
                   }}
                 >
-                  <Sparkles size={20} color={colors.accent} strokeWidth={2.25} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    numberOfLines={1}
-                    style={[typography.title.sm, { color: colors.text }]}
+                  <View
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 14,
+                      backgroundColor: colors.primary,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      shadowColor: colors.primary,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                      elevation: 4,
+                    }}
                   >
-                    {t("home.aiTitle")}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      typography.caption,
-                      { color: colors.textMuted, marginTop: 2 },
-                    ]}
-                  >
-                    {t("home.aiSubtitle")}
-                  </Text>
+                    <LinearGradient
+                      colors={[colors.primary, "#1D4ED8"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <Sparkles size={20} color="#FFFFFF" strokeWidth={2.5} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "800",
+                        color: colors.text,
+                        letterSpacing: -0.2,
+                        fontFamily: fontFamily.displayBold,
+                      }}
+                    >
+                      {t("home.aiTitle")}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: 12,
+                        color: colors.textMuted,
+                        marginTop: 1,
+                        fontWeight: "500",
+                      }}
+                    >
+                      {t("home.aiSubtitle")}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              <View
-                style={{ height: 1, backgroundColor: colors.border, marginHorizontal: spacing.md }}
-              />
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: spacing.sm,
-                  padding: spacing.md,
-                }}
-              >
-                <QuickTile
-                  icon={MessageSquare}
-                  label={t("home.aiChat")}
-                  tone="accent"
-                  onPress={() => router.push("/(app)/ai/chat")}
+
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: colors.border,
+                    marginVertical: spacing.md,
+                  }}
                 />
-                <QuickTile
-                  icon={Sparkles}
-                  label={t("home.aiSummary")}
-                  tone="primary"
-                  onPress={() => router.push("/(app)/ai/summary")}
-                />
-                <QuickTile
-                  icon={ScanText}
-                  label={t("home.aiLabExplain")}
-                  tone="info"
-                  onPress={() => router.push("/(app)/ai/lab-explain")}
-                />
-                <QuickTile
-                  icon={Pill}
-                  label={t("home.aiDrugCheck")}
-                  tone="warning"
-                  onPress={() => router.push("/(app)/ai/drug-check")}
-                />
-              </View>
-            </Card>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: spacing.sm,
+                  }}
+                >
+                  <AiTile
+                    icon={MessageSquare}
+                    label={t("home.aiChat")}
+                    iconColor="#2563EB"
+                    iconBg="#EFF6FF"
+                    onPress={() => router.push("/(app)/ai/chat")}
+                  />
+                  <AiTile
+                    icon={Sparkles}
+                    label={t("home.aiSummary")}
+                    iconColor="#0284C7"
+                    iconBg="#F0F9FF"
+                    onPress={() => router.push("/(app)/ai/summary")}
+                  />
+                  <AiTile
+                    icon={ScanText}
+                    label={t("home.aiLabExplain")}
+                    iconColor="#0D9488"
+                    iconBg="#F0FDFA"
+                    onPress={() => router.push("/(app)/ai/lab-explain")}
+                  />
+                  <AiTile
+                    icon={Pill}
+                    label={t("home.aiDrugCheck")}
+                    iconColor="#4F46E5"
+                    iconBg="#EEF2FF"
+                  />
+                </View>
+              </LinearGradient>
+            </View>
             <Button
               title={t("home.aiOcrButton")}
               icon={FileSearch}
@@ -732,13 +975,111 @@ export default function HomeScreen() {
             />
           </View>
 
+          {/* Up next (premium gradient) */}
           {nextMed ? (
-            <UpNextCard
-              med={nextMed}
+            <Pressable
               onPress={() => router.push("/(app)/medicines")}
-            />
+              accessibilityRole="button"
+              accessibilityLabel={t("home.a11y.upNextMedicine")}
+              style={({ pressed }) => ({
+                borderRadius: 22,
+                overflow: "hidden",
+                opacity: pressed ? 0.95 : 1,
+                shadowColor: "#0EA5E9",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.18,
+                shadowRadius: 16,
+                elevation: 4,
+              })}
+            >
+              <LinearGradient
+                colors={["#E0F2FE", "#BAE6FD"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.md,
+                  padding: spacing.md,
+                }}
+              >
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 16,
+                    backgroundColor: "#0EA5E9",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: "#0EA5E9",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 8,
+                  }}
+                >
+                  <LinearGradient
+                    colors={["#38BDF8", "#0284C7"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <Clock size={22} color="#FFFFFF" strokeWidth={2.5} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "800",
+                      color: "#0369A1",
+                      letterSpacing: 1.3,
+                      fontFamily: fontFamily.displayBold,
+                    }}
+                  >
+                    {t("home.upNextLabel")}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 15,
+                      color: "#0C4A6E",
+                      marginTop: 2,
+                      fontWeight: "800",
+                      letterSpacing: -0.2,
+                    }}
+                  >
+                    {nextMed?.name ?? t("home.fallbackMed")}
+                    {nextMed?.dosage ? ` ${nextMed.dosage}` : ""}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 11.5,
+                      color: "#0369A1",
+                      opacity: 0.7,
+                      marginTop: 1,
+                    }}
+                  >
+                    {nextMed?.notes ?? nextMed?.timing ?? t("home.tapToView")}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#FFFFFF",
+                  }}
+                >
+                  <ChevronRight size={16} color="#0284C7" strokeWidth={2.5} />
+                </View>
+              </LinearGradient>
+            </Pressable>
           ) : null}
 
+          {/* Schedule */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel
               title={t("home.sectionSchedule")}
@@ -755,9 +1096,9 @@ export default function HomeScreen() {
             {medsLoading ? (
               <Card>
                 <View style={{ flexDirection: "row", gap: spacing.md }}>
-                  <Skeleton width={140} height={140} radius={radius.xl} />
-                  <Skeleton width={140} height={140} radius={radius.xl} />
-                  <Skeleton width={140} height={140} radius={radius.xl} />
+                  <Skeleton width={130} height={130} radius={radius.xl} />
+                  <Skeleton width={130} height={130} radius={radius.xl} />
+                  <Skeleton width={130} height={130} radius={radius.xl} />
                 </View>
               </Card>
             ) : totalMeds === 0 ? (
@@ -790,11 +1131,13 @@ export default function HomeScreen() {
             )}
           </View>
 
+          {/* Wellness */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel title={t("home.sectionWellness")} />
             <WellnessCard />
           </View>
 
+          {/* Coming up */}
           {appointments.length > 0 ? (
             <View style={{ gap: spacing.sm }}>
               <SectionLabel
@@ -804,33 +1147,23 @@ export default function HomeScreen() {
                   onPress: () => router.push("/(app)/appointments"),
                 }}
               />
-              <View
-                style={{
-                  marginLeft: spacing.md,
-                  paddingLeft: spacing.md,
-                  gap: spacing.xs,
-                }}
-              >
-                {apptsLoading
-                  ? [0, 1].map((i) => (
-                      <View key={i}>
-                        <Card>
-                          <View style={{ gap: spacing.sm }}>
-                            <Skeleton width="70%" height={16} />
-                            <Skeleton width="55%" height={14} />
-                          </View>
-                        </Card>
-                      </View>
-                    ))
-                  : appointments.slice(0, 4).map((a: any, idx: number) => (
-                      <AppointmentTimelineRow
-                        key={a.id ?? `a-${idx}`}
-                        item={a}
-                        isFirst={idx === 0}
-                        isLast={idx === Math.min(appointments.length, 4) - 1}
-                      />
-                    ))}
-              </View>
+              {apptsLoading
+                ? [0, 1].map((i) => (
+                    <View key={i}>
+                      <Card>
+                        <View style={{ gap: spacing.sm }}>
+                          <Skeleton width="70%" height={16} />
+                          <Skeleton width="55%" height={14} />
+                        </View>
+                      </Card>
+                    </View>
+                  ))
+                : appointments.slice(0, 4).map((a: any, idx: number) => (
+                    <AppointmentTimelineRow
+                      key={a.id ?? `a-${idx}`}
+                      item={a}
+                    />
+                  ))}
             </View>
           ) : null}
 
@@ -941,7 +1274,8 @@ export default function HomeScreen() {
   );
 }
 
-function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
+// ─── Glassmorphism pill used in hero ─────────────────────────────────────
+function GlassPill({ label, dot }: { label: string; dot?: boolean }) {
   const { spacing, typography } = useTheme();
   return (
     <View
@@ -952,16 +1286,22 @@ function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
         paddingHorizontal: spacing.md,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.18)",
+        backgroundColor: "rgba(255,255,255,0.14)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.16)",
       }}
     >
       {dot ? (
         <View
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
+            width: 7,
+            height: 7,
+            borderRadius: 3.5,
             backgroundColor: "#34D399",
+            shadowColor: "#34D399",
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.8,
+            shadowRadius: 4,
           }}
         />
       ) : null}
@@ -978,6 +1318,7 @@ function HeroChip({ label, dot }: { label: string; dot?: boolean }) {
   );
 }
 
+// ─── Section heading ────────────────────────────────────────────────────
 function SectionLabel({
   title,
   action,
@@ -999,7 +1340,7 @@ function SectionLabel({
         numberOfLines={1}
         style={[
           typography.overline,
-          { color: colors.textMuted, letterSpacing: 1.2 },
+          { color: colors.textSubtle, letterSpacing: 1.4, fontWeight: "700" },
         ]}
       >
         {title.toUpperCase()}
@@ -1011,7 +1352,7 @@ function SectionLabel({
           accessibilityRole="link"
           accessibilityLabel={action.label}
         >
-          <Text style={[typography.label.md, { color: colors.primary }]}>
+          <Text style={[typography.label.md, { color: colors.primary, fontWeight: "700" }]}>
             {action.label}
           </Text>
         </Pressable>
@@ -1020,6 +1361,7 @@ function SectionLabel({
   );
 }
 
+// ─── Quick action tile (premium) ────────────────────────────────────────
 function QuickTile({
   icon: Icon,
   label,
@@ -1031,7 +1373,7 @@ function QuickTile({
   tone: Tone;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, shadow: themeShadow } = useTheme();
   const palette = useTone(tone);
 
   const isEmergency = tone === "danger";
@@ -1047,26 +1389,43 @@ function QuickTile({
         flexBasis: "48%",
         flexGrow: 1,
         padding: spacing.md,
-        borderRadius: radius.xl,
+        borderRadius: 22,
         backgroundColor: palette.bg,
         opacity: pressed ? 0.85 : 1,
-        minHeight: 104,
+        minHeight: 108,
         justifyContent: "space-between",
         gap: spacing.md,
+        borderWidth: 1,
+        borderColor: palette.bg === colors.surfaceMuted ? colors.border : "transparent",
+        overflow: "hidden",
+        position: "relative",
+        ...themeShadow.sm,
       })}
     >
+      {/* Subtle inner highlight — gives the tile a 3D feel */}
       <View
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: "#FFFFFF",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 1,
+          backgroundColor: "rgba(255,255,255,0.5)",
+        }}
+      />
+
+      <View
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 13,
           alignItems: "center",
           justifyContent: "center",
           alignSelf: "flex-start",
+          backgroundColor: "#FFFFFF",
         }}
       >
-        <Icon size={18} color={palette.fg} strokeWidth={2.25} />
+        <Icon size={18} color={palette.fg} strokeWidth={2.5} />
       </View>
 
       <View
@@ -1085,6 +1444,7 @@ function QuickTile({
               color: labelColor,
               fontWeight: "700",
               flex: 1,
+              letterSpacing: -0.1,
             },
           ]}
         >
@@ -1096,93 +1456,74 @@ function QuickTile({
   );
 }
 
-function UpNextCard({
-  med,
+// ─── AI section tile (light theme white and blue) ───────────────────────
+function AiTile({
+  icon: Icon,
+  label,
+  iconColor = "#3B82F6",
+  iconBg = "rgba(59, 130, 246, 0.1)",
   onPress,
 }: {
-  med: any;
+  icon: any;
+  label: string;
+  iconColor?: string;
+  iconBg?: string;
   onPress: () => void;
 }) {
-  const { t } = useTranslation();
-  const { colors, spacing, radius, typography, fontFamily } = useTheme();
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t("home.a11y.upNextMedicine")}
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flexBasis: "48%",
+        flexGrow: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 16,
+        backgroundColor: pressed ? "#F0F7FF" : "#FFFFFF",
+        borderWidth: 1,
+        borderColor: pressed ? "#93C5FD" : colors.border,
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 4,
+        elevation: 1,
+      })}
     >
       <View
         style={{
-          flexDirection: "row",
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          backgroundColor: iconBg,
           alignItems: "center",
-          gap: spacing.md,
-          padding: spacing.md,
-          borderRadius: radius.xl,
-          backgroundColor: colors.primarySoft,
-          borderLeftWidth: 4,
-          borderLeftColor: colors.primary,
-          overflow: "hidden",
+          justifyContent: "center",
         }}
       >
-        <View
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.primary,
-          }}
-        >
-          <Clock size={22} color="#FFFFFF" strokeWidth={2.25} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={[
-              typography.overline,
-              { color: colors.primary, letterSpacing: 1.2, fontFamily: fontFamily.displayBold },
-            ]}
-          >
-            {t("home.upNextLabel")}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={[
-              typography.title.md,
-              { color: colors.text, marginTop: 2, fontWeight: "800" },
-            ]}
-          >
-            {med?.name ?? t("home.fallbackMed")}
-            {med?.dosage ? ` ${med.dosage}` : ""}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={[
-              typography.body.sm,
-              { color: colors.textMuted, marginTop: 2 },
-            ]}
-          >
-            {med?.notes ?? med?.timing ?? t("home.tapToView")}
-          </Text>
-        </View>
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.surface,
-          }}
-        >
-          <ChevronRight size={18} color={colors.primary} strokeWidth={2.5} />
-        </View>
+        <Icon size={15} color={iconColor} strokeWidth={2.5} />
       </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 13,
+          fontWeight: "600",
+          color: colors.text,
+          letterSpacing: -0.1,
+          flex: 1,
+        }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
+// ─── Schedule card with color-coded accent ─────────────────────────────
 function ScheduleCard({
   meta,
   items,
@@ -1191,42 +1532,105 @@ function ScheduleCard({
   items: any[];
 }) {
   const { t } = useTranslation();
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, shadow: themeShadow } = useTheme();
+  const key = (meta.tone === "accent" ? "afternoon"
+              : meta.tone === "accent2" ? "evening"
+              : meta.tone === "info" ? "night"
+              : "morning") as TimingKey;
+  const accent = PERIOD_ACCENT[key];
+
   return (
     <View
       style={{
-        width: 140,
-        paddingVertical: spacing.md,
-        paddingHorizontal: spacing.md,
-        borderRadius: radius.xl,
-        backgroundColor: colors.primarySoft,
+        width: 130,
+        paddingTop: 14,
+        paddingBottom: 14,
+        paddingHorizontal: 14,
+        borderRadius: 22,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
         alignItems: "center",
-        gap: spacing.xs,
+        gap: 4,
+        position: "relative",
+        overflow: "hidden",
+        ...themeShadow.sm,
       }}
     >
-      <Text
-        numberOfLines={1}
-        style={[
-          typography.label.md,
-          { color: colors.primary, fontWeight: "700" },
-        ]}
-      >
-        {meta.label}
-      </Text>
-      <DoseRing
-        value={0}
-        size={84}
-        tone="primary"
-        label={`${items.length}`}
-        sublabel={t("home.medsSub")}
-        centerColor={colors.primarySoft}
+      {/* Color accent strip on top */}
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          backgroundColor: accent.color,
+        }}
       />
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        <View
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: accent.color,
+          }}
+        />
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 10.5,
+            fontWeight: "800",
+            color: accent.color,
+            textTransform: "uppercase",
+            letterSpacing: 0.6,
+          }}
+        >
+          {meta.label}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          marginTop: 4,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: 3,
+          borderColor: accent.soft,
+          backgroundColor: accent.soft,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: "800",
+            color: accent.color,
+            letterSpacing: -0.5,
+          }}
+        >
+          {items.length}
+        </Text>
+      </View>
+
       <Text
         numberOfLines={1}
-        style={[
-          typography.caption,
-          { color: colors.textMuted, fontWeight: "600" },
-        ]}
+        style={{
+          fontSize: 10.5,
+          color: colors.textMuted,
+          fontWeight: "600",
+          marginTop: 2,
+        }}
       >
         {t("home.dose", { count: items.length })}
       </Text>
@@ -1234,6 +1638,7 @@ function ScheduleCard({
   );
 }
 
+// ─── Wellness bar (gradient) ───────────────────────────────────────────
 function WellnessBar({
   label,
   score,
@@ -1245,11 +1650,21 @@ function WellnessBar({
   max: number;
   tone: Tone;
 }) {
-  const { colors, typography, spacing } = useTheme();
+  const { colors, typography, spacing, radius } = useTheme();
   const p = useTone(tone);
   const pct = max > 0 ? (score / max) * 100 : 0;
+
+  const gradient: [string, string] = (() => {
+    if (tone === "accent") return ["#38BDF8", "#0284C7"];
+    if (tone === "warning") return ["#FBBF24", "#F59E0B"];
+    if (tone === "info") return ["#67E8F9", "#22D3EE"];
+    if (tone === "danger") return ["#FCA5A5", "#EF4444"];
+    if (tone === "success") return ["#34D399", "#10B981"];
+    return ["#38BDF8", "#0EA5E9"];
+  })();
+
   return (
-    <View style={{ gap: 4 }}>
+    <View style={{ gap: 6 }}>
       <View
         style={{
           flexDirection: "row",
@@ -1285,11 +1700,13 @@ function WellnessBar({
           overflow: "hidden",
         }}
       >
-        <View
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
           style={{
             width: `${pct}%`,
             height: "100%",
-            backgroundColor: p.fg,
             borderRadius: 4,
           }}
         />
@@ -1306,10 +1723,11 @@ const COMPONENT_TONE: Record<string, Tone> = {
   engagement: "success",
 };
 
+// ─── Wellness card (premium — conic-style ring via gradient) ───────────
 function WellnessCard() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, radius, shadow: themeShadow } = useTheme();
   const { data, isLoading } = useWellness();
   const tone: Tone = data?.level?.tone ?? "info";
   const palette = useTone(tone);
@@ -1318,7 +1736,7 @@ function WellnessCard() {
     return (
       <Card style={{ padding: spacing.lg, gap: spacing.md }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-          <Skeleton width={72} height={72} radius={36} />
+          <Skeleton width={76} height={76} radius={38} />
           <View style={{ flex: 1, gap: spacing.xs }}>
             <Skeleton width="60%" height={18} />
             <Skeleton width="40%" height={14} />
@@ -1349,6 +1767,7 @@ function WellnessCard() {
           gap: spacing.lg,
           backgroundColor: colors.surface,
           borderColor: palette.bg,
+          ...themeShadow.md,
         }}
       >
         <View
@@ -1358,6 +1777,7 @@ function WellnessCard() {
             gap: spacing.md,
           }}
         >
+          {/* Conic-style score ring with glow */}
           <View
             style={{
               width: 80,
@@ -1365,8 +1785,13 @@ function WellnessCard() {
               borderRadius: 40,
               alignItems: "center",
               justifyContent: "center",
+              shadowColor: palette.fg,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.35,
+              shadowRadius: 12,
+              elevation: 6,
               backgroundColor: palette.bg,
-              borderWidth: 2,
+              borderWidth: 3,
               borderColor: palette.fg,
             }}
           >
@@ -1379,19 +1804,24 @@ function WellnessCard() {
                 {
                   color: palette.fg,
                   fontWeight: "800",
-                  fontSize: 30,
-                  lineHeight: 34,
+                  fontSize: 28,
+                  lineHeight: 32,
                   includeFontPadding: false,
+                  letterSpacing: -0.5,
                 },
               ]}
             >
               {score}
             </Text>
             <Text
-              style={[
-                typography.caption,
-                { color: palette.fg, fontWeight: "700", marginTop: -2 },
-              ]}
+              style={{
+                fontSize: 9,
+                color: palette.fg,
+                fontWeight: "800",
+                marginTop: -2,
+                letterSpacing: 0.4,
+                opacity: 0.7,
+              }}
             >
               / 100
             </Text>
@@ -1405,17 +1835,26 @@ function WellnessCard() {
                 gap: spacing.xs,
               }}
             >
-              <HeartPulse size={14} color={palette.fg} strokeWidth={2.25} />
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 7,
+                  backgroundColor: palette.bg,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <HeartPulse size={12} color={palette.fg} strokeWidth={2.5} />
+              </View>
               <Text
                 numberOfLines={1}
-                style={[
-                  typography.overline,
-                  {
-                    color: palette.fg,
-                    letterSpacing: 1.2,
-                    fontWeight: "700",
-                  },
-                ]}
+                style={{
+                  fontSize: 10.5,
+                  color: palette.fg,
+                  letterSpacing: 1.3,
+                  fontWeight: "800",
+                }}
               >
                 {data.level?.label?.toUpperCase() ?? t("home.wellnessDefault")}
               </Text>
@@ -1424,7 +1863,7 @@ function WellnessCard() {
               numberOfLines={2}
               style={[
                 typography.title.md,
-                { color: colors.text, fontWeight: "800", fontSize: 17 },
+                { color: colors.text, fontWeight: "800", fontSize: 17, letterSpacing: -0.3 },
               ]}
             >
               {score >= 75
@@ -1433,8 +1872,8 @@ function WellnessCard() {
                 ? t("home.wellnessRoomToImprove")
                 : t("home.wellnessBackOnTrack")}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Trend size={12} color={colors.textMuted} strokeWidth={2.25} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Trend size={12} color={colors.textMuted} strokeWidth={2.5} />
               <Text
                 numberOfLines={1}
                 style={[typography.caption, { color: colors.textMuted, flex: 1 }]}
@@ -1472,7 +1911,7 @@ function WellnessCard() {
               borderColor: `${palette.fg}33`,
             }}
           >
-            <Sparkles size={16} color={palette.fg} strokeWidth={2.25} />
+            <Sparkles size={16} color={palette.fg} strokeWidth={2.5} />
             <Text
               style={[
                 typography.body.sm,
@@ -1561,18 +2000,18 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
   );
 }
 
+// ─── Appointment card with date stamp ──────────────────────────────────
 function AppointmentTimelineRow({
   item,
-  isLast,
 }: {
   item: any;
-  isLast: boolean;
-  isFirst: boolean;
+  isLast?: boolean;
+  isFirst?: boolean;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, radius, shadow: themeShadow } = useTheme();
   const dateLabel = item?.date ? formatDate(t, locale, item.date) : "—";
   const timeLabel = item?.time ? formatClock(item.time) : "";
 
@@ -1587,92 +2026,123 @@ function AppointmentTimelineRow({
     dateLabel === t("home.dateToday") ||
     dateLabel === t("home.dateTomorrow");
 
+  // Parse day + month for the date stamp
+  let dayNum = "—";
+  let monTxt = "";
+  if (item?.date) {
+    try {
+      const d = new Date(item.date);
+      if (!isNaN(d.getTime())) {
+        dayNum = String(d.getDate());
+        monTxt = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+      }
+    } catch {}
+  }
+
   return (
-    <View
-      style={{
-        paddingBottom: spacing.sm,
-      }}
+    <Pressable
+      onPress={() => router.push("/(app)/appointments")}
+      accessibilityRole="button"
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.95 : 1,
+        borderRadius: 18,
+        ...(pressed ? { backgroundColor: colors.surfaceMuted } : null),
+      })}
     >
-      <Pressable
-        onPress={() => router.push("/(app)/appointments")}
-        accessibilityRole="button"
-        style={({ pressed }) => ({
-          paddingVertical: spacing.sm,
-          paddingHorizontal: spacing.md,
-          borderRadius: 14,
-          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          padding: 14,
+          borderRadius: 18,
+          backgroundColor: colors.surface,
           borderWidth: 1,
           borderColor: colors.border,
-        })}
+          ...themeShadow.sm,
+        }}
       >
-        <View
+        <LinearGradient
+          colors={isHighlightDate ? ["#E0F2FE", "#BAE6FD"] : ["#F1F5F9", "#E2E8F0"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            flexDirection: "row",
+            width: 52,
+            height: 56,
+            borderRadius: 14,
             alignItems: "center",
-            justifyContent: "space-between",
-            gap: spacing.sm,
+            justifyContent: "center",
           }}
         >
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              numberOfLines={1}
-              style={[
-                typography.title.sm,
-                { color: colors.text, fontWeight: "700" },
-              ]}
-            >
-              {title}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                typography.body.sm,
-                { color: colors.textMuted, marginTop: 2 },
-              ]}
-            >
-              {subLabel}
-            </Text>
-          </View>
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "800",
+              color: isHighlightDate ? "#0369A1" : colors.text,
+              lineHeight: 1,
+              letterSpacing: -0.5,
+            }}
+          >
+            {dayNum}
+          </Text>
+          <Text
+            style={{
+              fontSize: 9,
+              fontWeight: "800",
+              color: isHighlightDate ? "#0369A1" : colors.textMuted,
+              textTransform: "uppercase",
+              marginTop: 3,
+              letterSpacing: 0.6,
+            }}
+          >
+            {monTxt}
+          </Text>
+        </LinearGradient>
 
-          <View style={{ alignItems: "flex-end" }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            numberOfLines={1}
+            style={[
+              typography.title.sm,
+              { color: colors.text, fontWeight: "700", letterSpacing: -0.1 },
+            ]}
+          >
+            {title}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={[
+              typography.body.sm,
+              { color: colors.textMuted, marginTop: 2 },
+            ]}
+          >
+            {subLabel}
+          </Text>
+        </View>
+
+        {timeLabel ? (
+          <View
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 999,
+              backgroundColor: isHighlightDate ? colors.primarySoft : colors.surfaceMuted,
+            }}
+          >
             <Text
               numberOfLines={1}
-              style={[
-                typography.title.sm,
-                {
-                  color: isHighlightDate ? colors.primary : colors.text,
-                  fontWeight: "700",
-                },
-              ]}
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: isHighlightDate ? colors.primary : colors.text,
+              }}
             >
-              {dateLabel}
+              {timeLabel}
             </Text>
-            {timeLabel ? (
-              <Text
-                numberOfLines={1}
-                style={[
-                  typography.caption,
-                  { color: colors.textMuted, marginTop: 2 },
-                ]}
-              >
-                {timeLabel}
-              </Text>
-            ) : null}
           </View>
-        </View>
-      </Pressable>
-      {!isLast ? (
-        <View
-          style={{
-            width: 2,
-            height: spacing.sm,
-            backgroundColor: colors.border,
-            alignSelf: "flex-start",
-            marginLeft: spacing.md,
-          }}
-        />
-      ) : null}
-    </View>
+        ) : null}
+      </View>
+    </Pressable>
   );
 }
 

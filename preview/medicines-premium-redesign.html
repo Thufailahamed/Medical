@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Medicines — Premium Redesign Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #F5F8FC;
+    --surface: #FFFFFF;
+    --surface-muted: #F1F5F9;
+    --text: #0F172A;
+    --text-muted: #475569;
+    --text-subtle: #94A3B8;
+    --border: #E2E8F0;
+    --primary: #0284C7;
+    --primary-soft: #E0F2FE;
+    --success: #10B981;
+    --success-soft: #D1FAE5;
+    --warning: #D97706;
+    --warning-soft: #FEF3C7;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.08);
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body {
+    margin: 0; padding: 0;
+    background: linear-gradient(135deg, #F8FAFC 0%, #E0F2FE 100%);
+    font-family: 'Outfit', system-ui, sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .stage { display:flex; gap:56px; flex-wrap:wrap; align-items:flex-start; justify-content:center; }
+  .phone-frame {
+    width: 390px; min-height: 1500px;
+    background: #000;
+    border-radius: 56px;
+    padding: 12px;
+    box-shadow: 0 0 0 2px #1e293b, 0 30px 80px -10px rgba(15, 23, 42, 0.4);
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%; background: var(--bg);
+    border-radius: 44px; overflow: hidden;
+    padding-bottom: 60px;
+  }
+  .status-bar {
+    height: 50px; display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px 0; font-size: 15px; font-weight: 600;
+  }
+  .notch {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 32px; background: #000; border-radius: 20px; z-index: 10;
+  }
+  .content { padding: 0 20px; }
+
+  /* Header */
+  .header { display:flex; align-items:center; justify-content:space-between; padding: 8px 0 12px; }
+  .avatar-wrap { position:relative; }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 22px;
+    background: linear-gradient(135deg, #38BDF8, #0284C7);
+    display:flex; align-items:center; justify-content:center;
+    color: white; font-weight: 800; font-size: 16px;
+    border: 2px solid white; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  }
+  .avatar-dot {
+    position: absolute; bottom: -1px; right: -1px;
+    width: 14px; height: 14px; border-radius: 7px;
+    background: #10B981; border: 2.5px solid white;
+  }
+  .brand {
+    color: #0284C7; font-weight: 800; font-size: 17px;
+    letter-spacing: -0.3px;
+  }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 14px;
+    background: white; display:flex; align-items:center; justify-content:center;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .icon-btn.primary { background: #fff; color: var(--primary); }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .badge-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 8px; height: 8px; background: #DC2626;
+    border-radius: 4px; border: 1.5px solid white;
+  }
+  .icon-btn-wrap { position: relative; }
+
+  /* Hero */
+  .hero {
+    position: relative; border-radius: 32px; overflow: hidden;
+    padding: 28px 24px;
+    color: white; margin-bottom: 20px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.4) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(14, 165, 233, 0.5) 0%, transparent 50%),
+      linear-gradient(135deg, #0B2B64 0%, #0C5C8C 50%, #0C8B8C 100%);
+    box-shadow: 0 20px 50px -10px rgba(2, 132, 199, 0.4);
+  }
+  .hero::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: rgba(255,255,255,0.25);
+  }
+  .hero-row { display:flex; align-items:center; justify-content:space-between; }
+  .hero-left { flex: 1; }
+  .hero-overline {
+    font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,0.7);
+    text-transform: uppercase; letter-spacing: 1.4px;
+  }
+  .hero-pct {
+    color: white; font-size: 48px; font-weight: 800; line-height: 1;
+    letter-spacing: -1.5px; margin-top: 4px;
+  }
+  .hero-pct-suffix { color: rgba(255,255,255,0.7); font-size: 22px; font-weight: 700; }
+  .hero-sub { color: rgba(255,255,255,0.85); font-size: 14px; margin-top: 4px; font-weight: 500; }
+  .hero-icon {
+    width: 76px; height: 76px; border-radius: 24px;
+    background: rgba(255,255,255,0.12); backdrop-filter: blur(20px);
+    display:flex; align-items:center; justify-content:center;
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.4);
+  }
+  .hero-icon svg { width: 32px; height: 32px; color: white; }
+  .hero-glass {
+    margin-top: 20px; padding: 14px 16px; border-radius: 18px;
+    background: rgba(255,255,255,0.1); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .hero-glass-left { display:flex; align-items:center; gap: 10px; }
+  .hero-glass-icon {
+    width: 28px; height: 28px; border-radius: 9px;
+    background: rgba(56, 189, 248, 0.25);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .hero-glass-icon svg { width: 14px; height: 14px; color: #7DD3FC; }
+  .hero-glass-icon.green { background: rgba(52, 211, 153, 0.25); }
+  .hero-glass-icon.green svg { color: #34D399; }
+  .hero-glass-text { font-size: 13px; font-weight: 700; color: white; }
+  .hero-status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(56, 189, 248, 0.2);
+  }
+  .hero-status-pill.green { background: rgba(52, 211, 153, 0.22); }
+  .hero-status-pill svg { width: 12px; height: 12px; color: #7DD3FC; }
+  .hero-status-pill.green svg { color: #34D399; }
+  .hero-status-pill span { font-size: 10.5px; font-weight: 800; color: #7DD3FC; letter-spacing: 0.5px; }
+  .hero-status-pill.green span { color: #34D399; }
+
+  /* Tabs */
+  .tabs-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tab-pills {
+    flex: 1; display: flex;
+    background: var(--surface-muted);
+    border-radius: 14px; padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .tab-pill {
+    flex: 1; padding: 8px 12px; border-radius: 11px;
+    text-align: center; font-size: 13px; font-weight: 600;
+    color: var(--text-muted);
+  }
+  .tab-pill.active {
+    background: white; color: var(--primary); font-weight: 700;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+  }
+  .icon-action-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: white; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .icon-action-btn svg { width: 18px; height: 18px; color: var(--primary); }
+
+  /* Period section */
+  .period-section { margin-top: 24px; }
+  .period-head {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+  }
+  .period-icon {
+    width: 40px; height: 40px; border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.25);
+  }
+  .period-icon svg { width: 18px; height: 18px; color: white; }
+  .period-text { flex: 1; }
+  .period-title { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; }
+  .period-range { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .period-count {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .period-count-num { font-size: 11px; font-weight: 800; }
+  .period-count-unit { font-size: 10px; font-weight: 600; opacity: 0.7; }
+
+  /* Medicine card */
+  .med-card {
+    display: flex; align-items: center;
+    padding: 14px; border-radius: 20px;
+    background: white; border: 1px solid var(--border);
+    margin-bottom: 10px; position: relative;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .med-card.taken { border-color: var(--success-soft); }
+  .med-accent-bar {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+  }
+  .med-icon {
+    width: 48px; height: 48px; border-radius: 16px;
+    margin-left: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--primary-soft); border: 1px solid var(--primary);
+  }
+  .med-icon svg { width: 20px; height: 20px; color: var(--primary); }
+  .med-icon.taken { background: var(--success-soft); border-color: var(--success); }
+  .med-icon.taken svg { color: var(--success); }
+  .med-body { flex: 1; margin-left: 14px; min-width: 0; }
+  .med-name-row { display: flex; align-items: center; gap: 6px; }
+  .med-name {
+    font-size: 15px; font-weight: 800; color: var(--text);
+    letter-spacing: -0.2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .med-stopped-pill {
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--surface-muted); border: 1px solid var(--border);
+    font-size: 9.5px; font-weight: 800; color: var(--text-muted);
+    letter-spacing: 0.6px;
+  }
+  .med-subtitle {
+    font-size: 12.5px; color: var(--text-muted);
+    margin-top: 2px; font-weight: 500;
+  }
+  .med-action {
+    padding: 7px 12px; border-radius: 999px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .med-action.take { background: var(--primary-soft); border: 1px solid transparent; }
+  .med-action.take svg { color: var(--primary); }
+  .med-action.take span { color: var(--primary); }
+  .med-action.taken {
+    background: var(--success-soft); border: 1px solid var(--success);
+  }
+  .med-action.taken svg { color: var(--success); }
+  .med-action.taken span { color: var(--success); }
+  .med-action svg { width: 12px; height: 12px; }
+  .med-action span { font-size: 11.5px; font-weight: 800; letter-spacing: 0.3px; }
+  .med-chevron {
+    width: 32px; height: 32px; border-radius: 12px;
+    background: var(--surface-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .med-chevron svg { width: 16px; height: 16px; color: var(--text-muted); }
+
+  /* Period accent color combos */
+  .morning-icon { background: linear-gradient(135deg, #FBBF24, #F59E0B); }
+  .morning-count { background: #FEF3C7; }
+  .morning-count .period-count-num, .morning-count .period-count-unit { color: #92400E; }
+  .afternoon-icon { background: linear-gradient(135deg, #38BDF8, #0284C7); }
+  .afternoon-count { background: #E0F2FE; }
+  .afternoon-count .period-count-num, .afternoon-count .period-count-unit { color: #075985; }
+  .evening-icon { background: linear-gradient(135deg, #FF9670, #E85F3D); }
+  .evening-count { background: #FFE4D9; }
+  .evening-count .period-count-num, .evening-count .period-count-unit { color: #9A3412; }
+  .night-icon { background: linear-gradient(135deg, #818CF8, #4F46E5); }
+  .night-count { background: #E0E7FF; }
+  .night-count .period-count-num, .night-count .period-count-unit { color: #3730A3; }
+
+  /* Description */
+  .description { max-width: 380px; }
+  .description h1 {
+    font-size: 42px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.05;
+    margin: 0 0 16px;
+    background: linear-gradient(135deg, #0284C7 0%, #0EA5E9 50%, #6366F1 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .description p { font-size: 15px; line-height: 1.6; color: var(--text-muted); margin: 0 0 24px; }
+  .feature-list { list-style: none; padding: 0; margin: 0; }
+  .feature-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 12px; font-size: 13.5px; line-height: 1.5;
+  }
+  .check {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: white; display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .check svg { width: 12px; height: 12px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="description">
+    <h1>Medicines Page — Premium Redesign</h1>
+    <p>The medicines list upgraded with the same premium treatment. Same data, same business logic, but a much more polished visual layer. The functional structure (periods, mark-taken, options sheet) is preserved 1:1.</p>
+    <ul class="feature-list">
+      <li><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span><b>Adherence hero</b> — glassmorphism status panel + glow orbs</span></li>
+      <li><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span><b>Premium tab pills</b> — segmented control with sliding active state</span></li>
+      <li><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span><b>Color-coded periods</b> — morning/afternoon/evening/night each get a gradient + soft pill count</span></li>
+      <li><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span><b>Refined med cards</b> — color accent strip, larger icon, per-medicine hue</span></li>
+      <li><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span><b>Taken state</b> — green outline + check + label, instead of muted button</span></li>
+      <li><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span><b>Polished empty state</b> — gradient orbs + glowing pill icon + CTA</span></li>
+    </ul>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="status-bar">
+        <div class="notch"></div>
+        <span>9:41</span>
+        <div style="display:flex; align-items:center; gap:5px;">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2 22h20V11H2v11zm2-9h16v7H4v-7zm16-4V4h-2v5H2V4H0v7h22V9h-2z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- Header -->
+        <div class="header">
+          <div class="avatar-wrap">
+            <div class="avatar">T</div>
+            <div class="avatar-dot"></div>
+          </div>
+          <div class="brand">MedLocker</div>
+          <div class="header-actions">
+            <div class="icon-btn-wrap">
+              <div class="icon-btn primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </div>
+            </div>
+            <div class="icon-btn-wrap">
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <span class="badge-dot"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero -->
+        <div class="hero">
+          <div class="hero-row">
+            <div class="hero-left">
+              <div class="hero-overline">DAILY PROGRESS</div>
+              <div><span class="hero-pct">75</span><span class="hero-pct-suffix">%</span></div>
+              <div class="hero-sub">3 of 4 doses taken today</div>
+            </div>
+            <div class="hero-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.5 20.5a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/><path d="M8.5 8.5l7 7" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+          <div class="hero-glass">
+            <div class="hero-glass-left">
+              <div class="hero-glass-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l2 5h5l-4 3.5 1.5 5L12 14l-4.5 2.5L9 11.5 5 8h5l2-5z" stroke-linejoin="round"/></svg>
+              </div>
+              <span class="hero-glass-text">1 dose remaining</span>
+            </div>
+            <div class="hero-status-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 12 10 16 18 8" stroke-linecap="round"/></svg>
+              <span>ON TRACK</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-row">
+          <div class="tab-pills">
+            <div class="tab-pill active">Today</div>
+            <div class="tab-pill">Active</div>
+            <div class="tab-pill">All</div>
+          </div>
+          <div class="icon-action-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+
+        <!-- Morning -->
+        <div class="period-section">
+          <div class="period-head">
+            <div class="period-icon morning-icon" style="display:flex;align-items:center;justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M17 18a5 5 0 0 0-10 0M12 2v3M4.93 10.93l2.12 2.12M2 18h3M19.07 10.93l-2.12 2.12M22 18h-3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="period-text">
+              <div class="period-title">Morning</div>
+              <div class="period-range">06:00 – 11:00</div>
+            </div>
+            <div class="period-count morning-count">
+              <span class="period-count-num">2</span>
+              <span class="period-count-unit">meds</span>
+            </div>
+          </div>
+
+          <div class="med-card taken">
+            <div class="med-accent-bar" style="background:#10B981;"></div>
+            <div class="med-icon taken">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12" stroke-linecap="round"/></svg>
+            </div>
+            <div class="med-body">
+              <div class="med-name-row">
+                <span class="med-name">Metformin</span>
+              </div>
+              <div class="med-subtitle">500mg • Twice daily • 08:00</div>
+            </div>
+            <div class="med-action taken">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12" stroke-linecap="round"/></svg>
+              <span>TAKEN</span>
+            </div>
+          </div>
+
+          <div class="med-card">
+            <div class="med-accent-bar" style="background:#0284C7;"></div>
+            <div class="med-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.5 20.5a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/><path d="M8.5 8.5l7 7" stroke-linecap="round"/></svg>
+            </div>
+            <div class="med-body">
+              <div class="med-name-row">
+                <span class="med-name">Atorvastatin</span>
+              </div>
+              <div class="med-subtitle">20mg • Once daily • 09:00</div>
+            </div>
+            <div class="med-action take">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12" stroke-linecap="round"/></svg>
+              <span>MARK TAKEN</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Afternoon -->
+        <div class="period-section">
+          <div class="period-head">
+            <div class="period-icon afternoon-icon" style="display:flex;align-items:center;justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke-linecap="round"/></svg>
+            </div>
+            <div class="period-text">
+              <div class="period-title">Afternoon</div>
+              <div class="period-range">11:00 – 17:00</div>
+            </div>
+            <div class="period-count afternoon-count">
+              <span class="period-count-num">1</span>
+              <span class="period-count-unit">med</span>
+            </div>
+          </div>
+
+          <div class="med-card">
+            <div class="med-accent-bar" style="background:#0EA5E9;"></div>
+            <div class="med-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.5 20.5a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/><path d="M8.5 8.5l7 7" stroke-linecap="round"/></svg>
+            </div>
+            <div class="med-body">
+              <div class="med-name-row">
+                <span class="med-name">Vitamin D3</span>
+              </div>
+              <div class="med-subtitle">1000 IU • Once daily • 13:00</div>
+            </div>
+            <div class="med-action take">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12" stroke-linecap="round"/></svg>
+              <span>MARK TAKEN</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evening -->
+        <div class="period-section">
+          <div class="period-head">
+            <div class="period-icon evening-icon" style="display:flex;align-items:center;justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 10V2M5.5 5.5l3 3M2 10h3M18.5 5.5l-3 3" stroke-linecap="round"/><path d="M17 18a5 5 0 0 1-10 0"/></svg>
+            </div>
+            <div class="period-text">
+              <div class="period-title">Evening</div>
+              <div class="period-range">17:00 – 21:00</div>
+            </div>
+            <div class="period-count evening-count">
+              <span class="period-count-num">1</span>
+              <span class="period-count-unit">med</span>
+            </div>
+          </div>
+
+          <div class="med-card">
+            <div class="med-accent-bar" style="background:#FF7A59;"></div>
+            <div class="med-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.5 20.5a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/><path d="M8.5 8.5l7 7" stroke-linecap="round"/></svg>
+            </div>
+            <div class="med-body">
+              <div class="med-name-row">
+                <span class="med-name">Aspirin</span>
+              </div>
+              <div class="med-subtitle">75mg • Once daily • 20:00</div>
+            </div>
+            <div class="med-action take">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12" stroke-linecap="round"/></svg>
+              <span>MARK TAKEN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

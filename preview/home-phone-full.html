@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phone — Full Content</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin:0; padding:0; background:#F5F8FC; font-family:'Outfit', system-ui, sans-serif; }
+  .wrap { display:flex; justify-content:center; padding:30px; }
+  .phone {
+    width: 390px;
+    min-height: 1880px;
+    background: #000;
+    border-radius: 56px;
+    padding: 12px;
+    box-shadow: 0 30px 80px -10px rgba(15, 23, 42, 0.4);
+    position: relative;
+  }
+  .screen {
+    width: 100%;
+    background: #F5F8FC;
+    border-radius: 44px;
+    overflow: hidden;
+    padding: 0 20px 30px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="phone"><div class="screen" id="screen"></div></div></div>
+<script>
+  fetch('/home-premium-redesign.html').then(r => r.text()).then(html => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const styleTags = doc.querySelectorAll('style');
+    let css = '';
+    styleTags.forEach(s => css += s.textContent);
+    const styleEl = document.createElement('style');
+    styleEl.textContent = css + `
+      body, html { background: transparent !important; }
+      .stage { gap:0 !important; padding:0 !important; align-items:flex-start !important; }
+      .description { display:none !important; }
+      .phone-frame { width:366px !important; height:auto !important; box-shadow:none !important; padding:0 !important; background:transparent !important; border-radius:0 !important; }
+      .phone-screen { width:100% !important; height:auto !important; border-radius:24px !important; }
+      .content { padding:0 4px 110px !important; }
+    `;
+    document.head.appendChild(styleEl);
+    const mainContent = doc.querySelector('.phone-screen');
+    document.getElementById('screen').innerHTML = mainContent.innerHTML;
+  });
+</script>
+</body>
+</html>
