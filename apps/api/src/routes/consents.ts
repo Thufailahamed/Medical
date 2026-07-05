@@ -23,7 +23,6 @@ import type { AppEnvironment } from "../types";
 const consents = new Hono<AppEnvironment>();
 
 consents.use("*", authMiddleware);
-consents.use("*", requireRole("patient"));
 
 function genId(): string {
   const c = crypto as unknown as { randomUUID?: () => string };
@@ -31,7 +30,7 @@ function genId(): string {
 }
 
 // POST /consents/ — patient issues
-consents.post("/", async (c) => {
+consents.post("/", requireRole("patient"), async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const body = await c.req.json().catch(() => ({}));
@@ -71,7 +70,7 @@ consents.post("/", async (c) => {
 });
 
 // GET /consents/me — grants I (patient) have issued
-consents.get("/me", async (c) => {
+consents.get("/me", requireRole("patient"), async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const [patient] = await db.select().from(patients).where(eq(patients.userId, userId)).limit(1);
@@ -112,11 +111,25 @@ consents.get("/issued", async (c) => {
         gt(consentGrants.expiresAt, new Date().toISOString()),
       ),
     );
-  return c.json({ items: rows });
+  return c.json({
+    items: rows.map((r: any) => ({
+      id: r.id,
+      patientId: r.patientId,
+      familyMemberId: r.familyMemberId,
+      grantedToUserId: r.grantedToUserId,
+      grantedToToken: r.grantedToToken,
+      purpose: r.purpose,
+      scope: safeParse(r.scopeJson, {}),
+      expiresAt: r.expiresAt,
+      revokedAt: r.revokedAt,
+      grantedAt: r.grantedAt,
+      label: r.label,
+    })),
+  });
 });
 
 // DELETE /consents/:id — patient revokes
-consents.delete("/:id", async (c) => {
+consents.delete("/:id", requireRole("patient"), async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const id = c.req.param("id");
@@ -142,7 +155,7 @@ consents.delete("/:id", async (c) => {
 });
 
 // GET /consents/audit — full patient timeline
-consents.get("/audit", async (c) => {
+consents.get("/audit", requireRole("patient"), async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const [patient] = await db.select().from(patients).where(eq(patients.userId, userId)).limit(1);

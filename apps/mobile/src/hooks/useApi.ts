@@ -3164,6 +3164,7 @@ export type DoctorConversation = {
   lastMessageSender: "doctor" | "patient" | null;
   doctorUnread: number;
   patientUnread: number;
+  status: "open" | "closed";
   createdAt: string;
 };
 
@@ -3261,6 +3262,101 @@ export function useMarkConversationRead(conversationId: string | undefined) {
         queryKey: ["doctor", "messages", "conversation", conversationId],
       });
       qc.invalidateQueries({ queryKey: ["doctor", "messages", "conversations"] });
+    },
+  });
+}
+
+export function useSetConversationStatus(conversationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (status: "open" | "closed") =>
+      api<{ ok: boolean; status: string }>(
+        `/doctor-messages/conversations/${conversationId}`,
+        { method: "PATCH", body: { status } }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["doctor", "messages", "conversation", conversationId],
+      });
+      qc.invalidateQueries({ queryKey: ["doctor", "messages", "conversations"] });
+    },
+  });
+}
+
+// ─── Patient Inbox / Messages ─────────────────────────────
+export type PatientConversation = {
+  id: string;
+  doctorId: string;
+  doctor: { id: string; userId: string; name: string; photo: string | null };
+  lastMessageAt: string;
+  lastMessagePreview: string | null;
+  lastMessageSender: "doctor" | "patient" | null;
+  patientUnread: number;
+  status: "open" | "closed";
+  createdAt: string;
+};
+
+export type PatientConversationsResponse = {
+  conversations: PatientConversation[];
+  totalUnread: number;
+};
+
+export type PatientConversationDetail = {
+  conversation: PatientConversation;
+  doctor: { id: string; userId: string; name: string; photo: string | null } | null;
+  messages: DoctorMessage[];
+};
+
+export function usePatientConversations() {
+  return useQuery({
+    queryKey: ["patient", "messages", "conversations"],
+    queryFn: () =>
+      apiWithRefresh<PatientConversationsResponse>("/patient-messages/conversations"),
+    refetchInterval: 20_000,
+  });
+}
+
+export function usePatientConversation(id: string | string[] | undefined) {
+  return useQuery({
+    queryKey: ["patient", "messages", "conversation", id],
+    queryFn: () =>
+      apiWithRefresh<PatientConversationDetail>(
+        `/patient-messages/conversations/${id}/messages`
+      ),
+    enabled: !!id,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useSendPatientMessage(conversationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      api<{ message: DoctorMessage }>(
+        `/patient-messages/conversations/${conversationId}/messages`,
+        { method: "POST", body: { body } }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["patient", "messages", "conversation", conversationId],
+      });
+      qc.invalidateQueries({ queryKey: ["patient", "messages", "conversations"] });
+    },
+  });
+}
+
+export function useMarkPatientConversationRead(conversationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiWithRefresh<PatientConversationDetail>(
+        `/patient-messages/conversations/${conversationId}/messages?markRead=true`
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["patient", "messages", "conversation", conversationId],
+      });
+      qc.invalidateQueries({ queryKey: ["patient", "messages", "conversations"] });
     },
   });
 }

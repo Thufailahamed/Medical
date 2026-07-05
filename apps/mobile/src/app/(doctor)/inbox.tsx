@@ -61,6 +61,7 @@ export default function InboxScreen() {
         .join("")
         .toUpperCase();
       const unread = item.doctorUnread || 0;
+      const isClosed = item.status === "closed";
       return (
         <Pressable
           onPress={() => router.push(`/(doctor)/inbox/${item.id}` as any)}
@@ -126,16 +127,24 @@ export default function InboxScreen() {
               >
                 {item.patient?.name || "Patient"}
               </Text>
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: unread > 0 ? colors.primary : colors.textSubtle,
-                  fontFamily: fontFamily.bodyBold,
-                  marginLeft: 8,
-                }}
-              >
-                {timeAgo(item.lastMessageAt, locale)}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 8 }}>
+                {isClosed && (
+                  <View style={{ backgroundColor: "#FEF3C7", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: "#92400E", fontFamily: fontFamily.bodyBold }}>
+                      Closed
+                    </Text>
+                  </View>
+                )}
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: unread > 0 ? colors.primary : colors.textSubtle,
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  {timeAgo(item.lastMessageAt, locale)}
+                </Text>
+              </View>
             </View>
             <View
               style={{

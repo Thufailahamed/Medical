@@ -221,6 +221,10 @@ export default function DoctorLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
+        name="records-v2"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
         name="earnings"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />

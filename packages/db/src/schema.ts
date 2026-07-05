@@ -1674,6 +1674,8 @@ export const messagesConversations = sqliteTable(
     lastMessageSender: text("last_message_sender"), // "doctor" | "patient"
     doctorUnread: integer("doctor_unread").notNull().default(0),
     patientUnread: integer("patient_unread").notNull().default(0),
+    // "open" = patient can reply; "closed" = doctor has ended the thread.
+    status: text("status").notNull().default("open"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),

@@ -48,6 +48,7 @@ doctorMessagesRouter.get("/conversations", async (c) => {
       lastMessageSender: messagesConversations.lastMessageSender,
       doctorUnread: messagesConversations.doctorUnread,
       patientUnread: messagesConversations.patientUnread,
+      status: messagesConversations.status,
       createdAt: messagesConversations.createdAt,
       patientUserId: patients.userId,
       patientName: users.name,
@@ -74,6 +75,7 @@ doctorMessagesRouter.get("/conversations", async (c) => {
       lastMessageSender: r.lastMessageSender,
       doctorUnread: r.doctorUnread,
       patientUnread: r.patientUnread,
+      status: r.status ?? "open",
       createdAt: r.createdAt,
     })),
     totalUnread,
@@ -213,7 +215,7 @@ doctorMessagesRouter.get("/conversations/:id/messages", async (c) => {
     .limit(1);
 
   return c.json({
-    conversation: { ...conv, doctorUnread: markRead ? 0 : conv.doctorUnread },
+    conversation: { ...conv, doctorUnread: markRead ? 0 : conv.doctorUnread, status: conv.status ?? "open" },
     patient: headerPatient
       ? {
           id: headerPatient.patient.id,
@@ -353,6 +355,41 @@ doctorMessagesRouter.post("/conversations/:id/read", async (c) => {
     );
 
   return c.json({ ok: true });
+});
+
+// ─── Close / Reopen conversation ─────────────────────────
+// PATCH /doctor-messages/conversations/:id  { status: "open" | "closed" }
+doctorMessagesRouter.patch("/conversations/:id", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const conversationId = c.req.param("id");
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const status = body?.status;
+  if (status !== "open" && status !== "closed") {
+    return c.json({ error: "status must be 'open' or 'closed'" }, 400);
+  }
+
+  const [conv] = await db
+    .select()
+    .from(messagesConversations)
+    .where(
+      and(
+        eq(messagesConversations.id, conversationId),
+        eq(messagesConversations.doctorId, doctor.id)
+      )
+    )
+    .limit(1);
+  if (!conv) return c.json({ error: "Conversation not found" }, 404);
+
+  await db
+    .update(messagesConversations)
+    .set({ status })
+    .where(eq(messagesConversations.id, conversationId));
+
+  return c.json({ ok: true, status });
 });
 
 export default doctorMessagesRouter;

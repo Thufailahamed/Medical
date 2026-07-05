@@ -1,9 +1,9 @@
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { Home, ClipboardList, Pill, Siren, UserRound } from "lucide-react-native";
+import { Home, ClipboardList, Pill, Siren, UserRound, MessageCircle } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { useUnreadCount } from "@/hooks/useApi";
+import { useUnreadCount, usePatientConversations } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
@@ -28,6 +28,8 @@ export default function AppLayout() {
   const { colors } = useTheme();
   const { data: unread } = useUnreadCount();
   const unreadN = unread?.count ?? 0;
+  const { data: msgData } = usePatientConversations();
+  const msgUnread = msgData?.totalUnread ?? 0;
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
   const isWideScript = locale === "si" || locale === "ta";
@@ -101,6 +103,15 @@ export default function AppLayout() {
           title: t("nav.tabs.profile"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={UserRound} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="inbox"
+        options={{
+          title: "Messages",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={MessageCircle} focused={focused} badge={msgUnread} />
           ),
         }}
       />
@@ -308,6 +319,10 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="records-v2/[id]/share"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="inbox/[id]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
     </Tabs>
