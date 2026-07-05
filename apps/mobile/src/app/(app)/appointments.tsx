@@ -131,7 +131,7 @@ export default function AppointmentsScreen() {
     : 0;
 
   return (
-    <Screen scroll tabBarOffset bottomInset={false}>
+    <Screen scroll bottomInset={false}>
       <ScreenHeader
         title={t("appointments.title")}
         subtitle={t("appointments.subtitle", {

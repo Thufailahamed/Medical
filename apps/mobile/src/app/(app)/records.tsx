@@ -705,7 +705,7 @@ export default function RecordsScreen() {
   }, [selection, records]);
 
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       {/* ─── Top App Bar ─────────────────────────────────── */}
       <View
         style={{

@@ -62,6 +62,25 @@ if (fs.existsSync(bunCache)) {
   }
 }
 
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Force react and react-native (and their subpaths/runtimes) to always resolve locally
+  if (
+    moduleName === 'react' ||
+    moduleName.startsWith('react/') ||
+    moduleName === 'react-native' ||
+    moduleName.startsWith('react-native/')
+  ) {
+    const localPath = path.resolve(projectRoot, 'node_modules', moduleName);
+    return context.resolveRequest(
+      context,
+      localPath,
+      platform
+    );
+  }
+  // Let Metro resolve everything else normally
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 config.resolver.extraNodeModules = extraNodeModules;
 
 module.exports = config;

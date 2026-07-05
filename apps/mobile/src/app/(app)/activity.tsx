@@ -53,7 +53,7 @@ export default function ActivityScreen() {
   const entries: any[] = data?.auditLogs || [];
 
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
         title={t("activity.title")}
         subtitle={t("activity.subtitle")}

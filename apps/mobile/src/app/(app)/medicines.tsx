@@ -335,7 +335,7 @@ export default function MedicinesScreen() {
   }
 
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 150 }}

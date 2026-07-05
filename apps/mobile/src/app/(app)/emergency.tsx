@@ -213,7 +213,7 @@ export default function EmergencyScreen() {
   }
 
   return (
-    <Screen scroll tabBarOffset padded={false} edges={["top"]} bottomInset>
+    <Screen scroll padded={false} edges={["top"]} bottomInset>
       {/* App bar */}
       <View
         style={{
