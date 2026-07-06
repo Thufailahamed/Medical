@@ -290,6 +290,12 @@
         "label": "Vaccinations",
         "subtitle": "Immunization history & due dates"
       },
+      "prescriptions": {
+        "label": "E-prescriptions",
+        "subtitleEmpty": "Prescriptions issued by your doctors",
+        "subtitleCount_one": "{{count}} prescription on file",
+        "subtitleCount_other": "{{count}} prescriptions on file"
+      },
       "notes": {
         "label": "Notes",
         "subtitle": "Personal journal & questions"
@@ -2921,7 +2927,51 @@
     "verify": "Verify",
     "signFirstDownload": "Sign before downloading",
     "signError": "Could not sign prescription",
-    "signedToast": "Prescription signed"
+    "signedToast": "Prescription signed",
+    "statusCancelled": "Cancelled",
+    "statusDispensed": "Dispensed",
+    "cancel": "Cancel prescription",
+    "cancelConfirmTitle": "Cancel this prescription?",
+    "cancelConfirmBody": "This will void the prescription. The cancellation is recorded in the audit trail.",
+    "cancelReasonPlaceholder": "Reason (optional) — e.g. duplicate, dosage changed",
+    "cancelConfirm": "Yes, cancel it",
+    "cancelKeep": "Keep prescription",
+    "cancelledToast": "Prescription cancelled",
+    "cancelError": "Could not cancel prescription",
+    "dispense": "Mark dispensed",
+    "dispensedToast": "Prescription marked as dispensed",
+    "dispenseError": "Could not mark as dispensed"
+  },
+  "myPrescriptions": {
+    "title": "My prescriptions",
+    "subtitle": "{{count}} issued",
+    "fallbackTitle": "Prescription",
+    "filters": {
+      "all": "All"
+    },
+    "medCount": "{{count}} medicines",
+    "emptyTitle": "No prescriptions yet",
+    "emptyBody": "When your doctor issues a signed e-prescription, it will appear here.",
+    "emptySearchTitle": "No matches",
+    "emptySearchBody": "Try a different search term."
+  },
+  "patientPrescriptionDetail": {
+    "title": "Prescription",
+    "doctor": "Prescribing doctor",
+    "diagnosis": "Diagnosis",
+    "notes": "Notes",
+    "medicines": "Medicines",
+    "downloadPdf": "Download PDF",
+    "downloading": "Preparing…",
+    "error": "Could not download PDF",
+    "notFound": "Prescription not found",
+    "notFoundBody": "It may have been cancelled or is not yet available.",
+    "statusSigned": "Digitally signed",
+    "statusCancelled": "Cancelled",
+    "statusDispensed": "Dispensed",
+    "signedAtLabel": "Signed",
+    "verify": "Verify authenticity",
+    "notAvailableDownload": "PDF not available for this status"
   },
   "verify": {
     "title": "Verify prescription",

@@ -387,6 +387,12 @@ export const prescriptions = sqliteTable("prescriptions", {
   ),
   signedAt: text("signed_at"),
   signedPayloadHash: text("signed_payload_hash"),
+  // Phase E-Rx 8: lifecycle timestamps written by the cancel/dispense
+  // routes + withStatusGuard (which always touches updated_at).
+  cancelledAt: text("cancelled_at"),
+  cancellationReason: text("cancellation_reason"),
+  dispensedAt: text("dispensed_at"),
+  updatedAt: text("updated_at"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

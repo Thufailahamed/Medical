@@ -761,13 +761,36 @@ doctorPortalRouter.get("/patients/:id/overview", async (c) => {
     (r) => !["cancelled", "draft"].includes(String(r.status || "").toLowerCase())
   ).length;
 
-  const rxRecent = (rxAll as any[]).slice(0, 5).map((r: any) => ({
+  const rxRecentRows = (rxAll as any[]).slice(0, 5);
+  // One grouped query for the (≤5) recent Rx medicine counts.
+  const rxMedCounts = new Map<string, number>();
+  if (rxRecentRows.length) {
+    const countRows = await db
+      .select({
+        prescriptionId: medicines.prescriptionId,
+        count: sql<number>`COUNT(*)`.as("count"),
+      })
+      .from(medicines)
+      .where(
+        sql`${medicines.prescriptionId} IN (${sql.join(
+          rxRecentRows.map((r: any) => sql`${r.id}`),
+          sql`, `
+        )})`
+      )
+      .groupBy(medicines.prescriptionId)
+      .catch(() => []);
+    for (const r of countRows as any[]) {
+      if (r.prescriptionId) rxMedCounts.set(r.prescriptionId, Number(r.count) || 0);
+    }
+  }
+  const rxRecent = rxRecentRows.map((r: any) => ({
     id: r.id,
-    title: r.title || null,
+    // prescriptions rows have no `title` column — derive from diagnosis.
+    title: r.diagnosis ? `Prescription - ${r.diagnosis}` : null,
     diagnosis: r.diagnosis || null,
     date: r.date || null,
     status: r.status || "draft",
-    medicineCount: 0, // N+1 avoided for size — UI degrades gracefully to "—"
+    medicineCount: rxMedCounts.get(r.id) ?? 0,
   }));
 
   const labOrderRecent = (orderRows || []).slice(0, 5).map((o: any) => ({
@@ -1950,10 +1973,14 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
 
     if (visit) await upsertRecordFts(tx, visit);
 
-    // 2) Prescriptions + their chart mirrors
+    // 2) Prescription + its chart mirror. One prescription per visit
+    // containing ALL items as linked `medicines` rows — previously
+    // this inserted one prescriptions row PER item without the
+    // required `date` column (insert failed) and without any
+    // medicines rows (empty Rx).
     const createdPrescriptions: any[] = [];
-    for (const p of prescriptionItems) {
-      if (!p?.name) continue;
+    const validItems = prescriptionItems.filter((p) => p?.name);
+    if (validItems.length) {
       const [rx] = await tx
         .insert(prescriptions)
         .values({
@@ -1962,9 +1989,39 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
           hospitalId:
         c.get("activeHospitalId") || doctor.hospitalId || null,
           diagnosis: diagnosis || title,
-          notes: p.instructions ? String(p.instructions).slice(0, 1000) : null,
+          notes: plan ? String(plan).slice(0, 1000) : null,
+          date: today,
         } as any)
         .returning();
+
+      // Parse "5 days" / "2 weeks"-style durations into an end date.
+      const durationToEndDate = (d: any): string | null => {
+        const m = /(\d+)\s*(day|week|month)?/i.exec(String(d || ""));
+        if (!m) return null;
+        const n = parseInt(m[1], 10);
+        if (!n) return null;
+        const unit = (m[2] || "day").toLowerCase();
+        const days = unit === "week" ? n * 7 : unit === "month" ? n * 30 : n;
+        const dt = new Date(today + "T00:00:00Z");
+        dt.setUTCDate(dt.getUTCDate() + days);
+        return dt.toISOString().slice(0, 10);
+      };
+
+      await tx.insert(medicines).values(
+        validItems.map((p) => ({
+          patientId,
+          prescriptionId: rx.id,
+          name: String(p.name).slice(0, 200),
+          dosage: p.dosage ? String(p.dosage).slice(0, 64) : "",
+          frequency: p.frequency ? String(p.frequency).slice(0, 64) : null,
+          timing: p.timing ? String(p.timing).slice(0, 64) : null,
+          startDate: today,
+          endDate: durationToEndDate(p.duration),
+          notes: p.instructions ? String(p.instructions).slice(0, 500) : null,
+          masterMedicineId: p.masterMedicineId ?? null,
+        })) as any
+      );
+
       const [rxRecord] = await tx
         .insert(medicalRecords)
         .values({
@@ -1973,10 +2030,17 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
         c.get("activeHospitalId") || doctor.hospitalId || null,
           doctorId: doctor.id,
           recordType: "prescription",
-          title: `Prescription: ${String(p.name).slice(0, 100)}`,
-          notes: [p.dosage, p.frequency, p.duration, p.instructions]
-            .filter(Boolean)
-            .join(" • ")
+          title: `Prescription: ${validItems
+            .map((p) => String(p.name))
+            .join(", ")
+            .slice(0, 100)}`,
+          notes: validItems
+            .map((p) =>
+              [p.name, p.dosage, p.frequency, p.duration, p.instructions]
+                .filter(Boolean)
+                .join(" • ")
+            )
+            .join("\n")
             .slice(0, 500) || null,
           date: today,
           appointmentId,

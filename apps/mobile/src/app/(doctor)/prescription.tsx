@@ -270,8 +270,8 @@ export default function PrescriptionScreen() {
 
     const startDate = todayISO();
     try {
-      await createPrescription.mutateAsync(
-        {
+      await createPrescription.mutateAsync({
+        data: {
           patientId: patient.patients?.id || patient.id || patientId,
           diagnosis,
           notes,
@@ -289,12 +289,10 @@ export default function PrescriptionScreen() {
             };
           }),
         },
-        {
-          // Send the override header when the doctor explicitly
-          // acknowledged a blocking warning.
-          headers: force ? { "X-Confirm-Warning": "true" } : undefined,
-        }
-      );
+        // Send the override header when the doctor explicitly
+        // acknowledged a blocking warning.
+        headers: force ? { "X-Confirm-Warning": "true" } : undefined,
+      });
       toast.show(t("doctorPrescription.savedToast"), "success");
       router.back();
     } catch (err: any) {

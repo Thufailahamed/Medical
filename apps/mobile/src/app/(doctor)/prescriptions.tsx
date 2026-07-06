@@ -218,7 +218,7 @@ export default function DoctorPrescriptionsScreen() {
                 key={r.id}
                 onPress={() =>
                   router.push({
-                    pathname: "/doctor/prescription-detail",
+                    pathname: "/(doctor)/prescription-detail",
                     params: { id: r.id },
                   } as any)
                 }

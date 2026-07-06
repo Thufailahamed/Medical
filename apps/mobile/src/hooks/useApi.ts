@@ -486,6 +486,59 @@ export function useMyPrescriptions() {
   });
 }
 
+export function useMyPrescription(id?: string) {
+  return useQuery({
+    queryKey: ["prescriptions", "me", id],
+    queryFn: () =>
+      api<{ prescription: any }>(`/medical-records/me/prescriptions/${id}`),
+    enabled: !!id,
+  });
+}
+
+async function sharePrescriptionPdfBlob(
+  blob: Blob,
+  prescriptionId: string
+): Promise<void> {
+  if (!(blob instanceof Blob)) {
+    throw new Error("Unexpected response from server");
+  }
+
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Could not read PDF bytes"));
+        return;
+      }
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(new Error("Could not read PDF bytes"));
+    reader.readAsDataURL(blob);
+  });
+
+  const cacheDir = FileSystem.cacheDirectory;
+  if (!cacheDir) {
+    throw new Error("Cache directory unavailable on this device");
+  }
+  const shortId = prescriptionId.slice(0, 8);
+  const fileUri = `${cacheDir}prescription-${shortId}.pdf`;
+  await FileSystem.writeAsStringAsync(fileUri, base64, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  const available = await Sharing.isAvailableAsync();
+  if (!available) {
+    throw new Error("Sharing is not available on this device");
+  }
+  await Sharing.shareAsync(fileUri, {
+    mimeType: "application/pdf",
+    UTI: "com.adobe.pdf",
+    dialogTitle: "Prescription PDF",
+  });
+}
+
 // ─── Appointments ────────────────────────────────────────
 export function useMyAppointments() {
   return useQuery({
@@ -1314,10 +1367,15 @@ export function useSearchPatients(query: string) {
 export function useCreatePrescription() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) =>
+    // Phase E-Rx 3: `headers` carries `X-Confirm-Warning: true` when the
+    // doctor explicitly overrode a blocking safety warning. It must be
+    // part of the mutation variables — React Query ignores extra args
+    // passed to mutate/mutateAsync.
+    mutationFn: (vars: { data: any; headers?: Record<string, string> }) =>
       api<{ prescription: any }>("/doctor/prescriptions", {
         method: "POST",
-        body: data,
+        body: vars.data,
+        headers: vars.headers,
       }),
     onSuccess: (_res, vars) => {
       queryClient.invalidateQueries({ queryKey: ["doctor"] });
@@ -1325,12 +1383,12 @@ export function useCreatePrescription() {
       // bundle so a second visit to /patient-detail sees the new
       // prescription immediately. Without this the doctor's view of
       // "current patient medications" lags behind reality.
-      if (vars?.patientId) {
+      if (vars?.data?.patientId) {
         queryClient.invalidateQueries({
-          queryKey: ["doctor-portal", "patient", vars.patientId],
+          queryKey: ["doctor-portal", "patient", vars.data.patientId],
         });
         queryClient.invalidateQueries({
-          queryKey: ["medical-records", vars.patientId],
+          queryKey: ["medical-records", vars.data.patientId],
         });
       }
     },
@@ -1569,46 +1627,17 @@ export async function downloadPrescriptionPdf(
   const blob = await api<Blob>("/doctor/prescriptions/" + prescriptionId + "/pdf", {
     responseType: "blob",
   });
-  if (!(blob instanceof Blob)) {
-    throw new Error("Unexpected response from server");
-  }
+  await sharePrescriptionPdfBlob(blob, prescriptionId);
+}
 
-  // Encode the Blob → base64. FileReader works in both Expo and RN.
-  const base64 = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result;
-      if (typeof result !== "string") {
-        reject(new Error("Could not read PDF bytes"));
-        return;
-      }
-      // result is "data:application/pdf;base64,XXXX" — strip the prefix.
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(new Error("Could not read PDF bytes"));
-    reader.readAsDataURL(blob);
-  });
-
-  const cacheDir = FileSystem.cacheDirectory;
-  if (!cacheDir) {
-    throw new Error("Cache directory unavailable on this device");
-  }
-  const shortId = prescriptionId.slice(0, 8);
-  const fileUri = `${cacheDir}prescription-${shortId}.pdf`;
-  await FileSystem.writeAsStringAsync(fileUri, base64, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-
-  const available = await Sharing.isAvailableAsync();
-  if (!available) {
-    throw new Error("Sharing is not available on this device");
-  }
-  await Sharing.shareAsync(fileUri, {
-    mimeType: "application/pdf",
-    UTI: "com.adobe.pdf",
-    dialogTitle: "Prescription PDF",
-  });
+export async function downloadMyPrescriptionPdf(
+  prescriptionId: string
+): Promise<void> {
+  const blob = await api<Blob>(
+    `/medical-records/me/prescriptions/${prescriptionId}/pdf`,
+    { responseType: "blob" }
+  );
+  await sharePrescriptionPdfBlob(blob, prescriptionId);
 }
 
 // ─── Doctor search (patient-facing) ──────────────────────

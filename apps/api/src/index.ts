@@ -92,7 +92,18 @@ app.use("*", cors({
     "http://127.0.0.1:5173",
   ],
   allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowHeaders: ["Content-Type", "Authorization"],
+  allowHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Accept-Language",
+    // E-Rx safety override ack (doctor confirmed a blocking warning).
+    "X-Confirm-Warning",
+    // Family + tenant context headers set by the clients.
+    "x-active-family-member-id",
+    "x-active-hospital-id",
+    "x-active-clinic-id",
+    "x-timezone-offset",
+  ],
   // Allow the marketing site to read the JSON response from
   // the waitlist POST (default is no credentials; we want
   // same-origin + the listed cross-origins to work cleanly).

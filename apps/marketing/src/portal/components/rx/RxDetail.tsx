@@ -56,6 +56,7 @@ import {
   usePrescriptionAudit,
   useSignPrescription,
   useCancelPrescription,
+  useDispensePrescription,
   downloadPrescriptionPdf,
 } from "@/portal/hooks/usePrescription";
 
@@ -87,6 +88,7 @@ export function RxDetail({
   const { data: auditData } = usePrescriptionAudit(prescriptionId);
   const signMutation = useSignPrescription();
   const cancelMutation = useCancelPrescription();
+  const dispenseMutation = useDispensePrescription();
   const [editing, setEditing] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -142,6 +144,15 @@ export function RxDetail({
       setCancelReason("");
     } catch (err: any) {
       toast.error(t("toast.error"), err?.message ?? "Cancel failed");
+    }
+  }
+
+  async function handleDispense() {
+    try {
+      await dispenseMutation.mutateAsync(rx!.id);
+      toast.success(t("rx.detail.dispensedToast"), `#${rx!.id.slice(0, 8)}`);
+    } catch (err: any) {
+      toast.error(t("toast.error"), err?.message ?? "Dispense failed");
     }
   }
 
@@ -217,6 +228,15 @@ export function RxDetail({
                   {t("rx.actions.verify")}
                 </Button>
               </Link>
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<CheckCircle size={14} />}
+                loading={dispenseMutation.isPending}
+                onClick={handleDispense}
+              >
+                {t("rx.actions.dispense")}
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
@@ -441,7 +461,7 @@ export function RxDetail({
             dosage: m.dosage ?? "",
             frequency: m.frequency ?? "OD",
             timing: m.timing ?? "",
-            duration: durationFromEndDate(m.startDate, m.endDate),
+            durationDays: durationFromEndDate(m.startDate, m.endDate),
             instructions: m.instructions ?? "",
             ongoing: !m.endDate,
           }))}

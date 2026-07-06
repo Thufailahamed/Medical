@@ -509,7 +509,7 @@ export default function DoctorHub() {
                 label={t("doctor.stats.rxWritten")}
                 value={rxCount}
                 tone="info"
-                onPress={() => router.push("/prescriptions" as any)}
+                onPress={() => router.push("/(doctor)/prescriptions" as any)}
               />
               <StatTile
                 icon={Edit3}
@@ -604,7 +604,7 @@ export default function DoctorHub() {
                 icon={FileText}
                 title={t("doctor.tiles.rxTitle")}
                 subtitle={t("doctor.tiles.rxSubtitle", { count: rxCount })}
-                onPress={() => router.push("/prescriptions" as any)}
+                onPress={() => router.push("/(doctor)/prescriptions" as any)}
               />
               <LinkTile
                 icon={CalendarClock}

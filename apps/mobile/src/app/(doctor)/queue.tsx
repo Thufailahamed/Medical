@@ -195,7 +195,7 @@ export default function DoctorQueue() {
                       fullWidth={false}
                       onPress={() =>
                         router.push({
-                          pathname: "/doctor/patient-detail",
+                          pathname: "/(doctor)/patient-detail",
                           params: { id: q.patientId },
                         })
                       }
@@ -225,7 +225,7 @@ export default function DoctorQueue() {
                               fullWidth={false}
                               onPress={() =>
                                 router.push({
-                                  pathname: "/doctor/visit-summary",
+                                  pathname: "/(doctor)/visit-summary",
                                   params: {
                                     patientId: q.patientId,
                                     appointmentId: q.appointmentId,

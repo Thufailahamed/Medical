@@ -141,7 +141,7 @@ export default function DoctorClinicalNotesScreen() {
             actionLabel={!q ? t("doctorClinicalNotes.findPatient") : undefined}
             onAction={
               !q
-                ? () => router.push("/doctor/prescription" as any)
+                ? () => router.push("/(doctor)/prescription" as any)
                 : undefined
             }
           />
@@ -158,7 +158,7 @@ export default function DoctorClinicalNotesScreen() {
                 key={r.id}
                 onPress={() =>
                   router.push({
-                    pathname: "/doctor/patient-detail",
+                    pathname: "/(doctor)/patient-detail",
                     params: { id: r.patientId },
                   } as any)
                 }

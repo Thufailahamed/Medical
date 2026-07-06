@@ -11,6 +11,7 @@ import { runSafetyCheck } from "../lib/safety-runner";
 import { accessiblePatientsFor } from "../lib/access";
 import { upsertActiveCareTeam, withStatusGuard } from "../lib/status-guard";
 import { assertRxTransition } from "../lib/rxStatus";
+import { renderPrescriptionPdf } from "../lib/prescription-pdf";
 import { prescriptionPatchSchema, prescriptionCancelSchema } from "@healthcare/shared/validators";
 import type { AppEnvironment } from "../types";
 
@@ -149,10 +150,21 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
 });
 
 // ─── Create prescription ─────────────────────────────────
+//
+// Body accepts BOTH item shapes so the two clients stay compatible:
+//   - web composer sends `items` (shared prescriptionCreateSchema:
+//     durationDays / ongoing / instructions)
+//   - mobile composer sends `medicines` (startDate / endDate / notes)
+// Both are normalized into `medicines` rows linked to the new
+// prescription.
 doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
+
+  if (!body.patientId || typeof body.patientId !== "string") {
+    return c.json({ error: "patientId is required" }, 400);
+  }
 
   const [doctor] = await db
     .select()
@@ -164,16 +176,48 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
     return c.json({ error: "Doctor not found" }, 404);
   }
 
+  // Normalize items → the medicines-row shape. `items` (web) carries
+  // durationDays/ongoing/instructions; `medicines` (mobile) carries
+  // startDate/endDate directly.
+  const today = new Date().toISOString().split("T")[0];
+  const rawItems: any[] = Array.isArray(body.items)
+    ? body.items
+    : Array.isArray(body.medicines)
+      ? body.medicines
+      : [];
+  const normalizedMeds = rawItems
+    .filter((it: any) => it && typeof it.name === "string" && it.name.trim())
+    .map((it: any) => {
+      const startDate = it.startDate || today;
+      const endDate =
+        it.endDate ??
+        (it.ongoing
+          ? null
+          : typeof it.durationDays === "number" && it.durationDays > 0
+            ? addDays(startDate, it.durationDays)
+            : null);
+      return {
+        name: String(it.name).trim(),
+        dosage: it.dosage ? String(it.dosage) : "",
+        frequency: it.frequency ? String(it.frequency) : null,
+        timing: it.timing ? String(it.timing) : null,
+        startDate,
+        endDate,
+        notes: it.instructions ? String(it.instructions) : null,
+        masterMedicineId: it.masterMedicineId ?? null,
+      };
+    });
+
   // Phase E-Rx 3: safety pre-flight. Mirrors the pattern in
   // `medicines.ts POST /` so doctors see the same 409 confirmation
   // when a candidate Rx would hit a critical allergy, severe
   // interaction, or duplicate-therapy wall. X-Confirm-Warning carries
   // the explicit override after the doctor acknowledges in the UI.
-  const candidateMeds: Array<{
-    name: string;
-    dosage?: string;
-    masterMedicineId?: string | null;
-  }> = Array.isArray(body.medicines) ? body.medicines : [];
+  const candidateMeds = normalizedMeds.map((m) => ({
+    name: m.name,
+    dosage: m.dosage || undefined,
+    masterMedicineId: m.masterMedicineId,
+  }));
   const safetyWarnings = await runSafetyCheck(db, body.patientId, candidateMeds);
   const safetyTop = topSeverity(safetyWarnings);
   const override = c.req.header("X-Confirm-Warning") === "true";
@@ -201,10 +245,10 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
       hospitalId: body.hospitalId,
       diagnosis: body.diagnosis,
       notes: body.notes,
-      date: new Date().toISOString().split("T")[0],
+      date: today,
       // Phase E-Rx 6: lifecycle default. The route always writes
-      // "draft" — only POST /sign can flip to "signed". zod .strict()
-      // on the body rejects any client-supplied `status`.
+      // "draft" — only POST /sign can flip to "signed"; clients cannot
+      // supply `status`.
     })
     .returning();
 
@@ -216,7 +260,7 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
       userId,
       action: "prescription.create_with_warnings",
       resource: "prescription",
-      resourceId: prescription?.prescriptions?.id,
+      resourceId: prescription?.id,
       details: {
         severity: safetyTop,
         warnings: safetyWarnings,
@@ -235,25 +279,26 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
       title: `Prescription - ${body.diagnosis || "General"}`,
       diagnosis: body.diagnosis,
       notes: body.notes,
-      date: new Date().toISOString().split("T")[0],
+      date: today,
     })
     .returning();
 
   // Create medicines linked to the prescription
-  if (body.medicines?.length > 0) {
+  if (normalizedMeds.length > 0) {
     await db.insert(medicines).values(
-      body.medicines.map((med: any) => ({
+      normalizedMeds.map((med) => ({
         patientId: body.patientId,
         prescriptionId: prescription.id,
         name: med.name,
         dosage: med.dosage,
         frequency: med.frequency,
         timing: med.timing,
-        startDate: med.startDate || new Date().toISOString().split("T")[0],
+        startDate: med.startDate,
         endDate: med.endDate,
+        notes: med.notes,
         // Phase E-Rx 1: optional master FK. Doctors picking from the
         // autocomplete carry this; free-text entries stay NULL.
-        masterMedicineId: med.masterMedicineId ?? null,
+        masterMedicineId: med.masterMedicineId,
       }))
     );
   }
@@ -637,11 +682,18 @@ function addDays(yyyymmdd: string, n: number): string {
 }
 
 // ─── Get doctor's prescriptions ──────────────────────────
+//
+// Reads the canonical `prescriptions` table (NOT the medical_records
+// chart mirror) so the row `id` matches what the detail / sign /
+// cancel / PDF endpoints expect, `status` uses the real Rx lifecycle
+// enum (draft|signed|cancelled|dispensed), and medicine counts join
+// on the right foreign key.
 doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const patientId = c.req.query("patientId") || undefined;
   const status = c.req.query("status") || undefined;
+  const limit = Math.min(500, Math.max(1, parseInt(c.req.query("limit") || "200", 10) || 200));
 
   const [doctor] = await db
     .select()
@@ -653,71 +705,60 @@ doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async 
     return c.json({ error: "Doctor not found" }, 404);
   }
 
-  const conditions: any[] = [
-    eq(medicalRecords.doctorId, doctor.id),
-    eq(medicalRecords.recordType, "prescription"),
-  ];
+  const conditions: any[] = [eq(prescriptions.doctorId, doctor.id)];
   if (patientId) {
-    conditions.push(eq(medicalRecords.patientId, patientId));
+    conditions.push(eq(prescriptions.patientId, patientId));
   }
   if (status) {
-    conditions.push(eq(medicalRecords.status, status));
+    conditions.push(eq(prescriptions.status, status));
   }
 
-  const records = await db
+  const rows = await db
     .select({
-      id: medicalRecords.id,
-      patientId: medicalRecords.patientId,
-      doctorId: medicalRecords.doctorId,
-      title: medicalRecords.title,
-      diagnosis: medicalRecords.diagnosis,
-      summary: medicalRecords.summary,
-      notes: medicalRecords.notes,
-      date: medicalRecords.date,
-      followUpDate: medicalRecords.followUpDate,
-      createdAt: medicalRecords.createdAt,
-      status: medicalRecords.status,
+      id: prescriptions.id,
+      patientId: prescriptions.patientId,
+      doctorId: prescriptions.doctorId,
+      diagnosis: prescriptions.diagnosis,
+      notes: prescriptions.notes,
+      date: prescriptions.date,
+      createdAt: prescriptions.createdAt,
+      status: prescriptions.status,
+      signedAt: prescriptions.signedAt,
+      patientName: users.name,
     })
-    .from(medicalRecords)
+    .from(prescriptions)
+    .innerJoin(patients, eq(patients.id, prescriptions.patientId))
+    .innerJoin(users, eq(users.id, patients.userId))
     .where(and(...conditions))
-    .orderBy(desc(medicalRecords.date));
+    .orderBy(desc(prescriptions.date), desc(prescriptions.createdAt))
+    .limit(limit);
 
-  // Enrich with patient name + medicine count in one pass.
-  const patientIds = [...new Set(records.map((r) => r.patientId).filter(Boolean))];
-  const rxIds = records.map((r) => r.id);
-
-  let patientMap = new Map<string, { id: string; name: string }>();
-  if (patientIds.length) {
-    const rows = await db
-      .select({
-        id: patients.id,
-        patientId: patients.userId,
-        name: users.name,
-      })
-      .from(patients)
-      .innerJoin(users, eq(users.id, patients.userId))
-      .where(
-        or(...patientIds.map((id) => eq(patients.id, id))) as any
-      );
-    for (const r of rows) {
-      patientMap.set(r.id, { id: r.id, name: r.name });
-    }
-  }
-
+  // Medicine count per prescription in one grouped query.
   let medCountMap = new Map<string, number>();
-  if (rxIds.length) {
+  if (rows.length) {
     const medRows = await db
-      .select({ prescriptionId: medicines.prescriptionId })
-      .from(medicines);
+      .select({
+        prescriptionId: medicines.prescriptionId,
+        count: sql<number>`COUNT(*)`.as("count"),
+      })
+      .from(medicines)
+      .where(
+        sql`${medicines.prescriptionId} IN (${sql.join(
+          rows.map((r) => sql`${r.id}`),
+          sql`, `
+        )})`
+      )
+      .groupBy(medicines.prescriptionId);
     for (const m of medRows) {
-      if (!m.prescriptionId) continue;
-      medCountMap.set(m.prescriptionId, (medCountMap.get(m.prescriptionId) ?? 0) + 1);
+      if (m.prescriptionId) medCountMap.set(m.prescriptionId, Number(m.count) || 0);
     }
   }
 
-  const enriched = records.map((r) => ({
+  const enriched = rows.map(({ patientName, ...r }) => ({
     ...r,
-    patient: patientMap.get(r.patientId) || null,
+    // `title` kept for clients that render medical-record-style rows.
+    title: r.diagnosis ? `Prescription - ${r.diagnosis}` : "Prescription",
+    patient: { id: r.patientId, name: patientName },
     medicineCount: medCountMap.get(r.id) ?? 0,
   }));
 
@@ -787,7 +828,9 @@ doctorRouter.get(
         patient: patientUser
           ? { name: patientUser.name, nic: patientUser.nic }
           : null,
-        medicines: medRows,
+        // `instructions` aliases the medicines.notes column — the web
+        // composer/detail read that name (shared validator field).
+        medicines: medRows.map((m: any) => ({ ...m, instructions: m.notes })),
       },
     });
   }
@@ -807,441 +850,37 @@ doctorRouter.get(
     const db = c.get("db");
     const id = c.req.param("id");
 
-    const [row] = await db
-      .select({
-        id: prescriptions.id,
-        doctorId: prescriptions.doctorId,
-        patientId: prescriptions.patientId,
-        diagnosis: prescriptions.diagnosis,
-        notes: prescriptions.notes,
-        date: prescriptions.date,
-        status: prescriptions.status,
-        signedAt: prescriptions.signedAt,
-        signedPayloadHash: prescriptions.signedPayloadHash,
-        doctorName: users.name,
-        doctorUserId: doctors.userId,
-        doctorSpecialization: doctors.specialization,
-        doctorSlmcNo: doctors.slmcRegistrationNo,
-        doctorSlmcVerifiedAt: doctors.slmcVerifiedAt,
-        patientDob: patients.dateOfBirth,
-      })
+    const [owner] = await db
+      .select({ doctorUserId: doctors.userId })
       .from(prescriptions)
       .innerJoin(doctors, eq(doctors.id, prescriptions.doctorId))
-      .innerJoin(users, eq(users.id, doctors.userId))
-      .innerJoin(patients, eq(patients.id, prescriptions.patientId))
       .where(eq(prescriptions.id, id))
       .limit(1);
 
-    if (!row) {
+    if (!owner) {
       return c.json({ error: "Prescription not found" }, 404);
     }
-    if (row.doctorUserId !== userId) {
+    if (owner.doctorUserId !== userId) {
       return c.json({ error: "Not your prescription" }, 403);
     }
 
-    // Phase E-Rx 7: PDF rendering requires a signed prescription. The
-    // QR + signature block at the bottom is meaningless on a draft, and
-    // exposing draft PDFs would let the doctor share something that
-    // can't be verified. Sign first via POST /doctor/prescriptions/:id/sign
-    // then re-download.
-    if (row.status !== "signed") {
+    const publicUrl =
+      c.env.PUBLIC_URL || "https://app.healthhub.app";
+    const result = await renderPrescriptionPdf(db, id, publicUrl);
+    if (!result.ok) {
       return c.json(
-        {
-          error: "Prescription must be signed before downloading the PDF",
-          status: row.status,
-          prescriptionId: id,
-        },
-        409
+        { error: result.error, ...(result.details ?? {}) },
+        result.status
       );
     }
 
-    // Fetch the signature row so the footer can show the actual
-    // payload hash + signed-at the verifier will see on /verify/:id.
-    const [sig] = await db
-      .select({
-        signedAt: prescriptionSignatures.signedAt,
-        payloadHash: prescriptionSignatures.payloadHash,
-        signatureB64: prescriptionSignatures.signatureB64,
-      })
-      .from(prescriptionSignatures)
-      .where(eq(prescriptionSignatures.prescriptionId, id))
-      .limit(1);
-
-    // Patient name + NIC live on `users` (joined through patients.userId).
-    const [patientUser] = await db
-      .select({ name: users.name, nic: users.nic })
-      .from(users)
-      .innerJoin(patients, eq(patients.userId, users.id))
-      .where(eq(patients.id, row.patientId))
-      .limit(1);
-
-    const medRows = await db
-      .select()
-      .from(medicines)
-      .where(eq(medicines.prescriptionId, id));
-
-    // Lazy-load pdf-lib so the module isn't pulled into the cold path
-    // for non-PDF doctor routes.
-    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
-
-    const pdf = await PDFDocument.create();
-    const page = pdf.addPage([595, 842]); // A4 portrait (pt)
-    const font = await pdf.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-
-    const margin = 48;
-    const pageW = 595;
-    let y = 842 - margin;
-
-    // ─── Header ──────────────────────────────────────────
-    page.drawText("HealthHub Prescription", {
-      x: margin,
-      y,
-      size: 18,
-      font: fontBold,
-      color: rgb(0.08, 0.09, 0.16),
-    });
-    y -= 22;
-    page.drawText(row.doctorName, {
-      x: margin,
-      y,
-      size: 11,
-      font,
-      color: rgb(0.25, 0.25, 0.32),
-    });
-    if (row.doctorSpecialization) {
-      const offset = font.widthOfTextAtSize(row.doctorName, 11);
-      page.drawText(`  ·  ${row.doctorSpecialization}`, {
-        x: margin + offset,
-        y,
-        size: 11,
-        font,
-        color: rgb(0.45, 0.45, 0.52),
-      });
-    }
-    y -= 14;
-    if (row.doctorSlmcNo) {
-      const slmcText = `SLMC Reg. No: ${row.doctorSlmcNo}${
-        row.doctorSlmcVerifiedAt ? "" : "  (pending verification)"
-      }`;
-      page.drawText(slmcText, {
-        x: margin,
-        y,
-        size: 9,
-        font,
-        color: row.doctorSlmcVerifiedAt
-          ? rgb(0.25, 0.25, 0.32)
-          : rgb(0.6, 0.45, 0.1),
-      });
-      y -= 14;
-    }
-
-    page.drawLine({
-      start: { x: margin, y: y - 2 },
-      end: { x: pageW - margin, y: y - 2 },
-      thickness: 0.5,
-      color: rgb(0.85, 0.85, 0.9),
-    });
-    y -= 18;
-
-    // ─── Patient block ───────────────────────────────────
-    const patientName = patientUser?.name ?? "Unknown patient";
-    const patientNic = patientUser?.nic ?? "—";
-    const age = computeAge(row.patientDob);
-
-    page.drawText("PATIENT", {
-      x: margin,
-      y,
-      size: 8,
-      font: fontBold,
-      color: rgb(0.45, 0.45, 0.52),
-    });
-    y -= 14;
-    page.drawText(patientName, {
-      x: margin,
-      y,
-      size: 12,
-      font: fontBold,
-      color: rgb(0.08, 0.09, 0.16),
-    });
-    const dateLabel = `Date: ${row.date}`;
-    page.drawText(dateLabel, {
-      x: pageW - margin - font.widthOfTextAtSize(dateLabel, 11),
-      y,
-      size: 11,
-      font,
-      color: rgb(0.25, 0.25, 0.32),
-    });
-    y -= 14;
-    const meta = `NIC: ${patientNic}${age !== null ? `   ·   Age: ${age}` : ""}`;
-    page.drawText(meta, {
-      x: margin,
-      y,
-      size: 10,
-      font,
-      color: rgb(0.35, 0.35, 0.42),
-    });
-    y -= 22;
-
-    // ─── Diagnosis / notes ───────────────────────────────
-    if (row.diagnosis) {
-      page.drawText("DIAGNOSIS", {
-        x: margin,
-        y,
-        size: 8,
-        font: fontBold,
-        color: rgb(0.45, 0.45, 0.52),
-      });
-      y -= 14;
-      page.drawText(row.diagnosis, {
-        x: margin,
-        y,
-        size: 11,
-        font,
-        color: rgb(0.08, 0.09, 0.16),
-      });
-      y -= 18;
-    }
-
-    if (row.notes) {
-      page.drawText("NOTES", {
-        x: margin,
-        y,
-        size: 8,
-        font: fontBold,
-        color: rgb(0.45, 0.45, 0.52),
-      });
-      y -= 14;
-      page.drawText(row.notes, {
-        x: margin,
-        y,
-        size: 10,
-        font,
-        color: rgb(0.25, 0.25, 0.32),
-      });
-      y -= 16;
-    }
-
-    // ─── Medicines table ────────────────────────────────
-    page.drawText("MEDICINES", {
-      x: margin,
-      y,
-      size: 8,
-      font: fontBold,
-      color: rgb(0.45, 0.45, 0.52),
-    });
-    y -= 16;
-
-    if (medRows.length === 0) {
-      page.drawText("(no medicines on this prescription)", {
-        x: margin,
-        y,
-        size: 10,
-        font,
-        color: rgb(0.55, 0.55, 0.62),
-      });
-      y -= 14;
-    } else {
-      const cols = [
-        { label: "Name", x: margin, w: 180 },
-        { label: "Dosage", x: margin + 180, w: 70 },
-        { label: "Frequency", x: margin + 250, w: 110 },
-        { label: "Timing", x: margin + 360, w: 80 },
-        { label: "Duration", x: margin + 440, w: 60 },
-      ];
-      page.drawRectangle({
-        x: margin,
-        y: y - 4,
-        width: pageW - margin * 2,
-        height: 16,
-        color: rgb(0.95, 0.96, 0.98),
-      });
-      for (const col of cols) {
-        page.drawText(col.label, {
-          x: col.x,
-          y,
-          size: 9,
-          font: fontBold,
-          color: rgb(0.25, 0.25, 0.32),
-        });
-      }
-      y -= 18;
-
-      for (const med of medRows) {
-        const duration = med.endDate
-          ? `${med.startDate} - ${med.endDate}`
-          : "ongoing";
-        const cells = [
-          med.name ?? "—",
-          med.dosage ?? "—",
-          med.frequency ?? "—",
-          med.timing ?? "—",
-          duration,
-        ];
-        cells.forEach((text, i) => {
-          page.drawText(truncate(text, cols[i].w, font, 10), {
-            x: cols[i].x,
-            y,
-            size: 10,
-            font,
-            color: rgb(0.08, 0.09, 0.16),
-          });
-        });
-        y -= 16;
-      }
-    }
-
-    // ─── Signature block + QR + footer ─────────────────
-    // Phase E-Rx 7: signed prescriptions embed a scannable QR that
-    // points at GET /verify/:id so anyone (pharmacy, patient, regulator)
-    // can confirm authenticity from the printed PDF. The QR target is
-    // the public base URL + prescription id, NOT a deep link into the
-    // mobile app — verification works without the app installed.
-    const sigY = Math.max(margin + 110, y + 20);
-    const verifyUrl = `${(c.env.PUBLIC_URL || "https://app.healthhub.app").replace(/\/+$/, "")}/verify/${id}`;
-
-    // Lazy-load qrcode (same pattern as pdf-lib — keep cold path lean).
-    // `toBuffer` returns a PNG buffer we embed via pdf.embedPng.
-    // The `browser` field in qrcode's package.json maps
-    // `qrcode/lib/index.js` → `qrcode/lib/browser.js` (canvas-backed,
-    // not available in Workers). The bundler additionally collapses
-    // `qrcode` to the bare `core/qrcode.js` which lacks `toBuffer`.
-    // Importing the server entry directly bypasses both mappings;
-    // `server.js` uses pngjs (zero native deps).
-    const qrServer = await import("qrcode/lib/server.js");
-    const qrPngBytes: Buffer = await new Promise((resolve, reject) => {
-      (qrServer as any).toBuffer(
-        verifyUrl,
-        {
-          errorCorrectionLevel: "M",
-          type: "png",
-          margin: 1,
-          width: 256,
-        },
-        (err: Error | null | undefined, buf: Buffer) =>
-          err ? reject(err) : resolve(buf)
-      );
-    });
-    const qrImg = await pdf.embedPng(qrPngBytes);
-
-    // QR lives bottom-right; sized so a phone scanner reliably picks it
-    // up at A4 print resolution. 80pt = ~28mm square.
-    const qrSize = 80;
-    const qrX = pageW - margin - qrSize;
-    const qrY = margin;
-    page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-    page.drawText("Scan to verify", {
-      x: qrX,
-      y: qrY - 10,
-      size: 7,
-      font,
-      color: rgb(0.45, 0.45, 0.52),
-    });
-
-    // Signed-on + payload hash + verify URL sit to the LEFT of the QR
-    // so a printed page has the cryptographic context in plain text.
-    const sigBlockX = margin;
-    const sigBlockW = qrX - sigBlockX - 12;
-    page.drawText("DIGITALLY SIGNED", {
-      x: sigBlockX,
-      y: sigY,
-      size: 8,
-      font: fontBold,
-      color: rgb(0.45, 0.45, 0.52),
-    });
-    page.drawText(row.doctorName, {
-      x: sigBlockX,
-      y: sigY - 14,
-      size: 11,
-      font: fontBold,
-      color: rgb(0.08, 0.09, 0.16),
-    });
-    if (row.doctorSpecialization) {
-      page.drawText(row.doctorSpecialization, {
-        x: sigBlockX,
-        y: sigY - 26,
-        size: 9,
-        font,
-        color: rgb(0.45, 0.45, 0.52),
-      });
-    }
-    const signedAtLabel = sig?.signedAt || row.signedAt || row.date;
-    page.drawText(`Signed: ${signedAtLabel}`, {
-      x: sigBlockX,
-      y: sigY - 40,
-      size: 9,
-      font,
-      color: rgb(0.25, 0.25, 0.32),
-    });
-    const hashShort = (sig?.payloadHash || row.signedPayloadHash || "").slice(0, 16);
-    if (hashShort) {
-      page.drawText(`Payload hash: ${hashShort}…`, {
-        x: sigBlockX,
-        y: sigY - 52,
-        size: 9,
-        font,
-        color: rgb(0.25, 0.25, 0.32),
-      });
-    }
-    // Verify URL — truncate if too wide for the block (defensive).
-    const urlSize = 8;
-    const urlTrunc = truncate(verifyUrl, sigBlockW, font, urlSize);
-    page.drawText(urlTrunc, {
-      x: sigBlockX,
-      y: sigY - 64,
-      size: urlSize,
-      font,
-      color: rgb(0.35, 0.35, 0.42),
-    });
-
-    page.drawText("Generated by HealthHub — for clinical use only.", {
-      x: margin,
-      y: margin - 14,
-      size: 7,
-      font,
-      color: rgb(0.6, 0.6, 0.66),
-    });
-
-    const bytes = await pdf.save();
-    const shortId = id.slice(0, 8);
-    return c.body(bytes, 200, {
+    return c.body(result.bytes, 200, {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="prescription-${shortId}.pdf"`,
+      "Content-Disposition": `inline; filename="prescription-${result.shortId}.pdf"`,
       "Cache-Control": "private, no-store",
     });
   }
 );
-
-/** Age in years from a YYYY-MM-DD string, or null. */
-function computeAge(dob: string | null | undefined): number | null {
-  if (!dob) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
-  if (!m) return null;
-  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-  if (isNaN(d.getTime())) return null;
-  const now = new Date();
-  let years = now.getUTCFullYear() - d.getUTCFullYear();
-  const mDelta = now.getUTCMonth() - d.getUTCMonth();
-  if (mDelta < 0 || (mDelta === 0 && now.getUTCDate() < d.getUTCDate())) {
-    years--;
-  }
-  return years >= 0 ? years : null;
-}
-
-/** Right-truncate `text` to fit `maxWidth` measured with the given font/size. */
-function truncate(
-  text: string,
-  maxWidth: number,
-  f: any,
-  size: number
-): string {
-  if (f.widthOfTextAtSize(text, size) <= maxWidth) return text;
-  let s = text;
-  while (s.length > 1 && f.widthOfTextAtSize(s + "…", size) > maxWidth) {
-    s = s.slice(0, -1);
-  }
-  return s + "…";
-}
 
 // ─── Doctor profile ──────────────────────────────────────
 doctorRouter.get("/me", authMiddleware, requireRole("doctor"), async (c) => {

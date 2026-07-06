@@ -342,7 +342,7 @@ export default function FollowUpsScreen() {
                       <Pressable
                         onPress={() =>
                           router.push({
-                            pathname: "/doctor/patient-detail",
+                            pathname: "/(doctor)/patient-detail",
                             params: { id: f.patientId },
                           } as any)
                         }

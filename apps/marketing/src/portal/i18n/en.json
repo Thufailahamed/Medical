@@ -294,7 +294,8 @@
       "verify": "Verify",
       "cancel": "Cancel",
       "discard": "Discard",
-      "view": "View"
+      "view": "View",
+      "dispense": "Mark dispensed"
     },
     "detail": {
       "signedBy": "Signed by",
@@ -302,7 +303,8 @@
       "backToList": "All prescriptions",
       "backToChart": "Patient chart",
       "cancelledNote": "This prescription has been cancelled.",
-      "dispensedNote": "This prescription has been dispensed."
+      "dispensedNote": "This prescription has been dispensed.",
+      "dispensedToast": "Prescription marked as dispensed"
     },
     "cancel": {
       "confirmTitle": "Cancel prescription?",

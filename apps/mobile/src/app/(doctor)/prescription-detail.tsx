@@ -20,11 +20,15 @@ import {
   IdCard,
   ShieldCheck,
   ScanLine,
+  XCircle,
+  PackageCheck,
 } from "lucide-react-native";
 import {
   useDoctorPrescription,
   downloadPrescriptionPdf,
   useSignPrescription,
+  useCancelPrescription,
+  useDispensePrescription,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -34,6 +38,8 @@ import {
   Button,
   Skeleton,
   EmptyState,
+  TextInput,
+  BottomSheet,
   useToast,
 } from "@/components/ui";
 
@@ -46,12 +52,18 @@ export default function PrescriptionDetailScreen() {
   const { data, isLoading } = useDoctorPrescription(id);
   const [downloading, setDownloading] = useState(false);
   const signMutation = useSignPrescription();
+  const cancelMutation = useCancelPrescription();
+  const dispenseMutation = useDispensePrescription();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const rx = data?.prescription;
   const patient = rx?.patient;
   const status: string = rx?.status ?? "draft";
   const isDraft = status === "draft";
   const isSigned = status === "signed";
+  // Cancel is allowed from draft or signed; dispense only from signed.
+  const canCancel = isDraft || isSigned;
 
   async function onSign() {
     if (!id) return;
@@ -61,6 +73,37 @@ export default function PrescriptionDetailScreen() {
     } catch (err: any) {
       toast.show(
         err?.message ?? t("doctorPrescriptionDetail.signError"),
+        "danger"
+      );
+    }
+  }
+
+  async function onCancelConfirm() {
+    if (!id) return;
+    try {
+      await cancelMutation.mutateAsync({
+        id,
+        reason: cancelReason.trim() || undefined,
+      });
+      setCancelOpen(false);
+      setCancelReason("");
+      toast.show(t("doctorPrescriptionDetail.cancelledToast"), "success");
+    } catch (err: any) {
+      toast.show(
+        err?.message ?? t("doctorPrescriptionDetail.cancelError"),
+        "danger"
+      );
+    }
+  }
+
+  async function onDispense() {
+    if (!id) return;
+    try {
+      await dispenseMutation.mutateAsync({ id });
+      toast.show(t("doctorPrescriptionDetail.dispensedToast"), "success");
+    } catch (err: any) {
+      toast.show(
+        err?.message ?? t("doctorPrescriptionDetail.dispenseError"),
         "danger"
       );
     }
@@ -354,7 +397,11 @@ export default function PrescriptionDetailScreen() {
                     { color: colors.text, fontWeight: "700" },
                   ]}
                 >
-                  {isSigned
+                  {status === "cancelled"
+                    ? t("doctorPrescriptionDetail.statusCancelled")
+                    : status === "dispensed"
+                    ? t("doctorPrescriptionDetail.statusDispensed")
+                    : isSigned
                     ? t("doctorPrescriptionDetail.statusSigned")
                     : t("doctorPrescriptionDetail.statusDraft")}
                 </Text>
@@ -409,6 +456,42 @@ export default function PrescriptionDetailScreen() {
                 style={{ flex: 1 }}
               />
             </View>
+
+            {/* Phase E-Rx 8: lifecycle actions. Dispense (signed only)
+                + cancel (draft or signed). Both hit the status-guarded
+                endpoints, so a concurrent flip surfaces as a 409 toast. */}
+            {isSigned || canCancel ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: spacing.sm,
+                  marginTop: spacing.sm,
+                }}
+              >
+                {isSigned ? (
+                  <Button
+                    title={t("doctorPrescriptionDetail.dispense")}
+                    onPress={onDispense}
+                    loading={dispenseMutation.isPending}
+                    disabled={dispenseMutation.isPending}
+                    variant="secondary"
+                    iconLeft={PackageCheck}
+                    size="md"
+                    style={{ flex: 1 }}
+                  />
+                ) : null}
+                {canCancel ? (
+                  <Button
+                    title={t("doctorPrescriptionDetail.cancel")}
+                    onPress={() => setCancelOpen(true)}
+                    variant="danger"
+                    iconLeft={XCircle}
+                    size="md"
+                    style={{ flex: 1 }}
+                  />
+                ) : null}
+              </View>
+            ) : null}
           </Card>
 
           {/* Phase E-Rx 7: PDF download is gated server-side on
@@ -432,6 +515,43 @@ export default function PrescriptionDetailScreen() {
           />
         </ScrollView>
       )}
+
+      {/* Cancel confirmation sheet — destructive action, so we ask for
+          confirmation and capture an optional reason for the audit log. */}
+      <BottomSheet
+        visible={cancelOpen}
+        onDismiss={() => setCancelOpen(false)}
+        title={t("doctorPrescriptionDetail.cancelConfirmTitle")}
+      >
+        <View style={{ gap: spacing.md }}>
+          <Text style={[typography.body.md, { color: colors.textMuted }]}>
+            {t("doctorPrescriptionDetail.cancelConfirmBody")}
+          </Text>
+          <TextInput
+            value={cancelReason}
+            onChangeText={setCancelReason}
+            placeholder={t("doctorPrescriptionDetail.cancelReasonPlaceholder")}
+            multiline
+          />
+          <Button
+            title={t("doctorPrescriptionDetail.cancelConfirm")}
+            onPress={onCancelConfirm}
+            loading={cancelMutation.isPending}
+            disabled={cancelMutation.isPending}
+            variant="danger"
+            iconLeft={XCircle}
+            size="lg"
+            fullWidth
+          />
+          <Button
+            title={t("doctorPrescriptionDetail.cancelKeep")}
+            onPress={() => setCancelOpen(false)}
+            variant="ghost"
+            size="md"
+            fullWidth
+          />
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }

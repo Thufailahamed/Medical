@@ -303,10 +303,14 @@ export function PrescriptionComposer({
         const res = await updateMutation.mutateAsync({
           id: prescriptionId!,
           body: { diagnosis, notes, items: body.items },
+          headers: overrideHeaders,
         });
         id = res.prescriptionId;
       } else {
-        const res = await createMutation.mutateAsync(body as PrescriptionCreate);
+        const res = await createMutation.mutateAsync({
+          body: body as PrescriptionCreate,
+          headers: overrideHeaders,
+        });
         id = res.prescription?.id;
       }
       if (!id) return;

@@ -168,14 +168,24 @@ export function useDispensePrescription() {
   });
 }
 
-/** Update a draft prescription. Server enforces status === draft. */
+/** Update a draft prescription. Server enforces status === draft.
+ *  `headers` carries `X-Confirm-Warning: true` when the doctor has
+ *  acknowledged a blocking safety warning. */
 export function useUpdatePrescriptionDraft() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, body }: { id: string; body: any }) =>
+    mutationFn: async ({
+      id,
+      body,
+      headers,
+    }: {
+      id: string;
+      body: any;
+      headers?: Record<string, string>;
+    }) =>
       api<{ ok: true; prescriptionId: string }>(
         `/doctor/prescriptions/${id}`,
-        { method: "PATCH", json: body }
+        { method: "PATCH", json: body, headers }
       ),
     onSuccess: (_res, { id }) => {
       qc.invalidateQueries({ queryKey: ["prescription", id] });
@@ -184,14 +194,22 @@ export function useUpdatePrescriptionDraft() {
   });
 }
 
-/** Create a new draft prescription. */
+/** Create a new draft prescription. `headers` carries the safety
+ *  override ack when needed. */
 export function useCreatePrescription() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: any) =>
+    mutationFn: async ({
+      body,
+      headers,
+    }: {
+      body: any;
+      headers?: Record<string, string>;
+    }) =>
       api<{ prescription: { id: string } }>("/doctor/prescriptions", {
         method: "POST",
         json: body,
+        headers,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["doctor", "prescriptions"] });

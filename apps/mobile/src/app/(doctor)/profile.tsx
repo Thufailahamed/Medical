@@ -723,7 +723,7 @@ export default function DoctorProfileScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push("/prescriptions" as any)}
+            onPress={() => router.push("/(doctor)/prescriptions" as any)}
             accessibilityLabel={t("doctorProfile.myRxA11y")}
           >
             <Card padded={false}>

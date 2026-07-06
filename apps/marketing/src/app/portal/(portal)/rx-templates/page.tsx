@@ -20,7 +20,8 @@ import { cn } from "@/portal/lib/utils";
 interface Template {
   id: string;
   name: string;
-  description?: string | null;
+  /** Internal note — stored in the API's `notes` column. */
+  notes?: string | null;
   diagnosis?: string | null;
   medicines: Array<{
     name: string;
@@ -131,9 +132,9 @@ export default function TemplatesPage() {
                   </Button>
                 </div>
               </div>
-              {tmpl.description ? (
+              {tmpl.notes ? (
                 <div className="text-xs text-text-soft mt-2 line-clamp-2">
-                  {tmpl.description}
+                  {tmpl.notes}
                 </div>
               ) : null}
               <ul className="mt-3 flex flex-col gap-1">
@@ -197,7 +198,7 @@ function TemplateForm({
 }) {
   const [name, setName] = useState(template?.name ?? "");
   const [diagnosis, setDiagnosis] = useState(template?.diagnosis ?? "");
-  const [description, setDescription] = useState(template?.description ?? "");
+  const [description, setDescription] = useState(template?.notes ?? "");
   const [meds, setMeds] = useState(
     template?.medicines?.length
       ? template.medicines.map((m) => ({
@@ -215,7 +216,7 @@ function TemplateForm({
       const body = {
         name,
         diagnosis,
-        description,
+        notes: description,
         medicines: meds.filter((m) => m.name.trim()),
       };
       if (template?.id) {

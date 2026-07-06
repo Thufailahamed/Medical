@@ -210,7 +210,7 @@ export default function DoctorPatientDetail() {
             fullWidth={false}
             onPress={() =>
               router.push({
-                pathname: "/doctor/visit-summary",
+                pathname: "/(doctor)/visit-summary",
                 params: { patientId: id },
               })
             }
@@ -223,7 +223,7 @@ export default function DoctorPatientDetail() {
             fullWidth={false}
             onPress={() =>
               router.push({
-                pathname: "/doctor/clinical-note",
+                pathname: "/(doctor)/clinical-note",
                 params: { patientId: id },
               })
             }
@@ -236,7 +236,7 @@ export default function DoctorPatientDetail() {
             fullWidth={false}
             onPress={() =>
               router.push({
-                pathname: "/doctor/prescription",
+                pathname: "/(doctor)/prescription",
                 params: { patientId: id },
               })
             }
@@ -249,7 +249,7 @@ export default function DoctorPatientDetail() {
             fullWidth={false}
             onPress={() =>
               router.push({
-                pathname: "/doctor/lab-order",
+                pathname: "/(doctor)/lab-order",
                 params: { patientId: id },
               })
             }
@@ -262,7 +262,7 @@ export default function DoctorPatientDetail() {
             fullWidth={false}
             onPress={() =>
               router.push({
-                pathname: "/doctor/follow-up-new",
+                pathname: "/(doctor)/follow-up-new",
                 params: { patientId: id },
               })
             }
@@ -380,6 +380,12 @@ export default function DoctorPatientDetail() {
                     title={r.title || r.diagnosis || t("prescription.untitled")}
                     subtitle={r.diagnosis ?? undefined}
                     pill={{ label: r.status, tone: statusToTone(r.status) }}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(doctor)/prescription-detail",
+                        params: { id: r.id },
+                      } as any)
+                    }
                   />
                 </View>
               ))}
@@ -668,7 +674,7 @@ export default function DoctorPatientDetail() {
                     title={t("overview.action.openInbox")}
                     variant="ghost"
                     size="sm"
-                    onPress={() => router.push({ pathname: "/doctor/inbox" })}
+                    onPress={() => router.push({ pathname: "/(doctor)/inbox" })}
                   />
                 </View>
               ) : null}

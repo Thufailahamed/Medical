@@ -3,12 +3,16 @@
 import { AlertTriangle, ShieldCheck, XCircle } from "lucide-react";
 import { cn } from "@/portal/lib/utils";
 
+// Mirrors DrugWarning from the API safety engine
+// (apps/api/src/lib/safety-engine.ts).
 export interface SafetyWarning {
-  kind: string;
+  type: string;
   severity: "info" | "minor" | "moderate" | "severe" | "critical";
   message: string;
-  medicineName?: string;
-  details?: Record<string, unknown>;
+  /** Human-readable medicine names involved in the warning. */
+  medicines?: string[];
+  recommendation?: string;
+  source?: string;
 }
 
 interface Props {
@@ -77,9 +81,14 @@ export function SafetyCheckPanel({ warnings, severity, isLoading }: Props) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-text">{w.message}</div>
-              {w.medicineName ? (
+              {w.medicines?.length ? (
                 <div className="text-[10px] text-text-muted mt-0.5">
-                  for: {w.medicineName}
+                  for: {w.medicines.join(" + ")}
+                </div>
+              ) : null}
+              {w.recommendation ? (
+                <div className="text-[10px] text-text-muted mt-0.5 italic">
+                  {w.recommendation}
                 </div>
               ) : null}
             </div>

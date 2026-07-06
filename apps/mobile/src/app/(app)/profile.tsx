@@ -33,6 +33,7 @@ import {
   Syringe,
   Download,
   Lock,
+  Pill,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -44,6 +45,7 @@ import {
   useAllergies,
   useDoctorMe,
   useVitalsAlerts,
+  useMyPrescriptions,
 } from "@/hooks/useApi";
 import { api } from "@/lib/api";
 import {
@@ -108,6 +110,7 @@ export default function ProfileScreen() {
   const { data: familyData } = useFamilyMembers();
   const { data: medicinesData } = useMyMedicines();
   const { data: allergiesData } = useAllergies();
+  const { data: prescriptionsData } = useMyPrescriptions();
   const { data: vitalsAlertsData } = useVitalsAlerts(30);
 
   // If the API layer reports an unrecoverable 401, sign the user out.
@@ -155,6 +158,7 @@ export default function ProfileScreen() {
   );
   const medCount = activeMeds.length;
   const allergyCount = allergiesData?.allergies?.length ?? 0;
+  const rxCount = prescriptionsData?.prescriptions?.length ?? 0;
   const abnormalCount = vitalsAlertsData?.count ?? 0;
   const criticalAllergies =
     allergiesData?.allergies?.filter(
@@ -299,6 +303,16 @@ export default function ProfileScreen() {
       icon: Syringe,
       tone: "info" as const,
       onPress: () => router.push("/(app)/vaccinations" as any),
+    },
+    {
+      labelKey: "profile.item.prescriptions.label",
+      subtitle:
+        rxCount > 0
+          ? t("profile.item.prescriptions.subtitleCount", { count: rxCount })
+          : t("profile.item.prescriptions.subtitleEmpty"),
+      icon: Pill,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/prescriptions" as any),
     },
     {
       labelKey: "profile.item.notes.label",

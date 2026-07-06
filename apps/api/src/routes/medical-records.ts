@@ -53,6 +53,7 @@ import {
 } from "../lib/envelope-crypto";
 import { recordUploadEnvelopeSchema, type RecordKind } from "@healthcare/shared/records";
 import { listByKind, findByHash } from "../lib/records-v3-source";
+import { renderPrescriptionPdf } from "../lib/prescription-pdf";
 import type { AppEnvironment } from "../types";
 
 const medicalRecordsRouter = new Hono<AppEnvironment>();
@@ -1000,6 +1001,11 @@ medicalRecordsRouter.get("/timeline/:patientId", authMiddleware, async (c) => {
 });
 
 // ─── My prescriptions shortcut ───────────────────────────
+// Canonical e-prescriptions issued to this patient, from the
+// `prescriptions` table (NOT the medical_records chart mirror), so
+// the rows carry the real lifecycle status + signature state and the
+// ids work with the public GET /verify/:id endpoint. Drafts are
+// excluded — patients only see what the doctor has actually issued.
 medicalRecordsRouter.get("/me/prescriptions", authMiddleware, requireRole("patient"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
@@ -1007,19 +1013,173 @@ medicalRecordsRouter.get("/me/prescriptions", authMiddleware, requireRole("patie
   const patient = await getOwnPatient(db, userId);
   if (!patient) return c.json({ prescriptions: [] });
 
-  const records = await db
-    .select()
-    .from(medicalRecords)
+  const rows = await db
+    .select({
+      id: prescriptions.id,
+      diagnosis: prescriptions.diagnosis,
+      notes: prescriptions.notes,
+      date: prescriptions.date,
+      status: prescriptions.status,
+      signedAt: prescriptions.signedAt,
+      createdAt: prescriptions.createdAt,
+      doctorName: users.name,
+      doctorSpecialization: doctors.specialization,
+    })
+    .from(prescriptions)
+    .innerJoin(doctors, eq(doctors.id, prescriptions.doctorId))
+    .innerJoin(users, eq(users.id, doctors.userId))
     .where(
       and(
-        eq(medicalRecords.patientId, patient.id),
-        eq(medicalRecords.recordType, "prescription")
+        eq(prescriptions.patientId, patient.id),
+        sql`${prescriptions.status} != 'draft'`
       )
     )
-    .orderBy(desc(medicalRecords.date));
+    .orderBy(desc(prescriptions.date), desc(prescriptions.createdAt))
+    .limit(200);
 
-  return c.json({ prescriptions: records });
+  // Attach the medicine rows so the list can render contents inline.
+  const medsByRx = new Map<string, any[]>();
+  if (rows.length) {
+    const medRows = await db
+      .select()
+      .from(medicines)
+      .where(
+        sql`${medicines.prescriptionId} IN (${sql.join(
+          rows.map((r) => sql`${r.id}`),
+          sql`, `
+        )})`
+      );
+    for (const m of medRows) {
+      if (!m.prescriptionId) continue;
+      const list = medsByRx.get(m.prescriptionId) ?? [];
+      list.push({
+        id: m.id,
+        name: m.name,
+        dosage: m.dosage,
+        frequency: m.frequency,
+        timing: m.timing,
+        startDate: m.startDate,
+        endDate: m.endDate,
+        instructions: m.notes,
+      });
+      medsByRx.set(m.prescriptionId, list);
+    }
+  }
+
+  return c.json({
+    prescriptions: rows.map((r) => ({
+      ...r,
+      medicines: medsByRx.get(r.id) ?? [],
+      medicineCount: (medsByRx.get(r.id) ?? []).length,
+    })),
+  });
 });
+
+// GET /medical-records/me/prescriptions/:id/pdf — patient download.
+// Must be registered before the bare :id detail route.
+medicalRecordsRouter.get(
+  "/me/prescriptions/:id/pdf",
+  authMiddleware,
+  requireRole("patient"),
+  async (c) => {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const id = c.req.param("id");
+
+    const patient = await getOwnPatient(db, userId);
+    if (!patient) return c.json({ error: "Patient not found" }, 404);
+
+    const [owned] = await db
+      .select({ id: prescriptions.id })
+      .from(prescriptions)
+      .where(
+        and(eq(prescriptions.id, id), eq(prescriptions.patientId, patient.id))
+      )
+      .limit(1);
+
+    if (!owned) {
+      return c.json({ error: "Prescription not found" }, 404);
+    }
+
+    const publicUrl = c.env.PUBLIC_URL || "https://app.healthhub.app";
+    const result = await renderPrescriptionPdf(db, id, publicUrl);
+    if (!result.ok) {
+      return c.json(
+        { error: result.error, ...(result.details ?? {}) },
+        result.status
+      );
+    }
+
+    return c.body(result.bytes, 200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="prescription-${result.shortId}.pdf"`,
+      "Cache-Control": "private, no-store",
+    });
+  }
+);
+
+// GET /medical-records/me/prescriptions/:id — single issued Rx for patient.
+medicalRecordsRouter.get(
+  "/me/prescriptions/:id",
+  authMiddleware,
+  requireRole("patient"),
+  async (c) => {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const id = c.req.param("id");
+
+    const patient = await getOwnPatient(db, userId);
+    if (!patient) return c.json({ error: "Patient not found" }, 404);
+
+    const [row] = await db
+      .select({
+        id: prescriptions.id,
+        diagnosis: prescriptions.diagnosis,
+        notes: prescriptions.notes,
+        date: prescriptions.date,
+        status: prescriptions.status,
+        signedAt: prescriptions.signedAt,
+        signedPayloadHash: prescriptions.signedPayloadHash,
+        cancelledAt: prescriptions.cancelledAt,
+        cancellationReason: prescriptions.cancellationReason,
+        dispensedAt: prescriptions.dispensedAt,
+        createdAt: prescriptions.createdAt,
+        doctorName: users.name,
+        doctorSpecialization: doctors.specialization,
+        doctorSlmcNo: doctors.slmcRegistrationNo,
+      })
+      .from(prescriptions)
+      .innerJoin(doctors, eq(doctors.id, prescriptions.doctorId))
+      .innerJoin(users, eq(users.id, doctors.userId))
+      .where(
+        and(
+          eq(prescriptions.id, id),
+          eq(prescriptions.patientId, patient.id),
+          sql`${prescriptions.status} != 'draft'`
+        )
+      )
+      .limit(1);
+
+    if (!row) {
+      return c.json({ error: "Prescription not found" }, 404);
+    }
+
+    const medRows = await db
+      .select()
+      .from(medicines)
+      .where(eq(medicines.prescriptionId, id));
+
+    return c.json({
+      prescription: {
+        ...row,
+        medicines: medRows.map((m: any) => ({
+          ...m,
+          instructions: m.notes,
+        })),
+      },
+    });
+  }
+);
 
 // ─── Phase v3: Unified canonical view ─────────────────────────────
 // GET /medical-records/me/canonical
