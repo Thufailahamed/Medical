@@ -1432,6 +1432,84 @@ export function useSignPrescription() {
   });
 }
 
+// Phase E-Rx 8: edit a draft prescription. Allowed only when the
+// server-side status === "draft" — otherwise the route returns 409
+// and the mutation surfaces the error. Used by the mobile composer
+// once a future UI exposes the "edit draft" affordance.
+export function useUpdatePrescriptionDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; body: any }) =>
+      api<{ ok: true; prescriptionId: string }>(
+        `/doctor/prescriptions/${vars.id}`,
+        { method: "PATCH", body: vars.body }
+      ),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: ["doctor", "prescription", vars.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["doctor", "prescriptions"] });
+    },
+  });
+}
+
+// Phase E-Rx 8: cancel a prescription. Allowed from "draft" or
+// "signed" only — server returns 409 for "cancelled" or "dispensed".
+// Accepts an optional `reason` that lands in the audit row.
+export function useCancelPrescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; reason?: string }) =>
+      api<{ ok: true; prescriptionId: string; status: string }>(
+        `/doctor/prescriptions/${vars.id}/cancel`,
+        { method: "POST", body: { reason: vars.reason } }
+      ),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: ["doctor", "prescription", vars.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["doctor", "prescriptions"] });
+    },
+  });
+}
+
+// Phase E-Rx 8: mark a signed prescription as dispensed. Reserved
+// for the future pharmacy flow; today the mobile UI doesn't surface
+// it. The server enforces that the source state is "signed" (409
+// otherwise). Audit row `prescription.dispensed` is written.
+export function useDispensePrescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string }) =>
+      api<{ ok: true; prescriptionId: string; status: string }>(
+        `/doctor/prescriptions/${vars.id}/dispense`,
+        { method: "POST", body: {} }
+      ),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: ["doctor", "prescription", vars.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["doctor", "prescriptions"] });
+    },
+  });
+}
+
+// Phase E-Rx 8: rotate the doctor's signing key. Returns the new
+// `keyId` and the `createdAt` timestamp so the UI can show a
+// confirmation. The `note` field tells the doctor whether this was
+// the first key or a rotation.
+export function useRotateSigningKey() {
+  return useMutation({
+    mutationFn: () =>
+      api<{
+        keyId: string;
+        createdAt: string;
+        rotatedFrom: string | null;
+        note: string;
+      }>("/doctor/regenerate-signing-key", { method: "POST", body: {} }),
+  });
+}
+
 export type VerifyPrescriptionResponse = {
   valid: boolean;
   reason?: "payload_mismatch" | "revoked" | "missing_key" | "no_signature";

@@ -101,7 +101,7 @@ export default function CareTeamPage() {
                 </div>
                 {m.active ? <Pill tone="success">Active</Pill> : <Pill tone="neutral">Inactive</Pill>}
                 <Link
-                  href={`/patients/${m.patientId}`}
+                  href={`/portal/patients/${m.patientId}`}
                   className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5"
                 >
                   Open

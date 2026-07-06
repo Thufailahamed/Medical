@@ -177,7 +177,7 @@ function AppointmentDetail({
 
       {/* Actions */}
       <div className="flex flex-col gap-2 pt-3 border-t border-border/60">
-        <Link href={`/patients/${row.patientId}`} className="text-sm text-brand font-medium hover:underline flex items-center gap-1">
+        <Link href={`/portal/patients/${row.patientId}`} className="text-sm text-brand font-medium hover:underline flex items-center gap-1">
           {t("appointments.openChart")} <ChevronRightIcon size={14} />
         </Link>
         {canReschedule && !showReschedule && (
@@ -275,7 +275,7 @@ export default function AppointmentsPage() {
                     <div className="text-xs text-text-muted truncate mt-0.5">{r.reason ?? "—"}</div>
                   </div>
                   <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
-                  <Link href={`/patients/${r.patientId}`} className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Link href={`/portal/patients/${r.patientId}`} className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     {t("common.open")}
                   </Link>
                   {r.appointmentId && nextStatuses.length > 0 && (

@@ -2,8 +2,9 @@
 
 import { Hono } from "hono";
 import { eq, and, desc } from "drizzle-orm";
-import { auditLogs, patients } from "@healthcare/db";
+import { auditLogs, patients, prescriptions, doctors } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { requireRole } from "../middleware/rbac";
 import type { AppEnvironment } from "../types";
 
 const auditRouter = new Hono<AppEnvironment>();
@@ -32,6 +33,70 @@ auditRouter.get("/me", authMiddleware, async (c) => {
     .limit(limit);
 
   return c.json({ auditLogs: rows });
+});
+
+// ─── Audit entries for a specific resource (Phase E-Rx 8) ─
+//
+// GET /audit?resource=prescription&resourceId=...
+//   role=doctor. Returns the audit trail for a given resource, newest
+//   first. Currently scoped to prescriptions — the only resource that
+//   has a real "lifecycle" audit story. The doctor must own the
+//   prescription (doctorId matches the requesting userId) — otherwise
+//   we return 403 to avoid leaking audit entries from other doctors'
+//   resources.
+//
+//   Future expansion: extend with `resource=patient&resourceId=...`
+//   for the chart timeline.
+auditRouter.get("/", authMiddleware, requireRole("doctor"), async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const resource = c.req.query("resource");
+  const resourceId = c.req.query("resourceId");
+  if (!resource || !resourceId) {
+    return c.json({ error: "resource and resourceId required" }, 400);
+  }
+
+  if (resource === "prescription") {
+    // Ownership check: the doctor must own this prescription.
+    const [doctor] = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.userId, userId))
+      .limit(1);
+    if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+    const [own] = await db
+      .select({ id: prescriptions.id })
+      .from(prescriptions)
+      .where(eq(prescriptions.id, resourceId))
+      .limit(1);
+    if (!own) return c.json({ error: "Prescription not found" }, 404);
+
+    // Doctors can only see audit rows for prescriptions they authored.
+    const [own2] = await db
+      .select({ id: prescriptions.id, doctorId: prescriptions.doctorId })
+      .from(prescriptions)
+      .where(eq(prescriptions.id, resourceId))
+      .limit(1);
+    if (own2?.doctorId !== doctor.id) {
+      return c.json({ error: "Not your prescription" }, 403);
+    }
+
+    const rows = await db
+      .select()
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.resource, "prescription"),
+          eq(auditLogs.resourceId, resourceId)
+        )
+      )
+      .orderBy(desc(auditLogs.createdAt));
+
+    return c.json({ auditLogs: rows });
+  }
+
+  return c.json({ error: `Unsupported resource: ${resource}` }, 400);
 });
 
 // ─── Generic log writer (internal endpoints call this) ────

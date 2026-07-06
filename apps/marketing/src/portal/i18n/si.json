@@ -132,13 +132,41 @@
     "searchPlaceholder": "නම, NIC, දුරකථනය අනුව සොයන්න…",
     "recent": "මෑත රෝගීන්",
     "noResults": "\"{{q}}\" සඳහා රෝගීන් නැත",
-    "noRecent": "තවම මෑත රෝගීන් නැත",
+    "noResultsBody": "වෙනත් සෙවීමක් උත්සාහ කරන්න හෝ අක්ෂර වින්‍යාසය පරීක්ෂා කරන්න.",
+    "noRecent": "තවම රෝගීන් නැත",
+    "noRecentBody": "ඔබ හමු වන හෝ සත්කාර කණ්ඩායමට එකතු කරන රෝගීන් මෙහි පෙන්වනු ඇත.",
     "openChart": "පත්‍රය විවෘත කරන්න",
-    "resultsTitle": "සෙවුම් ප්‍රතිඵල",
+    "resultsTitle": "ප්‍රතිඵල {{count}}ක්",
+    "resultsTitle_other": "ප්‍රතිඵල {{count}}ක්",
     "emptyResults": "ඔබේ සෙවීමට ගැලපෙන රෝගීන් නැත",
     "recentTitle": "මෑත රෝගීන්",
     "manageCareTeam": "සත්කාර කණ්ඩායම කළමනාකරණය කරන්න",
-    "emptyRecent": "තවම මෑත රෝගීන් නැත"
+    "emptyRecent": "තවම මෑත රෝගීන් නැත",
+    "find": "රෝගියෙකු සොයන්න",
+    "searching": "සොයමින්…",
+    "clearSearch": "සෙවීම මකන්න",
+    "shown": "පෙන්වෙන",
+    "lastVisit": "අවසන් පැමිණීම",
+    "searchHint": {
+      "nic": "NIC",
+      "phone": "දුරකථනය",
+      "name": "නම"
+    },
+    "stat": {
+      "total": "සමස්ත රෝගීන්",
+      "thisMonth": "මේ මාසයේ පැමිණි",
+      "percentOfTotal": "මුළු ගණනින් {{pct}}%",
+      "withBlood": "රුධිර සමූහය සමඟ",
+      "female": "ගැහැනියන්"
+    },
+    "sort": {
+      "recent": "මෑත",
+      "name": "නම"
+    },
+    "view": {
+      "list": "ලැයිස්තුව",
+      "grid": "ජාලක"
+    }
   },
   "chart": {
     "tabs": {
@@ -215,6 +243,69 @@
     "statusSigned": "අත්සන් කළ",
     "statusCancelled": "අවලංගු කළ",
     "statusDispensed": "බෙදා දුන්"
+  },
+  "rx": {
+    "status": {
+      "draft": "කෙටුම්පත",
+      "signed": "අත්සන් කළ",
+      "cancelled": "අවලංගු කළ",
+      "dispensed": "බෙදා දුන්",
+      "all": "සියල්ල"
+    },
+    "composer": {
+      "timing": "කාලය",
+      "durationDays": "දින",
+      "ongoing": "පවතින",
+      "endDate": "අවසන් වේ",
+      "templatesSection": "අච්චු",
+      "saveAsTemplate": "අච්චුවක් ලෙස සුරකින්න",
+      "templateName": "අච්චුවේ නම",
+      "signAndSend": "අත්සන් කර යවන්න",
+      "updateDraft": "කෙටුම්පත යාවත්කාලීන කරන්න"
+    },
+    "actions": {
+      "edit": "සංස්කරණය",
+      "sign": "අත්සන් කරන්න",
+      "downloadPdf": "PDF බාගන්න",
+      "verify": "සත්‍යාපනය",
+      "cancel": "අවලංගු කරන්න",
+      "discard": "ඉවත දමන්න",
+      "view": "බලන්න"
+    },
+    "detail": {
+      "signedBy": "අත්සන් කළේ",
+      "auditTrail": "විගණන පථය",
+      "backToList": "සියලු බෙහෙත් පත්",
+      "backToChart": "රෝගී පත්‍රය",
+      "cancelledNote": "මෙම බෙහෙත් පත අවලංගු කර ඇත.",
+      "dispensedNote": "මෙම බෙහෙත් පත බෙදා දී ඇත."
+    },
+    "cancel": {
+      "confirmTitle": "බෙහෙත් පත අවලංගු කරන්නද?",
+      "confirmBody": "මෙය බෙහෙත් පත අවලංගු කරයි. විගණන පථයේ අවලංගු කිරීම සටහන් වේ.",
+      "confirm": "බෙහෙත් පත අවලංගු කරන්න",
+      "reason": "හේතුව (අමතර)"
+    }
+  },
+  "verify": {
+    "title": "බෙහෙත් පත සත්‍යාපනය",
+    "subtitle": "සංකේතාංකන අඛණ්ඩතා පරීක්ෂාව",
+    "publicBanner": "ප්‍රසිද්ධ සත්‍යාපන පිටුව. පිවිසුමක් අවශ්‍ය නැත.",
+    "invalid": "බෙහෙත් පත හමු නොවීය",
+    "intact": "අත්සන වලංගුයි",
+    "notSigned": "තවම අත්සන් කර නැත",
+    "tampered": "අත්සන වලංගු නැත",
+    "signedAt": "අත්සන් කළ දිනය",
+    "doctor": "නිකුත් කළේ",
+    "medicines": "ඖෂධ",
+    "payloadHash": "පේළි හැෂ්",
+    "reason": {
+      "notFound": "මෙම හැඳුනුම්පත සහිත බෙහෙත් පතක් නොමැත.",
+      "noSignature": "බෙහෙත් පත කිසි විටෙක අත්සන් කර නැත.",
+      "revoked": "අත්සන අවලංගු කර ඇත.",
+      "payloadMismatch": "අත්සන් කිරීමෙන් පසු බෙහෙත් පත වෙනස් කර ඇත.",
+      "error": "සත්‍යාපනය කළ නොහැක. පසුව නැවත උත්සාහ කරන්න."
+    }
   },
   "safety": {
     "title": "ආරක්ෂාව පරීක්ෂාව",
@@ -508,5 +599,124 @@
   },
   "visits": {
     "empty": "පැමිණීම් නැත"
+  },
+  "tab": {
+    "allergies": {
+      "title": "ආසාත්මකතා",
+      "subtitle": "ආසාත්මකතා {{count}}ක්",
+      "new": "ආසාත්මකතාවයක් එකතු කරන්න",
+      "empty": "ආසාත්මකතා නැත",
+      "emptyBody": "හමුවීම් වලදී මතුපෙන්වීමට ඖෂධ, ආහාර හෝ පරිසර ආසාත්මකතා එකතු කරන්න."
+    },
+    "medications": {
+      "title": "ඖෂධ",
+      "subtitle": "ක්‍රියාකාරී ඖෂධ {{count}}ක්",
+      "new": "බෙහෙත් පත ලියන්න",
+      "empty": "ඖෂධ සටහන් නැත",
+      "emptyBody": "රෝගීන්ගේ ඖෂධ ලැයිස්තුව ආරම්භ කිරීමට නව බෙහෙත් පතක් ලියන්න.",
+      "filterActive": "ක්‍රියාකාරී",
+      "filterAll": "සියල්ල"
+    },
+    "notes": {
+      "title": "සායනික සටහන්",
+      "subtitle": "සටහන් {{count}}ක්",
+      "new": "නව සටහන",
+      "empty": "තවම සායනික සටහන් නැත",
+      "emptyBody": "SOAP සටහනක්, සංචාර සාරාංශයක් හෝ වෙනත් සායනික නිරීක්ෂණයක් සටහන් කරන්න.",
+      "searchPlaceholder": "සටහන් සොයන්න…"
+    },
+    "prescriptions": {
+      "title": "බෙහෙත් පත්‍ර",
+      "subtitle": "බෙහෙත් පත්‍ර {{count}}ක්",
+      "new": "නව බෙහෙත් පත",
+      "empty": "තවම බෙහෙත් පත්‍ර නැත",
+      "emptyBody": "රෝග විනිශ්චය, ඖෂධ සහ උපදෙස් සමඟ නව බෙහෙත් පතක් සකසන්න.",
+      "medicineCount_one": "ඖෂධ {{count}}ක්",
+      "medicineCount_other": "ඖෂධ {{count}}ක්",
+      "view": "බලන්න"
+    },
+    "labs": {
+      "title": "රසායනාගාර ඇණවුම්",
+      "subtitle": "ඇණවුම් {{count}}ක්",
+      "new": "නව රසායනාගාර ඇණවුම",
+      "empty": "තවම රසායනාගාර ඇණවුම් නැත",
+      "emptyBody": "රෝගීන්ගේ ජීව සලකුණු ලබා ගැනීමට රසායනාගාර පරීක්ෂණ ඇණවුම් කරන්න.",
+      "filterAll": "සියල්ල",
+      "filterOrdered": "ඇණවුම් කළ",
+      "filterProcessing": "සැකසෙමින්",
+      "filterCompleted": "සම්පූර්ණ",
+      "filterCancelled": "අවලංගු කළ"
+    },
+    "followups": {
+      "title": "පසු විපරම්",
+      "subtitle": "නියමිත පසු විපරම් {{count}}ක්",
+      "new": "නව පසු විපරම",
+      "empty": "නියමිත පසු විපරම් නැත",
+      "emptyBody": "රෝගීන් සහ ඔබේ කණ්ඩායමට මතක් කිරීමට පසු විපරමක් නියම කරන්න.",
+      "markComplete": "සම්පූර්ණ ලෙස සලකන්න",
+      "cancel": "අවලංගු කරන්න",
+      "filterUpcoming": "ඉදිරි",
+      "filterPast": "අවසන්",
+      "filterAll": "සියල්ල"
+    },
+    "visits": {
+      "title": "පැමිණීම්",
+      "subtitle": "පැමිණීම් {{count}}ක්",
+      "empty": "පැමිණීම් නැත",
+      "emptyBody": "පැමිණීම් සටහන ආරම්භ කිරීමට හමුවීමක් වෙන්කරන්න හෝ walk-in භාර ගන්න.",
+      "bookAppointment": "හමුවීමක් වෙන්කරන්න",
+      "addWalkin": "Walk-in",
+      "filterUpcoming": "ඉදිරි",
+      "filterPast": "අවසන්",
+      "filterAll": "සියල්ල"
+    },
+    "vitals": {
+      "title": "ජීවන ලක්ෂණ",
+      "subtitle": "පාඨාංක {{count}}ක් සටහන් වී ඇත",
+      "add": "ජීවන ලක්ෂණ සටහන් කරන්න",
+      "empty": "ජීවන ලක්ෂණ සටහන් නැත",
+      "normalRange": "සාමාන්‍ය {{min}}–{{max}}"
+    },
+    "messages": {
+      "title": "පණිවිඩ",
+      "subtitle": "සංවාද {{count}}ක්",
+      "openInbox": "එනතුම විවෘත කරන්න"
+    },
+    "overview": {
+      "title": "දළ විශ්ලේෂණය",
+      "subtitle": "එක දිහාවකින් ඔබට අවශ්‍ය සියල්ල"
+    }
+  },
+  "status": {
+    "draft": "කෙටුම්පත",
+    "signed": "අත්සන් කළ",
+    "cancelled": "අවලංගු කළ",
+    "completed": "සම්පූර්ණ",
+    "scheduled": "නියමිත",
+    "missed": "මග හැරුණු",
+    "ordered": "ඇණවුම් කළ",
+    "accepted": "පිළිගත්",
+    "collected": "එකතු කළ",
+    "processing": "සැකසෙමින්",
+    "in_progress": "ක්‍රියාත්මකයි",
+    "waiting": "බලා සිටින",
+    "confirmed": "තහවුරු කළ",
+    "no_show": "නොපැමිණි",
+    "pending": "පොරොත්තුවෙන්",
+    "reminded": "මතක් කළ",
+    "abnormal": "අසාමාන්‍ය",
+    "critical": "බරපතල",
+    "normal": "සාමාන්‍ය",
+    "dispensed": "බෙදා දුන්"
+  },
+  "severity": {
+    "mild": "මඳ",
+    "moderate": "මධ්‍යස්ථ",
+    "severe": "බරපතල",
+    "life_threatening": "ජීවිත අනතුරු"
+  },
+  "kind": {
+    "appointment": "හමුවීම",
+    "walkin": "Walk-in"
   }
 }

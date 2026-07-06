@@ -31,6 +31,52 @@ export const loginSchema = z.object({
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// ─── E-Rx: Prescription lifecycle ────────────────────────
+//
+// Phase E-Rx 8: shared prescription schemas used by both clients
+// (mobile + web) and the API. Centralizing them keeps the create /
+// edit / draft / sign / cancel / dispense / verify surface aligned.
+//
+// `prescriptionItems` mirrors the fields the doctor captures in the
+// composer. The `masterMedicineId` is optional — free-text entries
+// (rare) keep it null. `ongoing` and `durationDays` are mutually
+// tolerant: if `ongoing` is true the end-date is "open" and the
+// `durationDays` value is ignored for the end-date computation.
+
+export const prescriptionItemSchema = z.object({
+  name: z.string().min(1).max(200),
+  dosage: z.string().max(64).optional().default(""),
+  frequency: z.string().min(1).max(64),
+  timing: z.string().max(64).optional().default(""),
+  durationDays: z.number().int().min(0).max(365).optional(),
+  ongoing: z.boolean().optional().default(false),
+  instructions: z.string().max(500).optional().default(""),
+  masterMedicineId: z.string().uuid().optional().nullable(),
+});
+
+export const prescriptionCreateSchema = z.object({
+  patientId: z.string().min(1),
+  hospitalId: z.string().optional(),
+  diagnosis: z.string().max(500).optional().default(""),
+  notes: z.string().max(2000).optional().default(""),
+  items: z.array(prescriptionItemSchema).min(1).max(50),
+});
+
+export const prescriptionPatchSchema = z.object({
+  diagnosis: z.string().max(500).optional(),
+  notes: z.string().max(2000).optional(),
+  items: z.array(prescriptionItemSchema).min(1).max(50).optional(),
+});
+
+export const prescriptionCancelSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
+export type PrescriptionItem = z.infer<typeof prescriptionItemSchema>;
+export type PrescriptionCreate = z.infer<typeof prescriptionCreateSchema>;
+export type PrescriptionPatch = z.infer<typeof prescriptionPatchSchema>;
+export type PrescriptionCancelInput = z.infer<typeof prescriptionCancelSchema>;
+
 // ─── V2: Clinical Note ──────────────────────────────────
 export const clinicalNoteSchema = z.object({
   patientId: z.string().min(1),

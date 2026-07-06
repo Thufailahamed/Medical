@@ -285,6 +285,17 @@ export interface CareTeamInvitePayload {
 
 export type OverviewAllergySeverity = "mild" | "moderate" | "severe" | "critical";
 export type OverviewRxStatus = "draft" | "signed" | "cancelled" | "dispensed";
+
+// Phase E-Rx 8: shared prescription status enum. Mirrors
+// prescriptions.status in the DB and OverviewRxStatus. Use this for
+// any new client-side prescription type work.
+export const RX_STATUS_VALUES = [
+  "draft",
+  "signed",
+  "cancelled",
+  "dispensed",
+] as const;
+export type RxStatus = (typeof RX_STATUS_VALUES)[number];
 export type OverviewLabOrderStatus =
   | "ordered"
   | "sample_collected"

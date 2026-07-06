@@ -2,19 +2,24 @@
 
 import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pill as PillIcon, Plus } from "lucide-react";
+import { Pill as PillIcon, Plus, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { api } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { PrescriptionComposer } from "@/portal/components/rx/PrescriptionComposer";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
-import { cn } from "@/portal/lib/utils";
+import {
+  ChartTabHeader,
+  ChartList,
+  ChartRow,
+  ChartEmpty,
+  FilterPills,
+} from "@/portal/components/chart";
+import { rxStatusToTone } from "@/portal/lib/clinicalTones";
 
 interface RxRow {
   id: string;
@@ -39,15 +44,27 @@ interface PatientSummary {
 
 type Status = "all" | "signed" | "draft" | "cancelled";
 
-export default function PrescriptionsTab({ params }: { params: Promise<{ id: string }> }) {
+const STATUS_VALUES: Status[] = ["all", "signed", "draft", "cancelled"];
+
+export default function PrescriptionsTab({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const t = useT();
   const [status, setStatus] = useState<Status>("all");
   const [composeOpen, setComposeOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["doctor", "prescriptions", "all"],
-    queryFn: () => api<RxList>(`/doctor/prescriptions?limit=200`),
+    queryKey: ["doctor", "prescriptions", id, status],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      q.set("patientId", id);
+      q.set("limit", "100");
+      if (status !== "all") q.set("status", status);
+      return api<RxList>(`/doctor/prescriptions?${q.toString()}`);
+    },
   });
 
   const { data: summary } = useQuery({
@@ -55,79 +72,99 @@ export default function PrescriptionsTab({ params }: { params: Promise<{ id: str
     queryFn: () => api<PatientSummary>(`/doctor-portal/patients/${id}/summary`),
   });
 
-  const rows = (data?.prescriptions ?? []).filter((r) => r.patientId === id);
+  const rows = data?.prescriptions ?? [];
   const allergies = summary?.allergies ?? [];
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          {(["all", "signed", "draft", "cancelled"] as Status[]).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStatus(s)}
-              className={cn(
-                "px-2.5 h-7 rounded-md text-xs border transition-colors",
-                status === s
-                  ? "bg-brand-soft text-brand border-brand/30"
-                  : "bg-surface text-text-soft border-border hover:bg-surface-2"
-              )}
-            >
-              {t(`prescription.status.${s}`)}
-            </button>
-          ))}
-        </div>
-        <Button
-          size="sm"
-          leftIcon={<Plus size={14} />}
-          onClick={() => setComposeOpen(true)}
-        >
-          {t("prescription.new")}
-        </Button>
-      </div>
+      <ChartTabHeader
+        icon={<PillIcon size={18} />}
+        title={t("tab.prescriptions.title")}
+        subtitle={t("tab.prescriptions.subtitle", { count: rows.length })}
+        badge={{ count: rows.length, tone: "brand" }}
+        actions={
+          <Button
+            size="sm"
+            leftIcon={<Plus size={14} />}
+            onClick={() => setComposeOpen(true)}
+          >
+            {t("tab.prescriptions.new")}
+          </Button>
+        }
+      />
 
-      <Card>
-        {isLoading ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : rows.length === 0 ? (
-          <Empty title={t("prescription.empty")} />
-        ) : (
-          <ul className="flex flex-col">
-            {rows.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center gap-3 py-2.5 border-b border-border last:border-0"
+      <ChartList
+        items={rows}
+        isLoading={isLoading}
+        isEmpty={!isLoading && rows.length === 0}
+        toolbar={
+          <FilterPills<Status>
+            value={status}
+            onChange={setStatus}
+            options={STATUS_VALUES.map((s) => ({
+              value: s,
+              label: t(
+                s === "all"
+                  ? "tab.prescriptions.filterAll"
+                  : `status.${s}`,
+              ),
+            }))}
+          />
+        }
+        emptyState={
+          <ChartEmpty
+            icon={<PillIcon size={20} />}
+            title={t("tab.prescriptions.empty")}
+            description={t("tab.prescriptions.emptyBody")}
+            action={
+              <Button
+                size="sm"
+                leftIcon={<Plus size={14} />}
+                onClick={() => setComposeOpen(true)}
               >
-                <PillIcon size={14} className="text-brand shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-text truncate">
-                    {r.title ?? t("prescription.untitled")}
-                  </div>
-                  {r.diagnosis ? (
-                    <div className="text-xs text-text-soft truncate">{r.diagnosis}</div>
-                  ) : null}
-                </div>
-                <Pill tone="brand">{r.medicineCount} meds</Pill>
-                {r.date ? (
-                  <span className="text-xs text-text-muted shrink-0">
-                    {formatDate(r.date)}
-                  </span>
-                ) : null}
-                <Link
-                  href={`/patients/${id}/prescriptions/${r.id}`}
-                  className="text-xs text-brand hover:underline shrink-0"
-                >
-                  View
-                </Link>
-              </li>
-            ))}
-          </ul>
+                {t("tab.prescriptions.new")}
+              </Button>
+            }
+          />
+        }
+        renderRow={(r) => (
+          <ChartRow
+            href={`/portal/patients/${id}/prescriptions/${r.id}`}
+            icon={<PillIcon size={16} />}
+            iconTone="brand"
+            title={r.title ?? t("prescription.untitled")}
+            subtitle={r.diagnosis ?? undefined}
+            pills={[
+              r.status ? (
+                <Pill key="status" tone={rxStatusToTone(r.status)}>
+                  {t(`status.${r.status}`)}
+                </Pill>
+              ) : null,
+              <Pill key="count" tone="neutral">
+                {t("tab.prescriptions.medicineCount", {
+                  count: r.medicineCount,
+                })}
+              </Pill>,
+            ]}
+            meta={
+              r.date ? (
+                <span className="text-[11px] text-text-muted">
+                  {formatDate(r.date)}
+                </span>
+              ) : null
+            }
+            actions={
+              <Link
+                href={`/portal/patients/${id}/prescriptions/${r.id}`}
+                className="text-[11px] font-semibold text-brand hover:text-brand-strong inline-flex items-center gap-0.5"
+              >
+                {t("tab.prescriptions.view")}
+                <ArrowRight size={11} />
+              </Link>
+            }
+          />
         )}
-      </Card>
+      />
 
       <Drawer
         open={composeOpen}

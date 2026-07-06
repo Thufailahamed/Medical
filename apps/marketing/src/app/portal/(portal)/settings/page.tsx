@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, KeyRound, RotateCw, User, Settings } from "lucide-react";
+import { Save, KeyRound, RotateCw, User, Settings, CheckCircle2 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Button } from "@/portal/components/ui/Button";
 import { Input } from "@/portal/components/ui/Form";
+import { Modal } from "@/portal/components/ui/Modal";
 import { toast } from "@/portal/components/ui/Toast";
 import { useAuthStore } from "@/portal/stores/auth";
 import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
+import { useRotateSigningKey } from "@/portal/hooks/usePrescription";
+import { formatDateTime } from "@/portal/lib/format";
 
 export default function SettingsPage() {
   const t = useT();
@@ -28,6 +31,13 @@ export default function SettingsPage() {
 
   const [oldPwd, setOldPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
+
+  const [rotateOpen, setRotateOpen] = useState(false);
+  const [rotateResult, setRotateResult] = useState<{
+    keyId: string;
+    createdAt: string;
+    note: string;
+  } | null>(null);
 
   const saveProfile = useMutation({
     mutationFn: () =>
@@ -56,13 +66,33 @@ export default function SettingsPage() {
     onError: (err: any) => toast.error("Failed", err?.message),
   });
 
-  const rotateKey = useMutation({
-    mutationFn: () => api(`/signature/rotate`, { method: "POST", json: {} }),
-    onSuccess: () => {
+  // Was previously wired to `/signature/rotate` (a 404 path).
+  // New route: POST /doctor/regenerate-signing-key — same handler the
+  // mobile composer used to call via useApi.ts.
+  const rotateKey = useRotateSigningKey();
+
+  function openRotate() {
+    setRotateOpen(true);
+  }
+
+  async function confirmRotate() {
+    try {
+      const res = await rotateKey.mutateAsync();
+      setRotateResult({
+        keyId: res.keyId,
+        createdAt: res.createdAt,
+        note: res.note,
+      });
       toast.success("Signing key rotated");
-    },
-    onError: (err: any) => toast.error("Failed", err?.message),
-  });
+    } catch (err: any) {
+      toast.error("Failed to rotate key", err?.message);
+    }
+  }
+
+  function closeRotate() {
+    setRotateOpen(false);
+    setRotateResult(null);
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -162,24 +192,80 @@ export default function SettingsPage() {
               <RotateCw size={14} /> Signing key
             </span>
           }
-          subtitle="Rotates the Ed25519 key used to sign prescriptions and clinical records."
+          subtitle="Rotates the RSA-2048 key used to sign prescriptions. Already-signed prescriptions keep verifying against the public key denormalised on their signature row."
         />
         <div className="p-4 flex items-center gap-3">
           <Button
             variant="secondary"
             leftIcon={<RotateCw size={14} />}
-            disabled={rotateKey.isPending}
-            loading={rotateKey.isPending}
-            onClick={() => {
-              if (confirm("Rotate signing key? Existing signatures remain valid.")) {
-                rotateKey.mutate();
-              }
-            }}
+            onClick={openRotate}
           >
             Rotate signing key
           </Button>
         </div>
       </Card>
+
+      <Modal
+        open={rotateOpen}
+        onClose={closeRotate}
+        title="Rotate signing key"
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={closeRotate}>
+              {t("common.cancel")}
+            </Button>
+            {!rotateResult ? (
+              <Button
+                leftIcon={<RotateCw size={14} />}
+                loading={rotateKey.isPending}
+                onClick={confirmRotate}
+              >
+                Rotate
+              </Button>
+            ) : (
+              <Button
+                leftIcon={<CheckCircle2 size={14} />}
+                onClick={closeRotate}
+              >
+                Done
+              </Button>
+            )}
+          </div>
+        }
+      >
+        {rotateResult ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-success text-sm font-medium">
+              <CheckCircle2 size={16} />
+              Key rotated
+            </div>
+            <div className="text-xs text-text-soft">
+              <div>
+                <span className="text-text-muted">New key id: </span>
+                <span className="font-mono">{rotateResult.keyId}</span>
+              </div>
+              <div>
+                <span className="text-text-muted">Created at: </span>
+                {formatDateTime(rotateResult.createdAt)}
+              </div>
+              <div className="mt-2">{rotateResult.note}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-text-soft">
+              Generate a new RSA-2048 signing key. Already-signed
+              prescriptions stay verifiable because their signature
+              rows denormalise the previous public key. New signatures
+              will use the new key.
+            </p>
+            <p className="text-xs text-text-muted">
+              This action is recorded in the audit log.
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

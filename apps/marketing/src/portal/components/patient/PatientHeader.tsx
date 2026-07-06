@@ -3,11 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Phone, Mail, Droplet } from "lucide-react";
 
-import { api } from "@/portal/lib/api";
+import { api, qk } from "@/portal/lib/api";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Skeleton } from "@/portal/components/ui/Empty";
 import { ageFrom } from "@/portal/lib/format";
+import type { PatientOverview } from "@healthcare/shared";
 
 export interface PatientHeaderData {
   patient: {
@@ -30,8 +31,16 @@ export interface PatientHeaderData {
 
 export function usePatientHeader(patientId: string) {
   return useQuery({
-    queryKey: ["patient", "header", patientId],
-    queryFn: () => api<PatientHeaderData>(`/patients/${patientId}`),
+    // Reuse the doctor-portal overview endpoint — it returns the same
+    // patient + user + allergies + chronicConditions shape the header
+    // expects, and keeps the header in lockstep with the Overview tab.
+    queryKey: qk.patientOverview(patientId),
+    queryFn: async () => {
+      const data = await api<PatientOverview>(
+        `/doctor-portal/patients/${patientId}/overview`
+      );
+      return data as unknown as PatientHeaderData;
+    },
     enabled: !!patientId,
   });
 }

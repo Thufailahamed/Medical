@@ -36,8 +36,14 @@ async function getDoctor(db: any, userId: string) {
 doctorMessagesRouter.get("/conversations", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
+  const patientId = c.req.query("patientId") || undefined;
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const conditions: any[] = [eq(messagesConversations.doctorId, doctor.id)];
+  if (patientId) {
+    conditions.push(eq(messagesConversations.patientId, patientId));
+  }
 
   const rows = await db
     .select({
@@ -57,7 +63,7 @@ doctorMessagesRouter.get("/conversations", async (c) => {
     .from(messagesConversations)
     .innerJoin(patients, eq(patients.id, messagesConversations.patientId))
     .innerJoin(users, eq(users.id, patients.userId))
-    .where(eq(messagesConversations.doctorId, doctor.id))
+    .where(and(...conditions))
     .orderBy(desc(messagesConversations.lastMessageAt));
 
   const totalUnread = rows.reduce(

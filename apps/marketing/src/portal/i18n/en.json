@@ -139,13 +139,41 @@
     "searchPlaceholder": "Search by name, NIC, phone…",
     "recent": "Recent patients",
     "noResults": "No patients match \"{{q}}\"",
-    "noRecent": "No recent patients yet",
+    "noResultsBody": "Try a different search or check the spelling.",
+    "noRecent": "No patients yet",
+    "noRecentBody": "Patients you visit or add to your care team will appear here.",
     "openChart": "Open chart",
-    "resultsTitle": "Search results",
+    "resultsTitle": "{{count}} result",
+    "resultsTitle_other": "{{count}} results",
     "emptyResults": "No patients match your search",
     "recentTitle": "Recent patients",
     "manageCareTeam": "Manage care team",
-    "emptyRecent": "No recent patients yet"
+    "emptyRecent": "No recent patients yet",
+    "find": "Find a patient",
+    "searching": "Searching…",
+    "clearSearch": "Clear search",
+    "shown": "shown",
+    "lastVisit": "Last visit",
+    "searchHint": {
+      "nic": "NIC",
+      "phone": "phone",
+      "name": "name"
+    },
+    "stat": {
+      "total": "Total patients",
+      "thisMonth": "Visited this month",
+      "percentOfTotal": "{{pct}}% of total",
+      "withBlood": "With blood group",
+      "female": "Female"
+    },
+    "sort": {
+      "recent": "Recent",
+      "name": "Name"
+    },
+    "view": {
+      "list": "List view",
+      "grid": "Grid view"
+    }
   },
   "chart": {
     "tabs": {
@@ -239,6 +267,69 @@
     "status.signed": "Signed",
     "status.draft": "Draft",
     "status.cancelled": "Cancelled"
+  },
+  "rx": {
+    "status": {
+      "draft": "Draft",
+      "signed": "Signed",
+      "cancelled": "Cancelled",
+      "dispensed": "Dispensed",
+      "all": "All"
+    },
+    "composer": {
+      "timing": "Timing",
+      "durationDays": "Days",
+      "ongoing": "Ongoing",
+      "endDate": "Ends",
+      "templatesSection": "Templates",
+      "saveAsTemplate": "Save as template",
+      "templateName": "Template name",
+      "signAndSend": "Sign & send",
+      "updateDraft": "Update draft"
+    },
+    "actions": {
+      "edit": "Edit",
+      "sign": "Sign",
+      "downloadPdf": "Download PDF",
+      "verify": "Verify",
+      "cancel": "Cancel",
+      "discard": "Discard",
+      "view": "View"
+    },
+    "detail": {
+      "signedBy": "Signed by",
+      "auditTrail": "Audit trail",
+      "backToList": "All prescriptions",
+      "backToChart": "Patient chart",
+      "cancelledNote": "This prescription has been cancelled.",
+      "dispensedNote": "This prescription has been dispensed."
+    },
+    "cancel": {
+      "confirmTitle": "Cancel prescription?",
+      "confirmBody": "This will void the prescription. The audit trail will record the cancellation.",
+      "confirm": "Cancel prescription",
+      "reason": "Reason (optional)"
+    }
+  },
+  "verify": {
+    "title": "Verify prescription",
+    "subtitle": "Cryptographic integrity check",
+    "publicBanner": "Public verification page. No sign-in required.",
+    "invalid": "Prescription not found",
+    "intact": "Signature valid",
+    "notSigned": "Not yet signed",
+    "tampered": "Signature invalid",
+    "signedAt": "Signed at",
+    "doctor": "Issued by",
+    "medicines": "Medicines",
+    "payloadHash": "Payload hash",
+    "reason": {
+      "notFound": "No prescription exists with this id.",
+      "noSignature": "The prescription was never signed.",
+      "revoked": "The signature has been revoked.",
+      "payloadMismatch": "The prescription was modified after signing.",
+      "error": "Could not verify. Try again later."
+    }
   },
   "safety": {
     "title": "Safety check",
@@ -662,5 +753,133 @@
   },
   "visits": {
     "empty": "No visits on file"
+  },
+  "tab": {
+    "allergies": {
+      "title": "Allergies",
+      "subtitle": "{{count}} known allergy",
+      "subtitle_other": "{{count}} known allergies",
+      "new": "Add allergy",
+      "empty": "No allergies on file",
+      "emptyBody": "Add known drug, food, or environmental allergies to surface them in every encounter."
+    },
+    "medications": {
+      "title": "Medications",
+      "subtitle": "{{count}} active medication",
+      "subtitle_other": "{{count}} active medications",
+      "new": "Prescribe",
+      "empty": "No medications recorded",
+      "emptyBody": "Write a new prescription to start a patient's medication list.",
+      "filterActive": "Active",
+      "filterAll": "All"
+    },
+    "notes": {
+      "title": "Clinical notes",
+      "subtitle": "{{count}} note on file",
+      "subtitle_other": "{{count}} notes on file",
+      "new": "New note",
+      "empty": "No clinical notes yet",
+      "emptyBody": "Document a SOAP note, a visit summary, or any clinical observation.",
+      "searchPlaceholder": "Search notes…"
+    },
+    "prescriptions": {
+      "title": "Prescriptions",
+      "subtitle": "{{count}} prescription",
+      "subtitle_other": "{{count}} prescriptions",
+      "new": "New prescription",
+      "empty": "No prescriptions yet",
+      "emptyBody": "Compose a new prescription with diagnosis, medicines, and instructions.",
+      "medicineCount_one": "{{count}} med",
+      "medicineCount_other": "{{count}} meds",
+      "view": "View"
+    },
+    "labs": {
+      "title": "Lab orders",
+      "subtitle": "{{count}} order on file",
+      "subtitle_other": "{{count}} orders on file",
+      "new": "New lab order",
+      "empty": "No lab orders yet",
+      "emptyBody": "Order labs to capture a snapshot of the patient's biomarkers.",
+      "filterAll": "All",
+      "filterOrdered": "Ordered",
+      "filterProcessing": "Processing",
+      "filterCompleted": "Completed",
+      "filterCancelled": "Cancelled"
+    },
+    "followups": {
+      "title": "Follow-ups",
+      "subtitle": "{{count}} scheduled follow-up",
+      "subtitle_other": "{{count}} scheduled follow-ups",
+      "new": "New follow-up",
+      "empty": "No follow-ups scheduled",
+      "emptyBody": "Schedule a follow-up to remind the patient and your team.",
+      "markComplete": "Mark complete",
+      "cancel": "Cancel",
+      "filterUpcoming": "Upcoming",
+      "filterPast": "Past",
+      "filterAll": "All"
+    },
+    "visits": {
+      "title": "Visits",
+      "subtitle": "{{count}} visit on file",
+      "subtitle_other": "{{count}} visits on file",
+      "empty": "No visits on file",
+      "emptyBody": "Book an appointment or accept a walk-in to start the visit log.",
+      "bookAppointment": "Book appointment",
+      "addWalkin": "Walk-in",
+      "filterUpcoming": "Upcoming",
+      "filterPast": "Past",
+      "filterAll": "All"
+    },
+    "vitals": {
+      "title": "Vitals",
+      "subtitle": "{{count}} reading recorded",
+      "subtitle_other": "{{count}} readings recorded",
+      "add": "Record vitals",
+      "empty": "No vitals recorded",
+      "normalRange": "Normal {{min}}–{{max}}"
+    },
+    "messages": {
+      "title": "Messages",
+      "subtitle": "{{count}} conversation",
+      "subtitle_other": "{{count}} conversations",
+      "openInbox": "Open inbox"
+    },
+    "overview": {
+      "title": "Overview",
+      "subtitle": "Everything you need at a glance"
+    }
+  },
+  "status": {
+    "draft": "Draft",
+    "signed": "Signed",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "scheduled": "Scheduled",
+    "missed": "Missed",
+    "ordered": "Ordered",
+    "accepted": "Accepted",
+    "collected": "Collected",
+    "processing": "Processing",
+    "in_progress": "In progress",
+    "waiting": "Waiting",
+    "confirmed": "Confirmed",
+    "no_show": "No-show",
+    "pending": "Pending",
+    "reminded": "Reminded",
+    "abnormal": "Abnormal",
+    "critical": "Critical",
+    "normal": "Normal",
+    "dispensed": "Dispensed"
+  },
+  "severity": {
+    "mild": "Mild",
+    "moderate": "Moderate",
+    "severe": "Severe",
+    "life_threatening": "Life-threatening"
+  },
+  "kind": {
+    "appointment": "Appointment",
+    "walkin": "Walk-in"
   }
 }

@@ -986,12 +986,21 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
 doctorPortalRouter.get("/clinical-notes", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
+  const patientId = c.req.query("patientId") || undefined;
 
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
 
   const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "50", 10) || 50));
   const q = (c.req.query("q") || "").trim().toLowerCase();
+
+  const conditions: any[] = [
+    eq(medicalRecords.doctorId, doctor.id),
+    eq(medicalRecords.recordType, "clinical_note"),
+  ];
+  if (patientId) {
+    conditions.push(eq(medicalRecords.patientId, patientId));
+  }
 
   const rows = await db
     .select({
@@ -1004,12 +1013,7 @@ doctorPortalRouter.get("/clinical-notes", async (c) => {
       createdAt: medicalRecords.createdAt,
     })
     .from(medicalRecords)
-    .where(
-      and(
-        eq(medicalRecords.doctorId, doctor.id),
-        eq(medicalRecords.recordType, "clinical_note")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(medicalRecords.createdAt))
     .limit(limit);
 
@@ -1112,6 +1116,8 @@ doctorPortalRouter.get("/follow-ups", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const upcoming = c.req.query("upcoming") === "true";
+  const patientId = c.req.query("patientId") || undefined;
+  const status = c.req.query("status") || undefined;
   const today = new Date().toISOString().split("T")[0];
 
   const doctor = await getDoctor(db, userId);
@@ -1123,6 +1129,12 @@ doctorPortalRouter.get("/follow-ups", async (c) => {
   ];
   if (upcoming) {
     conditions.push(gte(medicalRecords.followUpDate, today));
+  }
+  if (patientId) {
+    conditions.push(eq(medicalRecords.patientId, patientId));
+  }
+  if (status) {
+    conditions.push(eq(medicalRecords.status, status));
   }
 
   const rows = await db
@@ -1309,6 +1321,7 @@ doctorPortalRouter.get("/lab-orders", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const status = c.req.query("status");
+  const patientId = c.req.query("patientId") || undefined;
 
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
@@ -1316,6 +1329,9 @@ doctorPortalRouter.get("/lab-orders", async (c) => {
   const conditions: any[] = [eq(labOrders.doctorId, doctor.id)];
   if (status) {
     conditions.push(eq(labOrders.status, status));
+  }
+  if (patientId) {
+    conditions.push(eq(labOrders.patientId, patientId));
   }
 
   const rows = await db

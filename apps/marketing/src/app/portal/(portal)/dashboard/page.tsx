@@ -353,7 +353,7 @@ export default function DashboardPage() {
                 return (
                   <li key={a.id}>
                     <Link
-                      href={`/patients/${a.patientId}`}
+                      href={`/portal/patients/${a.patientId}`}
                       className="group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-surface-2/60"
                     >
                       {/* Timeline dot + line */}
@@ -540,7 +540,7 @@ export default function DashboardPage() {
               return (
                 <li key={w.id}>
                   <Link
-                    href={`/patients/${w.patientId}`}
+                    href={`/portal/patients/${w.patientId}`}
                     className="group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-surface-2/60"
                   >
                     {/* Timeline */}

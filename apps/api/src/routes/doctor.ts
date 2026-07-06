@@ -9,7 +9,9 @@ import { audit } from "../lib/audit";
 import { topSeverity } from "../lib/safety-engine";
 import { runSafetyCheck } from "../lib/safety-runner";
 import { accessiblePatientsFor } from "../lib/access";
-import { upsertActiveCareTeam } from "../lib/status-guard";
+import { upsertActiveCareTeam, withStatusGuard } from "../lib/status-guard";
+import { assertRxTransition } from "../lib/rxStatus";
+import { prescriptionPatchSchema, prescriptionCancelSchema } from "@healthcare/shared/validators";
 import type { AppEnvironment } from "../types";
 
 const doctorRouter = new Hono<AppEnvironment>();
@@ -72,6 +74,41 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
   const query = c.req.query("q");
   const db = c.get("db");
   const userId = c.get("userId");
+  const recent = c.req.query("recent") === "1";
+  const limit = Math.min(50, Math.max(1, parseInt(c.req.query("limit") || "20", 10) || 20));
+
+  // Recent mode: return the doctor's most-recently-visited accessible patients.
+  if (recent) {
+    const accessibleIds = await accessiblePatientsFor(db, userId, "doctor");
+    if (accessibleIds.length === 0) return c.json({ patients: [] });
+
+    const rows = await db
+      .select({
+        patient: patients,
+        user: users,
+        lastVisitAt: sql<string | null>`MAX(${appointments.createdAt})`.as("lastVisitAt"),
+      })
+      .from(patients)
+      .innerJoin(users, eq(patients.userId, users.id))
+      .leftJoin(
+        appointments,
+        and(
+          eq(appointments.patientId, patients.id),
+          eq(appointments.doctorId, sql`(SELECT id FROM doctors WHERE user_id = ${userId} LIMIT 1)`)
+        )
+      )
+      .where(
+        sql`${patients.id} IN (${sql.join(
+          accessibleIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
+      .groupBy(patients.id, users.id)
+      .orderBy(sql`MAX(${appointments.createdAt}) DESC NULLS LAST, ${users.name} ASC`)
+      .limit(limit);
+
+    return c.json({ patients: rows, count: rows.length });
+  }
 
   if (!query || query.length < 2) {
     return c.json({ patients: [] });
@@ -233,10 +270,378 @@ doctorRouter.post("/prescriptions", authMiddleware, requireRole("doctor"), async
   return c.json({ prescription }, 201);
 });
 
+// ─── Edit draft prescription (Phase E-Rx 8) ────────────────
+//
+// PATCH /doctor/prescriptions/:id
+//   role=doctor. Allowed source state: ["draft"] only — once the
+//   prescription is signed, the payload hash on the signature row
+//   would no longer match the row contents, so the edit surface must
+//   be closed. Doctors wanting to "change" a signed Rx have to cancel
+//   it and write a new one.
+//
+//   Body: { diagnosis?, notes?, items? } validated against
+//   prescriptionPatchSchema from @healthcare/shared/validators.
+//   Re-runs the safety pre-flight against the patientId (immutable
+//   on the row) + the patched items; returns 409 with
+//   `requiresConfirmation: true` if the patched item list hits a
+//   severe/critical warning and the client didn't ack via
+//   X-Confirm-Warning.
+//
+//   On success: updates the prescriptions row, mirrors the changes
+//   onto the linked medical_records row, deletes+re-inserts the
+//   medicines rows (so previous doses + safety runs are clean),
+//   and writes a `prescription.edited` audit row with the diff
+//   summary in `details`.
+doctorRouter.patch(
+  "/prescriptions/:id",
+  authMiddleware,
+  requireRole("doctor"),
+  async (c) => {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const id = c.req.param("id");
+    const body = await c.req.json().catch(() => ({}));
+
+    const parsed = prescriptionPatchSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json(
+        { error: "Invalid patch body", issues: parsed.error.flatten() },
+        400
+      );
+    }
+    const patch = parsed.data;
+
+    const [doctor] = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.userId, userId))
+      .limit(1);
+    if (!doctor) return c.json({ error: "Doctor not found" }, 404);
+
+    const [existing] = await db
+      .select()
+      .from(prescriptions)
+      .where(eq(prescriptions.id, id))
+      .limit(1);
+    if (!existing) return c.json({ error: "Prescription not found" }, 404);
+    if (existing.doctorId !== doctor.id) {
+      return c.json({ error: "Not your prescription" }, 403);
+    }
+    if (existing.status !== "draft") {
+      return c.json(
+        {
+          error: "Only draft prescriptions can be edited",
+          status: existing.status,
+          prescriptionId: id,
+        },
+        409
+      );
+    }
+
+    // Build the merged medicines list so safety re-runs against the
+    // final state. If the client didn't touch `items`, re-use the
+    // existing ones.
+    let nextItems: Array<{
+      name: string;
+      dosage?: string;
+      frequency: string;
+      timing?: string;
+      durationDays?: number;
+      ongoing?: boolean;
+      instructions?: string;
+      masterMedicineId?: string | null;
+    }> = [];
+    if (patch.items) {
+      nextItems = patch.items;
+    } else {
+      const existingMeds = await db
+        .select()
+        .from(medicines)
+        .where(eq(medicines.prescriptionId, id));
+      nextItems = existingMeds.map((m: any) => ({
+        name: m.name,
+        dosage: m.dosage,
+        frequency: m.frequency ?? "OD",
+        timing: m.timing,
+        durationDays: undefined,
+        ongoing: !m.endDate,
+        instructions: m.notes,
+        masterMedicineId: m.masterMedicineId,
+      }));
+    }
+
+    // Safety re-run when items are present.
+    if (patch.items && nextItems.length > 0) {
+      const candidateMeds = nextItems.map((i) => ({
+        name: i.name,
+        dosage: i.dosage,
+        masterMedicineId: i.masterMedicineId ?? null,
+      }));
+      const safetyWarnings = await runSafetyCheck(
+        db,
+        existing.patientId,
+        candidateMeds
+      );
+      const safetyTop = topSeverity(safetyWarnings);
+      const override = c.req.header("X-Confirm-Warning") === "true";
+      const BLOCKING = (w: { severity: string }) =>
+        w.severity === "severe" || w.severity === "critical";
+      if (safetyTop && BLOCKING({ severity: safetyTop }) && !override) {
+        return c.json(
+          {
+            error: "Safety warning",
+            requiresConfirmation: true,
+            warnings: safetyWarnings,
+            severity: safetyTop,
+            message: `Severe safety warning detected (${safetyTop}). Confirm to proceed.`,
+          },
+          409
+        );
+      }
+      if (override && safetyWarnings.length) {
+        await audit(db, {
+          userId,
+          action: "prescription.edit_with_warnings",
+          resource: "prescription",
+          resourceId: id,
+          details: { severity: safetyTop, warnings: safetyWarnings },
+        });
+      }
+    }
+
+    // Compose the prescription update.
+    const update: Record<string, any> = {};
+    if (patch.diagnosis !== undefined) update.diagnosis = patch.diagnosis;
+    if (patch.notes !== undefined) update.notes = patch.notes;
+    if (Object.keys(update).length > 0) {
+      update.updatedAt = new Date().toISOString();
+      await db
+        .update(prescriptions)
+        .set(update)
+        .where(eq(prescriptions.id, id));
+    }
+
+    // The medical_records row created in POST /prescriptions has no FK
+    // back to the prescription (intentional — it's a parallel chart
+    // log). We don't try to mirror edits to it; the doctor can always
+    // look at the prescription directly. Audit row carries the diff.
+
+    // If items changed, replace them. Otherwise leave the original rows.
+    if (patch.items) {
+      await db.delete(medicines).where(eq(medicines.prescriptionId, id));
+      const today = new Date().toISOString().slice(0, 10);
+      await db.insert(medicines).values(
+        nextItems.map((it) => {
+          const startDate = today;
+          const endDate = it.ongoing
+            ? null
+            : it.durationDays
+              ? addDays(today, it.durationDays)
+              : null;
+          return {
+            patientId: existing.patientId,
+            prescriptionId: id,
+            name: it.name,
+            dosage: it.dosage || null,
+            frequency: it.frequency,
+            timing: it.timing || null,
+            startDate,
+            endDate,
+            masterMedicineId: it.masterMedicineId ?? null,
+            notes: it.instructions || null,
+          };
+        })
+      );
+    }
+
+    await audit(db, {
+      userId,
+      action: "prescription.edited",
+      resource: "prescription",
+      resourceId: id,
+      details: {
+        diagnosisChanged: patch.diagnosis !== undefined,
+        notesChanged: patch.notes !== undefined,
+        itemsChanged: patch.items !== undefined,
+        itemCount: nextItems.length,
+      },
+    });
+
+    return c.json({ prescriptionId: id, ok: true });
+  }
+);
+
+// ─── Cancel prescription (Phase E-Rx 8) ───────────────────
+//
+// POST /doctor/prescriptions/:id/cancel
+//   role=doctor. Allowed source states: ["draft", "signed"]. We
+//   intentionally do NOT allow cancelling a `dispensed` Rx — once a
+//   pharmacy has logged a dispense event, the audit chain is fixed.
+//
+//   Body: { reason? } validated by prescriptionCancelSchema. Audit
+//   row `prescription.cancelled` carries the reason so reviewers can
+//   see why the doctor voided the prescription.
+doctorRouter.post(
+  "/prescriptions/:id/cancel",
+  authMiddleware,
+  requireRole("doctor"),
+  async (c) => {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const id = c.req.param("id");
+    const body = await c.req.json().catch(() => ({}));
+    const parsed = prescriptionCancelSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json(
+        { error: "Invalid cancel body", issues: parsed.error.flatten() },
+        400
+      );
+    }
+
+    const [doctor] = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.userId, userId))
+      .limit(1);
+    if (!doctor) return c.json({ error: "Doctor not found" }, 404);
+
+    const [existing] = await db
+      .select()
+      .from(prescriptions)
+      .where(eq(prescriptions.id, id))
+      .limit(1);
+    if (!existing) return c.json({ error: "Prescription not found" }, 404);
+    if (existing.doctorId !== doctor.id) {
+      return c.json({ error: "Not your prescription" }, 403);
+    }
+    if (existing.status === "cancelled") {
+      return c.json({ error: "Already cancelled", prescriptionId: id }, 409);
+    }
+    if (existing.status === "dispensed") {
+      return c.json(
+        {
+          error: "Cannot cancel a dispensed prescription",
+          status: existing.status,
+          prescriptionId: id,
+        },
+        409
+      );
+    }
+
+    // Atomic status guard accepts both draft and signed as source
+    // states. If a concurrent request already moved past them, the
+    // guard returns changed=false and we 409.
+    const guard = await withStatusGuard(
+      db,
+      prescriptions,
+      id,
+      ["draft", "signed"],
+      {
+        status: "cancelled",
+        cancelledAt: new Date().toISOString(),
+        cancellationReason: parsed.data.reason ?? null,
+      }
+    );
+    if (!guard.changed) {
+      return c.json(
+        { error: "Prescription state changed during request", prescriptionId: id },
+        409
+      );
+    }
+
+    await audit(db, {
+      userId,
+      action: "prescription.cancelled",
+      resource: "prescription",
+      resourceId: id,
+      details: { from: existing.status, reason: parsed.data.reason ?? null },
+    });
+
+    return c.json({ prescriptionId: id, status: "cancelled", ok: true });
+  }
+);
+
+// ─── Dispense prescription (Phase E-Rx 8) ────────────────
+//
+// POST /doctor/prescriptions/:id/dispense
+//   role=doctor. In production this would be `requireRole("pharmacy")`
+//   but the pharmacy role is not yet wired into the client surfaces,
+//   so doctor-only is the conservative default — the schema enum
+//   already supports it. Allowed source: ["signed"] only.
+//
+//   Body: empty. Audit row `prescription.dispensed` carries the
+//   timestamp; the existing signature row remains valid so the
+//   verify endpoint keeps working post-dispense.
+doctorRouter.post(
+  "/prescriptions/:id/dispense",
+  authMiddleware,
+  requireRole("doctor"),
+  async (c) => {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const id = c.req.param("id");
+
+    const [doctor] = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.userId, userId))
+      .limit(1);
+    if (!doctor) return c.json({ error: "Doctor not found" }, 404);
+
+    const [existing] = await db
+      .select()
+      .from(prescriptions)
+      .where(eq(prescriptions.id, id))
+      .limit(1);
+    if (!existing) return c.json({ error: "Prescription not found" }, 404);
+    if (existing.doctorId !== doctor.id) {
+      return c.json({ error: "Not your prescription" }, 403);
+    }
+
+    const guard = await withStatusGuard(db, prescriptions, id, ["signed"], {
+      status: "dispensed",
+      dispensedAt: new Date().toISOString(),
+    });
+    if (!guard.changed) {
+      return c.json(
+        {
+          error: "Prescription is not in 'signed' state",
+          status: existing.status,
+          prescriptionId: id,
+        },
+        409
+      );
+    }
+
+    await audit(db, {
+      userId,
+      action: "prescription.dispensed",
+      resource: "prescription",
+      resourceId: id,
+      details: { dispensedAt: guard.row?.dispensedAt },
+    });
+
+    return c.json({
+      prescriptionId: id,
+      status: "dispensed",
+      ok: true,
+    });
+  }
+);
+
+/** Helper: add `n` days to a YYYY-MM-DD string, return YYYY-MM-DD. */
+function addDays(yyyymmdd: string, n: number): string {
+  const d = new Date(yyyymmdd + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 // ─── Get doctor's prescriptions ──────────────────────────
 doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
+  const patientId = c.req.query("patientId") || undefined;
+  const status = c.req.query("status") || undefined;
 
   const [doctor] = await db
     .select()
@@ -246,6 +651,17 @@ doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async 
 
   if (!doctor) {
     return c.json({ error: "Doctor not found" }, 404);
+  }
+
+  const conditions: any[] = [
+    eq(medicalRecords.doctorId, doctor.id),
+    eq(medicalRecords.recordType, "prescription"),
+  ];
+  if (patientId) {
+    conditions.push(eq(medicalRecords.patientId, patientId));
+  }
+  if (status) {
+    conditions.push(eq(medicalRecords.status, status));
   }
 
   const records = await db
@@ -260,14 +676,10 @@ doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async 
       date: medicalRecords.date,
       followUpDate: medicalRecords.followUpDate,
       createdAt: medicalRecords.createdAt,
+      status: medicalRecords.status,
     })
     .from(medicalRecords)
-    .where(
-      and(
-        eq(medicalRecords.doctorId, doctor.id),
-        eq(medicalRecords.recordType, "prescription")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(medicalRecords.date));
 
   // Enrich with patient name + medicine count in one pass.
