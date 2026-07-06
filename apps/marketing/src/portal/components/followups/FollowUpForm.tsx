@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
 
-import { api } from "@/portal/lib/api";
+import { api, qk } from "@/portal/lib/api";
 import { Button } from "@/portal/components/ui/Button";
 import { Input, Textarea } from "@/portal/components/ui/Form";
 import { toast } from "@/portal/components/ui/Toast";
@@ -41,6 +41,7 @@ export function FollowUpForm({ patientId, onSaved, onCancel }: Props) {
     onSuccess: (res) => {
       toast.success("Follow-up scheduled", `#${res.record?.id}`);
       qc.invalidateQueries({ queryKey: ["doctor-portal", "follow-ups"] });
+      qc.invalidateQueries({ queryKey: qk.patientOverview(patientId) });
       onSaved?.(res.record?.id);
     },
     onError: (err: any) => toast.error("Failed", err?.message),

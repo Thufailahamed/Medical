@@ -105,6 +105,7 @@ export const qk = {
     ["doctor", "search-patients", typeof params === "string" ? params : JSON.stringify(params)] as const,
   recentPatients: ["doctor", "search-patients", "recent"] as const,
   patientSummary: (id: string) => ["doctor-portal", "patient", id, "summary"] as const,
+  patientOverview: (id: string) => ["doctor-portal", "patient", id, "overview"] as const,
   patientTimeline: (params: Record<string, string>) =>
     ["timeline", JSON.stringify(params)] as const,
   schedule: (from: string, to: string) => ["doctor-schedule", "range", from, to] as const,

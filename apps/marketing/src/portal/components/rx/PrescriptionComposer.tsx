@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Save, FileSignature, AlertCircle } from "lucide-react";
 
-import { api } from "@/portal/lib/api";
+import { api, qk } from "@/portal/lib/api";
 import { Button } from "@/portal/components/ui/Button";
 import { Input, Textarea, Select } from "@/portal/components/ui/Form";
 import { Card } from "@/portal/components/ui/Card";
@@ -154,6 +154,7 @@ export function PrescriptionComposer({ patientId, patientAllergies, onSaved, onC
         `#${res.draftId}`
       );
       qc.invalidateQueries({ queryKey: ["doctor", "prescriptions"] });
+      qc.invalidateQueries({ queryKey: qk.patientOverview(patientId) });
       onSaved?.(res.signedId ?? res.draftId, Boolean(res.signedId));
     },
     onError: (err: any) => {

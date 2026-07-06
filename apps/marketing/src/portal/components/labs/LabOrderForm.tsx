@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Save } from "lucide-react";
 
-import { api } from "@/portal/lib/api";
+import { api, qk } from "@/portal/lib/api";
 import { Button } from "@/portal/components/ui/Button";
 import { Input, Textarea, Select } from "@/portal/components/ui/Form";
 import { Card } from "@/portal/components/ui/Card";
@@ -60,6 +60,7 @@ export function LabOrderForm({ patientId, onSaved, onCancel }: Props) {
     onSuccess: (res) => {
       toast.success("Lab order placed", `#${res.order?.id}`);
       qc.invalidateQueries({ queryKey: ["doctor-portal", "lab-orders"] });
+      qc.invalidateQueries({ queryKey: qk.patientOverview(patientId) });
       onSaved?.(res.order?.id);
     },
     onError: (err: any) => toast.error("Failed", err?.message),

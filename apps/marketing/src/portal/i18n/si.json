@@ -133,7 +133,12 @@
     "recent": "මෑත රෝගීන්",
     "noResults": "\"{{q}}\" සඳහා රෝගීන් නැත",
     "noRecent": "තවම මෑත රෝගීන් නැත",
-    "openChart": "පත්‍රය විවෘත කරන්න"
+    "openChart": "පත්‍රය විවෘත කරන්න",
+    "resultsTitle": "සෙවුම් ප්‍රතිඵල",
+    "emptyResults": "ඔබේ සෙවීමට ගැලපෙන රෝගීන් නැත",
+    "recentTitle": "මෑත රෝගීන්",
+    "manageCareTeam": "සත්කාර කණ්ඩායම කළමනාකරණය කරන්න",
+    "emptyRecent": "තවම මෑත රෝගීන් නැත"
   },
   "chart": {
     "tabs": {
@@ -148,6 +153,24 @@
       "followUps": "පසු විපරම්",
       "visits": "පැමිණීම්",
       "messages": "පණිවිඩ"
+    },
+    "tab": {
+      "overview": "දළ විශ්ලේෂණය",
+      "records": "වාර්තා",
+      "medications": "ඖෂධ",
+      "vitals": "ජීවන ලක්ෂණ",
+      "allergies": "ආසාත්මිකතා",
+      "prescriptions": "බෙහෙත් පත්‍ර",
+      "lab-orders": "රසායනාගාර ඇණවුම්",
+      "clinical-notes": "සායනික සටහන්",
+      "follow-ups": "පසු විපරම්",
+      "visits": "පැමිණීම්",
+      "messages": "පණිවිඩ"
+    },
+    "backToList": "රෝගීන් වෙත ආපසු",
+    "messages": {
+      "empty": "තවම සංවාද නැත",
+      "openInbox": "එනතුම විවෘත කරන්න"
     },
     "age": "වයස {{age}}",
     "bloodGroup": "ලේ වර්ගය",
@@ -388,5 +411,102 @@
     "signed": "අත්සන් කෙරිණි",
     "sent": "යැවිණි",
     "error": "දෝෂය"
+  },
+  "overview": {
+    "title": "රෝගී දළ විශ්ලේෂණය",
+    "subtitle": "එක දිහාවකින් ඔබට අවශ්‍ය සියල්ල",
+    "seeAll": "සියල්ල බලන්න",
+    "dueOverdue": "කල් ඉකුත්",
+    "noUpcoming": "ඉදිරි කාලීන නැත",
+    "unread": "නොකියවූ",
+    "noMessages": "තවම සංවාද නැත",
+    "insuranceMissing": "රක්ෂණ තොරතුරු නැත",
+    "addInsurance": "රක්ෂණය එකතු කරන්න",
+    "vaccinationsDue": "නියමිත",
+    "noVaccinations": "එන්නත් තොරතුරු නැත",
+    "nextVisit": "ඊළඟ පැමිණීම",
+    "noScheduled": "ඊළඟ පැමිණීමක් නැත",
+    "familyConditions": "මරණයට හේතුව",
+    "noFamilyHistory": "පවුලේ වෛද්‍ය ඉතිහාසයක් සටහන් වී නැත",
+    "medicineActive": "ක්‍රියාකාරී",
+    "medicineInstructions": "උපදෙස්",
+    "recordsByType": "වර්ගය අනුව වාර්තා",
+    "section": {
+      "activeMeds": "ක්‍රියාකාරී ඖෂධ",
+      "vitals": "ජීවන ලක්ෂණ",
+      "prescriptions": "මෑත බෙහෙත් පත්‍ර",
+      "labOrders": "මෑත රසායනාගාර ඇණවුම්",
+      "labReports": "මෑත රසායනාගාර වාර්තා",
+      "clinicalNotes": "මෑත සායනික සටහන්",
+      "followUps": "ඉදිරි පසු විපරම්",
+      "visits": "මෑත පැමිණීම්",
+      "familyHistory": "පවුලේ වෛද්‍ය ඉතිහාසය",
+      "vaccinations": "එන්නත්",
+      "insurance": "රක්ෂණය",
+      "messages": "පණිවිඩ",
+      "recordsSummary": "වෛද්‍ය වාර්තා",
+      "alerts": "ජීවන ලක්ෂණ අනතුරු ඇඟවීම්"
+    },
+    "empty": {
+      "activeMeds": "ක්‍රියාකාරී ඖෂධ නැත",
+      "vitals": "ජීවන ලක්ෂණ සටහන් නැත",
+      "prescriptions": "තවම බෙහෙත් පත්‍ර නැත",
+      "labOrders": "රසායනාගාර ඇණවුම් නැත",
+      "labReports": "රසායනාගාර වාර්තා නැත",
+      "clinicalNotes": "තවම සායනික සටහන් නැත",
+      "followUps": "ඉදිරි පසු විපරම් නැත",
+      "visits": "පැමිණීම් නැත",
+      "familyHistory": "පවුලේ වෛද්‍ය ඉතිහාසයක් නැත",
+      "vaccinations": "එන්නත් නැත",
+      "insurance": "රක්ෂණයක් නැත",
+      "messages": "තවම සංවාද නැත",
+      "recordsSummary": "තවම වාර්තා නැත"
+    },
+    "action": {
+      "openTab": "විවෘත කරන්න",
+      "addNote": "නව සායනික සටහන",
+      "addPrescription": "නව බෙහෙත් පත",
+      "addLabOrder": "නව රසායනාගාර ඇණවුම",
+      "addFollowUp": "නව පසු විපරම",
+      "bookVisit": "හමුවීමක් වෙන්කරන්න",
+      "openInbox": "එනතුම විවෘත කරන්න",
+      "addInsurance": "රක්ෂණය එකතු කරන්න"
+    },
+    "status": {
+      "signed": "අත්සන් කළ",
+      "draft": "කෙටුම්පත",
+      "cancelled": "අවලංගු කළ",
+      "completed": "සම්පූර්ණ",
+      "scheduled": "නියමිත",
+      "missed": "මග හැරුණු",
+      "ordered": "ඇණවුම් කළ",
+      "accepted": "පිළිගත්",
+      "collected": "එකතු කළ",
+      "processing": "සැකසෙමින්",
+      "pending": "පොරොත්තුවෙන්"
+    }
+  },
+  "vitals": {
+    "empty": "ජීවන ලක්ෂණ නැත"
+  },
+  "meds": {
+    "empty": "ක්‍රියාකාරී ඖෂධ නැත",
+    "active": "ක්‍රියාකාරී",
+    "started": "ආරම්භ කළ",
+    "ends": "අවසන් වේ"
+  },
+  "allergies": {
+    "banner": "ආසාත්මිකතා ඇඟවීම්",
+    "empty": "ආසාත්මිකතා නැත"
+  },
+  "labs": {
+    "untitled": "රසායනාගාර ඇණවුම"
+  },
+  "followups": {
+    "newFollowup": "නව පසු විපරම",
+    "empty": "පසු විපරම් නියමිත නැත"
+  },
+  "visits": {
+    "empty": "පැමිණීම් නැත"
   }
 }

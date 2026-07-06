@@ -276,3 +276,213 @@ export interface CareTeamInvitePayload {
   role: CareTeamRole;
   scope: CareTeamScope;
 }
+
+// ─── Doctor portal: comprehensive patient overview ───────────
+// Returned by GET /doctor-portal/patients/:id/overview and consumed by
+// both the marketing portal Overview tab and the mobile doctor
+// patient-detail Summary tab. Single source of truth so the two apps
+// stay in sync.
+
+export type OverviewAllergySeverity = "mild" | "moderate" | "severe" | "critical";
+export type OverviewRxStatus = "draft" | "signed" | "cancelled" | "dispensed";
+export type OverviewLabOrderStatus =
+  | "ordered"
+  | "sample_collected"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+export type OverviewLabOrderPriority = "routine" | "urgent" | "stat";
+export type OverviewVisitKind = "appointment" | "walkin";
+export type OverviewFollowUpStatus = "pending" | "completed" | "cancelled";
+
+export interface OverviewVitals {
+  latest: Array<{
+    type: string;
+    label: string;
+    unit: string | null;
+    value: number | null;
+    secondaryValue: number | null;
+    classification: string | null;
+    recordedAt: string;
+  }>;
+  series: Record<string, Array<{ value: number; recordedAt: string }>>;
+  alerts: Array<{
+    type: string;
+    label: string;
+    classification: string;
+    value: number | null;
+    unit: string | null;
+    recordedAt: string;
+  }>;
+}
+
+export interface OverviewActiveMedicine {
+  id: string;
+  name: string;
+  dosage: string | null;
+  frequency: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  instructions: string | null;
+  active: boolean;
+}
+
+export interface OverviewPrescription {
+  id: string;
+  title: string | null;
+  diagnosis: string | null;
+  date: string | null;
+  status: OverviewRxStatus | string;
+  medicineCount: number;
+}
+
+export interface OverviewLabOrder {
+  id: string;
+  tests: string[];
+  priority: OverviewLabOrderPriority | string;
+  status: OverviewLabOrderStatus | string;
+  notes: string | null;
+  orderedAt: string | null;
+}
+
+export interface OverviewLabReport {
+  id: string;
+  reportType: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface OverviewClinicalNote {
+  id: string;
+  title: string | null;
+  diagnosis: string | null;
+  notes: string | null;
+  createdAt: string | null;
+}
+
+export interface OverviewFollowUp {
+  id: string;
+  title: string;
+  followUpDate: string | null;
+  notes: string | null;
+  status: OverviewFollowUpStatus | string | null;
+}
+
+export interface OverviewVisit {
+  id: string;
+  kind: OverviewVisitKind;
+  date: string;
+  time: string | null;
+  status: string;
+  reason: string | null;
+}
+
+export interface OverviewRecord {
+  id: string;
+  recordType: string;
+  title: string | null;
+  diagnosis: string | null;
+  summary: string | null;
+  notes: string | null;
+  date: string | null;
+}
+
+export interface OverviewAllergy {
+  id: string;
+  substance: string;
+  severity: OverviewAllergySeverity | string;
+  reaction: string | null;
+  notes: string | null;
+  recordedAt: string | null;
+}
+
+export interface OverviewChronicCondition {
+  id: string;
+  name: string;
+  since: string | null;
+}
+
+export interface OverviewFamilyHistoryEntry {
+  id: string;
+  name: string;
+  relationship: string;
+  conditions: string[];
+  isDeceased?: boolean;
+  causeOfDeath?: string | null;
+}
+
+export interface OverviewVaccination {
+  id: string;
+  vaccine: string;
+  shortName: string | null;
+  doseNumber: number;
+  administeredAt: string | null;
+  nextDueAt: string | null;
+}
+
+export interface OverviewInsurance {
+  id: string;
+  provider: string;
+  policyNumber: string;
+  coverageType: string | null;
+  validUntil: string | null;
+}
+
+export interface OverviewMessages {
+  lastConversation: {
+    id: string;
+    lastMessageAt: string | null;
+    lastMessagePreview: string | null;
+    doctorUnread: number;
+  } | null;
+  unreadCount: number;
+}
+
+export interface OverviewMeta {
+  fetchedAt: string;
+  asOf: string;
+}
+
+export interface PatientOverview {
+  patient: {
+    id: string;
+    nic: string | null;
+    dob: string | null;
+    sex: string | null;
+    bloodGroup: string | null;
+    photo: string | null;
+    height: number | null;
+    weight: number | null;
+    insuranceId: string | null;
+    preferredLocale: string | null;
+  };
+  user: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    verified: boolean;
+  };
+  allergies: OverviewAllergy[];
+  chronicConditions: OverviewChronicCondition[];
+  familyHistory: OverviewFamilyHistoryEntry[];
+  activeMedicines: OverviewActiveMedicine[];
+  vitals: OverviewVitals;
+  prescriptions: { recent: OverviewPrescription[]; activeCount: number };
+  labOrders: { recent: OverviewLabOrder[] };
+  labReports: { recent: OverviewLabReport[] };
+  clinicalNotes: { recent: OverviewClinicalNote[] };
+  followUps: { upcoming: OverviewFollowUp[]; missed: number };
+  visits: {
+    recent: OverviewVisit[];
+    nextScheduled: { id: string; date: string; time: string; reason: string | null } | null;
+  };
+  records: {
+    recent: OverviewRecord[];
+    counts: { total: number; byType: Record<string, number> };
+  };
+  vaccinations: OverviewVaccination[];
+  insurance: OverviewInsurance | null;
+  messages: OverviewMessages;
+  meta: OverviewMeta;
+}

@@ -140,7 +140,12 @@
     "recent": "Recent patients",
     "noResults": "No patients match \"{{q}}\"",
     "noRecent": "No recent patients yet",
-    "openChart": "Open chart"
+    "openChart": "Open chart",
+    "resultsTitle": "Search results",
+    "emptyResults": "No patients match your search",
+    "recentTitle": "Recent patients",
+    "manageCareTeam": "Manage care team",
+    "emptyRecent": "No recent patients yet"
   },
   "chart": {
     "tabs": {
@@ -155,6 +160,24 @@
       "followUps": "Follow-ups",
       "visits": "Visits",
       "messages": "Messages"
+    },
+    "tab": {
+      "overview": "Overview",
+      "records": "Records",
+      "medications": "Medications",
+      "vitals": "Vitals",
+      "allergies": "Allergies",
+      "prescriptions": "Prescriptions",
+      "lab-orders": "Lab orders",
+      "clinical-notes": "Clinical notes",
+      "follow-ups": "Follow-ups",
+      "visits": "Visits",
+      "messages": "Messages"
+    },
+    "backToList": "Back to patients",
+    "messages": {
+      "empty": "No conversations yet",
+      "openInbox": "Open inbox"
     },
     "age": "{{age}} yrs",
     "bloodGroup": "Blood group",
@@ -474,7 +497,12 @@
     "searchPlaceholder": "Search by title, type, patient, tags…",
     "empty": "No records found",
     "emptySearch": "No records match your search",
-    "unknownPatient": "Unknown patient"
+    "unknownPatient": "Unknown patient",
+    "filterAll": "All",
+    "kindPrescription": "Prescription",
+    "kindLabOrder": "Lab order",
+    "kindDiagnosis": "Diagnosis",
+    "kindNote": "Note"
   },
   "tenants": {
     "title": "Tenants",
@@ -537,5 +565,102 @@
     "signed": "Signed",
     "sent": "Sent",
     "error": "Error"
+  },
+  "overview": {
+    "title": "Patient overview",
+    "subtitle": "Everything you need at a glance",
+    "seeAll": "See all",
+    "dueOverdue": "Overdue",
+    "noUpcoming": "No upcoming",
+    "unread": "unread",
+    "noMessages": "No conversations yet",
+    "insuranceMissing": "No insurance on file",
+    "addInsurance": "Add insurance",
+    "vaccinationsDue": "due",
+    "noVaccinations": "No vaccinations recorded",
+    "nextVisit": "Next visit",
+    "noScheduled": "No upcoming visit",
+    "familyConditions": "Cause of death",
+    "noFamilyHistory": "No family medical history recorded",
+    "medicineActive": "Active",
+    "medicineInstructions": "Instructions",
+    "recordsByType": "Records by type",
+    "section": {
+      "activeMeds": "Active medications",
+      "vitals": "Vitals",
+      "prescriptions": "Recent prescriptions",
+      "labOrders": "Recent lab orders",
+      "labReports": "Recent lab reports",
+      "clinicalNotes": "Recent clinical notes",
+      "followUps": "Upcoming follow-ups",
+      "visits": "Recent visits",
+      "familyHistory": "Family medical history",
+      "vaccinations": "Vaccinations",
+      "insurance": "Insurance",
+      "messages": "Messages",
+      "recordsSummary": "Medical records",
+      "alerts": "Vitals alerts"
+    },
+    "empty": {
+      "activeMeds": "No active medications",
+      "vitals": "No vitals recorded",
+      "prescriptions": "No prescriptions yet",
+      "labOrders": "No lab orders",
+      "labReports": "No lab reports",
+      "clinicalNotes": "No clinical notes yet",
+      "followUps": "No upcoming follow-ups",
+      "visits": "No visits on file",
+      "familyHistory": "No family medical history recorded",
+      "vaccinations": "No vaccinations recorded",
+      "insurance": "No insurance on file",
+      "messages": "No conversations yet",
+      "recordsSummary": "No records yet"
+    },
+    "action": {
+      "openTab": "Open",
+      "addNote": "New clinical note",
+      "addPrescription": "New prescription",
+      "addLabOrder": "New lab order",
+      "addFollowUp": "New follow-up",
+      "bookVisit": "Book appointment",
+      "openInbox": "Open inbox",
+      "addInsurance": "Add insurance"
+    },
+    "status": {
+      "signed": "Signed",
+      "draft": "Draft",
+      "cancelled": "Cancelled",
+      "completed": "Completed",
+      "scheduled": "Scheduled",
+      "missed": "Missed",
+      "ordered": "Ordered",
+      "accepted": "Accepted",
+      "collected": "Collected",
+      "processing": "Processing",
+      "pending": "Pending"
+    }
+  },
+  "vitals": {
+    "empty": "No vitals recorded"
+  },
+  "meds": {
+    "empty": "No active medications",
+    "active": "Active",
+    "started": "Started",
+    "ends": "Ends"
+  },
+  "allergies": {
+    "banner": "Allergy alerts",
+    "empty": "No allergies on file"
+  },
+  "labs": {
+    "untitled": "Lab order"
+  },
+  "followups": {
+    "newFollowup": "New follow-up",
+    "empty": "No follow-ups scheduled"
+  },
+  "visits": {
+    "empty": "No visits on file"
   }
 }

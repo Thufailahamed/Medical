@@ -1678,6 +1678,38 @@ export function usePatientSummary(patientId: string | null) {
   });
 }
 
+// Comprehensive patient overview — single call powering both the web
+// portal Overview tab and the mobile doctor patient-detail Summary
+// tab. Shape mirrors `@healthcare/shared`'s `PatientOverview`.
+export function usePatientOverview(patientId: string | null) {
+  return useQuery({
+    queryKey: ["doctor-portal", "patient", patientId, "overview"],
+    queryFn: () =>
+      api<{
+        patient: any;
+        user: any;
+        allergies: any[];
+        chronicConditions: any[];
+        familyHistory: any[];
+        activeMedicines: any[];
+        vitals: { latest: any[]; series: Record<string, any[]>; alerts: any[] };
+        prescriptions: { recent: any[]; activeCount: number };
+        labOrders: { recent: any[] };
+        labReports: { recent: any[] };
+        clinicalNotes: { recent: any[] };
+        followUps: { upcoming: any[]; missed: number };
+        visits: { recent: any[]; nextScheduled: any | null };
+        records: { recent: any[]; counts: { total: number; byType: Record<string, number> } };
+        vaccinations: any[];
+        insurance: any | null;
+        messages: { lastConversation: any | null; unreadCount: number };
+        meta: { fetchedAt: string; asOf: string };
+      }>(`/doctor-portal/patients/${patientId}/overview`),
+    enabled: !!patientId,
+    staleTime: 30_000,
+  });
+}
+
 export function useCreateClinicalNote() {
   const qc = useQueryClient();
   return useMutation({
@@ -1694,6 +1726,7 @@ export function useCreateClinicalNote() {
       }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["doctor-portal", "patient", vars.patientId, "summary"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "patient", vars.patientId, "overview"] });
       qc.invalidateQueries({ queryKey: ["doctor-portal"] });
     },
   });
@@ -1783,6 +1816,7 @@ export function useCreateLabOrder() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["doctor-portal", "lab-orders"] });
       qc.invalidateQueries({ queryKey: ["doctor-portal", "patient", vars.patientId, "summary"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "patient", vars.patientId, "overview"] });
     },
   });
 }
@@ -3043,6 +3077,9 @@ export function useCreateVisitSummary() {
       if (variables?.patientId) {
         queryClient.invalidateQueries({
           queryKey: ["doctor-portal", "patient", variables.patientId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["doctor-portal", "patient", variables.patientId, "overview"],
         });
       }
       // Earnings may have a new revenue event (if appointment flipped).

@@ -12,16 +12,17 @@ import { cn } from "@/portal/lib/utils";
 import { useT } from "@/portal/i18n";
 
 const TABS = [
+  { key: "overview", path: "/overview" },
   { key: "records", path: "" },
   { key: "medications", path: "/medications" },
   { key: "vitals", path: "/vitals" },
   { key: "allergies", path: "/allergies" },
-  { key: "prescriptions", path: "/portal/prescriptions" },
-  { key: "lab-orders", path: "/portal/lab-orders" },
+  { key: "prescriptions", path: "/prescriptions" },
+  { key: "lab-orders", path: "/lab-orders" },
   { key: "clinical-notes", path: "/clinical-notes" },
   { key: "follow-ups", path: "/follow-ups" },
   { key: "visits", path: "/visits" },
-  { key: "messages", path: "/portal/messages" },
+  { key: "messages", path: "/messages" },
 ] as const;
 
 export default function PatientChartLayout({
@@ -65,10 +66,7 @@ export default function PatientChartLayout({
       <nav className="flex items-center gap-0.5 overflow-x-auto border-b border-border/60 px-1">
         {TABS.map((tab) => {
           const href = `${base}${tab.path}`;
-          const active =
-            tab.path === ""
-              ? pathname === base || pathname === `${base}/`
-              : pathname.startsWith(href);
+          const active = pathname.startsWith(href);
           return (
             <Link
               key={tab.key}

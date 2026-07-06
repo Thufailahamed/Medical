@@ -25,6 +25,13 @@ import {
   files,
   hospitalDoctors,
   hospitalPatients,
+  familyMembers,
+  patientConditions,
+  allergies,
+  vaccineReminders,
+  vaccineCatalog,
+  insurance,
+  messagesConversations,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { latestByType, classifyAlerts } from "../lib/vitals-derived";
@@ -345,6 +352,591 @@ doctorPortalRouter.get("/patients/:id/summary", async (c) => {
       items: alertRows.slice(0, 10),
     },
     pastAppointments: pastAppts,
+  });
+});
+
+// ─── Patient overview (comprehensive doctor view) ──────────
+// GET /doctor-portal/patients/:id/overview
+//
+// Single-call bundle powering both the web portal "Overview" tab and
+// the mobile doctor patient-detail "Summary" tab. Returns every
+// clinical surface (allergies, chronic conditions, family history,
+// active medicines, vitals + 30-day series, prescriptions, lab
+// orders/reports, clinical notes, follow-ups, visits, vaccinations,
+// insurance, last conversation) so neither client has to fan out.
+//
+// Same access gate (`canAccessPatient`) as /summary — only doctors
+// with a relationship to the patient (appointment / prescription /
+// lab order / medical record / walk-in / messages / share-link)
+// may read.
+doctorPortalRouter.get("/patients/:id/overview", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const patientId = c.req.param("id");
+  if (!patientId) return c.json({ error: "Missing patient id" }, 400);
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const access = await canAccessPatient(db, userId, "doctor", patientId);
+  if (!access.allowed) {
+    return c.json(
+      { error: access.reason || "Forbidden", code: "no_relationship" },
+      403
+    );
+  }
+
+  const [patientRow] = await db
+    .select({ patient: patients, user: users })
+    .from(patients)
+    .innerJoin(users, eq(patients.userId, users.id))
+    .where(eq(patients.id, patientId))
+    .limit(1);
+  if (!patientRow) return c.json({ error: "Patient not found" }, 404);
+
+  const today = new Date().toISOString().split("T")[0];
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+
+  const parseConditions = (raw: string | null) => {
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v.filter((x: any) => typeof x === "string") : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Run all reads in parallel — D1 batches over the open connection.
+  const [
+    rawAllergies,
+    chronicRows,
+    familyRows,
+    activeMeds,
+    rxAll,
+    orderRows,
+    labReportRows,
+    clinicalNoteRows,
+    upcomingFollowUps,
+    overdueFollowUps,
+    pastAppts,
+    pastWalkIns,
+    nextAppt,
+    recordRows,
+    recordAggRows,
+    vaccinationRows,
+    insuranceRows,
+    lastConv,
+    vitalsRows,
+  ] = await Promise.all([
+    // Structured allergies (Phase v3). Older `patient.allergies` JSON
+    // is ignored here — the doctor-portal surface prefers the
+    // structured list. We still include legacy free-text under
+    // familyHistory so the doctor sees what the patient logged.
+    db
+      .select()
+      .from(allergies)
+      .where(
+        and(eq(allergies.patientId, patientId), eq(allergies.active, true))
+      )
+      .orderBy(desc(allergies.createdAt))
+      .limit(30)
+      .catch(() => []),
+    db
+      .select()
+      .from(patientConditions)
+      .where(
+        and(
+          eq(patientConditions.patientId, patientId),
+          eq(patientConditions.active, true)
+        )
+      )
+      .orderBy(desc(patientConditions.createdAt))
+      .limit(30)
+      .catch(() => []),
+    db
+      .select()
+      .from(familyMembers)
+      .where(eq(familyMembers.patientId, patientId))
+      .orderBy(asc(familyMembers.relationship))
+      .limit(20)
+      .catch(() => []),
+    db
+      .select()
+      .from(medicines)
+      .where(and(eq(medicines.patientId, patientId), eq(medicines.active, true)))
+      .orderBy(desc(medicines.createdAt))
+      .limit(30)
+      .catch(() => []),
+    db
+      .select()
+      .from(prescriptions)
+      .where(eq(prescriptions.patientId, patientId))
+      .orderBy(desc(prescriptions.date))
+      .limit(50)
+      .catch(() => []),
+    db
+      .select()
+      .from(labOrders)
+      .where(
+        and(eq(labOrders.patientId, patientId), eq(labOrders.doctorId, doctor.id))
+      )
+      .orderBy(desc(labOrders.orderedAt))
+      .limit(30)
+      .catch(() => []),
+    db
+      .select()
+      .from(labReports)
+      .where(eq(labReports.patientId, patientId))
+      .orderBy(desc(labReports.createdAt))
+      .limit(30)
+      .catch(() => []),
+    db
+      .select({
+        id: medicalRecords.id,
+        title: medicalRecords.title,
+        diagnosis: medicalRecords.diagnosis,
+        notes: medicalRecords.notes,
+        createdAt: medicalRecords.createdAt,
+      })
+      .from(medicalRecords)
+      .where(
+        and(
+          eq(medicalRecords.patientId, patientId),
+          eq(medicalRecords.doctorId, doctor.id),
+          eq(medicalRecords.recordType, "clinical_note")
+        )
+      )
+      .orderBy(desc(medicalRecords.createdAt))
+      .limit(20)
+      .catch(() => []),
+    db
+      .select()
+      .from(medicalRecords)
+      .where(
+        and(
+          eq(medicalRecords.patientId, patientId),
+          eq(medicalRecords.doctorId, doctor.id),
+          eq(medicalRecords.recordType, "follow_up"),
+          gte(medicalRecords.followUpDate, today)
+        )
+      )
+      .orderBy(asc(medicalRecords.followUpDate))
+      .limit(10)
+      .catch(() => []),
+    db
+      .select()
+      .from(medicalRecords)
+      .where(
+        and(
+          eq(medicalRecords.patientId, patientId),
+          eq(medicalRecords.doctorId, doctor.id),
+          eq(medicalRecords.recordType, "follow_up"),
+          sql`${medicalRecords.followUpDate} IS NOT NULL`,
+          lt(medicalRecords.followUpDate, today)
+        )
+      )
+      .orderBy(desc(medicalRecords.followUpDate))
+      .limit(20)
+      .catch(() => []),
+    db
+      .select({
+        kind: sql<string>`'appointment'`.as("kind"),
+        id: appointments.id,
+        patientId: appointments.patientId,
+        date: appointments.date,
+        time: appointments.time,
+        status: appointments.status,
+        reason: appointments.reason,
+      })
+      .from(appointments)
+      .where(eq(appointments.patientId, patientId))
+      .orderBy(desc(appointments.date), desc(appointments.time))
+      .limit(15)
+      .catch(() => []),
+    db
+      .select({
+        kind: sql<string>`'walkin'`.as("kind"),
+        id: walkIns.id,
+        patientId: walkIns.patientId,
+        date: sql<string>`substr(${walkIns.arrivedAt}, 1, 10)`.as("date"),
+        time: sql<string>`substr(${walkIns.arrivedAt}, 12, 5)`.as("time"),
+        status: walkIns.status,
+        reason: walkIns.reason,
+      })
+      .from(walkIns)
+      .where(eq(walkIns.patientId, patientId))
+      .orderBy(desc(walkIns.arrivedAt))
+      .limit(15)
+      .catch(() => []),
+    db
+      .select({
+        id: appointments.id,
+        date: appointments.date,
+        time: appointments.time,
+        reason: appointments.reason,
+      })
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.patientId, patientId),
+          eq(appointments.doctorId, doctor.id),
+          gte(appointments.date, today),
+          sql`${appointments.status} NOT IN ('cancelled', 'no_show', 'completed')`
+        )
+      )
+      .orderBy(asc(appointments.date), asc(appointments.time))
+      .limit(1)
+      .catch(() => []),
+    db
+      .select()
+      .from(medicalRecords)
+      .where(eq(medicalRecords.patientId, patientId))
+      .orderBy(desc(medicalRecords.date), desc(medicalRecords.createdAt))
+      .limit(15)
+      .catch(() => []),
+    db
+      .select({
+        recordType: medicalRecords.recordType,
+        c: sql<number>`count(*)`.as("c"),
+      })
+      .from(medicalRecords)
+      .where(eq(medicalRecords.patientId, patientId))
+      .groupBy(medicalRecords.recordType)
+      .catch(() => []),
+    db
+      .select({
+        id: vaccineReminders.id,
+        vaccineId: vaccineReminders.vaccineId,
+        doseIndex: vaccineReminders.doseIndex,
+        dueDate: vaccineReminders.dueDate,
+        reminderSentAt: vaccineReminders.reminderSentAt,
+      })
+      .from(vaccineReminders)
+      .where(eq(vaccineReminders.patientId, patientId))
+      .orderBy(desc(vaccineReminders.dueDate))
+      .limit(30)
+      .catch(() => []),
+    db
+      .select()
+      .from(insurance)
+      .where(eq(insurance.patientId, patientId))
+      .orderBy(desc(insurance.createdAt))
+      .limit(1)
+      .catch(() => []),
+    db
+      .select()
+      .from(messagesConversations)
+      .where(
+        and(
+          eq(messagesConversations.patientId, patientId),
+          eq(messagesConversations.doctorId, doctor.id)
+        )
+      )
+      .orderBy(desc(messagesConversations.lastMessageAt))
+      .limit(1)
+      .catch(() => []),
+    db
+      .select()
+      .from(vitals)
+      .where(
+        and(
+          eq(vitals.patientId, patientId),
+          gte(vitals.recordedAt, thirtyDaysAgo)
+        )
+      )
+      .orderBy(desc(vitals.recordedAt))
+      .limit(500)
+      .catch(() => []),
+  ]);
+
+  // Vaccine catalog name lookup — separate because we need the join
+  // after we know which IDs came back.
+  const vaccineIds = Array.from(
+    new Set((vaccinationRows || []).map((r: any) => r.vaccineId).filter(Boolean))
+  );
+  const catalogMap: Record<string, { name: string; shortName: string | null }> = {};
+  if (vaccineIds.length) {
+    const cRows = await db
+      .select({
+        id: vaccineCatalog.id,
+        name: vaccineCatalog.name,
+        shortName: vaccineCatalog.shortName,
+      })
+      .from(vaccineCatalog)
+      .where(
+        sql`${vaccineCatalog.id} IN (${sql.join(
+          vaccineIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
+      .catch(() => []);
+    for (const r of cRows as any[]) catalogMap[r.id] = r;
+  }
+
+  // ─── Compose series per type (last 30 days, ≤20 pts each) ────
+  const seriesMap: Record<string, Array<{ value: number; recordedAt: string }>> = {};
+  for (const v of vitalsRows as any[]) {
+    const key = v.type;
+    if (!key || typeof v.value !== "number") continue;
+    const bucket = seriesMap[key] || (seriesMap[key] = []);
+    if (bucket.length < 20) bucket.push({ value: v.value, recordedAt: v.recordedAt });
+  }
+  // newest first; UI can reverse if needed
+  for (const key of Object.keys(seriesMap)) {
+    seriesMap[key].sort(
+      (a, b) =>
+        new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
+    );
+  }
+  const latest = latestByType(vitalsRows as any[], { patient: patientRow.patient });
+  const alertRows = classifyAlerts(vitalsRows as any[], {
+    patient: patientRow.patient,
+  });
+
+  // ─── Compose visits (merge recent) ─────────────────────────
+  const visits = [...pastAppts, ...pastWalkIns]
+    .sort((a: any, b: any) =>
+      String(b.date).localeCompare(String(a.date)) ||
+      String(b.time || "").localeCompare(String(a.time || ""))
+    )
+    .slice(0, 10);
+
+  // ─── Records: counts-by-type aggregate ────────────────────
+  const countsByType: Record<string, number> = {};
+  for (const r of recordAggRows as any[]) {
+    if (r.recordType) countsByType[r.recordType] = Number(r.c) || 0;
+  }
+  const totalRecords = (recordAggRows as any[]).reduce(
+    (s, r) => s + (Number(r.c) || 0),
+    0
+  );
+
+  // ─── Family history: keep only rows with at least 1 condition
+  // or a deceased flag so the doctor sees what's medically relevant.
+  const familyHistory = (familyRows || [])
+    .map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      relationship: r.relationship,
+      conditions: parseConditions(r.conditions),
+      isDeceased: !!r.isDeceased,
+      causeOfDeath: r.causeOfDeath || null,
+    }))
+    .filter(
+      (r) => r.conditions.length > 0 || r.isDeceased
+    )
+    .slice(0, 10);
+
+  // If there are no structured conditions but the patient logged
+  // free-text conditions in the legacy JSON column, surface a single
+  // synthetic entry so the section is never silently empty.
+  const legacyFreeText = parseConditions(patientRow.patient.medicalConditions);
+  if (familyHistory.length === 0 && legacyFreeText.length > 0) {
+    familyHistory.push({
+      id: "patient-self",
+      name: patientRow.user.name,
+      relationship: "self",
+      conditions: legacyFreeText,
+    });
+  }
+
+  const insuranceRow = insuranceRows?.[0];
+  const insurancePayload = insuranceRow
+    ? {
+        id: insuranceRow.id,
+        provider: insuranceRow.providerName,
+        policyNumber: insuranceRow.policyNumber,
+        coverageType: insuranceRow.coverageType || null,
+        validUntil: insuranceRow.expiryDate || null,
+      }
+    : null;
+
+  const lastConvRow = lastConv?.[0];
+
+  // Active prescription count (for prescription section header).
+  const activeRxCount = (rxAll as any[]).filter(
+    (r) => !["cancelled", "draft"].includes(String(r.status || "").toLowerCase())
+  ).length;
+
+  const rxRecent = (rxAll as any[]).slice(0, 5).map((r: any) => ({
+    id: r.id,
+    title: r.title || null,
+    diagnosis: r.diagnosis || null,
+    date: r.date || null,
+    status: r.status || "draft",
+    medicineCount: 0, // N+1 avoided for size — UI degrades gracefully to "—"
+  }));
+
+  const labOrderRecent = (orderRows || []).slice(0, 5).map((o: any) => ({
+    id: o.id,
+    tests: (() => {
+      try {
+        const v = JSON.parse(o.tests);
+        return Array.isArray(v) ? v.filter((x: any) => typeof x === "string") : [];
+      } catch {
+        return [];
+      }
+    })(),
+    priority: o.priority,
+    status: o.status,
+    notes: o.notes || null,
+    orderedAt: o.orderedAt || null,
+  }));
+
+  const labReportRecent = (labReportRows || []).slice(0, 5).map((r: any) => ({
+    id: r.id,
+    reportType: r.reportType || null,
+    status: r.status,
+    createdAt: r.createdAt,
+  }));
+
+  const clinicalNoteRecent = (clinicalNoteRows || []).slice(0, 5).map((r: any) => ({
+    id: r.id,
+    title: r.title || null,
+    diagnosis: r.diagnosis || null,
+    notes: r.notes || null,
+    createdAt: r.createdAt || null,
+  }));
+
+  const followUpsUpcoming = (upcomingFollowUps || []).slice(0, 5).map((r: any) => ({
+    id: r.id,
+    title: r.title,
+    followUpDate: r.followUpDate || null,
+    notes: r.notes || null,
+    status: r.status || "pending",
+  }));
+
+  const recordsRecent = (recordRows || []).slice(0, 10).map((r: any) => ({
+    id: r.id,
+    recordType: r.recordType,
+    title: r.title || null,
+    diagnosis: r.diagnosis || null,
+    summary: r.summary || null,
+    notes: r.notes || null,
+    date: r.date || null,
+  }));
+
+  const activeMedsPayload = (activeMeds || []).map((m: any) => ({
+    id: m.id,
+    name: m.name,
+    dosage: m.dosage || null,
+    frequency: m.frequency || null,
+    startDate: m.startDate || null,
+    endDate: m.endDate || null,
+    instructions: m.timing || m.notes || null,
+    active: !!m.active,
+  }));
+
+  const allergiesPayload = (rawAllergies || []).map((r: any) => ({
+    id: r.id,
+    substance: r.substance,
+    severity: r.severity,
+    reaction: r.reaction || null,
+    notes: r.notes || null,
+    recordedAt: r.createdAt || null,
+  }));
+
+  const chronicPayload = (chronicRows || []).map((r: any) => ({
+    id: r.id,
+    name: r.conditionName,
+    since: r.onsetDate || null,
+  }));
+
+  const vaccPayload = (vaccinationRows || []).slice(0, 10).map((r: any) => ({
+    id: r.id,
+    vaccine: catalogMap[r.vaccineId]?.name || r.vaccineId,
+    shortName: catalogMap[r.vaccineId]?.shortName || null,
+    doseNumber: r.doseIndex ?? 1,
+    administeredAt: r.reminderSentAt || null,
+    nextDueAt: r.dueDate || null,
+  }));
+
+  const visitsPayload = visits.map((v: any) => ({
+    id: v.id,
+    kind: v.kind,
+    date: v.date,
+    time: v.time || null,
+    status: v.status,
+    reason: v.reason || null,
+  }));
+
+  const nextScheduled = nextAppt?.[0]
+    ? {
+        id: nextAppt[0].id,
+        date: nextAppt[0].date,
+        time: nextAppt[0].time,
+        reason: nextAppt[0].reason || null,
+      }
+    : null;
+
+  const messagesPayload = {
+    lastConversation: lastConvRow
+      ? {
+          id: lastConvRow.id,
+          lastMessageAt: lastConvRow.lastMessageAt || null,
+          lastMessagePreview: lastConvRow.lastMessagePreview || null,
+          doctorUnread: lastConvRow.doctorUnread || 0,
+        }
+      : null,
+    unreadCount: lastConvRow?.doctorUnread || 0,
+  };
+
+  return c.json({
+    patient: {
+      id: patientRow.patient.id,
+      nic: patientRow.patient.nic ?? patientRow.user.nic ?? null,
+      dob: patientRow.patient.dateOfBirth,
+      sex: patientRow.patient.gender,
+      bloodGroup: patientRow.patient.bloodGroup,
+      photo: patientRow.patient.photo || patientRow.user.photo,
+      height: patientRow.patient.height,
+      weight: patientRow.patient.weight,
+      insuranceId: patientRow.patient.insuranceId,
+      preferredLocale:
+        (patientRow.user as any).preferredLocale || null,
+    },
+    user: {
+      id: patientRow.user.id,
+      name: patientRow.user.name,
+      phone: patientRow.user.phone,
+      email: patientRow.user.email,
+      verified: !!(patientRow.user as any).verified,
+    },
+    allergies: allergiesPayload,
+    chronicConditions: chronicPayload,
+    familyHistory,
+    activeMedicines: activeMedsPayload,
+    vitals: {
+      latest,
+      series: seriesMap,
+      alerts: alertRows,
+    },
+    prescriptions: {
+      recent: rxRecent,
+      activeCount: activeRxCount,
+    },
+    labOrders: { recent: labOrderRecent },
+    labReports: { recent: labReportRecent },
+    clinicalNotes: { recent: clinicalNoteRecent },
+    followUps: {
+      upcoming: followUpsUpcoming,
+      missed: (overdueFollowUps || []).length,
+    },
+    visits: {
+      recent: visitsPayload,
+      nextScheduled,
+    },
+    records: {
+      recent: recordsRecent,
+      counts: { total: totalRecords, byType: countsByType },
+    },
+    vaccinations: vaccPayload,
+    insurance: insurancePayload,
+    messages: messagesPayload,
+    meta: { fetchedAt: new Date().toISOString(), asOf: today },
   });
 });
 

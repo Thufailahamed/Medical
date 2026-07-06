@@ -11,13 +11,26 @@ import {
   Pill,
   FlaskConical,
   CalendarClock,
+  CalendarCheck,
   Sparkles,
   User,
   Droplet,
   Cake,
   Phone,
+  Activity,
+  Users,
+  Syringe,
+  ShieldCheck,
+  MessageSquare,
+  ListChecks,
+  ChevronRight,
+  Heart,
 } from "lucide-react-native";
-import { usePatientSummary, useVitalsSeries } from "@/hooks/useApi";
+import {
+  usePatientSummary,
+  usePatientOverview,
+  useVitalsSeries,
+} from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -45,6 +58,7 @@ export default function DoctorPatientDetail() {
   const [tab, setTab] = useState<Tab>("summary");
 
   const { data, isLoading } = usePatientSummary(id || null);
+  const { data: overview, isLoading: overviewLoading } = usePatientOverview(id || null);
 
   if (!id) {
     return (
@@ -295,61 +309,421 @@ export default function DoctorPatientDetail() {
 
         {tab === "summary" && (
           <View style={{ gap: spacing.md }}>
-            <Card>
-              <SectionHeader title={t("doctorPatientDetail.countsHeading")} />
+            {/* ─── 1. Active medicines ─── */}
+            <OverviewSection
+              title={t("overview.section.activeMeds")}
+              icon={<Pill size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.activeMedicines?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.activeMeds")}
+            >
+              {(overview?.activeMedicines ?? []).slice(0, 5).map((m: any, idx: number) => (
+                <View key={m.id}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    icon={Pill}
+                    iconTone="accent"
+                    title={m.name}
+                    subtitle={[m.dosage, m.frequency].filter(Boolean).join(" · ") + (m.instructions ? ` · ${m.instructions}` : "")}
+                    rightSlot={
+                      m.active ? (
+                        <PillCmp label={t("overview.medicineActive")} tone="success" size="sm" />
+                      ) : undefined
+                    }
+                  />
+                </View>
+              ))}
+            </OverviewSection>
+
+            {/* ─── 2. Vitals ─── */}
+            <OverviewSection
+              title={t("overview.section.vitals")}
+              icon={<Activity size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.vitals?.latest?.length ?? 0) === 0}
+              emptyTitle={t("vitals.empty")}
+            >
               <View
                 style={{
                   flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingHorizontal: spacing.lg,
-                  paddingBottom: spacing.lg,
+                  flexWrap: "wrap",
+                  gap: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  paddingBottom: spacing.md,
                 }}
               >
-                <Stat label={t("doctorPatientDetail.statRecords")} value={data.records?.length ?? 0} />
-                <Stat
-                  label={t("doctorPatientDetail.statActiveMeds")}
-                  value={data.activeMedicines?.length ?? 0}
-                />
-                <Stat label={t("doctorPatientDetail.statRx")} value={data.prescriptions?.length ?? 0} />
-                <Stat label={t("doctorPatientDetail.statLabs")} value={data.labReports?.length ?? 0} />
-                <Stat label={t("doctorPatientDetail.statVitals")} value={data.vitals?.length ?? 0} />
+                {(overview?.vitals?.latest ?? []).slice(0, 8).map((l: any) => (
+                  <View key={l.type} style={{ flexBasis: "48%", flexGrow: 1 }}>
+                    <DoctorLatestVitalTile latest={l} />
+                  </View>
+                ))}
               </View>
-            </Card>
+              {overview?.vitals?.alerts?.length ? (
+                <View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.md }}>
+                  <AlertsCard alerts={overview.vitals.alerts} title={t("overview.section.alerts")} />
+                </View>
+              ) : null}
+            </OverviewSection>
 
-            {data.labOrders && data.labOrders.length > 0 ? (
-              <Card>
-                <SectionHeader title={t("doctorPatientDetail.recentLabOrders")} />
-                {data.labOrders.slice(0, 5).map((o: any, idx: number) => {
-                  const tests = (() => {
-                    try {
-                      return JSON.parse(o.tests);
-                    } catch {
-                      return [];
-                    }
-                  })();
-                  return (
-                    <View key={o.id}>
-                      {idx > 0 ? <Divider /> : null}
+            {/* ─── 3. Recent prescriptions ─── */}
+            <OverviewSection
+              title={t("overview.section.prescriptions")}
+              icon={<Stethoscope size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.prescriptions?.recent?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.prescriptions")}
+            >
+              {(overview?.prescriptions?.recent ?? []).map((r: any, idx: number) => (
+                <View key={r.id}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    title={r.title || r.diagnosis || t("prescription.untitled")}
+                    subtitle={r.diagnosis ?? undefined}
+                    pill={{ label: r.status, tone: statusToTone(r.status) }}
+                  />
+                </View>
+              ))}
+            </OverviewSection>
+
+            {/* ─── 4. Lab orders + reports ─── */}
+            <OverviewSection
+              title={t("overview.section.labOrders")}
+              icon={<FlaskConical size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.labOrders?.recent?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.labOrders")}
+            >
+              {(overview?.labOrders?.recent ?? []).slice(0, 4).map((o: any, idx: number) => (
+                <View key={o.id}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    icon={FlaskConical}
+                    iconTone="info"
+                    title={(o.tests || []).join(", ") || t("labs.untitled")}
+                    subtitle={o.notes || o.priority}
+                    pill={{ label: o.status, tone: statusToTone(o.status) }}
+                  />
+                </View>
+              ))}
+              {overview?.labReports?.recent?.length ? (
+                <View style={{ paddingTop: spacing.sm }}>
+                  <Text
+                    style={[
+                      typography.overline,
+                      { color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
+                    ]}
+                  >
+                    {t("overview.section.labReports")}
+                  </Text>
+                  {overview.labReports.recent.slice(0, 3).map((r: any, idx: number) => (
+                    <View key={r.id}>
+                      <Divider />
                       <ListItem
-                        icon={FlaskConical}
-                        iconTone={o.priority === "stat" ? "danger" : "info"}
-                        title={tests.join(", ") || t("doctorPatientDetail.labOrderFallback")}
-                        subtitle={`${o.status} · ${fmtDate(new Date(o.orderedAt), locale)}`}
-                        pill={{
-                          label: o.priority,
-                          tone:
-                            o.priority === "stat"
-                              ? "danger"
-                              : o.priority === "urgent"
-                              ? "warning"
-                              : "neutral",
-                        }}
+                        title={r.reportType || "—"}
+                        subtitle={fmtDate(new Date(r.createdAt), locale)}
+                        pill={{ label: r.status, tone: "neutral" }}
                       />
                     </View>
-                  );
-                })}
-              </Card>
-            ) : null}
+                  ))}
+                </View>
+              ) : null}
+            </OverviewSection>
+
+            {/* ─── 5. Clinical notes ─── */}
+            <OverviewSection
+              title={t("overview.section.clinicalNotes")}
+              icon={<Stethoscope size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.clinicalNotes?.recent?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.clinicalNotes")}
+            >
+              {(overview?.clinicalNotes?.recent ?? []).map((n: any, idx: number) => (
+                <View key={n.id}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    title={n.title || t("prescription.untitled")}
+                    subtitle={n.diagnosis ? `Dx: ${n.diagnosis}` : undefined}
+                    pill={{ label: fmtDate(new Date(n.createdAt), locale), tone: "neutral" }}
+                  />
+                </View>
+              ))}
+            </OverviewSection>
+
+            {/* ─── 6. Upcoming follow-ups ─── */}
+            <OverviewSection
+              title={t("overview.section.followUps")}
+              icon={<CalendarClock size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.followUps?.upcoming?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.followUps")}
+              rightSlot={
+                overview?.followUps?.missed ? (
+                  <PillCmp
+                    label={`${t("overview.dueOverdue")} · ${overview.followUps.missed}`}
+                    tone="danger"
+                    size="sm"
+                  />
+                ) : undefined
+              }
+            >
+              {(overview?.followUps?.upcoming ?? []).map((f: any, idx: number) => (
+                <View key={f.id}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    icon={CalendarCheck}
+                    iconTone="info"
+                    title={f.title}
+                    subtitle={f.notes}
+                    pill={{ label: fmtDate(new Date(f.followUpDate), locale), tone: "brand" }}
+                  />
+                </View>
+              ))}
+            </OverviewSection>
+
+            {/* ─── 7. Recent visits ─── */}
+            <OverviewSection
+              title={t("overview.section.visits")}
+              icon={<CalendarCheck size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.visits?.recent?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.visits")}
+              rightSlot={
+                overview?.visits?.nextScheduled ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+                    <CalendarClock size={12} color={colors.brand} />
+                    <Text style={[typography.label.sm, { color: colors.brand, fontWeight: "700" }]}>
+                      {t("overview.nextVisit")} {fmtDate(new Date(overview.visits.nextScheduled.date), locale)}
+                    </Text>
+                  </View>
+                ) : undefined
+              }
+            >
+              {(overview?.visits?.recent ?? []).slice(0, 5).map((v: any, idx: number) => (
+                <View key={`${v.kind}-${v.id}`}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    icon={CalendarCheck}
+                    iconTone="info"
+                    title={`${v.kind === "walkin" ? "Walk-in" : "Appointment"}${v.reason ? " · " + v.reason : ""}`}
+                    subtitle={`${fmtDate(new Date(v.date), locale)}${v.time ? " " + v.time : ""}`}
+                    pill={{ label: v.status, tone: statusToTone(v.status) }}
+                  />
+                </View>
+              ))}
+            </OverviewSection>
+
+            {/* ─── 8. Family history ─── */}
+            <OverviewSection
+              title={t("overview.section.familyHistory")}
+              icon={<Users size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.familyHistory?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.familyHistory")}
+            >
+              {(overview?.familyHistory ?? []).map((f: any, idx: number) => (
+                <View
+                  key={f.id}
+                  style={{
+                    paddingHorizontal: spacing.lg,
+                    paddingVertical: spacing.sm,
+                    gap: spacing.xs,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                    <Text style={[typography.body.sm, { color: colors.text, fontWeight: "700" }]}>
+                      {f.name}
+                    </Text>
+                    <PillCmp label={f.relationship} tone="neutral" size="sm" />
+                    {f.isDeceased ? (
+                      <PillCmp label="deceased" tone="warning" size="sm" />
+                    ) : null}
+                  </View>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+                    {(f.conditions ?? []).map((c: string, i: number) => (
+                      <PillCmp key={i} label={c} tone="warning" size="sm" />
+                    ))}
+                    {f.isDeceased && f.causeOfDeath ? (
+                      <Text style={[typography.body.xs, { color: colors.textMuted }]}>
+                        {t("overview.familyConditions")}: {f.causeOfDeath}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {idx < (overview?.familyHistory?.length ?? 0) - 1 ? <Divider /> : null}
+                </View>
+              ))}
+            </OverviewSection>
+
+            {/* ─── 9. Vaccinations ─── */}
+            <OverviewSection
+              title={t("overview.section.vaccinations")}
+              icon={<Syringe size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={(overview?.vaccinations?.length ?? 0) === 0}
+              emptyTitle={t("overview.empty.vaccinations")}
+            >
+              {(overview?.vaccinations ?? []).slice(0, 6).map((v: any, idx: number) => (
+                <View key={v.id}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListItem
+                    icon={Syringe}
+                    iconTone="info"
+                    title={v.vaccine}
+                    subtitle={`${v.shortName ? v.shortName + " · " : ""}dose ${v.doseNumber}`}
+                    pill={
+                      v.nextDueAt
+                        ? { label: fmtDate(new Date(v.nextDueAt), locale), tone: "brand" }
+                        : v.administeredAt
+                        ? { label: "given", tone: "success" }
+                        : undefined
+                    }
+                  />
+                </View>
+              ))}
+            </OverviewSection>
+
+            {/* ─── 10. Insurance ─── */}
+            <OverviewSection
+              title={t("overview.section.insurance")}
+              icon={<ShieldCheck size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={!overview?.insurance}
+              emptyTitle={t("overview.insuranceMissing")}
+            >
+              {overview?.insurance ? (
+                <View
+                  style={{
+                    paddingHorizontal: spacing.lg,
+                    paddingBottom: spacing.lg,
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    gap: spacing.md,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[typography.body.md, { color: colors.text, fontWeight: "700" }]}>
+                      {overview.insurance.provider}
+                    </Text>
+                    <Text style={[typography.body.xs, { color: colors.textMuted }]}>
+                      #{overview.insurance.policyNumber}
+                      {overview.insurance.coverageType ? " · " + overview.insurance.coverageType : ""}
+                    </Text>
+                  </View>
+                  {overview.insurance.validUntil ? (
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={[typography.overline, { color: colors.textMuted }]}>
+                        valid until
+                      </Text>
+                      <Text style={[typography.body.sm, { color: colors.text, fontWeight: "600" }]}>
+                        {fmtDate(new Date(overview.insurance.validUntil), locale)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+            </OverviewSection>
+
+            {/* ─── 11. Messages preview ─── */}
+            <OverviewSection
+              title={t("overview.section.messages")}
+              icon={<MessageSquare size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={!overview?.messages?.lastConversation}
+              emptyTitle={t("overview.noMessages")}
+              rightSlot={
+                overview?.messages?.unreadCount ? (
+                  <PillCmp
+                    label={`${overview.messages.unreadCount} ${t("overview.unread")}`}
+                    tone="danger"
+                    size="sm"
+                  />
+                ) : undefined
+              }
+            >
+              {overview?.messages?.lastConversation ? (
+                <View
+                  style={{
+                    paddingHorizontal: spacing.lg,
+                    paddingBottom: spacing.lg,
+                    gap: spacing.sm,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      gap: spacing.sm,
+                    }}
+                  >
+                    <Text
+                      style={[typography.body.sm, { color: colors.text, flex: 1 }]}
+                      numberOfLines={1}
+                    >
+                      {overview.messages.lastConversation.lastMessagePreview || "—"}
+                    </Text>
+                    <Text style={[typography.body.xs, { color: colors.textMuted }]}>
+                      {fmtDate(new Date(overview.messages.lastConversation.lastMessageAt), locale)}
+                    </Text>
+                  </View>
+                  <Button
+                    title={t("overview.action.openInbox")}
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => router.push({ pathname: "/doctor/inbox" })}
+                  />
+                </View>
+              ) : null}
+            </OverviewSection>
+
+            {/* ─── 12. Records by type ─── */}
+            <OverviewSection
+              title={t("overview.section.recordsSummary")}
+              icon={<ListChecks size={14} color={colors.brand} />}
+              loading={overviewLoading}
+              isEmpty={Object.keys(overview?.records?.counts?.byType ?? {}).length === 0}
+              emptyTitle={t("overview.empty.recordsSummary")}
+              rightSlot={
+                overview?.records?.counts?.total ? (
+                  <PillCmp
+                    label={String(overview.records.counts.total)}
+                    tone="primary"
+                    size="sm"
+                  />
+                ) : undefined
+              }
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  paddingBottom: spacing.md,
+                }}
+              >
+                {Object.entries(overview?.records?.counts?.byType ?? {})
+                  .sort((a: any, b: any) => Number(b[1]) - Number(a[1]))
+                  .map(([type, count]) => (
+                    <View
+                      key={type}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: spacing.xs,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.xs,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <Text style={[typography.body.xs, { color: colors.text }]}>
+                        {type.replace(/_/g, " ")}
+                      </Text>
+                      <PillCmp label={String(count)} tone="primary" size="sm" />
+                    </View>
+                  ))}
+              </View>
+            </OverviewSection>
           </View>
         )}
 
@@ -504,4 +878,74 @@ function DoctorLatestVitalTile({ latest }: { latest: any }) {
       compact={false}
     />
   );
+}
+
+// Section card used by the comprehensive Summary/Overview tab. Mirrors
+// the web `Section` helper — title + icon, optional right slot, optional
+// loading/empty states, then children.
+function OverviewSection({
+  title,
+  icon,
+  rightSlot,
+  loading,
+  isEmpty,
+  emptyTitle,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  rightSlot?: React.ReactNode;
+  loading?: boolean;
+  isEmpty?: boolean;
+  emptyTitle?: string;
+  children?: React.ReactNode;
+}) {
+  const { typography, colors, spacing } = useTheme();
+  return (
+    <Card>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.lg,
+          paddingBottom: spacing.sm,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          {icon}
+          <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+            {title}
+          </Text>
+        </View>
+        {rightSlot}
+      </View>
+      {loading ? (
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }}>
+          <Skeleton lines={3} />
+        </View>
+      ) : isEmpty ? (
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }}>
+          <EmptyState title={emptyTitle ?? ""} />
+        </View>
+      ) : (
+        children
+      )}
+    </Card>
+  );
+}
+
+// Map backend status strings to a Pill tone. Kept conservative — anything
+// unrecognized falls back to "neutral" so the UI still renders.
+function statusToTone(status?: string): "neutral" | "brand" | "success" | "warning" | "danger" | "info" {
+  const s = String(status ?? "").toLowerCase();
+  if (!s) return "neutral";
+  if (["completed", "signed", "given", "active", "collected", "accepted", "delivered"].includes(s)) {
+    return "success";
+  }
+  if (["scheduled", "draft", "processing", "pending", "ordered"].includes(s)) return "info";
+  if (["missed", "cancelled", "overdue", "abnormal", "critical"].includes(s)) return "danger";
+  if (["urgent", "stat", "warning"].includes(s)) return "warning";
+  return "neutral";
 }
