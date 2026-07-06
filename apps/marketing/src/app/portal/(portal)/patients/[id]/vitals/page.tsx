@@ -1,7 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
-import Link from "next/link";
+import { use, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
@@ -14,15 +13,17 @@ import {
   ReferenceArea,
   ReferenceLine,
 } from "recharts";
-import { Activity, ArrowRight } from "lucide-react";
+import { Activity, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
+import { Drawer } from "@/portal/components/ui/Modal";
 import { useT } from "@/portal/i18n";
+import { RecordVitalsForm } from "@/portal/components/vitals/RecordVitalsForm";
 import {
   ChartTabHeader,
   ChartEmpty,
@@ -86,6 +87,7 @@ export default function VitalsTab({
 }) {
   const { id } = use(params);
   const t = useT();
+  const [open, setOpen] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "patient", id, "summary"],
     queryFn: () => api<PatientSummary>(`/doctor-portal/patients/${id}/summary`),
@@ -117,11 +119,13 @@ export default function VitalsTab({
         subtitle={t("tab.vitals.subtitle", { count: totalReadings })}
         badge={{ count: totalReadings, tone: "brand" }}
         actions={
-          <Link href={`/portal/vitals/new?patientId=${id}`}>
-            <Button size="sm" leftIcon={<ArrowRight size={14} />}>
-              {t("tab.vitals.add")}
-            </Button>
-          </Link>
+          <Button
+            size="sm"
+            leftIcon={<Plus size={14} />}
+            onClick={() => setOpen(true)}
+          >
+            {t("tab.vitals.add")}
+          </Button>
         }
       />
 
@@ -174,13 +178,6 @@ export default function VitalsTab({
             padded
             icon={<Activity size={22} />}
             title={t("tab.vitals.empty")}
-            action={
-              <Link href={`/portal/vitals/new?patientId=${id}`}>
-                <Button size="sm" leftIcon={<ArrowRight size={14} />}>
-                  {t("tab.vitals.add")}
-                </Button>
-              </Link>
-            }
           />
         </Card>
       ) : (
@@ -291,6 +288,19 @@ export default function VitalsTab({
           );
         })
       )}
+
+      <Drawer
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t("tab.vitals.add")}
+        size="lg"
+      >
+        <RecordVitalsForm
+          patientId={id}
+          onSaved={() => setOpen(false)}
+          onCancel={() => setOpen(false)}
+        />
+      </Drawer>
     </div>
   );
 }

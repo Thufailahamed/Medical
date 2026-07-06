@@ -111,6 +111,7 @@ export const qk = {
   schedule: (from: string, to: string) => ["doctor-schedule", "range", from, to] as const,
   scheduleRange: (params: Record<string, string>) =>
     ["doctor-schedule", "range", JSON.stringify(params)] as const,
+  doctorQueue: (date: string) => ["doctor-portal", "queue", date] as const,
   appointments: (params: Record<string, unknown>) =>
     ["appointments", JSON.stringify(params)] as const,
   walkins: (params: Record<string, unknown>) => ["walk-ins", JSON.stringify(params)] as const,

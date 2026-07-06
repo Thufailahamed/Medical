@@ -42,6 +42,8 @@ import {
   followUpSchema,
   appointmentStatusSchema,
   availabilitySchema,
+  recordPatientVitalSchema,
+  defaultUnit,
 } from "@healthcare/shared";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
@@ -1002,6 +1004,104 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
   if (row) await upsertRecordFts(db, row);
 
   return c.json({ record: row?.medical_records || row }, 201);
+});
+
+// ─── Record vital reading on behalf of a patient ─────────
+// POST /doctor-portal/vitals
+//
+// Closes the gap that previously forced doctors to view patient vitals
+// without a way to record one. Complements the self-only
+// `POST /vitals` (apps/api/src/routes/vitals.ts:71). The patient's
+// `patientId` is in the body — the server derives it from the
+// authenticated user for the self-only path. Here the doctor
+// supplies it; we enforce access via `canAccessPatient` so a doctor
+// can only record for a patient they're actively caring for.
+doctorPortalRouter.post("/vitals", async (c) => {
+  const userId = c.get("userId");
+  const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role || "doctor";
+  const db = c.get("db");
+
+  const body = await c.req.json();
+  const parsed = recordPatientVitalSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+  const v = parsed.data;
+
+  // BP requires a diastolic. Same guard the self-record path enforces
+  // (apps/api/src/routes/vitals.ts:87).
+  if (v.type === "blood_pressure" && (v.secondaryValue == null || !Number.isFinite(v.secondaryValue))) {
+    return c.json(
+      { error: "blood_pressure requires secondaryValue (diastolic)" },
+      400
+    );
+  }
+
+  // Access check — a doctor must have an active relationship with the
+  // patient (care team, prior appointment/prescription/lab/etc.) before
+  // they can write vitals. Returns 403 with a reason otherwise.
+  const access = await canAccessPatient(db, userId, userRole, v.patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  // Tenant resolution: body → header → middleware → legacy doctor FK.
+  const tenant = await resolveActiveTenant(db, c, doctor);
+  const hospitalId =
+    v.hospitalId ||
+    c.get("activeHospitalId") ||
+    doctor.hospitalId ||
+    null;
+
+  const [row] = await db
+    .insert(vitals)
+    .values({
+      patientId: v.patientId,
+      type: v.type as any,
+      value: v.value,
+      unit: v.unit || defaultUnit(v.type as any),
+      secondaryValue: v.secondaryValue != null ? v.secondaryValue : null,
+      context: (v.context ?? null) as any,
+      recordedAt: v.recordedAt || new Date().toISOString(),
+      source: (v.source ?? "manual") as any,
+      notes: v.notes ?? null,
+    } as any)
+    .returning();
+
+  // Audit: which doctor recorded what, on behalf of which patient.
+  // Best-effort; never throws.
+  await audit(db, {
+    userId,
+    action: "vital.create",
+    resource: "vital",
+    resourceId: row?.id,
+    details: {
+      patientId: v.patientId,
+      type: v.type,
+      value: v.value,
+      secondaryValue: v.secondaryValue ?? null,
+      recordedAt: row?.recordedAt,
+    },
+  });
+
+  // Recording a vital for a patient counts as a care touch — ensure
+  // the doctor is on the patient's active care team. Idempotent.
+  if (doctor) {
+    await upsertActiveCareTeam(db, {
+      patientId: v.patientId,
+      doctorId: doctor.id,
+      role: "primary_care",
+      invitedByUserId: userId,
+    }).catch(() => {});
+  }
+
+  return c.json({ vital: row }, 201);
 });
 
 // GET /doctor-portal/clinical-notes?limit=50&q=

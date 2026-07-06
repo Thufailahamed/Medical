@@ -574,11 +574,38 @@
       "accepted": "පිළිගත්",
       "collected": "එකතු කළ",
       "processing": "සැකසෙමින්",
-      "pending": "පොරොත්තුවෙන්"
+      "pending": "පොරොත්තුවෙන්",
+      "elevated": "ඉහළ",
+      "high": "ඉතා ඉහළ",
+      "low": "පහළ",
+      "critical": "අවදානම්",
+      "normal": "සාමාන්‍ය"
     }
   },
   "vitals": {
-    "empty": "ජීවන ලක්ෂණ නැත"
+    "empty": "ජීවන ලක්ෂණ නැත",
+    "typeLabel": "වර්ගය",
+    "valueLabel": "අගය ({{unit}})",
+    "diastolicLabel": "ඩයස්ටොලික්",
+    "contextLabel": "සන්දර්භය",
+    "notesLabel": "සටහන්",
+    "notesHelper": "අමතර",
+    "notesPlaceholder": "ඇවිදීමෙන් පසු, ආහාරයට පෙර…",
+    "saveAction": "කියවීම සුරකින්න",
+    "recordedToast": "{{label}} සටහන් කළා",
+    "recordError": "සුරැකීම අසාර්ථක විය",
+    "context": {
+      "resting": "විවේක",
+      "fasting": "නිරාහාර",
+      "post_meal": "ආහාරයෙන් පසු",
+      "pre_meal": "ආහාරයට පෙර",
+      "post_medication": "ඖෂධයෙන් පසු",
+      "pre_medication": "ඖෂධයට පෙර",
+      "exercise": "ව්‍යායාමයෙන් පසු",
+      "standing": "සිටගෙන",
+      "supine": "හැරී වැතිරී",
+      "random": "අහඹු"
+    }
   },
   "meds": {
     "empty": "ක්‍රියාකාරී ඖෂධ නැත",

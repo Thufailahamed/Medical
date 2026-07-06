@@ -895,6 +895,50 @@ export function useAddVital() {
   });
 }
 
+/**
+ * Doctor records a vital reading on behalf of a patient.
+ *
+ * Companion to `useAddVital` (which is self-only on the patient
+ * route). Posts to the doctor-portal endpoint, which enforces
+ * `canAccessPatient` server-side so a doctor can only write vitals
+ * for a patient they have a relationship with.
+ *
+ * Invalidates the patient summary + overview query keys (which the
+ * portal and any other mobile doctor view read from) plus the
+ * general vitals namespace in case any screen caches per-patient
+ * series data.
+ */
+export function useCreateDoctorVital() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      patientId: string;
+      hospitalId?: string;
+      type: string;
+      value: number;
+      secondaryValue?: number | null;
+      unit?: string;
+      context?: string | null;
+      recordedAt?: string;
+      notes?: string | null;
+    }) =>
+      api<{ vital: any }>("/doctor-portal/vitals", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: ["doctor-portal", "patient", vars.patientId, "summary"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["doctor-portal", "patient", vars.patientId, "overview"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["vitals"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor-portal"] });
+    },
+  });
+}
+
 export function useDeleteVital() {
   const queryClient = useQueryClient();
   return useMutation({

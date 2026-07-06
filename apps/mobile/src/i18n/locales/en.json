@@ -2595,6 +2595,12 @@
     "scheduledToast": "Follow-up scheduled",
     "scheduleError": "Could not schedule"
   },
+  "doctorVitalRecord": {
+    "title": "Record reading",
+    "subtitle": "Log a vital on behalf of the patient",
+    "fallbackTitle": "Record reading",
+    "saveAction": "Save reading"
+  },
   "doctorPatientDetail": {
     "fallbackTitle": "Patient",
     "loadingTitle": "Patient",
@@ -2609,6 +2615,7 @@
     "actionPrescribe": "Prescribe",
     "actionOrderLabs": "Order labs",
     "actionFollowUp": "Follow-up",
+    "actionRecordVital": "Record vital",
     "tabSummary": "summary",
     "tabRecords": "records",
     "tabMeds": "meds",

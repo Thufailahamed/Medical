@@ -77,6 +77,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "queue": "Queue",
     "schedule": "Schedule",
     "patients": "Patients",
     "appointments": "Appointments",
@@ -114,6 +115,43 @@
     "openSchedule": "Open full schedule",
     "openInbox": "Open inbox",
     "openQueue": "Open walk-ins"
+  },
+  "queue": {
+    "title": "Today's queue",
+    "subtitle": "Walk-ins + scheduled appointments",
+    "lastUpdated": "Updated {{time}} ago",
+    "empty": {
+      "title": "Nothing in the queue right now",
+      "description": "No walk-ins or appointments match the current filter."
+    },
+    "filter": {
+      "all": "All",
+      "walkIns": "Walk-ins",
+      "appointments": "Appointments",
+      "active": "Active",
+      "completed": "Done"
+    },
+    "stat": {
+      "waiting": "Waiting",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "noShow": "No-show"
+    },
+    "row": {
+      "walkIn": "Walk-in",
+      "appointment": "Appt",
+      "urgent": "Urgent",
+      "arrived": "Arrived"
+    },
+    "action": {
+      "refresh": "Refresh",
+      "openChart": "Open patient chart"
+    },
+    "toast": {
+      "statusUpdated": "Status updated",
+      "error": "Couldn't update status",
+      "tryAgain": "Please try again."
+    }
   },
   "schedule": {
     "title": "Schedule",
@@ -787,7 +825,29 @@
     "quickActions": "Quick actions"
   },
   "vitals": {
-    "empty": "No vitals recorded"
+    "empty": "No vitals recorded",
+    "typeLabel": "Type",
+    "valueLabel": "Value ({{unit}})",
+    "diastolicLabel": "Diastolic",
+    "contextLabel": "Context",
+    "notesLabel": "Notes",
+    "notesHelper": "Optional",
+    "notesPlaceholder": "After walk, before meal, etc.",
+    "saveAction": "Save reading",
+    "recordedToast": "{{label}} recorded",
+    "recordError": "Could not save",
+    "context": {
+      "resting": "Resting",
+      "fasting": "Fasting",
+      "post_meal": "Post-meal",
+      "pre_meal": "Pre-meal",
+      "post_medication": "After medication",
+      "pre_medication": "Before medication",
+      "exercise": "After exercise",
+      "standing": "Standing",
+      "supine": "Lying down",
+      "random": "Random"
+    }
   },
   "meds": {
     "empty": "No active medications",
@@ -925,6 +985,9 @@
     "abnormal": "Abnormal",
     "critical": "Critical",
     "normal": "Normal",
+    "elevated": "Elevated",
+    "high": "High",
+    "low": "Low",
     "dispensed": "Dispensed"
   },
   "severity": {

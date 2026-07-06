@@ -25,11 +25,12 @@ import {
   ListChecks,
   ChevronRight,
   Heart,
+  Plus,
 } from "lucide-react-native";
 import {
   usePatientSummary,
   usePatientOverview,
-  useVitalsSeries,
+  type VitalsPoint,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -354,7 +355,18 @@ export default function DoctorPatientDetail() {
               >
                 {(overview?.vitals?.latest ?? []).slice(0, 8).map((l: any) => (
                   <View key={l.type} style={{ flexBasis: "48%", flexGrow: 1 }}>
-                    <DoctorLatestVitalTile latest={l} />
+                    <DoctorLatestVitalTile
+                      latest={l}
+                      series={(overview.vitals.series?.[l.type] ?? []).map(
+                        (p) => ({
+                          t: p.recordedAt,
+                          value: p.value,
+                          secondary: null,
+                          id: p.recordedAt,
+                          unit: latest.unit ?? null,
+                        })
+                      )}
+                    />
                   </View>
                 ))}
               </View>
@@ -812,13 +824,28 @@ export default function DoctorPatientDetail() {
               <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
                 {t("doctorPatientDetail.vitalsHeading")}
               </Text>
-              {data.vitalsAlerts && data.vitalsAlerts.count > 0 ? (
-                <PillCmp
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                {data.vitalsAlerts && data.vitalsAlerts.count > 0 ? (
+                  <PillCmp
+                    size="sm"
+                    tone="danger"
+                    label={t("doctorPatientDetail.abnormalCount", { count: data.vitalsAlerts.count })}
+                  />
+                ) : null}
+                <Button
+                  title={t("doctorPatientDetail.actionRecordVital")}
+                  icon={Plus}
+                  variant="outline"
                   size="sm"
-                  tone="danger"
-                  label={t("doctorPatientDetail.abnormalCount", { count: data.vitalsAlerts.count })}
+                  fullWidth={false}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(doctor)/vital-record",
+                      params: { patientId: id },
+                    })
+                  }
                 />
-              ) : null}
+              </View>
             </View>
 
             {data.latestVitals && data.latestVitals.length > 0 ? (
@@ -831,7 +858,22 @@ export default function DoctorPatientDetail() {
               >
                 {data.latestVitals.map((l: any) => (
                   <View key={l.type} style={{ flexBasis: "48%", flexGrow: 1 }}>
-                    <DoctorLatestVitalTile latest={l} />
+                    <DoctorLatestVitalTile
+                      latest={l}
+                      series={(data.vitals ?? [])
+                        .filter((v: any) => v.type === l.type)
+                        .sort(
+                          (a: any, b: any) =>
+                            +new Date(b.recordedAt) - +new Date(a.recordedAt)
+                        )
+                        .map((v: any) => ({
+                          t: v.recordedAt,
+                          value: v.value,
+                          secondary: null,
+                          id: `${l.type}-${v.recordedAt}`,
+                          unit: l.unit ?? null,
+                        }))}
+                    />
                   </View>
                 ))}
               </View>
@@ -862,25 +904,27 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-// Per-type tile with a 7-day sparkline fetched inline. Lives here rather
-// than inside the shared LatestStatusCard because the doctor's chart
-// needs the patient-scoped series endpoint behaviour; portal-side cards
-// stay generic.
-function DoctorLatestVitalTile({ latest }: { latest: any }) {
-  const from = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return d.toISOString();
-  }, []);
-  const { data: series } = useVitalsSeries({
-    type: latest.type,
-    from,
-    enabled: !!latest.type,
-  });
+// Per-type tile; sparkline data is passed in (patient-scoped).
+//
+// IMPORTANT: do NOT replace `series` with a `useVitalsSeries` call —
+// that hook hits `/vitals/me/series` which resolves `patientId` from
+// the authenticated user. For a doctor that's the doctor's own vitals,
+// not the patient being viewed. The two call sites below source
+// `series` from patient-scoped payloads:
+//   • Summary tab → `overview.vitals.series[type]` (bundled in
+//     /doctor-portal/patients/:id/overview).
+//   • Vitals tab  → derived from `summary.data.vitals` (full history).
+function DoctorLatestVitalTile({
+  latest,
+  series,
+}: {
+  latest: any;
+  series: VitalsPoint[];
+}) {
   return (
     <LatestStatusCard
       latest={latest}
-      sparkline={series?.points ?? []}
+      sparkline={series}
       compact={false}
     />
   );

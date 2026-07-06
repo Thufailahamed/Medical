@@ -110,6 +110,28 @@ export const addVitalSchema = z.object({
 
 export type AddVitalInput = z.infer<typeof addVitalSchema>;
 
+/**
+ * Schema for a doctor (or any portal-role user) recording a vital
+ * reading on behalf of a patient. Adds an explicit `patientId` (and
+ * optional `hospitalId` for tenant scoping) on top of `addVitalSchema`.
+ * Runtime invariants — e.g. BP requires `secondaryValue` — are
+ * enforced at the route handler, not here.
+ */
+export const recordPatientVitalSchema = z.object({
+  patientId: z.string().min(1),
+  hospitalId: z.string().optional(),
+  type: vitalTypeSchema,
+  value: z.number().finite(),
+  secondaryValue: z.number().finite().nullable().optional(),
+  unit: z.string().min(1).optional(),
+  context: vitalContextSchema.nullable().optional(),
+  recordedAt: z.string().datetime({ offset: true }).optional(),
+  source: vitalSourceSchema.optional(),
+  notes: z.string().max(500).nullable().optional(),
+});
+
+export type RecordPatientVitalInput = z.infer<typeof recordPatientVitalSchema>;
+
 // ─── Normal ranges (adult defaults; age/sex split where relevant) ──
 //
 // Source: ordinary clinical practice values (AHA, WHO, ADA, NICE).

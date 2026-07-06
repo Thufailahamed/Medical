@@ -574,11 +574,38 @@
       "accepted": "ஏற்றுக்கொள்ளப்பட்டது",
       "collected": "சேகரிக்கப்பட்டது",
       "processing": "செயலாக்கம்",
-      "pending": "நிலுவை"
+      "pending": "நிலுவை",
+      "elevated": "உயர்ந்தது",
+      "high": "மிக உயர்ந்தது",
+      "low": "குறைவு",
+      "critical": "ஆபத்தானது",
+      "normal": "இயல்பானது"
     }
   },
   "vitals": {
-    "empty": "உயிர் அறிகுறிகள் இல்லை"
+    "empty": "உயிர் அறிகுறிகள் இல்லை",
+    "typeLabel": "வகை",
+    "valueLabel": "மதிப்பு ({{unit}})",
+    "diastolicLabel": "டயஸ்டாலிக்",
+    "contextLabel": "சூழல்",
+    "notesLabel": "குறிப்புகள்",
+    "notesHelper": "விருப்பம்",
+    "notesPlaceholder": "உடற்பயிற்சிக்கு பிறகு, உணவுக்கு முன்…",
+    "saveAction": "பதிவை சேமி",
+    "recordedToast": "{{label}} பதிவு செய்யப்பட்டது",
+    "recordError": "சேமிப்பு தோல்வி",
+    "context": {
+      "resting": "ஓய்வு",
+      "fasting": "உண்ணாநிலை",
+      "post_meal": "உணவுக்கு பிறகு",
+      "pre_meal": "உணவுக்கு முன்",
+      "post_medication": "மருந்துக்கு பிறகு",
+      "pre_medication": "மருந்துக்கு முன்",
+      "exercise": "உடற்பயிற்சிக்கு பிறகு",
+      "standing": "நின்று",
+      "supine": "படுத்த",
+      "random": "தற்செயல்"
+    }
   },
   "meds": {
     "empty": "செயலில் உள்ள மருந்துகள் இல்லை",

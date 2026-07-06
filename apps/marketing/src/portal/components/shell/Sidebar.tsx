@@ -30,6 +30,7 @@ import {
   Link as LinkIcon,
   Settings,
   Sparkles,
+  ListOrdered,
 } from "lucide-react";
 
 import { useUiStore } from "@/portal/stores/ui";
@@ -66,6 +67,7 @@ const NAV_GROUPS: Array<{
     hiddenFrom: ["pharmacy"],
     items: [
       { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/portal/queue",     label: "Queue",     icon: ListOrdered },
       { href: "/portal/schedule",  label: "Schedule",  icon: Calendar },
       { href: "/portal/walk-ins",  label: "Walk-ins",  icon: DoorOpen },
       { href: "/portal/appointments", label: "Appointments", icon: CalendarDays },
