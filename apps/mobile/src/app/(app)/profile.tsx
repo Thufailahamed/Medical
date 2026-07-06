@@ -33,7 +33,7 @@ import {
   Syringe,
   Download,
   Lock,
-  Pill,
+  Pill as PillIcon,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -310,7 +310,7 @@ export default function ProfileScreen() {
         rxCount > 0
           ? t("profile.item.prescriptions.subtitleCount", { count: rxCount })
           : t("profile.item.prescriptions.subtitleEmpty"),
-      icon: Pill,
+      icon: PillIcon,
       tone: "primary" as const,
       onPress: () => router.push("/(app)/prescriptions" as any),
     },

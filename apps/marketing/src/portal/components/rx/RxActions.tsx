@@ -3,20 +3,26 @@
 /**
  * RxActions — per-row action affordance for prescription list views.
  *
- * Renders the right set of buttons based on the row's `status`:
- *   - draft     → "Edit", "Sign"
- *   - signed    → "Download PDF", "Cancel"
- *   - cancelled → (read-only — nothing rendered)
- *   - dispensed → (read-only — nothing rendered)
+ * Two modes:
+ *   - `mode="doctor"` (default): the doctor-side actions.
+ *       draft     → "Edit", "Sign"
+ *       signed    → "Download PDF", "Cancel"
+ *       cancelled → (read-only — nothing rendered)
+ *       dispensed → (read-only — nothing rendered)
  *
- * The component is intentionally compact: it's a horizontal button
- * strip that lives on the right side of a list row. The "Cancel"
- * action opens a confirm dialog (re-uses the same shape as the
- * detail page's cancel confirm via local state).
+ *   - `mode="pharmacy"`: the pharmacy-side actions.
+ *       draft     → (nothing — pharmacy doesn't see drafts)
+ *       signed    → "Dispense", "Reject"
+ *       cancelled → (read-only — nothing rendered)
+ *       dispensed → (read-only — nothing rendered)
  *
  * The "Edit" / "View" path is rendered by the parent (the list row's
  * own link), not by this component — RxActions is only the mutating
  * actions, NOT the navigation. Keeps the row's link semantics clean.
+ *
+ * Pharmacy "Reject" reuses the same modal UX as the doctor's
+ * "Cancel" — modal with a reason textarea and a danger-styled
+ * confirm button. The difference is the label + endpoint.
  */
 
 import { useState } from "react";
@@ -25,6 +31,8 @@ import {
   Download,
   XCircle,
   Pencil,
+  CheckCircle2,
+  Ban,
 } from "lucide-react";
 
 import { Button } from "@/portal/components/ui/Button";
@@ -34,6 +42,9 @@ import { useT } from "@/portal/i18n";
 import {
   useSignPrescription,
   useCancelPrescription,
+  useDispensePrescription,
+  usePharmacyDispense,
+  usePharmacyReject,
   downloadPrescriptionPdf,
 } from "@/portal/hooks/usePrescription";
 
@@ -46,20 +57,43 @@ interface Props {
   compact?: boolean;
   /** Optional hook so the parent can navigate on edit. */
   onEdit?: (id: string) => void;
+  /**
+   * Doctor actions vs pharmacy actions. Defaults to `"doctor"`.
+   * Pharmacy mode hides Edit/Sign/Cancel/Download-PDF and shows
+   * Dispense + Reject, talking to the /pharmacy/... endpoints.
+   */
+  mode?: "doctor" | "pharmacy";
 }
 
-export function RxActions({ id, status, hideEdit, compact, onEdit }: Props) {
+export function RxActions({
+  id,
+  status,
+  hideEdit,
+  compact,
+  onEdit,
+  mode = "doctor",
+}: Props) {
   const t = useT();
   const signMutation = useSignPrescription();
   const cancelMutation = useCancelPrescription();
+  const doctorDispenseMutation = useDispensePrescription();
+  const pharmacyDispenseMutation = usePharmacyDispense();
+  const pharmacyRejectMutation = usePharmacyReject();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [downloading, setDownloading] = useState(false);
 
   const isDraft = status === "draft";
   const isSigned = status === "signed";
+  const isPharmacy = mode === "pharmacy";
 
-  if (!isDraft && !isSigned) return null;
+  // Pharmacy never shows draft/cancelled/dispensed actions; only
+  // signed. Doctors keep the full surface.
+  if (isPharmacy) {
+    if (!isSigned) return null;
+  } else {
+    if (!isDraft && !isSigned) return null;
+  }
 
   async function handleSign() {
     try {
@@ -92,12 +126,55 @@ export function RxActions({ id, status, hideEdit, compact, onEdit }: Props) {
     }
   }
 
+  async function handlePharmacyDispense() {
+    try {
+      await pharmacyDispenseMutation.mutateAsync(id);
+      toast.success(t("pharmacy.detail.dispenseSuccess"), `#${id.slice(0, 8)}`);
+    } catch (err: any) {
+      toast.error(t("toast.error"), err?.message ?? "Dispense failed");
+    }
+  }
+
+  async function handlePharmacyReject() {
+    try {
+      await pharmacyRejectMutation.mutateAsync({ id, reason: cancelReason });
+      toast.success(t("pharmacy.detail.rejectSuccess"), `#${id.slice(0, 8)}`);
+      setCancelOpen(false);
+      setCancelReason("");
+    } catch (err: any) {
+      toast.error(t("toast.error"), err?.message ?? "Reject failed");
+    }
+  }
+
   const size = compact ? "sm" : "sm";
+
+  // Modal copy switches on mode — pharmacy uses "reject" labels,
+  // doctor uses "cancel" labels. The textarea UX is identical.
+  const modalTitle = isPharmacy
+    ? t("pharmacy.reject.confirmTitle")
+    : t("rx.cancel.confirmTitle");
+  const modalBody = isPharmacy
+    ? t("pharmacy.reject.confirmBody")
+    : t("rx.cancel.confirmBody");
+  const modalReasonLabel = isPharmacy
+    ? t("pharmacy.reject.reason")
+    : t("rx.cancel.reason");
+  const modalConfirmLabel = isPharmacy
+    ? t("pharmacy.reject.confirm")
+    : t("rx.cancel.confirm");
+  const modalConfirm = isPharmacy ? handlePharmacyReject : handleCancel;
+  const modalPending = isPharmacy
+    ? pharmacyRejectMutation.isPending
+    : cancelMutation.isPending;
 
   return (
     <>
-      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-        {isDraft && !hideEdit ? (
+      <div
+        className="flex items-center gap-1.5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Doctor-mode actions */}
+        {!isPharmacy && isDraft && !hideEdit ? (
           <Button
             size={size}
             variant="ghost"
@@ -107,7 +184,7 @@ export function RxActions({ id, status, hideEdit, compact, onEdit }: Props) {
             {t("rx.actions.edit")}
           </Button>
         ) : null}
-        {isDraft ? (
+        {!isPharmacy && isDraft ? (
           <Button
             size={size}
             variant="secondary"
@@ -118,7 +195,7 @@ export function RxActions({ id, status, hideEdit, compact, onEdit }: Props) {
             {t("rx.actions.sign")}
           </Button>
         ) : null}
-        {isSigned ? (
+        {!isPharmacy && isSigned ? (
           <Button
             size={size}
             variant="secondary"
@@ -129,7 +206,7 @@ export function RxActions({ id, status, hideEdit, compact, onEdit }: Props) {
             {t("rx.actions.downloadPdf")}
           </Button>
         ) : null}
-        {isSigned ? (
+        {!isPharmacy && isSigned ? (
           <Button
             size={size}
             variant="ghost"
@@ -139,44 +216,71 @@ export function RxActions({ id, status, hideEdit, compact, onEdit }: Props) {
             {t("rx.actions.cancel")}
           </Button>
         ) : null}
+
+        {/* Pharmacy-mode actions */}
+        {isPharmacy && isSigned ? (
+          <Button
+            size={size}
+            variant="primary"
+            leftIcon={<CheckCircle2 size={12} />}
+            loading={pharmacyDispenseMutation.isPending}
+            onClick={handlePharmacyDispense}
+          >
+            {t("pharmacy.actions.dispense")}
+          </Button>
+        ) : null}
+        {isPharmacy && isSigned ? (
+          <Button
+            size={size}
+            variant="ghost"
+            leftIcon={<Ban size={12} />}
+            onClick={() => setCancelOpen(true)}
+          >
+            {t("pharmacy.actions.reject")}
+          </Button>
+        ) : null}
       </div>
 
       <Modal
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
-        title={t("rx.cancel.confirmTitle")}
+        title={modalTitle}
         size="sm"
         footer={
           <div className="flex items-center justify-end gap-2">
             <Button
               variant="ghost"
               onClick={() => setCancelOpen(false)}
-              disabled={cancelMutation.isPending}
+              disabled={modalPending}
             >
               {t("common.cancel")}
             </Button>
             <Button
               leftIcon={<XCircle size={14} />}
-              loading={cancelMutation.isPending}
-              onClick={handleCancel}
+              loading={modalPending}
+              onClick={modalConfirm}
               className="bg-danger text-white"
             >
-              {t("rx.cancel.confirm")}
+              {modalConfirmLabel}
             </Button>
           </div>
         }
       >
-        <p className="text-sm text-text-soft">{t("rx.cancel.confirmBody")}</p>
+        <p className="text-sm text-text-soft">{modalBody}</p>
         <div className="mt-3">
           <label className="block text-[11px] text-text-soft mb-1">
-            {t("rx.cancel.reason")}
+            {modalReasonLabel}
           </label>
           <textarea
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
             rows={2}
             className="w-full rounded-md border border-border bg-surface px-3 py-2 text-xs text-text"
-            placeholder="e.g. Duplicate, dosage changed"
+            placeholder={
+              isPharmacy
+                ? "e.g. Out of stock, dosage not available"
+                : "e.g. Duplicate, dosage changed"
+            }
           />
         </div>
       </Modal>

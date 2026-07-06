@@ -11,13 +11,19 @@ import { Topbar } from "@/portal/components/shell/Topbar";
  * (portal) route group layout:
  *   - On mount, gates the URL by checking the auth store
  *   - If no token → /login (with `next` to come back here)
- *   - If a non-doctor role → /403
+ *   - If a non-clinician role → /403
  *   - Otherwise renders the sidebar + topbar shell around the page
+ *
+ * The portal serves both doctors (full chart) and pharmacists
+ * (dispense surface at /portal/pharmacy). Pharmacy sees a role-
+ * filtered sidebar so doctor-only routes stay hidden.
  *
  * We can't pre-render at build time because the auth state lives in
  * localStorage; the AuthBoot component runs the /auth/me call once we
  * know a token exists.
  */
+const PORTAL_ROLES = ["doctor", "pharmacy"] as const;
+
 export default function PortalLayout({
   children,
 }: {
@@ -35,7 +41,7 @@ export default function PortalLayout({
       router.replace(`/login?next=${next}`);
       return;
     }
-    if (user && user.role && user.role !== "doctor") {
+    if (user && user.role && !PORTAL_ROLES.includes(user.role as any)) {
       router.replace("/portal/403");
     }
   }, [hydrated, token, user, router]);

@@ -56,7 +56,7 @@ function LoginForm() {
         ...(isEmail ? { email: id } : { phone: id }),
         password: values.password,
       });
-      if (user.role !== "doctor") {
+      if (user.role !== "doctor" && user.role !== "pharmacy") {
         toast.error(
           "Wrong portal",
           "This portal is for clinician accounts. Use the patient app instead."
@@ -218,7 +218,7 @@ function LoginForm() {
                     email: "dev-doctor@healthhub.local",
                     password: "dev",
                   });
-                  if (user.role !== "doctor") {
+                  if (user.role !== "doctor" && user.role !== "pharmacy") {
                     toast.error(
                       "Wrong portal",
                       "This portal is for clinician accounts. Use the patient app instead."

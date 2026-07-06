@@ -48,6 +48,7 @@ import doctorScheduleRouter from "./routes/doctor-schedule";
 import doctorEarningsRouter from "./routes/doctor-earnings";
 import doctorRxTemplatesRouter from "./routes/doctor-rx-templates";
 import careTeamRouter from "./routes/care-team";
+import pharmaciesRouter from "./routes/pharmacy";
 import clinicsRouter from "./routes/clinics";
 import consentsRouter from "./routes/consents";
 import dsarRouter from "./routes/dsar";
@@ -213,6 +214,11 @@ app.route("/doctor-rx-templates", doctorRxTemplatesRouter);
 // Doctor↔Patient enterprise architecture: explicit care team
 // membership table. Source of truth for "doctor X can read patient Y".
 app.route("/care-team", careTeamRouter);
+// Phase E-Rx 9: pharmacy dispensing surface. Tenant-scoped; lets a
+// pharmacist list signed prescriptions awaiting dispense, mark them
+// dispensed, or reject (signed → cancelled) with a reason. Mirrors
+// the doctor-side audit chain via applyRxTransition.
+app.route("/pharmacy", pharmaciesRouter);
 // Phase v3: granular per-purpose consent + DSAR workflows.
 app.route("/consents", consentsRouter);
 app.route("/dsar", dsarRouter);

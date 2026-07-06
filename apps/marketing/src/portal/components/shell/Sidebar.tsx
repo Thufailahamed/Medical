@@ -39,9 +39,31 @@ import { cn } from "@/portal/lib/utils";
 import { logout } from "@/portal/lib/auth";
 
 // ─── Grouped navigation structure ────────────────────────────────────────────
-const NAV_GROUPS = [
+//
+// `roles` on each item filters which portal roles see it. Items
+// without a `roles` field default to doctor-only — keeping the
+// surface area unchanged for the existing doctor experience.
+//
+// Pharmacy users get a slim sidebar: just Pharmacy + Profile + the
+// footer settings. The other groups are doctor-only surfaces and
+// would 403 a pharmacist anyway.
+type PortalRole = "doctor" | "pharmacy";
+
+const NAV_GROUPS: Array<{
+  label: string;
+  /** Hide the whole group from these roles. Items still control their
+   *  own visibility too — a group hide is a coarse filter on top. */
+  hiddenFrom?: PortalRole[];
+  items: Array<{
+    href: string;
+    label: string;
+    icon: any;
+    roles?: PortalRole[];
+  }>;
+}> = [
   {
     label: "Clinic",
+    hiddenFrom: ["pharmacy"],
     items: [
       { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/portal/schedule",  label: "Schedule",  icon: Calendar },
@@ -51,6 +73,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Patients",
+    hiddenFrom: ["pharmacy"],
     items: [
       { href: "/portal/patients",       label: "Patients",        icon: Users },
       { href: "/portal/prescriptions",  label: "Prescriptions",   icon: Pill },
@@ -58,6 +81,13 @@ const NAV_GROUPS = [
       { href: "/portal/clinical-notes", label: "Clinical Notes",  icon: FileText },
       { href: "/portal/follow-ups",     label: "Follow-ups",      icon: CalendarClock },
       { href: "/portal/records",        label: "Records",         icon: FolderOpen },
+    ],
+  },
+  {
+    label: "Pharmacy",
+    hiddenFrom: ["doctor"],
+    items: [
+      { href: "/portal/pharmacy", label: "Pharmacy", icon: Pill, roles: ["pharmacy"] },
     ],
   },
   {
@@ -69,6 +99,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Practice",
+    hiddenFrom: ["pharmacy"],
     items: [
       { href: "/portal/earnings",     label: "Earnings",       icon: TrendingUp },
       { href: "/portal/rx-templates", label: "Templates",      icon: ClipboardList },
@@ -91,14 +122,35 @@ export function Sidebar() {
   const user      = useAuthStore((s) => s.user);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
+  // Role-derived UI flags. Computed early so the avatar/wordmark
+  // renders correctly the first paint.
+  const userRole = (user?.role as PortalRole | undefined) ?? "doctor";
+  const isPharmacy = userRole === "pharmacy";
+
   const initials = user?.name
     ? user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+    : isPharmacy
+    ? "RX"
     : "DR";
 
   async function handleLogout() {
     await logout();
     router.replace("/portal/login");
   }
+
+  // Filter groups + items by the active role. Items without a `roles`
+  // field default to doctor-only so the existing doctor surface is
+  // unchanged. Groups with `hiddenFrom: [currentRole]` are dropped
+  // entirely.
+  const visibleGroups = NAV_GROUPS
+    .filter((g) => !(g.hiddenFrom ?? []).includes(userRole))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter(
+        (i) => !i.roles || i.roles.includes(userRole)
+      ),
+    }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <aside
@@ -183,7 +235,7 @@ export function Sidebar() {
               className="text-[10px] font-semibold mt-1 tracking-[0.2em] uppercase"
               style={{ color: "rgba(125,211,252,0.7)" }}
             >
-              Doctor Portal
+              {isPharmacy ? "Pharmacy Portal" : "Doctor Portal"}
             </div>
           </div>
         )}
@@ -197,7 +249,7 @@ export function Sidebar() {
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <nav className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden py-3 sidebar-scroll">
         <div className={cn("flex flex-col", collapsed ? "gap-1 px-2" : "gap-4 px-3")}>
-          {NAV_GROUPS.map((group, groupIdx) => (
+          {visibleGroups.map((group, groupIdx) => (
             <div key={group.label}>
               {/* Group label — hidden when collapsed */}
               {!collapsed && (
@@ -296,7 +348,7 @@ export function Sidebar() {
               </ul>
 
               {/* Divider between groups */}
-              {groupIdx < NAV_GROUPS.length - 1 && (
+              {groupIdx < visibleGroups.length - 1 && (
                 <div className={cn(
                   collapsed ? "my-2 mx-auto w-8 h-px" : "my-3 mx-3 h-px"
                 )} style={{
@@ -375,7 +427,7 @@ export function Sidebar() {
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-semibold text-white truncate leading-tight">
-                  {user?.name ?? "Doctor"}
+                  {user?.name ?? (isPharmacy ? "Pharmacist" : "Doctor")}
                 </div>
                 <div className="text-[10px] leading-tight truncate mt-0.5 sidebar-doctor-email flex items-center gap-1">
                   <span className="truncate">{user?.email ?? user?.phone ?? ""}</span>

@@ -168,6 +168,46 @@ export function useDispensePrescription() {
   });
 }
 
+/** Pharmacy-side dispense. POSTs to /pharmacy/prescriptions/:id/dispense.
+ *  Used by the pharmacy portal flow (`/portal/pharmacy`). */
+export function usePharmacyDispense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      api<{ ok: true; prescriptionId: string; status: string; dispensedAt: string }>(
+        `/pharmacy/prescriptions/${id}/dispense`,
+        { method: "POST", json: {} }
+      ),
+    onSuccess: (_res, id) => {
+      qc.invalidateQueries({ queryKey: ["prescription", id] });
+      qc.invalidateQueries({ queryKey: ["pharmacy", "prescriptions"] });
+    },
+  });
+}
+
+/** Pharmacy-side reject (signed → cancelled with a reason). Mirrors
+ *  `useCancelPrescription` but POSTs to the pharmacy endpoint. */
+export function usePharmacyReject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) =>
+      api<{
+        ok: true;
+        prescriptionId: string;
+        status: string;
+        cancelledAt: string;
+        cancellationReason: string | null;
+      }>(`/pharmacy/prescriptions/${id}/reject`, {
+        method: "POST",
+        json: { reason },
+      }),
+    onSuccess: (_res, { id }) => {
+      qc.invalidateQueries({ queryKey: ["prescription", id] });
+      qc.invalidateQueries({ queryKey: ["pharmacy", "prescriptions"] });
+    },
+  });
+}
+
 /** Update a draft prescription. Server enforces status === draft.
  *  `headers` carries `X-Confirm-Warning: true` when the doctor has
  *  acknowledged a blocking safety warning. */

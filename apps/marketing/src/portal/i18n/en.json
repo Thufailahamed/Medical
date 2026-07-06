@@ -382,6 +382,40 @@
     "status_cancelled": "Cancelled",
     "markCompleted": "Mark completed"
   },
+  "pharmacy": {
+    "title": "Pharmacy",
+    "subtitle": "Prescriptions awaiting dispensing",
+    "filter": {
+      "awaiting": "Awaiting",
+      "dispensed": "Dispensed",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "empty": {
+      "awaiting": "No prescriptions waiting to be dispensed.",
+      "dispensed": "No prescriptions dispensed today.",
+      "rejected": "No rejected prescriptions."
+    },
+    "actions": {
+      "view": "View",
+      "dispense": "Dispense",
+      "reject": "Reject",
+      "dispensed": "Prescription dispensed",
+      "rejected": "Prescription rejected",
+      "dispenseHint": "Confirm medications match the prescription before dispensing."
+    },
+    "reject": {
+      "confirmTitle": "Reject prescription?",
+      "confirmBody": "This will cancel the prescription and notify the issuing doctor. The reason is recorded in the audit trail.",
+      "confirm": "Reject prescription",
+      "reason": "Reason (e.g. out of stock, wrong dose)"
+    },
+    "detail": {
+      "backToList": "Back to pharmacy",
+      "dispenseSuccess": "Prescription dispensed",
+      "rejectSuccess": "Prescription rejected"
+    }
+  },
   "messages": {
     "title": "Messages",
     "inbox": "Inbox",

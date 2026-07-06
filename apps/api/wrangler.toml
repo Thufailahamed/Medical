@@ -10,6 +10,8 @@ compatibility_flags = ["nodejs_compat"]
 "@healthcare/shared" = "../../packages/shared/src/index.ts"
 "@healthcare/shared/vitals" = "../../packages/shared/src/vitals.ts"
 "@healthcare/shared/records" = "../../packages/shared/src/records.ts"
+"@healthcare/shared/validators" = "../../packages/shared/src/validators.ts"
+"@healthcare/shared/types" = "../../packages/shared/src/types.ts"
 
 [vars]
 ENVIRONMENT = "development"
