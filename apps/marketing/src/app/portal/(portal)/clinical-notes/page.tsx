@@ -10,6 +10,7 @@ import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Input } from "@/portal/components/ui/Form";
+import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
 
@@ -49,18 +50,15 @@ export default function ClinicalNotesPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-text">
-          {t("clinicalNotes.title")}
-        </h1>
-        <p className="text-sm text-text-soft mt-1">
-          {t("clinicalNotes.subtitle", { count: allNotes.length })}
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("clinicalNotes.title")}
+        subtitle={t("clinicalNotes.subtitle", { count: allNotes.length })}
+        icon={<Edit3 size={18} className="text-violet-600" />}
+      />
 
       {/* Search */}
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         <div className="px-3 py-2 flex items-center gap-2">
           <Search size={16} className="text-text-muted shrink-0" />
           <input
@@ -74,7 +72,7 @@ export default function ClinicalNotesPage() {
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="text-xs text-text-muted hover:text-text"
+              className="text-xs text-text-muted hover:text-text transition-colors"
             >
               {t("common.clear")}
             </button>
@@ -83,7 +81,7 @@ export default function ClinicalNotesPage() {
       </Card>
 
       {/* Notes List */}
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         {isLoading ? (
           <div className="p-4 flex flex-col gap-2">
             {[0, 1, 2].map((i) => (
@@ -100,9 +98,9 @@ export default function ClinicalNotesPage() {
             {filtered.map((note) => (
               <li
                 key={note.id}
-                className="flex items-center gap-3 p-4 border-b border-border last:border-0 hover:bg-surface-2/40 transition-colors"
+                className="group flex items-center gap-3 p-4 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors"
               >
-                <div className="h-10 w-10 rounded-lg bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
                   <Edit3 size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -122,11 +120,11 @@ export default function ClinicalNotesPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="flex items-center gap-1">
                     <CalendarDays size={11} className="text-text-muted" />
-                    <span className="text-[10px] text-text-muted font-medium">
+                    <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">
                       {(note.date || "").toUpperCase()}
                     </span>
                   </div>
-                  <ChevronRight size={16} className="text-text-muted" />
+                  <ChevronRight size={16} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </li>
             ))}

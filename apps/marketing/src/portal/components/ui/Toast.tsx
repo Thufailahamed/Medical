@@ -42,10 +42,25 @@ export const toast = {
     useToastStore.getState().push({ tone: "info", title, body }),
 };
 
-const toneIcon = {
-  success: <CheckCircle2 size={16} className="text-success" />,
-  error: <AlertCircle size={16} className="text-danger" />,
-  info: <Info size={16} className="text-brand" />,
+const toneConfig = {
+  success: {
+    icon: CheckCircle2,
+    bg: "bg-emerald-50",
+    border: "border-l-emerald-500",
+    iconColor: "text-emerald-600",
+  },
+  error: {
+    icon: AlertCircle,
+    bg: "bg-red-50",
+    border: "border-l-red-500",
+    iconColor: "text-red-600",
+  },
+  info: {
+    icon: Info,
+    bg: "bg-sky-50",
+    border: "border-l-sky-500",
+    iconColor: "text-sky-600",
+  },
 };
 
 /** Mount this once near the top of the tree. */
@@ -62,6 +77,8 @@ export function ToastHost() {
 
 function ToastCard({ toast }: { toast: Toast }) {
   const dismiss = useToastStore((s) => s.dismiss);
+  const cfg = toneConfig[toast.tone];
+  const Icon = cfg.icon;
   useEffect(() => {
     const id = setTimeout(() => dismiss(toast.id), toast.ttl);
     return () => clearTimeout(id);
@@ -69,25 +86,25 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       className={cn(
-        "pointer-events-auto card px-3 py-2 flex items-start gap-2 border-l-4",
-        toast.tone === "success" && "border-l-success",
-        toast.tone === "error" && "border-l-danger",
-        toast.tone === "info" && "border-l-brand"
+        "pointer-events-auto rounded-2xl bg-surface border border-border/70 shadow-[0_12px_40px_rgba(0,0,0,0.08)] px-4 py-3 flex items-start gap-3 border-l-[3px] animate-in",
+        cfg.border
       )}
       role="status"
       aria-live="polite"
     >
-      <div className="mt-0.5">{toneIcon[toast.tone]}</div>
+      <div className={cn("mt-0.5 h-7 w-7 rounded-xl flex items-center justify-center shrink-0", cfg.bg)}>
+        <Icon size={15} className={cfg.iconColor} />
+      </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-text">{toast.title}</div>
+        <div className="text-sm font-semibold text-text">{toast.title}</div>
         {toast.body ? (
-          <div className="text-xs text-text-soft mt-0.5">{toast.body}</div>
+          <div className="text-xs text-text-muted mt-0.5 leading-relaxed">{toast.body}</div>
         ) : null}
       </div>
       <button
         type="button"
         onClick={() => dismiss(toast.id)}
-        className="text-text-muted hover:text-text h-6 w-6 flex items-center justify-center"
+        className="text-text-muted hover:text-text h-6 w-6 flex items-center justify-center rounded-lg hover:bg-surface-2 transition-colors"
         aria-label="Dismiss"
       >
         <X size={14} />

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldOff, UserPlus, Search } from "lucide-react";
+import { ShieldOff, UserPlus, Search, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { api } from "@/portal/lib/api";
@@ -13,8 +13,10 @@ import { Button } from "@/portal/components/ui/Button";
 import { Input, Select } from "@/portal/components/ui/Form";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { toast } from "@/portal/components/ui/Toast";
+import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
+import { cn } from "@/portal/lib/utils";
 
 interface Member {
   id: string;
@@ -56,22 +58,23 @@ export default function CareTeamPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-text">{t("careTeam.title")}</h1>
-          <p className="text-sm text-text-soft mt-1">{t("careTeam.subtitle")}</p>
-        </div>
-        <Button
-          size="sm"
-          leftIcon={<UserPlus size={14} />}
-          onClick={() => setInviteOpen(true)}
-        >
-          {t("careTeam.invite")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("careTeam.title")}
+        subtitle={t("careTeam.subtitle")}
+        icon={<UserPlus size={18} className="text-indigo-600" />}
+        actions={
+          <Button
+            size="sm"
+            leftIcon={<UserPlus size={14} />}
+            onClick={() => setInviteOpen(true)}
+          >
+            {t("careTeam.invite")}
+          </Button>
+        }
+      />
 
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         {isLoading ? (
           <div className="p-4 flex flex-col gap-2">
             <Skeleton className="h-10 w-full" />
@@ -80,9 +83,12 @@ export default function CareTeamPage() {
         ) : members.length === 0 ? (
           <Empty title={t("careTeam.empty")} className="m-4" />
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="flex flex-col">
             {members.map((m) => (
-              <li key={m.id} className="flex items-center gap-3 px-4 py-2.5">
+              <li key={m.id} className="group flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors">
+                <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <ShieldOff size={18} />
+                </div>
                 <Avatar name={m.patientName} src={m.patientPhoto ?? undefined} size="sm" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-text truncate">
@@ -96,9 +102,10 @@ export default function CareTeamPage() {
                 {m.active ? <Pill tone="success">Active</Pill> : <Pill tone="neutral">Inactive</Pill>}
                 <Link
                   href={`/patients/${m.patientId}`}
-                  className="text-xs text-brand hover:underline shrink-0"
+                  className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5"
                 >
                   Open
+                  <ChevronRight size={12} />
                 </Link>
                 <Button
                   size="sm"
@@ -117,7 +124,7 @@ export default function CareTeamPage() {
       </Card>
 
       {inviteOpen ? (
-        <Card>
+        <Card className="rounded-2xl border-border/50">
           <CardHeader title={t("careTeam.inviteTitle")} />
           <InviteForm
             onSaved={() => {
@@ -175,7 +182,7 @@ function InviteForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () =
         placeholder="Name or NIC"
       />
       {data?.patients && data.patients.length > 0 && !patientId ? (
-        <ul className="border border-border rounded-md divide-y divide-border max-h-40 overflow-y-auto">
+        <ul className="border border-border/60 rounded-xl divide-y divide-border/50 max-h-40 overflow-y-auto">
           {data.patients.map((p) => (
             <li key={p.patient.id}>
               <button
@@ -184,7 +191,7 @@ function InviteForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () =
                   setPatientId(p.patient.id);
                   setQ(p.user.name);
                 }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-surface-2 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-surface-2/40 flex items-center gap-2 transition-colors"
               >
                 <Avatar name={p.user.name} size="xs" />
                 <span className="truncate">{p.user.name}</span>
@@ -194,7 +201,7 @@ function InviteForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () =
         </ul>
       ) : null}
       {patientId ? (
-        <div className="text-xs text-success">Patient selected · {patientId.slice(0, 8)}…</div>
+        <div className="text-xs text-success">Patient selected · {patientId.slice(0, 8)}...</div>
       ) : null}
 
       <div className="grid grid-cols-3 gap-2">

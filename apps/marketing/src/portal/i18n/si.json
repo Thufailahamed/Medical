@@ -254,14 +254,32 @@
   },
   "walkins": {
     "title": "ඇතුළු වීම් පෙළ",
-    "subtitle": "ඔබ සඳහා රැඳී සිටින රෝගීන්",
-    "empty": "ඇතුළු වීම් නැත",
+    "subtitle": "ඉදිරි කවුළු සත්‍යාපන",
+    "emptyTitle": "ඇතුළු වීම් නැත",
+    "emptyDescription": "රෝගීන් පැමිණෙන විට ඇතුළු වීම් මෙහි පෙන්වනු ඇත.",
     "reason": "හේතුව",
     "priority": "ප්‍රමුඛතාව",
     "arrived": "පැමිණි",
     "complete": "සම්පූර්ණ",
     "noShow": "නොපැමිණි",
-    "startConsult": "පරීක්ෂාව ආරම්භ කරන්න"
+    "startConsult": "පරීක්ෂාව ආරම්භ කරන්න",
+    "unknownPatient": "නොදන්නා රෝගියා",
+    "checkIn": "ඇතුළු වීම සත්‍යාපනය",
+    "checkInSubtitle": "නව ඇතුළු වීම් රෝගියෙකු ලියාපදිංචි කරන්න",
+    "checkInButton": "සත්‍යාපනය",
+    "patient": "රෝගියා",
+    "searchPatient": "නම, දුරකථනය හෝ NIC මගින් සොයන්න…",
+    "noPatients": "රෝගීන් හමු නොවීය",
+    "routine": "සාමාන්‍ය",
+    "urgent": "හදිසි",
+    "created": "ඇතුළු වීම ලියාපදිංචි කරන ලදි",
+    "status": {
+      "waiting": "රැඳී",
+      "in_consultation": "පරීක්ෂාවේ",
+      "completed": "සම්පූර්ණ",
+      "no_show": "නොපැමිණි",
+      "all": "සියල්ල"
+    }
   },
   "appointments": {
     "title": "හමුවීම්",

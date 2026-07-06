@@ -10,6 +10,7 @@ import {
   UserPlus,
   Clock,
   AlertTriangle,
+  ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { addDays, format, parseISO } from "date-fns";
@@ -22,6 +23,7 @@ import { Button } from "@/portal/components/ui/Button";
 import { Input } from "@/portal/components/ui/Form";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { toast } from "@/portal/components/ui/Toast";
+import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -51,17 +53,14 @@ interface QueueResp {
 
 // ─── Constants ──────────────────────────────────────────
 
-const STATUS_TONE: Record<
-  string,
-  "neutral" | "brand" | "success" | "warn" | "danger" | "violet"
-> = {
-  scheduled: "brand",
-  confirmed: "brand",
-  in_progress: "brand",
-  in_consultation: "brand",
-  completed: "success",
-  cancelled: "danger",
-  no_show: "danger",
+const STATUS_CONFIG: Record<string, { tone: "neutral" | "brand" | "success" | "warn" | "danger" | "violet"; icon: typeof Calendar }> = {
+  scheduled:    { tone: "brand",   icon: Calendar },
+  confirmed:    { tone: "brand",   icon: Calendar },
+  in_progress:  { tone: "brand",   icon: Clock },
+  in_consultation: { tone: "brand", icon: Clock },
+  completed:    { tone: "success", icon: CalendarCheck },
+  cancelled:    { tone: "danger",  icon: AlertTriangle },
+  no_show:      { tone: "danger",  icon: AlertTriangle },
 };
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -89,13 +88,9 @@ function AppointmentDetail({
   const [newDate, setNewDate] = useState(date);
   const [newTime, setNewTime] = useState(row.time || "");
 
-  const isActive = !["cancelled", "completed", "no_show"].includes(
-    row.status
-  );
-  const canReschedule =
-    isActive && ["scheduled", "confirmed"].includes(row.status);
+  const isActive = !["cancelled", "completed", "no_show"].includes(row.status);
+  const canReschedule = isActive && ["scheduled", "confirmed"].includes(row.status);
 
-  // Status transition mutation
   const updateStatus = useMutation({
     mutationFn: (status: string) =>
       api(`/doctor-portal/appointments/${row.appointmentId}/status`, {
@@ -110,7 +105,6 @@ function AppointmentDetail({
     onError: (err: any) => toast.error("Failed", err?.message),
   });
 
-  // Reschedule mutation
   const reschedule = useMutation({
     mutationFn: () =>
       api(`/doctor-portal/appointments/${row.appointmentId}/reschedule`, {
@@ -120,145 +114,77 @@ function AppointmentDetail({
     onSuccess: () => {
       toast.success(t("appointments.rescheduled"));
       qc.invalidateQueries({ queryKey: ["doctor-portal", "queue", date] });
-      qc.invalidateQueries({
-        queryKey: ["doctor-portal", "queue", newDate],
-      });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "queue", newDate] });
       onClose();
     },
     onError: (err: any) => toast.error("Failed", err?.message),
   });
 
+  const cfg = STATUS_CONFIG[row.status] ?? STATUS_CONFIG.scheduled;
+
   return (
     <div className="flex flex-col gap-4">
       {/* Patient info */}
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-2">
-        <div className="h-10 w-10 rounded-full bg-brand-soft text-brand flex items-center justify-center text-sm font-semibold">
+      <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-2/60 border border-border/50">
+        <div className="h-11 w-11 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
           {(row.patientName ?? "?").slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-text truncate">
+          <div className="text-sm font-bold text-text truncate">
             {row.patientName ?? t("walkins.unknownPatient")}
           </div>
-          <div className="text-xs text-text-soft">
+          <div className="text-xs text-text-muted mt-0.5">
             {row.time ? formatTime(`1970-01-01T${row.time}`) : "—"}
             {row.queueNumber ? ` · Queue #${row.queueNumber}` : ""}
           </div>
         </div>
-        <Pill tone={STATUS_TONE[row.status] ?? "neutral"}>
-          {row.status.replace("_", " ")}
-        </Pill>
+        <Pill tone={cfg.tone}>{row.status.replace("_", " ")}</Pill>
       </div>
 
       {/* Details */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="p-3 rounded-lg bg-surface-2">
-          <div className="text-[10px] uppercase text-text-muted">
-            {t("common.date")}
-          </div>
-          <div className="text-sm font-medium text-text mt-0.5">
-            {format(parseISO(date), "EEE, MMM d, yyyy")}
-          </div>
+        <div className="p-3 rounded-xl bg-surface-2/40 border border-border/40">
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">{t("common.date")}</div>
+          <div className="text-sm font-medium text-text mt-1">{format(parseISO(date), "EEE, MMM d, yyyy")}</div>
         </div>
-        <div className="p-3 rounded-lg bg-surface-2">
-          <div className="text-[10px] uppercase text-text-muted">
-            {t("common.time")}
-          </div>
-          <div className="text-sm font-medium text-text mt-0.5">
-            {row.time
-              ? formatTime(`1970-01-01T${row.time}`)
-              : "—"}
-          </div>
+        <div className="p-3 rounded-xl bg-surface-2/40 border border-border/40">
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">{t("common.time")}</div>
+          <div className="text-sm font-medium text-text mt-1">{row.time ? formatTime(`1970-01-01T${row.time}`) : "—"}</div>
         </div>
       </div>
 
       {row.reason && (
-        <div className="p-3 rounded-lg bg-surface-2">
-          <div className="text-[10px] uppercase text-text-muted">
-            {t("appointments.reason")}
-          </div>
-          <div className="text-sm text-text mt-0.5">{row.reason}</div>
+        <div className="p-3 rounded-xl bg-surface-2/40 border border-border/40">
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">{t("appointments.reason")}</div>
+          <div className="text-sm text-text mt-1">{row.reason}</div>
         </div>
       )}
 
       {/* Reschedule form */}
       {showReschedule && (
-        <Card className="border-brand">
+        <Card className="border-brand/30 bg-brand-soft/20">
           <div className="flex flex-col gap-3">
-            <div className="text-sm font-medium text-text">
-              {t("appointments.reschedule")}
-            </div>
-            <Input
-              type="date"
-              label={t("appointments.newDate")}
-              value={newDate}
-              min={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setNewDate(e.target.value)}
-            />
-            <Input
-              type="time"
-              label={t("appointments.newTime")}
-              value={newTime}
-              onChange={(e) => setNewTime(e.target.value)}
-            />
+            <div className="text-sm font-bold text-text">{t("appointments.reschedule")}</div>
+            <Input type="date" label={t("appointments.newDate")} value={newDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setNewDate(e.target.value)} />
+            <Input type="time" label={t("appointments.newTime")} value={newTime} onChange={(e) => setNewTime(e.target.value)} />
             <div className="flex gap-2 justify-end">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowReschedule(false)}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                size="sm"
-                loading={reschedule.isPending}
-                disabled={
-                  reschedule.isPending ||
-                  !newDate ||
-                  !newTime ||
-                  (newDate === date && newTime === row.time)
-                }
-                onClick={() => reschedule.mutate()}
-              >
-                {t("appointments.reschedule")}
-              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowReschedule(false)}>{t("common.cancel")}</Button>
+              <Button size="sm" loading={reschedule.isPending} disabled={reschedule.isPending || !newDate || !newTime || (newDate === date && newTime === row.time)} onClick={() => reschedule.mutate()}>{t("appointments.reschedule")}</Button>
             </div>
           </div>
         </Card>
       )}
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 pt-2 border-t border-border">
-        <Link
-          href={`/patients/${row.patientId}`}
-          className="text-sm text-brand hover:underline"
-        >
-          {t("appointments.openChart")} →
+      <div className="flex flex-col gap-2 pt-3 border-t border-border/60">
+        <Link href={`/patients/${row.patientId}`} className="text-sm text-brand font-medium hover:underline flex items-center gap-1">
+          {t("appointments.openChart")} <ChevronRightIcon size={14} />
         </Link>
-
         {canReschedule && !showReschedule && (
-          <Button
-            size="sm"
-            variant="secondary"
-            leftIcon={<Clock size={14} />}
-            onClick={() => setShowReschedule(true)}
-          >
-            {t("appointments.reschedule")}
-          </Button>
+          <Button size="sm" variant="secondary" leftIcon={<Clock size={14} />} onClick={() => setShowReschedule(true)}>{t("appointments.reschedule")}</Button>
         )}
-
         {isActive && row.appointmentId && (
-          <Button
-            size="sm"
-            variant="danger"
-            leftIcon={<AlertTriangle size={14} />}
-            loading={updateStatus.isPending}
-            disabled={updateStatus.isPending}
-            onClick={() => {
-              if (confirm(t("appointments.cancelConfirm"))) {
-                updateStatus.mutate("cancelled");
-              }
-            }}
-          >
+          <Button size="sm" variant="danger" leftIcon={<AlertTriangle size={14} />} loading={updateStatus.isPending} disabled={updateStatus.isPending} onClick={() => { if (confirm(t("appointments.cancelConfirm"))) updateStatus.mutate("cancelled"); }}>
             {t("appointments.cancelAppointment")}
           </Button>
         )}
@@ -296,159 +222,68 @@ export default function AppointmentsPage() {
   const rows = data?.queue ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-text">
-            {t("appointments.title")}
-          </h1>
-          <p className="text-sm text-text-soft mt-1">
-            {format(parseISO(date), "EEEE, MMM d, yyyy")} · {rows.length}{" "}
-            entries
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/portal/book-appointment">
-            <Button
-              size="sm"
-              leftIcon={<UserPlus size={14} />}
-            >
-              {t("appointments.bookForPatient")}
-            </Button>
-          </Link>
-          <Button
-            size="sm"
-            variant="secondary"
-            leftIcon={<ChevronLeft size={14} />}
-            onClick={() =>
-              setDate((d) =>
-                addDays(parseISO(d), -1).toISOString().slice(0, 10)
-              )
-            }
-          />
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-8 px-2 rounded-md border border-border bg-surface text-sm text-text focus-ring focus:border-brand"
-          />
-          <Button
-            size="sm"
-            variant="secondary"
-            leftIcon={<ChevronRight size={14} />}
-            onClick={() =>
-              setDate((d) =>
-                addDays(parseISO(d), 1).toISOString().slice(0, 10)
-              )
-            }
-          />
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              setDate(new Date().toISOString().slice(0, 10))
-            }
-          >
-            {t("common.today")}
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("appointments.title")}
+        subtitle={`${format(parseISO(date), "EEEE, MMM d, yyyy")} · ${rows.length} entries`}
+        icon={<Calendar size={18} className="text-brand" />}
+        actions={
+          <>
+            <Link href="/portal/book-appointment">
+              <Button size="sm" leftIcon={<UserPlus size={14} />}>{t("appointments.bookForPatient")}</Button>
+            </Link>
+            <div className="flex items-center gap-1.5 ml-2">
+              <Button size="sm" variant="secondary" leftIcon={<ChevronLeft size={14} />} onClick={() => setDate((d) => addDays(parseISO(d), -1).toISOString().slice(0, 10))} />
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 px-2 rounded-lg border border-border/80 bg-surface text-sm text-text focus-ring focus:border-brand/40" />
+              <Button size="sm" variant="secondary" leftIcon={<ChevronRight size={14} />} onClick={() => setDate((d) => addDays(parseISO(d), 1).toISOString().slice(0, 10))} />
+              <Button size="sm" variant="secondary" onClick={() => setDate(new Date().toISOString().slice(0, 10))}>{t("common.today")}</Button>
+            </div>
+          </>
+        }
+      />
 
-      <Card>
+      <Card padding={false}>
         {isLoading ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <div className="p-4 flex flex-col gap-2">
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
           </div>
         ) : rows.length === 0 ? (
-          <Empty title={t("appointments.empty")} />
+          <Empty title={t("appointments.empty")} icon={<Calendar size={20} className="text-text-muted" />} className="py-12" />
         ) : (
           <ul className="flex flex-col">
             {rows.map((r, i) => {
-              const acting =
-                update.isPending &&
-                update.variables?.id ===
-                  (r.appointmentId ?? r.walkInId);
-              const nextStatuses: string[] = r.appointmentId
-                ? ALLOWED_TRANSITIONS[r.status] ?? []
-                : [];
+              const acting = update.isPending && update.variables?.id === (r.appointmentId ?? r.walkInId);
+              const nextStatuses: string[] = r.appointmentId ? ALLOWED_TRANSITIONS[r.status] ?? [] : [];
+              const cfg = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.scheduled;
               return (
-                <li
-                  key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`}
-                  className="flex items-center gap-3 py-2.5 border-b border-border last:border-0"
-                >
-                  {r.kind === "appointment" ? (
-                    <Calendar
-                      size={14}
-                      className="text-brand shrink-0"
-                    />
-                  ) : (
-                    <CalendarCheck
-                      size={14}
-                      className="text-violet shrink-0"
-                    />
-                  )}
-                  <span className="font-mono text-xs tabular-nums text-text-soft w-12 shrink-0">
-                    {r.time
-                      ? formatTime(`1970-01-01T${r.time}`)
-                      : "—"}
+                <li key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`} className="flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-surface-2/30 transition-colors group">
+                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", r.kind === "appointment" ? "bg-sky-50 text-sky-600" : "bg-violet-50 text-violet-600")}>
+                    {r.kind === "appointment" ? <Calendar size={14} /> : <CalendarCheck size={14} />}
+                  </div>
+                  <span className="font-mono text-xs tabular-nums text-text-soft w-14 shrink-0 font-medium">
+                    {r.time ? formatTime(`1970-01-01T${r.time}`) : "—"}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRow(r)}
-                        className="text-sm font-medium text-text truncate hover:text-brand hover:underline text-left"
-                      >
-                        {r.patientName ??
-                          t("walkins.unknownPatient")}
+                      <button type="button" onClick={() => setSelectedRow(r)} className="text-sm font-medium text-text truncate hover:text-brand hover:underline text-left">
+                        {r.patientName ?? t("walkins.unknownPatient")}
                       </button>
-                      {r.queueNumber ? (
-                        <Pill tone="neutral">
-                          Q#{r.queueNumber}
-                        </Pill>
-                      ) : null}
+                      {r.queueNumber && <Pill tone="neutral">Q#{r.queueNumber}</Pill>}
                     </div>
-                    <div className="text-xs text-text-soft truncate">
-                      {r.reason ?? "—"}
-                    </div>
+                    <div className="text-xs text-text-muted truncate mt-0.5">{r.reason ?? "—"}</div>
                   </div>
-                  <Pill tone={STATUS_TONE[r.status] ?? "neutral"}>
-                    {r.status.replace("_", " ")}
-                  </Pill>
-                  <Link
-                    href={`/patients/${r.patientId}`}
-                    className="text-xs text-brand hover:underline shrink-0"
-                  >
+                  <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
+                  <Link href={`/patients/${r.patientId}`} className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     {t("common.open")}
                   </Link>
-                  {r.appointmentId && nextStatuses.length > 0 ? (
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        if (e.target.value && r.appointmentId) {
-                          update.mutate({
-                            id: r.appointmentId,
-                            status: e.target.value,
-                          });
-                        }
-                      }}
-                      disabled={acting}
-                      className={cn(
-                        "h-7 px-2 rounded-md border border-border bg-surface text-xs text-text focus-ring",
-                        acting && "opacity-50"
-                      )}
-                    >
-                      <option value="">
-                        {t("common.actions")}…
-                      </option>
-                      {nextStatuses.map((s) => (
-                        <option key={s} value={s}>
-                          {s.replace("_", " ")}
-                        </option>
-                      ))}
+                  {r.appointmentId && nextStatuses.length > 0 && (
+                    <select value="" onChange={(e) => { if (e.target.value && r.appointmentId) update.mutate({ id: r.appointmentId, status: e.target.value }); }} disabled={acting} className={cn("h-7 px-2 rounded-lg border border-border/80 bg-surface text-xs text-text focus-ring", acting && "opacity-50")}>
+                      <option value="">{t("common.actions")}…</option>
+                      {nextStatuses.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
                     </select>
-                  ) : null}
+                  )}
                 </li>
               );
             })}
@@ -456,23 +291,8 @@ export default function AppointmentsPage() {
         )}
       </Card>
 
-      {/* Appointment detail drawer */}
-      <Drawer
-        open={!!selectedRow}
-        onClose={() => setSelectedRow(null)}
-        title={t("appointments.details")}
-        subtitle={
-          selectedRow?.patientName ?? undefined
-        }
-        size="md"
-      >
-        {selectedRow && (
-          <AppointmentDetail
-            row={selectedRow}
-            date={date}
-            onClose={() => setSelectedRow(null)}
-          />
-        )}
+      <Drawer open={!!selectedRow} onClose={() => setSelectedRow(null)} title={t("appointments.details")} subtitle={selectedRow?.patientName ?? undefined} size="md">
+        {selectedRow && <AppointmentDetail row={selectedRow} date={date} onClose={() => setSelectedRow(null)} />}
       </Drawer>
     </div>
   );

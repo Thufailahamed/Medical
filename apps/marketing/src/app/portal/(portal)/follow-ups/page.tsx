@@ -18,6 +18,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { Button } from "@/portal/components/ui/Button";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
+import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -95,14 +96,15 @@ export default function FollowUpsPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-text">{t("followUps.title")}</h1>
-        <p className="text-sm text-text-soft mt-1">{t("followUps.subtitle")}</p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("followUps.title")}
+        subtitle={t("followUps.subtitle")}
+        icon={<CalendarClock size={18} className="text-amber-600" />}
+      />
 
       {/* Tabs */}
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         <div className="px-4 py-3 flex flex-wrap items-center gap-1.5">
           {TABS.map((t) => (
             <button
@@ -110,10 +112,10 @@ export default function FollowUpsPage() {
               type="button"
               onClick={() => setTab(t.value)}
               className={cn(
-                "px-2.5 h-7 rounded-md text-xs border transition-colors",
+                "px-2.5 h-7 rounded-xl text-xs border transition-colors",
                 tab === t.value
-                  ? "bg-brand-soft text-brand border-brand/30"
-                  : "bg-surface text-text-soft border-border hover:bg-surface-2"
+                  ? "bg-amber-50 text-amber-700 border-amber-200/60"
+                  : "bg-surface text-text-soft border-border/60 hover:bg-surface-2/40"
               )}
             >
               {t.label}
@@ -126,12 +128,12 @@ export default function FollowUpsPage() {
       <div className="flex flex-col gap-3">
         {isLoading ? (
           [0, 1, 2].map((i) => (
-            <Card key={i}>
+            <Card key={i} className="rounded-2xl border-border/50">
               <Skeleton className="h-32 w-full" />
             </Card>
           ))
         ) : filtered.length === 0 ? (
-          <Card>
+          <Card className="rounded-2xl border-border/50">
             <Empty
               title={
                 tab === "upcoming"
@@ -152,21 +154,21 @@ export default function FollowUpsPage() {
             const isPending = f.status === "pending";
 
             return (
-              <Card key={f.id} padding={false}>
+              <Card key={f.id} padding={false} className="rounded-2xl border-border/50 group hover:border-border/80 transition-colors">
                 <div className="p-4 flex flex-col gap-3">
                   {/* Header */}
                   <div className="flex items-start gap-3">
                     <div
                       className={cn(
-                        "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
                         isDone
-                          ? "bg-success-soft text-success"
+                          ? "bg-emerald-50 text-emerald-600"
                           : isCancelled
-                          ? "bg-danger-soft text-danger"
-                          : "bg-brand-soft text-brand"
+                          ? "bg-red-50 text-red-600"
+                          : "bg-amber-50 text-amber-600"
                       )}
                     >
-                      <StatusIcon size={16} />
+                      <StatusIcon size={18} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-text truncate">
@@ -195,7 +197,7 @@ export default function FollowUpsPage() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-border">
+                  <div className="flex items-center gap-2 pt-2 border-t border-border/50">
                     {isPending && (
                       <>
                         <Button
@@ -238,11 +240,10 @@ export default function FollowUpsPage() {
                     {f.patientId && (
                       <Link
                         href={`/portal/patients/${f.patientId}`}
-                        className="ml-auto"
+                        className="ml-auto text-xs text-brand font-medium hover:underline flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <Button size="sm" variant="ghost" leftIcon={<ChevronRight size={14} />}>
-                          {t("patients.openChart")}
-                        </Button>
+                        {t("patients.openChart")}
+                        <ChevronRight size={12} />
                       </Link>
                     )}
                   </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, KeyRound, RotateCw, User } from "lucide-react";
+import { Save, KeyRound, RotateCw, User, Settings } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
@@ -10,6 +10,7 @@ import { Button } from "@/portal/components/ui/Button";
 import { Input } from "@/portal/components/ui/Form";
 import { toast } from "@/portal/components/ui/Toast";
 import { useAuthStore } from "@/portal/stores/auth";
+import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 
 export default function SettingsPage() {
@@ -64,13 +65,14 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-text">{t("settings.title")}</h1>
-        <p className="text-sm text-text-soft mt-1">{t("settings.subtitle")}</p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("settings.title")}
+        subtitle={t("settings.subtitle")}
+        icon={<Settings size={18} className="text-slate-600" />}
+      />
 
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         <CardHeader
           title={
             <span className="inline-flex items-center gap-1.5">
@@ -119,7 +121,7 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         <CardHeader
           title={
             <span className="inline-flex items-center gap-1.5">
@@ -153,7 +155,7 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         <CardHeader
           title={
             <span className="inline-flex items-center gap-1.5">

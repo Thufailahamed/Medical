@@ -22,13 +22,13 @@ export function Empty({
       )}
     >
       {icon ? (
-        <div className="h-12 w-12 rounded-full bg-surface-2 flex items-center justify-center mb-3 text-text-muted">
+        <div className="h-14 w-14 rounded-2xl bg-surface-2 flex items-center justify-center mb-4 text-text-muted border border-border/50">
           {icon}
         </div>
       ) : null}
       <div className="text-sm font-bold text-text">{title}</div>
       {description ? (
-        <div className="mt-1 text-xs text-text-soft max-w-sm">{description}</div>
+        <div className="mt-1.5 text-xs text-text-muted max-w-sm leading-relaxed">{description}</div>
       ) : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
@@ -39,7 +39,7 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "animate-pulse rounded-md bg-surface-2",
+        "animate-pulse rounded-xl bg-surface-2",
         className
       )}
     />
@@ -56,10 +56,10 @@ export function ErrorState({
   retry?: ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-red-700">
+    <div className="rounded-2xl border border-danger/30 bg-danger-soft/40 px-5 py-4 text-sm text-red-700">
       <div className="font-semibold">{title ?? "Something went wrong"}</div>
       {description ? <div className="mt-1 text-xs">{description}</div> : null}
-      {retry ? <div className="mt-2">{retry}</div> : null}
+      {retry ? <div className="mt-3">{retry}</div> : null}
     </div>
   );
 }

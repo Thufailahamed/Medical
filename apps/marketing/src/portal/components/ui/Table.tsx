@@ -3,7 +3,7 @@ import { cn } from "@/portal/lib/utils";
 
 export function Table({ children, className, ...rest }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-border bg-surface">
+    <div className="overflow-x-auto rounded-2xl border border-border/70 bg-surface">
       <table
         className={cn("w-full text-sm border-collapse", className)}
         {...rest}
@@ -16,7 +16,7 @@ export function Table({ children, className, ...rest }: HTMLAttributes<HTMLTable
 
 export function THead({ children }: { children: ReactNode }) {
   return (
-    <thead className="bg-surface-2/60 text-text-soft text-[11px] uppercase tracking-wide">
+    <thead className="bg-surface-2/50 text-text-soft text-[11px] uppercase tracking-wider font-semibold">
       {children}
     </thead>
   );
@@ -34,7 +34,7 @@ export function TR({
   return (
     <tr
       className={cn(
-        "border-t border-border transition-colors hover:bg-surface-2/50",
+        "border-t border-border/60 transition-colors hover:bg-surface-2/40",
         className
       )}
       {...rest}
@@ -52,7 +52,7 @@ export function TH({
   return (
     <th
       className={cn(
-        "text-left font-semibold px-3 py-2 whitespace-nowrap",
+        "text-left font-semibold px-4 py-3 whitespace-nowrap",
         className
       )}
       {...rest}
@@ -68,7 +68,7 @@ export function TD({
   ...rest
 }: HTMLAttributes<HTMLTableCellElement> & { children: ReactNode }) {
   return (
-    <td className={cn("px-3 py-2 align-top", className)} {...rest}>
+    <td className={cn("px-4 py-3 align-top", className)} {...rest}>
       {children}
     </td>
   );

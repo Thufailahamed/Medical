@@ -15,8 +15,10 @@ import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
+import { cn } from "@/portal/lib/utils";
 
 interface MedicalRecord {
   id: string;
@@ -61,17 +63,16 @@ export default function RecordsPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-text">{t("records.title")}</h1>
-        <p className="text-sm text-text-soft mt-1">
-          {t("records.subtitle", { count: allRecords.length })}
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("records.title")}
+        subtitle={t("records.subtitle", { count: allRecords.length })}
+        icon={<FileText size={18} className="text-sky-600" />}
+      />
 
       {/* Search & Filters */}
-      <Card padding={false}>
-        <div className="px-3 py-2 flex items-center gap-2 border-b border-border">
+      <Card padding={false} className="rounded-2xl border-border/50">
+        <div className="px-3 py-2 flex items-center gap-2 border-b border-border/50">
           <Search size={16} className="text-text-muted shrink-0" />
           <input
             type="text"
@@ -84,7 +85,7 @@ export default function RecordsPage() {
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="text-xs text-text-muted hover:text-text"
+              className="text-xs text-text-muted hover:text-text transition-colors"
             >
               {t("common.clear")}
             </button>
@@ -96,11 +97,12 @@ export default function RecordsPage() {
               key={type}
               type="button"
               onClick={() => setTypeFilter(type)}
-              className={`px-2.5 h-7 rounded-md text-xs border transition-colors ${
+              className={cn(
+                "px-2.5 h-7 rounded-xl text-xs border transition-colors",
                 typeFilter === type
-                  ? "bg-brand-soft text-brand border-brand/30"
-                  : "bg-surface text-text-soft border-border hover:bg-surface-2"
-              }`}
+                  ? "bg-sky-50 text-sky-700 border-sky-200/60"
+                  : "bg-surface text-text-soft border-border/60 hover:bg-surface-2/40"
+              )}
             >
               {type === "all" ? t("common.all") : type}
             </button>
@@ -109,7 +111,7 @@ export default function RecordsPage() {
       </Card>
 
       {/* Records List */}
-      <Card padding={false}>
+      <Card padding={false} className="rounded-2xl border-border/50">
         {isLoading ? (
           <div className="p-4 flex flex-col gap-2">
             {[0, 1, 2].map((i) => (
@@ -126,9 +128,9 @@ export default function RecordsPage() {
             {filtered.map((record) => (
               <li
                 key={record.id}
-                className="flex items-center gap-3 p-4 border-b border-border last:border-0 hover:bg-surface-2/40 transition-colors"
+                className="group flex items-center gap-3 p-4 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors"
               >
-                <div className="h-10 w-10 rounded-lg bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
                   <FileText size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -143,7 +145,7 @@ export default function RecordsPage() {
                       {record.tags.slice(0, 3).map((tag, i) => (
                         <span
                           key={i}
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-surface-2 text-text-muted"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] bg-surface-2 text-text-muted"
                         >
                           <Tag size={8} />
                           {tag}
@@ -161,12 +163,12 @@ export default function RecordsPage() {
                   {record.date && (
                     <div className="flex items-center gap-1">
                       <Calendar size={11} className="text-text-muted" />
-                      <span className="text-[10px] text-text-muted font-medium">
+                      <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">
                         {formatDate(record.date)}
                       </span>
                     </div>
                   )}
-                  <ChevronRight size={16} className="text-text-muted" />
+                  <ChevronRight size={16} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </li>
             ))}

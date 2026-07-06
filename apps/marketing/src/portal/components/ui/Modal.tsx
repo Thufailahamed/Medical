@@ -46,7 +46,8 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in"
+      style={{ background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)" }}
       role="dialog"
       aria-modal="true"
       onMouseDown={(e) => {
@@ -55,29 +56,29 @@ export function Modal({
     >
       <div
         className={cn(
-          "w-full bg-surface rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] border border-border overflow-hidden flex flex-col max-h-[90vh]",
+          "w-full bg-surface rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-border/70 overflow-hidden flex flex-col max-h-[90vh]",
           sizeMap[size]
         )}
       >
-        <div className="px-5 py-4 border-b border-border flex items-start justify-between gap-3">
+        <div className="px-6 py-4 border-b border-border/60 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-base font-semibold text-text">{title}</div>
+            <div className="text-base font-bold text-text">{title}</div>
             {subtitle ? (
-              <div className="text-xs text-text-soft mt-0.5">{subtitle}</div>
+              <div className="text-xs text-text-muted mt-0.5">{subtitle}</div>
             ) : null}
           </div>
           <button
             type="button"
-            className="h-8 w-8 rounded-md flex items-center justify-center text-text-soft hover:bg-surface-2 focus-ring"
+            className="h-8 w-8 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
             aria-label="Close"
             onClick={onClose}
           >
             <X size={16} />
           </button>
         </div>
-        <div className="flex-1 overflow-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-auto px-6 py-5">{children}</div>
         {footer ? (
-          <div className="px-5 py-3 border-t border-border bg-surface-2/40 flex items-center justify-end gap-2">
+          <div className="px-6 py-4 border-t border-border/60 bg-surface-2/30 flex items-center justify-end gap-2">
             {footer}
           </div>
         ) : null}
@@ -112,7 +113,8 @@ export function Drawer({
   const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl" };
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-slate-900/60"
+      className="fixed inset-0 z-50 flex justify-end animate-in"
+      style={{ background: "rgba(15,23,42,0.4)", backdropFilter: "blur(2px)" }}
       role="dialog"
       aria-modal="true"
       onMouseDown={(e) => {
@@ -121,29 +123,29 @@ export function Drawer({
     >
       <div
         className={cn(
-          "bg-surface h-full w-full flex flex-col border-l border-border shadow-[var(--shadow-lg)]",
+          "bg-surface h-full w-full flex flex-col border-l border-border/70 shadow-[0_20px_60px_rgba(0,0,0,0.12)]",
           widths[size]
         )}
       >
-        <div className="px-5 py-4 border-b border-border flex items-start justify-between gap-3">
+        <div className="px-6 py-4 border-b border-border/60 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-base font-semibold text-text">{title}</div>
+            <div className="text-base font-bold text-text">{title}</div>
             {subtitle ? (
-              <div className="text-xs text-text-soft mt-0.5">{subtitle}</div>
+              <div className="text-xs text-text-muted mt-0.5">{subtitle}</div>
             ) : null}
           </div>
           <button
             type="button"
-            className="h-8 w-8 rounded-md flex items-center justify-center text-text-soft hover:bg-surface-2 focus-ring"
+            className="h-8 w-8 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
             aria-label="Close"
             onClick={onClose}
           >
             <X size={16} />
           </button>
         </div>
-        <div className="flex-1 overflow-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-auto px-6 py-5">{children}</div>
         {footer ? (
-          <div className="px-5 py-3 border-t border-border bg-surface-2/40 flex items-center justify-end gap-2">
+          <div className="px-6 py-4 border-t border-border/60 bg-surface-2/30 flex items-center justify-end gap-2">
             {footer}
           </div>
         ) : null}

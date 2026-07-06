@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, Plus, Trash2, CalendarOff } from "lucide-react";
+import { Save, Plus, Trash2, CalendarOff, CalendarDays } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
@@ -11,7 +11,9 @@ import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
 import { Input, Select } from "@/portal/components/ui/Form";
 import { toast } from "@/portal/components/ui/Toast";
+import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
+import { cn } from "@/portal/lib/utils";
 
 interface Slot {
   id?: string;
@@ -87,23 +89,24 @@ export default function AvailabilityPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-text">{t("availability.title")}</h1>
-          <p className="text-sm text-text-soft mt-1">{t("availability.subtitle")}</p>
-        </div>
-        <Button
-          leftIcon={<Save size={14} />}
-          disabled={save.isPending}
-          loading={save.isPending}
-          onClick={() => save.mutate()}
-        >
-          {t("availability.save")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("availability.title")}
+        subtitle={t("availability.subtitle")}
+        icon={<CalendarDays size={18} className="text-teal-600" />}
+        actions={
+          <Button
+            leftIcon={<Save size={14} />}
+            disabled={save.isPending}
+            loading={save.isPending}
+            onClick={() => save.mutate()}
+          >
+            {t("availability.save")}
+          </Button>
+        }
+      />
 
-      <Card>
+      <Card className="rounded-2xl border-border/50">
         <CardHeader
           title="Weekly schedule"
           right={
@@ -119,7 +122,7 @@ export default function AvailabilityPage() {
         ) : (
           <ul className="flex flex-col gap-2 mt-3">
             {slots.map((s, i) => (
-              <li key={i} className="flex items-center gap-2 p-2 rounded-md bg-surface-2/40">
+              <li key={i} className="flex items-center gap-2 p-2 rounded-xl bg-surface-2/40 transition-colors hover:bg-surface-2/60">
                 <Select
                   className="w-24"
                   value={String(s.dayOfWeek)}
@@ -132,7 +135,7 @@ export default function AvailabilityPage() {
                   value={s.startTime}
                   onChange={(e) => updateSlot(i, { startTime: e.target.value })}
                 />
-                <span className="text-text-muted text-xs">→</span>
+                <span className="text-text-muted text-xs">to</span>
                 <Input
                   type="time"
                   className="w-28"
@@ -159,7 +162,7 @@ export default function AvailabilityPage() {
                 <button
                   type="button"
                   onClick={() => removeSlot(i)}
-                  className="ml-auto text-text-muted hover:text-danger"
+                  className="ml-auto text-text-muted hover:text-danger transition-colors"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -214,9 +217,9 @@ function TimeOffSection({
   });
 
   return (
-    <Card padding={false}>
+    <Card padding={false} className="rounded-2xl border-border/50">
       <CardHeader title="Time off" />
-      <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-b border-border">
+      <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-b border-border/50">
         <Input
           type="date"
           label="Start"
@@ -247,14 +250,17 @@ function TimeOffSection({
       {items.length === 0 ? (
         <Empty title="No time off scheduled" className="m-4" />
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="flex flex-col">
           {items.map((t) => (
-            <li key={t.id} className="flex items-center gap-2 px-4 py-2.5">
+            <li key={t.id} className="group flex items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors">
+              <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <CalendarOff size={18} />
+              </div>
               <Pill tone="warn">
-                {t.startDate} → {t.endDate}
+                {t.startDate} to {t.endDate}
               </Pill>
               <span className="text-sm text-text flex-1 truncate">
-                {t.reason ?? "—"}
+                {t.reason ?? "---"}
               </span>
               <Button
                 size="sm"

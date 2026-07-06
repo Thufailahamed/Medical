@@ -42,7 +42,7 @@ export default function PatientChartLayout({
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/portal/patients"
-          className="inline-flex items-center gap-1 text-xs text-text-soft hover:text-text"
+          className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text font-medium transition-colors"
         >
           <ArrowLeft size={12} /> {t("chart.backToList")}
         </Link>
@@ -62,7 +62,7 @@ export default function PatientChartLayout({
         )}
       </Card>
 
-      <nav className="flex items-center gap-1 overflow-x-auto border-b border-border">
+      <nav className="flex items-center gap-0.5 overflow-x-auto border-b border-border/60 px-1">
         {TABS.map((tab) => {
           const href = `${base}${tab.path}`;
           const active =
@@ -74,10 +74,10 @@ export default function PatientChartLayout({
               key={tab.key}
               href={href}
               className={cn(
-                "px-3 py-2 text-xs whitespace-nowrap border-b-2 -mb-px transition-colors",
+                "px-3.5 py-2.5 text-xs whitespace-nowrap border-b-2 -mb-px transition-all duration-200 rounded-t-lg",
                 active
-                  ? "border-brand text-brand font-medium"
-                  : "border-transparent text-text-soft hover:text-text"
+                  ? "border-brand text-brand font-bold bg-brand-soft/30"
+                  : "border-transparent text-text-muted hover:text-text hover:bg-surface-2/40 font-medium"
               )}
             >
               {t(`chart.tab.${tab.key}`)}

@@ -15,8 +15,6 @@ const sizeMap = {
   lg: "h-14 w-14 text-base",
 } as const;
 
-// Mobile app uses semi-transparent tinted backgrounds, not gradients.
-// Each palette entry: [bg class, text class]
 const palettes: [string, string][] = [
   ["bg-sky-100", "text-sky-700"],
   ["bg-emerald-100", "text-emerald-700"],
@@ -38,7 +36,7 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0",
+        "rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 ring-2 ring-white/50",
         sizeMap[size],
         bg,
         fg,

@@ -278,15 +278,32 @@
   },
   "walkins": {
     "title": "Walk-in queue",
-    "subtitle": "Front-desk check-ins waiting for you",
-    "empty": "No walk-ins waiting",
+    "subtitle": "Front-desk check-ins",
+    "emptyTitle": "No walk-ins here",
+    "emptyDescription": "Walk-ins will appear here when patients arrive without an appointment.",
     "reason": "Reason",
     "priority": "Priority",
     "arrived": "Arrived",
     "complete": "Complete",
     "noShow": "No-show",
     "startConsult": "Start consult",
-    "unknownPatient": "Unknown patient"
+    "unknownPatient": "Unknown patient",
+    "checkIn": "Check in walk-in",
+    "checkInSubtitle": "Register a new walk-in patient",
+    "checkInButton": "Check in",
+    "patient": "Patient",
+    "searchPatient": "Search by name, phone, or NIC…",
+    "noPatients": "No patients found",
+    "routine": "Routine",
+    "urgent": "Urgent",
+    "created": "Walk-in registered",
+    "status": {
+      "waiting": "Waiting",
+      "in_consultation": "In consult",
+      "completed": "Completed",
+      "no_show": "No show",
+      "all": "All"
+    }
   },
   "appointments": {
     "title": "Appointments",

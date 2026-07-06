@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Plus, Trash2, Edit2, Save } from "lucide-react";
+import { Copy, Plus, Trash2, Edit2, Save, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 import { api } from "@/portal/lib/api";
@@ -13,7 +13,9 @@ import { Button } from "@/portal/components/ui/Button";
 import { Input, Textarea } from "@/portal/components/ui/Form";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { toast } from "@/portal/components/ui/Toast";
+import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
+import { cn } from "@/portal/lib/utils";
 
 interface Template {
   id: string;
@@ -60,42 +62,46 @@ export default function TemplatesPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-text">{t("templates.title")}</h1>
-          <p className="text-sm text-text-soft mt-1">{t("templates.subtitle")}</p>
-        </div>
-        <Button
-          size="sm"
-          leftIcon={<Plus size={14} />}
-          onClick={() => setCreating(true)}
-        >
-          {t("templates.new")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("templates.title")}
+        subtitle={t("templates.subtitle")}
+        icon={<FileText size={18} className="text-rose-600" />}
+        actions={
+          <Button
+            size="sm"
+            leftIcon={<Plus size={14} />}
+            onClick={() => setCreating(true)}
+          >
+            {t("templates.new")}
+          </Button>
+        }
+      />
 
       {isLoading ? (
-        <Card>
+        <Card className="rounded-2xl border-border/50">
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full mt-2" />
         </Card>
       ) : list.length === 0 ? (
-        <Card>
+        <Card className="rounded-2xl border-border/50">
           <Empty title={t("templates.empty")} />
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {list.map((tmpl) => (
-            <Card key={tmpl.id}>
+            <Card key={tmpl.id} className="rounded-2xl border-border/50 group hover:border-border/80 transition-colors">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                      <Copy size={14} />
+                    </div>
                     <h3 className="text-sm font-semibold text-text truncate">
                       {tmpl.name}
                     </h3>
                     {tmpl.useCount ? (
-                      <Pill tone="brand">Used {tmpl.useCount}×</Pill>
+                      <Pill tone="brand">Used {tmpl.useCount}x</Pill>
                     ) : null}
                   </div>
                   {tmpl.diagnosis ? (
@@ -145,7 +151,7 @@ export default function TemplatesPage() {
                 ))}
               </ul>
               {tmpl.updatedAt ? (
-                <div className="text-[10px] text-text-muted mt-2">
+                <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mt-2">
                   Updated {format(parseISO(tmpl.updatedAt), "MMM d, yyyy")}
                 </div>
               ) : null}
@@ -160,7 +166,7 @@ export default function TemplatesPage() {
           setCreating(false);
           setEditing(null);
         }}
-        title={editing ? `Edit · ${editing.name}` : "New template"}
+        title={editing ? `Edit - ${editing.name}` : "New template"}
         size="lg"
       >
         <TemplateForm
@@ -295,7 +301,7 @@ function TemplateForm({
             <button
               type="button"
               onClick={() => setMeds((arr) => arr.filter((_, idx) => idx !== i))}
-              className="col-span-1 h-8 text-text-muted hover:text-danger"
+              className="col-span-1 h-8 text-text-muted hover:text-danger transition-colors"
               disabled={meds.length === 1}
             >
               <Trash2 size={14} />

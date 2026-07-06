@@ -2,53 +2,30 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Wallet, Calendar as CalendarIcon } from "lucide-react";
+import { TrendingUp, Wallet, Calendar as CalendarIcon, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 
 import { api } from "@/portal/lib/api";
-import { Card, CardHeader } from "@/portal/components/ui/Card";
+import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Skeleton, Empty } from "@/portal/components/ui/Empty";
+import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatLkr } from "@/portal/lib/format";
+import { cn } from "@/portal/lib/utils";
 
 interface EarningsSummary {
-  period: string;
-  start: string;
-  end: string;
-  totalLkr: number;
-  visitCount: number;
-  avgPerVisitLkr: number;
-  trendPct: number;
-  pendingPayoutLkr: number;
-  consultationFee: number;
+  period: string; start: string; end: string;
+  totalLkr: number; visitCount: number; avgPerVisitLkr: number;
+  trendPct: number; pendingPayoutLkr: number; consultationFee: number;
 }
 
-interface TimeseriesResp {
-  bucket: string;
-  points: Array<{ date: string; amountLkr: number; count: number }>;
-}
-
-interface Payout {
-  id: string;
-  amountLkr: number;
-  status: string;
-  requestedAt: string;
-  paidAt?: string | null;
-}
-
-interface PayoutsResp {
-  payouts: Payout[];
-}
+interface TimeseriesResp { bucket: string; points: Array<{ date: string; amountLkr: number; count: number }> }
+interface Payout { id: string; amountLkr: number; status: string; requestedAt: string; paidAt?: string | null }
+interface PayoutsResp { payouts: Payout[] }
 
 export default function EarningsPage() {
   const t = useT();
@@ -61,10 +38,7 @@ export default function EarningsPage() {
 
   const { data: ts } = useQuery({
     queryKey: ["doctor-earnings", "timeseries", period],
-    queryFn: () =>
-      api<TimeseriesResp>(
-        `/doctor-earnings/timeseries?period=${period}&bucket=${period === "week" ? "day" : "week"}`
-      ),
+    queryFn: () => api<TimeseriesResp>(`/doctor-earnings/timeseries?period=${period}&bucket=${period === "week" ? "day" : "week"}`),
   });
 
   const { data: payouts } = useQuery({
@@ -75,167 +49,138 @@ export default function EarningsPage() {
   const points = ts?.points ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-text">{t("earnings.title")}</h1>
-        <p className="text-sm text-text-soft mt-1">{t("earnings.subtitle")}</p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("earnings.title")}
+        subtitle={t("earnings.subtitle")}
+        icon={<DollarSign size={18} className="text-emerald-600" />}
+        actions={
+          <div className="flex items-center gap-1.5">
+            {(["week", "month", "quarter", "year"] as const).map((p) => (
+              <button key={p} type="button" onClick={() => setPeriod(p)} className={cn(
+                "px-3 h-8 rounded-lg text-xs font-semibold border transition-all duration-200",
+                period === p ? "bg-brand text-white border-brand shadow-sm" : "bg-surface text-text-soft border-border/80 hover:bg-surface-2 hover:border-border"
+              )}>{t(`earnings.period.${p}`)}</button>
+            ))}
+          </div>
+        }
+      />
 
-      <div className="flex items-center gap-1.5">
-        {(["week", "month", "quarter", "year"] as const).map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => setPeriod(p)}
-            className={
-              "px-3 h-8 rounded-md text-xs border transition-colors " +
-              (period === p
-                ? "bg-brand-soft text-brand border-brand/30"
-                : "bg-surface text-text-soft border-border hover:bg-surface-2")
-            }
-          >
-            {t(`earnings.period.${p}`)}
-          </button>
-        ))}
-      </div>
-
+      {/* Metric cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Metric
-          icon={<TrendingUp size={14} />}
+        <MetricCard
+          icon={<TrendingUp size={18} />}
           label={t("earnings.totalThisPeriod")}
           value={sumLoading ? "…" : sum ? formatLkr(sum.totalLkr) : "—"}
           sub={sum ? `${sum.visitCount} visits · avg ${formatLkr(sum.avgPerVisitLkr)}` : ""}
-          tone={sum?.trendPct && sum.trendPct > 0 ? "success" : "brand"}
+          gradient="from-sky-500 to-blue-600"
+          lightBg="bg-sky-50/80"
+          accentColor="text-sky-600"
+          trend={sum?.trendPct}
         />
-        <Metric
-          icon={<Wallet size={14} />}
+        <MetricCard
+          icon={<Wallet size={18} />}
           label={t("earnings.pendingPayout")}
           value={sum ? formatLkr(sum.pendingPayoutLkr) : "—"}
           sub={sum?.pendingPayoutLkr ? "Wired within 7 days" : "All settled"}
-          tone="violet"
+          gradient="from-violet-500 to-purple-600"
+          lightBg="bg-violet-50/80"
+          accentColor="text-violet-600"
         />
-        <Metric
-          icon={<CalendarIcon size={14} />}
+        <MetricCard
+          icon={<CalendarIcon size={18} />}
           label={t("earnings.consultationFee")}
           value={sum ? formatLkr(sum.consultationFee) : "—"}
           sub="Per visit"
-          tone="brand"
+          gradient="from-emerald-500 to-teal-600"
+          lightBg="bg-emerald-50/80"
+          accentColor="text-emerald-600"
         />
       </div>
 
-      {sum?.trendPct != null ? (
-        <div className="flex items-center gap-2 text-xs">
-          <Pill tone={sum.trendPct >= 0 ? "success" : "danger"}>
-            {sum.trendPct >= 0 ? "+" : ""}
-            {sum.trendPct.toFixed(1)}%
-          </Pill>
-          <span className="text-text-soft">vs prior period</span>
+      {/* Chart */}
+      <Card padding={false}>
+        <div className="px-5 pt-4 pb-1">
+          <div className="text-sm font-bold text-text">{t("earnings.chartTitle")}</div>
         </div>
-      ) : null}
-
-      <Card>
-        <CardHeader title={t("earnings.chartTitle")} />
         {points.length === 0 ? (
-          <Empty title={t("earnings.noData")} className="mt-3" />
+          <Empty title={t("earnings.noData")} className="py-8" />
         ) : (
-          <div style={{ height: 240 }} className="mt-3">
+          <div style={{ height: 260 }} className="px-2 pb-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={points} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(d) => format(parseISO(d), "MMM d")}
-                  stroke="var(--text-muted)"
-                  fontSize={11}
-                />
-                <YAxis stroke="var(--text-muted)" fontSize={11} />
+              <AreaChart data={points} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                <defs>
+                  <linearGradient id="earnGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="var(--brand)" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" tickFormatter={(d) => format(parseISO(d), "MMM d")} stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 6,
-                    fontSize: 12,
-                  }}
-                  labelFormatter={(d) => format(parseISO(d as string), "MMM d")}
+                  contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
+                  labelFormatter={(d) => format(parseISO(d as string), "MMM d, yyyy")}
                   formatter={(v: number) => [formatLkr(v), "Revenue"]}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="amountLkr"
-                  stroke="var(--brand)"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
-              </LineChart>
+                <Area type="monotone" dataKey="amountLkr" stroke="var(--brand)" strokeWidth={2.5} fill="url(#earnGrad)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: "white" }} />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
       </Card>
 
+      {/* Payouts */}
       <Card padding={false}>
-        <CardHeader title={t("earnings.payoutsTitle")} />
+        <div className="px-5 py-3 border-b border-border/60">
+          <div className="text-sm font-bold text-text">{t("earnings.payoutsTitle")}</div>
+        </div>
         {payouts?.payouts?.length ? (
-          <ul className="divide-y divide-border">
+          <ul className="flex flex-col">
             {payouts.payouts.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 px-4 py-2.5">
-                <Wallet size={14} className="text-text-soft" />
-                <span className="font-medium tabular-nums">{formatLkr(p.amountLkr)}</span>
-                <Pill
-                  tone={
-                    p.status === "paid"
-                      ? "success"
-                      : p.status === "processing"
-                        ? "brand"
-                        : p.status === "rejected"
-                          ? "danger"
-                          : "warn"
-                  }
-                >
-                  {p.status}
-                </Pill>
-                <span className="text-xs text-text-muted ml-auto">
-                  {format(parseISO(p.requestedAt), "MMM d")}
-                </span>
+              <li key={p.id} className="flex items-center gap-3 px-5 py-3 border-b border-border/50 last:border-0 hover:bg-surface-2/30 transition-colors">
+                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                  p.status === "paid" ? "bg-emerald-50 text-emerald-600" : p.status === "processing" ? "bg-sky-50 text-sky-600" : p.status === "rejected" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
+                )}>
+                  <Wallet size={14} />
+                </div>
+                <span className="font-semibold tabular-nums text-sm">{formatLkr(p.amountLkr)}</span>
+                <Pill tone={p.status === "paid" ? "success" : p.status === "processing" ? "brand" : p.status === "rejected" ? "danger" : "warn"}>{p.status}</Pill>
+                <span className="text-xs text-text-muted ml-auto">{format(parseISO(p.requestedAt), "MMM d, yyyy")}</span>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="px-4 pb-4">
-            <Empty title={t("earnings.noPayouts")} />
-          </div>
+          <Empty title={t("earnings.noPayouts")} icon={<Wallet size={20} className="text-text-muted" />} className="py-10" />
         )}
       </Card>
     </div>
   );
 }
 
-function Metric({
-  icon,
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  tone: "brand" | "success" | "warn" | "violet";
+function MetricCard({ icon, label, value, sub, gradient, lightBg, accentColor, trend }: {
+  icon: React.ReactNode; label: string; value: string; sub?: string;
+  gradient: string; lightBg: string; accentColor: string; trend?: number;
 }) {
-  const bgClass = {
-    brand: "bg-brand-soft text-brand",
-    success: "bg-success-soft text-success",
-    warn: "bg-warn-soft text-amber-700",
-    violet: "bg-violet-soft text-violet",
-  }[tone];
   return (
-    <Card>
-      <div className="flex items-center gap-3">
-        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${bgClass}`}>{icon}</div>
-        <div>
-          <div className="text-xs text-text-soft">{label}</div>
-          <div className="text-xl font-semibold tabular-nums leading-tight text-text">{value}</div>
-          {sub ? <div className="text-[10px] text-text-muted">{sub}</div> : null}
+    <Card className="relative overflow-hidden group">
+      <div className={cn("absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-[0.07] group-hover:opacity-[0.12] transition-opacity", `bg-gradient-to-br ${gradient}`)} />
+      <div className="relative z-10 flex items-start gap-3">
+        <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center shrink-0", lightBg)}>
+          <span className={accentColor}>{icon}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">{label}</div>
+          <div className="text-xl font-extrabold text-text tabular-nums leading-none">{value}</div>
+          <div className="flex items-center gap-2 mt-1">
+            {sub && <div className="text-[11px] text-text-muted">{sub}</div>}
+            {trend != null && (
+              <span className={cn("inline-flex items-center gap-0.5 text-[11px] font-bold", trend >= 0 ? "text-emerald-600" : "text-red-600")}>
+                {trend >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                {Math.abs(trend).toFixed(1)}%
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Card>
