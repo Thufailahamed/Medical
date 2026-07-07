@@ -1,6 +1,7 @@
 // @ts-nocheck
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as SecureStore from "expo-secure-store";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -22,6 +23,7 @@ import {
 } from "lucide-react-native";
 import {
   useSearchPatients,
+  useConsentsIssued,
   useCreatePrescription,
   useMedicineSearch,
   useSafetyCheck,
@@ -127,16 +129,9 @@ export default function PrescriptionScreen() {
   const createPrescription = useCreatePrescription();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedQuery = useDebounce(searchQuery, 350);
-  const { data: searchResults, error: searchError } = useSearchPatients(debouncedQuery);
-
-  console.log("PRESCRIPTION SEARCH DEBUG:", {
-    searchQuery,
-    debouncedQuery,
-    enabled: debouncedQuery.length >= 2,
-    resultsCount: searchResults?.patients?.length,
-    error: searchError?.message
-  });
+  const debouncedQuery = useDebounce(searchQuery, 200);
+  const { data: searchResults } = useSearchPatients(debouncedQuery);
+  const { data: consentsData } = useConsentsIssued();
 
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [diagnosis, setDiagnosis] = useState("");
@@ -145,6 +140,54 @@ export default function PrescriptionScreen() {
   // starts with one empty entry so the doctor has somewhere to type;
   // tapping "+ Add medicine" appends another.
   const [medicines, setMedicines] = useState<MedicineEntry[]>([emptyEntry()]);
+
+  // Load draft on mount (skip if writing for a specific navigated patient)
+  useEffect(() => {
+    async function loadDraft() {
+      if (patientId) return;
+      try {
+        const draftJson = await SecureStore.getItemAsync("prescription_draft");
+        if (draftJson) {
+          const draft = JSON.parse(draftJson);
+          if (draft.selectedPatient) setSelectedPatient(draft.selectedPatient);
+          if (draft.diagnosis) setDiagnosis(draft.diagnosis);
+          if (draft.notes) setNotes(draft.notes);
+          if (draft.medicines) setMedicines(draft.medicines);
+        }
+      } catch (err) {
+        console.warn("[prescription] Failed to load draft:", err);
+      }
+    }
+    loadDraft();
+  }, [patientId]);
+
+  // Save draft on form changes
+  useEffect(() => {
+    async function saveDraft() {
+      try {
+        const hasContent =
+          selectedPatient ||
+          diagnosis.trim() ||
+          notes.trim() ||
+          medicines.some((m) => m.name.trim() || m.dosage.trim());
+
+        if (hasContent) {
+          const draft = {
+            selectedPatient,
+            diagnosis,
+            notes,
+            medicines,
+          };
+          await SecureStore.setItemAsync("prescription_draft", JSON.stringify(draft));
+        } else {
+          await SecureStore.deleteItemAsync("prescription_draft");
+        }
+      } catch (err) {
+        console.warn("[prescription] Failed to save draft:", err);
+      }
+    }
+    saveDraft();
+  }, [selectedPatient, diagnosis, notes, medicines]);
 
   // Phase 4.2: saved prescription templates. Tapping a chip fills the
   // medicine list (and diagnosis if empty) from the saved entry shape.
@@ -301,6 +344,11 @@ export default function PrescriptionScreen() {
         // acknowledged a blocking warning.
         headers: force ? { "X-Confirm-Warning": "true" } : undefined,
       });
+      try {
+        await SecureStore.deleteItemAsync("prescription_draft");
+      } catch (err) {
+        console.warn("[prescription] Failed to delete draft:", err);
+      }
       toast.show(t("doctorPrescription.savedToast"), "success");
       router.back();
     } catch (err: any) {
@@ -640,7 +688,38 @@ export default function PrescriptionScreen() {
     );
   }
 
-  const results: any[] = searchResults?.patients || [];
+  // Map active consent patients to match the search results shape
+  const activePatients = (consentsData?.items || []).map((c: any) => ({
+    patient: { id: c.patientId },
+    user: {
+      name: c.patientName,
+      phone: c.patientPhone,
+      photo: c.patientPhoto,
+    }
+  }));
+
+  const remoteResults = searchResults?.patients || [];
+  let results: any[] = [];
+
+  if (searchQuery.trim().length > 0) {
+    const normalizedQuery = searchQuery.toLowerCase();
+    const localFiltered = activePatients.filter((p: any) => {
+      const name = (p.user?.name || "").toLowerCase();
+      const phone = (p.user?.phone || "").toLowerCase();
+      return name.includes(normalizedQuery) || phone.includes(normalizedQuery);
+    });
+
+    const seenIds = new Set<string>();
+    results = [...localFiltered, ...remoteResults].filter((p: any) => {
+      const pId = p.patient?.id || p.patients?.id || p.id;
+      if (!pId || seenIds.has(pId)) return false;
+      seenIds.add(pId);
+      return true;
+    });
+  } else {
+    // Default to listing all active care team patients
+    results = activePatients;
+  }
 
   return (
     <Screen scroll padded={false} edges={["top"]} bottomInset>

@@ -396,7 +396,10 @@ export const prescriptions = sqliteTable("prescriptions", {
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
-});
+}, (t) => ({
+  patientDoctorIdx: index("prescriptions_patient_doctor_idx").on(t.patientId, t.doctorId),
+  doctorDateIdx: index("prescriptions_doctor_date_idx").on(t.doctorId, t.date),
+}));
 
 // ─── Lab Reports ─────────────────────────────────────────
 export const labReports = sqliteTable("lab_reports", {
@@ -738,7 +741,10 @@ export const walkIns = sqliteTable("walk_ins", {
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
-});
+}, (t) => ({
+  patientDoctorIdx: index("walk_ins_patient_doctor_idx").on(t.patientId, t.doctorId),
+  doctorStatusIdx: index("walk_ins_doctor_status_idx").on(t.doctorId, t.status),
+}));
 
 // ─── Appointment Status History (audit) ─────────────────
 export const appointmentStatusHistory = sqliteTable(
@@ -937,7 +943,9 @@ export const labOrders = sqliteTable("lab_orders", {
   completedAt: text("completed_at"),
   resultUrl: text("result_url"),
   resultSummary: text("result_summary"),
-});
+}, (t) => ({
+  patientDoctorIdx: index("lab_orders_patient_doctor_idx").on(t.patientId, t.doctorId),
+}));
 
 // ─── V2: AI Cache ────────────────────────────────────────
 export const aiCache = sqliteTable("ai_cache", {

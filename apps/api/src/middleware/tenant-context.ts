@@ -139,14 +139,7 @@ export const tenantContextMiddleware = async (
     activeClinicId = clinicHeader;
   } else {
     // ── Durable column fallback ───────────────────────────
-    const [u] = await db
-      .select({
-        activeTenantType: users.activeTenantType,
-        activeTenantId: users.activeTenantId,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    const u = c.get("dbUser");
     if (u?.activeTenantType === "hospital" && u.activeTenantId) {
       const ok = await validateHospitalMembership(
         db,
@@ -167,10 +160,16 @@ export const tenantContextMiddleware = async (
   }
 
   // ── Denormalized membership list (for switcher) ────────
-  const [myHospitals, myClinics] = await Promise.all([
-    listMyHospitals(db, userId, role),
-    listMyClinics(db, userId, role),
-  ]);
+  let myHospitals: any[] = [];
+  let myClinics: any[] = [];
+  if (c.req.path.includes("/me/tenants")) {
+    const [h, cl] = await Promise.all([
+      listMyHospitals(db, userId, role),
+      listMyClinics(db, userId, role),
+    ]);
+    myHospitals = h;
+    myClinics = cl;
+  }
 
   c.set("activeHospitalId", activeHospitalId);
   c.set("activeClinicId", activeClinicId);

@@ -1,8 +1,8 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, or, like, desc, and, sql } from "drizzle-orm";
-import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, labOrders, walkIns, messagesConversations, hospitals, doctorAvailability, doctorTimeOff, prescriptionSignatures } from "@healthcare/db";
+import { eq, or, like, desc, and, sql, inArray } from "drizzle-orm";
+import { doctors, patients, users, medicalRecords, appointments, medicines, prescriptions, labOrders, walkIns, messagesConversations, hospitals, doctorAvailability, doctorTimeOff, prescriptionSignatures, careTeamMembers } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { audit } from "../lib/audit";
@@ -125,9 +125,7 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
     .limit(1);
   if (!doc) return c.json({ patients: [] });
 
-  console.log("DEBUG SEARCH:", { userId, query, docId: doc.id });
-
-  const queryToRun = db
+  const results = await db
     .select({
       patient: patients,
       user: users,
@@ -141,33 +139,18 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
           like(users.nic, `%${safeQuery}%`),
           like(users.phone, `%${safeQuery}%`)
         ),
-        sql`EXISTS (
-          SELECT 1 FROM appointments WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
-          UNION ALL
-          SELECT 1 FROM prescriptions WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
-          UNION ALL
-          SELECT 1 FROM lab_orders WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
-          UNION ALL
-          SELECT 1 FROM medical_records WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
-          UNION ALL
-          SELECT 1 FROM walk_ins WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
-          UNION ALL
-          SELECT 1 FROM messages_conversations WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
-          UNION ALL
-          SELECT 1 FROM care_team_members WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id} AND status = 'active'
-        )`
+        or(
+          sql`EXISTS (SELECT 1 FROM care_team_members WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id} AND status = 'active')`,
+          sql`EXISTS (SELECT 1 FROM appointments WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id})`,
+          sql`EXISTS (SELECT 1 FROM prescriptions WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id})`,
+          sql`EXISTS (SELECT 1 FROM messages_conversations WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id})`,
+          sql`EXISTS (SELECT 1 FROM walk_ins WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id})`,
+          sql`EXISTS (SELECT 1 FROM lab_orders WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id})`,
+          sql`EXISTS (SELECT 1 FROM medical_records WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id})`
+        )
       )
     )
     .limit(20);
-
-  try {
-    console.log("SQL:", queryToRun.toSQL());
-  } catch (e) {
-    console.error("toSQL error:", e);
-  }
-
-  const results = await queryToRun;
-  console.log("RESULTS COUNT:", results.length);
 
   return c.json({ patients: results });
 });

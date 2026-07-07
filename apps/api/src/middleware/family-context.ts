@@ -65,12 +65,8 @@ export const familyContextMiddleware = async (
     }
   } else {
     // Fall back to server column.
-    const [u] = await db
-      .select({ activeFamilyMemberId: users.activeFamilyMemberId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    activeId = u?.activeFamilyMemberId ?? null;
+    const dbUser = c.get("dbUser");
+    activeId = dbUser?.activeFamilyMemberId ?? null;
   }
 
   c.set("activeFamilyMemberId", activeId);

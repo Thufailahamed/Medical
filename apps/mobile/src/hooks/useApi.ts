@@ -1405,8 +1405,8 @@ export function useSearchPatients(query: string) {
     queryKey: ["doctor", "search", query],
     queryFn: () => api<{ patients: any[] }>(`/doctor/search-patients?q=${encodeURIComponent(query)}`),
     enabled: query.length >= 2,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 10_000,
+    gcTime: 30_000,
   });
 }
 
