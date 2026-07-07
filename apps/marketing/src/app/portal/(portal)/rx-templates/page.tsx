@@ -56,10 +56,10 @@ export default function TemplatesPage() {
     mutationFn: (id: string) =>
       api(`/doctor-rx-templates/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success("Template deleted");
+      toast.success(t("templates.deleted"));
       qc.invalidateQueries({ queryKey: ["doctor-rx-templates"] });
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("templates.deleteFailed"), err?.message),
   });
 
   return (
@@ -86,7 +86,11 @@ export default function TemplatesPage() {
         </Card>
       ) : list.length === 0 ? (
         <Card className="rounded-2xl border-border/50">
-          <Empty title={t("templates.empty")} />
+          <Empty
+            title={t("templates.empty")}
+            description={t("templates.emptyBody")}
+            icon={<FileText size={20} className="text-text-muted" />}
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -102,7 +106,7 @@ export default function TemplatesPage() {
                       {tmpl.name}
                     </h3>
                     {tmpl.useCount ? (
-                      <Pill tone="brand">Used {tmpl.useCount}x</Pill>
+                      <Pill tone="brand">{t("templates.useCountShort", { count: tmpl.useCount })}</Pill>
                     ) : null}
                   </div>
                   {tmpl.diagnosis ? (
@@ -118,17 +122,17 @@ export default function TemplatesPage() {
                     leftIcon={<Edit2 size={12} />}
                     onClick={() => setEditing(tmpl)}
                   >
-                    Edit
+                    {t("templates.edit")}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
                     leftIcon={<Trash2 size={12} />}
                     onClick={() => {
-                      if (confirm(`Delete ${tmpl.name}?`)) del.mutate(tmpl.id);
+                      if (confirm(t("templates.deleteConfirm", { name: tmpl.name }))) del.mutate(tmpl.id);
                     }}
                   >
-                    Delete
+                    {t("templates.delete")}
                   </Button>
                 </div>
               </div>
@@ -153,7 +157,7 @@ export default function TemplatesPage() {
               </ul>
               {tmpl.updatedAt ? (
                 <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mt-2">
-                  Updated {format(parseISO(tmpl.updatedAt), "MMM d, yyyy")}
+                  {t("templates.updated", { date: format(parseISO(tmpl.updatedAt), "MMM d, yyyy") })}
                 </div>
               ) : null}
             </Card>
@@ -167,7 +171,7 @@ export default function TemplatesPage() {
           setCreating(false);
           setEditing(null);
         }}
-        title={editing ? `Edit - ${editing.name}` : "New template"}
+        title={editing ? t("templates.editDrawerTitle", { name: editing.name }) : t("templates.newTitle")}
         size="lg"
       >
         <TemplateForm
@@ -196,6 +200,7 @@ function TemplateForm({
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(template?.name ?? "");
   const [diagnosis, setDiagnosis] = useState(template?.diagnosis ?? "");
   const [description, setDescription] = useState(template?.notes ?? "");
@@ -228,29 +233,29 @@ function TemplateForm({
       return api(`/doctor-rx-templates`, { method: "POST", json: body });
     },
     onSuccess: () => {
-      toast.success(template?.id ? "Updated" : "Created");
+      toast.success(template?.id ? t("templates.updatedToast") : t("templates.created"));
       onSaved();
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("templates.saveFailed"), err?.message),
   });
 
   return (
     <div className="flex flex-col gap-3">
       <Input
-        label="Template name"
+        label={t("templates.fieldName")}
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="e.g. Strep throat — adult"
+        placeholder={t("templates.fieldNamePlaceholder")}
         required
       />
       <Input
-        label="Default diagnosis"
+        label={t("templates.fieldDiagnosis")}
         value={diagnosis}
         onChange={(e) => setDiagnosis(e.target.value)}
-        placeholder="e.g. Acute pharyngitis"
+        placeholder={t("templates.fieldDiagnosisPlaceholder")}
       />
       <Textarea
-        label="Description (internal note)"
+        label={t("templates.fieldNotes")}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         rows={2}
@@ -266,7 +271,7 @@ function TemplateForm({
                   const v = e.target.value;
                   setMeds((arr) => arr.map((x, idx) => (idx === i ? { ...x, name: v } : x)));
                 }}
-                placeholder="Medicine"
+                placeholder={t("templates.medicine")}
               />
             </div>
             <div className="col-span-2">
@@ -276,7 +281,7 @@ function TemplateForm({
                   const v = e.target.value;
                   setMeds((arr) => arr.map((x, idx) => (idx === i ? { ...x, dosage: v } : x)));
                 }}
-                placeholder="500 mg"
+                placeholder={t("templates.dosagePlaceholder")}
               />
             </div>
             <div className="col-span-2">
@@ -286,7 +291,7 @@ function TemplateForm({
                   const v = e.target.value;
                   setMeds((arr) => arr.map((x, idx) => (idx === i ? { ...x, frequency: v } : x)));
                 }}
-                placeholder="BD"
+                placeholder={t("templates.frequencyPlaceholder")}
               />
             </div>
             <div className="col-span-3">
@@ -296,7 +301,7 @@ function TemplateForm({
                   const v = e.target.value;
                   setMeds((arr) => arr.map((x, idx) => (idx === i ? { ...x, duration: v } : x)));
                 }}
-                placeholder="5 days"
+                placeholder={t("templates.durationPlaceholder")}
               />
             </div>
             <button
@@ -320,13 +325,13 @@ function TemplateForm({
             ])
           }
         >
-          Add medicine
+          {t("templates.addMedicine")}
         </Button>
       </div>
 
       <div className="flex justify-end gap-2 sticky bottom-0 bg-bg py-2">
         <Button variant="ghost" onClick={onCancel}>
-          Cancel
+          {t("templates.cancel")}
         </Button>
         <Button
           leftIcon={<Save size={14} />}
@@ -334,7 +339,7 @@ function TemplateForm({
           loading={save.isPending}
           onClick={() => save.mutate()}
         >
-          Save
+          {t("templates.save")}
         </Button>
       </div>
     </div>

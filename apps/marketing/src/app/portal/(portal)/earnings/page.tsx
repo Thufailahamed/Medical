@@ -13,6 +13,7 @@ import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Skeleton, Empty } from "@/portal/components/ui/Empty";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
+import { FilterPills } from "@/portal/components/chart/FilterPills";
 import { useT } from "@/portal/i18n";
 import { formatLkr } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -27,9 +28,18 @@ interface TimeseriesResp { bucket: string; points: Array<{ date: string; amountL
 interface Payout { id: string; amountLkr: number; status: string; requestedAt: string; paidAt?: string | null }
 interface PayoutsResp { payouts: Payout[] }
 
+const PERIODS = ["week", "month", "quarter", "year"] as const;
+type Period = (typeof PERIODS)[number];
+
 export default function EarningsPage() {
   const t = useT();
-  const [period, setPeriod] = useState<"week" | "month" | "quarter" | "year">("month");
+  const [period, setPeriod] = useState<Period>("month");
+
+  const payoutLabel = (status: string) => {
+    const key = `earnings.payoutStatus.${status}`;
+    const label = t(key);
+    return label === key ? status : label;
+  };
 
   const { data: sum, isLoading: sumLoading } = useQuery({
     queryKey: ["doctor-earnings", "summary", period],
@@ -55,14 +65,14 @@ export default function EarningsPage() {
         subtitle={t("earnings.subtitle")}
         icon={<DollarSign size={18} className="text-emerald-600" />}
         actions={
-          <div className="flex items-center gap-1.5">
-            {(["week", "month", "quarter", "year"] as const).map((p) => (
-              <button key={p} type="button" onClick={() => setPeriod(p)} className={cn(
-                "px-3 h-8 rounded-lg text-xs font-semibold border transition-all duration-200",
-                period === p ? "bg-brand text-white border-brand shadow-sm" : "bg-surface text-text-soft border-border/80 hover:bg-surface-2 hover:border-border"
-              )}>{t(`earnings.period.${p}`)}</button>
-            ))}
-          </div>
+          <FilterPills
+            value={period}
+            onChange={setPeriod}
+            options={PERIODS.map((p) => ({
+              value: p,
+              label: t(`earnings.period.${p}`),
+            }))}
+          />
         }
       />
 
@@ -72,7 +82,7 @@ export default function EarningsPage() {
           icon={<TrendingUp size={18} />}
           label={t("earnings.totalThisPeriod")}
           value={sumLoading ? "…" : sum ? formatLkr(sum.totalLkr) : "—"}
-          sub={sum ? `${sum.visitCount} visits · avg ${formatLkr(sum.avgPerVisitLkr)}` : ""}
+          sub={sum ? t("earnings.visitsSummary", { count: sum.visitCount, avg: formatLkr(sum.avgPerVisitLkr) }) : ""}
           gradient="from-sky-500 to-blue-600"
           lightBg="bg-sky-50/80"
           accentColor="text-sky-600"
@@ -82,7 +92,7 @@ export default function EarningsPage() {
           icon={<Wallet size={18} />}
           label={t("earnings.pendingPayout")}
           value={sum ? formatLkr(sum.pendingPayoutLkr) : "—"}
-          sub={sum?.pendingPayoutLkr ? "Wired within 7 days" : "All settled"}
+          sub={sum?.pendingPayoutLkr ? t("earnings.wiredWithinDays") : t("earnings.allSettled")}
           gradient="from-violet-500 to-purple-600"
           lightBg="bg-violet-50/80"
           accentColor="text-violet-600"
@@ -91,7 +101,7 @@ export default function EarningsPage() {
           icon={<CalendarIcon size={18} />}
           label={t("earnings.consultationFee")}
           value={sum ? formatLkr(sum.consultationFee) : "—"}
-          sub="Per visit"
+          sub={t("earnings.perVisit")}
           gradient="from-emerald-500 to-teal-600"
           lightBg="bg-emerald-50/80"
           accentColor="text-emerald-600"
@@ -121,7 +131,7 @@ export default function EarningsPage() {
                 <Tooltip
                   contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
                   labelFormatter={(d) => format(parseISO(d as string), "MMM d, yyyy")}
-                  formatter={(v: number) => [formatLkr(v), "Revenue"]}
+                  formatter={(v: number) => [formatLkr(v), t("earnings.revenue")]}
                 />
                 <Area type="monotone" dataKey="amountLkr" stroke="var(--brand)" strokeWidth={2.5} fill="url(#earnGrad)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: "white" }} />
               </AreaChart>
@@ -145,7 +155,9 @@ export default function EarningsPage() {
                   <Wallet size={14} />
                 </div>
                 <span className="font-semibold tabular-nums text-sm">{formatLkr(p.amountLkr)}</span>
-                <Pill tone={p.status === "paid" ? "success" : p.status === "processing" ? "brand" : p.status === "rejected" ? "danger" : "warn"}>{p.status}</Pill>
+                <Pill tone={p.status === "paid" ? "success" : p.status === "processing" ? "brand" : p.status === "rejected" ? "danger" : "warn"}>
+                  {payoutLabel(p.status)}
+                </Pill>
                 <span className="text-xs text-text-muted ml-auto">{format(parseISO(p.requestedAt), "MMM d, yyyy")}</span>
               </li>
             ))}
