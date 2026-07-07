@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Settings as SettingsIcon, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { SettingRow, type SettingItem } from "@/portal/components/admin/SettingRow";
+import { PasskeyManager } from "@/portal/components/admin/PasskeyManager";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -87,6 +88,10 @@ export default function AdminSettingsPage() {
           );
         })
       )}
+
+      <section className="bg-surface border border-border rounded-2xl p-5">
+        <PasskeyManager />
+      </section>
     </div>
   );
 }

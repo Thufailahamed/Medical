@@ -2508,3 +2508,62 @@ export const userAdminNotes = sqliteTable(
     userCreatedIdx: index("user_admin_notes_user_created_idx").on(t.userId, t.createdAt),
   }),
 );
+
+// ─── Phase ADM-3: SLMC verification docs + admin passkeys ──
+//
+// doctor_verification_docs: documents uploaded by an admin to
+// support a doctor's SLMC / medical-license claim. Approval of
+// an `slmc_certificate` doc sets `doctors.slmcVerifiedAt`.
+
+export const doctorVerificationDocs = sqliteTable(
+  "doctor_verification_docs",
+  {
+    id: text("id").primaryKey(),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => doctors.id, { onDelete: "cascade" }),
+    uploadedByUserId: text("uploaded_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    kind: text("kind", { enum: ["slmc_certificate", "medical_license", "other"] }).notNull(),
+    r2Key: text("r2_key").notNull(),
+    fileName: text("file_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    fileSize: integer("file_size").notNull(),
+    decision: text("decision", { enum: ["pending", "approved", "rejected"] })
+      .notNull()
+      .default("pending"),
+    decisionNote: text("decision_note"),
+    decidedByUserId: text("decided_by_user_id").references(() => users.id),
+    decidedAt: text("decided_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => ({
+    doctorIdx: index("doctor_verification_docs_doctor_idx").on(t.doctorId, t.createdAt),
+  }),
+);
+
+// admin_passkeys: WebAuthn credentials for super_admin step-up
+// auth. Public key is COSE-encoded base64url (per WebAuthn spec).
+// `counter` increments on each assertion; mismatch = cloned
+// credential, must reject.
+
+export const adminPasskeys = sqliteTable(
+  "admin_passkeys",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credentialId: text("credential_id").notNull().unique(),
+    publicKey: text("public_key").notNull(),
+    counter: integer("counter").notNull().default(0),
+    transports: text("transports"),
+    deviceName: text("device_name").notNull().default("Passkey"),
+    lastUsedAt: text("last_used_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => ({
+    userIdx: index("admin_passkeys_user_idx").on(t.userId),
+  }),
+);

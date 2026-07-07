@@ -8,6 +8,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Input } from "@/portal/components/ui/Form";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { ExportButton } from "@/portal/components/admin/ExportButton";
 
 type Row = {
   id: string;
@@ -40,7 +41,21 @@ export default function AdminAuditPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-7xl">
-      <PageHeader title="System audit log" subtitle={`${data?.total ?? 0} events`} icon={<ScrollText size={20} className="text-amber-600" />} />
+      <PageHeader
+        title="System audit log"
+        subtitle={`${data?.total ?? 0} events`}
+        icon={<ScrollText size={20} className="text-amber-600" />}
+        actions={
+          <ExportButton
+            exportPath="audit"
+            filters={{
+              userId: userId.trim() || undefined,
+              action: action.trim() || undefined,
+              resource: resource.trim() || undefined,
+            }}
+          />
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <Input placeholder="userId" value={userId} onChange={(e) => setUserId(e.target.value)} className="w-56 h-9" />

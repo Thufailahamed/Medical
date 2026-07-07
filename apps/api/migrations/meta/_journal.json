@@ -134,6 +134,13 @@
       "when": 1783417085243,
       "tag": "0018_shallow_mandrill",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1783418614592,
+      "tag": "0019_demonic_karnak",
+      "breakpoints": true
     }
   ]
 }

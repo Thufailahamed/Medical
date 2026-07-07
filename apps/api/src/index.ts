@@ -67,6 +67,8 @@ import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
 import familyActiveRouter from "./routes/family-active";
 import adminRouter from "./routes/admin";
 import adminBulkRouter from "./routes/admin-bulk";
+import adminExportRouter from "./routes/admin-export";
+import adminWebauthnRouter from "./routes/admin-webauthn";
 import familyInviteRouter from "./routes/family-invites";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
@@ -250,6 +252,8 @@ app.route("/", staffInvitePublicRouter);
 // requireAdmin (super_admin only). See ./routes/admin.ts.
 app.route("/admin", adminRouter);
 app.route("/admin/bulk", adminBulkRouter);
+app.route("/admin/export", adminExportRouter);
+app.route("/admin/webauthn", adminWebauthnRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]

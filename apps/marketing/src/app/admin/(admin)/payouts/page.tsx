@@ -9,7 +9,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
 type Row = {
@@ -45,7 +45,7 @@ export default function AdminPayoutsPage() {
 
   const markPaid = useMutation({
     mutationFn: ({ id, reference }: { id: string; reference: string }) =>
-      adminApi(`/admin/payouts/${id}/mark-paid`, { method: "POST", json: { reference } }),
+      adminApiWithStepUp(`/admin/payouts/${id}/mark-paid`, { method: "POST", json: { reference } }),
     onSuccess: () => {
       toast.success("Marked as paid");
       qc.invalidateQueries({ queryKey: ["admin", "payouts"] });
@@ -57,7 +57,7 @@ export default function AdminPayoutsPage() {
 
   const markFailed = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      adminApi(`/admin/payouts/${id}/mark-failed`, { method: "POST", json: { reason } }),
+      adminApiWithStepUp(`/admin/payouts/${id}/mark-failed`, { method: "POST", json: { reason } }),
     onSuccess: () => {
       toast.success("Marked as failed");
       qc.invalidateQueries({ queryKey: ["admin", "payouts"] });

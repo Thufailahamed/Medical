@@ -45,10 +45,12 @@ import {
   appointments,
   systemSettings,
   userAdminNotes,
+  doctorVerificationDocs,
 } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { requirePasskeyFresh } from "../middleware/stepup";
 import { flattenTranslated } from "../lib/validation-error";
-import { coerceSettingValue, invalidateSetting } from "../lib/settings";
+import { coerceSettingValue, getSetting, invalidateSetting } from "../lib/settings";
 import type { AppEnvironment } from "../types";
 
 const adminRouter = new Hono<AppEnvironment>();
@@ -469,7 +471,7 @@ adminRouter.post("/users/:id/unsuspend", async (c) => {
   return c.json({ ok: true });
 });
 
-adminRouter.delete("/users/:id", async (c) => {
+adminRouter.delete("/users/:id", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const actor = c.get("adminActor");
@@ -832,7 +834,7 @@ adminRouter.get("/payouts", async (c) => {
 const markPaidSchema = z.object({ reference: z.string().min(1).max(200) });
 const markFailedSchema = z.object({ reason: z.string().min(3).max(500) });
 
-adminRouter.post("/payouts/:id/mark-paid", async (c) => {
+adminRouter.post("/payouts/:id/mark-paid", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
@@ -862,7 +864,7 @@ adminRouter.post("/payouts/:id/mark-paid", async (c) => {
   return c.json({ ok: true });
 });
 
-adminRouter.post("/payouts/:id/mark-failed", async (c) => {
+adminRouter.post("/payouts/:id/mark-failed", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
@@ -1406,6 +1408,235 @@ adminRouter.delete("/notes/:noteId", async (c) => {
     resource: "user",
     resourceId: existing.userId,
     details: { noteId },
+  });
+
+  return c.json({ ok: true });
+});
+
+// ─────────────────────────────────────────────────────────────
+// 16. SLMC verification docs (Phase ADM-3)
+// ─────────────────────────────────────────────────────────────
+
+const ALLOWED_DOC_MIME = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp"]);
+
+adminRouter.post("/doctors/:id/docs", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+
+  const [doc] = await db.select().from(doctors).where(eq(doctors.id, id)).limit(1);
+  if (!doc) return c.json({ error: "Doctor not found" }, 404);
+
+  const formData = await c.req.formData().catch(() => null);
+  if (!formData) return c.json({ error: "Expected multipart/form-data" }, 400);
+
+  const file = formData.get("file") as File | null;
+  const kind = (formData.get("kind") as string | null) ?? "slmc_certificate";
+  if (!file) return c.json({ error: "file is required" }, 400);
+  if (!ALLOWED_DOC_MIME.has(file.type)) {
+    return c.json({ error: `Unsupported MIME ${file.type}. Allowed: PDF, PNG, JPEG, WebP` }, 400);
+  }
+  if (!["slmc_certificate", "medical_license", "other"].includes(kind)) {
+    return c.json({ error: "Invalid kind" }, 400);
+  }
+
+  const maxMb = await getSetting<number>(db, "uploads.maxFileSizeMb", 25);
+  if (file.size > maxMb * 1024 * 1024) {
+    return c.json({ error: `File exceeds ${maxMb}MB cap` }, 400);
+  }
+
+  const docId = crypto.randomUUID();
+  const ext = file.name.split(".").pop() || "bin";
+  const r2Key = `admin/slmc/${id}/${docId}.${ext}`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  try {
+    await c.env.R2.put(r2Key, arrayBuffer, { httpMetadata: { contentType: file.type } });
+  } catch (err: any) {
+    return c.json({ error: `R2 upload failed: ${err.message}` }, 500);
+  }
+
+  const actor = c.get("adminActor");
+  const now = new Date().toISOString();
+  await db.insert(doctorVerificationDocs).values({
+    id: docId,
+    doctorId: id,
+    uploadedByUserId: actor?.id,
+    kind: kind as any,
+    r2Key,
+    fileName: file.name,
+    mimeType: file.type,
+    fileSize: file.size,
+    createdAt: now,
+  } as any);
+
+  await recordAdminAction(c, {
+    action: "upload_slmc_doc",
+    resource: "doctor",
+    resourceId: id,
+    details: { docId, kind, fileName: file.name, fileSize: file.size },
+  });
+
+  return c.json({ ok: true, id: docId });
+});
+
+adminRouter.get("/doctors/:id/docs", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+
+  const [doc] = await db.select({ id: doctors.id }).from(doctors).where(eq(doctors.id, id)).limit(1);
+  if (!doc) return c.json({ error: "Doctor not found" }, 404);
+
+  const uploader = { id: users.id, name: users.name };
+  const decider = { id: users.id, name: users.name };
+
+  const rows = await db
+    .select({
+      id: doctorVerificationDocs.id,
+      doctorId: doctorVerificationDocs.doctorId,
+      kind: doctorVerificationDocs.kind,
+      r2Key: doctorVerificationDocs.r2Key,
+      fileName: doctorVerificationDocs.fileName,
+      mimeType: doctorVerificationDocs.mimeType,
+      fileSize: doctorVerificationDocs.fileSize,
+      decision: doctorVerificationDocs.decision,
+      decisionNote: doctorVerificationDocs.decisionNote,
+      decidedAt: doctorVerificationDocs.decidedAt,
+      createdAt: doctorVerificationDocs.createdAt,
+      uploadedById: doctorVerificationDocs.uploadedByUserId,
+      decidedById: doctorVerificationDocs.decidedByUserId,
+    })
+    .from(doctorVerificationDocs)
+    .where(eq(doctorVerificationDocs.doctorId, id))
+    .orderBy(desc(doctorVerificationDocs.createdAt));
+
+  // Hydrate names in a separate pass to keep the join simple.
+  const userIds = Array.from(
+    new Set(
+      rows.flatMap((r: any) => [r.uploadedById, r.decidedById].filter(Boolean) as string[]),
+    ),
+  );
+  const userRows = userIds.length
+    ? await db.select({ id: users.id, name: users.name }).from(users)
+    : [];
+  const nameById = new Map(userRows.map((u: any) => [u.id, u.name]));
+
+  return c.json({
+    items: rows.map((r: any) => ({
+      ...r,
+      uploadedByName: nameById.get(r.uploadedById) ?? null,
+      decidedByName: nameById.get(r.decidedById) ?? null,
+    })),
+  });
+});
+
+adminRouter.get("/doctors/:id/docs/:docId/download", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const docId = c.req.param("docId");
+
+  const [row] = await db
+    .select()
+    .from(doctorVerificationDocs)
+    .where(and(eq(doctorVerificationDocs.id, docId), eq(doctorVerificationDocs.doctorId, id)))
+    .limit(1);
+  if (!row) return c.json({ error: "Document not found" }, 404);
+
+  // R2 presigned URL with 5-min expiry.
+  const url = await c.env.R2.createPresignedUrl(row.r2Key, { expiresIn: 300 });
+
+  await recordAdminAction(c, {
+    action: "download_slmc_doc",
+    resource: "doctor",
+    resourceId: id,
+    details: { docId, fileName: row.fileName },
+  });
+
+  return c.redirect(url, 302);
+});
+
+adminRouter.post("/doctors/:id/docs/:docId/approve", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const docId = c.req.param("docId");
+
+  const [row] = await db
+    .select()
+    .from(doctorVerificationDocs)
+    .where(and(eq(doctorVerificationDocs.id, docId), eq(doctorVerificationDocs.doctorId, id)))
+    .limit(1);
+  if (!row) return c.json({ error: "Document not found" }, 404);
+  if ((row as any).decision !== "pending") {
+    return c.json({ error: `Document already ${(row as any).decision}` }, 409);
+  }
+
+  const actor = c.get("adminActor");
+  const now = new Date().toISOString();
+  await db
+    .update(doctorVerificationDocs)
+    .set({
+      decision: "approved",
+      decidedAt: now,
+      decidedByUserId: actor?.id ?? null,
+    } as any)
+    .where(eq(doctorVerificationDocs.id, docId));
+
+  // If the approved doc is an SLMC certificate, flip the doctor row.
+  if ((row as any).kind === "slmc_certificate") {
+    await db
+      .update(doctors)
+      .set({ slmcVerifiedAt: now } as any)
+      .where(eq(doctors.id, id));
+  }
+
+  await recordAdminAction(c, {
+    action: "approve_slmc_doc",
+    resource: "doctor",
+    resourceId: id,
+    details: { docId, kind: (row as any).kind, fileName: row.fileName },
+  });
+
+  return c.json({ ok: true });
+});
+
+const rejectDocSchema = z.object({ note: z.string().min(1).max(500) });
+
+adminRouter.post("/doctors/:id/docs/:docId/reject", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const docId = c.req.param("docId");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = rejectDocSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
+  }
+
+  const [row] = await db
+    .select()
+    .from(doctorVerificationDocs)
+    .where(and(eq(doctorVerificationDocs.id, docId), eq(doctorVerificationDocs.doctorId, id)))
+    .limit(1);
+  if (!row) return c.json({ error: "Document not found" }, 404);
+  if ((row as any).decision !== "pending") {
+    return c.json({ error: `Document already ${(row as any).decision}` }, 409);
+  }
+
+  const actor = c.get("adminActor");
+  const now = new Date().toISOString();
+  await db
+    .update(doctorVerificationDocs)
+    .set({
+      decision: "rejected",
+      decisionNote: parsed.data.note,
+      decidedAt: now,
+      decidedByUserId: actor?.id ?? null,
+    } as any)
+    .where(eq(doctorVerificationDocs.id, docId));
+
+  await recordAdminAction(c, {
+    action: "reject_slmc_doc",
+    resource: "doctor",
+    resourceId: id,
+    details: { docId, kind: (row as any).kind, fileName: row.fileName, note: parsed.data.note },
   });
 
   return c.json({ ok: true });

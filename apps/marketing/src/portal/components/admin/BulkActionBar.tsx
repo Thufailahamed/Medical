@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, X, CheckCircle2, AlertCircle } from "lucide-react";
-import { adminApi } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, setStepUpToken } from "@/portal/lib/admin-api";
+import { getPasskey } from "@/portal/lib/webauthn";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 
@@ -37,8 +38,34 @@ export function BulkActionBar({ selectedIds, onClear, invalidateKeys }: BulkActi
   const [confirmText, setConfirmText] = useState("");
   const [result, setResult] = useState<BulkResult | null>(null);
 
+  // Acquire a fresh step-up token by running the WebAuthn
+  // assertion ceremony. Used by `adminApiWithStepUp` for bulk
+  // delete; one Touch ID covers the whole batch.
+  async function refreshStepUp(): Promise<string> {
+    const opts = await adminApi<any>("/admin/webauthn/auth/options", {
+      method: "POST",
+      json: {},
+    });
+    const credential = await getPasskey(opts);
+    const res = await adminApi<{ stepUpToken: string }>(
+      "/admin/webauthn/auth/verify",
+      { method: "POST", json: credential },
+    );
+    setStepUpToken(res.stepUpToken);
+    return res.stepUpToken;
+  }
+
   const mut = useMutation({
     mutationFn: async (input: { kind: BulkKind; body: Record<string, unknown> }) => {
+      // Delete is destructive → server requires a fresh step-up
+      // token. The wrapper opens the StepUpModal on 401 step-up
+      // and re-issues once a passkey assertion succeeds.
+      if (input.kind === "delete") {
+        return adminApiWithStepUp<BulkResult>(`/admin/bulk/${input.kind}`, {
+          method: "POST",
+          json: input.body,
+        }, refreshStepUp);
+      }
       return adminApi<BulkResult>(`/admin/bulk/${input.kind}`, {
         method: "POST",
         json: input.body,

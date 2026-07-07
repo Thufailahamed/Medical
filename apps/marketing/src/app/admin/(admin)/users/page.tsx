@@ -4,13 +4,14 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, CheckCircle2, Search, Trash2, Pause, Play } from "lucide-react";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
+import { ExportButton } from "@/portal/components/admin/ExportButton";
 import { Pill, PillRow } from "@/portal/components/ui/Pill";
 import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
 import { BulkActionBar } from "@/portal/components/admin/BulkActionBar";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
 const ROLES = ["all", "patient", "doctor", "hospital_admin", "hospital_staff", "laboratory", "pharmacy", "insurance", "ambulance", "super_admin"] as const;
@@ -79,7 +80,7 @@ export default function AdminUsersPage() {
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => adminApi(`/admin/users/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => adminApiWithStepUp(`/admin/users/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success("User deleted");
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
@@ -92,6 +93,16 @@ export default function AdminUsersPage() {
       <PageHeader
         title="Users"
         subtitle={`${data?.total ?? 0} users`}
+        actions={
+          <ExportButton
+            exportPath="users"
+            filters={{
+              role: role === "all" ? undefined : role,
+              status: statusFilter === "all" ? undefined : statusFilter,
+              q: q.trim() || undefined,
+            }}
+          />
+        }
       />
 
       {/* Filters */}

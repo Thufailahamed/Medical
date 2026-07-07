@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { MockD1 } from "../_mockDb";
-import { buildAdminApp, get, postJson, del } from "./_adminTestApp";
+import { buildAdminApp, get, postJson, del, stepUpTokenFor } from "./_adminTestApp";
 
 const ADMIN_ID = "admin-1";
 const TARGET_ID = "user-target";
@@ -67,7 +67,9 @@ describe("DELETE /admin/users/:id", () => {
     const app = buildAdminApp(db, { id: ADMIN_ID, role: "super_admin" });
     db.setWhere("users", (r) => r.id === ADMIN_ID);
 
-    const res = await del(app, `/admin/users/${ADMIN_ID}`);
+    const res = await del(app, `/admin/users/${ADMIN_ID}`, {
+      "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
+    });
     expect(res.status).toBe(400);
   });
 });

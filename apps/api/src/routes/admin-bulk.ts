@@ -15,6 +15,7 @@ import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { users, notifications } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { requirePasskeyFresh } from "../middleware/stepup";
 import { flattenTranslated } from "../lib/validation-error";
 import { getSetting } from "../lib/settings";
 import type { AppEnvironment } from "../types";
@@ -308,7 +309,7 @@ const bulkDeleteSchema = z.object({
   confirm: z.literal(true),
 });
 
-bulkRouter.post("/delete", async (c) => {
+bulkRouter.post("/delete", requirePasskeyFresh, async (c) => {
   const gate = await ensureBulkEnabled(c);
   if (gate instanceof Response) return gate;
 

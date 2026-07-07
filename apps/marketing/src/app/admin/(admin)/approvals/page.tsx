@@ -10,6 +10,7 @@ import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
 import { BulkActionBar } from "@/portal/components/admin/BulkActionBar";
+import { ExportButton } from "@/portal/components/admin/ExportButton";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
@@ -88,9 +89,12 @@ export default function ApprovalsPage() {
         subtitle="Review applications for gated roles. Approved accounts can sign in immediately."
         icon={<UserCheck size={20} className="text-amber-600" />}
         actions={
-          <Button variant="secondary" size="sm" onClick={() => refetch()}>
-            <RefreshCw size={14} className="mr-1" /> Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <ExportButton exportPath="approvals" />
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              <RefreshCw size={14} className="mr-1" /> Refresh
+            </Button>
+          </div>
         }
       />
 

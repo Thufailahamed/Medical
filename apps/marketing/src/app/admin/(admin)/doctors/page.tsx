@@ -7,6 +7,8 @@ import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
+import { Drawer } from "@/portal/components/ui/Modal";
+import { SlmcDocsPanel } from "@/portal/components/admin/SlmcDocsPanel";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
@@ -33,6 +35,7 @@ const FILTERS = [
 export default function AdminDoctorsPage() {
   const qc = useQueryClient();
   const [slmc, setSlmc] = useState<"all" | "verified" | "unverified">("all");
+  const [openDoctor, setOpenDoctor] = useState<Row | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: adminQk.doctors({ slmc }),
@@ -89,7 +92,11 @@ export default function AdminDoctorsPage() {
           </THead>
           <TBody>
             {data.items.map((d) => (
-              <TR key={d.doctorId}>
+              <TR
+                key={d.doctorId}
+                onClick={() => setOpenDoctor(d)}
+                className="cursor-pointer hover:bg-surface-2/50"
+              >
                 <TD>
                   <p className="font-semibold">{d.name}</p>
                   <p className="text-[11px] text-text-muted">{d.email}</p>
@@ -105,7 +112,7 @@ export default function AdminDoctorsPage() {
                 </TD>
                 <TD><Pill tone={d.status === "active" ? "success" : "warn"}>{d.status}</Pill></TD>
                 <TD className="text-xs text-text-muted">{d.hospitalId ? "linked" : "—"}</TD>
-                <TD className="text-right">
+                <TD className="text-right" onClick={(e) => e.stopPropagation()}>
                   {d.slmcVerifiedAt ? (
                     <Button
                       size="sm"
@@ -132,6 +139,22 @@ export default function AdminDoctorsPage() {
           </TBody>
         </Table>
       )}
+
+      <Drawer
+        open={openDoctor != null}
+        onClose={() => setOpenDoctor(null)}
+        title={openDoctor?.name ?? ""}
+        subtitle={
+          openDoctor ? (
+            <span>
+              {openDoctor.specialization ?? "—"} · SLMC {openDoctor.slmcRegistrationNo ?? "—"}
+            </span>
+          ) : null
+        }
+        size="lg"
+      >
+        {openDoctor ? <SlmcDocsPanel doctorId={openDoctor.doctorId} /> : null}
+      </Drawer>
     </div>
   );
 }

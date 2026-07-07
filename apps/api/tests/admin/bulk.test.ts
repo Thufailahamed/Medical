@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { MockD1 } from "../_mockDb";
-import { buildAdminApp, postJson } from "./_adminTestApp";
+import { buildAdminApp, postJson, stepUpTokenFor } from "./_adminTestApp";
 
 const ADMIN_ID = "admin-1";
 
@@ -94,8 +94,20 @@ describe("POST /admin/bulk/delete", () => {
     db.setWhere("users", (r) => r.role === "doctor");
     const res = await postJson(app, "/admin/bulk/delete", {
       userIds: ["u-pending-1"],
-    });
+    }, { "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }) });
     expect(res.status).toBe(400);
+  });
+
+  it("rejects without step-up token", async () => {
+    const app = buildAdminApp(db, { id: ADMIN_ID, role: "super_admin" });
+    db.setWhere("users", (r) => r.role === "doctor");
+    const res = await postJson(app, "/admin/bulk/delete", {
+      userIds: ["u-pending-1"],
+      confirm: true,
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.code).toBe("step_up_required");
   });
 
   it("blocks self-delete", async () => {
@@ -104,7 +116,7 @@ describe("POST /admin/bulk/delete", () => {
     const res = await postJson(app, "/admin/bulk/delete", {
       userIds: [ADMIN_ID],
       confirm: true,
-    });
+    }, { "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }) });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.successCount).toBe(0);
@@ -118,7 +130,7 @@ describe("POST /admin/bulk/delete", () => {
     const res = await postJson(app, "/admin/bulk/delete", {
       userIds: ["u-pending-1", "u-active"],
       confirm: true,
-    });
+    }, { "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }) });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.successCount).toBe(2);
