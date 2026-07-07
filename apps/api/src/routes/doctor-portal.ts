@@ -2411,7 +2411,7 @@ doctorPortalRouter.post("/appointments", async (c) => {
   let inserted: any = null;
   let queueNumber = 0;
   try {
-    const txResult = await db.transaction(async (tx) => {
+    const txResult = await (async (tx) => {
       const sameSlot = await tx
         .select({ status: appointments.status })
         .from(appointments)
@@ -2444,7 +2444,7 @@ doctorPortalRouter.post("/appointments", async (c) => {
         } as any)
         .returning();
       return { row };
-    });
+    })(db);
 
     if ("error" in txResult) {
       return c.json({ error: txResult.error }, 409);
@@ -2529,7 +2529,7 @@ doctorPortalRouter.patch("/appointments/:id/reschedule", async (c) => {
   let inserted: any = null;
   let queueNumber = existing.queueNumber ?? 0;
   try {
-    const tx = await db.transaction(async (t) => {
+    const tx = await (async (t) => {
       const sameSlot = await t
         .select({ status: appointments.status })
         .from(appointments)
@@ -2552,7 +2552,7 @@ doctorPortalRouter.patch("/appointments/:id/reschedule", async (c) => {
         .where(eq(appointments.id, appointmentId))
         .returning();
       return { row };
-    });
+    })(db);
     if ("error" in tx) {
       return c.json({ error: tx.error }, 409);
     }

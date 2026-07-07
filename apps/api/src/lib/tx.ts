@@ -33,14 +33,9 @@ export async function txWrite<T>(
   db: any,
   fn: (tx: any) => Promise<T>
 ): Promise<T> {
-  // Drizzle's `db.transaction` on D1 opens a SQLite transaction and
-  // yields the tx-scoped driver to the callback. Throws inside the
-  // callback trigger ROLLBACK automatically. Errors propagate
-  // verbatim so callers can distinguish unique-violation from logic
-  // errors.
-  return db.transaction(async (tx: any) => {
-    return fn(tx);
-  });
+  // Cloudflare D1 does not support nested SQL transactions (BEGIN TRANSACTION / SAVEPOINT) through Drizzle.
+  // We run the queries directly on the db handle instead.
+  return fn(db);
 }
 
 /**

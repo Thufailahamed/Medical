@@ -1,9 +1,9 @@
 // @ts-nocheck
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 import { View, Text, ScrollView, Pressable } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   Search,
@@ -24,6 +24,7 @@ import {
 import {
   useSearchPatients,
   useConsentsIssued,
+  usePatientOverview,
   useCreatePrescription,
   useMedicineSearch,
   useSafetyCheck,
@@ -121,8 +122,27 @@ function slotsToFrequency(s: Slots): string | null {
 
 export default function PrescriptionScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { spacing, colors, typography, radius, fontFamily } = useTheme();
   const { t } = useTranslation();
+
+  // Dynamically hide bottom tab bar when actively writing a prescription
+  useLayoutEffect(() => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.setOptions({
+        tabBarStyle: selectedPatient ? { display: "none" } : undefined,
+      });
+    }
+    return () => {
+      if (parent) {
+        parent.setOptions({
+          tabBarStyle: undefined,
+        });
+      }
+    };
+  }, [navigation, selectedPatient]);
+
   const toast = useToast();
   const { patientId } = useLocalSearchParams<{ patientId?: string }>();
 
@@ -132,6 +152,7 @@ export default function PrescriptionScreen() {
   const debouncedQuery = useDebounce(searchQuery, 200);
   const { data: searchResults } = useSearchPatients(debouncedQuery);
   const { data: consentsData } = useConsentsIssued();
+  const { data: patientOverview } = usePatientOverview(patientId || null);
 
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [diagnosis, setDiagnosis] = useState("");
@@ -140,6 +161,16 @@ export default function PrescriptionScreen() {
   // starts with one empty entry so the doctor has somewhere to type;
   // tapping "+ Add medicine" appends another.
   const [medicines, setMedicines] = useState<MedicineEntry[]>([emptyEntry()]);
+
+  // Auto-select navigated patient when patientOverview resolves
+  useEffect(() => {
+    if (patientOverview) {
+      setSelectedPatient({
+        patient: patientOverview.patient,
+        user: patientOverview.user,
+      });
+    }
+  }, [patientOverview]);
 
   // Load draft on mount (skip if writing for a specific navigated patient)
   useEffect(() => {
