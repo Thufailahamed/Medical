@@ -239,7 +239,9 @@
       "clinical-notes": "Clinical notes",
       "follow-ups": "Follow-ups",
       "visits": "Visits",
-      "messages": "Messages"
+      "messages": "Messages",
+      "vaccinations": "Vaccinations",
+      "share": "Share"
     },
     "backToList": "Back to patients",
     "messages": {
@@ -583,6 +585,24 @@
   "earnings": {
     "title": "Earnings",
     "subtitle": "Revenue and payouts",
+    "period": {
+      "week": "Week",
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year"
+    },
+    "totalThisPeriod": "Total this period",
+    "pendingPayout": "Pending payout",
+    "consultationFee": "Consultation fee",
+    "visitsSummary": "{{count}} visits · avg {{avg}}",
+    "allSettled": "All settled",
+    "wiredWithinDays": "Wired within 7 days",
+    "perVisit": "Per visit",
+    "chartTitle": "Revenue trend",
+    "noData": "No revenue yet for this period",
+    "payoutsTitle": "Payout history",
+    "noPayouts": "No payouts yet — request one to group recent revenue.",
+    "revenue": "Revenue",
     "thisWeek": "This week",
     "thisMonth": "This month",
     "allTime": "All time",
@@ -592,13 +612,47 @@
     "markPaid": "Mark paid",
     "status_pending": "Pending",
     "status_paid": "Paid",
-    "status_failed": "Failed"
+    "status_failed": "Failed",
+    "payoutStatus": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "paid": "Paid",
+      "rejected": "Rejected"
+    }
   },
   "templates": {
     "title": "Rx templates",
+    "subtitle": "Saved prescriptions you can reuse",
     "new": "New template",
+    "edit": "Edit",
+    "delete": "Delete",
     "use": "Use",
-    "useCount": "Used {{count}} times"
+    "useCount": "Used {{count}} times",
+    "useCountShort": "Used {{count}}x",
+    "updated": "Updated {{date}}",
+    "empty": "No templates yet",
+    "emptyBody": "Create a template to autofill the prescription composer with one tap.",
+    "editTitle": "Edit template",
+    "newTitle": "New template",
+    "editDrawerTitle": "Edit — {{name}}",
+    "deleteConfirm": "Delete \"{{name}}\"? This can't be undone.",
+    "deleted": "Template deleted",
+    "created": "Template created",
+    "updatedToast": "Template updated",
+    "saveFailed": "Could not save template",
+    "deleteFailed": "Could not delete template",
+    "fieldName": "Template name",
+    "fieldNamePlaceholder": "e.g. Strep throat — adult",
+    "fieldDiagnosis": "Default diagnosis",
+    "fieldDiagnosisPlaceholder": "e.g. Acute pharyngitis",
+    "fieldNotes": "Description (internal note)",
+    "medicine": "Medicine",
+    "dosagePlaceholder": "500 mg",
+    "frequencyPlaceholder": "BD",
+    "durationPlaceholder": "5 days",
+    "addMedicine": "Add medicine",
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "careTeam": {
     "title": "Care team",
@@ -1091,5 +1145,32 @@
   "kind": {
     "appointment": "Appointment",
     "walkin": "Walk-in"
+  },
+  "share": {
+    "tab": {
+      "title": "Share record",
+      "subtitle_one": "{{count}} active link",
+      "subtitle_other": "{{count}} links for this patient"
+    },
+    "createTitle": "Create share link",
+    "labelPlaceholder": "Label (e.g. for Dr Perera)",
+    "create": "Create link",
+    "created": "Share link created",
+    "createError": "Couldn't create share link",
+    "copyUrl": "Copy URL",
+    "copyError": "Couldn't copy URL",
+    "revoke": "Revoke",
+    "revoked": "Share link revoked",
+    "revokeError": "Couldn't revoke link",
+    "empty": "No share links yet",
+    "emptyBody": "Create a link to share a snapshot of this patient's chart with another clinician.",
+    "untitled": "Untitled link",
+    "expiresAt": "expires {{when}}",
+    "lastViewed": "last viewed {{when}}",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    }
   }
 }

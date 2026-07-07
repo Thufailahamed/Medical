@@ -155,4 +155,5 @@ export const qk = {
   aiLabExplain: (key: string) => ["ai", "lab-explain", key] as const,
   auditMe: (params: Record<string, unknown>) =>
     ["audit", "me", JSON.stringify(params)] as const,
+  shareDoctorLinks: ["doctor-portal", "share-links"] as const,
 };

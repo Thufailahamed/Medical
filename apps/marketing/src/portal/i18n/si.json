@@ -413,6 +413,24 @@
   "earnings": {
     "title": "ඉපැයීම්",
     "subtitle": "ආදායම සහ ගෙවීම්",
+    "period": {
+      "week": "සතිය",
+      "month": "මාසය",
+      "quarter": "කවර්තුව",
+      "year": "වර්ෂය"
+    },
+    "totalThisPeriod": "මෙම කාල සීමාවේ මුළු",
+    "pendingPayout": "පොරොත්තු ගෙවීම",
+    "consultationFee": "උපදේශන ගාස්තුව",
+    "visitsSummary": "{{count}} සංචාර · සා. {{avg}}",
+    "allSettled": "සියල්ල ගෙවා ඇත",
+    "wiredWithinDays": "දින 7ක් ඇතුළත ගෙවනු ලැබේ",
+    "perVisit": "සංචාරයකට",
+    "chartTitle": "ආදායම් ප්‍රවණතාව",
+    "noData": "මෙම කාල සීමාව සඳහා ආදායමක් නැත",
+    "payoutsTitle": "ගෙවීම් ඉතිහාසය",
+    "noPayouts": "තවම ගෙවීම් නැත — මෑත ආදායම් එකතු කිරීමට එකක් ඉල්ලන්න.",
+    "revenue": "ආදායම",
     "thisWeek": "මේ සතිය",
     "thisMonth": "මේ මාසය",
     "allTime": "සියලු කාලය",
@@ -422,13 +440,47 @@
     "markPaid": "ගෙවූ ලෙස සලකුණු කරන්න",
     "status_pending": "පොරොත්තුවෙන්",
     "status_paid": "ගෙවූ",
-    "status_failed": "අසාර්ථක"
+    "status_failed": "අසාර්ථක",
+    "payoutStatus": {
+      "pending": "පොරොත්තුවෙන්",
+      "processing": "සැකසෙමින්",
+      "paid": "ගෙවූ",
+      "rejected": "ප්‍රතික්ෂේප"
+    }
   },
   "templates": {
     "title": "බෙහෙත් අච්චු",
+    "subtitle": "නැවත භාවිතා කළ හැකි සුරකින ලද බෙහෙත්",
     "new": "නව අච්චුවක්",
+    "edit": "සංස්කරණය",
+    "delete": "මකන්න",
     "use": "භාවිතා කරන්න",
-    "useCount": "{{count}} වතාවක් භාවිතා කර ඇත"
+    "useCount": "{{count}} වතාවක් භාවිතා කර ඇත",
+    "useCountShort": "{{count}}x භාවිතා",
+    "updated": "{{date}} දින යාවත්කාලීන",
+    "empty": "තවම අච්චු නැත",
+    "emptyBody": "බෙහෙත් composer එක එක් තට්ටුවකින් පුරවීමට අච්චුවක් සාදන්න.",
+    "editTitle": "අච්චුව සංස්කරණය",
+    "newTitle": "නව අච්චුව",
+    "editDrawerTitle": "සංස්කරණය — {{name}}",
+    "deleteConfirm": "\"{{name}}\" මකන්නද? මෙය අහෝසි කළ නොහැක.",
+    "deleted": "අච්චුව මකන ලදී",
+    "created": "අච්චුව සාදන ලදී",
+    "updatedToast": "අච්චුව යාවත්කාලීන කරන ලදී",
+    "saveFailed": "අච්චුව සුරැකිය නොහැක",
+    "deleteFailed": "අච්චුව මකිය නොහැක",
+    "fieldName": "අච්චු නම",
+    "fieldNamePlaceholder": "උදා. Strep throat — adult",
+    "fieldDiagnosis": "පෙරනිමි රෝග හඳුනාගැනීම",
+    "fieldDiagnosisPlaceholder": "උදා. Acute pharyngitis",
+    "fieldNotes": "විස්තර (අභ්‍යන්තර සටහන)",
+    "medicine": "ඖෂධ",
+    "dosagePlaceholder": "500 mg",
+    "frequencyPlaceholder": "BD",
+    "durationPlaceholder": "5 days",
+    "addMedicine": "ඖෂධයක් එකතු කරන්න",
+    "cancel": "අවලංගු",
+    "save": "සුරකින්න"
   },
   "careTeam": {
     "title": "ප්‍රතිකාර කණ්ඩායම",
@@ -764,5 +816,32 @@
   "kind": {
     "appointment": "හමුවීම",
     "walkin": "Walk-in"
+  },
+  "share": {
+    "tab": {
+      "title": "වාර්තාව බෙදාගන්න",
+      "subtitle_one": "සක්‍රිය සබැඳි {{count}}ක්",
+      "subtitle_other": "මෙම රෝගියා සඳහා සබැඳි {{count}}ක්"
+    },
+    "createTitle": "බෙදාගැනීමේ සබැඳියක් සාදන්න",
+    "labelPlaceholder": "ලේබලය (උදා: Dr Perera සඳහා)",
+    "create": "සබැඳිය සාදන්න",
+    "created": "බෙදාගැනීමේ සබැඳිය සාදන ලදී",
+    "createError": "සබැඳිය සෑදීම අසාර්ථක විය",
+    "copyUrl": "URL පිටපත් කරන්න",
+    "copyError": "URL පිටපත් කිරීම අසාර්ථක විය",
+    "revoke": "අවලංගු කරන්න",
+    "revoked": "බෙදාගැනීමේ සබැඳිය අවලංගු කළා",
+    "revokeError": "සබැඳිය අවලංගු කිරීම අසාර්ථක විය",
+    "empty": "තවම බෙදාගැනීමේ සබැඳි නැත",
+    "emptyBody": "වෙනත් වෛද්‍යවරයෙකු සමඟ බෙදාගැනීමට සබැඳියක් සාදන්න.",
+    "untitled": "නම් නොකළ සබැඳිය",
+    "expiresAt": "{{when}}දී කල් ඉකුත් වේ",
+    "lastViewed": "අවසන් වරට {{when}} බැලුවා",
+    "status": {
+      "active": "සක්‍රිය",
+      "expired": "කල් ඉකුත්",
+      "revoked": "අවලංගු කළ"
+    }
   }
 }

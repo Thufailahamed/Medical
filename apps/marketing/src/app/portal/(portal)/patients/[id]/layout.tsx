@@ -23,6 +23,7 @@ const TABS = [
   { key: "follow-ups", path: "/follow-ups" },
   { key: "visits", path: "/visits" },
   { key: "messages", path: "/messages" },
+  { key: "share", path: "/share" },
 ] as const;
 
 export default function PatientChartLayout({

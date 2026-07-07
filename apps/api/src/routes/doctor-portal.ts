@@ -2,6 +2,7 @@
 
 import { Hono } from "hono";
 import { eq, and, desc, asc, or, like, gte, lt, isNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
   doctors,
   patients,
@@ -32,6 +33,7 @@ import {
   vaccineCatalog,
   insurance,
   messagesConversations,
+  shareLinks,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { latestByType, classifyAlerts } from "../lib/vitals-derived";
@@ -49,6 +51,7 @@ import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { recordRevenueEvent } from "../lib/revenue";
 import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT } from "../lib/booking";
+import { createShareLinkSchema } from "../lib/validators";
 import { canAccessPatient } from "../lib/access";
 import {
   redactLockedRecords,
@@ -2681,6 +2684,131 @@ doctorPortalRouter.delete("/appointments/:id", async (c) => {
   await compactQueue(db, doctor.id, existing.date, existing.time);
 
   return c.json({ appointment: updated });
+});
+
+// ─── Doctor-side share record ─────────────────────────────
+//
+// Three endpoints under /doctor-portal/share/links so doctors can
+// generate a time-limited read-only link to a patient's chart bundle
+// (mirrors the patient-side flow at /share/links but without the
+// family-member scoping — doctor shares are always patient-scoped).
+//
+// Access gate: `canAccessPatient()` — same as every other
+// patient-scoped doctor-portal endpoint.
+// Link kind: `record_share` — the public GET /share/:token already
+// filters on this exact kind so the bundle handler picks these up
+// unchanged.
+
+// POST /doctor-portal/share/links
+//   body: { patientId, label?, expiresInHours?, scope? }
+doctorPortalRouter.post("/share/links", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  // Force-inject patientId into the shared validator — the
+  // patient-side schema doesn't have patientId (it derives from
+  // session), but the doctor-side call must carry it explicitly.
+  const parsed = createShareLinkSchema
+    .extend({ patientId: z.string().uuid() })
+    .safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400,
+    );
+  }
+  const access = await canAccessPatient(db, userId, "doctor", parsed.data.patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const expiresInHours = parsed.data.expiresInHours ?? 168;
+  const label = (parsed.data.label ?? "Doctor chart share").toString().slice(0, 100);
+  const scopeKind = parsed.data.scope ?? "all";
+
+  const token = Array.from(new Uint8Array(24))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const expiresAt = new Date(
+    Date.now() + expiresInHours * 60 * 60 * 1000,
+  ).toISOString();
+
+  const [row] = await db
+    .insert(shareLinks)
+    .values({
+      patientId: parsed.data.patientId,
+      token,
+      scope: JSON.stringify({ kind: scopeKind }),
+      label,
+      expiresAt,
+      revoked: false,
+      createdBy: userId,
+      kind: "record_share",
+      familyMemberId: null,
+    } as any)
+    .returning();
+
+  return c.json({ link: row, token, url: `/share/${token}`, expiresAt }, 201);
+});
+
+// GET /doctor-portal/share/links
+//   Returns links this doctor has created, newest first.
+//   Joined with patient name + chart url for the listing UI.
+doctorPortalRouter.get("/share/links", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+
+  const rows = await db
+    .select({
+      id: shareLinks.id,
+      token: shareLinks.token,
+      label: shareLinks.label,
+      scope: shareLinks.scope,
+      expiresAt: shareLinks.expiresAt,
+      revoked: shareLinks.revoked,
+      createdAt: shareLinks.createdAt,
+      lastViewedAt: shareLinks.lastViewedAt,
+      patientId: shareLinks.patientId,
+      patientName: users.name,
+      patientNic: patients.nic,
+    })
+    .from(shareLinks)
+    .innerJoin(patients, eq(patients.id, shareLinks.patientId))
+    .innerJoin(users, eq(users.id, patients.userId))
+    .where(eq(shareLinks.createdBy, userId))
+    .orderBy(desc(shareLinks.createdAt))
+    .limit(200);
+
+  return c.json({ links: rows });
+});
+
+// DELETE /doctor-portal/share/links/:id
+//   Revoke (only links this doctor created — no cross-doctor revoke).
+doctorPortalRouter.delete("/share/links/:id", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const id = c.req.param("id");
+  if (!id) return c.json({ error: "Missing id" }, 400);
+
+  const [existing] = await db
+    .select({ id: shareLinks.id, createdBy: shareLinks.createdBy })
+    .from(shareLinks)
+    .where(eq(shareLinks.id, id))
+    .limit(1);
+  if (!existing) return c.json({ error: "Link not found" }, 404);
+  if (existing.createdBy !== userId) {
+    return c.json({ error: "Not your link" }, 403);
+  }
+
+  await db
+    .update(shareLinks)
+    .set({ revoked: true })
+    .where(eq(shareLinks.id, id));
+
+  return c.json({ message: "Link revoked" });
 });
 
 export default doctorPortalRouter;

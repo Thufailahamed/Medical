@@ -413,6 +413,24 @@
   "earnings": {
     "title": "வருவாய்",
     "subtitle": "வருமானம் மற்றும் பணம்",
+    "period": {
+      "week": "வாரம்",
+      "month": "மாதம்",
+      "quarter": "காலாண்டு",
+      "year": "ஆண்டு"
+    },
+    "totalThisPeriod": "இந்த காலத்தின் மொத்தம்",
+    "pendingPayout": "நிலுவையில் உள்ள பணம்",
+    "consultationFee": "ஆலோசனை கட்டணம்",
+    "visitsSummary": "{{count}} வருகைகள் · சரா. {{avg}}",
+    "allSettled": "அனைத்தும் செலுத்தப்பட்டது",
+    "wiredWithinDays": "7 நாட்களில் வழங்கப்படும்",
+    "perVisit": "வருகைக்கு",
+    "chartTitle": "வருவாய் போக்கு",
+    "noData": "இந்த காலத்திற்கு வருவாய் இல்லை",
+    "payoutsTitle": "பணம் வரலாறு",
+    "noPayouts": "இன்னும் பணம் இல்லை — சமீப வருவாயை ஒன்றாக்க ஒன்றை கோருங்கள்.",
+    "revenue": "வருவாய்",
     "thisWeek": "இந்த வாரம்",
     "thisMonth": "இந்த மாதம்",
     "allTime": "அனைத்து நேரமும்",
@@ -422,13 +440,47 @@
     "markPaid": "பணம் வழங்கியதாக குறி",
     "status_pending": "நிலுவை",
     "status_paid": "வழங்கப்பட்டது",
-    "status_failed": "தோல்வி"
+    "status_failed": "தோல்வி",
+    "payoutStatus": {
+      "pending": "நிலுவை",
+      "processing": "செயலாக்கத்தில்",
+      "paid": "வழங்கப்பட்டது",
+      "rejected": "நிராகரிக்கப்பட்டது"
+    }
   },
   "templates": {
     "title": "Rx டெம்ப்ளேட்கள்",
+    "subtitle": "மீண்டும் பயன்படுத்தக்கூடிய சேமிக்கப்பட்ட மருந்துச் சீட்டுகள்",
     "new": "புதிய டெம்ப்ளேட்",
+    "edit": "திருத்து",
+    "delete": "நீக்கு",
     "use": "பயன்படுத்து",
-    "useCount": "{{count}} முறை பயன்படுத்தப்பட்டது"
+    "useCount": "{{count}} முறை பயன்படுத்தப்பட்டது",
+    "useCountShort": "{{count}}x பயன்படுத்தப்பட்டது",
+    "updated": "{{date}} அன்று புதுப்பிக்கப்பட்டது",
+    "empty": "இன்னும் டெம்ப்ளேட்கள் இல்லை",
+    "emptyBody": "மருந்து composer-ஐ ஒரே தட்டலில் நிரப்ப டெம்ப்ளேட் உருவாக்குங்கள்.",
+    "editTitle": "டெம்ப்ளேட் திருத்து",
+    "newTitle": "புதிய டெம்ப்ளேட்",
+    "editDrawerTitle": "திருத்து — {{name}}",
+    "deleteConfirm": "\"{{name}}\" நீக்கவா? இதை மீளமுடியாது.",
+    "deleted": "டெம்ப்ளேட் நீக்கப்பட்டது",
+    "created": "டெம்ப்ளேட் உருவாக்கப்பட்டது",
+    "updatedToast": "டெம்ப்ளேட் புதுப்பிக்கப்பட்டது",
+    "saveFailed": "டெம்ப்ளேட் சேமிக்க முடியவில்லை",
+    "deleteFailed": "டெம்ப்ளேட் நீக்க முடியவில்லை",
+    "fieldName": "டெம்ப்ளேட் பெயர்",
+    "fieldNamePlaceholder": "எ.கா. Strep throat — adult",
+    "fieldDiagnosis": "இயல்புநிலை diagnosis",
+    "fieldDiagnosisPlaceholder": "எ.கா. Acute pharyngitis",
+    "fieldNotes": "விளக்கம் (உள்ளக குறிப்பு)",
+    "medicine": "மருந்து",
+    "dosagePlaceholder": "500 mg",
+    "frequencyPlaceholder": "BD",
+    "durationPlaceholder": "5 days",
+    "addMedicine": "மருந்து சேர்",
+    "cancel": "ரத்து",
+    "save": "சேமி"
   },
   "careTeam": {
     "title": "பராமரிப்பு குழு",
@@ -764,5 +816,32 @@
   "kind": {
     "appointment": "சந்திப்பு",
     "walkin": "Walk-in"
+  },
+  "share": {
+    "tab": {
+      "title": "பதிவைப் பகிரவும்",
+      "subtitle_one": "{{count}} செயலில் உள்ள இணைப்பு",
+      "subtitle_other": "இந்த நோயாளிக்கான {{count}} இணைப்புகள்"
+    },
+    "createTitle": "பகிர்வு இணைப்பை உருவாக்கவும்",
+    "labelPlaceholder": "லேபிள் (எ.கா: Dr Perera க்கு)",
+    "create": "இணைப்பை உருவாக்கு",
+    "created": "பகிர்வு இணைப்பு உருவாக்கப்பட்டது",
+    "createError": "இணைப்பை உருவாக்க முடியவில்லை",
+    "copyUrl": "URL ஐ நகலெடு",
+    "copyError": "URL ஐ நகலெடுக்க முடியவில்லை",
+    "revoke": "ரத்து செய்",
+    "revoked": "பகிர்வு இணைப்பு ரத்து செய்யப்பட்டது",
+    "revokeError": "இணைப்பை ரத்து செய்ய முடியவில்லை",
+    "empty": "பகிர்வு இணைப்புகள் இல்லை",
+    "emptyBody": "மற்றொரு மருத்துவருடன் பகிர்வதற்கு இணைப்பை உருவாக்கவும்.",
+    "untitled": "பெயரிடப்படாத இணைப்பு",
+    "expiresAt": "{{when}} காலாவதியாகும்",
+    "lastViewed": "கடைசியாக {{when}} பார்க்கப்பட்டது",
+    "status": {
+      "active": "செயலில்",
+      "expired": "காலாவதி",
+      "revoked": "ரத்து"
+    }
   }
 }
