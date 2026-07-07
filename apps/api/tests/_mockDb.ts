@@ -40,6 +40,7 @@ type PendingQuery = {
   groupByField?: string;
   orderBy?: { field: string; desc: boolean };
   limitN?: number;
+  offsetN?: number;
 };
 
 class MockD1 {
@@ -271,6 +272,12 @@ class SelectBuilder {
     this.q.limitN = n;
     return this;
   }
+  // Phase ADM-1: SQL OFFSET pagination. We apply it inside run() alongside
+  // limit so list views with cursor-style pagination compose naturally.
+  offset(n: number) {
+    this.q.offsetN = n;
+    return this;
+  }
   // `.returning()` is a no-op on SELECT — Drizzle ignores it but the
   // route code chains it for symmetry. Return self so chains compose.
   returning(_fields?: any) {
@@ -316,6 +323,7 @@ class SelectBuilder {
       });
     }
     if (this.q.limitN != null) rows = rows.slice(0, this.q.limitN);
+    if (this.q.offsetN != null) rows = rows.slice(this.q.offsetN);
     // Materialise joined data into merged rows so applySelectSpec can
     // resolve column refs from joined tables. We attach each join's
     // matching rows under `_<joinedTable>` keys for downstream lookup.

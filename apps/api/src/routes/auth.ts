@@ -1,8 +1,8 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { and, eq, isNull, or } from "drizzle-orm";
-import { users, patients, doctors, otpCodes } from "@healthcare/db";
+import { and, eq, isNull, or, inArray } from "drizzle-orm";
+import { users, patients, doctors, otpCodes, notifications } from "@healthcare/db";
 import {
   registerSchema,
   loginSchema,
@@ -34,6 +34,19 @@ const auth = new Hono<AppEnvironment>();
 
 const OTP_TTL_MINUTES = 5;
 const OTP_MAX_ATTEMPTS = 5;
+
+// Phase ADM-1: roles that require super_admin approval before the user
+// can log in. Patients self-onboard; clinicians/operators do not.
+// super_admin itself is never registrable from the public endpoint
+// (already blocked by registerSchema.role).
+const APPROVAL_REQUIRED_ROLES: ReadonlySet<string> = new Set([
+  "doctor",
+  "hospital_admin",
+  "pharmacy",
+  "laboratory",
+  "insurance",
+  "ambulance",
+]);
 
 // ─── Register ────────────────────────────────────────────
 auth.post("/register", async (c) => {
@@ -93,6 +106,7 @@ auth.post("/register", async (c) => {
   const nicLevel = nicVerificationLevel(nic, dob);
 
   let dbUser: any = null;
+  const requiresApproval = APPROVAL_REQUIRED_ROLES.has(role);
   try {
     const [u] = await db
       .insert(users)
@@ -107,6 +121,9 @@ auth.post("/register", async (c) => {
         dateOfBirth: dob || null,
         nicVerificationLevel: nicLevel === "none" ? null : nicLevel,
         passwordHash,
+        // Phase ADM-1: gated roles start in 'pending'; everyone else stays
+        // 'active' (the DB default).
+        status: requiresApproval ? "pending" : "active",
       })
       .returning();
 
@@ -133,6 +150,38 @@ auth.post("/register", async (c) => {
       { error: msg },
       500
     );
+  }
+
+  // Phase ADM-1: if the role needs approval, do NOT issue a JWT. Notify
+  // every super_admin so they see the new application in their queue.
+  if (requiresApproval) {
+    try {
+      const admins = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.role, "super_admin"), eq(users.status, "active")));
+      if (admins.length > 0) {
+        await db.insert(notifications).values(
+          admins.map((a) => ({
+            id: crypto.randomUUID(),
+            userId: a.id,
+            type: "account_pending_review",
+            title: `New ${role.replace("_", " ")} application`,
+            body: `${name} (${email || phone || "no contact"}) registered and is awaiting approval.`,
+            data: JSON.stringify({ pendingUserId: dbUser.id, role }),
+            read: 0,
+          }))
+        );
+      }
+    } catch (notifyErr: any) {
+      // Notification failure must not block registration.
+      console.error("[register] admin notification insert failed:", notifyErr?.message);
+    }
+    return c.json({
+      user: { id: dbUser.id, email: dbUser.email, phone: dbUser.phone, name: dbUser.name, role: dbUser.role, status: dbUser.status },
+      requiresApproval: true,
+      message: "Your account is pending administrator approval. You will be notified once reviewed.",
+    }, 202);
   }
 
   // Generate JWT token — surface plain NIC + DOB on the session so the
@@ -309,6 +358,31 @@ auth.post("/login", async (c) => {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
+  // Phase ADM-1: refuse login for accounts that aren't active.
+  // 403 keeps the credential check honest (200 wouldn't differentiate
+  // wrong-password from suspended-account to a probing client).
+  const userStatus = (dbUser as any).status ?? "active";
+  if (userStatus !== "active") {
+    const code =
+      userStatus === "pending" ? "account_pending" :
+      userStatus === "suspended" ? "account_suspended" :
+      userStatus === "rejected" ? "account_rejected" :
+      "account_inactive";
+    return c.json(
+      {
+        error:
+          userStatus === "pending" ? "Your account is pending administrator approval." :
+          userStatus === "suspended" ? "Your account has been suspended. Contact support." :
+          userStatus === "rejected" ? "Your application was rejected." :
+          "Your account is not active.",
+        code,
+        status: userStatus,
+        reason: (dbUser as any).rejectionReason || (dbUser as any).suspendedReason || null,
+      },
+      403
+    );
+  }
+
   // Generate JWT token
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
   const loginAge = ageAtRegistration(dbUser.dateOfBirth);
@@ -354,6 +428,26 @@ auth.post("/login-by-nic", async (c) => {
   }
   if (dbUser.dateOfBirth !== dob) {
     return c.json({ error: "Invalid credentials" }, 401);
+  }
+
+  // Phase ADM-1: refuse for non-active accounts.
+  const nicUserStatus = (dbUser as any).status ?? "active";
+  if (nicUserStatus !== "active") {
+    return c.json(
+      {
+        error:
+          nicUserStatus === "pending" ? "Your account is pending administrator approval." :
+          nicUserStatus === "suspended" ? "Your account has been suspended. Contact support." :
+          nicUserStatus === "rejected" ? "Your application was rejected." :
+          "Your account is not active.",
+        code: nicUserStatus === "pending" ? "account_pending" :
+              nicUserStatus === "suspended" ? "account_suspended" :
+              nicUserStatus === "rejected" ? "account_rejected" :
+              "account_inactive",
+        status: nicUserStatus,
+      },
+      403
+    );
   }
 
   // Refresh verification level on every login. Covers legacy rows where
@@ -711,6 +805,27 @@ auth.post("/verify-otp", async (c) => {
         isNull(otpCodes.consumedAt)
       )
     );
+
+  // Phase ADM-1: same status gate as /auth/login. /login-by-phone hands
+  // the caller a userId; the actual session token is minted here.
+  const otpUserStatus = (dbUser as any).status ?? "active";
+  if (otpUserStatus !== "active") {
+    return c.json(
+      {
+        error:
+          otpUserStatus === "pending" ? "Your account is pending administrator approval." :
+          otpUserStatus === "suspended" ? "Your account has been suspended. Contact support." :
+          otpUserStatus === "rejected" ? "Your application was rejected." :
+          "Your account is not active.",
+        code: otpUserStatus === "pending" ? "account_pending" :
+              otpUserStatus === "suspended" ? "account_suspended" :
+              otpUserStatus === "rejected" ? "account_rejected" :
+              "account_inactive",
+        status: otpUserStatus,
+      },
+      403
+    );
+  }
 
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
   const otpAge = ageAtRegistration(dbUser.dateOfBirth);

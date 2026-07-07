@@ -328,18 +328,7 @@
     }
   },
   "labs": {
-    "title": "රසායනාගාර ඇණවුම්",
-    "newOrder": "නව රසායනාගාර ඇණවුම",
-    "tests": "පරීක්ෂණ",
-    "priority": "ප්‍රමුඛතාව",
-    "priority_routine": "සාමාන්‍ය",
-    "priority_urgent": "ගරුකරන",
-    "priority_stat": "වහාම",
-    "status_ordered": "ඇණවුනු",
-    "status_sample_collected": "නියැදිය ලබා ගත්",
-    "status_in_progress": "ක්‍රියාත්මක",
-    "status_completed": "සම්පූර්ණ",
-    "status_cancelled": "අවලංගු කළ"
+    "untitled": "රසායනාගාර ඇණවුම"
   },
   "notes": {
     "title": "සායනික සටහන",
@@ -350,14 +339,8 @@
     "plan": "සැලසුම"
   },
   "followups": {
-    "title": "පසු විපරම",
-    "newFollowUp": "නව පසු විපරමක්",
-    "dueDate": "නියමිත දිනය",
-    "reason": "හේතුව",
-    "status_scheduled": "නියමිත",
-    "status_completed": "සම්පූර්ණ",
-    "status_cancelled": "අවලංගු කළ",
-    "markCompleted": "සම්පූර්ණ ලෙස සලකුණු කරන්න"
+    "newFollowup": "නව පසු විපරම",
+    "empty": "පසු විපරම් නියමිත නැත"
   },
   "messages": {
     "title": "පණිවිඩ",
@@ -672,13 +655,6 @@
     "banner": "ආසාත්මිකතා ඇඟවීම්",
     "empty": "ආසාත්මිකතා නැත"
   },
-  "labs": {
-    "untitled": "රසායනාගාර ඇණවුම"
-  },
-  "followups": {
-    "newFollowup": "නව පසු විපරම",
-    "empty": "පසු විපරම් නියමිත නැත"
-  },
   "visits": {
     "empty": "පැමිණීම් නැත"
   },
@@ -842,6 +818,35 @@
       "active": "සක්‍රිය",
       "expired": "කල් ඉකුත්",
       "revoked": "අවලංගු කළ"
+    }
+  },
+  "admin": {
+    "nav": {
+      "overview": "දළ විශ්ලේෂණය",
+      "people": "පුද්ගලයින්",
+      "tenants": "පාරිභෝගිකයින්",
+      "operations": "මෙහෙයුම්",
+      "catalog": "නාමාවලිය",
+      "system": "පද්ධතිය",
+      "dashboard": "උපකරණ පුවරුව",
+      "approvals": "අනුමැතිය",
+      "users": "පරිශීලකයින්",
+      "doctors": "වෛද්‍යවරු",
+      "hospitals": "රෝහල්",
+      "clinics": "සායන",
+      "pharmacies": "ඔෂධාගාර",
+      "laboratories": "රසායනාගාර",
+      "ambulances": "ගිලන් රථ",
+      "insurances": "රක්ෂණ සපයන්නන්",
+      "payouts": "ගෙවීම්",
+      "insuranceClaims": "රක්ෂණ හිමිකම්",
+      "dsar": "DSAR / රහස්‍යභාවය",
+      "audit": "විගණන ලඝු-සටහන",
+      "medicinesMaster": "ඖෂධ මහා නාමාවලිය",
+      "waitlist": "අලෙවි රැඳීම් ලැයිස්තුව",
+      "demoRequests": "ආදර්ශ ඉල්ලීම්",
+      "notifications": "ප්‍රචාරණ",
+      "settings": "සැකසුම්"
     }
   }
 }

@@ -1,0 +1,161 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+/* ============================================================
+   Admin portal design tokens — amber/orange "ops" theme.
+   Distinct from /portal (sky) and /marketing (editorial) so
+   a session-switch never confuses the two surfaces.
+   ============================================================ */
+
+:root {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-app="admin"] {
+  /* Admin brand palette — slate body, amber accent for "approvals / ops" */
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+
+  --amber-50: #FFFBEB;
+  --amber-100: #FEF3C7;
+  --amber-200: #FDE68A;
+  --amber-400: #FBBF24;
+  --amber-500: #F59E0B;
+  --amber-600: #D97706;
+  --amber-700: #B45309;
+
+  --orange-50: #FFF7ED;
+  --orange-500: #F97316;
+  --orange-600: #EA580C;
+
+  --emerald-500: #10B981;
+  --emerald-600: #059669;
+  --red-500: #EF4444;
+  --red-600: #DC2626;
+  --violet-500: #8B5CF6;
+  --violet-600: #7C3AED;
+
+  /* Semantic tokens */
+  --bg: #FAFAF9;
+  --surface: #ffffff;
+  --surface-2: #F8FAFC;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text: #0F172A;
+  --text-soft: #475569;
+  --text-muted: #94A3B8;
+
+  --brand: #D97706;          /* amber-600 — primary actions */
+  --brand-soft: #FEF3C7;     /* amber-100 — selected backgrounds */
+  --brand-strong: #B45309;   /* amber-700 — hover / emphasis */
+  --brand-on: #ffffff;       /* foreground on --brand */
+
+  --success: #059669;
+  --success-soft: #ECFDF5;
+  --warn: #D97706;
+  --warn-soft: #FFFBEB;
+  --danger: #DC2626;
+  --danger-soft: #FEF2F2;
+  --info: #0284C7;
+  --info-soft: #F0F9FF;
+  --accent: #7C3AED;
+  --accent-soft: #F5F3FF;
+
+  /* Layout */
+  --radius: 12px;
+  --radius-lg: 18px;
+  --sidebar-w: 260px;
+  --topbar-h: 60px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
+
+  /* Map to Tailwind v4 utility classes. */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-soft: var(--text-soft);
+  --color-text-muted: var(--text-muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Base resets scoped to the admin surface. */
+[data-app="admin"],
+[data-app="admin"] * {
+  box-sizing: border-box;
+}
+[data-app="admin"] button {
+  font-family: inherit;
+}
+[data-app="admin"] a {
+  color: var(--brand-strong);
+  text-decoration: none;
+}
+[data-app="admin"] a:hover {
+  text-decoration: underline;
+}
+
+/* Page bg pattern — subtle dot grid to distinguish from /portal. */
+[data-app="admin"] .admin-bg {
+  background-image: radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Filter pill — same shape as portal, admin colors. */
+[data-app="admin"] .admin-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+[data-app="admin"] .admin-filter-pill[data-active="true"] {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  border-color: rgba(217, 119, 6, 0.35);
+  box-shadow: 0 1px 2px rgba(217, 119, 6, 0.12);
+}
+[data-app="admin"] .admin-filter-pill[data-active="false"] {
+  background: var(--surface);
+  color: var(--text-soft);
+  border-color: rgba(226, 232, 240, 0.9);
+}

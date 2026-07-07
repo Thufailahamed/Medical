@@ -63,6 +63,23 @@ export const users = sqliteTable("users", {
     enum: ["hospital", "clinic"],
   }),
   activeTenantId: text("active_tenant_id"),
+  // Phase ADM-1: account lifecycle state.
+  //   pending   — registered for a gated role; awaiting super_admin approval
+  //   active    — approved + able to log in (default for legacy rows)
+  //   suspended — temporarily disabled by an admin; can be unsuspended
+  //   rejected  — application denied; cannot re-register with same identity
+  status: text("status", {
+    enum: ["pending", "active", "suspended", "rejected"],
+  })
+    .notNull()
+    .default("active"),
+  approvedByUserId: text("approved_by_user_id").references((): any => users.id),
+  approvedAt: text("approved_at"),
+  rejectedAt: text("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  suspendedByUserId: text("suspended_by_user_id").references((): any => users.id),
+  suspendedAt: text("suspended_at"),
+  suspendedReason: text("suspended_reason"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -76,6 +93,9 @@ export const users = sqliteTable("users", {
     t.activeTenantType,
     t.activeTenantId
   ),
+  // Phase ADM-1: approvals queue + admin filters scan by (status, role).
+  statusRoleIdx: index("users_status_role_idx").on(t.status, t.role),
+  createdAtIdx: index("users_created_at_idx").on(t.createdAt),
 }));
 
 // ─── OTP codes (Phase 1.2) ────────────────────────────────
@@ -517,6 +537,9 @@ export const notifications = sqliteTable("notifications", {
       "emergency",
       "vaccination",
       "general",
+      // Phase ADM-1: super_admin notifications for new gated-role
+      // applications awaiting approval.
+      "account_pending_review",
     ],
   }).notNull(),
   title: text("title").notNull(),

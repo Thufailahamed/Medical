@@ -328,18 +328,7 @@
     }
   },
   "labs": {
-    "title": "ஆய்வக ஆர்டர்கள்",
-    "newOrder": "புதிய ஆய்வக ஆர்டர்",
-    "tests": "சோதனைகள்",
-    "priority": "முன்னுரிமை",
-    "priority_routine": "வழக்கமான",
-    "priority_urgent": "அவசரம்",
-    "priority_stat": "உடனடி",
-    "status_ordered": "ஆர்டர் செய்யப்பட்டது",
-    "status_sample_collected": "மாதிரி சேகரிக்கப்பட்டது",
-    "status_in_progress": "செயலில்",
-    "status_completed": "முடிந்தது",
-    "status_cancelled": "ரத்து"
+    "untitled": "ஆய்வக ஆர்டர்"
   },
   "notes": {
     "title": "மருத்துவ குறிப்பு",
@@ -350,14 +339,8 @@
     "plan": "திட்டம்"
   },
   "followups": {
-    "title": "பின்தொடர்தல்",
-    "newFollowUp": "புதிய பின்தொடர்தல்",
-    "dueDate": "தேதி",
-    "reason": "காரணம்",
-    "status_scheduled": "திட்டமிடப்பட்டது",
-    "status_completed": "முடிந்தது",
-    "status_cancelled": "ரத்து",
-    "markCompleted": "முடிந்ததாக குறி"
+    "newFollowup": "புதிய பின்தொடர்தல்",
+    "empty": "பின்தொடர்தல் திட்டமிடப்படவில்லை"
   },
   "messages": {
     "title": "செய்திகள்",
@@ -672,13 +655,6 @@
     "banner": "ஒவ்வாமை எச்சரிக்கைகள்",
     "empty": "ஒவ்வாமை பதிவு இல்லை"
   },
-  "labs": {
-    "untitled": "ஆய்வக ஆர்டர்"
-  },
-  "followups": {
-    "newFollowup": "புதிய பின்தொடர்தல்",
-    "empty": "பின்தொடர்தல் திட்டமிடப்படவில்லை"
-  },
   "visits": {
     "empty": "வருகைகள் இல்லை"
   },
@@ -842,6 +818,35 @@
       "active": "செயலில்",
       "expired": "காலாவதி",
       "revoked": "ரத்து"
+    }
+  },
+  "admin": {
+    "nav": {
+      "overview": "மேலோட்டம்",
+      "people": "நபர்கள்",
+      "tenants": "குத்தகைதாரர்கள்",
+      "operations": "செயல்பாடுகள்",
+      "catalog": "பட்டியல்",
+      "system": "கணினி",
+      "dashboard": "டாஷ்போர்டு",
+      "approvals": "ஒப்புதல்கள்",
+      "users": "பயனர்கள்",
+      "doctors": "மருத்துவர்கள்",
+      "hospitals": "மருத்துவமனைகள்",
+      "clinics": "சிகிச்சைக்கூடங்கள்",
+      "pharmacies": "மருந்தகங்கள்",
+      "laboratories": "ஆய்வகங்கள்",
+      "ambulances": "ஆம்புலன்ஸ்கள்",
+      "insurances": "காப்பீட்டாளர்கள்",
+      "payouts": "பணம் வழங்கல்",
+      "insuranceClaims": "காப்பீட்டு உரிமைகோரல்கள்",
+      "dsar": "DSAR / தனியுரிமை",
+      "audit": "தணிக்கைப் பதிவு",
+      "medicinesMaster": "மருந்து மாஸ்டர்",
+      "waitlist": "சந்தைப்படுத்தல் காத்திருப்பு",
+      "demoRequests": "டெமோ கோரிக்கைகள்",
+      "notifications": "ஒலிபரப்பு",
+      "settings": "அமைப்புகள்"
     }
   }
 }

@@ -45,6 +45,9 @@ export interface AuthUser {
   slmcNumber?: string | null;
   specialization?: string | null;
   consultationFee?: number | null;
+  // Phase ADM-1: account lifecycle. Defaults to "active" for legacy
+  // portal users (the field is only surfaced on the admin surface).
+  status?: "pending" | "active" | "suspended" | "rejected";
 }
 
 interface AuthState {
@@ -136,3 +139,9 @@ export function hasRole(
   if (!user) return false;
   return allowed.includes(user.role as UserRole);
 }
+
+/** Phase ADM-1: convenience selectors. */
+export const isAdmin = (user: AuthUser | null | undefined): boolean =>
+  hasRole(user, "super_admin");
+export const isClinician = (user: AuthUser | null | undefined): boolean =>
+  hasRole(user, "doctor", "pharmacy");

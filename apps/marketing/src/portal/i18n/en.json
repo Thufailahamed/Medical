@@ -413,20 +413,7 @@
     }
   },
   "labs": {
-    "title": "Lab orders",
-    "newOrder": "New lab order",
-    "tests": "Tests",
-    "priority": "Priority",
-    "priority_routine": "Routine",
-    "priority_urgent": "Urgent",
-    "priority_stat": "STAT",
-    "status_ordered": "Ordered",
-    "status_sample_collected": "Sample collected",
-    "status_in_progress": "In progress",
-    "status_processing": "Processing",
-    "status_completed": "Completed",
-    "status_cancelled": "Cancelled",
-    "untitled": "Untitled order"
+    "untitled": "Lab order"
   },
   "labOrders": {
     "title": "Lab orders",
@@ -448,14 +435,8 @@
     "plan": "Plan"
   },
   "followups": {
-    "title": "Follow-up",
-    "newFollowUp": "New follow-up",
-    "dueDate": "Due date",
-    "reason": "Reason",
-    "status_scheduled": "Scheduled",
-    "status_completed": "Completed",
-    "status_cancelled": "Cancelled",
-    "markCompleted": "Mark completed"
+    "newFollowup": "New follow-up",
+    "empty": "No follow-ups scheduled"
   },
   "pharmacy": {
     "title": "Pharmacy",
@@ -989,13 +970,6 @@
     "banner": "Allergy alerts",
     "empty": "No allergies on file"
   },
-  "labs": {
-    "untitled": "Lab order"
-  },
-  "followups": {
-    "newFollowup": "New follow-up",
-    "empty": "No follow-ups scheduled"
-  },
   "visits": {
     "empty": "No visits on file"
   },
@@ -1171,6 +1145,35 @@
       "active": "Active",
       "expired": "Expired",
       "revoked": "Revoked"
+    }
+  },
+  "admin": {
+    "nav": {
+      "overview": "Overview",
+      "people": "People",
+      "tenants": "Tenants",
+      "operations": "Operations",
+      "catalog": "Catalog",
+      "system": "System",
+      "dashboard": "Dashboard",
+      "approvals": "Approvals",
+      "users": "Users",
+      "doctors": "Doctors",
+      "hospitals": "Hospitals",
+      "clinics": "Clinics",
+      "pharmacies": "Pharmacies",
+      "laboratories": "Laboratories",
+      "ambulances": "Ambulances",
+      "insurances": "Insurance providers",
+      "payouts": "Payouts",
+      "insuranceClaims": "Insurance claims",
+      "dsar": "DSAR / privacy",
+      "audit": "Audit log",
+      "medicinesMaster": "Medicines master",
+      "waitlist": "Marketing waitlist",
+      "demoRequests": "Demo requests",
+      "notifications": "Broadcasts",
+      "settings": "Settings"
     }
   }
 }
