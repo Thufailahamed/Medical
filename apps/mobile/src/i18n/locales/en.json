@@ -1103,7 +1103,8 @@
     "emptyTitle": "No doctors yet",
     "emptyBody": "Add a doctor you've seen, or generate an invite link.",
     "doctorTitle": "My care team",
-    "doctorSubtitle": "{{count}} patient{{count, plural, one {} other {s}}} granted you access",
+    "doctorSubtitle_one": "{{count}} patient granted you access",
+    "doctorSubtitle_other": "{{count}} patients granted you access",
     "doctorEmptyTitle": "No patients yet",
     "doctorEmptyBody": "Patients appear here when they add you to their care team."
   },
@@ -2639,7 +2640,11 @@
     "noVitals": "No vitals recorded",
     "alertsHeading": "Out-of-range readings",
     "abnormalCount_one": "{{count}} out of range",
-    "abnormalCount_other": "{{count}} out of range"
+    "abnormalCount_other": "{{count}} out of range",
+    "empty": "No patients yet",
+    "emptyBody": "Patients who grant you record access will appear here.",
+    "recordsTab": "Records",
+    "consentBanner": "Only records you have consent to view are shown"
   },
   "hospitalDashboard": {
     "title": "Hospital",
@@ -3229,12 +3234,6 @@
     "subtitle": "Time-boxed. Each scan is logged."
   },
 
-  "doctorPatientDetail": {
-    "empty": "No patients yet",
-    "emptyBody": "Patients who grant you record access will appear here.",
-    "recordsTab": "Records",
-    "consentBanner": "Only records you have consent to view are shown"
-  },
   "overview": {
     "title": "Patient overview",
     "subtitle": "Everything you need at a glance",

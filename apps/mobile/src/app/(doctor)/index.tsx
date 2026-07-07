@@ -39,6 +39,7 @@ import {
   useFollowUps,
   useUnreadCount,
   useDoctorMe,
+  useConsentsIssued,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
@@ -75,6 +76,7 @@ export default function DoctorHub() {
   });
   const { data: unread, refetch: refetchUnread } = useUnreadCount();
   const { data: doctorData } = useDoctorMe();
+  const { data: consentsData, refetch: refetchConsents } = useConsentsIssued();
 
   useFocusEffect(
     useCallback(() => {
@@ -85,6 +87,7 @@ export default function DoctorHub() {
       refetchLabs();
       refetchFollows();
       refetchUnread();
+      refetchConsents();
     }, [
       refetchDashboard,
       refetchQueue,
@@ -93,6 +96,7 @@ export default function DoctorHub() {
       refetchLabs,
       refetchFollows,
       refetchUnread,
+      refetchConsents,
     ])
   );
 
@@ -114,6 +118,14 @@ export default function DoctorHub() {
   const labCount = labData?.orders?.length ?? 0;
   const followCount = followData?.followUps?.length ?? 0;
   const unreadN = unread?.count ?? 0;
+
+  const consentsCount = useMemo(() => {
+    return (consentsData?.items ?? []).filter((c: any) =>
+      c.scope?.defaultScope?.includes("records_all") ||
+      c.scope?.defaultScope?.includes("records_recent") ||
+      c.scope?.kinds?.includes?.("*")
+    ).length;
+  }, [consentsData]);
 
   const firstName = user?.name?.split(" ")[0] || t("doctor.welcomeFallback");
   const userPhoto = doctorData?.doctor?.users?.photo;
@@ -149,6 +161,7 @@ export default function DoctorHub() {
     refetchLabs();
     refetchFollows();
     refetchUnread();
+    refetchConsents();
   };
 
   if (user && user.role !== "doctor") {
@@ -632,7 +645,7 @@ export default function DoctorHub() {
                 icon={Stethoscope}
                 title={t("doctor.tiles.recordsTitle")}
                 subtitle={t("doctor.tiles.recordsSubtitle", {
-                  count: rxCount + notesCount + labCount,
+                  count: consentsCount,
                 })}
                 onPress={() => router.push("/records-v2" as any)}
               />

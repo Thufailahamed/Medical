@@ -118,13 +118,16 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
   // Sanitize query to prevent injection
   const safeQuery = query.replace(/[%_]/g, "\\$&");
 
-  // Phase 1 care team: include care_team_members in the access set so
-  // patients who added this doctor but haven't visited yet are still
-  // findable by name/NIC/phone.
-  const accessibleIds = await accessiblePatientsFor(db, userId, "doctor");
-  if (accessibleIds.length === 0) return c.json({ patients: [] });
+  const [doc] = await db
+    .select({ id: doctors.id })
+    .from(doctors)
+    .where(eq(doctors.userId, userId))
+    .limit(1);
+  if (!doc) return c.json({ patients: [] });
 
-  const results = await db
+  console.log("DEBUG SEARCH:", { userId, query, docId: doc.id });
+
+  const queryToRun = db
     .select({
       patient: patients,
       user: users,
@@ -138,13 +141,33 @@ doctorRouter.get("/search-patients", authMiddleware, requireRole("doctor"), asyn
           like(users.nic, `%${safeQuery}%`),
           like(users.phone, `%${safeQuery}%`)
         ),
-        sql`${patients.id} IN (${sql.join(
-          accessibleIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
+        sql`EXISTS (
+          SELECT 1 FROM appointments WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
+          UNION ALL
+          SELECT 1 FROM prescriptions WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
+          UNION ALL
+          SELECT 1 FROM lab_orders WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
+          UNION ALL
+          SELECT 1 FROM medical_records WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
+          UNION ALL
+          SELECT 1 FROM walk_ins WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
+          UNION ALL
+          SELECT 1 FROM messages_conversations WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id}
+          UNION ALL
+          SELECT 1 FROM care_team_members WHERE patient_id = ${patients.id} AND doctor_id = ${doc.id} AND status = 'active'
+        )`
       )
     )
     .limit(20);
+
+  try {
+    console.log("SQL:", queryToRun.toSQL());
+  } catch (e) {
+    console.error("toSQL error:", e);
+  }
+
+  const results = await queryToRun;
+  console.log("RESULTS COUNT:", results.length);
 
   return c.json({ patients: results });
 });

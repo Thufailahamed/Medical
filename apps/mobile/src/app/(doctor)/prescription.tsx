@@ -128,7 +128,15 @@ export default function PrescriptionScreen() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 350);
-  const { data: searchResults } = useSearchPatients(debouncedQuery);
+  const { data: searchResults, error: searchError } = useSearchPatients(debouncedQuery);
+
+  console.log("PRESCRIPTION SEARCH DEBUG:", {
+    searchQuery,
+    debouncedQuery,
+    enabled: debouncedQuery.length >= 2,
+    resultsCount: searchResults?.patients?.length,
+    error: searchError?.message
+  });
 
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [diagnosis, setDiagnosis] = useState("");

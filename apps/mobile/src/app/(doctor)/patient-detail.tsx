@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useMemo, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
@@ -130,7 +130,10 @@ export default function DoctorPatientDetail() {
         title={user?.name || t("doctorPatientDetail.fallbackTitle")}
       />
 
-      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+      >
         {/* Header card */}
         <Card padded={false}>
           <View style={{ padding: spacing.lg, gap: spacing.md }}>
@@ -342,7 +345,7 @@ export default function DoctorPatientDetail() {
               icon={<Activity size={14} color={colors.brand} />}
               loading={overviewLoading}
               isEmpty={(overview?.vitals?.latest?.length ?? 0) === 0}
-              emptyTitle={t("vitals.empty")}
+              emptyTitle={t("overview.empty.vitals")}
             >
               <View
                 style={{
@@ -882,7 +885,7 @@ export default function DoctorPatientDetail() {
             )}
           </View>
         )}
-      </View>
+      </ScrollView>
     </Screen>
   );
 }

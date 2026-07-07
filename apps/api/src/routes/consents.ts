@@ -11,7 +11,7 @@
 
 import { Hono } from "hono";
 import { and, eq, isNull, or, gt } from "drizzle-orm";
-import { patients, consentGrants } from "@healthcare/db";
+import { patients, consentGrants, users } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { audit } from "../lib/audit";
@@ -97,13 +97,18 @@ consents.get("/me", requireRole("patient"), async (c) => {
   });
 });
 
-// GET /consents/issued — grants I (recipient) hold
 consents.get("/issued", async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const rows = await db
-    .select()
+    .select({
+      consent: consentGrants,
+      patient: patients,
+      user: users,
+    })
     .from(consentGrants)
+    .innerJoin(patients, eq(consentGrants.patientId, patients.id))
+    .innerJoin(users, eq(patients.userId, users.id))
     .where(
       and(
         eq(consentGrants.grantedToUserId, userId),
@@ -113,17 +118,20 @@ consents.get("/issued", async (c) => {
     );
   return c.json({
     items: rows.map((r: any) => ({
-      id: r.id,
-      patientId: r.patientId,
-      familyMemberId: r.familyMemberId,
-      grantedToUserId: r.grantedToUserId,
-      grantedToToken: r.grantedToToken,
-      purpose: r.purpose,
-      scope: safeParse(r.scopeJson, {}),
-      expiresAt: r.expiresAt,
-      revokedAt: r.revokedAt,
-      grantedAt: r.grantedAt,
-      label: r.label,
+      id: r.consent.id,
+      patientId: r.consent.patientId,
+      familyMemberId: r.consent.familyMemberId,
+      grantedToUserId: r.consent.grantedToUserId,
+      grantedToToken: r.consent.grantedToToken,
+      purpose: r.consent.purpose,
+      scope: safeParse(r.consent.scopeJson, {}),
+      expiresAt: r.consent.expiresAt,
+      revokedAt: r.consent.revokedAt,
+      grantedAt: r.consent.grantedAt,
+      label: r.consent.label,
+      patientName: r.user.name,
+      patientPhoto: r.user.photo,
+      patientPhone: r.user.phone,
     })),
   });
 });

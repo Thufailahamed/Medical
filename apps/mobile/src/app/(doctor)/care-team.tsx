@@ -36,6 +36,7 @@ export default function DoctorCareTeamScreen() {
       <ScreenHeader
         title={t("careTeam.doctorTitle")}
         subtitle={t("careTeam.doctorSubtitle", { count: patients.length })}
+        back
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         {isLoading ? (
@@ -63,7 +64,7 @@ export default function DoctorCareTeamScreen() {
                 onPress={() =>
                   router.push({
                     pathname: "/(doctor)/patient-detail",
-                    params: { patientId: p.patientId },
+                    params: { id: p.patientId },
                   })
                 }
                 style={{ marginHorizontal: 16, marginBottom: 10 }}
