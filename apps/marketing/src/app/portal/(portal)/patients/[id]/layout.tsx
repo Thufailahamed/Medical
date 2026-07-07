@@ -18,6 +18,7 @@ const TABS = [
   { key: "allergies", path: "/allergies" },
   { key: "prescriptions", path: "/prescriptions" },
   { key: "lab-orders", path: "/lab-orders" },
+  { key: "vaccinations", path: "/vaccinations" },
   { key: "clinical-notes", path: "/clinical-notes" },
   { key: "follow-ups", path: "/follow-ups" },
   { key: "visits", path: "/visits" },

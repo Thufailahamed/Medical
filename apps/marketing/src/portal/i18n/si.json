@@ -84,6 +84,8 @@
     "prescriptions": "බෙහෙත් පත්‍ර",
     "labOrders": "රසායනාගාර ඇණවුම්",
     "messages": "පණිවිඩ",
+    "notifications": "දැනුම්දීම්",
+    "audit": "විගණන ලඝු-සටහන",
     "earnings": "ඉපැයීම්",
     "templates": "අච්චු",
     "careTeam": "ප්‍රතිකාර කණ්ඩායම",
@@ -714,6 +716,21 @@
     "overview": {
       "title": "දළ විශ්ලේෂණය",
       "subtitle": "එක දිහාවකින් ඔබට අවශ්‍ය සියල්ල"
+    },
+    "vaccinations": {
+      "title": "එන්නත්",
+      "subtitle": "සටහන් {{count}}ක්",
+      "subtitle_other": "සටහන් {{count}}ක්",
+      "new": "එන්නතක් එකතු කරන්න",
+      "comingSoon": "එන්නත් පෝර්ටලය හරහා සටහන් කිරීම ළඟදීම.",
+      "empty": "එන්නත් සටහන් නැත",
+      "emptyBody": "ළමා හා සංචාරක එන්නත් එකතු කරන්න.",
+      "filterAll": "සියල්ල",
+      "filterGiven": "ලබා දුන්",
+      "filterDue": "නියමිත",
+      "dose": "මාත්‍රාව {{n}}",
+      "nextDue": "ඊළඟ නියමිත {{date}}",
+      "administered": "ලබා දුන් {{date}}"
     }
   },
   "status": {

@@ -1445,6 +1445,7 @@ doctorPortalRouter.get("/lab-orders", async (c) => {
   const db = c.get("db");
   const status = c.req.query("status");
   const patientId = c.req.query("patientId") || undefined;
+  const limit = Math.min(Number(c.req.query("limit") ?? 100), 200);
 
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
@@ -1457,13 +1458,31 @@ doctorPortalRouter.get("/lab-orders", async (c) => {
     conditions.push(eq(labOrders.patientId, patientId));
   }
 
+  // Join patients → users so the doctor-wide page can render patient
+  // names without a follow-up fetch per row.
   const rows = await db
-    .select()
+    .select({
+      id: labOrders.id,
+      patientId: labOrders.patientId,
+      status: labOrders.status,
+      priority: labOrders.priority,
+      tests: labOrders.tests,
+      notes: labOrders.notes,
+      orderedAt: labOrders.orderedAt,
+      resultUrl: labOrders.resultUrl,
+      resultSummary: labOrders.resultSummary,
+      patientName: users.name,
+      patientNic: patients.nic,
+      patientPhoto: patients.photo,
+    })
     .from(labOrders)
+    .innerJoin(patients, eq(patients.id, labOrders.patientId))
+    .innerJoin(users, eq(users.id, patients.userId))
     .where(and(...conditions))
-    .orderBy(desc(labOrders.orderedAt));
+    .orderBy(desc(labOrders.orderedAt))
+    .limit(limit);
 
-  return c.json({ orders: rows });
+  return c.json({ orders: rows, count: rows.length });
 });
 
 // PUT /doctor-portal/lab-orders/:id

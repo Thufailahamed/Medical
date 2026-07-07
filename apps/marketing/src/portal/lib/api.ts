@@ -148,4 +148,11 @@ export const qk = {
     ["medicines-master", "search", q] as const,
   portalPatientSearch: (q: string) =>
     ["doctor-portal", "search-patients", q] as const,
+  unreadCount: ["notifications", "unread-count"] as const,
+  labOrdersAll: (params: Record<string, unknown>) =>
+    ["doctor-portal", "lab-orders-all", JSON.stringify(params)] as const,
+  aiSummary: (patientId: string) => ["ai", "summary", patientId] as const,
+  aiLabExplain: (key: string) => ["ai", "lab-explain", key] as const,
+  auditMe: (params: Record<string, unknown>) =>
+    ["audit", "me", JSON.stringify(params)] as const,
 };

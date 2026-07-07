@@ -20,6 +20,7 @@ import {
   Link,
   Bell,
   User,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,6 +46,7 @@ export const NAV: NavItem[] = [
   { href: "/portal/records", labelKey: "nav.records", icon: FolderOpen },
   { href: "/portal/messages", labelKey: "nav.messages", icon: MessageSquare },
   { href: "/portal/notifications", labelKey: "nav.notifications", icon: Bell },
+  { href: "/portal/audit", labelKey: "nav.audit", icon: ScrollText },
   { href: "/portal/earnings", labelKey: "nav.earnings", icon: TrendingUp },
   { href: "/portal/rx-templates", labelKey: "nav.templates", icon: ClipboardList },
   { href: "/portal/care-team", labelKey: "nav.careTeam", icon: HeartHandshake },

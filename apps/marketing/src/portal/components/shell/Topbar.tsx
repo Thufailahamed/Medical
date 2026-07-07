@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Search,
   LogOut,
@@ -19,16 +20,29 @@ import { Avatar } from "@/portal/components/ui/Avatar";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { logout } from "@/portal/lib/auth";
+import { api, qk } from "@/portal/lib/api";
+import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
 
 export function Topbar() {
   const router = useRouter();
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [search, setSearch] = useState("");
   const menuRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+
+  // Unread notifications — polled at 60s; lightweight and avoids
+  // re-hydrating the persisted UI store with server-derived counts.
+  const { data: unread } = useQuery<{ count: number }>({
+    queryKey: qk.unreadCount,
+    queryFn: () => api<{ count: number }>("/notifications/unread-count"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const unreadCount = unread?.count ?? 0;
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -58,7 +72,7 @@ export function Topbar() {
     e.preventDefault();
     const q = search.trim();
     if (!q) return;
-    router.push(`/patients?q=${encodeURIComponent(q)}`);
+    router.push(`/portal/patients?q=${encodeURIComponent(q)}`);
   }
 
   async function onLogout() {
@@ -135,15 +149,23 @@ export function Topbar() {
         <TenantSwitcher />
 
         {/* Notifications */}
-        <button
-          type="button"
+        <Link
+          href="/portal/notifications"
           className="relative h-10 w-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2/60 border border-transparent hover:border-border/40 transition-all duration-200"
-          aria-label="Notifications"
+          aria-label={t("notifications.bell.aria")}
+          title={
+            unreadCount > 0
+              ? t("notifications.bell.unread", { count: unreadCount })
+              : t("shell.noUnread")
+          }
         >
           <Bell size={17} strokeWidth={1.8} />
-          {/* Unread dot — static for now; wire to real data later */}
-          {/* <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-500 border-[1.5px] border-white" /> */}
-        </button>
+          {unreadCount > 0 ? (
+            <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-[9px] font-bold text-white inline-flex items-center justify-center border-[1.5px] border-surface">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          ) : null}
+        </Link>
 
         {/* Separator */}
         <div className="h-5 w-px bg-border mx-1 hidden md:block" />

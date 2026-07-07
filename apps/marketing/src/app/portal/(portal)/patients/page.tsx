@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   Users,
@@ -53,8 +54,10 @@ type SortMode = "recent" | "name";
 
 export default function PatientsPage() {
   const t = useT();
-  const [q, setQ] = useState("");
-  const [debounced, setDebounced] = useState("");
+  const searchParams = useSearchParams();
+  const initialQ = searchParams.get("q") ?? "";
+  const [q, setQ] = useState(initialQ);
+  const [debounced, setDebounced] = useState(initialQ.trim());
   const [view, setView] = useState<ViewMode>("list");
   const [sort, setSort] = useState<SortMode>("recent");
 

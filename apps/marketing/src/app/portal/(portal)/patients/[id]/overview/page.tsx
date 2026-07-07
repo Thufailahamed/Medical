@@ -72,6 +72,7 @@ import { formatDate, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { allergySeverityRank } from "@/portal/lib/clinicalTones";
 import type { PatientOverview } from "@healthcare/shared";
+import { AiSummaryCard } from "@/portal/components/ai/AiSummaryCard";
 
 // ─── Vital reference ranges (mirrors /vitals tab) ─────────────────────
 
@@ -1003,6 +1004,9 @@ export default function PatientOverviewTab({
           <Skeleton className="h-20 w-full" />
         </Card>
       )}
+
+      {/* ─── AI summary ────────────────────────────────────────────── */}
+      <AiSummaryCard patientId={id} />
 
       {/* ─── Hero stat strip ─────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">

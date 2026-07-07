@@ -89,6 +89,7 @@
     "records": "Records",
     "messages": "Messages",
     "notifications": "Notifications",
+    "audit": "Audit log",
     "earnings": "Earnings",
     "templates": "Templates",
     "careTeam": "Care team",
@@ -372,6 +373,26 @@
       "error": "Could not verify. Try again later."
     }
   },
+  "ai": {
+    "summary": {
+      "title": "AI summary",
+      "subtitle": "Synthesised from records, vitals, labs and meds",
+      "generate": "Generate summary",
+      "regenerate": "Regenerate",
+      "cached": "Cached · {{time}}",
+      "error": "Could not generate summary",
+      "empty": "Generate an AI summary to see a synthesised view of this patient's recent history."
+    },
+    "labExplain": {
+      "title": "Explain this lab report",
+      "placeholder": "Paste lab report text if no file is attached",
+      "run": "Explain",
+      "abnormal": "Abnormal values",
+      "recommendations": "Recommended follow-up",
+      "error": "Could not generate explanation",
+      "cached": "Cached result"
+    }
+  },
   "safety": {
     "title": "Safety check",
     "checking": "Checking interactions…",
@@ -400,8 +421,21 @@
     "status_ordered": "Ordered",
     "status_sample_collected": "Sample collected",
     "status_in_progress": "In progress",
+    "status_processing": "Processing",
     "status_completed": "Completed",
-    "status_cancelled": "Cancelled"
+    "status_cancelled": "Cancelled",
+    "untitled": "Untitled order"
+  },
+  "labOrders": {
+    "title": "Lab orders",
+    "subtitle": "All lab orders you've placed",
+    "emptyGlobal": "No lab orders yet",
+    "new": "New lab order",
+    "filterAll": "All",
+    "actions": {
+      "viewChart": "Open chart",
+      "explain": "Explain this report"
+    }
   },
   "notes": {
     "title": "Clinical note",
@@ -696,7 +730,48 @@
     "markRead": "Mark read",
     "markedAllRead": "All notifications marked as read",
     "empty": "No notifications",
-    "emptyUnread": "No unread notifications"
+    "emptyUnread": "No unread notifications",
+    "bell": {
+      "aria": "Notifications",
+      "unread": "{{count}} unread"
+    }
+  },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "Your action history — every sign, cancel, and update",
+    "empty": "No actions logged yet",
+    "filter": {
+      "action": {
+        "all": "All actions",
+        "create": "Create",
+        "sign": "Sign",
+        "cancel": "Cancel",
+        "update": "Update",
+        "dispense": "Dispense"
+      },
+      "resource": {
+        "all": "All resources",
+        "prescription": "Prescriptions",
+        "lab_order": "Lab orders",
+        "patient": "Patients",
+        "note": "Notes",
+        "other": "Other"
+      }
+    },
+    "col": {
+      "resource": "Resource"
+    },
+    "actions": {
+      "sign": "Signed",
+      "cancel": "Cancelled",
+      "dispense": "Dispensed",
+      "completeLab": "Completed lab",
+      "create": "Created",
+      "update": "Updated",
+      "other": "Action"
+    },
+    "openPrescription": "Verify prescription",
+    "openPatient": "Open chart"
   },
   "profile": {
     "title": "Profile",
@@ -935,6 +1010,21 @@
       "filterUpcoming": "Upcoming",
       "filterPast": "Past",
       "filterAll": "All"
+    },
+    "vaccinations": {
+      "title": "Vaccinations",
+      "subtitle": "{{count}} on record",
+      "subtitle_other": "{{count}} on record",
+      "new": "Add vaccination",
+      "comingSoon": "Recording vaccinations from the portal is coming soon.",
+      "empty": "No vaccinations recorded",
+      "emptyBody": "Add childhood and travel vaccinations to keep an accurate immunisation history.",
+      "filterAll": "All",
+      "filterGiven": "Given",
+      "filterDue": "Due",
+      "dose": "Dose {{n}}",
+      "nextDue": "Next due {{date}}",
+      "administered": "Given {{date}}"
     },
     "visits": {
       "title": "Visits",
