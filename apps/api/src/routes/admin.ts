@@ -19,13 +19,15 @@
 //  11. DSAR          — approve / complete privacy requests
 //  12. Notifications — broadcast to a role / user filter
 //  13. Medicines master — admin CRUD proxy to /medicines-master surface
+//  14. Settings       — runtime config (Phase ADM-2)
+//  15. Notes          — admin notes on user records (Phase ADM-2)
 //
 // All write actions call `recordAdminAction` which appends a row to
 // `audit_logs` with `action="admin.<verb>"`, the actor + IP.
 
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, desc, eq, gte, like, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, like, lte, ne, or, sql } from "drizzle-orm";
 import {
   users,
   doctors,
@@ -41,9 +43,12 @@ import {
   medicinesMaster,
   prescriptions,
   appointments,
+  systemSettings,
+  userAdminNotes,
 } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
 import { flattenTranslated } from "../lib/validation-error";
+import { coerceSettingValue, invalidateSetting } from "../lib/settings";
 import type { AppEnvironment } from "../types";
 
 const adminRouter = new Hono<AppEnvironment>();
@@ -1128,6 +1133,282 @@ adminRouter.get("/medicines-master", async (c) => {
   ]);
 
   return c.json({ items: rows, total: total[0]?.count ?? 0, limit, offset });
+});
+
+// ─────────────────────────────────────────────────────────────
+// 14. Settings — runtime config (Phase ADM-2)
+// ─────────────────────────────────────────────────────────────
+
+function decodeSettingValue(raw: string, type: string): unknown {
+  switch (type) {
+    case "boolean":
+      return raw === "true";
+    case "number":
+      return Number(raw);
+    case "string":
+    case "json":
+    default:
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return raw;
+      }
+  }
+}
+
+adminRouter.get("/settings", async (c) => {
+  const db = c.get("db");
+  const rows = await db
+    .select()
+    .from(systemSettings)
+    .orderBy(asc(systemSettings.category), asc(systemSettings.key));
+
+  const items = rows.map((r: any) => ({
+    key: r.key,
+    value: decodeSettingValue(r.value, r.valueType),
+    rawValue: r.value,
+    valueType: r.valueType,
+    category: r.category,
+    description: r.description,
+    isSensitive: !!r.isSensitive,
+    updatedAt: r.updatedAt,
+    updatedByUserId: r.updatedByUserId,
+  }));
+
+  // Group by category for the UI.
+  const grouped: Record<string, typeof items> = {};
+  for (const it of items) {
+    (grouped[it.category] ??= []).push(it);
+  }
+  return c.json({ items, grouped });
+});
+
+adminRouter.get("/settings/:key", async (c) => {
+  const db = c.get("db");
+  const key = c.req.param("key");
+  const [row] = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.key, key))
+    .limit(1);
+  if (!row) return c.json({ error: "Setting not found" }, 404);
+  return c.json({
+    key: row.key,
+    value: decodeSettingValue(row.value, row.valueType as string),
+    rawValue: row.value,
+    valueType: row.valueType,
+    category: row.category,
+    description: row.description,
+    isSensitive: !!(row as any).isSensitive,
+    updatedAt: row.updatedAt,
+    updatedByUserId: row.updatedByUserId,
+  });
+});
+
+const patchSettingSchema = z.object({
+  value: z.unknown(),
+  confirm: z.boolean().optional(),
+});
+
+adminRouter.patch("/settings/:key", async (c) => {
+  const db = c.get("db");
+  const key = c.req.param("key");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = patchSettingSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
+  }
+
+  const [existing] = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.key, key))
+    .limit(1);
+  if (!existing) return c.json({ error: "Setting not found" }, 404);
+
+  if ((existing as any).isSensitive && parsed.data.confirm !== true) {
+    return c.json({ error: "Sensitive setting requires { confirm: true }" }, 400);
+  }
+
+  const coerced = coerceSettingValue(parsed.data.value, existing.valueType as any);
+  if (!coerced.ok) {
+    return c.json({ error: coerced.error }, 400);
+  }
+
+  const actor = c.get("adminActor");
+  const now = new Date().toISOString();
+  await db
+    .update(systemSettings)
+    .set({
+      value: coerced.encoded,
+      updatedAt: now,
+      updatedByUserId: actor?.id ?? null,
+    } as any)
+    .where(eq(systemSettings.key, key));
+
+  invalidateSetting(db, key);
+
+  await recordAdminAction(c, {
+    action: "update_setting",
+    resource: "setting",
+    resourceId: key,
+    details: {
+      before: decodeSettingValue(existing.value, existing.valueType as string),
+      after: parsed.data.value,
+      valueType: existing.valueType,
+    },
+  });
+
+  return c.json({
+    ok: true,
+    key,
+    value: decodeSettingValue(coerced.encoded, existing.valueType as string),
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// 15. Notes — admin notes on user records (Phase ADM-2)
+// ─────────────────────────────────────────────────────────────
+
+adminRouter.get("/users/:id/notes", async (c) => {
+  const db = c.get("db");
+  const userId = c.req.param("id");
+
+  // Verify user exists (404 is more useful than an empty list).
+  const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!u) return c.json({ error: "User not found" }, 404);
+
+  // Join with admin author name.
+  const rows = await db
+    .select({
+      id: userAdminNotes.id,
+      userId: userAdminNotes.userId,
+      adminUserId: userAdminNotes.adminUserId,
+      body: userAdminNotes.body,
+      createdAt: userAdminNotes.createdAt,
+      updatedAt: userAdminNotes.updatedAt,
+      deletedAt: userAdminNotes.deletedAt,
+      adminName: users.name,
+    })
+    .from(userAdminNotes)
+    .innerJoin(users, eq(users.id, userAdminNotes.adminUserId))
+    .where(and(eq(userAdminNotes.userId, userId), isNull(userAdminNotes.deletedAt)))
+    .orderBy(desc(userAdminNotes.createdAt));
+
+  return c.json({ items: rows });
+});
+
+const createNoteSchema = z.object({
+  body: z.string().min(1).max(2000),
+});
+
+adminRouter.post("/users/:id/notes", async (c) => {
+  const db = c.get("db");
+  const userId = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = createNoteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
+  }
+
+  const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!u) return c.json({ error: "User not found" }, 404);
+
+  const actor = c.get("adminActor");
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await db.insert(userAdminNotes).values({
+    id,
+    userId,
+    adminUserId: actor?.id,
+    body: parsed.data.body,
+    createdAt: now,
+  } as any);
+
+  await recordAdminAction(c, {
+    action: "create_note",
+    resource: "user",
+    resourceId: userId,
+    details: { noteId: id, preview: parsed.data.body.slice(0, 100) },
+  });
+
+  return c.json({ ok: true, id });
+});
+
+const editNoteSchema = z.object({
+  body: z.string().min(1).max(2000),
+});
+
+adminRouter.patch("/notes/:noteId", async (c) => {
+  const db = c.get("db");
+  const noteId = c.req.param("noteId");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = editNoteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
+  }
+
+  const [existing] = await db
+    .select()
+    .from(userAdminNotes)
+    .where(eq(userAdminNotes.id, noteId))
+    .limit(1);
+  if (!existing) return c.json({ error: "Note not found" }, 404);
+  if (existing.deletedAt) return c.json({ error: "Note was deleted" }, 410);
+
+  const actor = c.get("adminActor");
+  // Author or any super_admin can edit. Both already pass
+  // requireAdmin, so the only restriction is author-identity.
+  if (existing.adminUserId !== actor?.id) {
+    return c.json({ error: "Only the author can edit this note" }, 403);
+  }
+
+  const now = new Date().toISOString();
+  await db
+    .update(userAdminNotes)
+    .set({ body: parsed.data.body, updatedAt: now } as any)
+    .where(eq(userAdminNotes.id, noteId));
+
+  await recordAdminAction(c, {
+    action: "edit_note",
+    resource: "user",
+    resourceId: existing.userId,
+    details: { noteId, preview: parsed.data.body.slice(0, 100) },
+  });
+
+  return c.json({ ok: true });
+});
+
+adminRouter.delete("/notes/:noteId", async (c) => {
+  const db = c.get("db");
+  const noteId = c.req.param("noteId");
+  const [existing] = await db
+    .select()
+    .from(userAdminNotes)
+    .where(eq(userAdminNotes.id, noteId))
+    .limit(1);
+  if (!existing) return c.json({ error: "Note not found" }, 404);
+  if (existing.deletedAt) return c.json({ ok: true, alreadyDeleted: true });
+
+  const actor = c.get("adminActor");
+  if (existing.adminUserId !== actor?.id) {
+    return c.json({ error: "Only the author can delete this note" }, 403);
+  }
+
+  const now = new Date().toISOString();
+  await db
+    .update(userAdminNotes)
+    .set({ deletedAt: now } as any)
+    .where(eq(userAdminNotes.id, noteId));
+
+  await recordAdminAction(c, {
+    action: "delete_note",
+    resource: "user",
+    resourceId: existing.userId,
+    details: { noteId },
+  });
+
+  return c.json({ ok: true });
 });
 
 export default adminRouter;

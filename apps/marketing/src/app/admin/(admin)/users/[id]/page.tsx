@@ -4,6 +4,7 @@ import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pill, PillRow } from "@/portal/components/ui/Pill";
 import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
+import { NotesPanel } from "@/portal/components/admin/NotesPanel";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
 
 type User = {
@@ -99,6 +100,8 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </dl>
         </section>
       ) : null}
+
+      <NotesPanel userId={id} />
     </div>
   );
 }

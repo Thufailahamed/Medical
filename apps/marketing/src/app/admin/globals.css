@@ -159,3 +159,11 @@
   color: var(--text-soft);
   border-color: rgba(226, 232, 240, 0.9);
 }
+
+/* ============================================================
+   Cursor override (marketing hides cursor for custom effect)
+   ============================================================ */
+[data-app="admin"],
+[data-app="admin"] * {
+  cursor: auto !important;
+}

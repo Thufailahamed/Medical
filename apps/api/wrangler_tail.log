@@ -1,0 +1,233 @@
+{
+  "wallTime": 599,
+  "cpuTime": 28,
+  "truncated": false,
+  "executionModel": "stateless",
+  "outcome": "ok",
+  "scriptVersion": {
+    "id": "7920311d-f809-4709-9184-b75504e8f4a6"
+  },
+  "scriptName": "healthcare-api",
+  "diagnosticsChannelEvents": [],
+  "exceptions": [],
+  "logs": [
+    {
+      "message": [
+        "<-- GET /temp-seed-admin"
+      ],
+      "level": "log",
+      "timestamp": 1783415874516
+    },
+    {
+      "message": [
+        "API Error:",
+        "Error: D1_ERROR: table users has no column named status: SQLITE_ERROR"
+      ],
+      "level": "error",
+      "timestamp": 1783415875089
+    },
+    {
+      "message": [
+        "--> GET /temp-seed-admin \u001b[31m500\u001b[0m 573ms"
+      ],
+      "level": "log",
+      "timestamp": 1783415875089
+    }
+  ],
+  "eventTimestamp": 1783415874516,
+  "event": {
+    "request": {
+      "url": "https://healthcare-api.thufailahamed627.workers.dev/temp-seed-admin",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*",
+        "accept-encoding": "gzip, br",
+        "cf-connecting-ip": "112.134.217.191",
+        "cf-ipcountry": "LK",
+        "cf-ray": "a175c23fbbab24d1",
+        "cf-visitor": "{\"scheme\":\"https\"}",
+        "connection": "Keep-Alive",
+        "host": "healthcare-api.thufailahamed627.workers.dev",
+        "user-agent": "curl/8.7.1",
+        "x-forwarded-proto": "https",
+        "x-real-ip": "112.134.217.191"
+      },
+      "cf": {
+        "httpProtocol": "HTTP/2",
+        "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+        "edgeRequestKeepAliveStatus": 1,
+        "requestHeaderNames": {},
+        "clientTcpRtt": 5,
+        "clientQuicRtt": 0,
+        "colo": "CMB",
+        "asn": 9329,
+        "asOrganization": "ADSL - DYNAMIC POOL",
+        "country": "LK",
+        "isEUCountry": false,
+        "city": "Homagama",
+        "continent": "AS",
+        "region": "Western Province",
+        "regionCode": "1",
+        "timezone": "Asia/Colombo",
+        "longitude": "80.0024",
+        "latitude": "6.844",
+        "postalCode": "10200",
+        "tlsVersion": "TLSv1.3",
+        "tlsCipher": "AEAD-CHACHA20-POLY1305-SHA256",
+        "tlsClientRandom": "M2jChs/wPDQBwqfgrdJGOwCfPpTbTuv7C+bpqy18RMk=",
+        "tlsClientCiphersSha1": "eDGmD1H99AwNYzOR+7eoGLo6eLU=",
+        "tlsClientExtensionsSha1": "Ub+nUmIm1U57hdNSUph0R+kx9Gc=",
+        "tlsClientExtensionsSha1Le": "NMNf2YIpLBhtroOEBooGFi+jtJ8=",
+        "tlsExportedAuthenticator": {
+          "clientHandshake": "5fa318ce55a9907b00de79a4bb5efa983da047e2c76fac963f49ce126adc8193",
+          "serverHandshake": "bf96fa0d1804dfc18d1fe0082f814d0820f6cae8da97c5b3b350201c00a041b5",
+          "clientFinished": "df7d32e39b20cb697ea1070fab86033e6009fc25958e120cf3254d761eb15b0b",
+          "serverFinished": "7383c9659a613063cbb587e4c9b95504f20c406e653115f7658923bcd8f08e6e"
+        },
+        "tlsClientHelloLength": "344",
+        "tlsClientAuth": {
+          "certPresented": "0",
+          "certVerified": "NONE",
+          "certRevoked": "0",
+          "certIssuerDN": "",
+          "certSubjectDN": "",
+          "certIssuerDNRFC2253": "",
+          "certSubjectDNRFC2253": "",
+          "certIssuerDNLegacy": "",
+          "certSubjectDNLegacy": "",
+          "certSerial": "",
+          "certIssuerSerial": "",
+          "certSKI": "",
+          "certIssuerSKI": "",
+          "certFingerprintSHA1": "",
+          "certFingerprintSHA256": "",
+          "certNotBefore": "",
+          "certNotAfter": "",
+          "certRFC9440": "",
+          "certRFC9440TooLarge": false,
+          "certChainRFC9440": "",
+          "certChainRFC9440TooLarge": false
+        },
+        "verifiedBotCategory": "",
+        "edgeL4": {
+          "deliveryRate": 527375
+        }
+      }
+    },
+    "response": {
+      "status": 500
+    }
+  }
+}
+{
+  "wallTime": 1951,
+  "cpuTime": 17,
+  "truncated": false,
+  "executionModel": "stateless",
+  "outcome": "ok",
+  "scriptVersion": {
+    "id": "7920311d-f809-4709-9184-b75504e8f4a6"
+  },
+  "scriptName": "healthcare-api",
+  "diagnosticsChannelEvents": [],
+  "exceptions": [],
+  "logs": [
+    {
+      "message": [
+        "<-- GET /doctor-schedule/range?from=2026-07-05&to=2026-07-11"
+      ],
+      "level": "log",
+      "timestamp": 1783415874073
+    },
+    {
+      "message": [
+        "--> GET /doctor-schedule/range?from=2026-07-05&to=2026-07-11 \u001b[32m200\u001b[0m 2s"
+      ],
+      "level": "log",
+      "timestamp": 1783415876006
+    }
+  ],
+  "eventTimestamp": 1783415874073,
+  "event": {
+    "request": {
+      "url": "https://healthcare-api.thufailahamed627.workers.dev/doctor-schedule/range?from=2026-07-05&to=2026-07-11",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*",
+        "accept-encoding": "gzip, br",
+        "accept-language": "en-LK",
+        "authorization": "REDACTED",
+        "cf-connecting-ip": "112.134.217.191",
+        "cf-ipcountry": "LK",
+        "cf-ray": "a175c23cea2f5134",
+        "cf-visitor": "{\"scheme\":\"https\"}",
+        "connection": "Keep-Alive",
+        "host": "healthcare-api.thufailahamed627.workers.dev",
+        "priority": "u=3, i",
+        "user-agent": "Expo/2.31.6 CFNetwork/3860.600.12 Darwin/25.5.0",
+        "x-forwarded-proto": "https",
+        "x-real-ip": "112.134.217.191",
+        "x-timezone-offset": "330"
+      },
+      "cf": {
+        "httpProtocol": "HTTP/3",
+        "clientAcceptEncoding": "gzip, deflate, br",
+        "requestPriority": "",
+        "edgeRequestKeepAliveStatus": 1,
+        "requestHeaderNames": {},
+        "clientTcpRtt": 0,
+        "clientQuicRtt": 6,
+        "colo": "CMB",
+        "asn": 9329,
+        "asOrganization": "ADSL - DYNAMIC POOL",
+        "country": "LK",
+        "isEUCountry": false,
+        "city": "Homagama",
+        "continent": "AS",
+        "region": "Western Province",
+        "regionCode": "1",
+        "timezone": "Asia/Colombo",
+        "longitude": "80.0024",
+        "latitude": "6.844",
+        "postalCode": "10200",
+        "tlsVersion": "TLSv1.3",
+        "tlsCipher": "AEAD-AES256-GCM-SHA384",
+        "tlsClientRandom": "0BXvJhxu6qRpNye9q33zPOjxlgzER4z3512v6ASEGx4=",
+        "tlsClientCiphersSha1": "nbNnaCal/YI3XdvCWJUGrU96H5k=",
+        "tlsClientExtensionsSha1": "k+XxHc8X5QBDqDc8TWxNhiV8y5Q=",
+        "tlsClientExtensionsSha1Le": "ghtFOpCj8Wv56wJjmefdYbxPipw=",
+        "tlsClientHelloLength": "1502",
+        "tlsClientAuth": {
+          "certPresented": "0",
+          "certVerified": "NONE",
+          "certRevoked": "0",
+          "certIssuerDN": "",
+          "certSubjectDN": "",
+          "certIssuerDNRFC2253": "",
+          "certSubjectDNRFC2253": "",
+          "certIssuerDNLegacy": "",
+          "certSubjectDNLegacy": "",
+          "certSerial": "",
+          "certIssuerSerial": "",
+          "certSKI": "",
+          "certIssuerSKI": "",
+          "certFingerprintSHA1": "",
+          "certFingerprintSHA256": "",
+          "certNotBefore": "",
+          "certNotAfter": "",
+          "certRFC9440": "",
+          "certRFC9440TooLarge": false,
+          "certChainRFC9440": "",
+          "certChainRFC9440TooLarge": false
+        },
+        "verifiedBotCategory": "",
+        "edgeL4": {
+          "deliveryRate": 509296
+        }
+      }
+    },
+    "response": {
+      "status": 200
+    }
+  }
+}

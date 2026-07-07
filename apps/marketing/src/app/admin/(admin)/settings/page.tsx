@@ -1,72 +1,92 @@
 "use client";
 
-import { Settings as SettingsIcon } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Settings as SettingsIcon, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
+import { SettingRow, type SettingItem } from "@/portal/components/admin/SettingRow";
+import { adminApi, adminQk } from "@/portal/lib/admin-api";
 
-/**
- * Read-only system info. Operational toggles (rate limits, feature
- * flags) live in the Cloudflare dashboard — settings here is the
- * single landing page that links out, plus a few values surfaced
- * for visibility.
- */
+const CATEGORY_LABEL: Record<string, string> = {
+  registration: "Registration",
+  uploads: "Uploads",
+  operations: "Operations",
+  feature_flags: "Feature flags",
+};
+
 export default function AdminSettingsPage() {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: adminQk.settings(),
+    queryFn: () => adminApi<{ items: SettingItem[]; grouped: Record<string, SettingItem[]> }>("/admin/settings"),
+  });
+
+  // Collapse state per category — open by default.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       <PageHeader
         title="System settings"
-        subtitle="Operational configuration. Mutating controls are managed via Cloudflare dashboard + env vars."
+        subtitle="Runtime configuration. Changes take effect immediately."
         icon={<SettingsIcon size={20} className="text-amber-600" />}
+        actions={
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 text-xs text-text-soft hover:text-amber-700"
+          >
+            <RefreshCw size={12} />
+            Refresh
+          </button>
+        }
       />
 
-      <section className="bg-surface border border-border rounded-2xl p-5">
-        <SectionHeader title="Build & runtime" />
-        <dl className="grid grid-cols-2 gap-4 mt-3 text-sm">
-          <Info label="API base" value={process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787"} />
-          <Info label="Locale" value={process.env.NEXT_PUBLIC_LOCALE ?? "en"} />
-          <Info label="Admin portal version" value="0.1.0 (Phase ADM-1)" />
-          <Info label="Migration" value="0017_admin_approval" />
-        </dl>
-      </section>
-
-      <section className="bg-surface border border-border rounded-2xl p-5">
-        <SectionHeader title="Approval policy" />
-        <ul className="mt-3 text-sm space-y-2 text-text-soft list-disc pl-5">
-          <li>Doctors, hospital admins, pharmacies, laboratories, insurance and ambulance providers must be approved by a super_admin before login.</li>
-          <li>Patients self-register and are active immediately.</li>
-          <li>Hospital staff join via invite tokens consumed at registration time.</li>
-          <li>super_admin accounts are bootstrapped out-of-band and cannot be self-registered.</li>
-        </ul>
-      </section>
-
-      <section className="bg-surface border border-border rounded-2xl p-5">
-        <SectionHeader title="Operational links" />
-        <ul className="mt-3 text-sm space-y-2">
-          <li>
-            <a href="https://dash.cloudflare.com" target="_blank" rel="noopener" className="text-amber-700 hover:underline">
-              Cloudflare dashboard (workers, D1, R2) ↗
-            </a>
-          </li>
-          <li>
-            <a href="https://api.healthhub.app/admin/dashboard" target="_blank" rel="noopener" className="text-amber-700 hover:underline">
-              Raw API admin surface ↗
-            </a>
-          </li>
-          <li>
-            <a href="https://github.com/healthcare/platform" target="_blank" rel="noopener" className="text-amber-700 hover:underline">
-              Repository ↗
-            </a>
-          </li>
-        </ul>
-      </section>
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[11px] uppercase tracking-widest text-text-muted font-semibold">{label}</dt>
-      <dd className="mt-1 font-mono text-xs">{value}</dd>
+      {isLoading ? (
+        <p className="text-text-soft text-sm">Loading settings…</p>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-700">
+          Failed to load settings.
+        </div>
+      ) : !data || data.items.length === 0 ? (
+        <div className="bg-surface border border-border rounded-2xl p-10 text-center">
+          <p className="text-text-soft">
+            No settings found. Run the seed script to insert defaults.
+          </p>
+        </div>
+      ) : (
+        Object.entries(data.grouped).map(([category, items]) => {
+          const isOpen = open[category] ?? true;
+          return (
+            <section
+              key={category}
+              className="bg-surface border border-border rounded-2xl"
+            >
+              <button
+                onClick={() => setOpen((o) => ({ ...o, [category]: !isOpen }))}
+                className="w-full flex items-center gap-2 p-5 text-left"
+              >
+                {isOpen ? (
+                  <ChevronDown size={16} className="text-amber-600" />
+                ) : (
+                  <ChevronRight size={16} className="text-amber-600" />
+                )}
+                <div className="flex-1 text-left">
+                  <SectionHeader title={CATEGORY_LABEL[category] ?? category} />
+                  <p className="text-xs text-text-muted mt-0.5">
+                    {items.length} setting{items.length === 1 ? "" : "s"}
+                  </p>
+                </div>
+              </button>
+              {isOpen ? (
+                <div className="px-5 pb-3">
+                  {items.map((it) => (
+                    <SettingRow key={it.key} item={it} />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          );
+        })
+      )}
     </div>
   );
 }

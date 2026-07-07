@@ -75,6 +75,7 @@ export const adminQk = {
   approvals: (status = "pending") => ["admin", "approvals", status] as const,
   users: (params: Record<string, unknown>) => ["admin", "users", params] as const,
   user: (id: string) => ["admin", "users", id] as const,
+  userNotes: (id: string) => ["admin", "users", id, "notes"] as const,
   doctors: (params: Record<string, unknown>) => ["admin", "doctors", params] as const,
   doctor: (id: string) => ["admin", "doctors", id] as const,
   tenants: (type: string) => ["admin", "tenants", type] as const,
@@ -85,4 +86,6 @@ export const adminQk = {
   insuranceClaims: (status?: string) => ["admin", "insurance-claims", status ?? "all"] as const,
   dsar: (status?: string) => ["admin", "dsar", status ?? "all"] as const,
   medicinesMaster: (params: Record<string, unknown>) => ["admin", "medicines-master", params] as const,
+  settings: () => ["admin", "settings"] as const,
+  setting: (key: string) => ["admin", "settings", key] as const,
 };

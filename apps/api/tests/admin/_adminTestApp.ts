@@ -10,6 +10,7 @@
 
 import { Hono } from "hono";
 import adminRouter from "../../src/routes/admin";
+import adminBulkRouter from "../../src/routes/admin-bulk";
 import type { AppEnvironment } from "../../src/types";
 import type { MockD1 } from "../_mockDb";
 
@@ -51,6 +52,7 @@ export function buildAdminApp(db: MockD1, user?: AdminUser) {
   });
 
   app.route("/admin", adminRouter);
+  app.route("/admin/bulk", adminBulkRouter);
   return app;
 }
 

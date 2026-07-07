@@ -9,6 +9,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
+import { BulkActionBar } from "@/portal/components/admin/BulkActionBar";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
@@ -42,6 +43,7 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState("");
   const [suspendTarget, setSuspendTarget] = useState<Row | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const params = {
     role: role === "all" ? undefined : role,
@@ -133,6 +135,20 @@ export default function AdminUsersPage() {
         <Table>
           <THead>
             <TR>
+              <TH className="w-8">
+                <input
+                  type="checkbox"
+                  checked={data.items.length > 0 && data.items.every((u) => selected.has(u.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelected(new Set(data.items.map((u) => u.id)));
+                    } else {
+                      setSelected(new Set());
+                    }
+                  }}
+                  className="accent-amber-600"
+                />
+              </TH>
               <TH>Name</TH>
               <TH>Role</TH>
               <TH>Status</TH>
@@ -144,6 +160,19 @@ export default function AdminUsersPage() {
           <TBody>
             {data.items.map((u) => (
               <TR key={u.id}>
+                <TD>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(u.id)}
+                    onChange={(e) => {
+                      const next = new Set(selected);
+                      if (e.target.checked) next.add(u.id);
+                      else next.delete(u.id);
+                      setSelected(next);
+                    }}
+                    className="accent-amber-600"
+                  />
+                </TD>
                 <TD>
                   <Linkish name={u.name} id={u.id} />
                 </TD>
@@ -204,6 +233,12 @@ export default function AdminUsersPage() {
           </TBody>
         </Table>
       )}
+
+      <BulkActionBar
+        selectedIds={Array.from(selected)}
+        onClear={() => setSelected(new Set())}
+        invalidateKeys={[adminQk.users(params)]}
+      />
 
       <Modal open={!!suspendTarget} onClose={() => setSuspendTarget(null)} title={`Suspend ${suspendTarget?.name ?? ""}`}>
         <form

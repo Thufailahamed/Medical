@@ -2468,3 +2468,43 @@ export const qrAccessTokens = sqliteTable("qr_access_tokens", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });
+
+// ─── Phase ADM-2: runtime settings + admin notes ─────────────
+//
+// system_settings is a key-value store for runtime configuration
+// that super_admins can flip without redeploying. Reads are
+// hot-path so app code caches per isolate (see lib/settings.ts).
+
+export const systemSettings = sqliteTable("system_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),                       // JSON-encoded per valueType
+  valueType: text("value_type", { enum: ["string", "number", "boolean", "json"] }).notNull(),
+  category: text("category").notNull(),                 // "registration" | "uploads" | "operations" | "feature_flags"
+  description: text("description").notNull().default(""),
+  isSensitive: integer("is_sensitive", { mode: "boolean" }).notNull().default(false),
+  updatedAt: text("updated_at").notNull(),
+  updatedByUserId: text("updated_by_user_id").references(() => users.id),
+});
+
+// Internal admin notes attached to a user record. Soft delete so
+// audit history stays intact.
+
+export const userAdminNotes = sqliteTable(
+  "user_admin_notes",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    adminUserId: text("admin_user_id")
+      .notNull()
+      .references(() => users.id),
+    body: text("body").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at"),
+    deletedAt: text("deleted_at"),
+  },
+  (t) => ({
+    userCreatedIdx: index("user_admin_notes_user_created_idx").on(t.userId, t.createdAt),
+  }),
+);

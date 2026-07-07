@@ -3,6 +3,7 @@
 import { Hono } from "hono";
 import { and, eq, isNull, or, inArray } from "drizzle-orm";
 import { users, patients, doctors, otpCodes, notifications } from "@healthcare/db";
+import { getApprovalRequiredRoles } from "../lib/settings";
 import {
   registerSchema,
   loginSchema,
@@ -35,18 +36,10 @@ const auth = new Hono<AppEnvironment>();
 const OTP_TTL_MINUTES = 5;
 const OTP_MAX_ATTEMPTS = 5;
 
-// Phase ADM-1: roles that require super_admin approval before the user
-// can log in. Patients self-onboard; clinicians/operators do not.
-// super_admin itself is never registrable from the public endpoint
-// (already blocked by registerSchema.role).
-const APPROVAL_REQUIRED_ROLES: ReadonlySet<string> = new Set([
-  "doctor",
-  "hospital_admin",
-  "pharmacy",
-  "laboratory",
-  "insurance",
-  "ambulance",
-]);
+// Phase ADM-2: approval gating now reads runtime settings
+// (`registration.requireApproval`, `registration.approvalRoles`).
+// See lib/settings.ts. Defaults preserve the original hard-coded
+// behaviour so a missing/empty settings table is safe.
 
 // ─── Register ────────────────────────────────────────────
 auth.post("/register", async (c) => {
@@ -106,7 +99,8 @@ auth.post("/register", async (c) => {
   const nicLevel = nicVerificationLevel(nic, dob);
 
   let dbUser: any = null;
-  const requiresApproval = APPROVAL_REQUIRED_ROLES.has(role);
+  const approvalRoles = await getApprovalRequiredRoles(db);
+  const requiresApproval = approvalRoles.includes(role);
   try {
     const [u] = await db
       .insert(users)

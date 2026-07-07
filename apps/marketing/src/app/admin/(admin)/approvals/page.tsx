@@ -9,6 +9,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
+import { BulkActionBar } from "@/portal/components/admin/BulkActionBar";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
@@ -51,6 +52,7 @@ export default function ApprovalsPage() {
   const [status, setStatus] = useState<"pending" | "active" | "rejected" | "suspended">("pending");
   const [rejectTarget, setRejectTarget] = useState<Item | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: adminQk.approvals(status),
@@ -115,6 +117,20 @@ export default function ApprovalsPage() {
         <Table>
           <THead>
             <TR>
+              <TH className="w-8">
+                <input
+                  type="checkbox"
+                  checked={data.items.length > 0 && data.items.every((it) => selected.has(it.user.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelected(new Set(data.items.map((it) => it.user.id)));
+                    } else {
+                      setSelected(new Set());
+                    }
+                  }}
+                  className="accent-amber-600"
+                />
+              </TH>
               <TH>Name</TH>
               <TH>Role</TH>
               <TH>Contact</TH>
@@ -128,6 +144,19 @@ export default function ApprovalsPage() {
               const u = it.user;
               return (
                 <TR key={u.id}>
+                  <TD>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(u.id)}
+                      onChange={(e) => {
+                        const next = new Set(selected);
+                        if (e.target.checked) next.add(u.id);
+                        else next.delete(u.id);
+                        setSelected(next);
+                      }}
+                      className="accent-amber-600"
+                    />
+                  </TD>
                   <TD>
                     <p className="font-semibold">{u.name}</p>
                     {u.rejectionReason ? (
@@ -192,6 +221,12 @@ export default function ApprovalsPage() {
           </TBody>
         </Table>
       )}
+
+      <BulkActionBar
+        selectedIds={Array.from(selected)}
+        onClear={() => setSelected(new Set())}
+        invalidateKeys={[adminQk.approvals(status)]}
+      />
 
       <Modal open={!!rejectTarget} onClose={() => setRejectTarget(null)} title={`Reject ${rejectTarget?.user.name ?? ""}`}>
         <form

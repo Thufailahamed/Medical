@@ -66,6 +66,7 @@ import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
 import familyActiveRouter from "./routes/family-active";
 import adminRouter from "./routes/admin";
+import adminBulkRouter from "./routes/admin-bulk";
 import familyInviteRouter from "./routes/family-invites";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
@@ -248,6 +249,7 @@ app.route("/", staffInvitePublicRouter);
 // Phase ADM-1: admin portal surface. Every endpoint gated by
 // requireAdmin (super_admin only). See ./routes/admin.ts.
 app.route("/admin", adminRouter);
+app.route("/admin/bulk", adminBulkRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]

@@ -17,6 +17,7 @@
 import { and, eq } from "drizzle-orm";
 import { users } from "@healthcare/db";
 import { hashPassword } from "./crypto";
+import { seedSettings } from "./seed-settings";
 
 export async function seedAdmin(db: any, env: any = process.env) {
   const email = env.ADMIN_EMAIL || "admin@healthhub.local";
@@ -24,7 +25,7 @@ export async function seedAdmin(db: any, env: any = process.env) {
   const name = env.ADMIN_NAME || "Platform Admin";
 
   const [existing] = await db
-    .select({ id: users.id, status: users.status })
+    .select({ id: users.id })
     .from(users)
     .where(and(eq(users.role, "super_admin")))
     .limit(1);
@@ -43,15 +44,20 @@ export async function seedAdmin(db: any, env: any = process.env) {
     name,
     role: "super_admin",
     passwordHash,
-    status: "active",
     verified: true,
-  } as any);
+    status: "active",
+  });
+
+  // Seed default system_settings on first admin creation only.
+  // On subsequent calls the admin already existed; settings may
+  // have been edited, so we don't touch them.
+  await seedSettings(db, id);
 
   return { ok: true, alreadyExisted: false, userId: id, email };
 }
 
 // Standalone entrypoint: `bun seed-admin.ts` from the api/ workspace.
-if (typeof require !== "undefined" && require.main === module) {
+if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) {
   // CLI path — wire up a local Drizzle handle against process.env.DB.
   (async () => {
     const { createDb } = await import("./db");

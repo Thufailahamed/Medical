@@ -99,7 +99,8 @@ class MockD1 {
   }
 
   setWhere(table: string, predicate: (row: any) => boolean) {
-    this.latestWhere.set(table, predicate);
+    // Normalise to camelCase so lookups against `_tableName()` resolve.
+    this.latestWhere.set(toCamel(table), predicate);
   }
 
   // Make the next insert into `table` throw `err`. Mirrors Drizzle's
