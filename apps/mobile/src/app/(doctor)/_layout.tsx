@@ -260,6 +260,10 @@ export default function DoctorLayout() {
         name="relationships/index"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="vital-record"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

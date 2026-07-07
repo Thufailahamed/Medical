@@ -197,7 +197,7 @@ export default function PrescriptionScreen() {
   // (not just the one being typed) feeds the candidate payload so the
   // engine can catch pairwise interactions across the whole Rx.
   const patientIdForCheck =
-    selectedPatient?.patients?.id || selectedPatient?.id || patientId;
+    selectedPatient?.patient?.id || selectedPatient?.patients?.id || selectedPatient?.id || patientId;
   const namedMedicines = medicines.filter((m) => m.name.trim());
   const safetyEnabled = !!patientIdForCheck && namedMedicines.length > 0;
   const safetyPayload = safetyEnabled
@@ -231,7 +231,7 @@ export default function PrescriptionScreen() {
   async function handleCreate(force = false) {
     const patient =
       selectedPatient ||
-      searchResults?.patients?.find?.((p: any) => (p.patients?.id || p.id) === patientId);
+      searchResults?.patients?.find?.((p: any) => (p.patient?.id || p.patients?.id || p.id) === patientId);
     if (!patient) {
       toast.show(t("doctorPrescription.searchPatients"), "warning");
       return;
@@ -272,7 +272,7 @@ export default function PrescriptionScreen() {
     try {
       await createPrescription.mutateAsync({
         data: {
-          patientId: patient.patients?.id || patient.id || patientId,
+          patientId: patient.patient?.id || patient.patients?.id || patient.id || patientId,
           diagnosis,
           notes,
           medicines: medicines.map((m) => {
@@ -344,13 +344,15 @@ export default function PrescriptionScreen() {
           }}
         >
           <Avatar
-            name={selectedPatient.name || selectedPatient.users?.name}
+            name={selectedPatient.name || selectedPatient.user?.name || selectedPatient.users?.name}
             size="lg"
             tone="primary"
             ring
             source={
               selectedPatient.photo
                 ? { uri: selectedPatient.photo }
+                : selectedPatient.user?.photo
+                ? { uri: selectedPatient.user.photo }
                 : selectedPatient.users?.photo
                 ? { uri: selectedPatient.users.photo }
                 : undefined
@@ -358,7 +360,7 @@ export default function PrescriptionScreen() {
           />
           <View style={{ flex: 1 }}>
             <Text style={[typography.title.md, { color: colors.text }]}>
-              {selectedPatient.name || selectedPatient.users?.name || t("doctorPrescription.patientFallback")}
+              {selectedPatient.name || selectedPatient.user?.name || selectedPatient.users?.name || t("doctorPrescription.patientFallback")}
             </Text>
             <Text
               style={[
@@ -366,7 +368,7 @@ export default function PrescriptionScreen() {
                 { color: colors.textMuted, marginTop: 2 },
               ]}
             >
-              {selectedPatient.phone || selectedPatient.users?.phone || t("doctorPrescription.noPhone")}
+              {selectedPatient.phone || selectedPatient.user?.phone || selectedPatient.users?.phone || t("doctorPrescription.noPhone")}
             </Text>
           </View>
           <PillCmp
@@ -659,10 +661,10 @@ export default function PrescriptionScreen() {
         {results.length > 0 ? (
           <View style={{ gap: spacing.sm }}>
             {results.map((p) => {
-              const pId = p.patients?.id || p.id;
-              const pName = p.users?.name || p.name;
-              const pPhone = p.users?.phone || p.phone;
-              const pPhoto = p.users?.photo || p.photo;
+              const pId = p.patient?.id || p.patients?.id || p.id;
+              const pName = p.user?.name || p.users?.name || p.name;
+              const pPhone = p.user?.phone || p.users?.phone || p.phone;
+              const pPhoto = p.user?.photo || p.users?.photo || p.photo;
               return (
                 <ListItem
                   key={pId}
