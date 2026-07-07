@@ -16,24 +16,21 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 focus-ring select-none disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97]";
+  "portal-btn focus-ring select-none disabled:opacity-50 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-brand text-white hover:bg-brand-strong shadow-[0_2px_8px_rgba(2,132,199,0.25)] hover:shadow-[0_4px_16px_rgba(2,132,199,0.35)]",
-  secondary:
-    "bg-surface text-text border border-border/80 hover:bg-surface-2 hover:border-border hover:shadow-sm",
-  ghost: "bg-transparent text-text-soft hover:bg-surface-2/60 hover:text-text active:bg-surface-2",
-  danger:
-    "bg-danger text-white hover:bg-red-700 shadow-[0_2px_8px_rgba(220,38,38,0.25)] hover:shadow-[0_4px_16px_rgba(220,38,38,0.35)]",
-  link: "bg-transparent text-brand hover:underline underline-offset-2 px-0",
+  primary: "portal-btn-primary",
+  secondary: "portal-btn-secondary",
+  ghost: "portal-btn-ghost",
+  danger: "portal-btn-danger",
+  link: "portal-btn-link",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3.5 text-xs",
-  md: "h-9 px-5 text-sm",
-  lg: "h-11 px-6 text-sm",
-  icon: "h-9 w-9 p-0",
+  sm: "portal-btn-sm",
+  md: "portal-btn-md",
+  lg: "portal-btn-lg",
+  icon: "portal-btn-icon",
 };
 
 export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
@@ -58,7 +55,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
         base,
         variants[variant],
         sizes[size],
-        block && "w-full",
+        block && "portal-btn-block",
         className
       )}
       disabled={disabled || loading}

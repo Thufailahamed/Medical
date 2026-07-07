@@ -1,14 +1,5 @@
 "use client";
 
-/**
- * SlotToggle — 4-square toggle row for the prescription composer's
- * morning/noon/evening/night frequency picker.
- *
- * Mirror of the mobile composer's slot grid. Each square is a small
- * button that flips its slot on/off. The frequency label is derived
- * via `slotsToFrequency(slots)` and shown next to the row.
- */
-
 import { Sun, Sunrise, Moon, Sunset } from "lucide-react";
 
 import { cn } from "@/portal/lib/utils";
@@ -28,7 +19,6 @@ interface Props {
   value: Slots;
   onChange: (next: Slots) => void;
   disabled?: boolean;
-  /** Render the derived frequency label to the right. */
   showLabel?: boolean;
   className?: string;
 }
@@ -43,11 +33,7 @@ export function SlotToggle({
   const freq = slotsToFrequency(value);
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div
-        role="group"
-        aria-label="Frequency slots"
-        className="inline-flex rounded-md border border-border bg-surface overflow-hidden"
-      >
+      <div role="group" aria-label="Frequency slots" className="portal-slot-toggle">
         {SLOTS.map((s) => {
           const { Icon } = SLOT_META[s];
           const active = value[s];
@@ -58,13 +44,7 @@ export function SlotToggle({
               disabled={disabled}
               aria-pressed={active}
               onClick={() => onChange({ ...value, [s]: !active })}
-              className={cn(
-                "h-8 w-9 inline-flex items-center justify-center text-xs font-medium border-r border-border last:border-r-0 transition-colors",
-                active
-                  ? "bg-brand text-white"
-                  : "bg-surface text-text-soft hover:bg-surface-2",
-                disabled && "opacity-50 pointer-events-none"
-              )}
+              className={cn("portal-slot-btn", active && "portal-slot-btn-active")}
               title={s}
             >
               <Icon size={13} />
@@ -75,8 +55,8 @@ export function SlotToggle({
       {showLabel ? (
         <span
           className={cn(
-            "text-xs",
-            freq ? "text-text font-medium" : "text-text-muted"
+            "text-xs font-semibold",
+            freq ? "text-text" : "text-text-muted"
           )}
         >
           {freq ?? "—"}

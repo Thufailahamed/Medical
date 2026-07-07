@@ -1,8 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 
-import { Button } from "@/portal/components/ui/Button";
 import { cn } from "@/portal/lib/utils";
 
 export interface FilterOption<T extends string> {
@@ -24,6 +23,9 @@ export interface FilterPillsProps<T extends string> {
 /**
  * Row of pill-shaped toggle buttons. Single-select. Used for status /
  * period filters on chart tabs.
+ *
+ * Uses div toggles + portal-filter-pill CSS (not <button>) because the
+ * marketing site's global button reset strips Tailwind backgrounds/borders.
  */
 export function FilterPills<T extends string>({
   options,
@@ -32,40 +34,40 @@ export function FilterPills<T extends string>({
   className,
   size = "sm",
 }: FilterPillsProps<T>) {
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>, optValue: T) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onChange(optValue);
+    }
+  };
+
   return (
     <div
       className={cn(
-        "flex items-center gap-1 p-0.5 rounded-xl border border-border/70 bg-surface-2/40",
+        "inline-flex flex-wrap items-center gap-1.5",
+        size === "md" && "[&_.portal-filter-pill]:h-8 [&_.portal-filter-pill]:px-3 [&_.portal-filter-pill]:text-sm",
         className
       )}
+      role="tablist"
     >
       {options.map((opt) => {
         const active = opt.value === value;
         return (
-          <Button
+          <div
             key={opt.value}
-            size={size}
-            variant={active ? "primary" : "ghost"}
+            role="tab"
+            aria-selected={active}
+            tabIndex={active ? 0 : -1}
+            data-active={active ? "true" : "false"}
+            className="portal-filter-pill"
             onClick={() => onChange(opt.value)}
-            className={cn(
-              "rounded-lg",
-              !active && "text-text-soft hover:text-text"
-            )}
+            onKeyDown={(e) => onKeyDown(e, opt.value)}
           >
             {opt.label}
             {typeof opt.count === "number" ? (
-              <span
-                className={cn(
-                  "ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold",
-                  active
-                    ? "bg-white/25 text-white"
-                    : "bg-surface text-text-soft border border-border/60"
-                )}
-              >
-                {opt.count}
-              </span>
+              <span className="portal-filter-pill-count">{opt.count}</span>
             ) : null}
-          </Button>
+          </div>
         );
       })}
     </div>

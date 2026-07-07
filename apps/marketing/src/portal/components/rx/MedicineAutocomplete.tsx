@@ -54,8 +54,8 @@ export function MedicineAutocomplete({ value, onChange, placeholder, disabled }:
 
   return (
     <div className="relative" ref={wrapRef}>
-      <div className="relative">
-        <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+      <div className="portal-input-search-wrap">
+        <Search size={14} className="portal-input-search-icon" />
         <input
           type="text"
           value={value ? displayName(value) : q}
@@ -70,8 +70,8 @@ export function MedicineAutocomplete({ value, onChange, placeholder, disabled }:
           placeholder={placeholder ?? "Search medicine…"}
           disabled={disabled}
           className={cn(
-            "w-full h-8 pl-7 pr-7 rounded-md border border-border bg-surface text-xs text-text",
-            "placeholder:text-text-muted focus-ring focus:border-brand"
+            "portal-input portal-input-icon-left",
+            value && "portal-input-clearable"
           )}
         />
         {value ? (
@@ -81,15 +81,16 @@ export function MedicineAutocomplete({ value, onChange, placeholder, disabled }:
               onChange(null);
               setQ("");
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+            className="portal-input-clear-btn"
+            aria-label="Clear"
           >
-            <X size={12} />
+            <X size={14} />
           </button>
         ) : null}
       </div>
 
       {open && q && !value ? (
-        <div className="absolute z-30 mt-1 w-full max-h-72 overflow-y-auto rounded-md border border-border bg-surface shadow-[var(--shadow-md)]">
+        <div className="portal-autocomplete-menu">
           {isFetching ? (
             <div className="px-3 py-2 text-xs text-text-muted">Searching…</div>
           ) : (data?.results ?? []).length === 0 ? (
@@ -105,10 +106,10 @@ export function MedicineAutocomplete({ value, onChange, placeholder, disabled }:
                       setOpen(false);
                       setQ("");
                     }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-surface-2 flex items-center justify-between gap-2"
+                    className="portal-autocomplete-item flex items-center justify-between gap-2"
                   >
                     <div className="min-w-0">
-                      <div className="text-xs font-medium text-text truncate">
+                      <div className="text-xs font-semibold text-text truncate">
                         {m.genericName}
                       </div>
                       {m.brandName ? (
@@ -119,7 +120,7 @@ export function MedicineAutocomplete({ value, onChange, placeholder, disabled }:
                       ) : null}
                     </div>
                     {m.scheduleClass ? (
-                      <span className="text-[10px] text-warn shrink-0">
+                      <span className="text-[10px] font-semibold text-amber-600 shrink-0">
                         {m.scheduleClass}
                       </span>
                     ) : null}

@@ -490,13 +490,10 @@ function PatientListRow({ row }: { row: PatientRow }) {
           </div>
         ) : null}
         <div className="flex items-center gap-2 shrink-0">
-          <Link
-            href={`/portal/patients/${p.id}`}
-            className="hidden sm:inline-flex items-center gap-0.5 text-[11px] font-semibold text-brand opacity-0 group-hover:opacity-100 transition-opacity"
-          >
+          <span className="hidden sm:inline-flex items-center gap-0.5 text-[11px] font-semibold text-brand opacity-0 group-hover:opacity-100 transition-opacity">
             {t("patients.openChart")}
             <ChevronRight size={11} />
-          </Link>
+          </span>
           <ChevronRight
             size={14}
             className="text-text-muted/40 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"

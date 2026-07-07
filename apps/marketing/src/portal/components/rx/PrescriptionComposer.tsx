@@ -31,11 +31,10 @@ import {
   AlertCircle,
   BookmarkPlus,
   Sparkles,
+  Pill,
 } from "lucide-react";
 
-import { Button } from "@/portal/components/ui/Button";
 import { Input, Textarea, Select } from "@/portal/components/ui/Form";
-import { Card } from "@/portal/components/ui/Card";
 import { Pill as PillBadge } from "@/portal/components/ui/Pill";
 import { toast } from "@/portal/components/ui/Toast";
 import { cn } from "@/portal/lib/utils";
@@ -367,26 +366,26 @@ export function PrescriptionComposer({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-2">
       {patientAllergies.length > 0 ? (
-        <Card padding={false}>
-          <div className="px-3 py-2 flex items-center gap-2 border-b border-border bg-danger-soft/30">
-            <AlertCircle size={14} className="text-danger" />
-            <span className="text-xs font-medium text-danger">
+        <div className="portal-composer-med-card">
+          <div className="px-4 py-2.5 flex items-center gap-2 border-b border-border bg-red-50">
+            <AlertCircle size={14} className="text-danger shrink-0" />
+            <span className="text-xs font-semibold text-danger">
               {t("prescription.allergyWarning")}
             </span>
           </div>
-          <div className="px-3 py-2 flex flex-wrap gap-1.5">
+          <div className="px-4 py-3 flex flex-wrap gap-1.5">
             {patientAllergies.map((a, i) => (
               <PillBadge key={i} tone="danger">
                 {a.substance} · {a.severity}
               </PillBadge>
             ))}
           </div>
-        </Card>
+        </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="portal-composer-section grid grid-cols-1 md:grid-cols-2 gap-3">
         <Input
           label={t("prescription.diagnosis")}
           value={diagnosis}
@@ -402,12 +401,11 @@ export function PrescriptionComposer({
         />
       </div>
 
-      {/* Templates */}
       {templates.length > 0 ? (
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <Sparkles size={12} className="text-brand" />
-            <span className="text-[11px] font-medium text-text-soft">
+            <span className="portal-field-label mb-0">
               {t("rx.composer.templatesSection")}
             </span>
           </div>
@@ -417,11 +415,11 @@ export function PrescriptionComposer({
                 key={tpl.id}
                 type="button"
                 onClick={() => applyTemplate(tpl)}
-                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full border border-border bg-surface hover:bg-surface-2 text-xs text-text transition-colors"
+                className="portal-chip"
               >
                 {tpl.name}
                 {tpl.useCount > 0 ? (
-                  <span className="text-[10px] text-text-muted">
+                  <span className="text-[10px] opacity-70 ml-1">
                     · {tpl.useCount}
                   </span>
                 ) : null}
@@ -435,23 +433,27 @@ export function PrescriptionComposer({
         {items.map((item, idx) => {
           const end = endDateForRow(item);
           return (
-            <Card key={item.id} padding={false}>
-              <div className="px-4 py-2.5 border-b border-border bg-surface-2/40 flex items-center gap-2">
-                <span className="text-xs font-medium text-text">#{idx + 1}</span>
+            <div key={item.id} className="portal-composer-med-card">
+              <div className="portal-composer-med-header">
+                <span className="portal-composer-med-index">#{idx + 1}</span>
+                <Pill size={14} className="text-emerald-600" />
+                <span className="text-xs font-semibold text-text flex-1 truncate">
+                  {item.name || t("prescription.searchMedicine")}
+                </span>
                 <button
                   type="button"
                   onClick={() => setItems((arr) => arr.filter((i) => i.id !== item.id))}
                   disabled={items.length === 1}
-                  className="ml-auto text-text-muted hover:text-danger disabled:opacity-30"
+                  className="portal-btn portal-btn-ghost portal-btn-sm text-danger disabled:opacity-30"
                   aria-label="Remove medicine"
                 >
                   <Trash2 size={14} />
                 </button>
               </div>
-              <div className="p-4 flex flex-col gap-3">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div className="p-4 flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   <div className="md:col-span-7">
-                    <label className="block text-[11px] text-text-soft mb-1">
+                    <label className="portal-field-label">
                       {t("prescription.searchMedicine")}
                     </label>
                     <MedicineAutocomplete
@@ -466,15 +468,13 @@ export function PrescriptionComposer({
                       }
                       onChange={(m) => setMedicine(item.id, m)}
                     />
-                    {/* Free-text fallback indicator */}
                     {item.name && !item.masterMedicineId ? (
-                      <div className="text-[10px] text-text-muted mt-1">
+                      <div className="text-[10px] text-text-muted mt-1.5">
                         Free-text: {item.name}
                       </div>
                     ) : null}
-                    {/* Preset chips — only when the field is empty */}
                     {!item.name ? (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
+                      <div className="flex flex-wrap gap-1.5 mt-2">
                         {PRESET_MEDS.filter(
                           (p) => !items.some((i) => i.name === p.genericName)
                         )
@@ -484,7 +484,7 @@ export function PrescriptionComposer({
                               key={p.genericName}
                               type="button"
                               onClick={() => applyPreset(item.id, p)}
-                              className="inline-flex items-center h-6 px-2 rounded-full border border-border bg-surface text-[10px] text-text-soft hover:bg-surface-2"
+                              className="portal-chip"
                             >
                               {p.genericName}
                             </button>
@@ -499,17 +499,15 @@ export function PrescriptionComposer({
                       onChange={(e) => updateRow(item.id, { dosage: e.target.value })}
                       placeholder="500 mg"
                     />
-                    <div className="flex flex-wrap gap-1 mt-1.5">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {COMMON_DOSAGES.map((d) => (
                         <button
                           key={d}
                           type="button"
                           onClick={() => updateRow(item.id, { dosage: d })}
                           className={cn(
-                            "inline-flex items-center h-6 px-2 rounded-full border text-[10px] font-medium transition-colors",
-                            item.dosage === d
-                              ? "bg-brand text-white border-brand"
-                              : "bg-surface border-border text-text-soft hover:bg-surface-2"
+                            "portal-chip",
+                            item.dosage === d && "portal-chip-active"
                           )}
                         >
                           {d}
@@ -519,9 +517,9 @@ export function PrescriptionComposer({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   <div className="md:col-span-6">
-                    <label className="block text-[11px] text-text-soft mb-1">
+                    <label className="portal-field-label">
                       {t("prescription.frequency")}
                     </label>
                     <SlotToggle
@@ -557,8 +555,8 @@ export function PrescriptionComposer({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs">
-                  <label className="inline-flex items-center gap-1.5">
+                <div className="flex items-center gap-3 text-xs px-1">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={item.ongoing}
@@ -566,7 +564,7 @@ export function PrescriptionComposer({
                         updateRow(item.id, { ongoing: e.target.checked })
                       }
                     />
-                    <span className="text-text-soft">
+                    <span className="text-text-soft font-medium">
                       {t("rx.composer.ongoing")}
                     </span>
                   </label>
@@ -585,26 +583,24 @@ export function PrescriptionComposer({
                   rows={2}
                 />
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          leftIcon={<Plus size={14} />}
-          onClick={() => setItems((arr) => [...arr, blankRow()])}
-        >
-          {t("prescription.addMedicine")}
-        </Button>
-      </div>
+      <button
+        type="button"
+        className="portal-btn portal-btn-secondary portal-btn-sm self-start"
+        onClick={() => setItems((arr) => [...arr, blankRow()])}
+      >
+        <Plus size={14} />
+        {t("prescription.addMedicine")}
+      </button>
 
       <SafetyCheckPanel warnings={effectiveWarnings} severity={effectiveTopSeverity} />
 
       {blocking ? (
-        <label className="flex items-start gap-2 text-xs">
+        <label className="flex items-start gap-2 text-xs px-1">
           <input
             type="checkbox"
             checked={overrideAck}
@@ -617,9 +613,8 @@ export function PrescriptionComposer({
         </label>
       ) : null}
 
-      {/* Save as template (create mode only) */}
       {!isEditing ? (
-        <Card padding={false}>
+        <div className="portal-composer-med-card">
           <label className="px-4 py-3 flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -627,7 +622,7 @@ export function PrescriptionComposer({
               onChange={(e) => setSaveAsTemplate(e.target.checked)}
             />
             <BookmarkPlus size={14} className="text-brand" />
-            <span className="text-xs text-text">
+            <span className="text-xs font-medium text-text">
               {t("rx.composer.saveAsTemplate")}
             </span>
             {saveAsTemplate ? (
@@ -637,36 +632,38 @@ export function PrescriptionComposer({
                 onChange={(e) => setTemplateName(e.target.value)}
                 placeholder={t("rx.composer.templateName")}
                 onClick={(e) => e.stopPropagation()}
-                className="ml-2 flex-1 h-7 px-2 rounded-md border border-border bg-surface text-xs text-text"
+                className="portal-input ml-2 flex-1"
+                style={{ height: "2rem", paddingTop: "0.375rem", paddingBottom: "0.375rem" }}
               />
             ) : null}
           </label>
-        </Card>
+        </div>
       ) : null}
 
-      <div className="flex items-center justify-end gap-2 sticky bottom-0 bg-bg py-2">
+      <div className="portal-composer-footer">
         {onCancel ? (
-          <Button variant="ghost" onClick={onCancel}>
+          <button type="button" className="portal-btn portal-btn-ghost portal-btn-sm" onClick={onCancel}>
             {t("common.cancel")}
-          </Button>
+          </button>
         ) : null}
-        <Button
-          variant="secondary"
-          leftIcon={<Save size={14} />}
-          disabled={!canSave}
-          loading={createMutation.isPending || updateMutation.isPending}
+        <button
+          type="button"
+          className="portal-btn portal-btn-secondary portal-btn-sm"
+          disabled={!canSave || createMutation.isPending || updateMutation.isPending}
           onClick={() => save(false)}
         >
+          <Save size={14} />
           {isEditing ? t("rx.composer.updateDraft") : t("prescription.saveDraft")}
-        </Button>
-        <Button
-          leftIcon={<FileSignature size={14} />}
-          disabled={!canSave}
-          loading={signMutation.isPending}
+        </button>
+        <button
+          type="button"
+          className="portal-btn portal-btn-primary portal-btn-sm"
+          disabled={!canSave || signMutation.isPending}
           onClick={() => save(true)}
         >
+          <FileSignature size={14} />
           {t("rx.composer.signAndSend")}
-        </Button>
+        </button>
       </div>
     </div>
   );
