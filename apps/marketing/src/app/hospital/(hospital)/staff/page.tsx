@@ -64,7 +64,7 @@ export default function StaffPage() {
                   <TD>{s.role}</TD>
                   <TD>{s.department ?? "—"}</TD>
                   <TD>
-                    <Pill tone={s.active ? "success" : "muted"}>
+                    <Pill tone={s.active ? "success" : "neutral"}>
                       {s.active ? tr(locale, "common.yes") : tr(locale, "common.no")}
                     </Pill>
                   </TD>

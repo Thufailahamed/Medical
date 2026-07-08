@@ -8,7 +8,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { tr } from "@/hospital/i18n";
@@ -66,7 +66,7 @@ export default function DepartmentsPage() {
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <Pill tone={d.active ? "success" : "muted"}>
+                  <Pill tone={d.active ? "success" : "neutral"}>
                     {d.active ? "active" : "inactive"}
                   </Pill>
                   {!d.active ? null : (

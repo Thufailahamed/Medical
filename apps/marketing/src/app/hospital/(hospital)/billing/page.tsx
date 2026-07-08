@@ -15,11 +15,11 @@ import { tr } from "@/hospital/i18n";
 import { formatLkr, formatDate } from "@/hospital/lib/format";
 
 const STATUS_TONES: Record<string, any> = {
-  draft: "muted",
+  draft: "neutral",
   issued: "info",
-  partially_paid: "warning",
+  partially_paid: "warn",
   paid: "success",
-  cancelled: "muted",
+  cancelled: "neutral",
 };
 
 export default function BillingPage() {
@@ -87,7 +87,7 @@ export default function BillingPage() {
                 <TH>{tr(locale, "billing.total")}</TH>
                 <TH>{tr(locale, "common.status")}</TH>
                 <TH>{tr(locale, "common.date")}</TH>
-                <TH />
+                <TH> </TH>
               </TR>
             </THead>
             <TBody>
@@ -97,7 +97,7 @@ export default function BillingPage() {
                   <TD>{i.patientName}</TD>
                   <TD>{formatLkr(i.totalLkr, locale)}</TD>
                   <TD>
-                    <Pill tone={STATUS_TONES[i.status] ?? "muted"}>{i.status}</Pill>
+                    <Pill tone={STATUS_TONES[i.status] ?? "neutral"}>{i.status}</Pill>
                   </TD>
                   <TD>{formatDate(i.createdAt, locale)}</TD>
                   <TD>

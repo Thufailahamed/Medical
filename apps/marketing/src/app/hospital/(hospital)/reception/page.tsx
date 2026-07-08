@@ -12,7 +12,7 @@ import { formatTime } from "@/hospital/lib/format";
 
 export default function ReceptionPage() {
   const locale = useAuthStore((s) => s.locale);
-  const tenantType = useAuthStore((s) => s.tenantType);
+  const tenantType = useAuthStore((s) => s.activeTenant?.type);
 
   const walkInsQ = useQuery({
     queryKey: ["walkIns", "today"],
@@ -94,7 +94,7 @@ export default function ReceptionPage() {
                     {w.reason ?? "—"}
                   </p>
                 </div>
-                <Pill tone="warning">{formatTime(w.createdAt, locale)}</Pill>
+                <Pill tone="warn">{formatTime(w.createdAt, locale)}</Pill>
               </li>
             ))}
           </ul>

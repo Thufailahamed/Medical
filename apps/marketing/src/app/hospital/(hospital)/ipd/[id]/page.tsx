@@ -8,7 +8,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { tr } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
@@ -134,7 +134,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
             {notes.map((n: any) => (
               <li key={n.id} className="border-l-2 border-[var(--accent-300)] pl-3">
                 <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-                  <Pill tone="muted">{n.kind}</Pill>
+                  <Pill tone="neutral">{n.kind}</Pill>
                   <span>{formatDate(n.recordedAt, locale)}</span>
                 </div>
                 <p className="mt-1 text-sm">{n.body}</p>

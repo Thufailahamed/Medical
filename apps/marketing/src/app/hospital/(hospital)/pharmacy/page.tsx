@@ -8,7 +8,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
@@ -128,7 +128,7 @@ function Queue() {
                   ) : null}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Pill tone="warning">{tr(locale, "pharmacy.signed")}</Pill>
+                  <Pill tone="warn">{tr(locale, "pharmacy.signed")}</Pill>
                   <Button size="sm" onClick={() => dispense.mutate(p.id)}>
                     {tr(locale, "pharmacy.dispense")}
                   </Button>

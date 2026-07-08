@@ -8,7 +8,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
@@ -107,7 +107,7 @@ function Queue() {
               <TH>{tr(locale, "common.name")}</TH>
               <TH>{tr(locale, "lab.test")}</TH>
               <TH>{tr(locale, "common.status")}</TH>
-              <TH />
+              <TH> </TH>
             </TR>
           </THead>
           <TBody>
@@ -116,7 +116,7 @@ function Queue() {
                 <TD>{o.patientName ?? o.patientId}</TD>
                 <TD>{o.testName ?? o.testCode ?? "—"}</TD>
                 <TD>
-                  <Pill tone="warning">{o.status}</Pill>
+                  <Pill tone="warn">{o.status}</Pill>
                 </TD>
                 <TD>
                   <div className="flex gap-2">

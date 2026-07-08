@@ -11,6 +11,7 @@ import {
   loginByPhoneSchema,
   sendOtpSchema,
   verifyOtpSchema,
+  tenantRegisterSchema,
   normalizeNic,
   ageAtRegistration,
 } from "../lib/validators";
@@ -941,3 +942,119 @@ auth.post("/change-password", authMiddleware, async (c) => {
 });
 
 export default auth;
+
+// ─── HOS-0: Tenant self-registration (hospital or clinic) ───
+// Public endpoint; creates:
+//   - one user row with role=super_admin|admin (pending until approved)
+//   - one row in `hospitals` or `clinics` linked to that user
+// Super admins review via admin queue and approve → flip both
+// users.status="active" + emit a notification so the applicant can sign in.
+auth.post("/register-tenant", async (c) => {
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = tenantRegisterSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+  const d = parsed.data;
+
+  // Reject duplicate email early (phone is optional in this flow).
+  if (d.email) {
+    const [exists] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, d.email))
+      .limit(1);
+    if (exists) {
+      return c.json({ error: "This email is already registered" }, 409);
+    }
+  }
+
+  const passwordHash = await hashPassword(d.password);
+
+  // Pick a role that the RBAC middleware already accepts for the portal.
+  // Hospital_admin maps directly; for clinics we reuse hospital_admin so
+  // the same portal layout covers both until a clinic_admin role exists.
+  const userRole = "hospital_admin";
+
+  const [user] = await db
+    .insert(users)
+    .values({
+      supabaseId: crypto.randomUUID(),
+      email: d.email,
+      phone: d.phone ?? null,
+      name: d.ownerName,
+      role: userRole,
+      passwordHash,
+      status: "pending",
+    })
+    .returning();
+
+  // Specialty string list (JSON-encoded for the SQLite TEXT column).
+  const specializationsJson = d.specializations?.length
+    ? JSON.stringify(d.specializations)
+    : null;
+
+  if (d.tenantType === "hospital") {
+    const { hospitals } = await import("@healthcare/db");
+    await db.insert(hospitals).values({
+      userId: user.id,
+      name: d.facilityName,
+      license: d.licenseNumber,
+      address: d.address ?? null,
+      phone: d.facilityPhone ?? d.phone ?? null,
+      location: d.location ?? null,
+      specializations: specializationsJson,
+    });
+  } else {
+    const { clinics } = await import("@healthcare/db");
+    await db.insert(clinics).values({
+      userId: user.id,
+      name: d.facilityName,
+      license: d.licenseNumber,
+      address: d.address ?? null,
+      phone: d.facilityPhone ?? d.phone ?? null,
+      location: d.location ?? null,
+      specializations: specializationsJson,
+    });
+  }
+
+  // Notify super admins so the queue picks it up.
+  try {
+    const admins = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.role, "super_admin"), eq(users.status, "active")));
+    if (admins.length > 0) {
+      await db.insert(notifications).values(
+        admins.map((a) => ({
+          id: crypto.randomUUID(),
+          userId: a.id,
+          type: "tenant_pending_review",
+          title: `New ${d.tenantType} application`,
+          body: `${d.facilityName} (${d.email}) registered by ${d.ownerName} and awaits approval.`,
+          data: JSON.stringify({ pendingUserId: user.id, tenantType: d.tenantType, facilityName: d.facilityName }),
+          read: 0,
+        }))
+      );
+    }
+  } catch (notifyErr: any) {
+    console.error("[register-tenant] admin notify failed:", notifyErr?.message);
+  }
+
+  return c.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+    },
+    tenantType: d.tenantType,
+    requiresApproval: true,
+    message: "Your facility registration is pending administrator approval.",
+  }, 202);
+});

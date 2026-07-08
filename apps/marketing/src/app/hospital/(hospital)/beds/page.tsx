@@ -71,7 +71,7 @@ function WardBoard({ ward }: { ward: any }) {
               }`}
             >
               <span className="font-mono font-semibold">{b.bedNumber}</span>
-              <Pill tone="muted" className="mt-1 text-[10px]">{b.status}</Pill>
+              <Pill tone="neutral" className="mt-1 text-[10px]">{b.status}</Pill>
             </div>
           ))}
         </div>

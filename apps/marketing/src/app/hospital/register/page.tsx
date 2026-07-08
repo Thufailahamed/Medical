@@ -5,7 +5,7 @@ import Link from "next/link";
 import { api } from "@/hospital/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Button } from "@/portal/components/ui/Button";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { tr } from "@/hospital/i18n";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { toast } from "@/portal/components/ui/Toast";
@@ -14,15 +14,15 @@ export default function RegisterPage() {
   const locale = useAuthStore((s) => s.locale);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    facilityType: "hospital" as "hospital" | "clinic",
-    name: "",
-    registrationNo: "",
+    tenantType: "hospital" as "hospital" | "clinic",
+    facilityName: "",
+    licenseNumber: "",
     address: "",
-    city: "",
-    phone: "",
+    location: "",
+    facilityPhone: "",
+    ownerName: "",
     email: "",
-    contactName: "",
-    contactRole: "hospital_admin",
+    phone: "",
     password: "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -52,7 +52,7 @@ export default function RegisterPage() {
             {tr(locale, "register.thankYou")}
           </h1>
           <p className="mt-3 text-sm text-[var(--text-muted)]">
-            {tr(locale, "register.pendingApprovalMsg")}
+            {tr(locale, "auth.pendingApprovalMsg")}
           </p>
           <Link
             href="/hospital/login"
@@ -102,28 +102,29 @@ export default function RegisterPage() {
               <FormField label={tr(locale, "register.facilityType")} required>
                 <select
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
-                  value={form.facilityType}
+                  value={form.tenantType}
                   onChange={(e) =>
-                    setForm({ ...form, facilityType: e.target.value as any })
+                    setForm({ ...form, tenantType: e.target.value as any })
                   }
                 >
                   <option value="hospital">Hospital</option>
                   <option value="clinic">Clinic</option>
                 </select>
               </FormField>
-              <FormField label={tr(locale, "common.name")} required>
+              <FormField label={tr(locale, "register.facilityName")} required>
                 <input
                   required
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  value={form.facilityName}
+                  onChange={(e) => setForm({ ...form, facilityName: e.target.value })}
                 />
               </FormField>
-              <FormField label={tr(locale, "register.regNo")}>
+              <FormField label={tr(locale, "register.regNo")} required>
                 <input
+                  required
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
-                  value={form.registrationNo}
-                  onChange={(e) => setForm({ ...form, registrationNo: e.target.value })}
+                  value={form.licenseNumber}
+                  onChange={(e) => setForm({ ...form, licenseNumber: e.target.value })}
                 />
               </FormField>
             </>
@@ -142,17 +143,16 @@ export default function RegisterPage() {
               <FormField label={tr(locale, "register.city")}>
                 <input
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
                 />
               </FormField>
-              <FormField label={tr(locale, "common.phone")} required>
+              <FormField label={tr(locale, "register.facilityPhone")}>
                 <input
-                  required
                   type="tel"
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  value={form.facilityPhone}
+                  onChange={(e) => setForm({ ...form, facilityPhone: e.target.value })}
                 />
               </FormField>
             </>
@@ -160,6 +160,14 @@ export default function RegisterPage() {
 
           {step === 3 && (
             <>
+              <FormField label={tr(locale, "register.ownerName")} required>
+                <input
+                  required
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+                  value={form.ownerName}
+                  onChange={(e) => setForm({ ...form, ownerName: e.target.value })}
+                />
+              </FormField>
               <FormField label={tr(locale, "common.email")} required>
                 <input
                   required
@@ -169,18 +177,19 @@ export default function RegisterPage() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
               </FormField>
-              <FormField label={tr(locale, "register.contactName")} required>
+              <FormField label={tr(locale, "register.phoneOptional")}>
                 <input
-                  required
+                  type="tel"
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
-                  value={form.contactName}
-                  onChange={(e) => setForm({ ...form, contactName: e.target.value })}
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </FormField>
               <FormField label={tr(locale, "auth.passwordLabel")} required>
                 <input
                   required
                   type="password"
+                  minLength={8}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}

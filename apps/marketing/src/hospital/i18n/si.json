@@ -251,7 +251,14 @@
     "outstandingSubtitle": "නොගෙවූ ශේෂ සහිත රෝගීන්",
     "outstandingAmount": "ඉතිරිය",
     "invoiceCount": "ඉන්වොයිසි",
-    "noOutstanding": "ඉතිරි කිසිවක් නැත"
+    "noOutstanding": "ඉතිරි කිසිවක් නැත",
+    "receiptTitle": "ගෙවීම් රිසිට්පත",
+    "billTo": "බිල ලබන්නා",
+    "tax": "බදු",
+    "discount": "වට්ටම",
+    "thankYou": "ඔබේ ව්‍යාපාරයට ස්තුතියි",
+    "viewReceipt": "රිසිට්පත බලන්න",
+    "print": "මුද්‍රණය කරන්න"
   },
   "reports": {
     "subtitle": "ආයතනය පුරා විශ්ලේෂණ",
@@ -270,13 +277,16 @@
     "title": "ඔබේ ආයතනය ලියාපදිංචි කරන්න",
     "subtitle": "ඔබේ රෝහල හෝ සායනය ගැන කියන්න",
     "facilityType": "ආයතන වර්ගය",
-    "regNo": "ලියාපදිංචි අංකය",
-    "city": "නගරය",
-    "contactName": "ප්‍රධාන සම්බන්ධතා නාමය",
+    "facilityName": "ආයතනයේ නම",
+    "regNo": "ලියාපදිංචි / බලපත්‍ර අංකය",
+    "city": "නගරය / ස්ථානය",
+    "facilityPhone": "ආයතන දුරකථනය",
+    "ownerName": "ප්‍රධාන සම්බන්ධතා / හිමිකරුගේ නම",
+    "phoneOptional": "පුද්ගලික දුරකථනය (අමතර)",
     "thankYou": "ස්තුතියි",
     "step1": "ආයතනය",
     "step2": "ස්ථානය",
-    "step3": "පරිපාලක"
+    "step3": "හිමිකරු"
   },
   "onboarding": {
     "welcome": "HealthHub රෝහල් පෝට්ටුවට සාදරයෙන් පිළිගනිමු",

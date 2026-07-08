@@ -8,16 +8,16 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { tr } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 
 const BED_STATUS_TONES: Record<string, any> = {
   available: "success",
-  occupied: "warning",
+  occupied: "warn",
   cleaning: "info",
-  maintenance: "muted",
+  maintenance: "neutral",
 };
 
 export default function WardDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -74,7 +74,7 @@ export default function WardDetailPage({ params }: { params: Promise<{ id: strin
             <Card key={b.id} className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">{b.bedNumber}</span>
-                <Pill tone={BED_STATUS_TONES[b.status] ?? "muted"}>{b.status}</Pill>
+                <Pill tone={BED_STATUS_TONES[b.status] ?? "neutral"}>{b.status}</Pill>
               </div>
               <select
                 value={b.status}

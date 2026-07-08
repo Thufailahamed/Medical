@@ -62,7 +62,7 @@ export default function PatientsPage() {
                   <TD>{p.phone ?? "—"}</TD>
                   <TD>{p.email ?? "—"}</TD>
                   <TD>
-                    <Pill tone="muted">{tr(locale, "common.view")}</Pill>
+                    <Pill tone="neutral">{tr(locale, "common.view")}</Pill>
                   </TD>
                 </TR>
               ))}

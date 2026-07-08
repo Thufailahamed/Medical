@@ -3,12 +3,13 @@
 import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/hospital/lib/api";
+import Link from "next/link";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { tr } from "@/hospital/i18n";
@@ -62,15 +63,23 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         title={`${data?.invoice?.invoiceNumber ?? tr(locale, "billing.invoice")}`}
         subtitle={data?.patient?.name ?? ""}
         actions={
-          data?.invoice?.status === "draft" ? (
-            <Button onClick={() => issue.mutate()}>
-              {tr(locale, "billing.issue")}
-            </Button>
-          ) : data?.invoice?.status !== "paid" && data?.invoice?.status !== "cancelled" ? (
-            <Button onClick={() => setPayOpen(true)} disabled={balance <= 0}>
-              {tr(locale, "billing.recordPayment")}
-            </Button>
-          ) : null
+          <div className="flex gap-2">
+            <Link
+              href={`/hospital/billing/${id}/receipt`}
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+            >
+              {tr(locale, "billing.viewReceipt")}
+            </Link>
+            {data?.invoice?.status === "draft" ? (
+              <Button onClick={() => issue.mutate()}>
+                {tr(locale, "billing.issue")}
+              </Button>
+            ) : data?.invoice?.status !== "paid" && data?.invoice?.status !== "cancelled" ? (
+              <Button onClick={() => setPayOpen(true)} disabled={balance <= 0}>
+                {tr(locale, "billing.recordPayment")}
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -146,7 +155,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   <TD>{formatDate(p.paidAt, locale)}</TD>
                   <TD>{formatLkr(p.amountLkr, locale)}</TD>
                   <TD>
-                    <Pill tone="muted">{p.method}</Pill>
+                    <Pill tone="neutral">{p.method}</Pill>
                   </TD>
                   <TD>{p.reference ?? "—"}</TD>
                 </TR>

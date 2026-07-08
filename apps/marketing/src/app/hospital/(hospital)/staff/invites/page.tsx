@@ -8,7 +8,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
@@ -73,7 +73,7 @@ export default function StaffInvitesPage() {
                 <TH>{tr(locale, "staff.role")}</TH>
                 <TH>{tr(locale, "common.status")}</TH>
                 <TH>{tr(locale, "common.date")}</TH>
-                <TH />
+                <TH> </TH>
               </TR>
             </THead>
             <TBody>
@@ -83,7 +83,7 @@ export default function StaffInvitesPage() {
                   <TD>{i.name ?? "—"}</TD>
                   <TD>{i.role}</TD>
                   <TD>
-                    <Pill tone={i.acceptedAt ? "success" : i.revokedAt ? "muted" : "warning"}>
+                    <Pill tone={i.acceptedAt ? "success" : i.revokedAt ? "neutral" : "warn"}>
                       {i.acceptedAt ? "accepted" : i.revokedAt ? "revoked" : "pending"}
                     </Pill>
                   </TD>

@@ -99,7 +99,7 @@ export default function WalkInsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Pill tone="warning">{tr(locale, "reception.waiting")}</Pill>
+                  <Pill tone="warn">{tr(locale, "reception.waiting")}</Pill>
                   <Button
                     size="sm"
                     variant="ghost"

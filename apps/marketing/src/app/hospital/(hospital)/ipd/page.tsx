@@ -9,7 +9,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
@@ -18,7 +18,7 @@ import { toast } from "@/portal/components/ui/Toast";
 import { formatDate } from "@/hospital/lib/format";
 
 const STATUS_TONES: Record<string, any> = {
-  admitted: "warning",
+  admitted: "warn",
   discharged: "success",
   transferred: "info",
 };
@@ -101,7 +101,7 @@ export default function IpdPage() {
                 <TH>{tr(locale, "ipd.ward")}</TH>
                 <TH>{tr(locale, "common.status")}</TH>
                 <TH>{tr(locale, "common.date")}</TH>
-                <TH />
+                <TH> </TH>
               </TR>
             </THead>
             <TBody>
@@ -111,7 +111,7 @@ export default function IpdPage() {
                   <TD>{a.reason ?? "—"}</TD>
                   <TD>{a.wardName ?? "—"}{a.bedNumber ? ` / ${a.bedNumber}` : ""}</TD>
                   <TD>
-                    <Pill tone={STATUS_TONES[a.status] ?? "muted"}>{a.status}</Pill>
+                    <Pill tone={STATUS_TONES[a.status] ?? "neutral"}>{a.status}</Pill>
                   </TD>
                   <TD>{formatDate(a.admittedAt, locale)}</TD>
                   <TD>

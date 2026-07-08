@@ -251,7 +251,14 @@
     "outstandingSubtitle": "Patients with unpaid balances",
     "outstandingAmount": "Outstanding",
     "invoiceCount": "Invoices",
-    "noOutstanding": "Nothing outstanding — nice"
+    "noOutstanding": "Nothing outstanding — nice",
+    "receiptTitle": "Payment receipt",
+    "billTo": "Bill to",
+    "tax": "Tax",
+    "discount": "Discount",
+    "thankYou": "Thank you for your business",
+    "viewReceipt": "View receipt",
+    "print": "Print"
   },
   "reports": {
     "subtitle": "Analytics across the facility",
@@ -270,13 +277,16 @@
     "title": "Register your facility",
     "subtitle": "Tell us about your hospital or clinic",
     "facilityType": "Facility type",
-    "regNo": "Registration number",
-    "city": "City",
-    "contactName": "Primary contact name",
+    "facilityName": "Facility name",
+    "regNo": "Registration / license number",
+    "city": "City / location",
+    "facilityPhone": "Facility phone",
+    "ownerName": "Primary contact / owner name",
+    "phoneOptional": "Personal phone (optional)",
     "thankYou": "Thank you",
     "step1": "Facility",
     "step2": "Location",
-    "step3": "Admin"
+    "step3": "Owner"
   },
   "onboarding": {
     "welcome": "Welcome to HealthHub Hospital",

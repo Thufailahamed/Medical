@@ -7,7 +7,7 @@ import { api } from "@/hospital/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
-import { Form, FormField } from "@/portal/components/ui/Form";
+import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { tr } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
