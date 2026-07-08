@@ -53,7 +53,8 @@
     "add": "Add",
     "remove": "Remove",
     "confirm": "Confirm",
-    "areYouSure": "Are you sure?"
+    "areYouSure": "Are you sure?",
+    "change": "Change"
   },
   "auth": {
     "title": "Doctor Portal",
@@ -267,7 +268,22 @@
     "newLab": "New lab order",
     "newNote": "New clinical note",
     "newFollowUp": "New follow-up",
-    "sendMessage": "Send message"
+    "sendMessage": "Send message",
+    "recordsSubtitle_one": "{{count}} record on file",
+    "recordsSubtitle_other": "{{count}} records on file",
+    "recordsSearchPlaceholder": "Search records by title, diagnosis, notes…",
+    "recordsEmpty": "No records for this patient yet",
+    "recordsEmptyBody": "Records you author or that this patient shares with you appear here.",
+    "recordsUntitled": "Untitled record"
+  },
+  "recordTypes": {
+    "all": "All types",
+    "lab_report": "Lab report",
+    "imaging": "Imaging",
+    "prescription": "Prescription",
+    "discharge_summary": "Discharge summary",
+    "consultation": "Consultation",
+    "other": "Other"
   },
   "prescription": {
     "title": "Prescription",
@@ -424,6 +440,11 @@
     "actions": {
       "viewChart": "Open chart",
       "explain": "Explain this report"
+    },
+    "newTitle": "Order lab tests",
+    "newSubtitle": "Pick a patient to place the order",
+    "fields": {
+      "patient": "Patient"
     }
   },
   "notes": {
@@ -704,7 +725,13 @@
     "empty": "No clinical notes yet",
     "emptySearch": "No notes match your search",
     "untitled": "Untitled note",
-    "unknownPatient": "Unknown patient"
+    "unknownPatient": "Unknown patient",
+    "new": "New note",
+    "newTitle": "New clinical note",
+    "newSubtitle": "Pick a patient to start the SOAP note",
+    "fields": {
+      "patient": "Patient"
+    }
   },
   "followUps": {
     "title": "Follow-ups",
@@ -724,7 +751,13 @@
     "reopen": "Reopen",
     "noDate": "No date set",
     "scheduled": "Scheduled",
-    "unknownPatient": "Unknown patient"
+    "unknownPatient": "Unknown patient",
+    "new": "New follow-up",
+    "newTitle": "Schedule a follow-up",
+    "newSubtitle": "Pick a patient to schedule",
+    "fields": {
+      "patient": "Patient"
+    }
   },
   "records": {
     "title": "Medical Records",

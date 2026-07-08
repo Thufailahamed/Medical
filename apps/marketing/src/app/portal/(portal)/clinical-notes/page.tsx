@@ -3,14 +3,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Edit3, Search, CalendarDays, ChevronRight } from "lucide-react";
+import { Edit3, Search, Plus, CalendarDays, ChevronRight } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Input } from "@/portal/components/ui/Form";
+import { Drawer } from "@/portal/components/ui/Modal";
 import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
+import { PatientCombobox } from "@/portal/components/patient/PatientCombobox";
+import { ClinicalNoteEditor } from "@/portal/components/notes/ClinicalNoteEditor";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
 
@@ -28,6 +31,8 @@ interface ClinicalNote {
 export default function ClinicalNotesPage() {
   const t = useT();
   const [search, setSearch] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [pickedPatient, setPickedPatient] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "clinical-notes"],
@@ -36,6 +41,11 @@ export default function ClinicalNotesPage() {
         "/doctor-portal/clinical-notes?limit=200"
       ),
   });
+
+  function closeDrawer() {
+    setCreating(false);
+    setPickedPatient(null);
+  }
 
   const allNotes = data?.notes ?? [];
 
@@ -55,6 +65,16 @@ export default function ClinicalNotesPage() {
         title={t("clinicalNotes.title")}
         subtitle={t("clinicalNotes.subtitle", { count: allNotes.length })}
         icon={<Edit3 size={18} className="text-violet-600" />}
+        actions={
+          <button
+            type="button"
+            className="portal-btn portal-btn-primary portal-btn-sm"
+            onClick={() => setCreating(true)}
+          >
+            <Plus size={14} />
+            {t("clinicalNotes.new")}
+          </button>
+        }
       />
 
       {/* Search */}
@@ -131,6 +151,46 @@ export default function ClinicalNotesPage() {
           </ul>
         )}
       </Card>
+
+      <Drawer
+        open={creating}
+        onClose={closeDrawer}
+        title={t("clinicalNotes.newTitle")}
+        subtitle={pickedPatient?.name ?? t("clinicalNotes.newSubtitle")}
+        size="md"
+      >
+        {!pickedPatient ? (
+          <div className="flex flex-col gap-3">
+            <label className="text-[11px] text-text-soft">
+              {t("clinicalNotes.fields.patient")}
+            </label>
+            <PatientCombobox value={null} onChange={(p) => p && setPickedPatient(p)} />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-surface-2/50">
+              <span className="text-xs text-text-muted">
+                {t("clinicalNotes.fields.patient")}
+              </span>
+              <span className="text-sm font-medium text-text truncate">
+                {pickedPatient.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPickedPatient(null)}
+                className="text-xs text-brand hover:underline"
+              >
+                {t("common.change")}
+              </button>
+            </div>
+            <ClinicalNoteEditor
+              patientId={pickedPatient.id}
+              onSaved={closeDrawer}
+              onCancel={closeDrawer}
+            />
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

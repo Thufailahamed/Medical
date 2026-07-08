@@ -2646,6 +2646,12 @@
     "recordsTab": "Records",
     "consentBanner": "Only records you have consent to view are shown"
   },
+  "hospitalRedirect": {
+    "title": "Hospital operations on the web",
+    "body": "Hospital admin is now managed on the web portal. Tap below to open it in your browser.",
+    "openCta": "Open hospital portal",
+    "openA11y": "Open hospital portal at {{url}}"
+  },
   "hospitalDashboard": {
     "title": "Hospital",
     "subtitleFallback": "Operations",

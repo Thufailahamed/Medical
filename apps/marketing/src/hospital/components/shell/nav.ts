@@ -102,7 +102,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/hospital/staff", labelKey: "staff", icon: UserCog, roles: ["hospital_admin", "super_admin"] },
       { href: "/hospital/staff/invites", labelKey: "staffInvites", icon: Mail, roles: ["hospital_admin", "super_admin"] },
-      { href: "/hospital/departments", labelKey: "departments", icon: Building2, roles: ["hospital_admin", "super_admin"] },
+      { href: "/hospital/staff/departments", labelKey: "departments", icon: Building2, roles: ["hospital_admin", "super_admin"] },
       { href: "/hospital/settings", labelKey: "settings", icon: Settings, roles: ["hospital_admin", "super_admin"] },
       { href: "/hospital/notifications", labelKey: "notifications", icon: Bell },
     ],

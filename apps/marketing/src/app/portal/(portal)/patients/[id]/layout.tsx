@@ -13,6 +13,7 @@ import { useT } from "@/portal/i18n";
 
 const TABS = [
   { key: "overview", path: "/overview" },
+  { key: "records", path: "/records" },
   { key: "medications", path: "/medications" },
   { key: "vitals", path: "/vitals" },
   { key: "allergies", path: "/allergies" },

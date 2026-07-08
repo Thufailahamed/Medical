@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Sparkles,
   Hash,
+  Plus,
 } from "lucide-react";
 
 import { api, qk } from "@/portal/lib/api";
@@ -16,8 +17,11 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
+import { Drawer } from "@/portal/components/ui/Modal";
 import { FilterPills } from "@/portal/components/chart/FilterPills";
 import { AiExplainLabDrawer } from "@/portal/components/ai/AiExplainLabDrawer";
+import { PatientCombobox } from "@/portal/components/patient/PatientCombobox";
+import { LabOrderForm } from "@/portal/components/labs/LabOrderForm";
 import { useT } from "@/portal/i18n";
 import { formatDateTime } from "@/portal/lib/format";
 import {
@@ -64,6 +68,13 @@ export default function DoctorLabOrdersPage() {
   const t = useT();
   const [status, setStatus] = useState<Status>("all");
   const [explainFor, setExplainFor] = useState<LabOrderRow | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [pickedPatient, setPickedPatient] = useState<{ id: string; name: string } | null>(null);
+
+  function closeDrawer() {
+    setCreating(false);
+    setPickedPatient(null);
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: [...qk.labOrdersAll({ status })],
@@ -88,6 +99,16 @@ export default function DoctorLabOrdersPage() {
         title={t("labOrders.title")}
         subtitle={t("labOrders.subtitle")}
         icon={<FlaskConical size={18} className="text-brand" />}
+        actions={
+          <button
+            type="button"
+            className="portal-btn portal-btn-primary portal-btn-sm"
+            onClick={() => setCreating(true)}
+          >
+            <Plus size={14} />
+            {t("labOrders.new")}
+          </button>
+        }
       />
 
       <Card padding={false} className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-surface">
@@ -204,6 +225,46 @@ export default function DoctorLabOrdersPage() {
           onClose={() => setExplainFor(null)}
         />
       ) : null}
+
+      <Drawer
+        open={creating}
+        onClose={closeDrawer}
+        title={t("labOrders.newTitle")}
+        subtitle={pickedPatient?.name ?? t("labOrders.newSubtitle")}
+        size="md"
+      >
+        {!pickedPatient ? (
+          <div className="flex flex-col gap-3">
+            <label className="text-[11px] text-text-soft">
+              {t("labOrders.fields.patient")}
+            </label>
+            <PatientCombobox value={null} onChange={(p) => p && setPickedPatient(p)} />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-surface-2/50">
+              <span className="text-xs text-text-muted">
+                {t("labOrders.fields.patient")}
+              </span>
+              <span className="text-sm font-medium text-text truncate">
+                {pickedPatient.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPickedPatient(null)}
+                className="text-xs text-brand hover:underline"
+              >
+                {t("common.change")}
+              </button>
+            </div>
+            <LabOrderForm
+              patientId={pickedPatient.id}
+              onSaved={closeDrawer}
+              onCancel={closeDrawer}
+            />
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -53,7 +53,8 @@
     "add": "එකතු කරන්න",
     "remove": "ඉවත් කරන්න",
     "confirm": "තහවුරු කරන්න",
-    "areYouSure": "ඔබට විශ්වාසද?"
+    "areYouSure": "ඔබට විශ්වාසද?",
+    "change": "මාරු කරන්න"
   },
   "auth": {
     "title": "වෛද්‍ය ද්වාරය",
@@ -221,7 +222,22 @@
     "newLab": "නව රසායනාගාර ඇණවුම",
     "newNote": "නව සායනික සටහන",
     "newFollowUp": "නව පසු විපරමක්",
-    "sendMessage": "පණිවිඩයක් යවන්න"
+    "sendMessage": "පණිවිඩයක් යවන්න",
+    "recordsSubtitle_one": "වාර්තා {{count}}ක්",
+    "recordsSubtitle_other": "වාර්තා {{count}}ක්",
+    "recordsSearchPlaceholder": "මාතෘකාව, රෝග විනිශ්චය, සටහන් අනුව සොයන්න…",
+    "recordsEmpty": "මෙම රෝගියාගේ වාර්තා නැත",
+    "recordsEmptyBody": "ඔබ නිර්මාණය කළ හෝ රෝගියා බෙදාගත් වාර්තා මෙහි පෙන්වයි.",
+    "recordsUntitled": "මාතෘකාවක් රහිත වාර්තාව"
+  },
+  "recordTypes": {
+    "all": "සියලු වර්ග",
+    "lab_report": "රසායනාගාර වාර්තාව",
+    "imaging": "රූප විමසුම",
+    "prescription": "බෙහෙත් පත",
+    "discharge_summary": "මංගල සාරාංශය",
+    "consultation": "උපදේශනය",
+    "other": "වෙනත්"
   },
   "prescription": {
     "title": "බෙහෙත් පත",
@@ -849,6 +865,30 @@
       "settings": "සැකසුම්",
       "admins": "පරිපාලකයින්",
       "systemHealth": "පද්ධති සෞඛ්‍යය"
+    }
+  },
+  "clinicalNotes": {
+    "new": "නව සටහන",
+    "newTitle": "නව සායනික සටහන",
+    "newSubtitle": "සටහන ආරම්භ කිරීමට රෝගියෙකු තෝරන්න",
+    "fields": {
+      "patient": "රෝගියා"
+    }
+  },
+  "labOrders": {
+    "new": "නව රසායනාගාර ඇණවුම",
+    "newTitle": "රසායනාගාර පරීක්ෂණ ඇණවුම් කරන්න",
+    "newSubtitle": "ඇණවුම තැබීමට රෝගියෙකු තෝරන්න",
+    "fields": {
+      "patient": "රෝගියා"
+    }
+  },
+  "followUps": {
+    "new": "නව පසු විපරම",
+    "newTitle": "පසු විපරමක් කාල නියම කරන්න",
+    "newSubtitle": "කාල නියම කිරීමට රෝගියෙකු තෝරන්න",
+    "fields": {
+      "patient": "රෝගියා"
     }
   }
 }
