@@ -2801,3 +2801,242 @@ export const payments = sqliteTable(
     invoiceIdx: index("payments_invoice_idx").on(t.invoiceId),
   }),
 );
+
+// ─── Phase HOS-14: Inter-hospital collaboration ──────────────
+// Hospital-to-hospital record requests, referrals, lab routing,
+// doctor consult notes, and discharge handoffs.
+
+export const hospitalShareRequests = sqliteTable(
+  "hospital_share_requests",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    requesterHospitalId: text("requester_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    sourceHospitalId: text("source_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    requestedByUserId: text("requested_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    scope: text("scope", {
+      enum: ["full", "records", "prescriptions", "lab"],
+    })
+      .notNull()
+      .default("full"),
+    reason: text("reason").notNull(),
+    status: text("status", {
+      enum: ["pending", "approved", "declined", "expired", "revoked"],
+    })
+      .notNull()
+      .default("pending"),
+    token: text("token").notNull().unique(),
+    expiresAt: text("expires_at").notNull(),
+    approvedByUserId: text("approved_by_user_id").references(() => users.id),
+    approvedAt: text("approved_at"),
+    declinedAt: text("declined_at"),
+    declinedReason: text("declined_reason"),
+    revokedAt: text("revoked_at"),
+    revokedByUserId: text("revoked_by_user_id").references(() => users.id),
+    viewedCount: integer("viewed_count").notNull().default(0),
+    lastViewedAt: text("last_viewed_at"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    requesterIdx: index("idx_hsr_requester").on(
+      t.requesterHospitalId,
+      t.status
+    ),
+    sourceIdx: index("idx_hsr_source").on(t.sourceHospitalId, t.status),
+    patientIdx: index("idx_hsr_patient").on(t.patientId),
+  })
+);
+
+export const hospitalShareRequestEvents = sqliteTable(
+  "hospital_share_request_events",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    requestId: text("request_id")
+      .notNull()
+      .references(() => hospitalShareRequests.id),
+    kind: text("kind", {
+      enum: [
+        "requested",
+        "approved",
+        "declined",
+        "viewed",
+        "revoked",
+        "expired",
+        "notified_patient",
+      ],
+    }).notNull(),
+    actorUserId: text("actor_user_id").references(() => users.id),
+    details: text("details"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    reqIdx: index("idx_hsr_events_req").on(t.requestId, t.createdAt),
+  })
+);
+
+export const crossHospitalReferrals = sqliteTable(
+  "cross_hospital_referrals",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    fromHospitalId: text("from_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    fromDoctorId: text("from_doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    toHospitalId: text("to_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    toSpecialty: text("to_specialty").notNull(),
+    reason: text("reason").notNull(),
+    clinicalSummary: text("clinical_summary").notNull(),
+    urgency: text("urgency", {
+      enum: ["routine", "urgent", "emergency"],
+    })
+      .notNull()
+      .default("routine"),
+    status: text("status", {
+      enum: ["pending", "accepted", "declined", "completed", "cancelled"],
+    })
+      .notNull()
+      .default("pending"),
+    acceptedByUserId: text("accepted_by_user_id").references(() => users.id),
+    acceptedAt: text("accepted_at"),
+    completedAt: text("completed_at"),
+    declinedAt: text("declined_at"),
+    declinedReason: text("declined_reason"),
+    linkedShareRequestId: text("linked_share_request_id").references(
+      () => hospitalShareRequests.id
+    ),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    toIdx: index("idx_xref_to").on(t.toHospitalId, t.status),
+    fromIdx: index("idx_xref_from").on(t.fromHospitalId, t.status),
+  })
+);
+
+export const crossHospitalLabRoutings = sqliteTable(
+  "cross_hospital_lab_routings",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    labOrderId: text("lab_order_id")
+      .notNull()
+      .references(() => labOrders.id),
+    fromHospitalId: text("from_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    toHospitalId: text("to_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    routedByUserId: text("routed_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    reason: text("reason").notNull(),
+    status: text("status", {
+      enum: ["pending", "accepted", "completed", "cancelled"],
+    })
+      .notNull()
+      .default("pending"),
+    acceptedByUserId: text("accepted_by_user_id").references(() => users.id),
+    acceptedAt: text("accepted_at"),
+    completedAt: text("completed_at"),
+    resultShareRequestId: text("result_share_request_id").references(
+      () => hospitalShareRequests.id
+    ),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    fromIdx: index("idx_xlabr_from").on(t.fromHospitalId, t.status),
+    toIdx: index("idx_xlabr_to").on(t.toHospitalId, t.status),
+  })
+);
+
+export const consultNotes = sqliteTable(
+  "consult_notes",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    fromDoctorId: text("from_doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    toDoctorId: text("to_doctor_id").references(() => doctors.id),
+    fromHospitalId: text("from_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    toHospitalId: text("to_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    question: text("question").notNull(),
+    thread: text("thread").notNull().default("[]"),
+    status: text("status", {
+      enum: ["open", "answered", "closed"],
+    })
+      .notNull()
+      .default("open"),
+    linkedShareRequestId: text("linked_share_request_id").references(
+      () => hospitalShareRequests.id
+    ),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    lastReplyAt: text("last_reply_at"),
+  },
+  (t) => ({
+    toIdx: index("idx_consult_to").on(t.toHospitalId, t.status),
+    patientIdx: index("idx_consult_patient").on(t.patientId),
+  })
+);
+
+export const dischargeHandoffs = sqliteTable(
+  "discharge_handoffs",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    admissionId: text("admission_id")
+      .notNull()
+      .references(() => admissions.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    fromHospitalId: text("from_hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    toClinicId: text("to_clinic_id").references(() => clinics.id),
+    toHospitalId: text("to_hospital_id").references(() => hospitals.id),
+    dischargeSummary: text("discharge_summary").notNull(),
+    followUpPlan: text("follow_up_plan"),
+    sharedAt: text("shared_at"),
+    acknowledgedByUserId: text("acknowledged_by_user_id").references(
+      () => users.id
+    ),
+    acknowledgedAt: text("acknowledged_at"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientIdx: index("idx_dh_patient").on(t.patientId),
+    fromIdx: index("idx_dh_from").on(t.fromHospitalId),
+  })
+);

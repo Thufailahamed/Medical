@@ -11,8 +11,15 @@ import {
   wards,
   patients,
   users,
+  hospitals,
+  hospitalStaff,
+  hospitalDoctors,
+  doctors,
   medicalRecords,
   notifications,
+  dischargeHandoffs,
+  hospitalShareRequests,
+  clinics,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -53,6 +60,29 @@ async function resolveScopeId(c: any): Promise<string | null> {
   const { hospitals } = await import("@healthcare/db");
   const [h] = await db.select().from(hospitals).where(eq(hospitals.userId, userId)).limit(1);
   return h?.id ?? null;
+}
+
+async function hospitalStaffUserIds(db: any, hospitalId: string): Promise<string[]> {
+  const adminRows = await db
+    .select({ userId: hospitals.userId })
+    .from(hospitals)
+    .where(eq(hospitals.id, hospitalId))
+    .limit(1);
+  const staffRows = await db
+    .select({ userId: hospitalStaff.userId })
+    .from(hospitalStaff)
+    .where(eq(hospitalStaff.hospitalId, hospitalId));
+  const doctorRows = await db
+    .select({ userId: users.id })
+    .from(hospitalDoctors)
+    .innerJoin(doctors, eq(doctors.id, hospitalDoctors.doctorId))
+    .innerJoin(users, eq(users.id, doctors.userId))
+    .where(eq(hospitalDoctors.hospitalId, hospitalId));
+  const set = new Set<string>();
+  for (const r of adminRows) if (r.userId) set.add(r.userId);
+  for (const r of staffRows) if (r.userId) set.add(r.userId);
+  for (const r of doctorRows) if (r.userId) set.add(r.userId);
+  return Array.from(set);
 }
 
 // GET /hospital-portal/admissions
@@ -170,11 +200,31 @@ admissionsRouter.post("/", async (c) => {
     hospitalId: scopeId,
   });
 
-  await notify(db, parsed.data.patientId, "admission_created", {
-    admissionId: created.id,
-    reason: parsed.data.reason ?? "Admitted",
+  const [patientRow] = await db
+    .select({ userId: patients.userId })
+    .from(patients)
+    .where(eq(patients.id, parsed.data.patientId))
+    .limit(1);
+  if (patientRow?.userId) {
+    await notify({
+      db,
+      userId: patientRow.userId,
+      type: "hospital",
+      title: "Admission created",
+      body: parsed.data.reason ?? "You have been admitted",
+      data: {
+        kind: "admission_created",
+        admissionId: created.id,
+        reason: parsed.data.reason ?? "Admitted",
+      },
+    });
+  }
+  await writeAudit(db, {
+    userId,
+    action: "admission.create",
+    resource: "admission",
+    resourceId: created.id,
   });
-  await writeAudit(db, userId, "admission.create", { id: created.id });
 
   return c.json({ admission: created }, 201);
 });
@@ -297,10 +347,137 @@ admissionsRouter.post("/:id/discharge", async (c) => {
     });
   }
 
-  await notify(db, row.patientId, "admission_discharged", { admissionId: id });
-  await writeAudit(db, userId, "admission.discharge", { id });
+  // Phase HOS-14: optional discharge handoff to a clinic / other hospital.
+  let handoffId: string | null = null;
+  let shareRequestId: string | null = null;
+  if (parsed.data.handoffTo && (parsed.data.handoffTo.clinicId || parsed.data.handoffTo.hospitalId)) {
+    const handoffIdGen =
+      (crypto as unknown as { randomUUID?: () => string }).randomUUID?.() ??
+      Math.random().toString(36).slice(2);
+    handoffId = handoffIdGen;
+    const summary =
+      parsed.data.dischargeInstructions ||
+      parsed.data.dischargeDiagnosis ||
+      "Discharged";
+    await db.insert(dischargeHandoffs).values({
+      id: handoffId,
+      admissionId: id,
+      patientId: row.patientId,
+      fromHospitalId: row.hospitalId,
+      toClinicId: parsed.data.handoffTo.clinicId || null,
+      toHospitalId: parsed.data.handoffTo.hospitalId || null,
+      dischargeSummary: summary.slice(0, 8000),
+      followUpPlan: parsed.data.handoffTo.followUpPlan?.slice(0, 4000) ?? null,
+      sharedAt: now,
+    });
+    // Auto-create linked share request so receiving side can read full chart.
+    if (parsed.data.handoffTo.hospitalId) {
+      const shareIdGen =
+        (crypto as unknown as { randomUUID?: () => string }).randomUUID?.() ??
+        Math.random().toString(36).slice(2);
+      shareRequestId = shareIdGen;
+      const bytes = new Uint8Array(24);
+      crypto.getRandomValues(bytes);
+      const token = Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      await db.insert(hospitalShareRequests).values({
+        id: shareIdGen,
+        requesterHospitalId: parsed.data.handoffTo.hospitalId,
+        sourceHospitalId: row.hospitalId,
+        patientId: row.patientId,
+        requestedByUserId: userId,
+        scope: "full",
+        reason: `Discharge handoff #${handoffId.slice(0, 8)}`,
+        status: "approved",
+        token,
+        expiresAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
+        approvedByUserId: userId,
+        approvedAt: now,
+        createdAt: now,
+      });
 
-  return c.json({ ok: true });
+      const [fromH] = await db
+        .select({ name: hospitals.name })
+        .from(hospitals)
+        .where(eq(hospitals.id, row.hospitalId))
+        .limit(1);
+      const recipientIds = await hospitalStaffUserIds(
+        db,
+        parsed.data.handoffTo.hospitalId
+      );
+      for (const recipientId of recipientIds) {
+        await notify({
+          db,
+          userId: recipientId,
+          type: "hospital_request",
+          title: "Discharge handoff received",
+          body: `${fromH?.name ?? "A hospital"} sent a discharge handoff with patient chart access`,
+          data: {
+            kind: "discharge_handoff_received",
+            handoffId,
+            shareRequestId,
+            fromHospitalId: row.hospitalId,
+            patientId: row.patientId,
+          },
+        });
+      }
+    }
+
+    if (parsed.data.handoffTo.clinicId) {
+      const [fromH] = await db
+        .select({ name: hospitals.name })
+        .from(hospitals)
+        .where(eq(hospitals.id, row.hospitalId))
+        .limit(1);
+      const [clinic] = await db
+        .select({ userId: clinics.userId, name: clinics.name })
+        .from(clinics)
+        .where(eq(clinics.id, parsed.data.handoffTo.clinicId))
+        .limit(1);
+      if (clinic?.userId) {
+        await notify({
+          db,
+          userId: clinic.userId,
+          type: "hospital_request",
+          title: "Discharge handoff received",
+          body: `${fromH?.name ?? "A hospital"} sent a discharge summary for ${clinic.name}`,
+          data: {
+            kind: "discharge_handoff_received",
+            handoffId,
+            fromHospitalId: row.hospitalId,
+            patientId: row.patientId,
+            clinicId: parsed.data.handoffTo.clinicId,
+          },
+        });
+      }
+    }
+  }
+
+  const [dischargedPatient] = await db
+    .select({ userId: patients.userId })
+    .from(patients)
+    .where(eq(patients.id, row.patientId))
+    .limit(1);
+  if (dischargedPatient?.userId) {
+    await notify({
+      db,
+      userId: dischargedPatient.userId,
+      type: "hospital",
+      title: "Discharged",
+      body: "You have been discharged from the hospital",
+      data: { kind: "admission_discharged", admissionId: id },
+    });
+  }
+  await writeAudit(db, {
+    userId,
+    action: "admission.discharge",
+    resource: "admission",
+    resourceId: id,
+    details: { handoffId, shareRequestId },
+  });
+
+  return c.json({ ok: true, handoffId, shareRequestId });
 });
 
 // POST /hospital-portal/admissions/:id/notes

@@ -91,7 +91,8 @@
     "billing": "Billing",
     "billingOutstanding": "Outstanding",
     "reportsOverview": "Reports",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "collab": "Collaboration"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -143,7 +144,8 @@
     "waiting": "waiting",
     "doctor": "Doctor",
     "appointmentsSubtitle": "All scheduled appointments",
-    "walkInSubtitle": "Queue of walk-in patients"
+    "walkInSubtitle": "Queue of walk-in patients",
+    "patientsSubtitle": "Patients registered at this hospital"
   },
   "wards": {
     "newWard": "New ward",
@@ -181,6 +183,15 @@
     "noteKind": "Note type",
     "patientId": "Patient ID",
     "admission": "Admission",
+    "handoffSection": "Discharge handoff",
+    "handoffNone": "No handoff",
+    "handoffHospital": "Another hospital",
+    "handoffClinic": "Clinic / follow-up care",
+    "handoffTarget": "Receiving facility",
+    "handoffFollowUpPlan": "Follow-up plan",
+    "handoffFollowUpPlanPlaceholder": "e.g. Cardiology review in 2 weeks",
+    "handoffHint": "Sending to a hospital shares the discharge summary and grants chart access for 7 days.",
+    "handoffClinicHint": "The clinic receives the discharge summary for continuity of care.",
     "status": {
       "admitted": "Admitted",
       "discharged": "Discharged",
@@ -299,6 +310,84 @@
     "skip": "Skip for now",
     "finish": "Finish"
   },
+  "patients": {
+    "directory": "Patient directory",
+    "directorySubtitle": "All patients registered at this hospital",
+    "mrn": "MRN",
+    "filterAll": "All",
+    "filterAdmitted": "Currently admitted",
+    "filterRegistered": "Registered",
+    "filterDischarged": "Discharged",
+    "admitted": "Admitted",
+    "registered": "Registered",
+    "discharged": "Discharged",
+    "notAdmitted": "Not admitted",
+    "registeredAt": "Registered",
+    "patientCount": "{{count}} patients",
+    "viewProfile": "View profile",
+    "noPatients": "No patients registered yet",
+    "tabs": {
+      "overview": "Overview",
+      "admissions": "Admissions",
+      "records": "Records",
+      "prescriptions": "Prescriptions",
+      "lab": "Lab orders",
+      "vitals": "Vitals"
+    },
+    "overview": {
+      "profile": "Patient profile",
+      "registration": "Registration",
+      "admission": "Current admission",
+      "doctors": "Treating doctors",
+      "primary": "Primary",
+      "noDoctors": "No doctors linked yet",
+      "noAdmission": "Not currently admitted",
+      "bloodGroup": "Blood group",
+      "gender": "Gender",
+      "dob": "Date of birth",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address"
+    },
+    "admissions": {
+      "noAdmissions": "No prior admissions at this hospital",
+      "reason": "Reason",
+      "ward": "Ward",
+      "bed": "Bed",
+      "view": "Open admission"
+    },
+    "records": {
+      "noRecords": "No medical records at this hospital",
+      "doctor": "Doctor",
+      "type": "Type"
+    },
+    "prescriptions": {
+      "noPrescriptions": "No prescriptions at this hospital",
+      "medicines": "Medicines",
+      "signed": "Signed",
+      "draft": "Draft",
+      "dispensed": "Dispensed",
+      "cancelled": "Cancelled"
+    },
+    "lab": {
+      "noOrders": "No lab orders at this hospital",
+      "tests": "Tests",
+      "orderedAt": "Ordered",
+      "completedAt": "Completed"
+    },
+    "vitals": {
+      "noVitals": "No vitals recorded",
+      "latestByType": "Latest readings",
+      "alerts": "Active alerts",
+      "noAlerts": "No active alerts"
+    },
+    "actions": {
+      "admit": "Admit patient",
+      "print": "Print summary",
+      "view": "View",
+      "noMrn": "—"
+    }
+  },
   "notifications": {
     "title": "Notifications",
     "subtitle": "Updates from your facility",
@@ -331,5 +420,108 @@
     "capLab": "Lab queue and result uploads",
     "session": "Session",
     "sessionHint": "Sign out of this device."
+  },
+  "collab": {
+    "title": "Collaboration",
+    "subtitle": "Coordinate care with other hospitals",
+    "tabs": {
+      "requests": "Record requests",
+      "referrals": "Referrals",
+      "lab": "Lab routing",
+      "consults": "Consults",
+      "discharges": "Discharges"
+    },
+    "requests": {
+      "title": "Patient record requests",
+      "subtitle": "Request and approve chart access with other hospitals",
+      "outgoing": "Outgoing",
+      "incoming": "Incoming",
+      "new": "Request patient record",
+      "noOutgoing": "No outgoing requests",
+      "noIncoming": "No incoming requests",
+      "form": {
+        "patient": "Patient",
+        "sourceHospital": "Source hospital",
+        "scope": "Records to include",
+        "scopeFull": "Full chart",
+        "scopeRecords": "Medical records only",
+        "scopePrescriptions": "Prescriptions only",
+        "scopeLab": "Lab orders only",
+        "reason": "Clinical reason (required)",
+        "reasonPlaceholder": "e.g. Patient transferred for cardiac workup",
+        "ttl": "Access duration",
+        "ttl24": "24 hours",
+        "ttl72": "3 days",
+        "ttl168": "7 days",
+        "submit": "Send request"
+      },
+      "status": { "pending": "Pending", "approved": "Approved", "declined": "Declined", "expired": "Expired", "revoked": "Revoked" },
+      "actions": { "viewBundle": "View chart", "revoke": "Revoke access", "approve": "Approve", "decline": "Decline", "cancel": "Cancel" },
+      "banner": "Viewing chart via share request. Expires {{when}}.",
+      "declinedReason": "Decline reason"
+    },
+    "referrals": {
+      "title": "Cross-hospital referrals",
+      "outgoing": "Sent",
+      "incoming": "Received",
+      "new": "Refer a patient",
+      "noOutgoing": "No referrals sent",
+      "noIncoming": "No referrals received",
+      "form": {
+        "patient": "Patient",
+        "toHospital": "Target hospital",
+        "specialty": "Specialty",
+        "urgency": "Urgency",
+        "urgencyRoutine": "Routine",
+        "urgencyUrgent": "Urgent",
+        "urgencyEmergency": "Emergency",
+        "reason": "Referral reason",
+        "summary": "Clinical summary",
+        "submit": "Send referral"
+      },
+      "status": { "pending": "Awaiting acceptance", "accepted": "Accepted", "declined": "Declined", "completed": "Completed", "cancelled": "Cancelled" }
+    },
+    "labRouting": {
+      "title": "Lab order routing",
+      "outgoing": "Sent",
+      "incoming": "Received",
+      "new": "Route a lab order",
+      "noOutgoing": "No routed lab orders",
+      "noIncoming": "No incoming routed lab orders",
+      "form": {
+        "labOrder": "Lab order",
+        "toHospital": "Destination hospital",
+        "reason": "Routing reason",
+        "submit": "Route order"
+      },
+      "status": { "pending": "Pending acceptance", "accepted": "Accepted", "completed": "Completed", "cancelled": "Cancelled" }
+    },
+    "consults": {
+      "title": "Doctor consults",
+      "incoming": "Consults for me",
+      "outgoing": "Sent",
+      "open": "Open a consult",
+      "noIncoming": "No consults received",
+      "noOutgoing": "No consults sent",
+      "form": {
+        "patient": "Patient",
+        "toHospital": "Asking hospital",
+        "toDoctor": "Doctor (optional)",
+        "question": "Question",
+        "submit": "Send consult"
+      },
+      "replyPlaceholder": "Reply…",
+      "close": "Close consult"
+    },
+    "discharges": {
+      "title": "Discharge handoffs",
+      "outgoing": "Sent",
+      "incoming": "Received",
+      "noOutgoing": "No discharge handoffs sent",
+      "noIncoming": "No discharge handoffs received",
+      "viewSummary": "View discharge summary",
+      "acknowledge": "Acknowledge",
+      "acknowledged": "Acknowledged"
+    }
   }
 }

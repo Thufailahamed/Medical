@@ -13,12 +13,26 @@ import { useAuthStore } from "@/hospital/stores/auth";
 import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 import { formatDate } from "@/hospital/lib/format";
+import { cn } from "@/portal/lib/utils";
+
+type HandoffType = "none" | "hospital" | "clinic";
+
+const EMPTY_DISCHARGE_FORM = {
+  dischargeDiagnosis: "",
+  dischargeInstructions: "",
+  followUpDate: "",
+  handoffType: "none" as HandoffType,
+  handoffHospitalId: "",
+  handoffClinicId: "",
+  handoffFollowUpPlan: "",
+};
 
 export default function AdmissionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useT();
   const { id } = use(params);
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
+  const activeHospitalId = useAuthStore((s) => s.activeHospitalId);
 
   const admission = useQuery({
     queryKey: ["admission", id],
@@ -28,21 +42,62 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
   const [dischargeOpen, setDischargeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [dischargeForm, setDischargeForm] = useState({
-    dischargeDiagnosis: "",
-    dischargeInstructions: "",
-    followUpDate: "",
-  });
+  const [dischargeForm, setDischargeForm] = useState(EMPTY_DISCHARGE_FORM);
   const [noteForm, setNoteForm] = useState({ kind: "progress", body: "" });
   const [transferForm, setTransferForm] = useState({ wardId: "", bedId: "" });
 
+  const hospitalsQ = useQuery({
+    queryKey: ["hospitals", "handoff"],
+    queryFn: () => api<{ hospitals: any[] }>("/hospitals"),
+    enabled: dischargeOpen && dischargeForm.handoffType === "hospital",
+  });
+  const clinicsQ = useQuery({
+    queryKey: ["clinics", "handoff-directory"],
+    queryFn: () => api<{ clinics: any[] }>("/clinics?directory=1"),
+    enabled: dischargeOpen && dischargeForm.handoffType === "clinic",
+  });
+
+  const closeDischargeModal = () => {
+    setDischargeOpen(false);
+    setDischargeForm(EMPTY_DISCHARGE_FORM);
+  };
+
+  const buildDischargePayload = () => {
+    const body: Record<string, unknown> = {
+      dischargeDiagnosis: dischargeForm.dischargeDiagnosis || undefined,
+      dischargeInstructions: dischargeForm.dischargeInstructions || undefined,
+      followUpDate: dischargeForm.followUpDate || undefined,
+    };
+
+    if (dischargeForm.handoffType === "hospital" && dischargeForm.handoffHospitalId) {
+      body.handoffTo = {
+        hospitalId: dischargeForm.handoffHospitalId,
+        followUpPlan: dischargeForm.handoffFollowUpPlan.trim() || undefined,
+      };
+    } else if (dischargeForm.handoffType === "clinic" && dischargeForm.handoffClinicId) {
+      body.handoffTo = {
+        clinicId: dischargeForm.handoffClinicId,
+        followUpPlan: dischargeForm.handoffFollowUpPlan.trim() || undefined,
+      };
+    }
+
+    return body;
+  };
+
   const discharge = useMutation({
     mutationFn: (body: any) =>
-      api(`/hospital-portal/admissions/${id}/discharge`, { method: "POST", json: body }),
-    onSuccess: () => {
+      api<{ ok: boolean; handoffId?: string | null; shareRequestId?: string | null }>(
+        `/hospital-portal/admissions/${id}/discharge`,
+        { method: "POST", json: body }
+      ),
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["admission", id] });
-      setDischargeOpen(false);
-      toast.success("Patient discharged");
+      closeDischargeModal();
+      if (data?.handoffId) {
+        toast.success("Patient discharged and handoff sent");
+      } else {
+        toast.success("Patient discharged");
+      }
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
@@ -146,11 +201,30 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
       </Card>
 
       {/* Discharge modal */}
-      <Modal open={dischargeOpen} onClose={() => setDischargeOpen(false)} title={t("ipd.discharge")}>
+      <Modal
+        open={dischargeOpen}
+        onClose={closeDischargeModal}
+        title={t("ipd.discharge")}
+        size="md"
+      >
         <Form
           onSubmit={(e) => {
             e.preventDefault();
-            discharge.mutate(dischargeForm);
+            if (
+              dischargeForm.handoffType === "hospital" &&
+              !dischargeForm.handoffHospitalId
+            ) {
+              toast.error("Select a receiving hospital");
+              return;
+            }
+            if (
+              dischargeForm.handoffType === "clinic" &&
+              !dischargeForm.handoffClinicId
+            ) {
+              toast.error("Select a receiving clinic");
+              return;
+            }
+            discharge.mutate(buildDischargePayload());
           }}
         >
           <FormField label={t("ipd.dischargeDiagnosis")}>
@@ -158,7 +232,9 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
               rows={2}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={dischargeForm.dischargeDiagnosis}
-              onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeDiagnosis: e.target.value })}
+              onChange={(e) =>
+                setDischargeForm({ ...dischargeForm, dischargeDiagnosis: e.target.value })
+              }
             />
           </FormField>
           <FormField label={t("ipd.instructions")}>
@@ -166,7 +242,12 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
               rows={3}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={dischargeForm.dischargeInstructions}
-              onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeInstructions: e.target.value })}
+              onChange={(e) =>
+                setDischargeForm({
+                  ...dischargeForm,
+                  dischargeInstructions: e.target.value,
+                })
+              }
             />
           </FormField>
           <FormField label={t("ipd.followUpDate")}>
@@ -174,14 +255,127 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
               type="date"
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={dischargeForm.followUpDate}
-              onChange={(e) => setDischargeForm({ ...dischargeForm, followUpDate: e.target.value })}
+              onChange={(e) =>
+                setDischargeForm({ ...dischargeForm, followUpDate: e.target.value })
+              }
             />
           </FormField>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setDischargeOpen(false)}>
+
+          <div className="mt-4 space-y-3 rounded-xl border border-border/70 bg-surface-2/40 p-4">
+            <div>
+              <p className="text-sm font-semibold text-text">{t("ipd.handoffSection")}</p>
+              <p className="mt-1 text-xs text-text-muted">
+                {dischargeForm.handoffType === "hospital"
+                  ? t("ipd.handoffHint")
+                  : dischargeForm.handoffType === "clinic"
+                  ? t("ipd.handoffClinicHint")
+                  : null}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["none", t("ipd.handoffNone")],
+                  ["hospital", t("ipd.handoffHospital")],
+                  ["clinic", t("ipd.handoffClinic")],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    setDischargeForm({
+                      ...dischargeForm,
+                      handoffType: value,
+                      handoffHospitalId: "",
+                      handoffClinicId: "",
+                    })
+                  }
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium border transition-colors",
+                    dischargeForm.handoffType === value
+                      ? "bg-brand text-white border-brand"
+                      : "bg-surface text-text-muted border-border hover:text-text"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {dischargeForm.handoffType === "hospital" ? (
+              <FormField label={t("ipd.handoffTarget")}>
+                <select
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+                  value={dischargeForm.handoffHospitalId}
+                  onChange={(e) =>
+                    setDischargeForm({
+                      ...dischargeForm,
+                      handoffHospitalId: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select hospital…</option>
+                  {hospitalsQ.data?.hospitals
+                    ?.filter((h: any) => h.id !== activeHospitalId)
+                    .map((h: any) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                      </option>
+                    ))}
+                </select>
+              </FormField>
+            ) : null}
+
+            {dischargeForm.handoffType === "clinic" ? (
+              <FormField label={t("ipd.handoffTarget")}>
+                <select
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+                  value={dischargeForm.handoffClinicId}
+                  onChange={(e) =>
+                    setDischargeForm({
+                      ...dischargeForm,
+                      handoffClinicId: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select clinic…</option>
+                  {clinicsQ.data?.clinics?.map((cl: any) => (
+                    <option key={cl.id} value={cl.id}>
+                      {cl.name}
+                      {cl.address ? ` — ${cl.address}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            ) : null}
+
+            {dischargeForm.handoffType !== "none" ? (
+              <FormField label={t("ipd.handoffFollowUpPlan")}>
+                <textarea
+                  rows={2}
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+                  placeholder={t("ipd.handoffFollowUpPlanPlaceholder")}
+                  value={dischargeForm.handoffFollowUpPlan}
+                  onChange={(e) =>
+                    setDischargeForm({
+                      ...dischargeForm,
+                      handoffFollowUpPlan: e.target.value,
+                    })
+                  }
+                />
+              </FormField>
+            ) : null}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="ghost" onClick={closeDischargeModal}>
               {t("common.cancel")}
             </Button>
-            <Button type="submit">{t("ipd.confirmDischarge")}</Button>
+            <Button type="submit" disabled={discharge.isPending}>
+              {t("ipd.confirmDischarge")}
+            </Button>
           </div>
         </Form>
       </Modal>

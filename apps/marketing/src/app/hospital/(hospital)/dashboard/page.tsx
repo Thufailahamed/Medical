@@ -61,7 +61,7 @@ export default function HospitalDashboardPage() {
         <div className="flex flex-col gap-1">
           <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.subtitle")} />
           {hospital && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-soft -mt-3 ml-0.5">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-soft mt-1 ml-0.5">
               <Building2 size={13} /> {hospital.name}
             </span>
           )}

@@ -1,14 +1,17 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, isNull, desc, asc, gte, lt, sql } from "drizzle-orm";
+import { eq, and, isNull, desc, asc, gte, lt, sql, or, like, inArray } from "drizzle-orm";
+import { z } from "zod";
 import {
   hospitals,
   wards,
   beds,
   bedAssignments,
+  admissions,
   hospitalStaff,
   hospitalStaffInvites,
+  hospitalPatients,
   patients,
   users,
   doctors,
@@ -20,6 +23,8 @@ import {
   prescriptions,
   labOrders,
   departments,
+  medicines,
+  doctorPatientRelationships,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -885,7 +890,45 @@ hospitalPortalRouter.delete("/staff/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-// ─── Currently admitted patients ─────────────────────────
+// ─── Patient directory + 360 bundle (HOS-13) ──────────────
+//
+// GET /hospital-portal/patients            — full directory of patients
+//                                          registered with this hospital,
+//                                          with optional ?q=, ?status=,
+//                                          ?admitted=true|false filters.
+// POST /hospital-portal/patients           — create user + patient + register
+//                                          at this hospital, auto-MRN.
+// GET /hospital-portal/patients/:id        — Patient 360 bundle scoped to
+//                                          this hospital (admissions,
+//                                          records, prescriptions, lab
+//                                          orders all filter on
+//                                          hospital_id = scope.id).
+//                                          Vitals are patient-scoped because
+//                                          the vitals table is patient-owned.
+
+// MRN generator — duplicates hospital-patients.ts:47-65 deliberately so we
+// don't have to extract a shared helper for ~10 lines. Format:
+// `<3-letter hospital-name>-<6-digit seq>`. Falls back to "HSP" if the
+// hospital name has zero ASCII letters.
+async function generateMrn(db: any, hospitalId: string): Promise<string> {
+  const [h] = await db
+    .select({ id: hospitals.id, name: hospitals.name })
+    .from(hospitals)
+    .where(eq(hospitals.id, hospitalId))
+    .limit(1);
+  const prefix =
+    (h?.name || "")
+      .replace(/[^A-Za-z]/g, "")
+      .toUpperCase()
+      .slice(0, 3) || "HSP";
+  const [count] = await db
+    .select({ n: sql<number>`COUNT(*)` })
+    .from(hospitalPatients)
+    .where(eq(hospitalPatients.hospitalId, hospitalId));
+  const seq = String((Number(count?.n) || 0) + 1).padStart(6, "0");
+  return `${prefix}-${seq}`;
+}
+
 // GET /hospital-portal/patients
 hospitalPortalRouter.get("/patients", async (c) => {
   const userId = c.get("userId");
@@ -898,37 +941,217 @@ hospitalPortalRouter.get("/patients", async (c) => {
   );
   if (!hospital) return c.json({ patients: [] });
 
+  const q = (c.req.query("q") ?? "").trim();
+  const status = c.req.query("status") ?? null;
+  const admitted = c.req.query("admitted") ?? null;
+
+  const whereParts: any[] = [eq(hospitalPatients.hospitalId, hospital.id)];
+  if (status === "registered" || status === "discharged" || status === "deceased") {
+    whereParts.push(eq(hospitalPatients.status, status));
+  }
+  if (q) {
+    const pattern = `%${q}%`;
+    whereParts.push(
+      or(
+        like(users.name, pattern),
+        like(users.phone, pattern),
+        like(users.email, pattern),
+        like(hospitalPatients.mrn, pattern)
+      )
+    );
+  }
+
+  // Pull every registration for this hospital. Then for each, optionally
+  // resolve the currently-open bed assignment (one row per active
+  // admission). Two simple queries — easier to reason about than a single
+  // fan-out LEFT JOIN that Drizzle composes awkwardly with row filters.
   const rows = await db
     .select({
-      assignmentId: bedAssignments.id,
-      patientId: patients.id,
-      patientName: users.name,
-      patientPhoto: users.photo,
-      patientPhone: users.phone,
-      bloodGroup: patients.bloodGroup,
+      id: patients.id,
+      userId: patients.userId,
+      name: users.name,
+      phone: users.phone,
+      email: users.email,
+      photo: users.photo,
       gender: patients.gender,
-      wardName: wards.name,
-      bedNumber: beds.bedNumber,
-      bedId: beds.id,
-      assignedAt: bedAssignments.assignedAt,
+      bloodGroup: patients.bloodGroup,
+      dateOfBirth: patients.dateOfBirth,
+      mrn: hospitalPatients.mrn,
+      status: hospitalPatients.status,
+      registeredAt: hospitalPatients.registeredAt,
+      dischargedAt: hospitalPatients.dischargedAt,
     })
-    .from(bedAssignments)
-    .innerJoin(beds, eq(bedAssignments.bedId, beds.id))
-    .innerJoin(wards, eq(beds.wardId, wards.id))
-    .innerJoin(patients, eq(bedAssignments.patientId, patients.id))
-    .innerJoin(users, eq(patients.userId, users.id))
+    .from(hospitalPatients)
+    .innerJoin(patients, eq(patients.id, hospitalPatients.patientId))
+    .innerJoin(users, eq(users.id, patients.userId))
+    .where(and(...whereParts))
+    .orderBy(desc(hospitalPatients.registeredAt));
+
+  // Resolve current open admissions for this hospital in one query, then
+  // join in memory. Bed-assignment join not needed because the
+  // admission-row carries the ward already.
+  const openAdmissions = await db
+    .select({
+      patientId: admissions.patientId,
+      admissionId: admissions.id,
+      wardName: wards.name,
+      wardId: wards.id,
+      admittedAt: admissions.admittedAt,
+      reason: admissions.reason,
+    })
+    .from(admissions)
+    .leftJoin(wards, eq(wards.id, admissions.wardId))
     .where(
       and(
-        eq(wards.hospitalId, hospital.id),
-        isNull(bedAssignments.dischargedAt)
+        eq(admissions.hospitalId, hospital.id),
+        eq(admissions.status, "admitted")
       )
-    )
-    .orderBy(desc(bedAssignments.assignedAt));
+    );
 
-  return c.json({ patients: rows });
+  const admitByPatient = new Map(openAdmissions.map((o: any) => [o.patientId, o]));
+
+  const enriched = rows.map((r: any) => {
+    const a = admitByPatient.get(r.id);
+    return {
+      ...r,
+      currentlyAdmitted: !!a,
+      admissionId: a?.admissionId ?? null,
+      wardName: a?.wardName ?? null,
+      admittedAt: a?.admittedAt ?? null,
+      reason: a?.reason ?? null,
+    };
+  });
+
+  const filtered = admitted === "true"
+    ? enriched.filter((r: any) => r.currentlyAdmitted)
+    : admitted === "false"
+      ? enriched.filter((r: any) => !r.currentlyAdmitted)
+      : enriched;
+
+  return c.json({ patients: filtered });
 });
 
-// GET /hospital-portal/patients/:id — admitted patient detail
+// POST /hospital-portal/patients — create + register
+const createPatientSchema = z.object({
+  name: z.string().min(1).max(120),
+  phone: z.string().min(7).max(20).optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  dob: z.string().optional().nullable(),
+  gender: z.enum(["male", "female", "other"]).optional().nullable(),
+  bloodGroup: z.string().max(8).optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  nic: z.string().max(20).optional().nullable(),
+});
+
+hospitalPortalRouter.post("/patients", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
+  if (!hospital) return c.json({ error: "Hospital not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = createPatientSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: parsed.error.flatten() },
+      400
+    );
+  }
+  const data = parsed.data;
+
+  // Phone / email uniqueness is enforced by UNIQUE indexes on `users`.
+  // Pre-check to return a friendly 409 instead of a raw constraint blow-up.
+  if (data.phone) {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.phone, data.phone))
+      .limit(1);
+    if (existing) return c.json({ error: "Phone already registered" }, 409);
+  }
+  if (data.email) {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, data.email))
+      .limit(1);
+    if (existing) return c.json({ error: "Email already registered" }, 409);
+  }
+
+  const newUserId = crypto.randomUUID();
+  const locale = c.get("locale") ?? "en";
+
+  await db.insert(users).values({
+    id: newUserId,
+    supabaseId: newUserId,
+    role: "patient",
+    name: data.name,
+    phone: data.phone ?? null,
+    email: data.email ?? null,
+    nic: data.nic ?? null,
+    dateOfBirth: data.dob ?? null,
+    verified: false,
+    status: "active",
+    preferredLocale: locale,
+  } as any);
+
+  const [patientRow] = await db
+    .insert(patients)
+    .values({
+      userId: newUserId,
+      gender: data.gender ?? null,
+      bloodGroup: data.bloodGroup ?? null,
+      dateOfBirth: data.dob ?? null,
+      // Address lands in emergencyContacts as a freeform note — keeps the
+      // schema unchanged without losing the field.
+      emergencyContacts: data.address
+        ? JSON.stringify([{ type: "note", value: data.address }])
+        : null,
+    } as any)
+    .returning();
+
+  const mrn = await generateMrn(db, hospital.id);
+  const [regRow] = await db
+    .insert(hospitalPatients)
+    .values({
+      hospitalId: hospital.id,
+      patientId: patientRow.id,
+      mrn,
+      status: "registered",
+    } as any)
+    .returning();
+
+  await writeAudit(db, {
+    userId,
+    action: "patient.create",
+    resource: "patient",
+    resourceId: patientRow.id,
+    details: { hospitalId: hospital.id, mrn, source: "hospital_portal" },
+  });
+
+  return c.json(
+    {
+      patient: {
+        id: patientRow.id,
+        userId: newUserId,
+        name: data.name,
+        phone: data.phone ?? null,
+        email: data.email ?? null,
+        mrn,
+        status: regRow.status,
+        registeredAt: regRow.registeredAt,
+      },
+    },
+    201
+  );
+});
+
+// GET /hospital-portal/patients/:id — Patient 360 bundle
 hospitalPortalRouter.get("/patients/:id", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
@@ -942,65 +1165,293 @@ hospitalPortalRouter.get("/patients/:id", async (c) => {
 
   const patientId = c.req.param("id");
 
-  const [admission] = await db
-    .select({
-      assignmentId: bedAssignments.id,
-      bedId: beds.id,
-      bedNumber: beds.bedNumber,
-      wardId: wards.id,
-      wardName: wards.name,
-      assignedAt: bedAssignments.assignedAt,
-      notes: bedAssignments.notes,
-    })
-    .from(bedAssignments)
-    .innerJoin(beds, eq(bedAssignments.bedId, beds.id))
-    .innerJoin(wards, eq(beds.wardId, wards.id))
+  // Verify the patient is registered at THIS hospital — guards cross-tenant reads.
+  const [registration] = await db
+    .select()
+    .from(hospitalPatients)
     .where(
       and(
-        eq(bedAssignments.patientId, patientId),
-        eq(wards.hospitalId, hospital.id),
-        isNull(bedAssignments.dischargedAt)
+        eq(hospitalPatients.hospitalId, hospital.id),
+        eq(hospitalPatients.patientId, patientId)
       )
     )
     .limit(1);
-
-  if (!admission) return c.json({ error: "Patient not currently admitted" }, 404);
+  if (!registration) {
+    return c.json({ error: "Patient not registered at this hospital" }, 404);
+  }
 
   const [patientRow] = await db
     .select({ patient: patients, user: users })
     .from(patients)
-    .innerJoin(users, eq(patients.userId, users.id))
+    .innerJoin(users, eq(users.id, patients.userId))
     .where(eq(patients.id, patientId))
     .limit(1);
+  if (!patientRow) {
+    return c.json({ error: "Patient profile missing" }, 404);
+  }
 
-  const records = await db
-    .select()
+  // Current admission (open at this hospital).
+  const [currentAdmission] = await db
+    .select({
+      id: admissions.id,
+      wardId: wards.id,
+      wardName: wards.name,
+      admittedAt: admissions.admittedAt,
+      admissionType: admissions.admissionType,
+      reason: admissions.reason,
+      diagnosisAtAdmission: admissions.diagnosisAtAdmission,
+    })
+    .from(admissions)
+    .leftJoin(wards, eq(wards.id, admissions.wardId))
+    .where(
+      and(
+        eq(admissions.patientId, patientId),
+        eq(admissions.hospitalId, hospital.id),
+        eq(admissions.status, "admitted")
+      )
+    )
+    .limit(1);
+
+  // All past admissions across every hospital the patient has visited.
+  // Scoped by patient_id only — hospital_staff must be able to see a
+  // patient's full admission history, not just this hospital's slice.
+  // The `hospitalId` field is included so the UI can label the source.
+  const admissionRows = await db
+    .select({
+      id: admissions.id,
+      admittedAt: admissions.admittedAt,
+      dischargedAt: admissions.dischargedAt,
+      status: admissions.status,
+      reason: admissions.reason,
+      diagnosisAtAdmission: admissions.diagnosisAtAdmission,
+      dischargeDiagnosis: admissions.dischargeDiagnosis,
+      wardName: wards.name,
+      hospitalId: admissions.hospitalId,
+      hospitalName: hospitals.name,
+    })
+    .from(admissions)
+    .leftJoin(wards, eq(wards.id, admissions.wardId))
+    .leftJoin(hospitals, eq(hospitals.id, admissions.hospitalId))
+    .where(eq(admissions.patientId, patientId))
+    .orderBy(desc(admissions.admittedAt))
+    .limit(50);
+
+  // All medical records across every hospital (last 50).
+  const recordRows = await db
+    .select({
+      id: medicalRecords.id,
+      recordType: medicalRecords.recordType,
+      title: medicalRecords.title,
+      diagnosis: medicalRecords.diagnosis,
+      summary: medicalRecords.summary,
+      date: medicalRecords.date,
+      status: medicalRecords.status,
+      doctorId: medicalRecords.doctorId,
+      hospitalId: medicalRecords.hospitalId,
+      hospitalName: hospitals.name,
+    })
     .from(medicalRecords)
-    .where(eq(medicalRecords.patientId, patientId))
+    .leftJoin(hospitals, eq(hospitals.id, medicalRecords.hospitalId))
+    .where(
+      and(
+        eq(medicalRecords.patientId, patientId),
+        isNull(medicalRecords.archivedAt)
+      )
+    )
     .orderBy(desc(medicalRecords.date))
-    .limit(30);
+    .limit(50);
 
+  // Resolve doctor names in one query (skip nulls).
+  const doctorIds = Array.from(
+    new Set(
+      recordRows
+        .map((r: any) => r.doctorId)
+        .filter((x: any) => !!x)
+    )
+  );
+  const doctorUserMap = new Map<string, string>();
+  if (doctorIds.length) {
+    const docs = await db
+      .select({ id: doctors.id, name: users.name })
+      .from(doctors)
+      .innerJoin(users, eq(users.id, doctors.userId));
+    for (const d of docs) {
+      if (doctorIds.includes(d.id)) doctorUserMap.set(d.id, d.name);
+    }
+  }
+  const records = recordRows.map((r: any) => ({
+    ...r,
+    doctorName: r.doctorId ? doctorUserMap.get(r.doctorId) ?? null : null,
+  }));
+
+  // All prescriptions across every hospital (last 50) with medicines inline.
+  const prescriptionRows = await db
+    .select({
+      id: prescriptions.id,
+      doctorId: prescriptions.doctorId,
+      diagnosis: prescriptions.diagnosis,
+      notes: prescriptions.notes,
+      date: prescriptions.date,
+      status: prescriptions.status,
+      signedAt: prescriptions.signedAt,
+      dispensedAt: prescriptions.dispensedAt,
+      hospitalId: prescriptions.hospitalId,
+      hospitalName: hospitals.name,
+    })
+    .from(prescriptions)
+    .leftJoin(hospitals, eq(hospitals.id, prescriptions.hospitalId))
+    .where(eq(prescriptions.patientId, patientId))
+    .orderBy(desc(prescriptions.date))
+    .limit(50);
+
+  const prescDoctorIds = Array.from(
+    new Set(prescriptionRows.map((r) => r.doctorId).filter((x) => !!x))
+  );
+  const prescDocMap = new Map<string, string>();
+  if (prescDoctorIds.length) {
+    const docs = await db
+      .select({ id: doctors.id, name: users.name })
+      .from(doctors)
+      .innerJoin(users, eq(users.id, doctors.userId));
+    for (const d of docs) {
+      if (prescDoctorIds.includes(d.id)) prescDocMap.set(d.id, d.name);
+    }
+  }
+
+  const prescIds = prescriptionRows.map((r) => r.id);
+  const medsByPresc = new Map<string, any[]>();
+  if (prescIds.length) {
+    const meds = await db
+      .select()
+      .from(medicines)
+      .where(inArray(medicines.prescriptionId, prescIds));
+    for (const m of meds) {
+      const arr = medsByPresc.get(m.prescriptionId!) ?? [];
+      arr.push(m);
+      medsByPresc.set(m.prescriptionId!, arr);
+    }
+  }
+
+  const prescResult = prescriptionRows.map((p: any) => ({
+    ...p,
+    doctorName: p.doctorId ? prescDocMap.get(p.doctorId) ?? null : null,
+    medicines: medsByPresc.get(p.id) ?? [],
+  }));
+
+  // All lab orders across every hospital (last 50).
+  const labOrderRows = await db
+    .select({
+      id: labOrders.id,
+      doctorId: labOrders.doctorId,
+      tests: labOrders.tests,
+      priority: labOrders.priority,
+      status: labOrders.status,
+      notes: labOrders.notes,
+      orderedAt: labOrders.orderedAt,
+      completedAt: labOrders.completedAt,
+      resultSummary: labOrders.resultSummary,
+      resultUrl: labOrders.resultUrl,
+      hospitalId: labOrders.hospitalId,
+      hospitalName: hospitals.name,
+    })
+    .from(labOrders)
+    .leftJoin(hospitals, eq(hospitals.id, labOrders.hospitalId))
+    .where(eq(labOrders.patientId, patientId))
+    .orderBy(desc(labOrders.orderedAt))
+    .limit(50);
+
+  const labDoctorIds = Array.from(
+    new Set(labOrderRows.map((r) => r.doctorId).filter((x) => !!x))
+  );
+  const labDocMap = new Map<string, string>();
+  if (labDoctorIds.length) {
+    const docs = await db
+      .select({ id: doctors.id, name: users.name })
+      .from(doctors)
+      .innerJoin(users, eq(users.id, doctors.userId));
+    for (const d of docs) {
+      if (labDoctorIds.includes(d.id)) labDocMap.set(d.id, d.name);
+    }
+  }
+  const labOrderResult = labOrderRows.map((r: any) => ({
+    ...r,
+    doctorName: r.doctorId ? labDocMap.get(r.doctorId) ?? null : null,
+  }));
+
+  // Vitals are patient-owned (no hospital_id column). Reuse existing
+  // latestByType + classifyAlerts derived helpers.
   const vitalRows = await db
     .select()
     .from(vitals)
     .where(eq(vitals.patientId, patientId))
     .orderBy(desc(vitals.recordedAt))
     .limit(30);
+  const latestByTypeRows = latestByType(vitalRows as any[], { patient: patientRow.patient });
+  const alertRows = classifyAlerts(vitalRows as any[], { patient: patientRow.patient });
 
-  const latestByTypeRows = latestByType(vitalRows as any[], { patient: patientRow?.patient });
-  const alertRows = classifyAlerts(vitalRows as any[], { patient: patientRow?.patient });
+  // Doctors linked to this patient via doctorPatientRelationships across
+  // every hospital — full care team view. Each row carries its context
+  // hospital name so the UI can label the source.
+  const dprRows = await db
+    .select({
+      id: doctorPatientRelationships.id,
+      doctorId: doctorPatientRelationships.doctorId,
+      relationshipKind: doctorPatientRelationships.relationshipKind,
+      status: doctorPatientRelationships.status,
+      isPrimary: doctorPatientRelationships.isPrimary,
+      startedAt: doctorPatientRelationships.startedAt,
+      endedAt: doctorPatientRelationships.endedAt,
+      contextId: doctorPatientRelationships.contextId,
+      hospitalName: hospitals.name,
+    })
+    .from(doctorPatientRelationships)
+    .leftJoin(hospitals, eq(hospitals.id, doctorPatientRelationships.contextId))
+    .where(
+      and(
+        eq(doctorPatientRelationships.patientId, patientId),
+        eq(doctorPatientRelationships.contextType, "hospital")
+      )
+    )
+    .orderBy(desc(doctorPatientRelationships.startedAt));
+
+  const dprDoctorIds = Array.from(new Set(dprRows.map((r) => r.doctorId)));
+  const dprDocMap = new Map<string, string>();
+  if (dprDoctorIds.length) {
+    const docs = await db
+      .select({ id: doctors.id, name: users.name })
+      .from(doctors)
+      .innerJoin(users, eq(users.id, doctors.userId));
+    for (const d of docs) {
+      if (dprDoctorIds.includes(d.id)) dprDocMap.set(d.id, d.name);
+    }
+  }
+  const linkedDoctors = dprRows.map((r: any) => ({
+    ...r,
+    doctorName: dprDocMap.get(r.doctorId) ?? null,
+  }));
 
   return c.json({
-    admission,
-    patient: patientRow?.patient,
-    user: patientRow?.user,
+    patient: patientRow.patient,
+    user: patientRow.user,
+    registration: {
+      mrn: registration.mrn,
+      status: registration.status,
+      registeredAt: registration.registeredAt,
+      dischargedAt: registration.dischargedAt,
+      notes: registration.notes,
+    },
+    admission: currentAdmission ?? null,
+    admissions: admissionRows,
     records,
+    prescriptions: prescResult,
+    labOrders: labOrderResult,
     vitals: vitalRows,
     latestVitals: latestByTypeRows,
     vitalsAlerts: {
       count: alertRows.length,
       items: alertRows.slice(0, 10),
     },
+    doctors: linkedDoctors,
   });
 });
 
@@ -1245,6 +1696,64 @@ hospitalPortalRouter.delete("/departments/:id", async (c) => {
   const id = c.req.param("id");
   await db.update(departments).set({ active: false }).where(eq(departments.id, id));
   return c.json({ ok: true });
+});
+
+// GET /hospital-portal/lab-orders — routable lab orders for active hospital
+hospitalPortalRouter.get("/lab-orders", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
+  if (!hospital) return c.json({ orders: [] });
+
+  const statusParam =
+    c.req.query("status") ?? "ordered,sample_collected,in_progress";
+  const statuses = statusParam
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const whereParts: any[] = [eq(labOrders.hospitalId, hospital.id)];
+  if (statuses.length === 1) {
+    whereParts.push(eq(labOrders.status, statuses[0]));
+  } else if (statuses.length > 1) {
+    whereParts.push(inArray(labOrders.status, statuses));
+  }
+
+  const rows = await db
+    .select({
+      id: labOrders.id,
+      patientId: labOrders.patientId,
+      tests: labOrders.tests,
+      status: labOrders.status,
+      priority: labOrders.priority,
+      orderedAt: labOrders.orderedAt,
+      patientName: users.name,
+    })
+    .from(labOrders)
+    .innerJoin(patients, eq(patients.id, labOrders.patientId))
+    .innerJoin(users, eq(users.id, patients.userId))
+    .where(and(...whereParts))
+    .orderBy(desc(labOrders.orderedAt))
+    .limit(100);
+
+  const orders = rows.map((r: any) => {
+    let tests: unknown = r.tests;
+    if (typeof r.tests === "string") {
+      try {
+        tests = JSON.parse(r.tests);
+      } catch {
+        tests = r.tests;
+      }
+    }
+    return { ...r, tests };
+  });
+
+  return c.json({ orders });
 });
 
 export default hospitalPortalRouter;

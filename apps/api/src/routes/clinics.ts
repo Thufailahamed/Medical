@@ -15,7 +15,7 @@
 //   DELETE /clinics/:id/patients/:pid   discharge patient
 
 import { Hono } from "hono";
-import { and, eq, sql, desc } from "drizzle-orm";
+import { and, eq, sql, desc, like, or } from "drizzle-orm";
 import {
   clinics,
   clinicDoctors,
@@ -175,6 +175,37 @@ clinicRouter.get("/", async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const role = (c.get("dbUser") as any)?.role;
+
+  // Directory search for hospital staff picking a handoff destination.
+  if (c.req.query("directory") === "1") {
+    const allowed = ["hospital_admin", "hospital_staff", "doctor", "super_admin"];
+    if (!allowed.includes(role)) return c.json({ clinics: [] });
+
+    const q = (c.req.query("q") ?? "").trim();
+    const conditions: any[] = [];
+    if (q.length >= 2) {
+      const safe = q.replace(/[%_]/g, "\\$&");
+      conditions.push(
+        or(
+          like(clinics.name, `%${safe}%`),
+          like(clinics.address, `%${safe}%`)
+        )
+      );
+    }
+
+    const rows = await db
+      .select({
+        id: clinics.id,
+        name: clinics.name,
+        address: clinics.address,
+        phone: clinics.phone,
+      })
+      .from(clinics)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .limit(100);
+
+    return c.json({ clinics: rows });
+  }
 
   if (role === "doctor") {
     const [doc] = await db

@@ -389,3 +389,499 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   Shared portal primitives — same class names as doctor portal
+   so Button, FilterPills, and Form inputs render correctly.
+   ============================================================ */
+
+[data-app="hospital"] .portal-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+[data-app="hospital"] .portal-filter-pill[data-active="true"] {
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-color: rgba(4, 120, 87, 0.35);
+  box-shadow: 0 1px 2px rgba(4, 120, 87, 0.12);
+}
+[data-app="hospital"] .portal-filter-pill[data-active="false"] {
+  background: var(--surface);
+  color: var(--text-soft);
+  border-color: rgba(226, 232, 240, 0.9);
+}
+[data-app="hospital"] .portal-filter-pill[data-active="false"]:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+[data-app="hospital"] .portal-filter-pill:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+[data-app="hospital"] .portal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  font-family: inherit;
+  line-height: 1;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+[data-app="hospital"] .portal-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+[data-app="hospital"] .portal-btn-sm {
+  height: 2rem;
+  padding: 0 0.875rem;
+  font-size: 0.75rem;
+}
+[data-app="hospital"] .portal-btn-md {
+  height: 2.25rem;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+}
+[data-app="hospital"] .portal-btn-primary {
+  color: #ffffff;
+  background: var(--brand);
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.25);
+}
+[data-app="hospital"] .portal-btn-primary:hover {
+  background: var(--brand-strong);
+  box-shadow: 0 4px 16px rgba(4, 120, 87, 0.35);
+}
+[data-app="hospital"] .portal-btn-secondary {
+  color: var(--text);
+  background: var(--surface);
+  border-color: rgba(226, 232, 240, 0.8);
+}
+[data-app="hospital"] .portal-btn-secondary:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+[data-app="hospital"] .portal-btn-ghost {
+  color: var(--text-soft);
+  background: transparent;
+}
+[data-app="hospital"] .portal-btn-ghost:hover {
+  background: rgba(248, 250, 252, 0.8);
+  color: var(--text);
+}
+[data-app="hospital"] .portal-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+[data-app="hospital"] .portal-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+[data-app="hospital"] .portal-input,
+[data-app="hospital"] input.portal-input {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  caret-color: var(--brand);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+[data-app="hospital"] .portal-input-search-wrap {
+  position: relative;
+  width: 100%;
+}
+[data-app="hospital"] .portal-input-search-wrap input.portal-input {
+  padding-left: 2.75rem;
+}
+[data-app="hospital"] .portal-input-search-icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+[data-app="hospital"] .portal-input::placeholder {
+  color: var(--text-muted);
+}
+[data-app="hospital"] .portal-input:hover {
+  border-color: var(--border-strong);
+}
+[data-app="hospital"] .portal-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
+}
+
+[data-app="hospital"] .hospital-patient-row {
+  cursor: pointer;
+}
+[data-app="hospital"] .hospital-patient-row:hover {
+  background: var(--surface-2);
+}
+[data-app="hospital"] .hospital-patient-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #34d399, #047857);
+}
+[data-app="hospital"] .hospital-mrn {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.6875rem;
+  color: var(--text-soft);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+}
+
+[data-app="hospital"] .hospital-patient-avatar-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 0.875rem;
+}
+
+[data-app="hospital"] .hospital-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+  transition: color 0.15s ease;
+}
+[data-app="hospital"] .hospital-back-link:hover {
+  color: var(--text);
+}
+
+[data-app="hospital"] .hospital-patient-hero {
+  background: var(--surface);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+[data-app="hospital"] .hospital-patient-hero-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+[data-app="hospital"] .hospital-patient-hero-info {
+  flex: 1;
+  min-width: 0;
+}
+[data-app="hospital"] .hospital-patient-hero-name {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+[data-app="hospital"] .hospital-patient-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+}
+[data-app="hospital"] .hospital-patient-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+[data-app="hospital"] .hospital-detail-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 0.875rem;
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+[data-app="hospital"] .hospital-detail-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.625rem;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+[data-app="hospital"] .hospital-detail-tab:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+[data-app="hospital"] .hospital-detail-tab[data-active="true"] {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+[data-app="hospital"] .hospital-detail-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: rgba(4, 120, 87, 0.12);
+  color: var(--brand);
+}
+[data-app="hospital"] .hospital-detail-tab[data-active="false"] .hospital-detail-tab-count {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+[data-app="hospital"] .hospital-detail-card {
+  background: var(--surface);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+[data-app="hospital"] .hospital-detail-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.65);
+  background: rgba(248, 250, 252, 0.5);
+}
+[data-app="hospital"] .hospital-detail-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+[data-app="hospital"] .hospital-detail-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.625rem;
+  background: var(--brand-soft);
+  color: var(--brand);
+  flex-shrink: 0;
+}
+[data-app="hospital"] .hospital-detail-card-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+}
+[data-app="hospital"] .hospital-detail-card-body {
+  padding: 1rem 1.25rem 1.125rem;
+}
+[data-app="hospital"] .hospital-detail-empty {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  padding: 0.25rem 0;
+}
+
+[data-app="hospital"] .hospital-detail-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1.25rem;
+}
+[data-app="hospital"] .hospital-detail-fields.cols-1 {
+  grid-template-columns: 1fr;
+}
+[data-app="hospital"] .hospital-detail-field-span-2 {
+  grid-column: span 2;
+}
+[data-app="hospital"] .hospital-detail-field dt {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+[data-app="hospital"] .hospital-detail-field dd {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-word;
+}
+[data-app="hospital"] .hospital-detail-field dd.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+[data-app="hospital"] .hospital-detail-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 0.625rem;
+  background: var(--surface-2);
+}
+[data-app="hospital"] .hospital-detail-list-item + .hospital-detail-list-item {
+  margin-top: 0.5rem;
+}
+
+[data-app="hospital"] .hospital-data-table-wrap {
+  overflow-x: auto;
+}
+[data-app="hospital"] .hospital-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+[data-app="hospital"] .hospital-data-table thead {
+  background: rgba(248, 250, 252, 0.85);
+  color: var(--text-soft);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-app="hospital"] .hospital-data-table th,
+[data-app="hospital"] .hospital-data-table td {
+  padding: 0.625rem 1rem;
+  vertical-align: middle;
+  border-top: 1px solid rgba(226, 232, 240, 0.65);
+}
+[data-app="hospital"] .hospital-data-table thead th {
+  border-top: none;
+}
+[data-app="hospital"] .hospital-data-table th:first-child,
+[data-app="hospital"] .hospital-data-table td:first-child {
+  padding-left: 1.25rem;
+}
+[data-app="hospital"] .hospital-data-table th:last-child,
+[data-app="hospital"] .hospital-data-table td:last-child {
+  padding-right: 1.25rem;
+}
+[data-app="hospital"] .hospital-data-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+[data-app="hospital"] .hospital-rx-card {
+  background: var(--surface);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+[data-app="hospital"] .hospital-rx-med-list {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(226, 232, 240, 0.75);
+  border-radius: 0.625rem;
+  overflow: hidden;
+}
+[data-app="hospital"] .hospital-rx-med-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.65);
+}
+[data-app="hospital"] .hospital-rx-med-item:first-child {
+  border-top: none;
+}
+
+[data-app="hospital"] .hospital-vital-tile {
+  padding: 0.75rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 0.625rem;
+  background: var(--surface-2);
+}
+[data-app="hospital"] .hospital-vital-tile-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+[data-app="hospital"] .hospital-vital-tile-value {
+  margin-top: 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+[data-app="hospital"] .hospital-alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(252, 165, 165, 0.6);
+  background: rgba(254, 242, 242, 0.65);
+  font-size: 0.8125rem;
+  color: #991b1b;
+}
+[data-app="hospital"] .hospital-alert-item + .hospital-alert-item {
+  margin-top: 0.5rem;
+}
+
+[data-app="hospital"] .hospital-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+[data-app="hospital"] .hospital-detail-grid {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  [data-app="hospital"] .hospital-detail-grid.cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

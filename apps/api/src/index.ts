@@ -80,6 +80,13 @@ import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
 import whatsappRouter from "./routes/whatsapp";
 import staffInvitePublicRouter from "./routes/staff-invites-public";
+// Phase HOS-14: inter-hospital collaboration — record requests, referrals,
+// lab routing, consult notes, discharge handoffs.
+import hospitalShareRequestsRouter from "./routes/hospital-share-requests";
+import crossHospitalReferralsRouter from "./routes/cross-hospital-referrals";
+import crossHospitalLabRoutingsRouter from "./routes/cross-hospital-lab-routings";
+import consultNotesRouter from "./routes/consult-notes";
+import dischargeHandoffsRouter from "./routes/discharge-handoffs";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -244,6 +251,12 @@ app.route("/hospital-patients", hospitalPatientsRouter);
 app.route("/clinic-doctors", clinicDoctorsRouter);
 app.route("/clinic-patients", clinicPatientsRouter);
 app.route("/doctor-patient-relationships", doctorPatientRelationshipsRouter);
+// Phase HOS-14 mounts.
+app.route("/hospital-share-requests", hospitalShareRequestsRouter);
+app.route("/cross-hospital-referrals", crossHospitalReferralsRouter);
+app.route("/cross-hospital-lab-routings", crossHospitalLabRoutingsRouter);
+app.route("/consult-notes", consultNotesRouter);
+app.route("/discharge-handoffs", dischargeHandoffsRouter);
 app.route("/me", meTenantsRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.

@@ -3,17 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  Bell,
-  CheckCheck,
-  CheckCircle2,
-  FlaskConical,
-  Pill,
-  Receipt,
-  UserPlus,
-  type LucideIcon,
-} from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react";
 import { api } from "@/hospital/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Pill as PillBadge } from "@/portal/components/ui/Pill";
@@ -25,30 +15,13 @@ import { useT } from "@/hospital/i18n";
 import { relativeTime } from "@/hospital/lib/format";
 import { toast } from "@/portal/components/ui/Toast";
 import { cn } from "@/portal/lib/utils";
+import {
+  TYPE_ICON,
+  TYPE_TONE,
+  resolveHref as resolveNotifHref,
+} from "@/hospital/lib/notifications-types";
 
 type Filter = "all" | "unread";
-
-const TYPE_TONES: Record<string, any> = {
-  admission_created: "warn",
-  admission_discharged: "success",
-  prescription_dispensed: "success",
-  prescription_rejected: "danger",
-  invoice_issued: "info",
-  lab_ready: "info",
-  account_pending_review: "warn",
-  tenant_pending_review: "warn",
-};
-
-const TYPE_ICONS: Record<string, LucideIcon> = {
-  admission_created: UserPlus,
-  admission_discharged: CheckCircle2,
-  prescription_dispensed: Pill,
-  prescription_rejected: AlertCircle,
-  invoice_issued: Receipt,
-  lab_ready: FlaskConical,
-  account_pending_review: AlertCircle,
-  tenant_pending_review: AlertCircle,
-};
 
 export default function NotificationsPage() {
   const t = useT();
@@ -151,10 +124,11 @@ export default function NotificationsPage() {
 
 function NotificationRow({ n, onClick }: { n: any; onClick: () => void }) {
   const locale = useAuthStore((s) => s.locale);
-  const tone = TYPE_TONES[n.type] ?? "neutral";
-  const Icon = TYPE_ICONS[n.type] ?? Bell;
   const data = parseData(n.data);
-  const href = resolveHref(n.type, data);
+  const kind = data?.kind ?? n.type;
+  const tone = TYPE_TONE[kind] ?? TYPE_TONE[n.type] ?? "neutral";
+  const Icon = TYPE_ICON[kind] ?? TYPE_ICON[n.type] ?? Bell;
+  const href = resolveNotifHref(n.type, data);
 
   const inner = (
     <div
@@ -222,18 +196,6 @@ function parseData(raw: any): any {
 }
 
 function resolveHref(type: string, data: any): string | null {
-  switch (type) {
-    case "prescription_dispensed":
-    case "prescription_rejected":
-      return data.prescriptionId ? `/portal/prescriptions/${data.prescriptionId}` : null;
-    case "admission_created":
-    case "admission_discharged":
-      return data.admissionId ? `/hospital/ipd/${data.admissionId}` : null;
-    case "invoice_issued":
-      return data.invoiceId ? `/hospital/billing/${data.invoiceId}` : null;
-    case "lab_ready":
-      return data.labOrderId ? `/hospital/lab` : null;
-    default:
-      return null;
-  }
+  // Resolve via shared module so bell + list page stay in sync.
+  return resolveNotifHref(type, data);
 }

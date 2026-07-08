@@ -17,7 +17,8 @@ export type NotificationType =
   | "hospital"
   | "emergency"
   | "vaccination"
-  | "general";
+  | "general"
+  | "hospital_request";
 
 export type NotifyInput = {
   db: any;

@@ -326,6 +326,13 @@ export const dischargeSchema = z.object({
   dischargeCondition: z.string().max(200).optional(),
   dischargeInstructions: z.string().max(4000).optional(),
   followUpDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  handoffTo: z
+    .object({
+      clinicId: z.string().optional(),
+      hospitalId: z.string().optional(),
+      followUpPlan: z.string().max(4000).optional(),
+    })
+    .optional(),
 });
 export type DischargeInput = z.infer<typeof dischargeSchema>;
 

@@ -91,7 +91,8 @@
     "billing": "බිල්පත්",
     "billingOutstanding": "ගෙවීමට ඇති",
     "reportsOverview": "වාර්තා",
-    "notifications": "දැනුම්දීම්"
+    "notifications": "දැනුම්දීම්",
+    "collab": "සහයෝගීතාව"
   },
   "dashboard": {
     "title": "උපකරණ පුවරුව",
@@ -143,7 +144,8 @@
     "waiting": "බලා සිටින",
     "doctor": "වෛද්‍යවරයා",
     "appointmentsSubtitle": "සියලු උපලේඛනගත හමුවීම්",
-    "walkInSubtitle": "ඇවිත් රෝගී පෝළිම"
+    "walkInSubtitle": "ඇවිත් රෝගී පෝළිම",
+    "patientsSubtitle": "මෙම රෝහලේ ලියාපදිංචි රෝගීන්"
   },
   "wards": {
     "newWard": "නව වාට්ටුව",
@@ -181,6 +183,15 @@
     "noteKind": "සටහන් වර්ගය",
     "patientId": "රෝගී හැඳුනුම්පත",
     "admission": "ඇතුළත් කිරීම",
+    "handoffSection": "මුදා හැරීමේ හස්තාන්තරය",
+    "handoffNone": "හස්තාන්තරයක් නැත",
+    "handoffHospital": "වෙනත් රෝහලක්",
+    "handoffClinic": "සායනය / පසු විපරම් සත්කාරය",
+    "handoffTarget": "ලබන ආයතනය",
+    "handoffFollowUpPlan": "පසු විපරම් සැලසුම",
+    "handoffFollowUpPlanPlaceholder": "උදා. සති 2කින් හෘද රෝග විශේෂඥ පරීක්ෂණය",
+    "handoffHint": "රෝහලකට යැවීමෙන් මුදා හැරීමේ සාරාංශය සහ දින 7ක චාර්ට් ප්‍රවේශය ලබා දේ.",
+    "handoffClinicHint": "සායනයට අඛණ්ඩ සත්කාරය සඳහා මුදා හැරීමේ සාරාංශය ලැබේ.",
     "status": {
       "admitted": "ඇතුළත් කර ඇත",
       "discharged": "මුදා හරින ලදී",
@@ -299,6 +310,84 @@
     "skip": "දැනට මඟ හරින්න",
     "finish": "අවසන් කරන්න"
   },
+  "patients": {
+    "directory": "රෝගී නාමාවලිය",
+    "directorySubtitle": "මෙම රෝහලේ ලියාපදිංචි සියලුම රෝගීන්",
+    "mrn": "MRN",
+    "filterAll": "සියල්ල",
+    "filterAdmitted": "දැනට ඇතුළත්",
+    "filterRegistered": "ලියාපදිංචි",
+    "filterDischarged": "මුදා හැරි",
+    "admitted": "ඇතුළත්",
+    "registered": "ලියාපදිංචි",
+    "discharged": "මුදා හැරි",
+    "notAdmitted": "ඇතුළත් නැත",
+    "registeredAt": "ලියාපදිංචි",
+    "patientCount": "රෝගීන් {{count}}",
+    "viewProfile": "පැතිකඩ බලන්න",
+    "noPatients": "තවම රෝගීන් ලියාපදිංචි නැත",
+    "tabs": {
+      "overview": "දළ විශ්ලේෂණය",
+      "admissions": "ඇතුළත් කිරීම්",
+      "records": "වාර්තා",
+      "prescriptions": "බෙහෙත් වට්ටෝරු",
+      "lab": "රසායනාගාර ඇණවුම්",
+      "vitals": "ජීව ලක්ෂණ"
+    },
+    "overview": {
+      "profile": "රෝගියාගේ පැතිකඩ",
+      "registration": "ලියාපදිංචිය",
+      "admission": "වර්තමාන ඇතුළත් කිරීම",
+      "doctors": "ප්‍රතිකාර කරන වෛද්‍යවරු",
+      "primary": "ප්‍රධාන",
+      "noDoctors": "තවම වෛද්‍යවරු සම්බන්ධ නැත",
+      "noAdmission": "දැනට ඇතුළත් කර නැත",
+      "bloodGroup": "ලේ වර්ගය",
+      "gender": "ස්ත්‍රී/පුරුෂ භාවය",
+      "dob": "උපන් දිනය",
+      "phone": "දුරකථනය",
+      "email": "ඊමේල්",
+      "address": "ලිපිනය"
+    },
+    "admissions": {
+      "noAdmissions": "මෙම රෝහලේ පෙර ඇතුළත් කිරීම් නැත",
+      "reason": "හේතුව",
+      "ward": "වාට්ටුව",
+      "bed": "ඇඳ",
+      "view": "ඇතුළත් කිරීම විවෘත කරන්න"
+    },
+    "records": {
+      "noRecords": "මෙම රෝහලේ වෛද්‍ය වාර්තා නැත",
+      "doctor": "වෛද්‍යවරයා",
+      "type": "වර්ගය"
+    },
+    "prescriptions": {
+      "noPrescriptions": "මෙම රෝහලේ බෙහෙත් වට්ටෝරු නැත",
+      "medicines": "ඖෂධ",
+      "signed": "අත්සන් කළ",
+      "draft": "කෙටුම්පත",
+      "dispensed": "බෙදා දුන්",
+      "cancelled": "අවලංගු කළ"
+    },
+    "lab": {
+      "noOrders": "මෙම රෝහලේ රසායනාගාර ඇණවුම් නැත",
+      "tests": "පරීක්ෂණ",
+      "orderedAt": "ඇණවුම් කළ දිනය",
+      "completedAt": "සම්පූර්ණ කළ දිනය"
+    },
+    "vitals": {
+      "noVitals": "ජීව ලක්ෂණ සටහන් කර නැත",
+      "latestByType": "නවතම කියවීම්",
+      "alerts": "ක්‍රියාකාරී අනතුරු ඇඟවීම්",
+      "noAlerts": "ක්‍රියාකාරී අනතුරු ඇඟවීම් නැත"
+    },
+    "actions": {
+      "admit": "රෝගියා ඇතුළත් කරන්න",
+      "print": "සාරාංශය මුද්‍රණය කරන්න",
+      "view": "බලන්න",
+      "noMrn": "—"
+    }
+  },
   "notifications": {
     "title": "දැනුම්දීම්",
     "subtitle": "ඔබේ ආයතනයෙන් යාවත්කාලීන",
@@ -331,5 +420,108 @@
     "capLab": "රසායනාගාර පෝළිම සහ ප්‍රතිඵල උඩුගත කිරීම",
     "session": "සැසිය",
     "sessionHint": "මෙම උපාංගයෙන් ඉවත් වන්න."
+  },
+  "collab": {
+    "title": "සහයෝගීතාව",
+    "subtitle": "වෙනත් රෝහල් සමඟ සත්කාරය සම්බන්ධීකරණය කරන්න",
+    "tabs": {
+      "requests": "වාර්තා ඉල්ලීම්",
+      "referrals": "යොමු කිරීම්",
+      "lab": "රසායනාගාර යොමු",
+      "consults": "උපදේශන",
+      "discharges": "නිකුත් කිරීම්"
+    },
+    "requests": {
+      "title": "රෝගී වාර්තා ඉල්ලීම්",
+      "subtitle": "වෙනත් රෝහල් සමඟ වාර්තා ප්‍රවේශය ඉල්ලා අනුමත කරන්න",
+      "outgoing": "පිටතට ගිය",
+      "incoming": "ලැබුණු",
+      "new": "රෝගී වාර්තාවක් ඉල්ලන්න",
+      "noOutgoing": "පිටතට ගිය ඉල්ලීම් නැත",
+      "noIncoming": "ලැබුණු ඉල්ලීම් නැත",
+      "form": {
+        "patient": "රෝගී",
+        "sourceHospital": "මූලාශ්‍ර රෝහල",
+        "scope": "ඇතුළත් කළ යුතු වාර්තා",
+        "scopeFull": "සම්පූර්ණ වාර්තාව",
+        "scopeRecords": "වෛද්‍ය වාර්තා පමණි",
+        "scopePrescriptions": "බෙහෙත් වට්ටෝගා පමණි",
+        "scopeLab": "රසායනාගාර ඇණවුම් පමණි",
+        "reason": "සායනික හේතුව (අවශ්‍යයි)",
+        "reasonPlaceholder": "උදා: රෝගී හෘද පරීක්ෂාව සඳහා මාරු විය",
+        "ttl": "ප්‍රවේශ කාලය",
+        "ttl24": "පැය 24",
+        "ttl72": "දින 3",
+        "ttl168": "දින 7",
+        "submit": "ඉල්ලීම යවන්න"
+      },
+      "status": { "pending": "ඉතිරි", "approved": "අනුමත", "declined": "ප්‍රතික්ෂිකා", "expired": "කල් ඉකුත්", "revoked": "අවලංගු කළ" },
+      "actions": { "viewBundle": "වාර්තාව බලන්න", "revoke": "ප්‍රවේශය අවලංගු කරන්න", "approve": "අනුමත කරන්න", "decline": "ප්‍රතික්ෂේප කරන්න", "cancel": "අවලංගු කරන්න" },
+      "banner": "බෙදාගැනීමේ ඉල්ලීමක් හරහා වාර්තාව බලමින්. {{when}} ඉකුත් වේ.",
+      "declinedReason": "ප්‍රතික්ෂේප හේතුව"
+    },
+    "referrals": {
+      "title": "රෝහල් අතර යොමු කිරීම්",
+      "outgoing": "යැවූ",
+      "incoming": "ලැබුණු",
+      "new": "රෝගීන් යොමු කරන්න",
+      "noOutgoing": "යැවූ යොමු කිරීම් නැත",
+      "noIncoming": "ලැබුණු යොමු කිරීම් නැත",
+      "form": {
+        "patient": "රෝගී",
+        "toHospital": "ඉලක්ක රෝහල",
+        "specialty": "විශේෂතාව",
+        "urgency": "බහුලතාව",
+        "urgencyRoutine": "නිත්‍ය",
+        "urgencyUrgent": "ගඩෝලම්",
+        "urgencyEmergency": "හදිසි",
+        "reason": "යොමු හේතුව",
+        "summary": "සායනික සාරාංශය",
+        "submit": "යොමු කිරීම යවන්න"
+      },
+      "status": { "pending": "පිළිගැනීම ඉතිරි", "accepted": "පිළිගත්", "declined": "ප්‍රතික්ෂිකා", "completed": "සම්පූර්ණ", "cancelled": "අවලංගු කළ" }
+    },
+    "labRouting": {
+      "title": "රසායනාගාර ඇණවුම් යොමු කිරීම",
+      "outgoing": "යැවූ",
+      "incoming": "ලැබුණු",
+      "new": "රසායනාගාර ඇණවුමක් යොමු කරන්න",
+      "noOutgoing": "යැවූ රසායනාගාර ඇණවුම් නැත",
+      "noIncoming": "ලැබුණු රසායනාගාර ඇණවුම් නැත",
+      "form": {
+        "labOrder": "රසායනාගාර ඇණවුම",
+        "toHospital": "ගමනාන්ත රෝහල",
+        "reason": "යොමු හේතුව",
+        "submit": "ඇණවුම යොමු කරන්න"
+      },
+      "status": { "pending": "පිළිගැනීම ඉතිරි", "accepted": "පිළිගත්", "completed": "සම්පූර්ණ", "cancelled": "අවලංගු කළ" }
+    },
+    "consults": {
+      "title": "වෛද්‍ය උපදේශන",
+      "incoming": "මට ලැබුණු උපදේශන",
+      "outgoing": "යැවූ",
+      "open": "උපදේශනයක් විවෘත කරන්න",
+      "noIncoming": "ලැබුණු උපදේශන නැත",
+      "noOutgoing": "යැවූ උපදේශන නැත",
+      "form": {
+        "patient": "රෝගී",
+        "toHospital": "ඇසෙන රෝහල",
+        "toDoctor": "වෛද්‍යවරයා (අමතර)",
+        "question": "ප්‍රශ්නය",
+        "submit": "උපදේශනය යවන්න"
+      },
+      "replyPlaceholder": "පිළිතුර…",
+      "close": "උපදේශනය වසන්න"
+    },
+    "discharges": {
+      "title": "නිකුත් කිරීම් භාර දීම්",
+      "outgoing": "යැවූ",
+      "incoming": "ලැබුණු",
+      "noOutgoing": "යැවූ නිකුත් කිරීම් නැත",
+      "noIncoming": "ලැබුණු නිකුත් කිරීම් නැත",
+      "viewSummary": "නිකුත් සාරාංශය බලන්න",
+      "acknowledge": "තහවුරු කරන්න",
+      "acknowledged": "තහවුරු කළා"
+    }
   }
 }
