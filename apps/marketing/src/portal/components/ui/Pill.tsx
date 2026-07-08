@@ -18,18 +18,23 @@ export function Pill({
   children,
   tone = "neutral",
   className,
+  title,
+  ...props
 }: {
   children: ReactNode;
   tone?: Tone;
   className?: string;
-}) {
+  title?: string;
+} & React.HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border",
         toneClasses[tone],
         className
       )}
+      {...props}
     >
       {children}
     </span>

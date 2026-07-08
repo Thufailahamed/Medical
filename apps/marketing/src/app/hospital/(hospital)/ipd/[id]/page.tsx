@@ -10,11 +10,12 @@ import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 import { formatDate } from "@/hospital/lib/format";
 
 export default function AdmissionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useT();
   const { id } = use(params);
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
@@ -76,19 +77,19 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={patient?.name ?? tr(locale, "ipd.admission")}
+        title={patient?.name ?? t("ipd.admission")}
         subtitle={a?.reason ?? ""}
         actions={
           a?.status === "admitted" ? (
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => setNoteOpen(true)}>
-                + {tr(locale, "ipd.addNote")}
+                + {t("ipd.addNote")}
               </Button>
               <Button variant="ghost" onClick={() => setTransferOpen(true)}>
-                {tr(locale, "ipd.transfer")}
+                {t("ipd.transfer")}
               </Button>
               <Button onClick={() => setDischargeOpen(true)}>
-                {tr(locale, "ipd.discharge")}
+                {t("ipd.discharge")}
               </Button>
             </div>
           ) : (
@@ -99,41 +100,41 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <h3 className="text-sm font-medium text-[var(--text-muted)]">
-            {tr(locale, "common.status")}
+          <h3 className="text-sm font-medium text-text-muted">
+            {t("common.status")}
           </h3>
           <p className="mt-2 text-2xl font-semibold">{a?.status}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            {tr(locale, "common.from")}: {a?.admittedAt ? formatDate(a.admittedAt, locale) : "—"}
+          <p className="mt-1 text-xs text-text-muted">
+            {t("common.from")}: {a?.admittedAt ? formatDate(a.admittedAt, locale) : "—"}
           </p>
           {a?.dischargedAt && (
-            <p className="text-xs text-[var(--text-muted)]">
-              {tr(locale, "ipd.discharged")}: {formatDate(a.dischargedAt, locale)}
+            <p className="text-xs text-text-muted">
+              {t("ipd.discharged")}: {formatDate(a.dischargedAt, locale)}
             </p>
           )}
         </Card>
         <Card>
-          <h3 className="text-sm font-medium text-[var(--text-muted)]">{tr(locale, "ipd.ward")}</h3>
+          <h3 className="text-sm font-medium text-text-muted">{t("ipd.ward")}</h3>
           <p className="mt-2 text-2xl font-semibold">{a?.wardName ?? "—"}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            {tr(locale, "ipd.bed")}: {a?.bedNumber ?? "—"}
+          <p className="mt-1 text-xs text-text-muted">
+            {t("ipd.bed")}: {a?.bedNumber ?? "—"}
           </p>
         </Card>
         <Card>
-          <h3 className="text-sm font-medium text-[var(--text-muted)]">{tr(locale, "ipd.diagnosis")}</h3>
+          <h3 className="text-sm font-medium text-text-muted">{t("ipd.diagnosis")}</h3>
           <p className="mt-2 text-sm">{a?.diagnosisAtAdmission ?? "—"}</p>
         </Card>
       </div>
 
       <Card>
-        <h3 className="mb-3 text-lg font-semibold">{tr(locale, "ipd.notes")}</h3>
+        <h3 className="mb-3 text-lg font-semibold">{t("ipd.notes")}</h3>
         {notes.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)]">{tr(locale, "ipd.noNotes")}</p>
+          <p className="text-sm text-text-muted">{t("ipd.noNotes")}</p>
         ) : (
           <ul className="space-y-3">
             {notes.map((n: any) => (
-              <li key={n.id} className="border-l-2 border-[var(--accent-300)] pl-3">
-                <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+              <li key={n.id} className="border-l-2 border-emerald-300 pl-3">
+                <div className="flex items-center gap-2 text-xs text-text-muted">
                   <Pill tone="neutral">{n.kind}</Pill>
                   <span>{formatDate(n.recordedAt, locale)}</span>
                 </div>
@@ -145,57 +146,57 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
       </Card>
 
       {/* Discharge modal */}
-      <Modal open={dischargeOpen} onClose={() => setDischargeOpen(false)} title={tr(locale, "ipd.discharge")}>
+      <Modal open={dischargeOpen} onClose={() => setDischargeOpen(false)} title={t("ipd.discharge")}>
         <Form
           onSubmit={(e) => {
             e.preventDefault();
             discharge.mutate(dischargeForm);
           }}
         >
-          <FormField label={tr(locale, "ipd.dischargeDiagnosis")}>
+          <FormField label={t("ipd.dischargeDiagnosis")}>
             <textarea
               rows={2}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={dischargeForm.dischargeDiagnosis}
               onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeDiagnosis: e.target.value })}
             />
           </FormField>
-          <FormField label={tr(locale, "ipd.instructions")}>
+          <FormField label={t("ipd.instructions")}>
             <textarea
               rows={3}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={dischargeForm.dischargeInstructions}
               onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeInstructions: e.target.value })}
             />
           </FormField>
-          <FormField label={tr(locale, "ipd.followUpDate")}>
+          <FormField label={t("ipd.followUpDate")}>
             <input
               type="date"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={dischargeForm.followUpDate}
               onChange={(e) => setDischargeForm({ ...dischargeForm, followUpDate: e.target.value })}
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setDischargeOpen(false)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">{tr(locale, "ipd.confirmDischarge")}</Button>
+            <Button type="submit">{t("ipd.confirmDischarge")}</Button>
           </div>
         </Form>
       </Modal>
 
       {/* Note modal */}
-      <Modal open={noteOpen} onClose={() => setNoteOpen(false)} title={tr(locale, "ipd.addNote")}>
+      <Modal open={noteOpen} onClose={() => setNoteOpen(false)} title={t("ipd.addNote")}>
         <Form
           onSubmit={(e) => {
             e.preventDefault();
             addNote.mutate(noteForm);
           }}
         >
-          <FormField label={tr(locale, "ipd.noteKind")}>
+          <FormField label={t("ipd.noteKind")}>
             <select
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={noteForm.kind}
               onChange={(e) => setNoteForm({ ...noteForm, kind: e.target.value })}
             >
@@ -205,26 +206,26 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
               <option value="other">Other</option>
             </select>
           </FormField>
-          <FormField label={tr(locale, "common.notes")} required>
+          <FormField label={t("common.notes")} required>
             <textarea
               required
               rows={4}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={noteForm.body}
               onChange={(e) => setNoteForm({ ...noteForm, body: e.target.value })}
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setNoteOpen(false)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">{tr(locale, "common.save")}</Button>
+            <Button type="submit">{t("common.save")}</Button>
           </div>
         </Form>
       </Modal>
 
       {/* Transfer modal */}
-      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title={tr(locale, "ipd.transfer")}>
+      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title={t("ipd.transfer")}>
         <Form
           onSubmit={(e) => {
             e.preventDefault();
@@ -234,17 +235,17 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
             });
           }}
         >
-          <FormField label={tr(locale, "ipd.ward")}>
+          <FormField label={t("ipd.ward")}>
             <input
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={transferForm.wardId}
               onChange={(e) => setTransferForm({ ...transferForm, wardId: e.target.value })}
               placeholder="ward id (UUID)"
             />
           </FormField>
-          <FormField label={tr(locale, "ipd.bed")}>
+          <FormField label={t("ipd.bed")}>
             <input
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={transferForm.bedId}
               onChange={(e) => setTransferForm({ ...transferForm, bedId: e.target.value })}
               placeholder="bed id (UUID)"
@@ -252,9 +253,9 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setTransferOpen(false)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">{tr(locale, "common.save")}</Button>
+            <Button type="submit">{t("common.save")}</Button>
           </div>
         </Form>
       </Modal>

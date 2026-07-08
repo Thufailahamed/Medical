@@ -2,14 +2,24 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Activity,
+  BarChart3,
+  Bed,
+  CalendarDays,
+  Download,
+  Stethoscope,
+  TrendingUp,
+} from "lucide-react";
 import { api } from "@/hospital/lib/api";
-import { Card } from "@/portal/components/ui/Card";
+import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { formatLkr } from "@/hospital/lib/format";
 
 export default function ReportsPage() {
+  const t = useT();
   const locale = useAuthStore((s) => s.locale);
   const today = new Date().toISOString().slice(0, 10);
   const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
@@ -82,34 +92,37 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.reports")}
-        subtitle={tr(locale, "reports.subtitle")}
+        title={t("nav.reports")}
+        subtitle={t("reports.subtitle")}
         actions={
           <button
             onClick={exportCsv}
-            className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-2 transition-colors"
           >
-            {tr(locale, "common.export")} CSV
+            <Download size={14} />
+            {t("common.export")} CSV
           </button>
         }
       />
 
       <Card>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="block">
-            <span className="text-sm">{tr(locale, "common.from")}</span>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex items-center gap-2">
+            <CalendarDays size={14} className="text-text-muted" />
+            <span className="text-sm font-medium">{t("common.from")}</span>
             <input
               type="date"
-              className="ml-2 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
             />
           </label>
-          <label className="block">
-            <span className="text-sm">{tr(locale, "common.to")}</span>
+          <label className="flex items-center gap-2">
+            <CalendarDays size={14} className="text-text-muted" />
+            <span className="text-sm font-medium">{t("common.to")}</span>
             <input
               type="date"
-              className="ml-2 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
               value={to}
               onChange={(e) => setTo(e.target.value)}
             />
@@ -119,59 +132,59 @@ export default function ReportsPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <KpiCard
-          label={tr(locale, "dashboard.opdToday")}
+          icon={<Activity size={14} />}
+          label={t("dashboard.opdToday")}
           value={tileMap.opdToday?.value ?? 0}
         />
         <KpiCard
-          label={tr(locale, "dashboard.ipdCensus")}
+          icon={<Bed size={14} />}
+          label={t("dashboard.ipdCensus")}
           value={tileMap.ipdCensus?.value ?? 0}
         />
         <KpiCard
-          label={tr(locale, "dashboard.bedsOccupied")}
+          icon={<Bed size={14} />}
+          label={t("dashboard.bedsOccupied")}
           value={`${tileMap.beds?.value ?? 0}/${tileMap.beds?.total ?? 0}`}
         />
         <KpiCard
-          label={tr(locale, "dashboard.revenueToday")}
+          icon={<TrendingUp size={14} />}
+          label={t("dashboard.revenueToday")}
           value={formatLkr(tileMap.revenueToday?.value ?? 0, locale)}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h3 className="mb-2 text-lg font-semibold">
-            {tr(locale, "reports.revenue")}
-          </h3>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">
-            {tr(locale, "reports.total")}: {formatLkr(revenue.data?.total ?? 0, locale)}
+          <CardHeader title={t("reports.revenue")} icon={<TrendingUp size={15} className="text-brand" />} />
+          <p className="mt-3 mb-3 text-sm text-text-muted">
+            {t("reports.total")}: <span className="font-bold text-text">{formatLkr(revenue.data?.total ?? 0, locale)}</span>
           </p>
           {revenue.data?.series?.length ? (
             <div className="space-y-1">
               {revenue.data.series.map((s: any, i: number) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between text-xs"
+                  className="flex items-center justify-between border-b border-border/40 last:border-0 py-1.5 text-xs"
                 >
-                  <span>{s.bucket}</span>
-                  <span className="font-mono">
+                  <span className="text-text-muted">{s.bucket}</span>
+                  <span className="font-mono font-semibold text-text">
                     {formatLkr(Number(s.total), locale)}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-[var(--text-muted)]">—</p>
+            <p className="text-sm text-text-muted">—</p>
           )}
         </Card>
 
         <Card>
-          <h3 className="mb-2 text-lg font-semibold">
-            {tr(locale, "reports.occupancy")}
-          </h3>
-          <div className="space-y-2">
+          <CardHeader title={t("reports.occupancy")} icon={<BarChart3 size={15} className="text-brand" />} />
+          <div className="mt-3 space-y-2">
             {occ.data?.wards?.map((w: any) => (
-              <div key={w.id} className="flex items-center justify-between">
-                <span>{w.name}</span>
-                <span className="text-sm">
+              <div key={w.id} className="flex items-center justify-between text-sm">
+                <span className="font-medium">{w.name}</span>
+                <span className="text-text-muted">
                   {w.occupied}/{w.total}
                 </span>
               </div>
@@ -180,57 +193,58 @@ export default function ReportsPage() {
         </Card>
 
         <Card>
-          <h3 className="mb-2 text-lg font-semibold">{tr(locale, "reports.opd")}</h3>
+          <CardHeader title={t("reports.opd")} icon={<Activity size={15} className="text-brand" />} />
           {opd.data?.days?.length ? (
-            <ul className="space-y-1 text-sm">
+            <ul className="mt-3 space-y-1 text-sm">
               {opd.data.days.slice(0, 14).map((d: any, i: number) => (
-                <li key={i} className="flex justify-between">
-                  <span>{d.date}</span>
-                  <span>{d.count}</span>
+                <li key={i} className="flex justify-between border-b border-border/40 last:border-0 py-1.5">
+                  <span className="text-text-muted">{d.date}</span>
+                  <span className="font-semibold">{d.count}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-[var(--text-muted)]">—</p>
+            <p className="mt-3 text-sm text-text-muted">—</p>
           )}
         </Card>
 
         <Card>
-          <h3 className="mb-2 text-lg font-semibold">{tr(locale, "reports.ipd")}</h3>
-          <p className="text-sm">
-            {tr(locale, "reports.admitted")}: {ipd.data?.admitted?.length ?? 0}
-          </p>
-          <p className="text-sm">
-            {tr(locale, "reports.discharged")}: {ipd.data?.discharged?.length ?? 0}
-          </p>
-          <p className="text-sm">
-            {tr(locale, "reports.transferred")}: {ipd.data?.transferred?.length ?? 0}
-          </p>
+          <CardHeader title={t("reports.ipd")} icon={<Bed size={15} className="text-brand" />} />
+          <div className="mt-3 space-y-1.5 text-sm">
+            <p>
+              <span className="text-text-muted">{t("reports.admitted")}: </span>
+              <span className="font-bold text-warn">{ipd.data?.admitted?.length ?? 0}</span>
+            </p>
+            <p>
+              <span className="text-text-muted">{t("reports.discharged")}: </span>
+              <span className="font-bold text-emerald-700">{ipd.data?.discharged?.length ?? 0}</span>
+            </p>
+            <p>
+              <span className="text-text-muted">{t("reports.transferred")}: </span>
+              <span className="font-bold text-sky-700">{ipd.data?.transferred?.length ?? 0}</span>
+            </p>
+          </div>
         </Card>
 
         <Card>
-          <h3 className="mb-2 text-lg font-semibold">
-            {tr(locale, "reports.doctorUtilization")}
-          </h3>
-          <ul className="space-y-1 text-sm">
+          <CardHeader title={t("reports.doctorUtilization")} icon={<Stethoscope size={15} className="text-brand" />} />
+          <ul className="mt-3 space-y-1 text-sm">
             {doctor.data?.rows?.slice(0, 10).map((d: any, i: number) => (
-              <li key={i} className="flex justify-between">
-                <span className="truncate">{d.doctorId?.slice(0, 8)}…</span>
-                <span>{d.count}</span>
+              <li key={i} className="flex justify-between border-b border-border/40 last:border-0 py-1.5">
+                <span className="truncate text-text-muted">{d.doctorId?.slice(0, 8)}…</span>
+                <span className="font-semibold">{d.count}</span>
               </li>
             ))}
           </ul>
         </Card>
 
         <Card>
-          <h3 className="mb-2 text-lg font-semibold">
-            {tr(locale, "reports.topDiagnoses")}
-          </h3>
-          <ul className="space-y-1 text-sm">
+          <CardHeader title={t("reports.topDiagnoses")} icon={<BarChart3 size={15} className="text-brand" />} />
+          <ul className="mt-3 space-y-1 text-sm">
             {topDiag.data?.rows?.slice(0, 10).map((d: any, i: number) => (
-              <li key={i} className="flex justify-between">
-                <span className="truncate">{d.diagnosis ?? "—"}</span>
-                <span>{d.count}</span>
+              <li key={i} className="flex justify-between border-b border-border/40 last:border-0 py-1.5">
+                <span className="truncate text-text-muted">{d.diagnosis ?? "—"}</span>
+                <span className="font-semibold">{d.count}</span>
               </li>
             ))}
           </ul>
@@ -240,11 +254,14 @@ export default function ReportsPage() {
   );
 }
 
-function KpiCard({ label, value }: { label: string; value: any }) {
+function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: any }) {
   return (
     <Card>
-      <p className="text-sm text-[var(--text-muted)]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+      <div className="flex items-center gap-2 text-text-muted">
+        {icon}
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className="mt-2 text-2xl font-extrabold tracking-tight text-text">{value}</p>
     </Card>
   );
 }

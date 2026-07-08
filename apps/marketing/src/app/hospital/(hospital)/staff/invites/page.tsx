@@ -12,11 +12,12 @@ import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 import { formatDate } from "@/hospital/lib/format";
 
 export default function StaffInvitesPage() {
+  const t = useT();
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
   const [open, setOpen] = useState(false);
@@ -53,26 +54,26 @@ export default function StaffInvitesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.staffInvites")}
+        title={t("nav.staffInvites")}
         actions={
-          <Button onClick={() => setOpen(true)}>+ {tr(locale, "staff.inviteStaff")}</Button>
+          <Button onClick={() => setOpen(true)}>+ {t("staff.inviteStaff")}</Button>
         }
       />
 
       <Card>
         {list.isLoading ? (
-          <p className="text-sm text-[var(--text-muted)]">{tr(locale, "common.loading")}</p>
+          <p className="text-sm text-text-muted">{t("common.loading")}</p>
         ) : !list.data?.invites?.length ? (
-          <Empty title={tr(locale, "staff.noInvites")} />
+          <Empty title={t("staff.noInvites")} />
         ) : (
           <Table>
             <THead>
               <TR>
-                <TH>{tr(locale, "common.email")}</TH>
-                <TH>{tr(locale, "common.name")}</TH>
-                <TH>{tr(locale, "staff.role")}</TH>
-                <TH>{tr(locale, "common.status")}</TH>
-                <TH>{tr(locale, "common.date")}</TH>
+                <TH>{t("common.email")}</TH>
+                <TH>{t("common.name")}</TH>
+                <TH>{t("staff.role")}</TH>
+                <TH>{t("common.status")}</TH>
+                <TH>{t("common.date")}</TH>
                 <TH> </TH>
               </TR>
             </THead>
@@ -91,7 +92,7 @@ export default function StaffInvitesPage() {
                   <TD>
                     {!i.acceptedAt && !i.revokedAt && (
                       <Button size="sm" variant="ghost" onClick={() => revoke.mutate(i.id)}>
-                        {tr(locale, "common.delete")}
+                        {t("common.delete")}
                       </Button>
                     )}
                   </TD>
@@ -102,7 +103,7 @@ export default function StaffInvitesPage() {
         )}
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={tr(locale, "staff.inviteStaff")}>
+      <Modal open={open} onClose={() => setOpen(false)} title={t("staff.inviteStaff")}>
         <Form
           onSubmit={(e) => {
             e.preventDefault();
@@ -112,25 +113,25 @@ export default function StaffInvitesPage() {
             });
           }}
         >
-          <FormField label={tr(locale, "common.email")} required>
+          <FormField label={t("common.email")} required>
             <input
               required
               type="email"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
           </FormField>
-          <FormField label={tr(locale, "common.name")}>
+          <FormField label={t("common.name")}>
             <input
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </FormField>
-          <FormField label={tr(locale, "staff.role")}>
+          <FormField label={t("staff.role")}>
             <select
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
@@ -143,9 +144,9 @@ export default function StaffInvitesPage() {
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">{tr(locale, "common.submit")}</Button>
+            <Button type="submit">{t("common.submit")}</Button>
           </div>
         </Form>
       </Modal>

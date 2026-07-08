@@ -5,7 +5,7 @@ import { Hono } from "hono";
 import { and, desc, eq, isNull, sql, asc } from "drizzle-orm";
 import {
   prescriptions,
-  prescriptionItems,
+  medicines,
   medicinesMaster,
   patients,
   users,
@@ -76,9 +76,15 @@ pharmacyRouter.get("/queue", async (c) => {
 
   // Fetch items per prescription.
   const items = await db
-    .select()
-    .from(prescriptionItems)
-    .where(sql`${prescriptionItems.prescriptionId} in (${sql.join(rows.map((r) => sql`${r.id}`), sql`, `)})`);
+    .select({
+      id: medicines.id,
+      prescriptionId: medicines.prescriptionId,
+      medicineName: medicines.name,
+      dosage: medicines.dosage,
+      quantity: sql<number>`1`,
+    })
+    .from(medicines)
+    .where(sql`${medicines.prescriptionId} in (${sql.join(rows.map((r) => sql`${r.id}`), sql`, `)})`);
 
   const itemsByRx: Record<string, typeof items> = {};
   for (const it of items) {
@@ -143,15 +149,15 @@ pharmacyRouter.get("/inventory", async (c) => {
   // when stored as JSON, otherwise direct join on item name.
   const rows = await db
     .select({
-      medicineName: prescriptionItems.medicineName,
-      dispensedQty: sql<number>`coalesce(sum(case when ${prescriptions.status} = 'dispensed' then ${prescriptionItems.quantity} else 0 end), 0)`.as("dispensed_qty"),
-      orderedQty: sql<number>`coalesce(sum(case when ${prescriptions.status} = 'signed' then ${prescriptionItems.quantity} else 0 end), 0)`.as("ordered_qty"),
+      medicineName: medicines.name,
+      dispensedQty: sql<number>`coalesce(sum(case when ${prescriptions.status} = 'dispensed' then 1 else 0 end), 0)`.as("dispensed_qty"),
+      orderedQty: sql<number>`coalesce(sum(case when ${prescriptions.status} = 'signed' then 1 else 0 end), 0)`.as("ordered_qty"),
       lastDispensedAt: sql<string>`max(case when ${prescriptions.status} = 'dispensed' then ${prescriptions.dispensedAt} else null end)`.as("last_dispensed"),
     })
-    .from(prescriptionItems)
-    .innerJoin(prescriptions, eq(prescriptions.id, prescriptionItems.prescriptionId))
+    .from(medicines)
+    .innerJoin(prescriptions, eq(prescriptions.id, medicines.prescriptionId))
     .where(eq(prescriptions.hospitalId, scopeId))
-    .groupBy(prescriptionItems.medicineName)
+    .groupBy(medicines.name)
     .orderBy(desc(sql`dispensed_qty`));
 
   return c.json({ rows });

@@ -13,7 +13,6 @@ import {
   prescriptions,
   labs,
   labReports,
-  followUps,
   vitals,
   notifications,
   doctorAvailability,

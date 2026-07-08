@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Card } from "@/portal/components/ui/Card";
 import { Button } from "@/portal/components/ui/Button";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 
 export default function HospitalError({
   error,
@@ -14,6 +14,7 @@ export default function HospitalError({
   reset: () => void;
 }) {
   const locale = useAuthStore((s) => s.locale);
+  const t = useT();
   useEffect(() => {
     console.error("Hospital portal error:", error);
   }, [error]);
@@ -22,13 +23,13 @@ export default function HospitalError({
     <div className="mx-auto max-w-xl py-12">
       <Card>
         <h1 className="text-xl font-semibold text-red-700">
-          {tr(locale, "errors.generic")}
+          {t("errors.generic")}
         </h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
+        <p className="mt-2 text-sm text-text-muted">
           {error.message ?? "Unexpected error"}
         </p>
         <div className="mt-4 flex gap-2">
-          <Button onClick={reset}>{tr(locale, "common.refresh")}</Button>
+          <Button onClick={reset}>{t("common.refresh")}</Button>
         </div>
       </Card>
     </div>

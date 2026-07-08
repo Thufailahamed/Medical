@@ -9,10 +9,11 @@ import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { useState } from "react";
 
 export default function PatientsPage() {
+  const t = useT();
   const locale = useAuthStore((s) => s.locale);
   const [q, setQ] = useState("");
   const list = useQuery({
@@ -23,36 +24,36 @@ export default function PatientsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.patients")}
+        title={t("nav.patients")}
         actions={
           <Link
             href="/hospital/reception/patients/new"
-            className="rounded-lg bg-[var(--accent-600)] px-4 py-2 text-sm font-medium text-white"
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white"
           >
-            + {tr(locale, "reception.newPatient")}
+            + {t("reception.newPatient")}
           </Link>
         }
       />
       <Card>
         <input
           type="search"
-          placeholder={tr(locale, "common.search")}
-          className="mb-3 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+          placeholder={t("common.search")}
+          className="mb-3 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         {list.isLoading ? (
-          <p className="text-sm text-[var(--text-muted)]">{tr(locale, "common.loading")}</p>
+          <p className="text-sm text-text-muted">{t("common.loading")}</p>
         ) : !list.data?.patients?.length ? (
-          <Empty title={tr(locale, "reception.noPatients")} />
+          <Empty title={t("reception.noPatients")} />
         ) : (
           <Table>
             <THead>
               <TR>
-                <TH>{tr(locale, "common.name")}</TH>
-                <TH>{tr(locale, "common.phone")}</TH>
-                <TH>{tr(locale, "common.email")}</TH>
-                <TH>{tr(locale, "common.actions")}</TH>
+                <TH>{t("common.name")}</TH>
+                <TH>{t("common.phone")}</TH>
+                <TH>{t("common.email")}</TH>
+                <TH>{t("common.actions")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -62,7 +63,7 @@ export default function PatientsPage() {
                   <TD>{p.phone ?? "—"}</TD>
                   <TD>{p.email ?? "—"}</TD>
                   <TD>
-                    <Pill tone="neutral">{tr(locale, "common.view")}</Pill>
+                    <Pill tone="neutral">{t("common.view")}</Pill>
                   </TD>
                 </TR>
               ))}

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, BedDouble, Plus } from "lucide-react";
 import { api } from "@/hospital/lib/api";
-import { Card } from "@/portal/components/ui/Card";
+import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
@@ -13,9 +14,10 @@ import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 import { formatDate } from "@/hospital/lib/format";
+import { cn } from "@/portal/lib/utils";
 
 const STATUS_TONES: Record<string, any> = {
   admitted: "warn",
@@ -24,6 +26,7 @@ const STATUS_TONES: Record<string, any> = {
 };
 
 export default function IpdPage() {
+  const t = useT();
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
   const [statusFilter, setStatusFilter] = useState("admitted");
@@ -64,62 +67,71 @@ export default function IpdPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.ipd")}
-        subtitle={tr(locale, "ipd.subtitle")}
+        title={t("nav.ipd")}
+        subtitle={t("ipd.subtitle")}
         actions={
-          <Button onClick={() => setOpen(true)}>+ {tr(locale, "ipd.admitPatient")}</Button>
+          <Button onClick={() => setOpen(true)}>
+            <Plus size={14} className="mr-1.5" />
+            {t("ipd.admitPatient")}
+          </Button>
         }
       />
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {["", "admitted", "discharged", "transferred"].map((s) => (
           <button
             key={s || "all"}
             onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-3 py-1 text-sm ${
+            className={cn(
+              "rounded-full px-3 py-1 text-sm font-medium transition-colors",
               statusFilter === s
-                ? "bg-[var(--accent-600)] text-white"
-                : "bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border)]"
-            }`}
+                ? "bg-brand text-white shadow-sm"
+                : "bg-surface text-text-muted border border-border hover:bg-surface-2"
+            )}
           >
-            {s ? tr(locale, `ipd.status.${s}` as any) : tr(locale, "common.all")}
+            {s ? t(`ipd.status.${s}` as any) : t("common.all")}
           </button>
         ))}
       </div>
 
-      <Card>
+      <Card padding={false}>
         {list.isLoading ? (
-          <p className="text-sm text-[var(--text-muted)]">{tr(locale, "common.loading")}</p>
+          <p className="p-5 text-sm text-text-muted">{t("common.loading")}</p>
         ) : !list.data?.admissions?.length ? (
-          <Empty title={tr(locale, "ipd.noAdmissions")} />
+          <div className="p-5">
+            <Empty
+              title={t("ipd.noAdmissions")}
+              icon={<BedDouble size={28} className="text-text-muted opacity-40" />}
+            />
+          </div>
         ) : (
           <Table>
             <THead>
               <TR>
-                <TH>{tr(locale, "common.name")}</TH>
-                <TH>{tr(locale, "ipd.reason")}</TH>
-                <TH>{tr(locale, "ipd.ward")}</TH>
-                <TH>{tr(locale, "common.status")}</TH>
-                <TH>{tr(locale, "common.date")}</TH>
+                <TH>{t("common.name")}</TH>
+                <TH>{t("ipd.reason")}</TH>
+                <TH>{t("ipd.ward")}</TH>
+                <TH>{t("common.status")}</TH>
+                <TH>{t("common.date")}</TH>
                 <TH> </TH>
               </TR>
             </THead>
             <TBody>
               {list.data.admissions.map((a: any) => (
                 <TR key={a.id}>
-                  <TD>{a.patientName}</TD>
-                  <TD>{a.reason ?? "—"}</TD>
+                  <TD className="font-semibold">{a.patientName}</TD>
+                  <TD className="text-text-muted">{a.reason ?? "—"}</TD>
                   <TD>{a.wardName ?? "—"}{a.bedNumber ? ` / ${a.bedNumber}` : ""}</TD>
                   <TD>
                     <Pill tone={STATUS_TONES[a.status] ?? "neutral"}>{a.status}</Pill>
                   </TD>
-                  <TD>{formatDate(a.admittedAt, locale)}</TD>
+                  <TD className="text-text-muted">{formatDate(a.admittedAt, locale)}</TD>
                   <TD>
                     <Link
                       href={`/hospital/ipd/${a.id}`}
-                      className="text-sm text-[var(--accent-600)] hover:underline"
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-strong"
                     >
-                      {tr(locale, "common.view")}
+                      {t("common.view")} <ArrowRight size={12} />
                     </Link>
                   </TD>
                 </TR>
@@ -129,7 +141,7 @@ export default function IpdPage() {
         )}
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={tr(locale, "ipd.admitPatient")}>
+      <Modal open={open} onClose={() => setOpen(false)} title={t("ipd.admitPatient")}>
         <Form
           onSubmit={(e) => {
             e.preventDefault();
@@ -140,32 +152,32 @@ export default function IpdPage() {
             });
           }}
         >
-          <FormField label={tr(locale, "ipd.patientId")} required>
+          <FormField label={t("ipd.patientId")} required>
             <input
               required
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.patientId}
               onChange={(e) => setForm({ ...form, patientId: e.target.value })}
             />
           </FormField>
-          <FormField label={tr(locale, "ipd.reason")}>
+          <FormField label={t("ipd.reason")}>
             <input
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.reason}
               onChange={(e) => setForm({ ...form, reason: e.target.value })}
             />
           </FormField>
-          <FormField label={tr(locale, "ipd.diagnosis")}>
+          <FormField label={t("ipd.diagnosis")}>
             <textarea
               rows={2}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.diagnosisAtAdmission}
               onChange={(e) => setForm({ ...form, diagnosisAtAdmission: e.target.value })}
             />
           </FormField>
-          <FormField label={tr(locale, "ipd.ward")}>
+          <FormField label={t("ipd.ward")}>
             <select
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.wardId}
               onChange={(e) => setForm({ ...form, wardId: e.target.value })}
             >
@@ -177,10 +189,10 @@ export default function IpdPage() {
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={create.isPending}>
-              {tr(locale, "ipd.admit")}
+              {t("ipd.admit")}
             </Button>
           </div>
         </Form>

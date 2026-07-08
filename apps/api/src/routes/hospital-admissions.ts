@@ -12,7 +12,6 @@ import {
   patients,
   users,
   medicalRecords,
-  followUps,
   notifications,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
@@ -286,12 +285,15 @@ admissionsRouter.post("/:id/discharge", async (c) => {
   });
 
   if (parsed.data.followUpDate) {
-    await db.insert(followUps).values({
+    await db.insert(medicalRecords).values({
       patientId: row.patientId,
+      hospitalId: row.hospitalId,
       doctorId: row.admittingDoctorId,
-      date: parsed.data.followUpDate,
-      reason: "Post-discharge follow-up",
-      status: "scheduled",
+      recordType: "follow_up",
+      title: "Post-discharge follow-up",
+      followUpDate: parsed.data.followUpDate,
+      date: new Date().toISOString().split("T")[0],
+      status: "pending",
     });
   }
 

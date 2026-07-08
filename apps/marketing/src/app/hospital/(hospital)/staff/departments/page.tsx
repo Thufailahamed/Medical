@@ -11,10 +11,11 @@ import { Modal } from "@/portal/components/ui/Modal";
 import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 
 export default function DepartmentsPage() {
+  const t = useT();
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
   const [open, setOpen] = useState(false);
@@ -46,14 +47,14 @@ export default function DepartmentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.departments")}
+        title={t("nav.departments")}
         actions={
-          <Button onClick={() => setOpen(true)}>+ {tr(locale, "departments.new")}</Button>
+          <Button onClick={() => setOpen(true)}>+ {t("departments.new")}</Button>
         }
       />
 
       {!list.data?.departments?.length ? (
-        <Empty title={tr(locale, "departments.empty")} />
+        <Empty title={t("departments.empty")} />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {list.data.departments.map((d: any) => (
@@ -61,8 +62,8 @@ export default function DepartmentsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold">{d.name}</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {d.headDoctorName ?? tr(locale, "departments.noHead")}
+                  <p className="text-xs text-text-muted">
+                    {d.headDoctorName ?? t("departments.noHead")}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -75,7 +76,7 @@ export default function DepartmentsPage() {
                       variant="ghost"
                       onClick={() => remove.mutate(d.id)}
                     >
-                      {tr(locale, "common.delete")}
+                      {t("common.delete")}
                     </Button>
                   )}
                 </div>
@@ -85,26 +86,26 @@ export default function DepartmentsPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title={tr(locale, "departments.new")}>
+      <Modal open={open} onClose={() => setOpen(false)} title={t("departments.new")}>
         <Form
           onSubmit={(e) => {
             e.preventDefault();
             create.mutate(form);
           }}
         >
-          <FormField label={tr(locale, "common.name")} required>
+          <FormField label={t("common.name")} required>
             <input
               required
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">{tr(locale, "common.save")}</Button>
+            <Button type="submit">{t("common.save")}</Button>
           </div>
         </Form>
       </Modal>

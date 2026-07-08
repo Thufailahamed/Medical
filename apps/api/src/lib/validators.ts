@@ -492,3 +492,24 @@ export const loginByPhoneSchema = z.object({
     })
     .transform((v) => normalizeSLPhone(v)!),
 });
+
+// ─── HOS-0: Tenant registration ───────────────────────────
+export const tenantRegisterSchema = z.object({
+  tenantType: z.enum(["hospital", "clinic"]),
+  ownerName: z.string().min(1).max(120),
+  email: z.string().email().max(254),
+  phone: z
+    .string()
+    .min(7)
+    .max(16)
+    .regex(/^[+0-9 ()-]+$/)
+    .optional(),
+  password: z.string().min(8).max(128),
+  facilityName: z.string().min(2).max(200),
+  licenseNumber: z.string().min(2).max(64),
+  address: z.string().max(500).optional(),
+  facilityPhone: z.string().max(20).optional(),
+  location: z.string().max(200).optional(),
+  specializations: z.array(z.string().min(1).max(80)).max(20).optional(),
+});
+

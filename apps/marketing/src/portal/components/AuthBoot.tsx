@@ -12,7 +12,7 @@ import { fetchMe } from "@/portal/lib/auth";
  * Sits inside Providers so it has access to the QueryClient for the
  * underlying fetch call.
  */
-export function AuthBoot({ children }: { children: React.ReactNode }) {
+export function AuthBoot({ children }: { children?: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
 
   useEffect(() => {

@@ -1,16 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { CheckCircle2, CircleDollarSign, FileText } from "lucide-react";
 import { api } from "@/hospital/lib/api";
-import { Card } from "@/portal/components/ui/Card";
+import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { formatLkr } from "@/hospital/lib/format";
 
 export default function OutstandingPage() {
+  const t = useT();
   const locale = useAuthStore((s) => s.locale);
   const q = useQuery({
     queryKey: ["outstanding"],
@@ -20,29 +22,39 @@ export default function OutstandingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.billingOutstanding")}
-        subtitle={tr(locale, "billing.outstandingSubtitle")}
+        title={t("nav.billingOutstanding")}
+        subtitle={t("billing.outstandingSubtitle")}
       />
-      <Card>
+      <Card padding={false}>
         {q.isLoading ? (
-          <p className="text-sm text-[var(--text-muted)]">{tr(locale, "common.loading")}</p>
+          <p className="p-5 text-sm text-text-muted">{t("common.loading")}</p>
         ) : !q.data?.rows?.length ? (
-          <Empty title={tr(locale, "billing.noOutstanding")} />
+          <div className="p-5">
+            <Empty
+              title={t("billing.noOutstanding")}
+              icon={<CheckCircle2 size={28} className="text-emerald-500 opacity-70" />}
+            />
+          </div>
         ) : (
           <Table>
             <THead>
               <TR>
-                <TH>{tr(locale, "common.name")}</TH>
-                <TH>{tr(locale, "billing.outstandingAmount")}</TH>
-                <TH>{tr(locale, "billing.invoiceCount")}</TH>
+                <TH>{t("common.name")}</TH>
+                <TH>{t("billing.outstandingAmount")}</TH>
+                <TH>{t("billing.invoiceCount")}</TH>
               </TR>
             </THead>
             <TBody>
               {q.data.rows.map((r: any, i: number) => (
                 <TR key={i}>
-                  <TD>{r.patientName}</TD>
-                  <TD>{formatLkr(r.outstanding, locale)}</TD>
-                  <TD>{r.invoiceCount}</TD>
+                  <TD className="font-semibold">{r.patientName}</TD>
+                  <TD>
+                    <span className="inline-flex items-center gap-1.5 font-bold text-red-700">
+                      <CircleDollarSign size={13} />
+                      {formatLkr(r.outstanding, locale)}
+                    </span>
+                  </TD>
+                  <TD className="text-text-muted">{r.invoiceCount}</TD>
                 </TR>
               ))}
             </TBody>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, FlaskConical, Upload } from "lucide-react";
 import { api } from "@/hospital/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
@@ -11,44 +12,45 @@ import { Modal } from "@/portal/components/ui/Modal";
 import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
-import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
+import { cn } from "@/portal/lib/utils";
 
 type Tab = "queue" | "completed";
 
+const STATUS_TONES: Record<string, any> = {
+  ordered: "warn",
+  sample_collected: "info",
+  in_progress: "info",
+  completed: "success",
+};
+
 export default function LabPage() {
-  const locale = useAuthStore((s) => s.locale);
+  const t = useT();
   const [tab, setTab] = useState<Tab>("queue");
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.lab")}
-        subtitle={tr(locale, "lab.subtitle")}
+        title={t("nav.lab")}
+        subtitle={t("lab.subtitle")}
       />
 
-      <div className="flex gap-2 border-b border-[var(--border)]">
-        <button
-          onClick={() => setTab("queue")}
-          className={`border-b-2 px-4 py-2 text-sm ${
-            tab === "queue"
-              ? "border-[var(--accent-600)] font-semibold"
-              : "border-transparent text-[var(--text-muted)]"
-          }`}
-        >
-          {tr(locale, "lab.queue")}
-        </button>
-        <button
-          onClick={() => setTab("completed")}
-          className={`border-b-2 px-4 py-2 text-sm ${
-            tab === "completed"
-              ? "border-[var(--accent-600)] font-semibold"
-              : "border-transparent text-[var(--text-muted)]"
-          }`}
-        >
-          {tr(locale, "lab.completed")}
-        </button>
+      <div className="flex gap-1 border-b border-border">
+        {(["queue", "completed"] as Tab[]).map((tt) => (
+          <button
+            key={tt}
+            onClick={() => setTab(tt)}
+            className={cn(
+              "-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+              tab === tt
+                ? "border-brand text-brand"
+                : "border-transparent text-text-muted hover:text-text"
+            )}
+          >
+            {tt === "queue" ? t("lab.queue") : t("lab.completed")}
+          </button>
+        ))}
       </div>
 
       {tab === "queue" ? <Queue /> : <Completed />}
@@ -57,8 +59,8 @@ export default function LabPage() {
 }
 
 function Queue() {
+  const t = useT();
   const qc = useQueryClient();
-  const locale = useAuthStore((s) => s.locale);
   const [uploadOpen, setUploadOpen] = useState<{ id: string } | null>(null);
   const [result, setResult] = useState("");
 
@@ -95,38 +97,45 @@ function Queue() {
   const list = queue.data?.labOrders ?? [];
 
   return (
-    <Card>
+    <Card padding={false}>
       {queue.isLoading ? (
-        <p className="text-sm text-[var(--text-muted)]">{tr(locale, "common.loading")}</p>
+        <p className="p-5 text-sm text-text-muted">{t("common.loading")}</p>
       ) : list.length === 0 ? (
-        <Empty title={tr(locale, "lab.emptyQueue")} />
+        <div className="p-5">
+          <Empty
+            title={t("lab.emptyQueue")}
+            icon={<FlaskConical size={28} className="text-text-muted opacity-40" />}
+          />
+        </div>
       ) : (
         <Table>
           <THead>
             <TR>
-              <TH>{tr(locale, "common.name")}</TH>
-              <TH>{tr(locale, "lab.test")}</TH>
-              <TH>{tr(locale, "common.status")}</TH>
+              <TH>{t("common.name")}</TH>
+              <TH>{t("lab.test")}</TH>
+              <TH>{t("common.status")}</TH>
               <TH> </TH>
             </TR>
           </THead>
           <TBody>
             {list.map((o: any) => (
               <TR key={o.id}>
-                <TD>{o.patientName ?? o.patientId}</TD>
+                <TD className="font-semibold">{o.patientName ?? o.patientId}</TD>
                 <TD>{o.testName ?? o.testCode ?? "—"}</TD>
                 <TD>
-                  <Pill tone="warn">{o.status}</Pill>
+                  <Pill tone={STATUS_TONES[o.status] ?? "neutral"}>{o.status}</Pill>
                 </TD>
                 <TD>
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     {o.status === "ordered" && (
                       <Button size="sm" variant="ghost" onClick={() => collect.mutate(o.id)}>
-                        {tr(locale, "lab.markCollected")}
+                        <CheckCircle2 size={12} className="mr-1" />
+                        {t("lab.markCollected")}
                       </Button>
                     )}
                     <Button size="sm" onClick={() => setUploadOpen({ id: o.id })}>
-                      {tr(locale, "lab.uploadResult")}
+                      <Upload size={12} className="mr-1" />
+                      {t("lab.uploadResult")}
                     </Button>
                   </div>
                 </TD>
@@ -139,7 +148,7 @@ function Queue() {
       <Modal
         open={!!uploadOpen}
         onClose={() => setUploadOpen(null)}
-        title={tr(locale, "lab.uploadResult")}
+        title={t("lab.uploadResult")}
       >
         <Form
           onSubmit={(e) => {
@@ -147,20 +156,20 @@ function Queue() {
             if (uploadOpen) upload.mutate({ id: uploadOpen.id, result });
           }}
         >
-          <FormField label={tr(locale, "lab.resultText")} required>
+          <FormField label={t("lab.resultText")} required>
             <textarea
               required
               rows={4}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={result}
               onChange={(e) => setResult(e.target.value)}
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setUploadOpen(null)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">{tr(locale, "common.submit")}</Button>
+            <Button type="submit">{t("common.submit")}</Button>
           </div>
         </Form>
       </Modal>
@@ -169,33 +178,35 @@ function Queue() {
 }
 
 function Completed() {
-  const locale = useAuthStore((s) => s.locale);
+  const t = useT();
   const q = useQuery({
     queryKey: ["labCompleted"],
     queryFn: () => api<{ labOrders: any[] }>("/labs?status=completed"),
   });
 
   return (
-    <Card>
+    <Card padding={false}>
       {q.isLoading ? (
-        <p className="text-sm text-[var(--text-muted)]">{tr(locale, "common.loading")}</p>
+        <p className="p-5 text-sm text-text-muted">{t("common.loading")}</p>
       ) : !q.data?.labOrders?.length ? (
-        <Empty title={tr(locale, "lab.emptyCompleted")} />
+        <div className="p-5">
+          <Empty title={t("lab.emptyCompleted")} />
+        </div>
       ) : (
         <Table>
           <THead>
             <TR>
-              <TH>{tr(locale, "common.name")}</TH>
-              <TH>{tr(locale, "lab.test")}</TH>
-              <TH>{tr(locale, "lab.completedAt")}</TH>
+              <TH>{t("common.name")}</TH>
+              <TH>{t("lab.test")}</TH>
+              <TH>{t("lab.completedAt")}</TH>
             </TR>
           </THead>
           <TBody>
             {q.data.labOrders.map((o: any) => (
               <TR key={o.id}>
-                <TD>{o.patientName ?? o.patientId}</TD>
+                <TD className="font-semibold">{o.patientName ?? o.patientId}</TD>
                 <TD>{o.testName ?? o.testCode ?? "—"}</TD>
-                <TD>{o.completedAt ?? "—"}</TD>
+                <TD className="text-text-muted">{o.completedAt ?? "—"}</TD>
               </TR>
             ))}
           </TBody>

@@ -298,5 +298,38 @@
     "step3Body": "Invite reception, doctors, pharmacy and lab staff.",
     "skip": "Skip for now",
     "finish": "Finish"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Updates from your facility",
+    "markAllRead": "Mark all as read",
+    "noUnread": "You're all caught up",
+    "noneYet": "No notifications yet",
+    "filter": {
+      "all": "All",
+      "unread": "Unread"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Your profile, facility, and preferences",
+    "profile": "Profile",
+    "role": "Role",
+    "status": "Account status",
+    "profileHint": "Profile editing is read-only for now — contact super admin to update.",
+    "facility": "Current facility",
+    "facilityName": "Facility name",
+    "facilityType": "Type",
+    "facilityId": "Facility ID",
+    "facilityHint": "Switch facilities from the topbar tenant switcher.",
+    "language": "Language",
+    "languageHint": "Choose the language used across the portal.",
+    "capabilities": "Your capabilities",
+    "capAdmin": "Manage staff, departments, and facility settings",
+    "capStaff": "Reception, IPD, and discharge operations",
+    "capPharmacy": "Pharmacy dispense queue and inventory",
+    "capLab": "Lab queue and result uploads",
+    "session": "Session",
+    "sessionHint": "Sign out of this device."
   }
 }

@@ -4,7 +4,8 @@ import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/hospital/lib/api";
 import Link from "next/link";
-import { Card } from "@/portal/components/ui/Card";
+import { ArrowRight, CircleDollarSign, Eye, FileText, Receipt, Send } from "lucide-react";
+import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Button } from "@/portal/components/ui/Button";
@@ -12,11 +13,20 @@ import { Modal } from "@/portal/components/ui/Modal";
 import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 import { formatLkr, formatDate } from "@/hospital/lib/format";
 
+const STATUS_TONES: Record<string, any> = {
+  draft: "neutral",
+  issued: "info",
+  partially_paid: "warn",
+  paid: "success",
+  cancelled: "neutral",
+};
+
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useT();
   const { id } = use(params);
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
@@ -60,23 +70,26 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${data?.invoice?.invoiceNumber ?? tr(locale, "billing.invoice")}`}
+        title={`${data?.invoice?.invoiceNumber ?? t("billing.invoice")}`}
         subtitle={data?.patient?.name ?? ""}
         actions={
           <div className="flex gap-2">
             <Link
               href={`/hospital/billing/${id}/receipt`}
-              className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-2 transition-colors"
             >
-              {tr(locale, "billing.viewReceipt")}
+              <Eye size={14} />
+              {t("billing.viewReceipt")}
             </Link>
             {data?.invoice?.status === "draft" ? (
               <Button onClick={() => issue.mutate()}>
-                {tr(locale, "billing.issue")}
+                <Send size={14} className="mr-1.5" />
+                {t("billing.issue")}
               </Button>
             ) : data?.invoice?.status !== "paid" && data?.invoice?.status !== "cancelled" ? (
               <Button onClick={() => setPayOpen(true)} disabled={balance <= 0}>
-                {tr(locale, "billing.recordPayment")}
+                <CircleDollarSign size={14} className="mr-1.5" />
+                {t("billing.recordPayment")}
               </Button>
             ) : null}
           </div>
@@ -85,41 +98,41 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <h3 className="text-sm font-medium text-[var(--text-muted)]">
-            {tr(locale, "common.status")}
-          </h3>
-          <p className="mt-2 text-2xl font-semibold">{data?.invoice?.status}</p>
+          <CardHeader title={t("common.status")} icon={<FileText size={15} className="text-brand" />} />
+          <div className="mt-3">
+            <Pill tone={STATUS_TONES[data?.invoice?.status] ?? "neutral"} className="text-xs">
+              {data?.invoice?.status}
+            </Pill>
+          </div>
         </Card>
         <Card>
-          <h3 className="text-sm font-medium text-[var(--text-muted)]">
-            {tr(locale, "billing.total")}
-          </h3>
-          <p className="mt-2 text-2xl font-semibold">
+          <CardHeader title={t("billing.total")} icon={<Receipt size={15} className="text-brand" />} />
+          <p className="mt-3 text-2xl font-extrabold tracking-tight text-text">
             {formatLkr(data?.invoice?.totalLkr ?? 0, locale)}
           </p>
         </Card>
         <Card>
-          <h3 className="text-sm font-medium text-[var(--text-muted)]">
-            {tr(locale, "billing.balance")}
-          </h3>
-          <p className="mt-2 text-2xl font-semibold">
+          <CardHeader title={t("billing.balance")} icon={<CircleDollarSign size={15} className="text-brand" />} />
+          <p className="mt-3 text-2xl font-extrabold tracking-tight text-text">
             {formatLkr(balance, locale)}
           </p>
-          <p className="text-xs text-[var(--text-muted)]">
-            {formatLkr(totalPaid, locale)} {tr(locale, "billing.paid")}
+          <p className="text-xs text-text-muted mt-1">
+            {formatLkr(totalPaid, locale)} {t("billing.paid")}
           </p>
         </Card>
       </div>
 
-      <Card>
-        <h3 className="mb-3 text-lg font-semibold">{tr(locale, "billing.lineItems")}</h3>
+      <Card padding={false}>
+        <div className="p-4 md:p-5">
+          <CardHeader title={t("billing.lineItems")} icon={<FileText size={15} className="text-brand" />} />
+        </div>
         <Table>
           <THead>
             <TR>
-              <TH>{tr(locale, "billing.description")}</TH>
-              <TH>{tr(locale, "billing.qty")}</TH>
-              <TH>{tr(locale, "billing.unitPrice")}</TH>
-              <TH>{tr(locale, "billing.amount")}</TH>
+              <TH>{t("billing.description")}</TH>
+              <TH>{t("billing.qty")}</TH>
+              <TH>{t("billing.unitPrice")}</TH>
+              <TH>{t("billing.amount")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -128,36 +141,38 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <TD>{li.description}</TD>
                 <TD>{li.quantity}</TD>
                 <TD>{formatLkr(li.unitPriceLkr, locale)}</TD>
-                <TD>{formatLkr(li.amountLkr, locale)}</TD>
+                <TD className="font-semibold">{formatLkr(li.amountLkr, locale)}</TD>
               </TR>
             ))}
           </TBody>
         </Table>
       </Card>
 
-      <Card>
-        <h3 className="mb-3 text-lg font-semibold">{tr(locale, "billing.payments")}</h3>
+      <Card padding={false}>
+        <div className="p-4 md:p-5">
+          <CardHeader title={t("billing.payments")} icon={<CircleDollarSign size={15} className="text-brand" />} />
+        </div>
         {!data?.payments?.length ? (
-          <p className="text-sm text-[var(--text-muted)]">—</p>
+          <p className="px-5 pb-5 text-sm text-text-muted">—</p>
         ) : (
           <Table>
             <THead>
               <TR>
-                <TH>{tr(locale, "common.date")}</TH>
-                <TH>{tr(locale, "billing.amount")}</TH>
-                <TH>{tr(locale, "billing.method")}</TH>
-                <TH>{tr(locale, "billing.reference")}</TH>
+                <TH>{t("common.date")}</TH>
+                <TH>{t("billing.amount")}</TH>
+                <TH>{t("billing.method")}</TH>
+                <TH>{t("billing.reference")}</TH>
               </TR>
             </THead>
             <TBody>
               {data.payments.map((p: any) => (
                 <TR key={p.id}>
-                  <TD>{formatDate(p.paidAt, locale)}</TD>
-                  <TD>{formatLkr(p.amountLkr, locale)}</TD>
+                  <TD className="text-text-muted">{formatDate(p.paidAt, locale)}</TD>
+                  <TD className="font-semibold">{formatLkr(p.amountLkr, locale)}</TD>
                   <TD>
                     <Pill tone="neutral">{p.method}</Pill>
                   </TD>
-                  <TD>{p.reference ?? "—"}</TD>
+                  <TD className="text-text-muted">{p.reference ?? "—"}</TD>
                 </TR>
               ))}
             </TBody>
@@ -168,7 +183,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       <Modal
         open={payOpen}
         onClose={() => setPayOpen(false)}
-        title={tr(locale, "billing.recordPayment")}
+        title={t("billing.recordPayment")}
       >
         <Form
           onSubmit={(e) => {
@@ -176,22 +191,22 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             pay.mutate(payForm);
           }}
         >
-          <FormField label={tr(locale, "billing.amount")} required>
+          <FormField label={t("billing.amount")} required>
             <input
               required
               type="number"
               min={0}
               max={balance}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={payForm.amountLkr}
               onChange={(e) =>
                 setPayForm({ ...payForm, amountLkr: Number(e.target.value) })
               }
             />
           </FormField>
-          <FormField label={tr(locale, "billing.method")}>
+          <FormField label={t("billing.method")}>
             <select
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={payForm.method}
               onChange={(e) => setPayForm({ ...payForm, method: e.target.value })}
             >
@@ -201,18 +216,18 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               <option value="mobile">Mobile</option>
             </select>
           </FormField>
-          <FormField label={tr(locale, "billing.reference")}>
+          <FormField label={t("billing.reference")}>
             <input
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={payForm.reference}
               onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })}
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setPayOpen(false)}>
-              {tr(locale, "common.cancel")}
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">{tr(locale, "common.submit")}</Button>
+            <Button type="submit">{t("common.submit")}</Button>
           </div>
         </Form>
       </Modal>

@@ -8,10 +8,11 @@ import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
 import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 import { formatTime } from "@/hospital/lib/format";
 
 export default function ReceptionAppointmentsPage() {
+  const t = useT();
   const locale = useAuthStore((s) => s.locale);
   const q = useQuery({
     queryKey: ["appointments"],
@@ -22,22 +23,22 @@ export default function ReceptionAppointmentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.appointments")}
-        subtitle={tr(locale, "reception.appointmentsSubtitle")}
+        title={t("nav.appointments")}
+        subtitle={t("reception.appointmentsSubtitle")}
       />
       <Card>
         {q.isLoading ? (
-          <p className="text-sm text-[var(--text-muted)]">{tr(locale, "common.loading")}</p>
+          <p className="text-sm text-text-muted">{t("common.loading")}</p>
         ) : !q.data?.appointments?.length ? (
-          <Empty title={tr(locale, "reception.noAppointments")} />
+          <Empty title={t("reception.noAppointments")} />
         ) : (
           <Table>
             <THead>
               <TR>
-                <TH>{tr(locale, "common.time")}</TH>
-                <TH>{tr(locale, "common.name")}</TH>
-                <TH>{tr(locale, "reception.doctor")}</TH>
-                <TH>{tr(locale, "common.status")}</TH>
+                <TH>{t("common.time")}</TH>
+                <TH>{t("common.name")}</TH>
+                <TH>{t("reception.doctor")}</TH>
+                <TH>{t("common.status")}</TH>
               </TR>
             </THead>
             <TBody>

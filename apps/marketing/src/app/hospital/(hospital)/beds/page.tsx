@@ -7,11 +7,10 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Empty } from "@/portal/components/ui/Empty";
 import { Table, TBody, TD, TH, THead, TR } from "@/portal/components/ui/Table";
-import { useAuthStore } from "@/hospital/stores/auth";
-import { tr } from "@/hospital/i18n";
+import { useT } from "@/hospital/i18n";
 
 export default function BedsPage() {
-  const locale = useAuthStore((s) => s.locale);
+  const t = useT();
   const wards = useQuery({
     queryKey: ["wards"],
     queryFn: () => api<{ wards: any[] }>("/hospital-portal/wards"),
@@ -20,14 +19,14 @@ export default function BedsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={tr(locale, "nav.beds")}
-        subtitle={tr(locale, "beds.subtitle")}
+        title={t("nav.beds")}
+        subtitle={t("beds.subtitle")}
       />
 
       {wards.isLoading ? (
-        <Card>{tr(locale, "common.loading")}</Card>
+        <Card>{t("common.loading")}</Card>
       ) : !wards.data?.wards?.length ? (
-        <Empty title={tr(locale, "wards.noWards")} />
+        <Empty title={t("wards.noWards")} />
       ) : (
         <div className="space-y-6">
           {wards.data.wards.map((w: any) => (
@@ -40,6 +39,7 @@ export default function BedsPage() {
 }
 
 function WardBoard({ ward }: { ward: any }) {
+  const t = useT();
   const beds = useQuery({
     queryKey: ["beds", ward.id],
     queryFn: () => api<{ beds: any[] }>(`/hospital-portal/beds?wardId=${ward.id}`),
@@ -49,12 +49,12 @@ function WardBoard({ ward }: { ward: any }) {
     <Card>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-semibold">{ward.name}</h3>
-        <span className="text-sm text-[var(--text-muted)]">
-          {list.filter((b: any) => b.status === "occupied").length}/{list.length} {tr(useAuthStore.getState().locale, "wards.occupied")}
+        <span className="text-sm text-text-muted">
+          {list.filter((b: any) => b.status === "occupied").length}/{list.length} {t("wards.occupied")}
         </span>
       </div>
       {list.length === 0 ? (
-        <p className="text-sm text-[var(--text-muted)]">—</p>
+        <p className="text-sm text-text-muted">—</p>
       ) : (
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
           {list.map((b: any) => (
