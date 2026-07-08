@@ -26,6 +26,7 @@
 // `audit_logs` with `action="admin.<verb>"`, the actor + IP.
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import { and, asc, desc, eq, gte, isNull, like, lte, ne, or, sql } from "drizzle-orm";
 import {
@@ -51,6 +52,7 @@ import { requireAdmin, recordAdminAction } from "../middleware/admin";
 import { requirePasskeyFresh } from "../middleware/stepup";
 import { flattenTranslated } from "../lib/validation-error";
 import { coerceSettingValue, getSetting, invalidateSetting } from "../lib/settings";
+import { notify } from "../lib/notifications";
 import type { AppEnvironment } from "../types";
 
 const adminRouter = new Hono<AppEnvironment>();
@@ -112,7 +114,13 @@ adminRouter.get("/dashboard", async (c) => {
     db
       .select({ count: sql<number>`count(*)` })
       .from(dsarRequests)
-      .where(or(eq(dsarRequests.status, "queued"), eq(dsarRequests.status, "approved"))),
+      .where(
+        or(
+          eq(dsarRequests.status, "queued"),
+          eq(dsarRequests.status, "approved"),
+          eq(dsarRequests.status, "processing"),
+        ),
+      ),
     db
       .select({ count: sql<number>`count(*)` })
       .from(demoRequests)
@@ -1005,6 +1013,8 @@ adminRouter.post("/dsar/:id/approve", async (c) => {
     details: { purpose: existing.purpose, userId: existing.userId },
   });
 
+  await notifyDsarStateChange(c, existing, "approved");
+
   return c.json({ ok: true });
 });
 
@@ -1037,6 +1047,383 @@ adminRouter.post("/dsar/:id/complete", async (c) => {
     resource: "dsar",
     resourceId: id,
     details: { purpose: existing.purpose, resultUrl: parsed.data.resultUrl },
+  });
+
+  await notifyDsarStateChange(c, existing, "completed", {
+    resultUrl: parsed.data.resultUrl,
+    resultExpiresAt: expires,
+  });
+
+  return c.json({ ok: true });
+});
+
+const dsarRejectSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+});
+
+adminRouter.post("/dsar/:id/reject", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = dsarRejectSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  const [existing] = await db
+    .select()
+    .from(dsarRequests)
+    .where(eq(dsarRequests.id, id))
+    .limit(1);
+  if (!existing) return c.json({ error: "DSAR request not found" }, 404);
+
+  if (existing.status === "completed" || existing.status === "failed") {
+    return c.json({ error: "Cannot reject a finalized DSAR request" }, 409);
+  }
+
+  await db
+    .update(dsarRequests)
+    .set({
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      notes: parsed.data.reason,
+    } as any)
+    .where(eq(dsarRequests.id, id));
+
+  await recordAdminAction(c, {
+    action: "reject_dsar",
+    resource: "dsar",
+    resourceId: id,
+    details: { reason: parsed.data.reason, purpose: existing.purpose },
+  });
+
+  await notifyDsarStateChange(c, existing, "failed", {
+    reason: parsed.data.reason,
+  });
+
+  return c.json({ ok: true });
+});
+
+adminRouter.post("/dsar/:id/requeue", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const [existing] = await db
+    .select()
+    .from(dsarRequests)
+    .where(eq(dsarRequests.id, id))
+    .limit(1);
+  if (!existing) return c.json({ error: "DSAR request not found" }, 404);
+
+  if (existing.status !== "failed") {
+    return c.json({ error: "Only failed requests can be requeued" }, 409);
+  }
+
+  await db
+    .update(dsarRequests)
+    .set({
+      status: "queued",
+      notes: null,
+      completedAt: null,
+    } as any)
+    .where(eq(dsarRequests.id, id));
+
+  await recordAdminAction(c, {
+    action: "requeue_dsar",
+    resource: "dsar",
+    resourceId: id,
+    details: { purpose: existing.purpose },
+  });
+
+  return c.json({ ok: true });
+});
+
+/**
+ * Best-effort notification when a DSAR request changes state. Only
+ * `approved`, `completed`, and `failed` notify the requester — the
+ * queued/processing transitions are silent because they're noisy.
+ *
+ * Errors are swallowed: a notification failure must never block the
+ * underlying admin action from completing.
+ */
+async function notifyDsarStateChange(
+  c: Context<AppEnvironment>,
+  dsar: { id: string; userId: string; purpose: string | null },
+  newStatus: "approved" | "completed" | "failed",
+  extra: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    const db = c.get("db");
+    if (!dsar.userId) return;
+    const titleMap = {
+      approved: "Your data request has been approved",
+      completed: "Your data export is ready",
+      failed: "Your data request was rejected",
+    } as const;
+    const bodyMap = {
+      approved: "We are preparing your export — you'll get a notification when it's ready.",
+      completed: "Tap to download. The link expires in 14 days.",
+      failed: "Please contact support if you think this was a mistake.",
+    } as const;
+    await notify({
+      db,
+      userId: dsar.userId,
+      type: "general",
+      title: titleMap[newStatus],
+      body: bodyMap[newStatus],
+      data: { dsarId: dsar.id, status: newStatus, ...extra },
+    });
+  } catch (err) {
+    console.error("notifyDsarStateChange failed:", err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 11b. Multi-admin (Phase ADM-4) — promote / demote / suspend
+//      super_admin accounts. Re-uses the `users` table; no schema
+//      changes. All destructive mutations require a fresh step-up
+//      token (requirePasskeyFresh).
+// ─────────────────────────────────────────────────────────────
+
+adminRouter.get("/admins", async (c) => {
+  const db = c.get("db");
+  const admins = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      status: users.status,
+      lastLoginAt: users.lastLoginAt,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.role, "super_admin"))
+    .orderBy(asc(users.name));
+
+  // Add audit activity count for last 30d.
+  const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const rows = await Promise.all(
+    admins.map(async (a) => {
+      const countRes = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(auditLogs)
+        .where(
+          and(
+            eq(auditLogs.userId, a.id),
+            gte(auditLogs.createdAt, since),
+            like(auditLogs.action, "admin.%"),
+          ),
+        );
+      const count = countRes?.[0]?.count ?? 0;
+      return { ...a, auditCountLast30d: Number(count) };
+    }),
+  );
+
+  return c.json({ items: rows, total: rows.length });
+});
+
+const adminPromoteSchema = z.object({
+  userId: z.string().min(1),
+  reason: z.string().trim().min(3).max(500),
+});
+
+adminRouter.post("/admins/promote", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = adminPromoteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  const [target] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, parsed.data.userId))
+    .limit(1);
+  if (!target) return c.json({ error: "User not found" }, 404);
+
+  if (target.role === "super_admin") {
+    return c.json({ error: "User is already a super_admin" }, 409);
+  }
+
+  const previousRole = target.role;
+  await db
+    .update(users)
+    .set({ role: "super_admin", status: "active" } as any)
+    .where(eq(users.id, parsed.data.userId));
+
+  await recordAdminAction(c, {
+    action: "promote_admin",
+    resource: "user",
+    resourceId: parsed.data.userId,
+    details: {
+      previousRole,
+      reason: parsed.data.reason,
+    },
+  });
+
+  return c.json({ ok: true, userId: parsed.data.userId, role: "super_admin" });
+});
+
+const adminDemoteSchema = z.object({
+  userId: z.string().min(1),
+  reason: z.string().trim().min(3).max(500),
+});
+
+adminRouter.post("/admins/demote", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const actor = c.get("adminActor");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = adminDemoteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  if (parsed.data.userId === actor?.id) {
+    return c.json({ error: "You cannot demote yourself" }, 400);
+  }
+
+  const [target] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, parsed.data.userId))
+    .limit(1);
+  if (!target) return c.json({ error: "User not found" }, 404);
+
+  if (target.role !== "super_admin") {
+    return c.json({ error: "User is not a super_admin" }, 409);
+  }
+
+  // Last-admin guard: count remaining active super_admins after this
+  // demotion. If 0, block. Excludes the target from the count.
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(
+      and(
+        eq(users.role, "super_admin"),
+        ne(users.id, parsed.data.userId),
+        or(eq(users.status, "active"), isNull(users.status)),
+      ),
+    );
+  if (Number(count) === 0) {
+    return c.json({ error: "Cannot demote the last active super_admin" }, 409);
+  }
+
+  const previousRole = target.role;
+  await db
+    .update(users)
+    .set({ role: "patient" } as any)
+    .where(eq(users.id, parsed.data.userId));
+
+  await recordAdminAction(c, {
+    action: "demote_admin",
+    resource: "user",
+    resourceId: parsed.data.userId,
+    details: {
+      previousRole,
+      reason: parsed.data.reason,
+    },
+  });
+
+  return c.json({ ok: true, userId: parsed.data.userId, role: "patient" });
+});
+
+const adminSuspendSchema = z.object({
+  userId: z.string().min(1),
+  reason: z.string().trim().min(3).max(500),
+});
+
+adminRouter.post("/admins/suspend", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const actor = c.get("adminActor");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = adminSuspendSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  if (parsed.data.userId === actor?.id) {
+    return c.json({ error: "You cannot suspend yourself" }, 400);
+  }
+
+  const [target] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, parsed.data.userId))
+    .limit(1);
+  if (!target) return c.json({ error: "User not found" }, 404);
+
+  if (target.role !== "super_admin") {
+    return c.json({ error: "User is not a super_admin" }, 409);
+  }
+
+  // Last-admin guard.
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(
+      and(
+        eq(users.role, "super_admin"),
+        ne(users.id, parsed.data.userId),
+        or(eq(users.status, "active"), isNull(users.status)),
+      ),
+    );
+  if (Number(count) === 0) {
+    return c.json({ error: "Cannot suspend the last active super_admin" }, 409);
+  }
+
+  await db
+    .update(users)
+    .set({ status: "suspended" } as any)
+    .where(eq(users.id, parsed.data.userId));
+
+  await recordAdminAction(c, {
+    action: "suspend_admin",
+    resource: "user",
+    resourceId: parsed.data.userId,
+    details: { reason: parsed.data.reason },
+  });
+
+  return c.json({ ok: true });
+});
+
+adminRouter.post("/admins/unsuspend", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const userId = (body as any)?.userId;
+  if (!userId) return c.json({ error: "userId required" }, 400);
+
+  const [target] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!target) return c.json({ error: "User not found" }, 404);
+  if (target.role !== "super_admin") {
+    return c.json({ error: "User is not a super_admin" }, 409);
+  }
+
+  await db
+    .update(users)
+    .set({ status: "active" } as any)
+    .where(eq(users.id, userId));
+
+  await recordAdminAction(c, {
+    action: "unsuspend_admin",
+    resource: "user",
+    resourceId: userId,
   });
 
   return c.json({ ok: true });

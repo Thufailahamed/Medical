@@ -78,8 +78,25 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
   }
 
   c.set("user", { id: dbUser.id, email: dbUser.email, role: dbUser.role } as any);
-  c.set("userId", dbUser.id); // D1 user ID
+  c.set("userId", dbUser.id); // D1 user ID — the impersonated subject
   c.set("dbUser", dbUser);
+  c.set("aud", decoded.aud ?? "mobile");
+
+  // Impersonation context: when a super_admin mints a short-TTL
+  // token via /admin/impersonate/start, the token carries
+  // `impersonatedBy` pointing at the admin's user ID. We surface
+  // that separately from `userId` so:
+  //   • audit rows can record who *actually* performed the action
+  //   • `recordAdminAction` can stamp `actorId` into details
+  //   • mobile-style routes still see the impersonated subject's
+  //     userId for ownership checks
+  if (decoded.impersonatedBy && typeof decoded.impersonatedBy === "string") {
+    c.set("actorId", decoded.impersonatedBy);
+    c.set("impersonatedBy", decoded.impersonatedBy);
+    if (typeof decoded.impName === "string") {
+      c.set("impName", decoded.impName);
+    }
+  }
 
   await next();
 }

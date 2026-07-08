@@ -87,6 +87,12 @@ export async function verifyPassword(password: string, storedHash: string): Prom
 /**
  * Helper to generate a JWT token for a user.
  *
+ * `aud` carries the intended audience ("mobile" | "admin"). Mobile
+ * endpoints reject non-"mobile" tokens; admin endpoints reject
+ * non-"admin" tokens. This prevents a token minted for one surface
+ * (e.g. an admin impersonation token) from being replayed against
+ * the other (e.g. to call mobile `/patient/*` routes).
+ *
  * Optional `claims` are merged into the payload — used by the NIC identity
  * layer to surface plain NIC + DOB on the session so the mobile app can
  * scope data to a verified subject without a server round-trip per
@@ -96,10 +102,14 @@ export async function generateToken(
   userId: string,
   secret: string,
   claims: Record<string, unknown> = {},
+  options: { aud?: "mobile" | "admin"; ttlSeconds?: number } = {},
 ): Promise<string> {
+  const aud = options.aud ?? "mobile";
+  const ttl = options.ttlSeconds ?? 60 * 60 * 24 * 30; // default 30 days
   const payload = {
     sub: userId,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30, // 30 days
+    aud,
+    exp: Math.floor(Date.now() / 1000) + ttl,
     ...claims,
   };
   return sign(payload as any, secret);

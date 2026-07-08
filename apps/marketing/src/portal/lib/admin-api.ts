@@ -190,4 +190,54 @@ export const adminQk = {
   setting: (key: string) => ["admin", "settings", key] as const,
   slmcDocs: (doctorId: string) => ["admin", "doctors", doctorId, "docs"] as const,
   passkeys: () => ["admin", "webauthn", "status"] as const,
+  admins: () => ["admin", "admins"] as const,
+  healthOverview: () => ["admin", "health", "overview"] as const,
+  healthCron: (name: string) => ["admin", "health", "cron", name] as const,
+  healthErrors: () => ["admin", "health", "errors"] as const,
+  impersonateWhoami: () => ["admin", "impersonate", "whoami"] as const,
 };
+
+// ─── Impersonation token storage ────────────────────────────
+// Kept separate from the admin's own session token so clearing the
+// impersonation context never disturbs the admin's auth.
+const IMP_STORAGE_KEY = "admin:impersonation";
+
+export interface ImpersonationTarget {
+  token: string;
+  expiresAt: string;
+  targetUser: { id: string; name: string; email: string; role: string };
+}
+
+export function getImpersonation(): ImpersonationTarget | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(IMP_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.token && parsed?.expiresAt && new Date(parsed.expiresAt) > new Date()) {
+      return parsed;
+    }
+    // Expired — clean up.
+    window.localStorage.removeItem(IMP_STORAGE_KEY);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Back-compat: returns just the token string. New code should use
+ * `getImpersonation()` so it can also see `expiresAt` + `targetUser`.
+ */
+export function getImpersonationToken(): string | null {
+  return getImpersonation()?.token ?? null;
+}
+
+export function setImpersonationToken(input: ImpersonationTarget | null): void {
+  if (typeof window === "undefined") return;
+  if (!input) {
+    window.localStorage.removeItem(IMP_STORAGE_KEY);
+    return;
+  }
+  window.localStorage.setItem(IMP_STORAGE_KEY, JSON.stringify(input));
+}

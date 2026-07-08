@@ -1173,7 +1173,9 @@
       "waitlist": "Marketing waitlist",
       "demoRequests": "Demo requests",
       "notifications": "Broadcasts",
-      "settings": "Settings"
+      "settings": "Settings",
+      "admins": "Administrators",
+      "systemHealth": "System health"
     }
   }
 }

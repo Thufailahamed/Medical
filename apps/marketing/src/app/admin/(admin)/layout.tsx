@@ -6,6 +6,7 @@ import { useAuthStore } from "@/portal/stores/auth";
 import { AdminSidebar } from "@/portal/components/admin/AdminSidebar";
 import { AdminTopbar } from "@/portal/components/admin/AdminTopbar";
 import { StepUpModal } from "@/portal/components/admin/StepUpModal";
+import { ImpersonationBanner } from "@/portal/components/admin/ImpersonationBanner";
 
 export default function AdminShellLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function AdminShellLayout({ children }: { children: ReactNode }) 
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <AdminTopbar />
+        <ImpersonationBanner />
         <main className="flex-1 overflow-y-auto px-6 py-6">{children}</main>
       </div>
       <StepUpModal />

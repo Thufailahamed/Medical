@@ -53,6 +53,19 @@ export interface AppEnvironment {
     userRole: string;
     db: DB;
     locale: Locale;
+    // Phase ADM-4: JWT audience claim (mobile | admin). Used by
+    // `requireAdmin` to reject mobile-issued tokens from reaching
+    // admin endpoints.
+    aud?: string;
+    // Impersonation context — populated by authMiddleware when the
+    // request carries an `impersonatedBy` claim. Audit middleware
+    // stamps these into row details so the real operator is recorded.
+    actorId?: string;
+    impersonatedBy?: string;
+    impName?: string;
+    // Used by requireAdmin so handlers can read the actor + IP.
+    adminActor?: typeof users.$inferSelect;
+    clientIp?: string | null;
   };
 }
 

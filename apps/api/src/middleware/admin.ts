@@ -33,6 +33,20 @@ export async function requireAdmin(c: Context<AppEnvironment>, next: Next) {
       403
     );
   }
+  // Audience gate: reject mobile-issued tokens from hitting admin routes.
+  // Auth middleware sets `aud` from the JWT claim (default "mobile" for
+  // back-compat). A token with `aud !== "admin"` cannot reach admin
+  // endpoints regardless of role.
+  const aud = c.get("aud");
+  if (aud && aud !== "admin") {
+    return c.json(
+      {
+        error: "Admin endpoints require an admin-audience token",
+        code: "audience_mismatch",
+      },
+      401
+    );
+  }
   c.set("adminActor", dbUser);
 
   // CF populates `cf-connecting-ip`; fall back to the raw socket IP.
@@ -60,8 +74,15 @@ export async function recordAdminAction(
 ) {
   const db = c.get("db");
   const actor = c.get("adminActor");
+  // When the request is being made under an impersonation session, the
+  // admin actor is still the same (the impersonation token is a separate
+  // JWT — admin endpoints always require `aud: "admin"` and a real
+  // super_admin subject). We surface `actorId` so the audit chain shows
+  // the *real* operator separately from `userId` (the impersonated subject).
+  const impersonatedBy = c.get("impersonatedBy");
+  const userIdOverride = impersonatedBy ? c.get("userId") : actor?.id ?? null;
   await writeAudit(db, {
-    userId: actor?.id ?? null,
+    userId: userIdOverride,
     action: `admin.${input.action}`,
     resource: input.resource,
     resourceId: input.resourceId ?? null,
@@ -69,6 +90,10 @@ export async function recordAdminAction(
       ...(input.details ?? {}),
       actorEmail: actor?.email ?? null,
       actorName: actor?.name ?? null,
+      actorId: actor?.id ?? null,
+      ...(impersonatedBy
+        ? { impersonated: c.get("userId"), impersonatedBy }
+        : {}),
     },
     ip: c.get("clientIp") ?? null,
   });

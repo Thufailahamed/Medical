@@ -846,7 +846,9 @@
       "waitlist": "අලෙවි රැඳීම් ලැයිස්තුව",
       "demoRequests": "ආදර්ශ ඉල්ලීම්",
       "notifications": "ප්‍රචාරණ",
-      "settings": "සැකසුම්"
+      "settings": "සැකසුම්",
+      "admins": "පරිපාලකයින්",
+      "systemHealth": "පද්ධති සෞඛ්‍යය"
     }
   }
 }

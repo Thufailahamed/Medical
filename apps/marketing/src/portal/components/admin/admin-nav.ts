@@ -22,6 +22,8 @@ import {
   BookOpen,
   MailCheck,
   Settings as SettingsIcon,
+  UserCog,
+  Activity,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -48,6 +50,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/approvals", labelKey: "admin.nav.approvals", icon: UserCheck },
       { href: "/admin/users", labelKey: "admin.nav.users", icon: Users },
       { href: "/admin/doctors", labelKey: "admin.nav.doctors", icon: Stethoscope },
+      { href: "/admin/admins", labelKey: "admin.nav.admins", icon: UserCog },
     ],
   },
   {
@@ -81,6 +84,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     labelKey: "admin.nav.system",
     items: [
+      { href: "/admin/system-health", labelKey: "admin.nav.systemHealth", icon: Activity },
       { href: "/admin/notifications", labelKey: "admin.nav.notifications", icon: Megaphone },
       { href: "/admin/settings", labelKey: "admin.nav.settings", icon: SettingsIcon },
     ],

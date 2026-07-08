@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileLock2, CheckCircle2, ExternalLink } from "lucide-react";
+import { FileLock2, CheckCircle2, ExternalLink, XCircle, RotateCw, Loader2 } from "lucide-react";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk, setStepUpToken } from "@/portal/lib/admin-api";
+import { getPasskey } from "@/portal/lib/webauthn";
 import { toast } from "@/portal/components/ui/Toast";
 
 type Row = {
@@ -66,6 +67,48 @@ export default function AdminDSARPage() {
     onError: (e: any) => toast.error("Failed", e.message),
   });
 
+  const [rejectTarget, setRejectTarget] = useState<Row | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+
+  async function refreshStepUp(): Promise<string> {
+    const opts = await adminApi<any>("/admin/webauthn/auth/options", { method: "POST", json: {} });
+    const credential = await getPasskey(opts);
+    const res = await adminApi<{ stepUpToken: string }>(
+      "/admin/webauthn/auth/verify",
+      { method: "POST", json: credential },
+    );
+    setStepUpToken(res.stepUpToken);
+    return res.stepUpToken;
+  }
+
+  const reject = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      adminApiWithStepUp<{ ok: boolean }>(`/admin/dsar/${id}/reject`, {
+        method: "POST",
+        json: { reason },
+      }, refreshStepUp),
+    onSuccess: () => {
+      toast.success("Rejected");
+      qc.invalidateQueries({ queryKey: ["admin", "dsar"] });
+      setRejectTarget(null);
+      setRejectReason("");
+    },
+    onError: (e: any) => toast.error("Failed", e.message),
+  });
+
+  const requeue = useMutation({
+    mutationFn: (id: string) =>
+      adminApiWithStepUp<{ ok: boolean }>(`/admin/dsar/${id}/requeue`, {
+        method: "POST",
+        json: {},
+      }, refreshStepUp),
+    onSuccess: () => {
+      toast.success("Re-queued");
+      qc.invalidateQueries({ queryKey: ["admin", "dsar"] });
+    },
+    onError: (e: any) => toast.error("Failed", e.message),
+  });
+
   return (
     <div className="flex flex-col gap-4 max-w-7xl">
       <PageHeader title="Privacy / DSAR requests" icon={<FileLock2 size={20} className="text-amber-600" />} />
@@ -109,15 +152,35 @@ export default function AdminDSARPage() {
                   ) : "—"}
                 </TD>
                 <TD className="text-right">
-                  {r.status === "queued" ? (
-                    <Button size="sm" variant="primary" onClick={() => approve.mutate(r.id)} className="bg-emerald-600 hover:bg-emerald-700" disabled={approve.isPending}>
-                      <CheckCircle2 size={14} className="mr-1" />Approve
-                    </Button>
-                  ) : r.status === "approved" ? (
-                    <Button size="sm" variant="primary" onClick={() => setCompleteTarget(r)} className="bg-emerald-600 hover:bg-emerald-700">
-                      Mark complete
-                    </Button>
-                  ) : null}
+                  <div className="inline-flex gap-1">
+                    {r.status === "queued" ? (
+                      <>
+                        <Button size="sm" variant="primary" onClick={() => approve.mutate(r.id)} className="bg-emerald-600 hover:bg-emerald-700" disabled={approve.isPending}>
+                          <CheckCircle2 size={14} className="mr-1" />Approve
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectReason(""); }}>
+                          <XCircle size={14} className="mr-1" />Reject
+                        </Button>
+                      </>
+                    ) : r.status === "approved" ? (
+                      <>
+                        <Button size="sm" variant="primary" onClick={() => setCompleteTarget(r)} className="bg-emerald-600 hover:bg-emerald-700">
+                          Mark complete
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectReason(""); }}>
+                          <XCircle size={14} className="mr-1" />Reject
+                        </Button>
+                      </>
+                    ) : r.status === "processing" ? (
+                      <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectReason(""); }}>
+                        <XCircle size={14} className="mr-1" />Reject
+                      </Button>
+                    ) : r.status === "failed" ? (
+                      <Button size="sm" variant="primary" onClick={() => requeue.mutate(r.id)} disabled={requeue.isPending} className="bg-blue-600 hover:bg-blue-700">
+                        <RotateCw size={14} className="mr-1" />Re-queue
+                      </Button>
+                    ) : null}
+                  </div>
                 </TD>
               </TR>
             ))}
@@ -152,6 +215,43 @@ export default function AdminDSARPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!rejectTarget}
+        onClose={() => setRejectTarget(null)}
+        title={`Reject request ${rejectTarget ? rejectTarget.id.slice(0, 8) : ""}`}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRejectTarget(null)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!rejectTarget) return;
+                reject.mutate({ id: rejectTarget.id, reason: rejectReason.trim() });
+              }}
+              disabled={reject.isPending || rejectReason.trim().length < 3}
+              className="bg-red-600 text-white"
+            >
+              {reject.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+              Reject
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-text-soft">
+            This will mark the request as failed. The requester is notified automatically.
+          </p>
+          <Field label="Reason (min 3 chars)" htmlFor="dsar-reject-reason" required>
+            <textarea
+              id="dsar-reject-reason"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full h-24 px-3 py-2 rounded-lg border border-border bg-surface text-sm resize-none"
+              placeholder="e.g. Identity could not be verified"
+            />
+          </Field>
+        </div>
       </Modal>
     </div>
   );

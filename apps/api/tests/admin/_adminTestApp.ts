@@ -13,6 +13,8 @@ import adminRouter from "../../src/routes/admin";
 import adminBulkRouter from "../../src/routes/admin-bulk";
 import adminExportRouter from "../../src/routes/admin-export";
 import adminWebauthnRouter from "../../src/routes/admin-webauthn";
+import adminImpersonateRouter from "../../src/routes/admin-impersonate";
+import adminHealthRouter from "../../src/routes/admin-health";
 import { issueStepUpToken } from "../../src/middleware/stepup";
 import type { AppEnvironment } from "../../src/types";
 import type { MockD1 } from "../_mockDb";
@@ -69,6 +71,9 @@ export function buildAdminApp(db: MockD1, user?: AdminUser) {
       c.set("user", user as any);
       c.set("userId", user.id as any);
       c.set("dbUser", user as any);
+      // Tests bypass real JWT signing — mark the audience as "admin"
+      // so `requireAdmin`'s audience gate doesn't reject.
+      c.set("aud", "admin" as any);
     }
     await next();
   });
@@ -77,6 +82,8 @@ export function buildAdminApp(db: MockD1, user?: AdminUser) {
   app.route("/admin/bulk", adminBulkRouter);
   app.route("/admin/export", adminExportRouter);
   app.route("/admin/webauthn", adminWebauthnRouter);
+  app.route("/admin/impersonate", adminImpersonateRouter);
+  app.route("/admin/health", adminHealthRouter);
   return app;
 }
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, CheckCircle2, Search, Trash2, Pause, Play } from "lucide-react";
+import { Ban, CheckCircle2, Search, Trash2, Pause, Play, Eye, Loader2 } from "lucide-react";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { ExportButton } from "@/portal/components/admin/ExportButton";
 import { Pill, PillRow } from "@/portal/components/ui/Pill";
@@ -11,7 +11,8 @@ import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
 import { BulkActionBar } from "@/portal/components/admin/BulkActionBar";
-import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk, setStepUpToken, setImpersonationToken } from "@/portal/lib/admin-api";
+import { getPasskey } from "@/portal/lib/webauthn";
 import { toast } from "@/portal/components/ui/Toast";
 
 const ROLES = ["all", "patient", "doctor", "hospital_admin", "hospital_staff", "laboratory", "pharmacy", "insurance", "ambulance", "super_admin"] as const;
@@ -84,6 +85,38 @@ export default function AdminUsersPage() {
     onSuccess: () => {
       toast.success("User deleted");
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (e: any) => toast.error("Failed", e.message),
+  });
+
+  async function refreshStepUp(): Promise<string> {
+    const opts = await adminApi<any>("/admin/webauthn/auth/options", { method: "POST", json: {} });
+    const credential = await getPasskey(opts);
+    const res = await adminApi<{ stepUpToken: string }>(
+      "/admin/webauthn/auth/verify",
+      { method: "POST", json: credential },
+    );
+    setStepUpToken(res.stepUpToken);
+    return res.stepUpToken;
+  }
+
+  const [impersonateTarget, setImpersonateTarget] = useState<Row | null>(null);
+
+  const impersonate = useMutation({
+    mutationFn: (userId: string) =>
+      adminApiWithStepUp<{
+        token: string;
+        expiresAt: string;
+        targetUser: { id: string; name: string; email: string; role: string };
+      }>(`/admin/impersonate/start`, {
+        method: "POST",
+        json: { userId },
+      }, refreshStepUp),
+    onSuccess: (data) => {
+      setImpersonationToken({ token: data.token, expiresAt: data.expiresAt, targetUser: data.targetUser });
+      toast.success(`Now acting as ${data.targetUser.name}`);
+      qc.invalidateQueries({ queryKey: adminQk.impersonateWhoami() });
+      setImpersonateTarget(null);
     },
     onError: (e: any) => toast.error("Failed", e.message),
   });
@@ -207,6 +240,16 @@ export default function AdminUsersPage() {
                 </TD>
                 <TD className="text-right">
                   <div className="flex gap-1.5 justify-end">
+                    {u.role !== "super_admin" ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setImpersonateTarget(u)}
+                        title="Impersonate this user (step-up required)"
+                      >
+                        <Eye size={14} />
+                      </Button>
+                    ) : null}
                     {u.status === "suspended" ? (
                       <Button
                         size="sm"
@@ -283,6 +326,34 @@ export default function AdminUsersPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!impersonateTarget}
+        onClose={() => setImpersonateTarget(null)}
+        title={`Impersonate ${impersonateTarget?.name ?? ""}`}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setImpersonateTarget(null)}>Cancel</Button>
+            <Button
+              onClick={() => impersonateTarget && impersonate.mutate(impersonateTarget.id)}
+              disabled={impersonate.isPending}
+              className="bg-red-600 text-white"
+            >
+              {impersonate.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+              Start session
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-text-soft">
+            You will receive a short-lived impersonation token. Use it to view the app exactly as <b>{impersonateTarget?.name ?? ""}</b> sees it. Every action is audited with your admin ID and the impersonated subject.
+          </p>
+          <p className="text-sm text-text-soft">
+            A passkey assertion is required before the session can begin.
+          </p>
+        </div>
       </Modal>
     </div>
   );

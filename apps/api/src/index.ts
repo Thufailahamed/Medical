@@ -69,6 +69,8 @@ import adminRouter from "./routes/admin";
 import adminBulkRouter from "./routes/admin-bulk";
 import adminExportRouter from "./routes/admin-export";
 import adminWebauthnRouter from "./routes/admin-webauthn";
+import adminImpersonateRouter from "./routes/admin-impersonate";
+import adminHealthRouter from "./routes/admin-health";
 import familyInviteRouter from "./routes/family-invites";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
@@ -254,6 +256,8 @@ app.route("/admin", adminRouter);
 app.route("/admin/bulk", adminBulkRouter);
 app.route("/admin/export", adminExportRouter);
 app.route("/admin/webauthn", adminWebauthnRouter);
+app.route("/admin/impersonate", adminImpersonateRouter);
+app.route("/admin/health", adminHealthRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]
