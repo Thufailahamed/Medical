@@ -497,3 +497,133 @@ export interface PatientOverview {
   messages: OverviewMessages;
   meta: OverviewMeta;
 }
+
+// ─── HOS-5: Admissions ───────────────────────────────────
+export type AdmissionStatus =
+  | "admitted"
+  | "discharged"
+  | "transferred"
+  | "dama"
+  | "deceased";
+
+export type AdmissionType = "planned" | "emergency" | "transfer";
+
+export type AdmissionNoteKind = "vitals" | "nursing" | "progress" | "doctor_round";
+
+export interface Admission {
+  id: string;
+  hospitalId: string;
+  patientId: string;
+  admittedByUserId: string;
+  admittingDoctorId: string | null;
+  admissionType: AdmissionType;
+  wardId: string | null;
+  bedId: string | null;
+  admittedAt: string;
+  dischargedAt: string | null;
+  dischargedByUserId: string | null;
+  status: AdmissionStatus;
+  reason: string | null;
+  diagnosisAtAdmission: string | null;
+  dischargeDiagnosis: string | null;
+  dischargeCondition: string | null;
+  dischargeInstructions: string | null;
+  followUpDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdmissionNote {
+  id: string;
+  admissionId: string;
+  authorUserId: string;
+  kind: AdmissionNoteKind;
+  body: string;
+  recordedAt: string;
+}
+
+// ─── HOS-6: Departments ──────────────────────────────────
+export interface Department {
+  id: string;
+  hospitalId: string;
+  name: string;
+  headDoctorId: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+// ─── HOS-9: Billing ──────────────────────────────────────
+export type InvoiceStatus =
+  | "draft"
+  | "issued"
+  | "partially_paid"
+  | "paid"
+  | "cancelled"
+  | "void";
+
+export type VisitType = "opd" | "ipd" | "emergency" | "pharmacy" | "lab" | "other";
+
+export type PaymentMethod =
+  | "cash"
+  | "card"
+  | "mobile_wallet"
+  | "insurance"
+  | "bank_transfer"
+  | "other";
+
+export type LineItemKind =
+  | "consultation"
+  | "bed"
+  | "procedure"
+  | "medicine"
+  | "lab"
+  | "imaging"
+  | "other"
+  | "nursing";
+
+export interface InvoiceLineItem {
+  id: string;
+  invoiceId: string;
+  description: string;
+  quantity: number;
+  unitPriceLkr: number;
+  amountLkr: number;
+  kind: LineItemKind;
+  refRecordId: string | null;
+  refPrescriptionId: string | null;
+  refLabOrderId: string | null;
+}
+
+export interface Invoice {
+  id: string;
+  hospitalId: string;
+  patientId: string;
+  admissionId: string | null;
+  appointmentId: string | null;
+  walkInId: string | null;
+  visitType: VisitType;
+  invoiceNumber: string;
+  subtotalLkr: number;
+  taxLkr: number;
+  discountLkr: number;
+  totalLkr: number;
+  status: InvoiceStatus;
+  issuedAt: string | null;
+  dueAt: string | null;
+  notes: string | null;
+  createdByUserId: string | null;
+  createdAt: string;
+  lineItems?: InvoiceLineItem[];
+  payments?: Payment[];
+}
+
+export interface Payment {
+  id: string;
+  invoiceId: string;
+  amountLkr: number;
+  method: PaymentMethod;
+  reference: string | null;
+  receivedByUserId: string;
+  paidAt: string;
+  notes: string | null;
+}

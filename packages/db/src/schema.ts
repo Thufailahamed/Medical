@@ -888,6 +888,9 @@ export const hospitalStaff = sqliteTable("hospital_staff", {
     .notNull(),
   phone: text("phone"),
   email: text("email"),
+  // HOS-6: optional department assignment. Departments themselves
+  // are added below as a new table.
+  departmentId: text("department_id"),
   active: integer("active", { mode: "boolean" }).default(true),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
@@ -2565,5 +2568,236 @@ export const adminPasskeys = sqliteTable(
   },
   (t) => ({
     userIdx: index("admin_passkeys_user_idx").on(t.userId),
+  }),
+);
+
+// ─── HOS-6: Departments ───────────────────────────────────
+// First-class departments per hospital. Head doctor is optional
+// (we don't enforce FK to doctors here — the doctor may be added
+// later). `active=false` soft-deletes.
+export const departments = sqliteTable(
+  "departments",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    hospitalId: text("hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    name: text("name").notNull(),
+    headDoctorId: text("head_doctor_id"),
+    active: integer("active", { mode: "boolean" }).default(true),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    hospitalIdx: index("departments_hospital_idx").on(t.hospitalId),
+  }),
+);
+
+// ─── HOS-5: Admissions ────────────────────────────────────
+// One row per inpatient stay. A patient may have multiple
+// historical admissions but only one with status='admitted' at a
+// time. The `bedId`/`wardId` mirror the open `bedAssignments` row
+// for fast lookups (denormalized on admit).
+export const admissions = sqliteTable(
+  "admissions",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    hospitalId: text("hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    admittedByUserId: text("admitted_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    admittingDoctorId: text("admitting_doctor_id"),
+    admissionType: text("admission_type", {
+      enum: ["planned", "emergency", "transfer"],
+    })
+      .notNull()
+      .default("planned"),
+    wardId: text("ward_id"),
+    bedId: text("bed_id"),
+    admittedAt: text("admitted_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    dischargedAt: text("discharged_at"),
+    dischargedByUserId: text("discharged_by_user_id"),
+    status: text("status", {
+      enum: ["admitted", "discharged", "transferred", "dama", "deceased"],
+    })
+      .notNull()
+      .default("admitted"),
+    reason: text("reason"),
+    diagnosisAtAdmission: text("diagnosis_at_admission"),
+    dischargeDiagnosis: text("discharge_diagnosis"),
+    dischargeCondition: text("discharge_condition"),
+    dischargeInstructions: text("discharge_instructions"),
+    followUpDate: text("follow_up_date"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    hospitalStatusIdx: index("admissions_hospital_status_idx").on(
+      t.hospitalId,
+      t.status
+    ),
+    patientStatusIdx: index("admissions_patient_status_idx").on(
+      t.patientId,
+      t.status
+    ),
+  }),
+);
+
+// ─── HOS-5: Admission notes ──────────────────────────────
+// Vitals / nursing / progress / doctor rounds on an admission.
+export const admissionNotes = sqliteTable(
+  "admission_notes",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    admissionId: text("admission_id")
+      .notNull()
+      .references(() => admissions.id, { onDelete: "cascade" }),
+    authorUserId: text("author_user_id")
+      .notNull()
+      .references(() => users.id),
+    kind: text("kind", {
+      enum: ["vitals", "nursing", "progress", "doctor_round"],
+    }).notNull(),
+    body: text("body").notNull(),
+    recordedAt: text("recorded_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    admissionIdx: index("admission_notes_admission_idx").on(t.admissionId),
+  }),
+);
+
+// ─── HOS-9: Invoices ──────────────────────────────────────
+// One invoice per visit (opd/ipd/emergency/pharmacy/lab/other).
+// Line items live in `invoiceLineItems`. Payments reconcile against
+// the invoice total — `status` is derived from total paid.
+export const invoices = sqliteTable(
+  "invoices",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    hospitalId: text("hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    admissionId: text("admission_id"),
+    appointmentId: text("appointment_id"),
+    walkInId: text("walk_in_id"),
+    visitType: text("visit_type", {
+      enum: ["opd", "ipd", "emergency", "pharmacy", "lab", "other"],
+    })
+      .notNull()
+      .default("opd"),
+    invoiceNumber: text("invoice_number").notNull(),
+    subtotalLkr: real("subtotal_lkr").notNull().default(0),
+    taxLkr: real("tax_lkr").notNull().default(0),
+    discountLkr: real("discount_lkr").notNull().default(0),
+    totalLkr: real("total_lkr").notNull().default(0),
+    status: text("status", {
+      enum: [
+        "draft",
+        "issued",
+        "partially_paid",
+        "paid",
+        "cancelled",
+        "void",
+      ],
+    })
+      .notNull()
+      .default("draft"),
+    issuedAt: text("issued_at"),
+    dueAt: text("due_at"),
+    notes: text("notes"),
+    createdByUserId: text("created_by_user_id").references(() => users.id),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    hospitalStatusIdx: index("invoices_hospital_status_idx").on(
+      t.hospitalId,
+      t.status
+    ),
+    patientStatusIdx: index("invoices_patient_status_idx").on(
+      t.patientId,
+      t.status
+    ),
+  }),
+);
+
+// ─── HOS-9: Invoice line items ────────────────────────────
+export const invoiceLineItems = sqliteTable(
+  "invoice_line_items",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoices.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    quantity: real("quantity").notNull().default(1),
+    unitPriceLkr: real("unit_price_lkr").notNull().default(0),
+    amountLkr: real("amount_lkr").notNull().default(0),
+    kind: text("kind", {
+      enum: [
+        "consultation",
+        "bed",
+        "procedure",
+        "medicine",
+        "lab",
+        "imaging",
+        "other",
+        "nursing",
+      ],
+    })
+      .notNull()
+      .default("other"),
+    refRecordId: text("ref_record_id"),
+    refPrescriptionId: text("ref_prescription_id"),
+    refLabOrderId: text("ref_lab_order_id"),
+  },
+  (t) => ({
+    invoiceIdx: index("invoice_line_items_invoice_idx").on(t.invoiceId),
+  }),
+);
+
+// ─── HOS-9: Payments ──────────────────────────────────────
+export const payments = sqliteTable(
+  "payments",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoices.id),
+    amountLkr: real("amount_lkr").notNull(),
+    method: text("method", {
+      enum: ["cash", "card", "mobile_wallet", "insurance", "bank_transfer", "other"],
+    })
+      .notNull()
+      .default("cash"),
+    reference: text("reference"),
+    receivedByUserId: text("received_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    paidAt: text("paid_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    notes: text("notes"),
+  },
+  (t) => ({
+    invoiceIdx: index("payments_invoice_idx").on(t.invoiceId),
   }),
 );

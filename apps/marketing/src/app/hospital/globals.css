@@ -1,0 +1,391 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+/* ============================================================
+   Hospital portal design tokens.
+   Mirrors the portal tokens so the same UI primitives render
+   correctly inside [data-app="hospital"].
+   ============================================================ */
+
+:root {
+  --color-bg: #F0F9FF;
+  --color-surface: #ffffff;
+  --color-surface-2: #F8FAFC;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-text: #0F172A;
+  --color-text-soft: #475569;
+  --color-text-muted: #94A3B8;
+
+  --color-brand: #047857;
+  --color-brand-soft: #ECFDF5;
+  --color-brand-strong: #065F46;
+
+  --color-success: #059669;
+  --color-success-soft: #ECFDF5;
+  --color-warn: #D97706;
+  --color-warn-soft: #FFFBEB;
+  --color-danger: #DC2626;
+  --color-danger-soft: #FEF2F2;
+  --color-info: #0284C7;
+  --color-info-soft: #F0F9FF;
+  --color-accent: #059669;
+  --color-accent-soft: #ECFDF5;
+
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-app="hospital"] {
+  --sky-50: #F0F9FF;
+  --sky-500: #0EA5E9;
+  --sky-600: #0284C7;
+  --sky-700: #0369A1;
+
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+
+  --emerald-50: #ECFDF5;
+  --emerald-100: #D1FAE5;
+  --emerald-400: #34D399;
+  --emerald-500: #10B981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+
+  --red-50: #FEF2F2;
+  --red-100: #FEE2E2;
+  --red-500: #EF4444;
+  --red-600: #DC2626;
+  --red-700: #B91C1C;
+
+  --amber-50: #FFFBEB;
+  --amber-100: #FEF3C7;
+  --amber-500: #F59E0B;
+  --amber-600: #D97706;
+  --amber-700: #B45309;
+
+  /* Semantic tokens — hospital uses an emerald/teal accent instead of
+     the doctor portal's sky so the two surfaces read as distinct
+     products, but the variable NAMES match so primitives work. */
+  --bg: #F0FDF4;
+  --surface: #ffffff;
+  --surface-2: #F8FAFC;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text: #0F172A;
+  --text-soft: #475569;
+  --text-muted: #94A3B8;
+
+  --brand: #047857;
+  --brand-soft: #ECFDF5;
+  --brand-strong: #065F46;
+
+  --success: #059669;
+  --success-soft: #ECFDF5;
+  --warn: #D97706;
+  --warn-soft: #FFFBEB;
+  --danger: #DC2626;
+  --danger-soft: #FEF2F2;
+  --info: #0284C7;
+  --info-soft: #F0F9FF;
+  --accent: #059669;
+  --accent-soft: #ECFDF5;
+
+  /* Layout */
+  --radius: 14px;
+  --radius-lg: 20px;
+  --sidebar-w: 248px;
+  --topbar-h: 64px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
+  --shadow-hero: 0 8px 32px rgba(5, 150, 105, 0.22);
+  --shadow-primary: 0 4px 16px rgba(4, 120, 87, 0.30);
+  --shadow-danger: 0 4px 16px rgba(220, 38, 38, 0.30);
+
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-soft: var(--text-soft);
+  --color-text-muted: var(--text-muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg);
+  color: var(--text);
+}
+
+[data-app="hospital"],
+[data-app="hospital"] * {
+  box-sizing: border-box;
+}
+[data-app="hospital"] button {
+  font-family: inherit;
+}
+
+/* ============================================================
+   Sidebar — matches portal styling so the visual language is
+   consistent. Hospital uses an emerald gradient instead of sky.
+   ============================================================ */
+
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125,211,252,0.1) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(125,211,252,0.12);
+  border-radius: 999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(125,211,252,0.22);
+}
+
+.sidebar-group-label {
+  color: rgba(167,243,208,0.55) !important;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.sidebar-link {
+  color: rgba(167,243,208,0.78) !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  transition: all 200ms cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+
+.sidebar-link:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255,255,255,0.04) !important;
+}
+
+.sidebar-link[aria-current="page"] {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+@keyframes sidebar-active-in {
+  from { opacity: 0; transform: scaleX(0.95); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+.sidebar-active-indicator {
+  animation: sidebar-active-in 250ms cubic-bezier(0.4,0,0.2,1) both;
+}
+
+.sidebar-btn {
+  color: rgba(167,243,208,0.6) !important;
+  background-color: transparent !important;
+  border: none !important;
+  transition: all 200ms ease;
+}
+
+.sidebar-btn:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.sidebar-footer-btn {
+  color: rgba(167,243,208,0.55) !important;
+  transition: all 200ms ease;
+  border: 1px solid transparent !important;
+}
+
+.sidebar-footer-btn:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+
+.sidebar-footer-btn-danger:hover {
+  color: #FCA5A5 !important;
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239,68,68,0.1) !important;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+[data-app="hospital"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-app="hospital"] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+[data-app="hospital"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================================
+   Cursor override (marketing hides cursor for custom effect)
+   ============================================================ */
+[data-app="hospital"],
+[data-app="hospital"] * {
+  cursor: auto !important;
+}
+
+/* ============================================================
+   Focus ring
+   ============================================================ */
+[data-app="hospital"] .focus-ring:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Topbar entrance animation
+   ============================================================ */
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-in {
+  animation: animate-in 180ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ============================================================
+   Hero / brand gradient (emerald for hospital)
+   ============================================================ */
+@utility hospital-hero {
+  background: linear-gradient(135deg, #064E3B 0%, #047857 40%, #059669 70%, #0D9488 100%);
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Card / surface utilities
+   ============================================================ */
+@utility surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+@utility card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@utility btn-pill {
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+/* ============================================================
+   Print-friendly invoice / receipt styles. Activated by any
+   element with .hospital-print inside the hospital subtree.
+   ============================================================ */
+@media print {
+  [data-app="hospital"] .no-print {
+    display: none !important;
+  }
+  [data-app="hospital"] .hospital-print {
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+  [data-app="hospital"] {
+    background: #ffffff !important;
+  }
+}
+
+/* ============================================================
+   Loading skeletons (shimmer animation)
+   ============================================================ */
+@keyframes hospital-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+[data-app="hospital"] .skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--slate-100) 0%,
+    var(--slate-200) 50%,
+    var(--slate-100) 100%
+  );
+  background-size: 1000px 100%;
+  animation: hospital-shimmer 1.6s infinite linear;
+  border-radius: 6px;
+}
+
+/* ============================================================
+   Accessibility: focus rings, sr-only, reduced motion
+   ============================================================ */
+[data-app="hospital"] *:focus-visible {
+  outline: 2px solid var(--accent-500, #10B981);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+[data-app="hospital"] .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-app="hospital"] *,
+  [data-app="hospital"] *::before,
+  [data-app="hospital"] *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

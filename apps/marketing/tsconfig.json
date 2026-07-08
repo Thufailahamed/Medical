@@ -21,7 +21,8 @@
     "types": ["vitest/globals", "@testing-library/jest-dom"],
     "paths": {
       "@/*": ["./src/*"],
-      "@/portal/*": ["./src/portal/*"]
+      "@/portal/*": ["./src/portal/*"],
+      "@/hospital/*": ["./src/hospital/*"]
     }
   },
   "include": [

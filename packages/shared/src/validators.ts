@@ -264,3 +264,122 @@ export const createStaffInviteSchema = z.object({
   role: z.enum(HOSPITAL_STAFF_INVITE_ROLES),
   expiresInHours: z.number().int().min(1).max(24 * 30).optional(),
 });
+
+// ─── HOS-0: Tenant registration ───────────────────────────
+export const tenantRegisterSchema = z.object({
+  tenantType: z.enum(["hospital", "clinic"]),
+  ownerName: z.string().min(1).max(120),
+  email: z.string().email().max(254),
+  phone: z
+    .string()
+    .min(7)
+    .max(16)
+    .regex(/^[+0-9 ()-]+$/)
+    .optional(),
+  password: z.string().min(8).max(128),
+  facilityName: z.string().min(2).max(200),
+  licenseNumber: z.string().min(2).max(64),
+  address: z.string().max(500).optional(),
+  facilityPhone: z.string().max(20).optional(),
+  location: z.string().max(200).optional(),
+  specializations: z.array(z.string().min(1).max(80)).max(20).optional(),
+});
+
+export type TenantRegisterInput = z.infer<typeof tenantRegisterSchema>;
+
+// ─── HOS-6: Departments ──────────────────────────────────
+export const departmentSchema = z.object({
+  name: z.string().min(1).max(120),
+  headDoctorId: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+});
+export type DepartmentInput = z.infer<typeof departmentSchema>;
+
+// ─── HOS-5: Admissions ───────────────────────────────────
+export const admissionSchema = z.object({
+  patientId: z.string().min(1),
+  admittingDoctorId: z.string().nullable().optional(),
+  admissionType: z.enum(["planned", "emergency", "transfer"]).default("planned"),
+  wardId: z.string().nullable().optional(),
+  bedId: z.string().nullable().optional(),
+  reason: z.string().max(1000).optional(),
+  diagnosisAtAdmission: z.string().max(2000).optional(),
+});
+export type AdmissionInput = z.infer<typeof admissionSchema>;
+
+export const admissionPatchSchema = z.object({
+  admittingDoctorId: z.string().nullable().optional(),
+  wardId: z.string().nullable().optional(),
+  bedId: z.string().nullable().optional(),
+  diagnosisAtAdmission: z.string().max(2000).optional(),
+});
+export type AdmissionPatch = z.infer<typeof admissionPatchSchema>;
+
+export const admissionTransferSchema = z.object({
+  wardId: z.string().nullable().optional(),
+  bedId: z.string().nullable().optional(),
+});
+export type AdmissionTransferInput = z.infer<typeof admissionTransferSchema>;
+
+export const dischargeSchema = z.object({
+  dischargeDiagnosis: z.string().max(2000).optional(),
+  dischargeCondition: z.string().max(200).optional(),
+  dischargeInstructions: z.string().max(4000).optional(),
+  followUpDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+});
+export type DischargeInput = z.infer<typeof dischargeSchema>;
+
+export const admissionNoteSchema = z.object({
+  kind: z.enum(["vitals", "nursing", "progress", "doctor_round"]),
+  body: z.string().min(1).max(8000),
+});
+export type AdmissionNoteInput = z.infer<typeof admissionNoteSchema>;
+
+// ─── HOS-9: Billing ──────────────────────────────────────
+export const lineItemInputSchema = z.object({
+  description: z.string().min(1).max(200),
+  quantity: z.number().positive().default(1),
+  unitPriceLkr: z.number().nonnegative(),
+  amountLkr: z.number().nonnegative().optional(),
+  kind: z
+    .enum([
+      "consultation",
+      "bed",
+      "procedure",
+      "medicine",
+      "lab",
+      "imaging",
+      "other",
+      "nursing",
+    ])
+    .default("other"),
+  refRecordId: z.string().nullable().optional(),
+  refPrescriptionId: z.string().nullable().optional(),
+  refLabOrderId: z.string().nullable().optional(),
+});
+export type LineItemInput = z.infer<typeof lineItemInputSchema>;
+
+export const invoiceCreateSchema = z.object({
+  patientId: z.string().min(1),
+  visitType: z
+    .enum(["opd", "ipd", "emergency", "pharmacy", "lab", "other"])
+    .default("opd"),
+  admissionId: z.string().nullable().optional(),
+  appointmentId: z.string().nullable().optional(),
+  walkInId: z.string().nullable().optional(),
+  taxLkr: z.number().nonnegative().optional(),
+  discountLkr: z.number().nonnegative().optional(),
+  notes: z.string().max(1000).optional(),
+  lineItems: z.array(lineItemInputSchema).min(1),
+});
+export type InvoiceCreateInput = z.infer<typeof invoiceCreateSchema>;
+
+export const paymentSchema = z.object({
+  amountLkr: z.number().positive(),
+  method: z
+    .enum(["cash", "card", "mobile_wallet", "insurance", "bank_transfer", "other"])
+    .default("cash"),
+  reference: z.string().max(120).optional(),
+  notes: z.string().max(500).optional(),
+});
+export type PaymentInput = z.infer<typeof paymentSchema>;

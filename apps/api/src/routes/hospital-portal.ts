@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, isNull, desc, asc } from "drizzle-orm";
+import { eq, and, isNull, desc, asc, gte, lt, sql } from "drizzle-orm";
 import {
   hospitals,
   wards,
@@ -15,6 +15,11 @@ import {
   medicalRecords,
   vitals,
   notifications,
+  appointments,
+  walkIns,
+  prescriptions,
+  labOrders,
+  departments,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -25,6 +30,7 @@ import {
   bedAssignSchema,
   staffSchema,
   createStaffInviteSchema,
+  departmentSchema,
 } from "@healthcare/shared";
 import type { AppEnvironment } from "../types";
 import { notify } from "../lib/notifications";
@@ -191,6 +197,115 @@ hospitalPortalRouter.get("/dashboard", async (c) => {
     .from(doctors)
     .where(eq(doctors.hospitalId, scopeId));
 
+  // ── HOS-2: dashboard KPI tiles ─────────────────────────
+  // Cheap counts only — no joins needed beyond the tenant scope.
+  // Revenue + low-stock tiles return 0 until HOS-7 / HOS-9 land the
+  // supporting tables.
+  const todayIso = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const [opdRow] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.hospitalId, scopeId),
+        eq(appointments.date, todayIso)
+      )
+    );
+  const opdToday = Number(opdRow?.n ?? 0);
+
+  const [walkInRow] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(walkIns)
+    .where(
+      and(
+        eq(walkIns.hospitalId, scopeId),
+        eq(walkIns.status, "waiting")
+      )
+    );
+  const walkInsWaiting = Number(walkInRow?.n ?? 0);
+
+  const [pendingLabRow] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(labOrders)
+    .where(
+      and(
+        eq(labOrders.hospitalId, scopeId),
+        sql`${labOrders.status} in ('ordered','sample_collected','in_progress')`
+      )
+    );
+  const pendingLabs = Number(pendingLabRow?.n ?? 0);
+
+  const [pendingRxRow] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(prescriptions)
+    .where(
+      and(
+        eq(prescriptions.hospitalId, scopeId),
+        eq(prescriptions.status, "signed"),
+        isNull(prescriptions.dispensedAt)
+      )
+    );
+  const pendingRx = Number(pendingRxRow?.n ?? 0);
+
+  const ipdCensus = admissionRows.length;
+
+  const tiles = [
+    {
+      key: "opdToday",
+      label: "OPD today",
+      value: opdToday,
+      href: "/hospital/reception/appointments",
+    },
+    {
+      key: "ipdCensus",
+      label: "IPD census",
+      value: ipdCensus,
+      href: "/hospital/ipd",
+    },
+    {
+      key: "beds",
+      label: "Beds occupied",
+      value: occupancy.occupied,
+      total: occupancy.totalBeds,
+      unit: `${occupancy.occupancyRate}%`,
+      href: "/hospital/beds",
+    },
+    {
+      key: "revenueToday",
+      label: "Revenue today",
+      value: 0,
+      unit: "LKR",
+      available: false,
+      href: "/hospital/billing",
+    },
+    {
+      key: "pendingLabs",
+      label: "Pending labs",
+      value: pendingLabs,
+      href: "/hospital/lab",
+    },
+    {
+      key: "pendingRx",
+      label: "Pending Rx to dispense",
+      value: pendingRx,
+      href: "/hospital/pharmacy",
+    },
+    {
+      key: "walkInsWaiting",
+      label: "Walk-ins waiting",
+      value: walkInsWaiting,
+      href: "/hospital/reception/walk-ins",
+    },
+    {
+      key: "lowStock",
+      label: "Low-stock alerts",
+      value: 0,
+      available: false,
+      href: "/hospital/pharmacy",
+    },
+  ];
+
   return c.json({
     hospital: hospital || (await db.select().from(hospitals).where(eq(hospitals.id, scopeId)).limit(1))[0],
     occupancy,
@@ -202,6 +317,7 @@ hospitalPortalRouter.get("/dashboard", async (c) => {
       doctors: doctorRows.length,
     },
     admissions: admissionRows,
+    tiles,
   });
 });
 
@@ -1059,6 +1175,75 @@ hospitalPortalRouter.delete("/staff/invites/:id", async (c) => {
     details: { hospitalId: hospital.id },
   });
 
+  return c.json({ ok: true });
+});
+
+// ─── HOS-6: Departments CRUD ─────────────────────────────
+hospitalPortalRouter.get("/departments", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
+  if (!hospital) return c.json({ departments: [] });
+  const rows = await db
+    .select()
+    .from(departments)
+    .where(eq(departments.hospitalId, hospital.id))
+    .orderBy(asc(departments.name));
+  return c.json({ departments: rows });
+});
+
+hospitalPortalRouter.post("/departments", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const hospital = await resolveHospital(
+    db,
+    userId,
+    c.req.header("x-active-hospital-id") || null,
+    c.get("activeHospitalId") || null
+  );
+  if (!hospital) return c.json({ error: "No active hospital" }, 400);
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = departmentSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error) }, 400);
+
+  const [created] = await db
+    .insert(departments)
+    .values({
+      hospitalId: hospital.id,
+      name: parsed.data.name,
+      headDoctorId: parsed.data.headDoctorId ?? null,
+      active: parsed.data.active ?? true,
+    })
+    .returning();
+  return c.json({ department: created }, 201);
+});
+
+hospitalPortalRouter.put("/departments/:id", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = departmentSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error) }, 400);
+  await db
+    .update(departments)
+    .set({
+      name: parsed.data.name,
+      headDoctorId: parsed.data.headDoctorId ?? null,
+      active: parsed.data.active ?? true,
+    })
+    .where(eq(departments.id, id));
+  return c.json({ ok: true });
+});
+
+hospitalPortalRouter.delete("/departments/:id", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  await db.update(departments).set({ active: false }).where(eq(departments.id, id));
   return c.json({ ok: true });
 });
 
