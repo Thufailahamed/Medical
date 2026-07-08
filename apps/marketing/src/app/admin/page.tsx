@@ -10,12 +10,15 @@ export default function AdminEntryPage() {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (token && user?.role === "super_admin") {
-      router.replace("/admin/dashboard");
-    } else {
+    if (!token || !user) {
       router.replace("/admin/login");
+      return;
     }
-  }, [hydrated, token, user?.role, router]);
+    if (user.role === "super_admin") router.replace("/admin/dashboard");
+    else if (user.role === "insurance") router.replace("/admin/insurance-claims");
+    else if (user.role === "ambulance") router.replace("/admin/ambulances");
+    else router.replace("/admin/login");
+  }, [hydrated, token, user, router]);
 
   return (
     <div className="min-h-screen grid place-items-center text-text-soft">

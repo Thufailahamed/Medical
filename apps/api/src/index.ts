@@ -87,6 +87,7 @@ import crossHospitalReferralsRouter from "./routes/cross-hospital-referrals";
 import crossHospitalLabRoutingsRouter from "./routes/cross-hospital-lab-routings";
 import consultNotesRouter from "./routes/consult-notes";
 import dischargeHandoffsRouter from "./routes/discharge-handoffs";
+import realtimeRouter from "./routes/realtime";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -243,6 +244,9 @@ app.route("/pharmacy", pharmaciesRouter);
 // Phase v3: granular per-purpose consent + DSAR workflows.
 app.route("/consents", consentsRouter);
 app.route("/dsar", dsarRouter);
+// Phase SYNC-1: SSE stream of newly-inserted notifications so web +
+// mobile clients can invalidate React Query in real time.
+app.route("/realtime", realtimeRouter);
 // Phase MTN-1: multi-tenant hospital network — clinics + membership
 // tables + clinical-context relationships + tenant switcher.
 app.route("/clinics", clinicsRouter);

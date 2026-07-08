@@ -1,8 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, KeyRound, RotateCw, User, Settings, CheckCircle2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Save,
+  KeyRound,
+  RotateCw,
+  User,
+  Settings,
+  CheckCircle2,
+  Bell,
+  Pill,
+  CalendarCheck2,
+  FlaskConical,
+  FileSignature,
+  Syringe,
+  Shield,
+  Building2,
+  Siren,
+  Sparkles,
+} from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
@@ -15,6 +32,7 @@ import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { useRotateSigningKey } from "@/portal/hooks/usePrescription";
 import { formatDateTime } from "@/portal/lib/format";
+import { cn } from "@/portal/lib/utils";
 
 export default function SettingsPage() {
   const t = useT();
@@ -92,6 +110,68 @@ export default function SettingsPage() {
   function closeRotate() {
     setRotateOpen(false);
     setRotateResult(null);
+  }
+
+  // ── Notification preferences (parity with mobile) ──────────
+  const { data: prefData } = useQuery({
+    queryKey: ["notification-preferences", "me"],
+    queryFn: () =>
+      api<{ preferences: Array<{ type: string; inApp: boolean; push: boolean }> }>(
+        "/push/notification-preferences/me"
+      ),
+  });
+  const updatePrefs = useMutation({
+    mutationFn: (prefs: Array<{ type: string; inApp: boolean; push: boolean }>) =>
+      api("/push/notification-preferences/me", {
+        method: "PUT",
+        json: { preferences: prefs },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notification-preferences"] });
+      toast.success("Notification preferences saved");
+    },
+    onError: (err: Error) => toast.error("Failed", err.message),
+  });
+  const NOTIF_TYPES: Array<{ key: string; label: string; Icon: typeof Pill; emergency?: boolean }> = [
+    { key: "appointment", label: "Appointments", Icon: CalendarCheck2 },
+    { key: "medicine", label: "Medicines", Icon: Pill },
+    { key: "lab_ready", label: "Lab results", Icon: FlaskConical },
+    { key: "prescription", label: "Prescriptions", Icon: FileSignature },
+    { key: "vaccination", label: "Vaccinations", Icon: Syringe },
+    { key: "insurance", label: "Insurance", Icon: Shield },
+    { key: "hospital", label: "Hospital", Icon: Building2 },
+    { key: "emergency", label: "Emergency", Icon: Siren, emergency: true },
+    { key: "general", label: "General", Icon: Sparkles },
+  ];
+  const [prefLocal, setPrefLocal] = useState<Record<string, { inApp: boolean; push: boolean }>>(() => {
+    const out: Record<string, { inApp: boolean; push: boolean }> = {};
+    for (const t of NOTIF_TYPES) out[t.key] = { inApp: true, push: true };
+    return out;
+  });
+  // Hydrate from server once
+  const serverPrefs = prefData?.preferences ?? [];
+  const [hydrated, setHydrated] = useState(false);
+  if (serverPrefs.length > 0 && !hydrated) {
+    const next: Record<string, { inApp: boolean; push: boolean }> = { ...prefLocal };
+    for (const p of serverPrefs) {
+      if (next[p.type]) {
+        next[p.type] = { inApp: p.inApp, push: p.push };
+      }
+    }
+    setPrefLocal(next);
+    setHydrated(true);
+  }
+  function setPref(type: string, field: "inApp" | "push", value: boolean) {
+    if (type === "emergency" && field === "inApp" && !value) return;
+    setPrefLocal((p) => ({ ...p, [type]: { ...p[type], [field]: value } }));
+  }
+  function savePrefs() {
+    const payload = NOTIF_TYPES.map((t) => ({
+      type: t.key,
+      inApp: prefLocal[t.key]?.inApp ?? true,
+      push: prefLocal[t.key]?.push ?? true,
+    }));
+    updatePrefs.mutate(payload);
   }
 
   return (
@@ -181,6 +261,75 @@ export default function SettingsPage() {
             onClick={() => changePwd.mutate()}
           >
             Update password
+          </Button>
+        </div>
+      </Card>
+
+      <Card padding={false} className="rounded-2xl border-border/50">
+        <CardHeader
+          title={
+            <span className="inline-flex items-center gap-1.5">
+              <Bell size={14} /> Notification preferences
+            </span>
+          }
+          subtitle="Per-type toggles for in-app and push delivery. Mirrors the mobile settings screen."
+        />
+        <div className="p-4 flex flex-col gap-3">
+          {NOTIF_TYPES.map((t) => {
+            const cur = prefLocal[t.key] ?? { inApp: true, push: true };
+            const Icon = t.Icon;
+            return (
+              <div
+                key={t.key}
+                className="flex items-center gap-3 p-2 rounded-lg border border-border/50"
+              >
+                <Icon size={16} className="text-text-muted shrink-0" />
+                <span className="text-sm font-medium text-text flex-1 truncate">
+                  {t.label}
+                </span>
+                {t.emergency ? (
+                  <span className="text-[10px] text-text-muted font-semibold uppercase tracking-wide mr-2">
+                    Always on
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setPref(t.key, "inApp", !cur.inApp)}
+                  disabled={t.emergency}
+                  className={cn(
+                    "h-7 px-2.5 rounded-md text-xs font-semibold border transition-colors",
+                    cur.inApp
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-surface text-text-soft border-border/60",
+                    t.emergency && "opacity-60 cursor-not-allowed",
+                  )}
+                >
+                  In-app
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPref(t.key, "push", !cur.push)}
+                  className={cn(
+                    "h-7 px-2.5 rounded-md text-xs font-semibold border transition-colors",
+                    cur.push
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-surface text-text-soft border-border/60",
+                  )}
+                >
+                  Push
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="px-4 pb-4 flex justify-end">
+          <Button
+            leftIcon={<Save size={14} />}
+            disabled={updatePrefs.isPending}
+            loading={updatePrefs.isPending}
+            onClick={savePrefs}
+          >
+            Save preferences
           </Button>
         </div>
       </Card>

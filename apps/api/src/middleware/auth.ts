@@ -50,12 +50,19 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
 
   // ── Normal JWT auth ──────────────────────────────────────
   const authHeader = c.req.header("Authorization");
+  // SSE fallback: EventSource can't set custom headers, so the
+  // /realtime route accepts the JWT via ?token= query param. Scoped
+  // to that path so other endpoints stay header-only.
+  const ssePath = c.req.path === "/realtime" || c.req.path.startsWith("/realtime/");
+  const queryToken = ssePath ? c.req.query("token") : undefined;
 
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!authHeader?.startsWith("Bearer ") && !queryToken) {
     return c.json({ error: "Missing or invalid authorization header" }, 401);
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : (queryToken as string);
   const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
   const decoded = await verifyToken(token, secret);
 

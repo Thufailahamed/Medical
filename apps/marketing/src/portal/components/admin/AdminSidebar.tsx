@@ -21,6 +21,17 @@ export function AdminSidebar() {
   const t = useT();
   const { user, logout } = useAuthStore();
 
+  const role = user?.role as string | undefined;
+  const isSuperAdmin = role === "super_admin";
+
+  // Filter groups: drop empty ones, and drop items the role can't see.
+  const visibleGroups = ADMIN_NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) => isSuperAdmin || !item.roles || item.roles.includes(role ?? ""),
+    ),
+  })).filter((group) => group.items.length > 0);
+
   return (
     <aside
       className="hidden md:flex flex-col w-[260px] shrink-0 border-r border-border bg-surface"
@@ -33,13 +44,15 @@ export function AdminSidebar() {
         </div>
         <div>
           <p className="text-sm font-bold tracking-wider leading-none">HEALTHHUB</p>
-          <p className="text-[10px] text-text-muted tracking-widest mt-0.5">ADMIN</p>
+          <p className="text-[10px] text-text-muted tracking-widest mt-0.5">
+            {isSuperAdmin ? "ADMIN" : "OPERATOR"}
+          </p>
         </div>
       </div>
 
       {/* Nav groups */}
       <nav className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-4">
-        {ADMIN_NAV_GROUPS.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.labelKey}>
             <p className="px-3 mb-1.5 text-[10px] font-bold tracking-widest text-text-muted uppercase">
               {resolveLabel(t, group.labelKey)}
@@ -79,7 +92,7 @@ export function AdminSidebar() {
             <p className="text-sm font-semibold truncate">{user?.name || "Admin"}</p>
             <p className="text-[11px] text-text-muted truncate flex items-center gap-1">
               <Activity size={10} className="text-emerald-500" />
-              super_admin
+              {user?.role ?? "—"}
             </p>
           </div>
           <button

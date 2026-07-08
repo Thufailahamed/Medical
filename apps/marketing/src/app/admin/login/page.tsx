@@ -56,16 +56,29 @@ function AdminLoginForm() {
         ...(isEmail ? { email: id } : { phone: id }),
         password: values.password,
       });
-      if (user.role !== "super_admin") {
+      if (
+        user.role !== "super_admin" &&
+        user.role !== "insurance" &&
+        user.role !== "ambulance"
+      ) {
         toast.error(
           "Access denied",
-          "This portal is for platform administrators only.",
+          "This portal is for platform administrators and operators only.",
         );
         useAuthStore.getState().logout();
         setSubmitting(false);
         return;
       }
-      router.replace(next);
+      // Operator roles get bounced to their default surface, not /admin/dashboard.
+      const landing =
+        next && next !== "/admin/dashboard"
+          ? next
+          : user.role === "insurance"
+            ? "/admin/insurance-claims"
+            : user.role === "ambulance"
+              ? "/admin/ambulances"
+              : "/admin/dashboard";
+      router.replace(landing);
     } catch (err: any) {
       // Backend returns { code: 'account_pending' | 'account_suspended' | 'account_rejected' }
       // on 403 — surface those verbatim so the admin knows what happened.

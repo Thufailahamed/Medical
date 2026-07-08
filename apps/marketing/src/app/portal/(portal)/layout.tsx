@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/portal/stores/auth";
 import { Sidebar } from "@/portal/components/shell/Sidebar";
 import { Topbar } from "@/portal/components/shell/Topbar";
+import { useRealtime } from "@/portal/hooks/useRealtime";
 
 /**
  * (portal) route group layout:
@@ -33,6 +34,10 @@ export default function PortalLayout({
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const hydrated = useAuthStore((s) => s.hydrated);
+
+  // Live update: server pushes new notifications → React Query refresh.
+  // Called before any early return so the hook order is stable.
+  useRealtime({ token: token ?? null, userId: user?.id ?? null });
 
   useEffect(() => {
     if (!hydrated) return;

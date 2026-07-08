@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { HospitalSidebar } from "@/hospital/components/shell/HospitalSidebar";
 import { HospitalTopbar } from "@/hospital/components/shell/HospitalTopbar";
+import { useRealtime } from "@/portal/hooks/useRealtime";
 
 /**
  * (hospital) route group layout:
@@ -67,6 +68,10 @@ export default function HospitalGroupLayout({
       body.style.overflowX = prevBody;
     };
   }, []);
+
+  // Live update: server pushes new notifications → React Query refresh.
+  // Called before any early return so the hook order is stable.
+  useRealtime({ token: token ?? null, userId: user?.id ?? null });
 
   // Avoid a flash of empty shell while zustand rehydrates.
   if (!hydrated) {

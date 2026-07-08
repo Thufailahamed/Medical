@@ -4,6 +4,7 @@ import { BlurView } from "expo-blur";
 import { Home, ClipboardList, Pill, Siren, UserRound, MessageCircle } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount, usePatientConversations } from "@/hooks/useApi";
+import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
@@ -34,6 +35,9 @@ export default function AppLayout() {
   const locale = useLocaleStore((s) => s.locale);
   const isWideScript = locale === "si" || locale === "ta";
   const labelStyle = isWideScript ? NARROW_TAB_LABEL : WIDE_TAB_LABEL;
+
+  // SSE-driven notifications: server pushes → invalidate React Query.
+  useRealtime();
 
   return (
     <Tabs
