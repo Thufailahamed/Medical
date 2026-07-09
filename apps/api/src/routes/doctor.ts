@@ -13,6 +13,10 @@ import { upsertActiveCareTeam, withStatusGuard } from "../lib/status-guard";
 import { assertRxTransition } from "../lib/rxStatus";
 import { renderPrescriptionPdf } from "../lib/prescription-pdf";
 import { prescriptionPatchSchema, prescriptionCancelSchema } from "@healthcare/shared/validators";
+import {
+  computeFirstResponseMinutes,
+  computeFirstResponseMinutesBatch,
+} from "../lib/response-time";
 import type { AppEnvironment } from "../types";
 
 const doctorRouter = new Hono<AppEnvironment>();
@@ -940,6 +944,8 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
       photo: users.photo,
       hospitalId: doctors.hospitalId,
       hospitalName: hospitals.name,
+      slmcRegistrationNo: doctors.slmcRegistrationNo,
+      slmcVerifiedAt: doctors.slmcVerifiedAt,
     })
     .from(doctors)
     .innerJoin(users, eq(doctors.userId, users.id))
@@ -949,7 +955,20 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
     ? await baseQuery.where(and(...conditions)).limit(50)
     : await baseQuery.limit(50);
 
-  return c.json({ doctors: rows });
+  // Response-time badge — batch compute for all returned doctors.
+  // Computed lazily from messages table; cheap because the soft-launch
+  // fleet is <50 doctors and the result is cached for 1h in-process.
+  const responseMap = await computeFirstResponseMinutesBatch(
+    db,
+    rows.map((r) => r.doctorId)
+  );
+
+  const enriched = rows.map((r) => ({
+    ...r,
+    responseTime: responseMap.get(r.doctorId)?.bucket ?? null,
+  }));
+
+  return c.json({ doctors: enriched });
 });
 
 // ─── List all distinct specializations ───────────────────
@@ -981,6 +1000,8 @@ doctorRouter.get("/:id", authMiddleware, async (c) => {
       specialization: doctors.specialization,
       qualification: doctors.qualification,
       registrationNumber: doctors.registrationNumber,
+      slmcRegistrationNo: doctors.slmcRegistrationNo,
+      slmcVerifiedAt: doctors.slmcVerifiedAt,
       experience: doctors.experience,
       consultationFee: doctors.consultationFee,
       rating: doctors.rating,
@@ -995,7 +1016,35 @@ doctorRouter.get("/:id", authMiddleware, async (c) => {
     .limit(1);
 
   if (!row) return c.json({ error: "Doctor not found" }, 404);
-  return c.json({ doctor: row });
+
+  // Response-time bucket for this single doctor. Exposed as raw
+  // medianMs for the detail page; the UI surfaces both the bucket
+  // label and the underlying number on hover.
+  const response = await computeFirstResponseMinutes(db, id);
+
+  // Round 3 P1: pull star rating aggregate. Already denormalised in
+  // doctors.rating by the POST handler; we additionally surface the
+  // rating count so the UI can show "(42 ratings)" alongside.
+  const [ratingAgg] = await db.all<{ avg_stars: number | null; rating_count: number }>(
+    sql`SELECT AVG(stars) AS avg_stars, COUNT(*) AS rating_count
+        FROM appointment_ratings WHERE doctor_id = ${id}`
+  );
+  const starsAvg = ratingAgg?.avg_stars != null ? Number(ratingAgg.avg_stars) : row.rating;
+  const ratingCount = Number(ratingAgg?.rating_count ?? 0);
+
+  return c.json({
+    doctor: {
+      ...row,
+      responseTime: response.bucket,
+      responseTimeMinutes:
+        response.medianMs != null
+          ? Math.round(response.medianMs / 60000)
+          : null,
+      responseCount: response.ratedConversations,
+      starsAvg,
+      ratingCount,
+    },
+  });
 });
 
 // ─── Doctor availability for a date ──────────────────────

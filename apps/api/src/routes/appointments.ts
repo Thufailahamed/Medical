@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import { eq, and } from "drizzle-orm";
-import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory } from "@healthcare/db";
+import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { appointmentSchema } from "../lib/validators";
@@ -506,7 +506,27 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
     .where(eq(doctors.id, appt.doctorId))
     .limit(1);
 
-  return c.json({ appointment: appt, records, doctor: doctor || null });
+  // Round 3 P1: include the patient's own rating (if any) so the
+  // detail screen can either show the existing rating or prompt for
+  // a new one. NULL when unrated.
+  const [rating] = await db
+    .select()
+    .from(appointmentRatings)
+    .where(eq(appointmentRatings.appointmentId, appointmentId))
+    .limit(1);
+
+  return c.json({
+    appointment: appt,
+    records,
+    doctor: doctor || null,
+    rating: rating
+      ? {
+          stars: rating.stars,
+          comment: rating.comment,
+          createdAt: rating.createdAt,
+        }
+      : null,
+  });
 });
 
 // ─── Patient cancels their appointment (soft cancel) ─────

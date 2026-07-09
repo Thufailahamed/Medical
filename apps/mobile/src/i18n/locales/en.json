@@ -972,6 +972,15 @@
       "systolicDiastolic": "S + D",
       "systolicOnly": "S only",
       "noReadings": "No {{label}} readings in this range",
+      "min": "Min",
+      "avg": "Avg",
+      "max": "Max",
+      "count": "Readings",
+      "diastolicAvg": "D avg",
+      "systolic": "Systolic",
+      "diastolic": "Diastolic",
+      "statsLabel": "Reading statistics",
+      "legendLabel": "Chart legend",
       "stats": {
         "latest": "Latest",
         "avg": "Avg",
@@ -1810,7 +1819,11 @@
     "dateTimeRequired": "Date and time required",
     "rescheduleSuccess": "Appointment rescheduled",
     "rescheduleError": "Could not reschedule",
-    "queuePill": "#{{n}}"
+    "queuePill": "#{{n}}",
+    "rateTitle": "How was your visit?",
+    "rateBody": "Tap a star to rate Dr {{name}}. Helps other patients.",
+    "rateCta": "Rate this visit",
+    "youRated": "You rated this visit ★ {{stars}}"
   },
   "bookAppointment": {
     "title": "Book appointment",
@@ -1874,7 +1887,10 @@
       "paymentCancelled": "Payment cancelled. You can pay later.",
       "paymentFailed": "Payment failed. Try again from Appointments.",
       "paymentError": "Payment error"
-    }
+    },
+    "responseFast": "Replies in <1h",
+    "responseQuick": "Replies in <6h",
+    "responseNormal": "Replies within a day"
   },
   "cancellationPolicy": {
     "title": "Cancellation policy",
@@ -3096,7 +3112,37 @@
     "statusDispensed": "Dispensed",
     "signedAtLabel": "Signed",
     "verify": "Verify authenticity",
-    "notAvailableDownload": "PDF not available for this status"
+    "notAvailableDownload": "PDF not available for this status",
+    "shareWithDoctor": "Share with another doctor",
+    "shareWithDoctorBody": "Create a 7-day link another doctor can use to verify this prescription. The link is single-prescription — your full record is not exposed.",
+    "createShareLink": "Create share link",
+    "creatingShare": "Creating…",
+    "shareLinkCreated": "Link created — tap to copy",
+    "shareCopied": "Link copied",
+    "shareCreated": "Share link ready",
+    "shareLabel": "Prescription share"
+  },
+  "rateVisit": {
+    "title": "Rate your visit",
+    "subtitle": "Quick feedback",
+    "body": "Your 1-tap rating helps other patients find the right doctor.",
+    "tapStars": "Tap a star",
+    "starA11y": "{{n}} stars",
+    "label": {
+      "1": "Poor",
+      "2": "Below average",
+      "3": "OK",
+      "4": "Good",
+      "5": "Excellent"
+    },
+    "optionalComment": "Add a comment (optional)",
+    "commentPlaceholder": "What stood out?",
+    "submit": "Submit rating",
+    "update": "Update rating",
+    "thankYou": "Thanks for your feedback!",
+    "error": "Could not save rating",
+    "needStars": "Pick at least one star",
+    "alreadyRated": "You rated this visit on {{date}}."
   },
   "verify": {
     "title": "Verify prescription",

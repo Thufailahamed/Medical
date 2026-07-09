@@ -2654,6 +2654,11 @@ export function useCreateShareLink() {
       // always send this explicitly (no silent inference from the
       // x-active-family-member-id header — share is high-stakes).
       familyMemberId?: string | null;
+      // Round 3 P1: when set, mints a prescription_share link. Server
+      // validates the prescription belongs to the caller's patient and
+      // returns kind="prescription_share". UI flips to a "share with
+      // another doctor" affordance.
+      prescriptionId?: string;
     }) =>
       api<{ link: ShareLink; token: string; url: string; expiresAt: string }>(
         "/share/links",
@@ -2672,6 +2677,53 @@ export function useRevokeShareLink() {
       api<{ message: string }>(`/share/links/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["share", "links"] });
+    },
+  });
+}
+
+// ─── Round 3 P1: Appointment rating ─────────────────────
+//
+// 1-tap star rating of a completed visit. POST upserts on
+// appointment_id; GET pre-fills the rate screen on re-open.
+export type AppointmentRating = {
+  stars: number;
+  comment: string | null;
+  createdAt: string;
+};
+
+export function useAppointmentRating(appointmentId: string) {
+  return useQuery({
+    queryKey: ["appointment-rating", appointmentId],
+    queryFn: () =>
+      api<{ rating: AppointmentRating | null }>(
+        `/appointments/${appointmentId}/rating`
+      ),
+    enabled: !!appointmentId,
+  });
+}
+
+export function useRateAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      appointmentId: string;
+      stars: number;
+      comment?: string;
+    }) =>
+      api<{
+        ok: true;
+        rating: { stars: number; comment: string | null };
+        doctor: { id: string; avgStars: number; ratingCount: number };
+      }>(`/appointments/${input.appointmentId}/rating`, {
+        method: "POST",
+        body: { stars: input.stars, comment: input.comment },
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["appointment-rating", vars.appointmentId],
+      });
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+      qc.invalidateQueries({ queryKey: ["doctor"] });
     },
   });
 }

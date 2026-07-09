@@ -85,6 +85,7 @@ vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
 #   "37 3 * * *"                                  -> refill reminders (daily 09:07 SL = 03:37 UTC)
 #   "30 23 * * *"                                 -> reclassify sweep (daily 05:00 SL = 23:30 UTC, Phase 2.1)
 #   "42 3 * * *"                                  -> vaccination reminders (daily 09:12 SL = 03:42 UTC, Phase 2.2)
+#   "17 * * * *"                                  -> post-visit summary sweep (Round 3 P1; off-minute to avoid :00)
 # Off-minute shifts avoid the :00/:05 spike seen by other cron jobs.
 [triggers]
 crons = [
@@ -93,6 +94,7 @@ crons = [
   "37 3 * * *",
   "30 23 * * *",
   "42 3 * * *",
+  "17 * * * *",
 ]
 
 [observability.logs]

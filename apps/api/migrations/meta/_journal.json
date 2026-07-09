@@ -169,6 +169,20 @@
       "when": 1784100000000,
       "tag": "0023_keen_otter",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1784200000000,
+      "tag": "0043_share_links_prescription",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1784300000000,
+      "tag": "0044_appointment_ratings",
+      "breakpoints": true
     }
   ]
 }

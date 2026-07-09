@@ -12,10 +12,12 @@ import {
   CalendarDays,
   ShieldCheck,
   ScanLine,
+  Share2,
 } from "lucide-react-native";
 import {
   useMyPrescription,
   downloadMyPrescriptionPdf,
+  useCreateShareLink,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -36,6 +38,8 @@ export default function PatientPrescriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, isLoading } = useMyPrescription(id);
   const [downloading, setDownloading] = useState(false);
+  const createShare = useCreateShareLink();
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const rx = data?.prescription;
   const status: string = rx?.status ?? "signed";
@@ -54,6 +58,27 @@ export default function PatientPrescriptionDetailScreen() {
       toast.show(msg, "danger");
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function onShareWithDoctor() {
+    if (!id) return;
+    try {
+      const res = await createShare.mutateAsync({
+        prescriptionId: id,
+        label: t("patientPrescriptionDetail.shareLabel"),
+        // Default 7-day TTL — share-with-doctor links are short-lived by design.
+        expiresInHours: 168,
+      });
+      const base = process.env.EXPO_PUBLIC_PUBLIC_URL || "https://app.healthhub.app";
+      setShareUrl(`${base}${res.url}`);
+      toast.show(t("patientPrescriptionDetail.shareCreated"), "success");
+    } catch (err: any) {
+      const msg =
+        err?.message && err.message !== "{}" && err.message !== "[object Object]"
+          ? err.message
+          : t("patientPrescriptionDetail.error");
+      toast.show(msg, "danger");
     }
   }
 
@@ -322,6 +347,77 @@ export default function PatientPrescriptionDetailScreen() {
             size="lg"
             fullWidth
           />
+
+          {isSigned ? (
+            <Card>
+              <Text
+                style={[
+                  typography.overline,
+                  { color: colors.textMuted, marginBottom: spacing.xs },
+                ]}
+              >
+                {t("patientPrescriptionDetail.shareWithDoctor").toUpperCase()}
+              </Text>
+              <Text
+                style={[typography.body.sm, { color: colors.textMuted }]}
+              >
+                {t("patientPrescriptionDetail.shareWithDoctorBody")}
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: spacing.sm,
+                  marginTop: spacing.sm,
+                }}
+              >
+                <Button
+                  title={
+                    shareUrl
+                      ? t("patientPrescriptionDetail.shareLinkCreated")
+                      : createShare.isPending
+                      ? t("patientPrescriptionDetail.creatingShare")
+                      : t("patientPrescriptionDetail.createShareLink")
+                  }
+                  onPress={onShareWithDoctor}
+                  loading={createShare.isPending}
+                  disabled={createShare.isPending}
+                  iconLeft={Share2}
+                  variant="secondary"
+                  size="md"
+                  style={{ flex: 1 }}
+                />
+              </View>
+              {shareUrl ? (
+                <Text
+                  selectable
+                  style={[
+                    typography.caption,
+                    {
+                      color: colors.primary,
+                      marginTop: spacing.sm,
+                      fontFamily: "monospace",
+                    },
+                  ]}
+                  onPress={() => {
+                    // Best-effort: copy to clipboard if available; the
+                    // long-press menu also exposes copy on iOS/Android.
+                    try {
+                      // eslint-disable-next-line @typescript-eslint/no-var-requires
+                      require("expo-clipboard").setStringAsync(shareUrl);
+                      toast.show(
+                        t("patientPrescriptionDetail.shareCopied"),
+                        "success"
+                      );
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  {shareUrl}
+                </Text>
+              ) : null}
+            </Card>
+          ) : null}
         </ScrollView>
       )}
     </Screen>

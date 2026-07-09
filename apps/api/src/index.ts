@@ -70,6 +70,8 @@ import { doseRemindersRouter } from "./cron/dose-reminders";
 import { refillRemindersRouter } from "./cron/refill-reminders";
 import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
+import { postVisitSummaryRouter } from "./cron/post-visit-summary-router";
+import ratingsRouter from "./routes/ratings";
 import familyActiveRouter from "./routes/family-active";
 import adminRouter from "./routes/admin";
 import adminBulkRouter from "./routes/admin-bulk";
@@ -175,6 +177,7 @@ app.route("/auth", authRoutes);
 app.route("/patients", patientsRoutes);
 app.route("/medical-records", medicalRecordsRoutes);
 app.route("/appointments", appointmentsRoutes);
+app.route("/appointments", ratingsRouter);
 app.route("/emergency", emergencyRoutes);
 app.route("/ai", aiRoutes);
 app.route("/files", filesRoutes);
@@ -308,6 +311,7 @@ app.route("/", doseRemindersRouter);
 app.route("/", refillRemindersRouter);
 app.route("/", reclassifyRouter);
 app.route("/", vaccinationRemindersRouter);
+app.route("/", postVisitSummaryRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {

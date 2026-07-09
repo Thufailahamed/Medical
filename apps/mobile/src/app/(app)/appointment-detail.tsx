@@ -306,6 +306,60 @@ export default function AppointmentDetailScreen() {
               )}
             </>
           )}
+
+          {/* Round 3 P1: rate-this-visit CTA. Shows for completed
+              appointments with no rating yet. Tapping routes to the
+              rate screen which POSTs to /appointments/:id/rating. */}
+          {appt?.status === "completed" && !data?.rating ? (
+            <Card>
+              <Text
+                style={[
+                  typography.title.sm,
+                  { color: colors.text, fontWeight: "700", marginBottom: spacing.xs },
+                ]}
+              >
+                {t("appointmentDetail.rateTitle")}
+              </Text>
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                {t("appointmentDetail.rateBody", {
+                  name: doctor?.name || t("appointmentDetail.doctorFallback"),
+                })}
+              </Text>
+              <Button
+                title={t("appointmentDetail.rateCta")}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(app)/rate-visit/[appointmentId]" as any,
+                    params: { appointmentId: id as string },
+                  })
+                }
+                variant="secondary"
+                size="md"
+                style={{ marginTop: spacing.sm }}
+                iconLeft={Sparkles}
+              />
+            </Card>
+          ) : null}
+
+          {appt?.status === "completed" && data?.rating ? (
+            <Card>
+              <Text
+                style={[
+                  typography.title.sm,
+                  { color: colors.text, fontWeight: "700", marginBottom: spacing.xs },
+                ]}
+              >
+                {t("appointmentDetail.youRated", {
+                  stars: data.rating.stars,
+                })}
+              </Text>
+              {data.rating.comment ? (
+                <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                  {data.rating.comment}
+                </Text>
+              ) : null}
+            </Card>
+          ) : null}
         </ScrollView>
 
         <BottomSheet

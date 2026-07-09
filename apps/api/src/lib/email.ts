@@ -137,3 +137,53 @@ export function formatOtpEmail(code: string, purpose?: string) {
     `<p style="color:#888;">If you did not request this code, ignore this email.</p>`;
   return { subject, text, html };
 }
+
+/**
+ * Round 3 P1: post-visit summary email. Sent ~1h after an appointment
+ * flips to "completed". Plain text first; HTML mirrors the same data
+ * with clickable CTA. Includes a deep link to the in-app rate screen so
+ * the patient can leave a 1-tap star rating.
+ *
+ * Body shape: doctor name, diagnosis (if any), medicines list. PHI is
+ * surface-level for the patient (they're the recipient) but we still
+ * avoid including clinical detail beyond what the patient already saw
+ * in the visit summary.
+ */
+export function formatVisitSummaryEmail(args: {
+  patientName: string;
+  doctorName: string;
+  diagnosis?: string | null;
+  medicines: string[];
+  rateUrl: string;
+}) {
+  const subject = `Your visit with ${args.doctorName}`;
+  const meds =
+    args.medicines.length > 0
+      ? `Medicines prescribed:\n${args.medicines
+          .map((m) => `  • ${m}`)
+          .join("\n")}`
+      : "No medicines were prescribed for this visit.";
+  const dx = args.diagnosis ? `Reason for visit: ${args.diagnosis}\n\n` : "";
+  const text =
+    `Hi ${args.patientName},\n\n` +
+    `Thanks for your visit with ${args.doctorName} today. Here is a short summary.\n\n` +
+    `${dx}${meds}\n\n` +
+    `Rate your visit (1 minute):\n${args.rateUrl}\n\n` +
+    `Your feedback helps other patients find the right doctor.\n\n` +
+    `— The HealthHub team`;
+  const html = `
+    <p>Hi ${args.patientName},</p>
+    <p>Thanks for your visit with <strong>${args.doctorName}</strong> today.</p>
+    ${args.diagnosis ? `<p>Reason for visit: ${args.diagnosis}</p>` : ""}
+    ${
+      args.medicines.length > 0
+        ? `<p><strong>Medicines prescribed:</strong></p><ul>${args.medicines
+            .map((m) => `<li>${m}</li>`)
+            .join("")}</ul>`
+        : "<p>No medicines were prescribed for this visit.</p>"
+    }
+    <p><a href="${args.rateUrl}" style="display:inline-block;padding:12px 20px;background:#1a73e8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Rate your visit</a></p>
+    <p style="color:#888;font-size:12px">Your feedback helps other patients find the right doctor.</p>
+  `;
+  return { subject, text, html };
+}

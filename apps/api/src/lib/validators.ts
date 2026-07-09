@@ -330,6 +330,12 @@ export const createShareLinkSchema = z.object({
   expiresInHours: z.number().int().min(1).max(720).optional(),
   scope: z.enum(SHARE_SCOPE_VALUES).optional(),
   familyMemberId: z.string().uuid().nullable().optional(),
+  // Round 3 P1: prescription-share-with-doctor. When present, the share
+  // link is scoped to a single prescription (kind="prescription_share")
+  // and the public GET /share/:token + GET /share/:token/prescription.pdf
+  // routes surface the signed PDF + verification URL. Server enforces
+  // that the prescription belongs to the caller's principal patient.
+  prescriptionId: z.string().min(1).max(64).optional(),
 });
 
 export const appointmentSchema = z.object({

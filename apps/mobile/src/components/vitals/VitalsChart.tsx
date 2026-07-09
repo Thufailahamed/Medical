@@ -114,8 +114,64 @@ export function VitalsChart({
     );
   }
 
+  // Round 3 P1 polish: stats strip above the chart so users can read
+  // the trend at a glance without hovering. Format guard keeps stats
+  // intact even if the API returns 0/null fields.
+  const statCell = (
+    label: string,
+    value: number | null | undefined,
+    suffix?: string
+  ) => (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "flex-start",
+        paddingHorizontal: spacing.xs,
+      }}
+    >
+      <Text
+        style={[
+          typography.caption,
+          { color: colors.textMuted, fontWeight: "700", letterSpacing: 0.4 },
+        ]}
+      >
+        {label.toUpperCase()}
+      </Text>
+      <Text
+        style={[
+          typography.title.sm,
+          { color: colors.text, fontWeight: "700", marginTop: 2 },
+        ]}
+      >
+        {value == null || !Number.isFinite(value)
+          ? "—"
+          : suffix
+            ? `${Math.round(value)} ${suffix}`
+            : Math.round(value)}
+      </Text>
+    </View>
+  );
+
   return (
-    <Svg width={width} height={height}>
+    <View>
+      {stats ? (
+        <View
+          style={{
+            flexDirection: "row",
+            paddingVertical: spacing.xs,
+            marginBottom: spacing.xs,
+          }}
+          accessibilityLabel={t("vitals.chart.statsLabel")}
+        >
+          {statCell(t("vitals.chart.min"), stats.min)}
+          {statCell(t("vitals.chart.avg"), stats.avg)}
+          {statCell(t("vitals.chart.max"), stats.max)}
+          {isBP && showSecondary
+            ? statCell(t("vitals.chart.count"), stats.count)
+            : statCell(t("vitals.chart.count"), stats.count)}
+        </View>
+      ) : null}
+      <Svg width={width} height={height}>
       {/* Normal-range band */}
       <Rect
         x={padding.left}
@@ -216,6 +272,48 @@ export function VitalsChart({
           />
         );
       })}
+
+      {/* Legend — clarifies which line is which when both are present
+          (BP systolic vs diastolic). Hidden otherwise so the chart stays
+          uncluttered for single-line metrics. */}
+      {isBP && showSecondary ? (
+        <View
+          style={{
+            flexDirection: "row",
+            gap: spacing.md,
+            marginTop: spacing.xs,
+          }}
+          accessibilityLabel={t("vitals.chart.legendLabel")}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View
+              style={{
+                width: 14,
+                height: 3,
+                backgroundColor: colors.primary,
+                borderRadius: 2,
+              }}
+            />
+            <Text style={[typography.caption, { color: colors.textMuted }]}>
+              {t("vitals.chart.systolic")}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View
+              style={{
+                width: 14,
+                height: 3,
+                backgroundColor: colors.danger,
+                borderRadius: 2,
+              }}
+            />
+            <Text style={[typography.caption, { color: colors.textMuted }]}>
+              {t("vitals.chart.diastolic")}
+            </Text>
+          </View>
+        </View>
+      ) : null}
     </Svg>
+    </View>
   );
 }

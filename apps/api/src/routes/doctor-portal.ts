@@ -50,6 +50,7 @@ import {
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { recordRevenueEvent } from "../lib/revenue";
+import { sendVisitSummaryEmail } from "../lib/post-visit-summary";
 import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT } from "../lib/booking";
 import { createShareLinkSchema } from "../lib/validators";
 import { canAccessPatient } from "../lib/access";
@@ -1894,6 +1895,22 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
       sourceId: id,
       patientId: own.patientId,
     });
+
+    // Round 3 P1: fire-and-forget post-visit summary email so the
+    // patient receives a 1-tap rating prompt immediately after the
+    // doctor marks the visit complete. `sendVisitSummaryEmail` is
+    // idempotent — if the cron already stamped `summary_email_sent_at`
+    // this call is a no-op. We don't await; the response to the doctor
+    // shouldn't wait on Resend.
+    c.executionCtx?.waitUntil(
+      sendVisitSummaryEmail(c.env, db, id).catch((err: any) => {
+        // lib/logger not imported here to keep the diff tight; we
+        // surface the failure via console which the worker tail
+        // captures. The next cron sweep retries.
+        // eslint-disable-next-line no-console
+        console.error("[post-visit-summary] inline trigger failed", err);
+      })
+    );
   }
 
   return c.json({ appointment: row?.appointments || row });

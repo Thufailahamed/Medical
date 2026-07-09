@@ -489,6 +489,13 @@ export const appointments = sqliteTable("appointments", {
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
+  // Round 3 P1: post-visit summary email + 1-tap rating. `summaryEmailSentAt`
+  // is stamped by both the inline trigger (doctor-portal status flip)
+  // and the hourly cron — whichever wins, the other sees the stamp and
+  // skips. `ratingPromptedAt` is informational: incremented the first
+  // time the patient sees the rating CTA on the appointment detail.
+  summaryEmailSentAt: text("summary_email_sent_at"),
+  ratingPromptedAt: text("rating_prompted_at"),
 }, (t) => ({
   doctorDateTimeIdx: index("appointments_doctor_date_time_idx").on(
     t.doctorId,
@@ -498,6 +505,34 @@ export const appointments = sqliteTable("appointments", {
   patientDateIdx: index("appointments_patient_date_idx").on(t.patientId, t.date),
   doctorDateIdx: index("appointments_doctor_date_idx").on(t.doctorId, t.date),
 }));
+
+// ─── Appointment Ratings (Round 3 P1) ────────────────────
+// One row per completed appointment. UPSERT semantics in the POST handler
+// keyed on `appointment_id` so the patient can edit their rating once.
+// Stars are 1-5; the application layer validates before insert.
+export const appointmentRatings = sqliteTable(
+  "appointment_ratings",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    appointmentId: text("appointment_id").notNull(),
+    patientId: text("patient_id").notNull(),
+    doctorId: text("doctor_id").notNull(),
+    stars: integer("stars").notNull(),
+    comment: text("comment"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    appointmentUnique: uniqueIndex(
+      "appointment_ratings_appointment_id_unique"
+    ).on(t.appointmentId),
+    doctorCreatedIdx: index("idx_appointment_ratings_doctor_created").on(
+      t.doctorId,
+      t.createdAt
+    ),
+  })
+);
 
 // ─── Insurance ───────────────────────────────────────────
 export const insurance = sqliteTable("insurance", {
@@ -1175,10 +1210,18 @@ export const shareLinks = sqliteTable(
     familyMemberId: text("family_member_id").references(
       (): any => familyMembers.id
     ),
+    // Round 3 P1: prescription-share-with-doctor. When `kind` is
+    // "prescription_share" this column carries the prescriptionId
+    // the link exposes; the public GET /share/:token +
+    // /share/:token/prescription.pdf routes render the signed PDF.
+    prescriptionId: text("prescription_id"),
   },
   (t) => ({
     familyMemberIdx: index("idx_share_links_family_member").on(
       t.familyMemberId
+    ),
+    prescriptionIdx: index("idx_share_links_prescription").on(
+      t.prescriptionId
     ),
   })
 );

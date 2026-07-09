@@ -322,11 +322,30 @@ export default function BookAppointmentScreen() {
                       icon={Stethoscope}
                       iconTone="primary"
                       meta={
-                        d.slmcVerifiedAt ? (
-                          <VerifiedBadge
-                            verified={!!d.slmcVerifiedAt}
-                            regNo={d.slmcRegistrationNo}
-                          />
+                        d.slmcVerifiedAt || d.responseTime ? (
+                          <View style={{ flexDirection: "row", gap: 6 }}>
+                            {d.slmcVerifiedAt ? (
+                              <VerifiedBadge
+                                verified={!!d.slmcVerifiedAt}
+                                regNo={d.slmcRegistrationNo}
+                              />
+                            ) : null}
+                            {d.responseTime === "fast" ? (
+                              <Pill tone="success" testID="rt-fast">
+                                {t("bookAppointment.responseFast")}
+                              </Pill>
+                            ) : null}
+                            {d.responseTime === "quick" ? (
+                              <Pill tone="info" testID="rt-quick">
+                                {t("bookAppointment.responseQuick")}
+                              </Pill>
+                            ) : null}
+                            {d.responseTime === "normal" ? (
+                              <Pill tone="muted" testID="rt-normal">
+                                {t("bookAppointment.responseNormal")}
+                              </Pill>
+                            ) : null}
+                          </View>
                         ) : undefined
                       }
                       trailing={

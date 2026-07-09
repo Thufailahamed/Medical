@@ -11,17 +11,22 @@ import {
   shareLinks,
   shareLinkViews,
   patients,
+  prescriptions,
   medicalRecords,
   allergies,
   medicines,
   vitals,
   appointments,
   familyMembers,
+  doctors,
+  users,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { createShareLinkSchema } from "../lib/validators";
 import { flattenTranslated } from "../lib/validation-error";
+import { renderPrescriptionPdf } from "../lib/prescription-pdf";
+import { audit } from "../lib/audit";
 import type { AppEnvironment } from "../types";
 
 const shareRouter = new Hono<AppEnvironment>();
@@ -113,6 +118,30 @@ shareRouter.post("/links", authMiddleware, requireRole("patient"), async (c) => 
   const scopeKind = data.scope ?? "all";
   const scope = JSON.stringify({ kind: scopeKind });
 
+  // Round 3 P1: prescription-share-with-doctor. When `prescriptionId`
+  // is present we (a) flip `kind` to "prescription_share" so the public
+  // GET routes branch correctly, and (b) verify the prescription
+  // belongs to this patient's record set. The prescriptionId is stored
+  // as a sibling column so a single share_links row cleanly carries
+  // either an FM-scoped OR a prescription-scoped payload — never both.
+  let kind: string = "record_share";
+  let prescriptionId: string | null = null;
+  if (data.prescriptionId) {
+    const [rx] = await db
+      .select({ id: prescriptions.id, patientId: prescriptions.patientId })
+      .from(prescriptions)
+      .where(eq(prescriptions.id, data.prescriptionId))
+      .limit(1);
+    if (!rx) {
+      return c.json({ error: "Prescription not found" }, 404);
+    }
+    if (rx.patientId !== patient.id) {
+      return c.json({ error: "Not your prescription" }, 403);
+    }
+    kind = "prescription_share";
+    prescriptionId = rx.id;
+  }
+
   const token = generateToken();
   const expiresAt = new Date(
     Date.now() + expiresInHours * 60 * 60 * 1000
@@ -131,8 +160,22 @@ shareRouter.post("/links", authMiddleware, requireRole("patient"), async (c) => 
       // Explicit null when absent — Drizzle's column default does not
       // override nullability, and we want NULL to mean "household share".
       familyMemberId: data.familyMemberId ?? null,
+      kind,
+      prescriptionId,
     } as any)
     .returning();
+
+  // Audit: every share-link mint is logged for compliance (HIPAA
+  // §164.312(b) — record-keeping for disclosure). We log prescription
+  // shares separately so reviewers can spot unusual share-with-doctor
+  // activity without scanning the whole stream.
+  await audit(db, {
+    userId,
+    action: "share.link_created",
+    resource: "share_link",
+    resourceId: row.id,
+    details: { kind, prescriptionId, familyMemberId: data.familyMemberId ?? null },
+  });
 
   return c.json({ link: row, token, url: `/share/${token}`, expiresAt }, 201);
 });
@@ -195,12 +238,87 @@ shareRouter.get("/:token", async (c) => {
   // Phase 2.3.1: family invites have their own /family/invites/:token
   // route. Don't let the record-share bundle handler accidentally expose
   // them — treat as 404 to avoid leaking that the token exists.
-  if ((link as any).kind && (link as any).kind !== "record_share") {
+  const kind = (link as any).kind as string | undefined;
+  if (kind && kind !== "record_share" && kind !== "prescription_share") {
     return c.json({ error: "Invalid link" }, 404);
   }
   if (link.revoked) return c.json({ error: "Link has been revoked" }, 410);
   if (new Date(link.expiresAt) < new Date()) {
     return c.json({ error: "Link has expired" }, 410);
+  }
+
+  // Round 3 P1: prescription-share bundle. Returns the single
+  // prescription + medicines + signing info + verify URL. The PDF
+  // itself is served by GET /share/:token/prescription.pdf below.
+  if (kind === "prescription_share") {
+    const rxId = (link as any).prescriptionId as string | null;
+    if (!rxId) {
+      return c.json({ error: "Share link is missing a prescription" }, 410);
+    }
+
+    const [rx] = await db
+      .select({
+        id: prescriptions.id,
+        diagnosis: prescriptions.diagnosis,
+        notes: prescriptions.notes,
+        date: prescriptions.date,
+        signedAt: prescriptions.signedAt,
+        status: prescriptions.status,
+        signedPayloadHash: prescriptions.signedPayloadHash,
+        doctorId: prescriptions.doctorId,
+        patientId: prescriptions.patientId,
+      })
+      .from(prescriptions)
+      .where(eq(prescriptions.id, rxId))
+      .limit(1);
+    if (!rx) return c.json({ error: "Prescription not found" }, 404);
+
+    const [medRows, [doc], [pat]] = await Promise.all([
+      db.select().from(medicines).where(eq(medicines.prescriptionId, rxId)),
+      db
+        .select({
+          doctorId: doctors.id,
+          doctorUserId: doctors.userId,
+          doctorName: users.name,
+          doctorSpecialization: doctors.specialization,
+          doctorSlmcNo: doctors.slmcRegistrationNo,
+          doctorSlmcVerifiedAt: doctors.slmcVerifiedAt,
+        })
+        .from(doctors)
+        .innerJoin(users, eq(users.id, doctors.userId))
+        .where(eq(doctors.id, rx.doctorId))
+        .limit(1),
+      db
+        .select({ id: patients.id, name: users.name })
+        .from(patients)
+        .innerJoin(users, eq(users.id, patients.userId))
+        .where(eq(patients.id, rx.patientId))
+        .limit(1),
+    ]);
+
+    const ip =
+      c.req.header("cf-connecting-ip") ||
+      c.req.header("x-forwarded-for") ||
+      null;
+    const ua = c.req.header("user-agent") || null;
+    await db
+      .insert(shareLinkViews)
+      .values({ linkId: link.id, ip, userAgent: ua } as any);
+
+    const publicUrl =
+      c.env.PUBLIC_URL || "https://app.healthhub.app";
+    return c.json({
+      label: link.label,
+      expiresAt: link.expiresAt,
+      generatedAt: new Date().toISOString(),
+      kind: "prescription_share",
+      prescription: rx,
+      medicines: medRows,
+      doctor: doc ?? null,
+      patient: pat ?? null,
+      verifyUrl: `${publicUrl}/verify/${rx.id}`,
+      pdfUrl: `/share/${token}/prescription.pdf`,
+    });
   }
 
   // Log view
@@ -310,6 +428,62 @@ shareRouter.get("/:token", async (c) => {
     medicines: meds,
     records: recentRecs,
     appointments: appts,
+  });
+});
+
+// ─── PUBLIC: prescription PDF via share token (no auth) ──
+//
+// Round 3 P1: a patient mints a /share link with prescriptionId; that
+// link can fetch the signed PDF here without any auth. We render
+// server-side via the same `renderPrescriptionPdf` helper used by
+// /doctor/prescriptions/:id/pdf and the existing /medical-records/me
+// patient route — same audit chain, same QR + verify URL.
+shareRouter.get("/:token/prescription.pdf", async (c) => {
+  const db = c.get("db");
+  const token = c.req.param("token");
+  if (!token) return c.json({ error: "Missing token" }, 400);
+
+  const [link] = await db
+    .select()
+    .from(shareLinks)
+    .where(eq(shareLinks.token, token))
+    .limit(1);
+  if (!link) return c.json({ error: "Invalid link" }, 404);
+  if ((link as any).kind !== "prescription_share") {
+    return c.json({ error: "Not a prescription share" }, 404);
+  }
+  if (link.revoked) return c.json({ error: "Link has been revoked" }, 410);
+  if (new Date(link.expiresAt) < new Date()) {
+    return c.json({ error: "Link has expired" }, 410);
+  }
+  const rxId = (link as any).prescriptionId as string | null;
+  if (!rxId) {
+    return c.json({ error: "Share link is missing a prescription" }, 410);
+  }
+
+  const ip =
+    c.req.header("cf-connecting-ip") ||
+    c.req.header("x-forwarded-for") ||
+    null;
+  const ua = c.req.header("user-agent") || null;
+  await db
+    .insert(shareLinkViews)
+    .values({ linkId: link.id, ip, userAgent: ua } as any);
+
+  const publicUrl =
+    c.env.PUBLIC_URL || "https://app.healthhub.app";
+  const result = await renderPrescriptionPdf(db, rxId, publicUrl);
+  if (!result.ok) {
+    return c.json(
+      { error: result.error, ...(result.details ?? {}) },
+      result.status
+    );
+  }
+
+  return c.body(result.bytes, 200, {
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `inline; filename="prescription-${result.shortId}.pdf"`,
+    "Cache-Control": "private, no-store",
   });
 });
 
