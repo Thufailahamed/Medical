@@ -4,6 +4,7 @@
 
 import { aiCache } from "@healthcare/db";
 import { and, eq, gt, sql } from "drizzle-orm";
+import { redactPii, redactMessages } from "./redact";
 
 export type AiKind =
   | "summary"
@@ -130,8 +131,11 @@ export async function aiComplete(
   }
   const model = opts.model || TEXT_MODEL;
 
-  // Cap the prompt size to prevent abuse / token overflow.
-  const safeMessages: ChatMsg[] = messages.map((m) => ({
+  // Cap the prompt size to prevent abuse / token overflow, and strip
+  // PII (NIC, phone, email) before the message hits the LLM endpoint.
+  // The order matters: redact first, then cap, so the redaction tag
+  // never gets truncated mid-token.
+  const safeMessages: ChatMsg[] = redactMessages(messages).map((m) => ({
     role: m.role,
     content: (m.content || "").slice(0, MAX_INPUT_CHARS),
   }));
@@ -197,7 +201,9 @@ export async function* streamAiComplete(
     return;
   }
   const model = opts.model || TEXT_MODEL;
-  const safeMessages: ChatMsg[] = messages.map((m) => ({
+  // Redact PII before the SSE stream starts so we never emit NIC /
+  // phone / email to the inference endpoint. Order: redact, then cap.
+  const safeMessages: ChatMsg[] = redactMessages(messages).map((m) => ({
     role: m.role,
     content: (m.content || "").slice(0, MAX_INPUT_CHARS),
   }));

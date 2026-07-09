@@ -55,26 +55,49 @@ interface KekRecord {
   key: Uint8Array;
 }
 
-function loadKeks(env: Record<string, unknown>): KekRecord[] {
-  const out: KekRecord[] = [];
-  const primary = (env as Record<string, string>).RECORD_KEK_PRIMARY;
-  const legacy = (env as Record<string, string>).DOCTOR_KEY_KEK;
-  if (primary) {
-    try {
-      const bytes = b64decode(primary);
-      if (bytes.length === 32) out.push({ id: "kek-2026-01", key: bytes });
-    } catch {
-      /* ignore malformed */
-    }
+// ─── KEK resolution (delegated to lib/kms.ts) ──────────────────
+//
+// Wire-format compatibility: rows already in the DB were wrapped
+// under the `kek-2026-01` (primary) or `DEFAULT_KEK_ID` (legacy)
+// identifiers. The KMS provider returns the same logical key, and
+// we translate via `kekIdToWire()` so the existing `rewrapUnderKek`
+// logic continues to recognise both names.
+
+function kekIdToWire(envKeyName: string, key: Uint8Array, occupied: Set<string>): KekRecord {
+  // Map env-key identifiers (kept stable across rotations) to the
+  // wire-format identifier actually stored in `encrypted_payload_kek_id`.
+  let wire: string;
+  if (envKeyName === "RECORD_KEK_PRIMARY") wire = "kek-2026-01";
+  else if (envKeyName === "DOCTOR_KEY_KEK") wire = DEFAULT_KEK_ID;
+  else wire = envKeyName;
+  // Don't duplicate if the same wire id was already registered (e.g.
+  // both env vars set to the same secret during rotation).
+  if (occupied.has(wire)) {
+    throw new Error(`KMS: KEK ${wire} already loaded; skipping ${envKeyName}`);
   }
-  if (legacy) {
+  occupied.add(wire);
+  return { id: wire, key };
+}
+function loadKeks(env: Record<string, unknown>): KekRecord[] {
+  const ids = ["RECORD_KEK_PRIMARY", "DOCTOR_KEY_KEK"].filter(
+    (k) => (env as Record<string, string>)[k]
+  );
+  const occupied = new Set<string>();
+  const out: KekRecord[] = [];
+  for (const id of ids) {
     try {
-      const bytes = b64decode(legacy);
-      if (bytes.length === 32 && !out.some((k) => k.id === DEFAULT_KEK_ID)) {
-        out.push({ id: DEFAULT_KEK_ID, key: bytes });
-      }
+      const value = (env as Record<string, string>)[id];
+      // The env shim is sync internally, but `loadKek` is async. For
+      // the legacy sync path we re-decode here directly. The `kms.ts`
+      // module owns the canonical decoder; this duplicates the check
+      // for the duration of the migration but produces identical bytes.
+      const raw = atob(value + "=".repeat((4 - (value.length % 4)) % 4));
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      if (bytes.length !== 32) continue;
+      out.push(kekIdToWire(id, bytes, occupied));
     } catch {
-      /* ignore */
+      /* skip malformed */
     }
   }
   if (!out.length) {

@@ -13,6 +13,7 @@ import {
   chatMessages,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { requireRole } from "../middleware/rbac";
 import {
   aiSummarySchema,
   aiLabExplainSchema,
@@ -336,8 +337,9 @@ ai.post("/explain/lab-report", async (c) => {
 
 // ─── Drug Interaction Check ──────────────────────────────
 // POST /ai/drug-interaction  { medicines: string[] }
-// No RBAC: drugs are non-PHI; any logged-in user may check.
-ai.post("/drug-interaction", async (c) => {
+// RBAC: clinicians and patients only. `super_admin`/unknown roles get 403
+// so admin probes can't burn Workers-AI quota on a clinical tool.
+ai.post("/drug-interaction", requireRole("patient", "doctor", "hospital_admin", "hospital_staff", "pharmacy"), async (c) => {
   const db = c.get("db");
   const aiBinding = c.env.AI;
   const body = await c.req.json().catch(() => ({}));
