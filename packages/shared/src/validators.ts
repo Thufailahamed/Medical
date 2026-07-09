@@ -266,6 +266,15 @@ export const aiOcrSchema = z.object({
   textHint: z.string().max(8000).optional(),
 });
 
+// Day 2 #1: clinical-note auto-summary.
+// Free-text doctor note → 1-line summary + SOAP fields + key terms.
+// Patient-scoped for RBAC; cache by note hash + patientId.
+export const aiClinicalNoteSummarySchema = z.object({
+  patientId: z.string().min(1),
+  noteText: z.string().min(1).max(8000),
+  locale: z.enum(["en", "si", "ta"]).optional(),
+});
+
 // ─── Phase 3.1 slice 3: hospital staff invites ────────────
 // Role enum mirrors `hospitalStaff.role` in packages/db/src/schema.ts
 // (`nurse | receptionist | technician | manager | housekeeping |

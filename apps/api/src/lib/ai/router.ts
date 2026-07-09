@@ -16,6 +16,7 @@
 
 import { streamAiComplete } from "../ai";
 import { isAnthropicConfigured, streamAnthropic } from "./anthropic";
+import { consumeAnthropicQuota } from "../../middleware/ai-rate-limit";
 
 export interface RouterOpts {
   ai?: unknown;
@@ -71,8 +72,24 @@ export async function* streamRouted(
     }
   }
 
-  // Fallback: Anthropic.
+  // Fallback: Anthropic — gated by a daily cap so a flaky Workers-AI
+  // day can't burn through our Sonnet budget. We check the cap BEFORE
+  // calling the provider, so an over-cap period is a cheap no-op.
   if (isAnthropicConfigured(opts.env)) {
+    const db = (opts.env as any).DB;
+    let quota = { allowed: true, remaining: 0, limit: 0 };
+    if (db) {
+      quota = await consumeAnthropicQuota(opts.env, db);
+    }
+    if (!quota.allowed) {
+      console.warn(
+        `[router] anthropic daily cap hit (limit=${quota.limit}); skipping fallback`
+      );
+      opts.onProvider?.("fallback");
+      throw new Error(
+        `LLM router: anthropic daily cap reached (${quota.limit}) — primary provider unavailable`
+      );
+    }
     try {
       for await (const delta of streamAnthropic(messages, {
         apiKey: (opts.env as Record<string, string>).ANTHROPIC_API_KEY!,

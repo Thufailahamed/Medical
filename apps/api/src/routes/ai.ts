@@ -14,12 +14,14 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { aiUserRateLimit } from "../middleware/ai-rate-limit";
 import {
   aiSummarySchema,
   aiLabExplainSchema,
   aiDrugInteractionSchema,
   aiChatSchema,
   aiOcrSchema,
+  aiClinicalNoteSummarySchema,
 } from "@healthcare/shared";
 import {
   aiComplete,
@@ -35,6 +37,7 @@ import {
   fallbackDrugCheck,
   fallbackChat,
   fallbackOcr,
+  fallbackClinicalNoteSummary,
   streamAiComplete,
   type ChatMsg,
 } from "../lib/ai";
@@ -46,6 +49,9 @@ import type { AppEnvironment } from "../types";
 const ai = new Hono<AppEnvironment>();
 
 ai.use("*", authMiddleware);
+// Day 1 safety floor: per-user 20 calls/hour on /ai/* (env-overridable
+// via AI_USER_HOURLY_LIMIT). Mounted AFTER auth so we have userId.
+ai.use("*", aiUserRateLimit());
 
 // ─── helpers ─────────────────────────────────────────────
 
@@ -887,6 +893,111 @@ ai.post("/explain/lab-report/stream", async (c) => {
       });
     }
   });
+});
+
+// ─── Clinical Note Summary (Day 2 #1) ───────────────────
+//
+// POST /ai/clinical-note-summary  { patientId, noteText, locale? }
+//
+// Accepts a doctor's free-text note + patient id, returns:
+//   { summary, soap: { subjective, objective, assessment, plan }, keyTerms[] }
+//
+// RBAC: same `canAccessPatient` gate as /ai/summary — only the patient
+// or a doctor with an active relationship may summarise against that
+// patient's context. (We do NOT inject prior records into the prompt;
+// the model summarises ONLY what the doctor wrote — keeps PHI surface
+// small and prevents accidental disclosures across roles.)
+//
+// Cache: 24h by `(patientId, hash(noteText))`. Two doctors typing the
+// same words on the same patient hit the same row.
+ai.post("/clinical-note-summary", async (c) => {
+  const db = c.get("db");
+  const aiBinding = c.env.AI;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = aiClinicalNoteSummarySchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  const { patientId, noteText } = parsed.data;
+
+  // RBAC
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const cacheKey = { patientId, noteText: noteText.trim() };
+  const cached = await cacheGet(db, "clinical_note_summary", cacheKey);
+  if (cached) return c.json({ summary: cached, cached: true });
+
+  const messages: ChatMsg[] = [
+    {
+      role: "system",
+      content:
+        systemPrompt(
+          "Summarise a doctor's free-text clinical note into structured SOAP fields."
+        ) +
+        ' Return JSON with keys: summary (string, 1 sentence, <= 30 words), ' +
+        "soap (object with keys: subjective, objective, assessment, plan — each a short string), " +
+        "keyTerms (array of short strings — diagnoses, symptoms, meds, follow-ups mentioned). " +
+        "If a SOAP field is not mentioned in the note, leave it as an empty string. " +
+        "Be concise. Do not invent facts.",
+    },
+    {
+      role: "user",
+      content: `Doctor's note:\n\n${noteText.slice(0, 4000)}`,
+    },
+  ];
+
+  let summary;
+  try {
+    const out = await aiComplete(aiBinding, messages, {
+      maxTokens: 500,
+      temperature: 0.2,
+      telemetry: {
+        db,
+        kind: "clinical_note_summary",
+        userId,
+        patientId,
+      },
+    });
+    const parsedJson = tryParseJson<any>(out);
+    const safe =
+      parsedJson &&
+      typeof parsedJson === "object" &&
+      typeof parsedJson.summary === "string" &&
+      parsedJson.soap &&
+      typeof parsedJson.soap === "object"
+        ? {
+            summary: String(parsedJson.summary).slice(0, 500),
+            soap: {
+              subjective: String(parsedJson.soap.subjective ?? "").slice(0, 1000),
+              objective: String(parsedJson.soap.objective ?? "").slice(0, 1000),
+              assessment: String(parsedJson.soap.assessment ?? "").slice(0, 1000),
+              plan: String(parsedJson.soap.plan ?? "").slice(0, 1000),
+            },
+            keyTerms: Array.isArray(parsedJson.keyTerms)
+              ? parsedJson.keyTerms
+                  .filter((x: any) => typeof x === "string")
+                  .map((x: string) => x.slice(0, 80))
+                  .slice(0, 30)
+              : [],
+          }
+        : fallbackClinicalNoteSummary();
+    summary = safe;
+  } catch (err) {
+    console.error("[ai/clinical-note-summary] failed", err);
+    summary = fallbackClinicalNoteSummary();
+  }
+
+  await cacheStore(db, "clinical_note_summary", cacheKey, summary);
+  return c.json({ summary });
 });
 
 export default ai;

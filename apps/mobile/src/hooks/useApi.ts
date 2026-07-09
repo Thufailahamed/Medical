@@ -2294,6 +2294,29 @@ export function useAiOcr() {
   });
 }
 
+// Day 2 #1: clinical-note summary. Doctor's free-text note → SOAP +
+// summary + key terms. Cached on the server (24h by note+patient hash).
+export type ClinicalNoteSummary = {
+  summary: string;
+  soap: {
+    subjective: string;
+    objective: string;
+    assessment: string;
+    plan: string;
+  };
+  keyTerms: string[];
+};
+
+export function useAiClinicalNoteSummary() {
+  return useMutation({
+    mutationFn: (data: { patientId: string; noteText: string }) =>
+      api<{ summary: ClinicalNoteSummary; cached?: boolean }>(
+        "/ai/clinical-note-summary",
+        { method: "POST", body: data }
+      ),
+  });
+}
+
 /**
  * Read a paper prescription with AI OCR.
  *

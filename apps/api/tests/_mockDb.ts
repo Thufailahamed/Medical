@@ -503,6 +503,63 @@ class InsertBuilder {
   returning(_fields?: any) {
     return Promise.resolve(this.rowsOut.map((r) => ({ ...r })));
   }
+  // SQLite-style UPSERT emulation. `target` is the column(s) we treat
+  // as the conflict key; if a row with the same value already exists
+  // we update it in place instead of appending. `set` is the patch
+  // (raw values or SQL expressions — we evaluate the column references
+  // by reading from the existing row).
+  onConflictDoUpdate(opts: { target?: any; set?: Record<string, any> } = {}) {
+    const tableName = this.db._tableName(this.table);
+    const state = (this.db as any)._tables[tableName];
+    if (!state) return this;
+    const targetCol = (opts.target as any)?.[Symbol.for("drizzle:Name")]?.name
+      ?? (opts.target as any)?.name
+      ?? "scope";
+    const set = opts.set ?? {};
+    // Apply UPSERT semantics by mutating rowsOut in place: for each
+    // row we just inserted, look for an existing row with the same
+    // `targetCol` value and patch it; otherwise leave it as a fresh
+    // insert (already pushed in `.values`).
+    for (const r of this.rowsOut) {
+      const key = r[targetCol];
+      const existing = state.rows.find((x: Row) => x[targetCol] === key && x !== r);
+      if (existing) {
+        // Roll back the duplicate insert — pull it out of rowsOut and
+        // state.rows (so we don't double-count), then patch existing.
+        state.rows = state.rows.filter((x: Row) => x !== r);
+        this.rowsOut = this.rowsOut.filter((x: Row) => x !== r);
+        for (const [k, v] of Object.entries(set)) {
+          // Evaluate SQL expression `{col} + 1` against existing row.
+          // drizzle encodes a column reference inside `sql\`${col}\`` as
+          // a chunk with `.name` (no `.value`). Walking all chunks and
+          // stringifying in order reconstructs the expression.
+          const chunks: any[] = (v as any)?.queryChunks ?? [];
+          let expr = "";
+          let colName: string | null = null;
+          for (const c of chunks) {
+            if (typeof c === "string") expr += c;
+            else if (Array.isArray(c?.value)) expr += c.value.join("");
+            else if (typeof c?.name === "string") {
+              expr += c.name;
+              colName = c.name;
+            }
+          }
+          const m = expr.match(/^\s*(\w+)\s*\+\s*1\s*$/);
+          if (m) {
+            const col = m[1];
+            existing[col] = (existing[col] ?? 0) + 1;
+          } else if (colName && /\+\s*1/.test(expr)) {
+            // Fallback: handle arbitrary column ref + `+ 1`.
+            existing[colName] = (existing[colName] ?? 0) + 1;
+          } else {
+            existing[k] = v;
+          }
+        }
+        this.rowsOut.push({ ...existing });
+      }
+    }
+    return this;
+  }
   // Some callers do `await db.insert(...).values(...)` without
   // `.returning()`. Make that work too.
   then<TResult1 = any[], TResult2 = never>(

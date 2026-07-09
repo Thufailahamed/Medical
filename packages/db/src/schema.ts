@@ -1036,6 +1036,7 @@ export const aiCache = sqliteTable("ai_cache", {
       "drug_interaction",
       "chat",
       "ocr",
+      "clinical_note_summary",
     ],
   }).notNull(),
   inputHash: text("input_hash").notNull(),
@@ -3181,3 +3182,19 @@ export const dischargeHandoffs = sqliteTable(
     fromIdx: index("idx_dh_from").on(t.fromHospitalId),
   })
 );
+
+// ─── Day 1: AI safety floor counters ─────────────────────
+//
+// Generic counter table used by:
+//   * per-user rate limit on /ai/* (scope: `user:<id>:hour:<bucket>`)
+//   * Anthropic fallback daily cap (scope: `anthropic:day:<bucket>`)
+//
+// Atomic UPSERT in middleware reads `count` after increment; row stays
+// tiny. Cleanup cron (see 0046) prunes rows older than 30d.
+export const aiCounters = sqliteTable("ai_counters", {
+  scope: text("scope").primaryKey(),
+  count: integer("count").notNull().default(0),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});

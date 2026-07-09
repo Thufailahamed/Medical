@@ -63,6 +63,16 @@ PAYHERE_SANDBOX = "false"
 # fallback but prod passkeys register against the real admin subdomain.
 WEBAUTHN_RP_ID = "admin.healthhub.app"
 
+# Day 1: AI safety floor.
+# AI_USER_HOURLY_LIMIT caps per-user /ai/* traffic (default 20). Counter
+# is global across worker instances via D1 (`ai_counters` table).
+# ANTHROPIC_DAILY_CAP caps the expensive Anthropic fallback (default 100).
+# AI_FAIL_OPEN=true lets /ai/* bypass the rate limit when D1 is down
+# (dev convenience — leave false in prod).
+AI_USER_HOURLY_LIMIT = "20"
+ANTHROPIC_DAILY_CAP = "100"
+AI_FAIL_OPEN = "false"
+
 # Round 2 P0: TOTP MFA for doctors (HIPAA compliance floor).
 # MFA_SECRET_KEK is a 32-byte base64 secret used to AES-256-GCM-wrap
 # each doctor's TOTP secret. Generate with:

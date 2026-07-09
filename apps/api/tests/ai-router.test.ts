@@ -9,6 +9,7 @@
 
 import { describe, it, expect } from "bun:test";
 import { streamRouted } from "../src/lib/ai/router";
+import { MockD1 } from "./_mockDb";
 
 function makeWorkersAi(chunks: string[] | Error) {
   return {
@@ -35,6 +36,18 @@ async function collect<T>(gen: AsyncGenerator<T>): Promise<T[]> {
   return out;
 }
 
+// ─── Tiny mock D1 ──────────────────────────────────────────
+//
+// Reuses the in-harness MockD1 — it implements insert/update/select
+// + onConflictDoUpdate. Anything fancier is delegated to its real
+// test setup via `_mockDb.ts`.
+function makeEnv(overrides: Record<string, any> = {}) {
+  return {
+    DB: new MockD1() as any,
+    ...overrides,
+  };
+}
+
 describe("LLM router", () => {
   it("uses workers-ai when it succeeds", async () => {
     const providers: string[] = [];
@@ -50,7 +63,7 @@ describe("LLM router", () => {
   });
 
   it("falls back to anthropic when workers-ai throws", async () => {
-    const env = { ANTHROPIC_API_KEY: "sk-test-1234" };
+    const env = makeEnv({ ANTHROPIC_API_KEY: "sk-test-1234", ANTHROPIC_DAILY_CAP: "100" });
     // Stub global fetch so we don't actually call Anthropic.
     const origFetch = globalThis.fetch;
     const encoder = new TextEncoder();
@@ -91,7 +104,7 @@ describe("LLM router", () => {
   });
 
   it("throws when both providers fail", async () => {
-    const env = { ANTHROPIC_API_KEY: "sk-test-1234" };
+    const env = makeEnv({ ANTHROPIC_API_KEY: "sk-test-1234", ANTHROPIC_DAILY_CAP: "100" });
     const origFetch = globalThis.fetch;
     globalThis.fetch = (async () =>
       new Response("rate limited", { status: 429 })) as any;
@@ -114,7 +127,7 @@ describe("LLM router", () => {
   });
 
   it("emits a non-empty fallback provider tag on exhaustion", async () => {
-    const env = { ANTHROPIC_API_KEY: "sk-test-1234" };
+    const env = makeEnv({ ANTHROPIC_API_KEY: "sk-test-1234", ANTHROPIC_DAILY_CAP: "100" });
     const origFetch = globalThis.fetch;
     globalThis.fetch = (async () =>
       new Response("internal error", { status: 500 })) as any;
@@ -133,5 +146,46 @@ describe("LLM router", () => {
       globalThis.fetch = origFetch;
     }
     expect(lastProvider).toBe("fallback");
+  });
+
+  it("skips anthropic fallback when daily cap is hit", async () => {
+    // Cap = 0 means any fallback call is refused. fetch must NOT be
+    // invoked when the cap gates the provider.
+    const env = makeEnv({ ANTHROPIC_API_KEY: "sk-test-1234", ANTHROPIC_DAILY_CAP: "0" });
+    const origFetch = globalThis.fetch;
+    let fetchCalls = 0;
+    globalThis.fetch = (async () => {
+      fetchCalls += 1;
+      return new Response("ok", { status: 200 });
+    }) as any;
+    try {
+      await expect(
+        collect(
+          streamRouted([{ role: "user", content: "hi" }], {
+            ai: makeWorkersAi(new Error("down")),
+            env,
+          }),
+        )
+      ).rejects.toThrow(/anthropic daily cap/);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+    expect(fetchCalls).toBe(0);
+  });
+
+  it("does not bump anthropic quota on workers-ai success", async () => {
+    const env = makeEnv({ ANTHROPIC_API_KEY: "sk-test-1234", ANTHROPIC_DAILY_CAP: "100" });
+    await collect(
+      streamRouted([{ role: "user", content: "hi" }], {
+        ai: makeWorkersAi(["hi back"]),
+        env,
+      }),
+    );
+    // Quota scope must remain absent — workers-ai shouldn't even hint
+    // at touching Anthropic counters.
+    const tables = (env.DB as any).tables as Record<string, any>;
+    const counterRows = (tables?.aiCounters?.rows ?? []) as Array<{ scope: string }>;
+    const hasAnthropic = counterRows.some((r) => r.scope.startsWith("anthropic:"));
+    expect(hasAnthropic).toBe(false);
   });
 });
