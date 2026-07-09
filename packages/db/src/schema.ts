@@ -21,8 +21,15 @@ export const users = sqliteTable("users", {
   }).notNull(),
   email: text("email").unique(),
   phone: text("phone").unique(),
+  // P1 bundle 3: PII cipher columns. Set on user create/update by
+  // `apps/api/src/lib/pii-cipher.ts`. Plaintext kept for legacy login
+  // paths until a migration sweeps values into the cipher columns.
+  // Wire format: `pii:v1:<kekId>:<ivB64>:<cipherB64>:<tagB64>`.
+  emailPii: text("email_pii"),
+  phonePii: text("phone_pii"),
   name: text("name").notNull(),
   nic: text("nic"),
+  nicPii: text("nic_pii"),
   // Phase 1.2: bcrypt hash of NIC for soft-verification login. Plain NIC
   // stays in this row for last-mile display only; queries against an
   // unauthenticated caller never read it.
@@ -991,6 +998,41 @@ export const aiCache = sqliteTable("ai_cache", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   ttlAt: text("ttl_at").notNull(),
+});
+
+// ─── P1: AI Call Telemetry ──────────────────────────────
+//
+// One row per AI invocation. Tracks who called which model, latency,
+// cached-hit status, and any error message. No token counts — Workers
+// AI doesn't surface them through the binding today. Drives:
+//   - per-user spend caps (aggregate latencyMs × model weight)
+//   - audit ("why did Dr. X's summary fire?" → grep aiCalls.userId)
+//   - rate-limit analytics
+// Retention: 30 days. Cron purge lives outside this PR.
+export const aiCalls = sqliteTable("ai_calls", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  kind: text("kind", {
+    enum: [
+      "summary",
+      "lab_explain",
+      "drug_interaction",
+      "chat",
+      "ocr",
+      "classify",
+    ],
+  }).notNull(),
+  userId: text("user_id").references(() => users.id),
+  patientId: text("patient_id").references(() => patients.id),
+  model: text("model").notNull(),
+  cachedHit: integer("cached_hit", { mode: "boolean" }).notNull().default(false),
+  latencyMs: integer("latency_ms").notNull().default(0),
+  status: text("status", { enum: ["ok", "error", "timeout", "fallback"] })
+    .notNull()
+    .default("ok"),
+  errorMessage: text("error_message"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
 });
 
 // ─── V2: Chat Sessions (Health Q&A) ──────────────────────

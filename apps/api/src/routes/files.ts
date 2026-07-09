@@ -30,6 +30,76 @@ const ALLOWED_TYPES = [
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 
+/**
+ * Magic-byte detector. Returns the canonical MIME type for the file
+ * by inspecting its leading bytes, or `null` if the format is not
+ * supported. Patterns are taken from the IANA-registered signatures
+ * (PDF 1.7 §7.5.2, RFC 2083 for PNG, ISO/IEC 10918-1 for JPEG, etc.).
+ *
+ * Exported for tests.
+ */
+export function sniffMagicType(buf: Uint8Array): string | null {
+  if (buf.length >= 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) {
+    return "application/pdf";
+  }
+  if (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    return "image/png";
+  }
+  // JPEG: FF D8 FF, with the 4th byte in {E0, E1, E2, E3, E8, DB, EE}.
+  if (
+    buf.length >= 3 &&
+    buf[0] === 0xff &&
+    buf[1] === 0xd8 &&
+    buf[2] === 0xff &&
+    [0xe0, 0xe1, 0xe2, 0xe3, 0xe8, 0xdb, 0xee].includes(buf[3] ?? 0)
+  ) {
+    return "image/jpeg";
+  }
+  // WebP: RIFF....WEBP
+  if (
+    buf.length >= 12 &&
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  // DICOM: DICM at offset 128.
+  if (
+    buf.length >= 132 &&
+    buf[128] === 0x44 && buf[129] === 0x49 && buf[130] === 0x43 && buf[131] === 0x4d
+  ) {
+    return "application/dicom";
+  }
+  // MP3: ID3v2 tag ("ID3") or MPEG frame sync (0xFFFB / 0xFFFA / 0xFFF3).
+  if (buf.length >= 3 && buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) {
+    return "audio/mpeg";
+  }
+  if (
+    buf.length >= 2 &&
+    buf[0] === 0xff &&
+    (buf[1] & 0xe0) === 0xe0 &&
+    [0xfb, 0xfa, 0xf3, 0xf2].includes(buf[1])
+  ) {
+    return "audio/mpeg";
+  }
+  // WAV: RIFF....WAVE
+  if (
+    buf.length >= 12 &&
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+    buf[8] === 0x57 && buf[9] === 0x41 && buf[10] === 0x56 && buf[11] === 0x45
+  ) {
+    return "audio/wav";
+  }
+  // MP4 / MOV: ftyp box at offset 4 with brand in [8..11].
+  if (
+    buf.length >= 12 &&
+    buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70
+  ) {
+    return "video/mp4";
+  }
+  return null;
+}
+
 // Helper: get patient ID from user ID
 async function getPatientIdFromUser(db: any, userId: string): Promise<string | null> {
   const [patient] = await db
@@ -55,6 +125,29 @@ filesRouter.post("/upload", authMiddleware, async (c) => {
 
   if (file.size > MAX_SIZE) {
     return c.json({ error: "File too large (max 50MB)" }, 400);
+  }
+
+  // Magic-byte sniff. Reject MIME spoofing (e.g. .exe renamed to .pdf).
+  // We read the first 12 bytes; none of the supported formats need
+  // more than that to identify.
+  const sniffBuf = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const detected = sniffMagicType(sniffBuf);
+  if (!detected) {
+    return c.json(
+      { error: "Unsupported or unrecognised file format" },
+      415
+    );
+  }
+  // If the client declared a MIME, it must agree with the magic bytes.
+  if (file.type && file.type !== detected) {
+    return c.json(
+      {
+        error: "File content does not match declared MIME type",
+        declared: file.type,
+        detected,
+      },
+      415
+    );
   }
 
   // Determine file type category

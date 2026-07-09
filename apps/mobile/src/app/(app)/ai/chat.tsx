@@ -34,6 +34,7 @@ import {
   useSendChat,
   useDeleteChatSession,
 } from "@/hooks/useApi";
+import { apiSse } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -95,6 +96,14 @@ export default function AiChatScreen() {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<ScrollView | null>(null);
 
+  // Streamed-reply state: while the model is generating, mirror the
+  // accumulating draft so the user sees tokens appear incrementally
+  // instead of a 25 s spinner. The persisted assistant message is
+  // appended automatically once the SSE `done` event fires (via
+  // query invalidation in the hook).
+  const [streamingText, setStreamingText] = useState<string | null>(null);
+  const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null);
+
   useEffect(() => {
     const len = messages.data?.messages?.length || 0;
     if (scrollRef.current && len > 0) {
@@ -116,24 +125,73 @@ export default function AiChatScreen() {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
-    if (!activeId) {
+
+    // Resolve a session id — create one if this is the first message.
+    let sessionId = activeId;
+    if (!sessionId) {
       try {
         const res = await createSession.mutateAsync({ title: text });
-        setActiveId(res.session.id);
-        try {
-          await send.mutateAsync({ sessionId: res.session.id, content: text });
-        } catch (err: any) {
-          toast.show(err?.message || t("aiChat.sendError"), "danger");
-        }
+        sessionId = res.session.id;
+        setActiveId(sessionId);
       } catch (err: any) {
         toast.show(err?.message || t("aiChat.createError"), "danger");
+        return;
       }
-      return;
     }
+
+    if (!sessionId) return;
+
+    // Stream the reply via SSE. On each `delta` chunk append to the
+    // local draft; on `done` clear the draft and let the query layer
+    // re-fetch the canonical assistant row. Falls back to the JSON
+    // `send` mutation if the SSE endpoint is unavailable.
+    setStreamingText("");
+    setStreamingSessionId(sessionId);
     try {
-      await send.mutateAsync({ sessionId: activeId, content: text });
+      await new Promise<void>((resolve, reject) => {
+        const conn = apiSse(
+          `/chat/sessions/${sessionId}/messages/stream`,
+          { method: "POST", body: { content: text } },
+          (e) => {
+            try {
+              const payload = e.data ? JSON.parse(e.data) : {};
+              if (e.event === "delta" && typeof payload.delta === "string") {
+                setStreamingText((prev) => (prev ?? "") + payload.delta);
+              } else if (e.event === "user") {
+                // Optimistically invalidate so the user's own bubble
+                // renders immediately even before the server commits.
+                // (The user row is already persisted server-side.)
+                messages.refetch?.();
+              } else if (e.event === "done") {
+                // Pull the persisted assistant row + updated session
+                // title so the streaming draft can be replaced by
+                // the canonical server-rendered bubble.
+                try {
+                  messages.refetch?.();
+                } catch {
+                  /* ignore */
+                }
+                resolve();
+              } else if (e.event === "error") {
+                reject(new Error(payload.error || "stream error"));
+              }
+            } catch (parseErr) {
+              // Ignore malformed lines.
+            }
+          }
+        );
+        conn.done.catch(reject);
+      });
     } catch (err: any) {
-      toast.show(err?.message || t("aiChat.sendError"), "danger");
+      // Fallback: try the non-streaming endpoint.
+      try {
+        await send.mutateAsync({ sessionId, content: text });
+      } catch (err2: any) {
+        toast.show(err2?.message || t("aiChat.sendError"), "danger");
+      }
+    } finally {
+      setStreamingText(null);
+      setStreamingSessionId(null);
     }
   }
 
@@ -151,7 +209,7 @@ export default function AiChatScreen() {
   // ─── THREAD VIEW ─────────────────────────────────────────
   if (activeId) {
     const msgList = (messages.data?.messages || []) as any[];
-    const sending = send.isPending;
+    const sending = send.isPending || streamingSessionId === activeId;
     const canSend = draft.trim().length > 0 && !sending;
 
     return (
@@ -215,7 +273,17 @@ export default function AiChatScreen() {
                 );
               })
             )}
-            {sending ? (
+            {streamingSessionId === activeId && streamingText != null ? (
+              <Bubble
+                isUser={false}
+                content={streamingText || t("aiChat.thinking")}
+                showMeta={true}
+                meta={t("aiChat.metaFormat", {
+                  author: t("aiChat.aiLabel"),
+                  time: "",
+                })}
+              />
+            ) : sending ? (
               <View style={{ alignSelf: "flex-start" }}>
                 <View
                   style={{

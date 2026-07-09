@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
   Upload,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import { useCreateMedicalRecord } from "@/hooks/useApi";
+import { useCreateMedicalRecord, useReadPrescription, api } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -48,13 +49,25 @@ const RECORD_TYPE_VALUES: RecordType[] = [
 
 export default function AddRecordScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { spacing, colors, typography, fontFamily } = useTheme();
   const toast = useToast();
 
   const createRec = useCreateMedicalRecord();
-  // Stub: useReadPrescription not yet implemented in useApi.ts
-  const readRx = { mutateAsync: async (_data: any) => ({ medicines: [] }) };
+  const readRx = useReadPrescription();
+
+  // Look up this user's patient.id. Cached profile → /patients/me.
+  async function getMyPatientId(): Promise<string | undefined> {
+    const cached: any = queryClient.getQueryData(["patient", "me"]);
+    const id =
+      cached?.patient?.patients?.id || cached?.patient?.id || cached?.patientId;
+    if (id) return id;
+    const profile = await api<{ patient: { patients: { id: string } } }>(
+      "/patients/me"
+    ).catch(() => null);
+    return profile?.patient?.patients?.id;
+  }
 
   const [type, setType] = useState<RecordType>("lab_report");
   const [title, setTitle] = useState("");
@@ -144,14 +157,22 @@ export default function AddRecordScreen() {
       if (type === "prescription" && file?.type.startsWith("image")) {
         setOcrLoading(true);
         try {
-          const r = await readRx.mutateAsync({
-            recordId: res.record.id,
-            imageUri: file.uri,
-            mimeType: file.type,
-          });
-          if (r.medicines?.length) {
-            setExtractedMeds(r.medicines);
-            setShowOcrSheet(true);
+          const patientId = await getMyPatientId();
+          if (!patientId) {
+            // No patient profile → can't run OCR with PHI context;
+            // skip silently (UX: user will see error in record-detail).
+          } else {
+            const r = await readRx.mutateAsync({
+              recordId: res.record.id,
+              imageUri: file.uri,
+              mimeType: file.type,
+              fileName: file.name,
+              patientId,
+            });
+            if (r.medicines?.length) {
+              setExtractedMeds(r.medicines);
+              setShowOcrSheet(true);
+            }
           }
         } catch {
           // Silently continue — OCR is a bonus.
@@ -530,10 +551,27 @@ export default function AddRecordScreen() {
               size="md"
               onPress={async () => {
                 try {
-                  // Bulk-add via API (single batch)
-                  await readRx.mutateAsync({
-                    bulkAdd: extractedMeds,
-                  });
+                  // Add each OCR'd medicine to the patient's list.
+                  // Sequential POSTs keep the payload shape simple.
+                  const token = await (
+                    await import("@/hooks/useApi")
+                  ).getAuthToken();
+                  const apiBase =
+                    process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
+                  for (const m of extractedMeds) {
+                    await fetch(`${apiBase}/medicines`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                      },
+                      body: JSON.stringify({
+                        name: m.name,
+                        dosage: m.dosage || undefined,
+                        status: "active",
+                      }),
+                    });
+                  }
                   toast.show(
                     t("addRecord.ocrSheet.addedMeds", {
                       count: extractedMeds.length,

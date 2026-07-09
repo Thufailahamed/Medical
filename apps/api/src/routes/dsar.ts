@@ -88,17 +88,14 @@ dsar.post("/erasure", async (c) => {
     resource: "dsar_request",
     resourceId: created.id,
   });
-  // For v3 we tombstone in place — admin approval workflow is post-v3.
-  try {
-    const result = await anonymisePatient(db, userId);
-    await db
-      .update(dsarRequests)
-      .set({ status: "completed", completedAt: new Date().toISOString() })
-      .where(eq(dsarRequests.id, created.id));
-    return c.json({ id: created.id, status: "completed", result });
-  } catch (err) {
-    return c.json({ error: "erasure_failed", reason: (err as Error).message }, 500);
-  }
+  // Erasure is gated by admin approval (`/admin/dsar/:id/approve` +
+  // `/admin/dsar/:id/complete`). The patient submission only enqueues
+  // the request — anonymisation runs once an operator confirms. The
+  // requester can poll `/dsar/jobs/:id` to track status.
+  return c.json(
+    { id: created.id, status: created.status, message: "Erasure request queued for admin review." },
+    202,
+  );
 });
 
 // POST /dsar/rectification

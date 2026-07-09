@@ -13,6 +13,7 @@ import {
   chatMessages,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { requireRole } from "../middleware/rbac";
 import {
   aiSummarySchema,
   aiLabExplainSchema,
@@ -34,8 +35,10 @@ import {
   fallbackDrugCheck,
   fallbackChat,
   fallbackOcr,
+  streamAiComplete,
   type ChatMsg,
 } from "../lib/ai";
+import { streamSSE } from "hono/streaming";
 import { canAccessPatient, getPatientForUser } from "../lib/access";
 import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
@@ -209,6 +212,12 @@ ai.post("/summary", async (c) => {
     const out = await aiComplete(aiBinding, messages, {
       maxTokens: 700,
       temperature: 0.2,
+      telemetry: {
+        db,
+        kind: "summary",
+        userId,
+        patientId: parsed.data.patientId,
+      },
     });
     const parsedJson = tryParseJson<any>(out);
     const safe = hasShape(parsedJson, {
@@ -334,8 +343,9 @@ ai.post("/explain/lab-report", async (c) => {
 
 // ─── Drug Interaction Check ──────────────────────────────
 // POST /ai/drug-interaction  { medicines: string[] }
-// No RBAC: drugs are non-PHI; any logged-in user may check.
-ai.post("/drug-interaction", async (c) => {
+// RBAC: clinicians and patients only. `super_admin`/unknown roles get 403
+// so admin probes can't burn Workers-AI quota on a clinical tool.
+ai.post("/drug-interaction", requireRole("patient", "doctor", "hospital_admin", "hospital_staff", "pharmacy"), async (c) => {
   const db = c.get("db");
   const aiBinding = c.env.AI;
   const body = await c.req.json().catch(() => ({}));
@@ -628,6 +638,255 @@ ai.post("/ocr/prescription", async (c) => {
 
   await cacheStore(db, "ocr", cacheKey, result);
   return c.json({ result });
+});
+
+// ─── Streaming Health Chat ───────────────────────────────
+// POST /ai/chat/stream  { message, sessionId?, patientId? }
+//
+// Token-streaming variant of `/ai/chat`. Emits SSE `delta` events with
+// incremental text chunks; final event carries `done: true`. Shares
+// RBAC + context assembly with the JSON endpoint. Cancels upstream
+// the moment the client disconnects.
+ai.post("/chat/stream", async (c) => {
+  const db = c.get("db");
+  const aiBinding = c.env.AI;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = aiChatSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+  const { message, patientId, sessionId } = parsed.data;
+
+  if (patientId) {
+    const access = await canAccessPatient(db, userId, userRole, patientId);
+    if (!access.allowed) {
+      return c.json({ error: "Access denied", reason: access.reason }, 403);
+    }
+  }
+
+  // Build the same context/history as /ai/chat.
+  let context: any = null;
+  if (patientId) {
+    const [p] = await db
+      .select({ patient: patients, user: users })
+      .from(patients)
+      .innerJoin(users, eq(patients.userId, users.id))
+      .where(eq(patients.id, patientId))
+      .limit(1);
+    if (p) {
+      const meds = await db
+        .select()
+        .from(medicines)
+        .where(and(eq(medicines.patientId, patientId), eq(medicines.active, true)))
+        .limit(20);
+      const allergies = (() => {
+        try {
+          return p.patient.allergies ? JSON.parse(p.patient.allergies) : [];
+        } catch {
+          return [];
+        }
+      })();
+      const conditions = (() => {
+        try {
+          return p.patient.medicalConditions
+            ? JSON.parse(p.patient.medicalConditions)
+            : [];
+        } catch {
+          return [];
+        }
+      })();
+      context = {
+        name: p.user.name,
+        allergies,
+        conditions,
+        activeMedicines: meds.map((m) => ({ name: m.name, dosage: m.dosage })),
+      };
+    }
+  }
+
+  let history: ChatMsg[] = [];
+  if (sessionId) {
+    const [sess] = await db
+      .select()
+      .from(chatSessions)
+      .where(eq(chatSessions.id, sessionId))
+      .limit(1);
+    if (sess && sess.userId === userId) {
+      const recent = await db
+        .select()
+        .from(chatMessages)
+        .where(eq(chatMessages.sessionId, sessionId))
+        .orderBy(desc(chatMessages.createdAt))
+        .limit(8);
+      history = recent.reverse().map((m) => ({
+        role: m.role as "user" | "assistant" | "system",
+        content: m.content,
+      }));
+    }
+  }
+
+  const messages: ChatMsg[] = [
+    {
+      role: "system",
+      content:
+        systemPrompt(
+          "Answer health questions for a patient in a personal health record app. Always be brief, recommend seeing a doctor for serious issues, and never claim to be a doctor."
+        ) +
+        (context
+          ? ` Patient context: ${JSON.stringify(context).slice(0, 1500)}.`
+          : ""),
+    },
+    ...history,
+    { role: "user", content: message },
+  ];
+
+  return streamSSE(c, async (stream) => {
+    const signal = stream.abortSignal;
+    let full = "";
+    try {
+      for await (const delta of streamAiComplete(aiBinding, messages, {
+        maxTokens: 400,
+        temperature: 0.4,
+        signal,
+        telemetry: {
+          db,
+          kind: "chat",
+          userId,
+          patientId: patientId ?? null,
+        },
+      })) {
+        full += delta;
+        await stream.writeSSE({
+          event: "delta",
+          data: JSON.stringify({ delta }),
+        });
+      }
+      // If the model yielded nothing, emit a fallback once.
+      if (!full) {
+        full = fallbackChat(message);
+        await stream.writeSSE({ event: "delta", data: JSON.stringify({ delta: full }) });
+      }
+      await stream.writeSSE({
+        event: "done",
+        data: JSON.stringify({ done: true, response: full }),
+      });
+    } catch (err) {
+      console.error("[ai/chat/stream] failed", err);
+      await stream.writeSSE({
+        event: "error",
+        data: JSON.stringify({ error: (err as Error)?.message || "stream failed" }),
+      });
+    }
+  });
+});
+
+// ─── Streaming Lab Report Explanation ────────────────────
+// POST /ai/explain/lab-report/stream  { fileUrl, reportId?, textHint? }
+//
+// Streams incremental plain-language explanation. Emits `delta` chunks
+// of free-form text (not the structured JSON the non-streaming endpoint
+// returns). Useful for "explain this report" drawers where progressive
+// rendering beats a 25 s spinner.
+ai.post("/explain/lab-report/stream", async (c) => {
+  const db = c.get("db");
+  const aiBinding = c.env.AI;
+  const r2 = c.env.R2;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = aiLabExplainSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+  const textHint: string | undefined = body.textHint;
+  const fileUrl: string = parsed.data.fileUrl;
+  const reportId: string | undefined = parsed.data.reportId;
+
+  let patientId: string | undefined = body.patientId;
+  if (reportId) {
+    const [r] = await db
+      .select()
+      .from(labReports)
+      .where(eq(labReports.id, reportId))
+      .limit(1);
+    if (!r) return c.json({ error: "Report not found" }, 404);
+    patientId = r.patientId;
+  }
+  if (!patientId) {
+    return c.json({ error: "patientId or reportId is required" }, 400);
+  }
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  let extracted = textHint || "";
+  if (!extracted) {
+    const key = extractR2Key(fileUrl);
+    if (key) extracted = await fetchR2Text(r2, key);
+  }
+
+  return streamSSE(c, async (stream) => {
+    const signal = stream.abortSignal;
+    if (!extracted) {
+      await stream.writeSSE({
+        event: "delta",
+        data: JSON.stringify({
+          delta:
+            "Couldn't read the report file. Please share the text or a clearer scan.",
+        }),
+      });
+      await stream.writeSSE({ event: "done", data: JSON.stringify({ done: true }) });
+      return;
+    }
+
+    const messages: ChatMsg[] = [
+      {
+        role: "system",
+        content: systemPrompt(
+          "Explain a medical lab report in plain language for a patient."
+        ),
+      },
+      {
+        role: "user",
+        content: `Explain this lab report. Highlight abnormal values and what they may indicate. If you don't know, say so.\n\n${extracted.slice(0, 4000)}`,
+      },
+    ];
+
+    let full = "";
+    try {
+      for await (const delta of streamAiComplete(aiBinding, messages, {
+        maxTokens: 600,
+        temperature: 0.2,
+        signal,
+      })) {
+        full += delta;
+        await stream.writeSSE({ event: "delta", data: JSON.stringify({ delta }) });
+      }
+      if (!full) {
+        const fb = fallbackLabExplain();
+        await stream.writeSSE({
+          event: "delta",
+          data: JSON.stringify({ delta: fb.explanation }),
+        });
+      }
+      await stream.writeSSE({ event: "done", data: JSON.stringify({ done: true, response: full }) });
+    } catch (err) {
+      console.error("[ai/lab-explain/stream] failed", err);
+      await stream.writeSSE({
+        event: "error",
+        data: JSON.stringify({ error: (err as Error)?.message || "stream failed" }),
+      });
+    }
+  });
 });
 
 export default ai;

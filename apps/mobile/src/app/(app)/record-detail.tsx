@@ -412,7 +412,13 @@ export default function RecordDetailScreen() {
     );
   }
 
-  const meta = TYPE_META[record.recordType as RecordType] || TYPE_META.other;
+  // `kind` is the canonical record-type field added in v3; `recordType`
+  // is the legacy enum (17 values). Prefer `kind` when present, fall
+  // back to `recordType` for older rows. Both come from
+  // packages/shared/src/records.ts RECORD_KINDS.
+  const recordKind = (record.kind ?? record.recordType) as RecordType | undefined;
+  const meta =
+    (recordKind && TYPE_META[recordKind]) || TYPE_META.other;
   const IconComp = meta.icon;
   const isArchived = !!record.archivedAt;
   const ownerLabel = record.familyMember?.name || t("common.you");

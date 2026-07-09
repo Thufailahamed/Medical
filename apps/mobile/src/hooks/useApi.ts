@@ -2211,268 +2211,6 @@ export function useDeleteTimeOff() {
     },
   });
 }
-
-// ─── Hospital Portal (V2) ────────────────────────────────
-export function useHospitalDashboard() {
-  return useQuery({
-    queryKey: ["hospital-portal", "dashboard"],
-    queryFn: () =>
-      api<{
-        hospital: any;
-        occupancy: {
-          totalBeds: number;
-          occupied: number;
-          available: number;
-          cleaning: number;
-          maintenance: number;
-          occupancyRate: number;
-        };
-        shift: "morning" | "evening" | "night";
-        staffOnShift: any[];
-        staffTotals: { total: number; nurses: number; doctors: number };
-        admissions: any[];
-      }>("/hospital-portal/dashboard"),
-    refetchInterval: 60_000,
-  });
-}
-
-export function useWards() {
-  return useQuery({
-    queryKey: ["hospital-portal", "wards"],
-    queryFn: () => api<{ wards: any[] }>("/hospital-portal/wards"),
-  });
-}
-
-export function useCreateWard() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      name: string;
-      type: "general" | "icu" | "pediatric" | "maternity" | "surgical" | "emergency";
-      capacity: number;
-      floor?: number;
-    }) =>
-      api<{ ward: any }>("/hospital-portal/wards", {
-        method: "POST",
-        body: data,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "wards"] });
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
-    },
-  });
-}
-
-export function useUpdateWard() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { id: string; [k: string]: any }) =>
-      api<{ ward: any }>(`/hospital-portal/wards/${data.id}`, {
-        method: "PUT",
-        body: data,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "wards"] });
-    },
-  });
-}
-
-export function useDeleteWard() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      api<{ ok: boolean }>(`/hospital-portal/wards/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "wards"] });
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
-    },
-  });
-}
-
-export function useBeds(wardId?: string) {
-  const params = wardId ? `?wardId=${encodeURIComponent(wardId)}` : "";
-  return useQuery({
-    queryKey: ["hospital-portal", "beds", wardId || "all"],
-    queryFn: () =>
-      api<{ beds: any[] }>(`/hospital-portal/beds${params}`),
-  });
-}
-
-export function useCreateBed() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      wardId: string;
-      bedNumber: string;
-      status?:
-        | "available"
-        | "occupied"
-        | "cleaning"
-        | "maintenance"
-        | "reserved";
-      notes?: string;
-    }) =>
-      api<{ bed: any }>("/hospital-portal/beds", {
-        method: "POST",
-        body: data,
-      }),
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "beds"] });
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
-    },
-  });
-}
-
-export function useUpdateBedStatus() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      id: string;
-      status:
-        | "available"
-        | "occupied"
-        | "cleaning"
-        | "maintenance"
-        | "reserved";
-    }) =>
-      api<{ bed: any }>(`/hospital-portal/beds/${data.id}/status`, {
-        method: "PUT",
-        body: { status: data.status },
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "beds"] });
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
-    },
-  });
-}
-
-export function useAssignBed() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { bedId: string; patientId: string; notes?: string }) =>
-      api<{ assignment: any }>(`/hospital-portal/beds/${data.bedId}/assign`, {
-        method: "POST",
-        body: { patientId: data.patientId, notes: data.notes },
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal"] });
-    },
-  });
-}
-
-export function useDischargeBed() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (bedId: string) =>
-      api<{ assignment: any }>(
-        `/hospital-portal/beds/${bedId}/discharge`,
-        { method: "POST" }
-      ),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal"] });
-    },
-  });
-}
-
-export function useStaff() {
-  return useQuery({
-    queryKey: ["hospital-portal", "staff"],
-    queryFn: () => api<{ staff: any[] }>("/hospital-portal/staff"),
-  });
-}
-
-export function useCreateStaff() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      fullName: string;
-      role:
-        | "nurse"
-        | "receptionist"
-        | "technician"
-        | "manager"
-        | "housekeeping"
-        | "security";
-      shift: "morning" | "evening" | "night" | "rotating";
-      phone?: string;
-      email?: string;
-      userId?: string;
-    }) =>
-      api<{ staff: any }>("/hospital-portal/staff", {
-        method: "POST",
-        body: data,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "staff"] });
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "dashboard"] });
-    },
-  });
-}
-
-export function useUpdateStaff() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { id: string; [k: string]: any }) =>
-      api<{ staff: any }>(`/hospital-portal/staff/${data.id}`, {
-        method: "PUT",
-        body: data,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "staff"] });
-    },
-  });
-}
-
-export function useDeleteStaff() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      api<{ ok: boolean }>(`/hospital-portal/staff/${id}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hospital-portal", "staff"] });
-    },
-  });
-}
-
-// Phase MTN-1: tenant-scoped hospital doctor listing. Replaces the
-// legacy /hospital-portal/doctors read (which was scoped to a single
-// hospital_id FK on doctors).
-export function useHospitalDoctors() {
-  return useQuery({
-    queryKey: ["hospital-portal", "doctors"],
-    queryFn: () => api<any[]>("/hospital-doctors"),
-    refetchInterval: 60_000,
-  });
-}
-
-export function useHospitalPatients() {
-  // Phase MTN-1: use the tenant-scoped route. The active tenant
-  // header (set by TenantSwitcher) drives scope; no hospitalId param
-  // required.
-  return useQuery({
-    queryKey: ["hospital-portal", "patients"],
-    queryFn: () => api<{ patients: any[] }>("/hospital-patients"),
-    refetchInterval: 60_000,
-  });
-}
-
-export function useAdmittedPatient(patientId: string | null) {
-  return useQuery({
-    queryKey: ["hospital-portal", "patient", patientId],
-    queryFn: () =>
-      api<{
-        admission: any;
-        patient: any;
-        user: any;
-        records: any[];
-        vitals: any[];
-      }>(`/hospital-portal/patients/${patientId}`),
-    enabled: !!patientId,
-  });
-}
-
 // ─── AI Module (V2) ──────────────────────────────────────
 export type AiSummary = {
   patientSummary: string;
@@ -2553,6 +2291,90 @@ export function useAiOcr() {
         method: "POST",
         body: data,
       }),
+  });
+}
+
+/**
+ * Read a paper prescription with AI OCR.
+ *
+ * Flow: upload the captured image to /files/upload (linked to the
+ * freshly-created medical record so the file becomes an attachment),
+ * then POST /ai/ocr/prescription with the resulting R2 key + patient
+ * context. Returns the parsed medicines array for the UI to review
+ * before bulk-adding to the patient's medicine list.
+ *
+ * On OCR or upload failure this returns `{ medicines: [] }` rather
+ * than throwing — the caller decides whether to surface a toast.
+ */
+export function useReadPrescription() {
+  return useMutation({
+    mutationFn: async (args: {
+      recordId: string;
+      imageUri: string;
+      mimeType: string;
+      fileName: string;
+      patientId: string;
+    }) => {
+      const token = await getAuthToken();
+      const apiBase = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
+
+      // 1. Upload the image, linked to the new record.
+      const fd = new FormData();
+      fd.append("recordId", args.recordId);
+      // RN FormData accepts { uri, name, type } for file parts.
+      fd.append("file", {
+        uri: args.imageUri,
+        name: args.fileName,
+        type: args.mimeType,
+      } as any);
+
+      const upRes = await fetch(`${apiBase}/files/upload`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: fd as any,
+      });
+      if (!upRes.ok) {
+        return { medicines: [] as Array<{ name: string; dosage?: string }> };
+      }
+      const upJson = await upRes.json().catch(() => null);
+      const r2Key: string | undefined = upJson?.file?.r2Key || upJson?.file?.url;
+      if (!r2Key) {
+        return { medicines: [] as Array<{ name: string; dosage?: string }> };
+      }
+
+      // 2. Run OCR on the uploaded file. Endpoint returns structured JSON.
+      const ocrRes = await fetch(`${apiBase}/ai/ocr/prescription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          fileUrl: r2Key,
+          patientId: args.patientId,
+        }),
+      });
+      if (!ocrRes.ok) {
+        return { medicines: [] as Array<{ name: string; dosage?: string }> };
+      }
+      const ocrJson = await ocrRes.json().catch(() => null);
+      const meds = (ocrJson?.result?.medicines || []) as Array<{
+        name?: string;
+        dosage?: string;
+        frequency?: string;
+        timing?: string;
+      }>;
+      // Trim to the shape used by the OCR sheet.
+      const medicines = meds
+        .map((m) => ({
+          name: m.name || "",
+          dosage:
+            [m.dosage, m.frequency, m.timing].filter(Boolean).join(", ") ||
+            undefined,
+        }))
+        .filter((m) => m.name);
+      return { medicines };
+    },
   });
 }
 

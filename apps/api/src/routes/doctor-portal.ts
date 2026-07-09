@@ -44,6 +44,7 @@ import {
   appointmentStatusSchema,
   availabilitySchema,
   recordPatientVitalSchema,
+  recordPatientVaccinationSchema,
   defaultUnit,
 } from "@healthcare/shared";
 import { notify } from "../lib/notifications";
@@ -1104,6 +1105,119 @@ doctorPortalRouter.post("/vitals", async (c) => {
   }
 
   return c.json({ vital: row }, 201);
+});
+
+// ─── Record a vaccination on behalf of a patient ────────
+// POST /doctor-portal/vaccinations
+//
+// Closes the gap that previously forced doctors to view a patient's
+// vaccination history without a way to add one. Mirrors the self-only
+// `POST /vaccinations/me` (apps/api/src/routes/vaccinations.ts:163)
+// but takes an explicit `patientId`. Access via `canAccessPatient`,
+// same as /vitals — doctors must be on the active care team, have a
+// prior appointment, prescription, lab order, or similar.
+doctorPortalRouter.post("/vaccinations", async (c) => {
+  const userId = c.get("userId");
+  const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role || "doctor";
+  const db = c.get("db");
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = recordPatientVaccinationSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400,
+    );
+  }
+  const v = parsed.data;
+
+  const access = await canAccessPatient(db, userId, userRole, v.patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const tenant = await resolveActiveTenant(db, c, doctor);
+  const hospitalId =
+    v.hospitalId ||
+    c.get("activeHospitalId") ||
+    doctor.hospitalId ||
+    null;
+
+  // Resolve vaccine against the catalog when possible so the stored
+  // record joins cleanly with the rest of the patient's vaccination
+  // history. Falls back to a free-text title if no catalog match.
+  let catalogEntry: any = null;
+  if (v.vaccineId) {
+    const [row] = await db
+      .select()
+      .from(vaccineCatalog)
+      .where(eq(vaccineCatalog.id, v.vaccineId))
+      .limit(1);
+    catalogEntry = row || null;
+  } else if (v.vaccineName) {
+    const all = await db.select().from(vaccineCatalog);
+    catalogEntry =
+      all.find(
+        (x: any) =>
+          x.name.toLowerCase() === v.vaccineName!.toLowerCase() ||
+          (x.shortName &&
+            x.shortName.toLowerCase() === v.vaccineName!.toLowerCase()),
+      ) || null;
+  }
+
+  const title = catalogEntry ? catalogEntry.name : v.vaccineName || "Vaccination";
+  const descriptionParts: string[] = [];
+  if (v.doseNumber != null) descriptionParts.push(`Dose ${v.doseNumber}`);
+  if (catalogEntry?.targetDisease) descriptionParts.push(catalogEntry.targetDisease);
+  const description = descriptionParts.join(" • ") || v.notes || null;
+
+  const recordDate = v.administeredAt || new Date().toISOString().slice(0, 10);
+
+  const [row] = await db
+    .insert(medicalRecords)
+    .values({
+      patientId: v.patientId,
+      hospitalId,
+      doctorId: doctor.id,
+      recordType: "vaccination",
+      title,
+      description,
+      recordDate,
+      provider: v.provider || null,
+      notes:
+        v.notes ||
+        (catalogEntry ? `Vaccine ID: ${catalogEntry.id}` : null),
+    } as any)
+    .returning();
+
+  if (row) await upsertRecordFts(db, row);
+
+  await audit(db, {
+    userId,
+    action: "vaccination.create",
+    resource: "vaccination",
+    resourceId: row?.id,
+    details: {
+      patientId: v.patientId,
+      vaccineId: catalogEntry?.id ?? null,
+      vaccineName: title,
+      doseNumber: v.doseNumber ?? null,
+      administeredAt: recordDate,
+    },
+  });
+
+  // Touching the patient counts as a care touch — idempotent.
+  await upsertActiveCareTeam(db, {
+    patientId: v.patientId,
+    doctorId: doctor.id,
+    role: "primary_care",
+    invitedByUserId: userId,
+  }).catch(() => {});
+
+  return c.json({ vaccination: row }, 201);
 });
 
 // GET /doctor-portal/clinical-notes?limit=50&q=

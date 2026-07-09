@@ -56,16 +56,25 @@ function LoginForm() {
         ...(isEmail ? { email: id } : { phone: id }),
         password: values.password,
       });
-      if (user.role !== "doctor" && user.role !== "pharmacy") {
+      // Route to the correct sub-portal based on role.
+      // Patients use the new (patient) route group.
+      const isClinician =
+        user.role === "doctor" || user.role === "pharmacy";
+      if (!isClinician && user.role !== "patient") {
         toast.error(
           "Wrong portal",
-          "This portal is for clinician accounts. Use the patient app instead."
+          "This portal doesn't support your account type yet. Please use the appropriate sign-in."
         );
         useAuthStore.getState().logout();
         setSubmitting(false);
         return;
       }
-      router.replace(next);
+      const destination = isClinician
+        ? next
+        : next.startsWith("/portal")
+          ? "/portal/me"
+          : next;
+      router.replace(destination);
     } catch (err) {
       setError(friendlyError(err));
       setSubmitting(false);

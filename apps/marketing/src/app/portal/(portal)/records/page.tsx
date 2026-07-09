@@ -24,7 +24,10 @@ interface MedicalRecord {
   id: string;
   patientId: string;
   title: string;
-  type: string;
+  /** Canonical record-type field (v3). Falls back to `recordType` for older rows. */
+  kind: string;
+  /** Legacy record-type enum (v1/v2). Used when `kind` is absent. */
+  recordType?: string | null;
   date: string | null;
   tags: string[] | null;
   createdAt: string;
@@ -46,18 +49,25 @@ export default function RecordsPage() {
 
   const allRecords = data?.records ?? [];
 
-  const types = ["all", ...new Set(allRecords.map((r) => r.type))];
+  // Normalize to the canonical kind for filter + display.
+  const typeOf = (r: MedicalRecord) => r.kind || r.recordType || "other";
+  const types = ["all", ...new Set(allRecords.map(typeOf))];
 
   const filtered = allRecords.filter((record) => {
     const matchesSearch =
       !search.trim() ||
-      [record.title, record.type, record.patient?.name, ...(record.tags || [])]
+      [
+        record.title,
+        typeOf(record),
+        record.patient?.name,
+        ...(record.tags || []),
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(search.toLowerCase());
 
-    const matchesType = typeFilter === "all" || record.type === typeFilter;
+    const matchesType = typeFilter === "all" || typeOf(record) === typeFilter;
 
     return matchesSearch && matchesType;
   });
@@ -138,7 +148,7 @@ export default function RecordsPage() {
                     {record.title}
                   </div>
                   <div className="text-xs text-text-soft truncate">
-                    {record.patient?.name || t("records.unknownPatient")} · {record.type}
+                    {record.patient?.name || t("records.unknownPatient")} · {typeOf(record)}
                   </div>
                   {record.tags && record.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
