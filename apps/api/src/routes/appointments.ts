@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import { eq, and } from "drizzle-orm";
-import { appointments, doctors, patients, notifications, medicalRecords, appointmentStatusHistory } from "@healthcare/db";
+import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { appointmentSchema } from "../lib/validators";
@@ -489,7 +489,24 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
     .from(medicalRecords)
     .where(eq(medicalRecords.appointmentId, appointmentId));
 
-  return c.json({ appointment: appt, records });
+  // Round 2 P0: surface doctor SLMC verification + name on appointment
+  // detail so the mobile VerifiedBadge can render. Cheap single-row join.
+  const [doctor] = await db
+    .select({
+      id: doctors.id,
+      name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      specialization: doctors.specialization,
+      slmcRegistrationNo: doctors.slmcRegistrationNo,
+      slmcVerifiedAt: doctors.slmcVerifiedAt,
+    })
+    .from(doctors)
+    .leftJoin(users, eq(users.id, doctors.userId))
+    .where(eq(doctors.id, appt.doctorId))
+    .limit(1);
+
+  return c.json({ appointment: appt, records, doctor: doctor || null });
 });
 
 // ─── Patient cancels their appointment (soft cancel) ─────

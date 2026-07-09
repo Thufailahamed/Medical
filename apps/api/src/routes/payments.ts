@@ -15,6 +15,7 @@ import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { createDb } from "../lib/db";
+import { logger } from "../lib/logger";
 import {
   mintOrderId,
   computeHash,
@@ -236,7 +237,7 @@ paymentsRouter.post("/notify", async (c) => {
     secret
   );
   if (!ok) {
-    console.error(`[payments] signature mismatch order=${order_id}`);
+    logger.error("payments.notify", "signature mismatch", { orderId: order_id });
     return c.text("invalid signature", 400);
   }
 
@@ -246,7 +247,7 @@ paymentsRouter.post("/notify", async (c) => {
     .where(eq(appointmentPayments.payhereOrderId, order_id))
     .limit(1);
   if (!row) {
-    console.warn(`[payments] notify for unknown order ${order_id}`);
+    logger.warn("payments.notify", "notify for unknown order", { orderId: order_id });
     return c.text("ok", 200); // ack so PayHere stops retrying
   }
 

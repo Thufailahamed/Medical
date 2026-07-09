@@ -1,8 +1,8 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, desc } from "drizzle-orm";
-import { auditLogs, patients, prescriptions, doctors } from "@healthcare/db";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { auditLogs, patients, prescriptions, doctors, users } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import type { AppEnvironment } from "../types";
@@ -18,22 +18,88 @@ async function getPatientId(db: any, userId: string) {
   return p?.id || null;
 }
 
-// ─── List audit entries touching this user's records ─────
-// Patients see: their own actions + actions by others on their data.
+// Map UI filter pill -> DB resource value(s).
+// Each map entry accepts a list because some categories span multiple
+// resource names (e.g., "records" covers medical_record + others).
+const FILTER_MAP: Record<string, string[]> = {
+  records: ["medical_record"],
+  prescriptions: ["prescription"],
+  appointments: ["appointment"],
+};
+
+function actorNameOf(
+  user: { firstName: string | null; lastName: string | null } | undefined,
+): string | null {
+  if (!user) return null;
+  const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+  return name || null;
+}
+
+// ─── List audit entries for the calling patient ─────────
+// Patients see their own actions + actions by others on their data.
+// Response shape: `{ entries: [{ ..., actorName }] }` for mobile consumption.
 auditRouter.get("/me", authMiddleware, async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
-  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 200);
+  const limit = Math.min(parseInt(c.req.query("limit") || "200", 10), 500);
+  const filter = c.req.query("filter") || "all";
 
-  const rows = await db
-    .select()
+  const baseQuery = db
+    .select({
+      id: auditLogs.id,
+      action: auditLogs.action,
+      resource: auditLogs.resource,
+      resourceId: auditLogs.resourceId,
+      userId: auditLogs.userId,
+      details: auditLogs.details,
+      ip: auditLogs.ip,
+      createdAt: auditLogs.createdAt,
+      actorFirstName: users.firstName,
+      actorLastName: users.lastName,
+    })
     .from(auditLogs)
-    .where(eq(auditLogs.userId, userId))
+    .leftJoin(users, eq(users.id, auditLogs.userId))
+    .where(eq(auditLogs.userId, userId));
+
+  const filteredQuery =
+    filter !== "all" && FILTER_MAP[filter]
+      ? baseQuery.where(
+          and(
+            eq(auditLogs.userId, userId),
+            inArray(auditLogs.resource, FILTER_MAP[filter])
+          )
+        )
+      : baseQuery;
+
+  const rows = await filteredQuery
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit);
 
-  return c.json({ auditLogs: rows });
+  const entries = rows.map((r: any) => ({
+    id: r.id,
+    action: r.action,
+    resource: r.resource,
+    resourceId: r.resourceId,
+    actorId: r.userId,
+    actorName: actorNameOf({
+      firstName: r.actorFirstName,
+      lastName: r.actorLastName,
+    }),
+    details: r.details ? safeParse(r.details) : null,
+    ip: r.ip,
+    createdAt: r.createdAt,
+  }));
+
+  return c.json({ entries });
 });
+
+function safeParse(s: string): Record<string, unknown> | string {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return s;
+  }
+}
 
 // ─── Audit entries for a specific resource (Phase E-Rx 8) ─
 //

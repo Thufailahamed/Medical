@@ -24,6 +24,7 @@ import notesRouter from "./routes/notes";
 import dosesRouter from "./routes/doses";
 import auditRouter from "./routes/audit";
 import paymentsRouter from "./routes/payments";
+import mfaRouter from "./routes/mfa";
 import insuranceRouter from "./routes/insurance";
 import labsRouter from "./routes/labs";
 import wellnessRouter from "./routes/wellness";
@@ -202,6 +203,9 @@ app.route("/audit", auditRouter);
 // Phase 5: PayHere payment flow. /payments/initiate + /payments/notify
 // + /payments/:appointmentId. Notify is public; others require auth.
 app.route("/payments", paymentsRouter);
+// Round 2 P0: TOTP MFA for doctors (HIPAA compliance floor).
+// Mobile posts the mfaToken + TOTP to /mfa/challenge to mint a session.
+app.route("/mfa", mfaRouter);
 app.route("/insurance", insuranceRouter);
 app.route("/labs", labsRouter);
 app.route("/wellness", wellnessRouter);

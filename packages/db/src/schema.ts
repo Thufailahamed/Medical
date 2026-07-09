@@ -235,6 +235,17 @@ export const doctors = sqliteTable(
     signingKeyId: text("signing_key_id"),
     signingKeyCreatedAt: text("signing_key_created_at"),
     signingKeyRevokedAt: text("signing_key_revoked_at"),
+    // Phase MFA (Round 2 P0): TOTP-based second factor for doctors.
+    // `mfaSecretEnc` is the AES-256-GCM ciphertext of the otplib base32
+    // secret, wrapped under env.MFA_SECRET_KEK. `mfaEnabled` flips 0→1
+    // only after the user verifies their first TOTP token. Recovery
+    // codes are SHA-256(pepper + code) hashes, comma-separated; used
+    // codes are kept in `mfaRecoveryUsedCodes` for one-time semantics.
+    mfaSecretEnc: text("mfa_secret_enc"),
+    mfaEnabled: integer("mfa_enabled").default(0).notNull(),
+    mfaRecoveryCodesHash: text("mfa_recovery_codes_hash"),
+    mfaRecoveryUsedCodes: text("mfa_recovery_used_codes"),
+    mfaEnrolledAt: text("mfa_enrolled_at"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),

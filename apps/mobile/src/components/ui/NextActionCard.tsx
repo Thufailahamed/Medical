@@ -17,6 +17,7 @@ type Props = {
   subject: string;
   verb?: string;
   context?: string;
+  meta?: React.ReactNode;
   icon?: LucideIcon;
   iconTone?: Tone;
   trailing?: React.ReactNode;
@@ -31,6 +32,7 @@ export function NextActionCard({
   subject,
   verb,
   context,
+  meta,
   icon: Icon,
   iconTone = "primary",
   trailing,
@@ -117,6 +119,11 @@ export function NextActionCard({
           >
             {context}
           </Text>
+        ) : null}
+        {meta ? (
+          <View style={{ marginTop: 6, flexDirection: "row", gap: 6 }}>
+            {meta}
+          </View>
         ) : null}
       </View>
 

@@ -43,6 +43,7 @@ import {
   FormField,
   TextInput,
   useToast,
+  VerifiedBadgeWithRegNo,
 } from "@/components/ui";
 
 const STATUS_TONE: Record<string, PillTone> = {
@@ -77,6 +78,7 @@ export default function AppointmentDetailScreen() {
   const [newTime, setNewTime] = useState("");
 
   const appt = data?.appointment;
+  const doctor = data?.doctor;
   const records: any[] = data?.records || [];
 
   function startReschedule() {
@@ -170,6 +172,24 @@ export default function AppointmentDetailScreen() {
                   <Text style={[typography.title.sm, { color: colors.text }]}>
                     {appt.date}
                   </Text>
+                  {doctor ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, flexWrap: "wrap" }}>
+                      <Text style={[typography.body.md, { color: colors.text, fontWeight: "600" }]}>
+                        {doctor.firstName
+                          ? `${doctor.firstName} ${doctor.lastName ?? ""}`.trim()
+                          : doctor.name}
+                      </Text>
+                      {doctor.specialization ? (
+                        <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                          · {doctor.specialization}
+                        </Text>
+                      ) : null}
+                      <VerifiedBadgeWithRegNo
+                        verified={!!doctor.slmcVerifiedAt}
+                        regNo={doctor.slmcRegistrationNo}
+                      />
+                    </View>
+                  ) : null}
                   {appt.reason ? (
                     <Text
                       style={[typography.body.md, { color: colors.textMuted }]}

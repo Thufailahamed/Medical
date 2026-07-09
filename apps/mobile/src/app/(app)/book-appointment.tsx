@@ -46,6 +46,7 @@ import {
   Skeleton,
   BottomSheet,
   useToast,
+  VerifiedBadge,
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { runPayHereCheckout } from "@/lib/payhere";
@@ -320,6 +321,14 @@ export default function BookAppointmentScreen() {
                       context={context}
                       icon={Stethoscope}
                       iconTone="primary"
+                      meta={
+                        d.slmcVerifiedAt ? (
+                          <VerifiedBadge
+                            verified={!!d.slmcVerifiedAt}
+                            regNo={d.slmcRegistrationNo}
+                          />
+                        ) : undefined
+                      }
                       trailing={
                         selected ? (
                           <View

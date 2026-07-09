@@ -355,7 +355,72 @@
     "emptyTitle": "No recent activity",
     "emptyBody": "No one has viewed your records in the last 30 days.",
     "loadError": "Could not load the access log",
-    "actorSystem": "System"
+    "errorTitle": "Couldn't load activity",
+    "errorBody": "Check your connection and try again.",
+    "retry": "Retry",
+    "actorSystem": "System",
+    "filter": {
+      "all": "All",
+      "records": "Records",
+      "prescriptions": "Prescriptions",
+      "appointments": "Appointments"
+    },
+    "group": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "this_week": "This week",
+      "earlier": "Earlier"
+    }
+  },
+  "verifiedBadge": {
+    "verified": "SLMC verified",
+    "slmcNumber": "SLMC No."
+  },
+  "mfa": {
+    "setup": {
+      "title": "Set up two-factor authentication",
+      "subtitle": "Protect patient records with a second factor",
+      "intro": "We'll generate a unique code for your authenticator app. Once verified, you'll get recovery codes for emergencies.",
+      "start": "Get started",
+      "qrLabel": "Scan with your authenticator",
+      "qrHint": "Use Google Authenticator, Authy, or 1Password",
+      "manualLabel": "Or enter this secret manually",
+      "verifyLabel": "Enter the 6-digit code",
+      "verifyCta": "Verify and enable"
+    },
+    "verify": {
+      "title": "Verify your identity",
+      "subtitle": "Enter the code from your authenticator"
+    },
+    "codes": {
+      "title": "Save your recovery codes",
+      "warning": "These appear ONCE. Save them somewhere safe — each code can sign you in once if you lose your device.",
+      "copy": "Copy all codes",
+      "copied": "Codes copied",
+      "copyFail": "Could not copy",
+      "confirm": "I have saved my recovery codes",
+      "continue": "Continue"
+    },
+    "challenge": {
+      "title": "Two-factor required",
+      "subtitle": "Enter your authenticator code or a recovery code",
+      "modeTotp": "Authenticator",
+      "modeRecovery": "Recovery code",
+      "totpHint": "6-digit code from your authenticator app",
+      "recoveryHint": "One of the recovery codes you saved",
+      "submit": "Verify",
+      "useDifferent": "Use a different account",
+      "success": "Verified",
+      "error": "Could not verify code"
+    },
+    "code": {
+      "invalid": "Enter a valid 6-digit code",
+      "required": "Code required"
+    },
+    "token": {
+      "missing": "Login expired. Sign in again."
+    },
+    "error": "MFA setup failed"
   },
   "editProfile": {
     "title": "Edit Profile",

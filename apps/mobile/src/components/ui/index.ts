@@ -46,3 +46,4 @@ export { FloatingActionButton } from "./FloatingActionButton";
 export { Stepper } from "./Stepper";
 export { TimeSlots } from "./TimeSlots";
 export type { TimeSlot } from "./TimeSlots";
+export { VerifiedBadge, VerifiedBadgeWithRegNo } from "./VerifiedBadge";

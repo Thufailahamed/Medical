@@ -32,12 +32,58 @@ import { encryptPii } from "../lib/pii-cipher";
 import { normalizeSLPhone } from "../lib/phone";
 import { createSmsProvider, formatOtpMessage } from "../lib/sms";
 import { createEmailProvider, formatOtpEmail } from "../lib/email";
+import { logger } from "../lib/logger";
 import type { AppEnvironment } from "../types";
 
 const auth = new Hono<AppEnvironment>();
 
 const OTP_TTL_MINUTES = 5;
 const OTP_MAX_ATTEMPTS = 5;
+
+// ─── MFA branch (Round 2 P0) ──────────────────────────────
+// For doctors whose `doctors.mfa_enabled = 1`, return a 5-minute
+// `mfaToken` instead of a full session JWT. The mobile app posts the
+// mfaToken + TOTP/recovery to /mfa/challenge to mint the real session.
+//
+// Also fires for doctors with no enrollment yet — the response shape
+// carries `mfaRequired: 'enroll'` so the mobile app routes them to
+// /mfa-setup first.
+//
+// Returns null when MFA does not apply (non-doctor or not yet
+// enrolled-but-also-not-required) so the caller can continue the
+// normal login flow unchanged.
+async function maybeIssueMfaToken(
+  c: any,
+  db: any,
+  dbUser: any
+): Promise<{ mfaRequired: "enroll" | "verify"; mfaToken: string; expiresAt: number } | null> {
+  if (!dbUser || dbUser.role !== "doctor") return null;
+  const [d] = await db
+    .select({
+      id: doctors.id,
+      mfaEnabled: doctors.mfaEnabled,
+      mfaSecretEnc: doctors.mfaSecretEnc,
+    })
+    .from(doctors)
+    .where(eq(doctors.userId, dbUser.id))
+    .limit(1);
+  if (!d) return null;
+
+  const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const ttlSeconds = 5 * 60;
+  const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const mfaToken = await generateToken(dbUser.id, jwtSecret, {
+    purpose: "mfa",
+    role: "doctor",
+    doctorId: d.id,
+    exp: expiresAt,
+  });
+
+  if (!d.mfaEnabled || !d.mfaSecretEnc) {
+    return { mfaRequired: "enroll", mfaToken, expiresAt };
+  }
+  return { mfaRequired: "verify", mfaToken, expiresAt };
+}
 
 // Phase ADM-2: approval gating now reads runtime settings
 // (`registration.requireApproval`, `registration.approvalRoles`).
@@ -183,7 +229,9 @@ auth.post("/register", async (c) => {
       }
     } catch (notifyErr: any) {
       // Notification failure must not block registration.
-      console.error("[register] admin notification insert failed:", notifyErr?.message);
+      logger.error("auth.register", "admin notification insert failed", {
+        err: notifyErr?.message,
+      });
     }
     return c.json({
       user: { id: dbUser.id, email: dbUser.email, phone: dbUser.phone, name: dbUser.name, role: dbUser.role, status: dbUser.status },
@@ -393,6 +441,25 @@ auth.post("/login", async (c) => {
 
   // Generate JWT token
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+
+  // MFA branch (Round 2 P0): doctors with MFA enabled (or still pending
+  // enrollment) get a short-lived mfaToken instead of a full session.
+  const mfa = await maybeIssueMfaToken(c, db, dbUser);
+  if (mfa) {
+    return c.json({
+      mfaRequired: mfa.mfaRequired,
+      mfaToken: mfa.mfaToken,
+      expiresAt: mfa.expiresAt,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        role: dbUser.role,
+      },
+    });
+  }
+
   const loginAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
@@ -471,6 +538,26 @@ auth.post("/login-by-nic", async (c) => {
   }
 
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+
+  // MFA branch (Round 2 P0): doctors with MFA pending/enrolled
+  // receive a short-lived mfaToken instead of a full session.
+  const mfa = await maybeIssueMfaToken(c, db, dbUser);
+  if (mfa) {
+    return c.json({
+      mfaRequired: mfa.mfaRequired,
+      mfaToken: mfa.mfaToken,
+      expiresAt: mfa.expiresAt,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        role: dbUser.role,
+      },
+      nextStep: "mfa",
+    });
+  }
+
   const nicLoginAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
@@ -587,7 +674,7 @@ auth.post("/login-by-phone", async (c) => {
   const smsResult = await sms.sendSms(phone, message);
 
   if (!smsResult.success) {
-    console.error(`[login-by-phone] SMS send failed: ${smsResult.error}`);
+    logger.error("auth.login-phone", "sms send failed", { err: smsResult.error });
   }
 
   const isDev = c.env.DEV_MODE === "true" || c.env.ENVIRONMENT === "development";
@@ -726,7 +813,7 @@ auth.post("/send-otp", async (c) => {
     const message = formatOtpMessage(code);
     const smsResult = await sms.sendSms(destination, message);
     if (!smsResult.success) {
-      console.error(`[otp] SMS send failed: ${smsResult.error}`);
+      logger.error("auth.otp", "sms send failed", { err: smsResult.error });
     }
   } else {
     // Email channel — wire Resend/Cloudflare/SES via EMAIL_PROVIDER.
@@ -739,13 +826,17 @@ auth.post("/send-otp", async (c) => {
       html,
     });
     if (!emailResult.success) {
-      console.error(`[otp] email send failed: ${emailResult.error}`);
+      logger.error("auth.otp", "email send failed", { err: emailResult.error });
     }
-    // Keep dev-mode plaintext logging gated on DEV_MODE so prod doesn't leak.
+    // Dev-only plaintext OTP logging. Logger still scrubs but we keep
+    // the redaction-by-exclusion property: in prod this branch is dead.
     if (c.env.DEV_MODE === "true" || c.env.ENVIRONMENT === "development") {
-      console.log(
-        `[otp] channel=${channel} target=${maskTarget(destination)} purpose=${purpose} code=${code} expiresAt=${expiresAt}`,
-      );
+      logger.info("auth.otp", "dev: otp issued", {
+        channel,
+        target: maskTarget(destination),
+        purpose,
+        expiresAt,
+      });
     }
   }
 
@@ -850,6 +941,28 @@ auth.post("/verify-otp", async (c) => {
   }
 
   const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+
+  // MFA branch (Round 2 P0): doctors with MFA pending/enrolled get a
+  // short-lived mfaToken instead of a full session JWT. The mobile app
+  // posts the mfaToken + TOTP to /mfa/challenge to finish.
+  const mfa = await maybeIssueMfaToken(c, db, dbUser);
+  if (mfa) {
+    return c.json({
+      verified: true,
+      channel,
+      mfaRequired: mfa.mfaRequired,
+      mfaToken: mfa.mfaToken,
+      expiresAt: mfa.expiresAt,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        role: dbUser.role,
+      },
+    });
+  }
+
   const otpAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
@@ -1069,7 +1182,9 @@ auth.post("/register-tenant", async (c) => {
       );
     }
   } catch (notifyErr: any) {
-    console.error("[register-tenant] admin notify failed:", notifyErr?.message);
+    logger.error("auth.register-tenant", "admin notify failed", {
+      err: notifyErr?.message,
+    });
   }
 
   return c.json({

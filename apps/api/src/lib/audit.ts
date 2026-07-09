@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { auditLogs } from "@healthcare/db";
+import { logger } from "./logger";
 
 export type AuditInput = {
   userId?: string | null;
@@ -24,7 +25,10 @@ export async function audit(db: any, input: AuditInput): Promise<void> {
       ip: input.ip || null,
     } as any);
   } catch (err) {
-    console.error("audit insert failed:", err);
+    logger.error("audit", "audit insert failed", {
+      action: input.action,
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 

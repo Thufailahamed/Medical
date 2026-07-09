@@ -51,6 +51,16 @@ EMAIL_FROM = "no-reply@records.healthhub.app"
 # via wrangler secret. Sandbox mode uses https://sandbox.payhere.lk.
 PAYHERE_SANDBOX = "true"
 
+# Round 2 P0: TOTP MFA for doctors (HIPAA compliance floor).
+# MFA_SECRET_KEK is a 32-byte base64 secret used to AES-256-GCM-wrap
+# each doctor's TOTP secret. Generate with:
+#   openssl rand -base64 32
+# Set via `wrangler secret put MFA_SECRET_KEK`.
+#
+# MFA_RECOVERY_PEPPER is a non-secret salt that strengthens recovery
+# code hashes (see lib/mfa.ts). Same `wrangler secret put` workflow.
+# Without these two env vars, /mfa routes return 503.
+
 [[d1_databases]]
 binding = "DB"
 database_name = "healthcare-db"

@@ -118,7 +118,13 @@ export default function VerifyOtpScreen() {
     Keyboard.dismiss();
     setSubmitting(true);
     try {
-      const res = await api<{ user: any; session?: any }>("/auth/verify-otp", {
+      const res = await api<{
+        user: any;
+        session?: any;
+        mfaRequired?: "enroll" | "verify";
+        mfaToken?: string;
+        expiresAt?: number;
+      }>("/auth/verify-otp", {
         method: "POST",
         body: {
           userId: params.userId,
@@ -127,6 +133,19 @@ export default function VerifyOtpScreen() {
           code: data.code,
         },
       });
+
+      // Round 2 P0: doctors with MFA pending/enrolled get a short-lived
+      // mfaToken instead of a session. Route to the MFA flow.
+      if (res.mfaRequired && res.mfaToken) {
+        await SecureStore.setItemAsync("auth_token", res.mfaToken);
+        setUser(res.user);
+        router.replace(
+          res.mfaRequired === "enroll"
+            ? ("/(auth)/mfa-setup" as any)
+            : ("/(auth)/mfa-challenge" as any)
+        );
+        return;
+      }
 
       if (res.session?.access_token) {
         queryClient.clear();

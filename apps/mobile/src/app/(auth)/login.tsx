@@ -79,7 +79,12 @@ export default function LoginScreen() {
       }
 
       // 2. Auto-verify the OTP using the devCode
-      const verifyRes = await api<{ user: any; session?: any }>("/auth/verify-otp", {
+      const verifyRes = await api<{
+        user: any;
+        session?: any;
+        mfaRequired?: "enroll" | "verify";
+        mfaToken?: string;
+      }>("/auth/verify-otp", {
         method: "POST",
         body: {
           userId: res.userId,
@@ -87,6 +92,18 @@ export default function LoginScreen() {
           code: res.devCode,
         },
       });
+
+      // Round 2 P0: doctors may be redirected to MFA flow.
+      if (verifyRes.mfaRequired && verifyRes.mfaToken) {
+        await SecureStore.setItemAsync("auth_token", verifyRes.mfaToken);
+        setUser(verifyRes.user);
+        router.replace(
+          verifyRes.mfaRequired === "enroll"
+            ? ("/(auth)/mfa-setup" as any)
+            : ("/(auth)/mfa-challenge" as any)
+        );
+        return;
+      }
 
       if (verifyRes.session?.access_token) {
         queryClient.clear();
