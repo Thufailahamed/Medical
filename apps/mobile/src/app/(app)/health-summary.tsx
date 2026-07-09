@@ -5,7 +5,6 @@ import {
   View,
   Text,
   ScrollView,
-  ActivityIndicator,
   Share,
   Pressable,
 } from "react-native";
@@ -29,6 +28,8 @@ import {
   Card,
   EmptyState,
   IconButton,
+  ErrorState,
+  Skeleton,
   useToast,
 } from "@/components/ui";
 
@@ -37,7 +38,7 @@ export default function HealthSummaryScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
-  const { data, isLoading, refetch, isFetching } = useHealthSummary();
+  const { data, isLoading, isError, refetch, isFetching } = useHealthSummary();
 
   const summary = data;
 
@@ -70,9 +71,25 @@ export default function HealthSummaryScreen() {
       />
 
       {isLoading ? (
-        <ActivityIndicator
-          color={colors.primary}
-          style={{ marginTop: spacing.xl }}
+        <View
+          style={{
+            padding: spacing.lg,
+            gap: spacing.md,
+          }}
+        >
+          <Skeleton width="40%" height={24} radius={8} />
+          <Skeleton width="100%" height={120} radius={16} />
+          <Skeleton width="100%" height={120} radius={16} />
+          <Skeleton width="100%" height={120} radius={16} />
+          <Skeleton width="100%" height={120} radius={16} />
+          <Skeleton width="100%" height={120} radius={16} />
+        </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("common.errorTitle")}
+          message={t("common.errorLoad")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
         />
       ) : !summary ? (
         <EmptyState

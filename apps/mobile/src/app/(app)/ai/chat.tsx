@@ -9,7 +9,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -42,6 +41,7 @@ import {
   Card,
   Button,
   EmptyState,
+  ErrorState,
   Skeleton,
   Pill as PillCmp,
   useToast,
@@ -245,6 +245,13 @@ export default function AiChatScreen() {
                 <Skeleton height={56} radius={16} />
                 <Skeleton height={56} radius={16} />
               </View>
+            ) : messages.isError ? (
+              <ErrorState
+                title={t("common.errorTitle")}
+                message={t("common.errorLoad")}
+                actionLabel={t("common.retry")}
+                onAction={() => messages.refetch?.()}
+              />
             ) : msgList.length === 0 ? (
               <View style={{ paddingTop: spacing.xxl }}>
                 <EmptyState
@@ -299,13 +306,7 @@ export default function AiChatScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text
-                    numberOfLines={1}
-                    style={[typography.body.sm, { color: colors.textMuted }]}
-                  >
-                    {t("aiChat.thinking")}
-                  </Text>
+                  <Skeleton width={80} height={14} radius={7} />
                 </View>
               </View>
             ) : null}
@@ -421,6 +422,13 @@ export default function AiChatScreen() {
               <Skeleton key={i} height={72} radius={16} />
             ))}
           </View>
+        ) : sessions.isError ? (
+          <ErrorState
+            title={t("common.errorTitle")}
+            message={t("common.errorLoad")}
+            actionLabel={t("common.retry")}
+            onAction={() => sessions.refetch?.()}
+          />
         ) : list.length === 0 ? (
           <EmptyState
             icon={MessageSquare}

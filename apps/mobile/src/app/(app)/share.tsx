@@ -6,7 +6,6 @@ import {
   Text,
   ScrollView,
   Alert,
-  ActivityIndicator,
   Share as RNShare,
   Pressable,
 } from "react-native";
@@ -43,6 +42,8 @@ import {
   BottomSheet,
   FormField,
   TextInput,
+  ErrorState,
+  Skeleton,
   useToast,
 } from "@/components/ui";
 
@@ -55,7 +56,7 @@ export default function ShareScreen() {
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const locale = useLocaleStore((s) => s.locale);
-  const { data, isLoading, refetch } = useShareLinks();
+  const { data, isLoading, isError, refetch } = useShareLinks();
   const create = useCreateShareLink();
   const revoke = useRevokeShareLink();
 
@@ -214,9 +215,19 @@ export default function ShareScreen() {
         />
 
         {isLoading ? (
-          <ActivityIndicator
-            color={colors.primary}
+          <View style={{ gap: spacing.md }}>
+            <Skeleton width="100%" height={72} radius={radius.md} />
+            <Skeleton width="100%" height={72} radius={radius.md} />
+            <Skeleton width="100%" height={72} radius={radius.md} />
+            <Skeleton width="100%" height={72} radius={radius.md} />
+          </View>
+        ) : isError ? (
+          <ErrorState
             style={{ marginTop: spacing.lg }}
+            title={t("common.errorTitle")}
+            message={t("common.errorLoad")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
           />
         ) : links.length === 0 ? (
           <EmptyState

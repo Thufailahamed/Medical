@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   RefreshControl,
   Platform,
 } from "react-native";
@@ -56,6 +55,7 @@ import {
   useToast,
   ErrorState,
   Button,
+  Skeleton,
 } from "@/components/ui";
 
 // M1: third tab "All" surfaces stopped/paused medicines so users can
@@ -882,11 +882,13 @@ export default function MedicinesScreen() {
 
         {/* List / timeline */}
         {isLoading ? (
-          <ActivityIndicator
-            size="large"
-            color={colors.primary}
-            style={{ marginTop: 60 }}
-          />
+          <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.sm + 2 }}>
+            <Skeleton width="100%" height={72} radius={radius.md} />
+            <Skeleton width="100%" height={72} radius={radius.md} />
+            <Skeleton width="100%" height={72} radius={radius.md} />
+            <Skeleton width="100%" height={72} radius={radius.md} />
+            <Skeleton width="100%" height={72} radius={radius.md} />
+          </View>
         ) : isError ? (
           <ErrorState
             style={{ paddingHorizontal: spacing.lg, marginTop: 24 }}

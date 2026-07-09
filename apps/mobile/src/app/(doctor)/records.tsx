@@ -8,7 +8,6 @@ import {
   Pressable,
   RefreshControl,
   TextInput,
-  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -24,6 +23,8 @@ import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   EmptyState,
+  ErrorState,
+  Skeleton,
   useToast,
 } from "@/components/ui";
 import { metaFor, type RecordType } from "@/lib/recordImportance";
@@ -86,6 +87,7 @@ export default function DoctorRecordsScreen() {
   const {
     data: recordsData,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useDoctorRecords(queryOpts);
@@ -612,9 +614,21 @@ export default function DoctorRecordsScreen() {
 
         {/* ─── Loading ───────────────────────────────────── */}
         {isLoading ? (
-          <View style={{ paddingTop: 60, alignItems: "center" }}>
-            <ActivityIndicator color={colors.primary} />
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.sm }}>
+            <Skeleton width="100%" height={88} radius={radius.md} />
+            <Skeleton width="100%" height={88} radius={radius.md} />
+            <Skeleton width="100%" height={88} radius={radius.md} />
+            <Skeleton width="100%" height={88} radius={radius.md} />
+            <Skeleton width="100%" height={88} radius={radius.md} />
+            <Skeleton width="100%" height={88} radius={radius.md} />
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("common.errorTitle")}
+            message={t("common.errorLoad")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : groupedSections.length === 0 ? (
           <EmptyState
             icon={Users}
