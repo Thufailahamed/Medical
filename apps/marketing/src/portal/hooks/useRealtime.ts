@@ -41,6 +41,10 @@ export interface RealtimeNotification {
  * when introducing a new notify() domain (e.g. "lab_ready" invalidates
  * lab queries).
  */
+/**
+ * Notification-type → query keys to invalidate.
+ * `general` (empty key) nukes everything; everything else is targeted.
+ */
 const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   appointment: [["appointments"], ["doctor-portal", "appointments"], ["patient", "appointments"]],
   medicine: [["medicines"], ["doses"]],
@@ -54,6 +58,40 @@ const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   account_pending_review: [["admin", "approvals"], ["admin", "users"]],
 };
 
+/**
+ * SSE event → query keys to invalidate.
+ * Matches the typed events emitted by `apps/api/src/routes/realtime.ts`.
+ * SSE events fire directly on row inserts/updates; the notification
+ * handler still covers `notification` events.
+ */
+const EVENT_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
+  record: [
+    ["medical-records"],
+    ["doctor-portal", "records"],
+    ["patient", "records"],
+    ["timeline"],
+  ],
+  lab_report: [
+    ["lab-orders"],
+    ["doctor-portal", "lab-orders"],
+    ["medical-records"],
+    ["patient", "records"],
+  ],
+  lab_order: [
+    ["lab-orders"],
+    ["doctor-portal", "lab-orders"],
+    ["patient", "lab-orders"],
+  ],
+  prescription: [
+    ["prescription"],
+    ["doctor", "prescriptions"],
+    ["doctor-portal", "prescriptions"],
+    ["patient", "prescriptions"],
+  ],
+  walk_in: [["walk-ins"], ["hospital-portal", "walk-ins"]],
+  message: [["inbox"], ["doctor-portal", "messages"], ["patient", "messages"]],
+};
+
 function invalidateFor(qc: ReturnType<typeof useQueryClient>, n: RealtimeNotification) {
   // Catch-all first — anything matching the `notifications` tree refreshes.
   qc.invalidateQueries({ queryKey: ["notifications"] });
@@ -61,13 +99,22 @@ function invalidateFor(qc: ReturnType<typeof useQueryClient>, n: RealtimeNotific
   if (mapped) {
     for (const key of mapped) {
       if (key.length === 0) {
-        // `general` → nuke everything. Be aggressive only when the
-        // server marks a notification as general (no specific bucket).
         qc.invalidateQueries();
       } else {
         qc.invalidateQueries({ queryKey: key as readonly string[] });
       }
     }
+  }
+}
+
+function invalidateForEvent(
+  qc: ReturnType<typeof useQueryClient>,
+  eventName: string
+) {
+  const mapped = EVENT_TO_QUERY_KEYS[eventName];
+  if (!mapped) return;
+  for (const key of mapped) {
+    qc.invalidateQueries({ queryKey: key as readonly string[] });
   }
 }
 
@@ -109,6 +156,14 @@ export function useRealtime({ token, userId, silent }: UseRealtimeArgs) {
         // ignore malformed payload
       }
     });
+
+    // Typed SSE events from /realtime for non-notification tables.
+    // Each event name maps to one or more React Query keys.
+    for (const eventName of Object.keys(EVENT_TO_QUERY_KEYS)) {
+      es.addEventListener(eventName, () => {
+        invalidateForEvent(qc, eventName);
+      });
+    }
 
     es.addEventListener("ping", () => {
       // Heartbeat — keep-alive only. No-op here.

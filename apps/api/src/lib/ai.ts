@@ -172,6 +172,119 @@ export async function aiComplete(
   return Promise.race([work, timer]);
 }
 
+// ─── Streaming variant ───────────────────────────────────
+//
+// Yields incremental text deltas from the same Workers AI model. The
+// underlying binding returns an SSE-shaped ReadableStream when called
+// with `stream: true`; we decode and forward only the text fragments.
+//
+// `signal` is an AbortSignal so the route can cancel on client
+// disconnect (Hono streamSSE passes stream.abort). The deadline caps
+// total wall-clock so a stuck stream cannot hang forever.
+export async function* streamAiComplete(
+  ai: any,
+  messages: ChatMsg[],
+  opts: {
+    maxTokens?: number;
+    temperature?: number;
+    model?: string;
+    timeoutMs?: number;
+    signal?: AbortSignal;
+  } = {}
+): AsyncGenerator<string, void, void> {
+  if (!ai) {
+    console.error("[streamAiComplete] no AI binding");
+    return;
+  }
+  const model = opts.model || TEXT_MODEL;
+  const safeMessages: ChatMsg[] = messages.map((m) => ({
+    role: m.role,
+    content: (m.content || "").slice(0, MAX_INPUT_CHARS),
+  }));
+
+  const deadlineMs = opts.timeoutMs ?? AI_TIMEOUT_MS;
+  const start = Date.now();
+
+  let res: Response;
+  try {
+    res = await ai.run(model, {
+      messages: safeMessages,
+      max_tokens: opts.maxTokens ?? 800,
+      temperature: opts.temperature ?? 0.3,
+      stream: true,
+    });
+  } catch (err) {
+    console.error("[streamAiComplete] ai.run threw:", (err as Error)?.message || err);
+    return;
+  }
+
+  if (!res?.body) {
+    console.error("[streamAiComplete] no response body");
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+
+  try {
+    while (true) {
+      if (opts.signal?.aborted) return;
+      if (Date.now() - start > deadlineMs) return;
+
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      // Workers AI streams SSE: lines separated by \n\n, each event may
+      // contain a `data: ` JSON line with a `response` chunk.
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {
+        const evt = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        const line = evt
+          .split("\n")
+          .find((l) => l.startsWith("data: "));
+        if (!line) continue;
+        const payload = line.slice(6).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const obj = JSON.parse(payload);
+          const chunk =
+            obj?.response ??
+            obj?.output_text ??
+            (typeof obj === "string" ? obj : "");
+          if (typeof chunk === "string" && chunk.length > 0) yield chunk;
+        } catch {
+          // non-JSON line — skip
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[streamAiComplete] read error:", (err as Error)?.message || err);
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+// Helper that wraps streamAiComplete in a Promise<string> so non-streaming
+// callers (and tests) can still consume the full text.
+export async function collectStream(
+  ai: any,
+  messages: ChatMsg[],
+  opts: Parameters<typeof streamAiComplete>[2] = {}
+): Promise<string> {
+  let out = "";
+  for await (const chunk of streamAiComplete(ai, messages, opts)) {
+    out += chunk;
+  }
+  return out;
+}
+
 // ─── JSON parser ─────────────────────────────────────────
 export function tryParseJson<T = any>(text: string): T | null {
   if (!text) return null;
