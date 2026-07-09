@@ -24,6 +24,8 @@ import {
   aiClinicalNoteSummarySchema,
   aiLabTrendSchema,
   aiSoapDraftSchema,
+  aiSuggestRecordTypeSchema,
+  RECORD_TYPE_VALUES,
 } from "@healthcare/shared";
 import {
   aiComplete,
@@ -42,6 +44,7 @@ import {
   fallbackOcr,
   fallbackClinicalNoteSummary,
   fallbackSoapDraft,
+  fallbackSuggestRecordType,
   streamAiComplete,
   type ChatMsg,
 } from "../lib/ai";
@@ -1250,6 +1253,97 @@ ai.post("/soap-draft", async (c) => {
 
   await cacheStore(db, "soap_draft", cacheKey, draft);
   return c.json({ draft });
+});
+
+// ─── Symptom → Record-Type Suggestion (Day 5 #2) ─────────
+//
+// POST /ai/suggest-record-type  { text, hint?, locale? }
+//
+// Patient is on the "Add medical record" screen typing a title and
+// notes for what they want to upload. They might not know the right
+// "record type" category. This endpoint suggests one from the
+// `medical_records.recordType` enum with a confidence + reasoning.
+//
+// Auth: NOT gated by canAccessPatient — this is a UI affordance, not
+// a clinical decision. We still require a valid JWT (mounted
+// underneath `authMiddleware`). The cached hash is keyed only on
+// `(text, hint)` so two patients asking about the same symptom hit
+// the same cache row.
+//
+// Cache: 24h by hash(text+hint). Same query from anywhere in the
+// fleet returns the same verdict.
+ai.post("/suggest-record-type", async (c) => {
+  const aiBinding = c.env.AI;
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = aiSuggestRecordTypeSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  const { text, hint } = parsed.data;
+  const cacheKey = { text: text.trim(), hint: hint?.trim() || null };
+  const cached = await cacheGet(c.get("db"), "suggest_record_type", cacheKey);
+  if (cached) return c.json({ suggestion: cached, cached: true });
+
+  const allowedTypesList = RECORD_TYPE_VALUES.join(", ");
+  const messages: ChatMsg[] = [
+    {
+      role: "system",
+      content:
+        systemPrompt(
+          "Classify a patient's free-text description into a medical record type."
+        ) +
+        ` Pick exactly one record type from this list: ${allowedTypesList}. ` +
+        'Return JSON with keys: recordType (string — must be one of the listed types), ' +
+        "confidence (number 0..1 — your own estimate), " +
+        "reasoning (string — short, one sentence). " +
+        "If the description is too vague to classify, return recordType='other' with low confidence.",
+    },
+    {
+      role: "user",
+      content:
+        `Description: ${text.slice(0, 1500)}` +
+        (hint ? `\nHint: ${hint}` : ""),
+    },
+  ];
+
+  let suggestion;
+  try {
+    const out = await aiComplete(aiBinding, messages, {
+      maxTokens: 120,
+      temperature: 0.1,
+    });
+    const parsedJson = tryParseJson<any>(out);
+    const candidate = parsedJson?.recordType;
+    if (
+      parsedJson &&
+      typeof candidate === "string" &&
+      (RECORD_TYPE_VALUES as readonly string[]).includes(candidate)
+    ) {
+      suggestion = {
+        recordType: candidate,
+        confidence:
+          typeof parsedJson.confidence === "number"
+            ? Math.max(0, Math.min(1, parsedJson.confidence))
+            : 0.6,
+        reasoning:
+          typeof parsedJson.reasoning === "string"
+            ? parsedJson.reasoning.slice(0, 400)
+            : "AI classification — verify before saving.",
+      };
+    } else {
+      suggestion = fallbackSuggestRecordType(text);
+    }
+  } catch (err) {
+    console.error("[ai/suggest-record-type] failed", err);
+    suggestion = fallbackSuggestRecordType(text);
+  }
+
+  await cacheStore(c.get("db"), "suggest_record_type", cacheKey, suggestion);
+  return c.json({ suggestion });
 });
 
 export default ai;

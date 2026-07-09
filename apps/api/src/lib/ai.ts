@@ -16,7 +16,8 @@ export type AiKind =
   | "ocr"
   | "classify"
   | "clinical_note_summary"
-  | "soap_draft";
+  | "soap_draft"
+  | "suggest_record_type";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
@@ -994,6 +995,56 @@ export function fallbackSoapDraft(bullets: {
     assessment: bullets.assessment?.trim() || placeholder,
     plan: bullets.plan?.trim() || placeholder,
     draftedByAI: false,
+  };
+}
+
+// Day 5 #2: symptom → record-type suggestion fallback.
+//
+// Heuristic keyword scan — cheap, no LLM, and good enough for the
+// common cases. The endpoint tries the LLM first; this is the
+// "model returned garbage" branch.
+//
+// The full recordType enum lives in @healthcare/db (medical_records
+// table). We mirror the most common subset here.
+const KEYWORD_TO_TYPE: Array<{ keywords: string[]; type: string }> = [
+  { keywords: ["x-ray", "xray", "ct scan", "mri", "ultrasound", "scan", "imaging", "radiolog"], type: "imaging" },
+  { keywords: ["blood test", "lab", "laboratory", "cbc", "hba1c", "lipid", "panel", "result"], type: "lab_report" },
+  { keywords: ["prescription", "rx", "medication", "refill", "drug", "tablet"], type: "prescription" },
+  { keywords: ["vaccin", "immuniz", "booster", "jab"], type: "vaccination" },
+  { keywords: ["allerg", "reaction", "rash", "hives", "sneezing"], type: "allergy" },
+  { keywords: ["surgery", "operation", "surgical", "post-op", "post op"], type: "surgery" },
+  { keywords: ["discharge", "leaving hospital", "going home"], type: "discharge_summary" },
+  { keywords: ["fit note", "medical certificate", "sick note", "mc"], type: "medical_certificate" },
+  { keywords: ["follow up", "follow-up", "review appointment", "check-up", "checkup"], type: "follow_up" },
+  { keywords: ["invoice", "bill", "receipt", "payment"], type: "invoice" },
+  { keywords: ["insurance", "claim", "coverage"], type: "insurance" },
+  { keywords: ["fitness", "gym", "exercise", "workout", "training plan"], type: "fitness" },
+  { keywords: ["admission", "hospital visit", "er visit", "a&e", "emergency room", "consultation"], type: "hospital_visit" },
+  { keywords: ["operation note", "operative note", "op note"], type: "operation_note" },
+  { keywords: ["lab order", "test ordered", "ordered a test"], type: "lab_order" },
+];
+
+export function fallbackSuggestRecordType(text: string): {
+  recordType: string;
+  confidence: number;
+  reasoning: string;
+} {
+  const haystack = (text || "").toLowerCase();
+  for (const { keywords, type } of KEYWORD_TO_TYPE) {
+    for (const kw of keywords) {
+      if (haystack.includes(kw)) {
+        return {
+          recordType: type,
+          confidence: 0.55,
+          reasoning: `Matched keyword "${kw}" — no LLM available; please verify.`,
+        };
+      }
+    }
+  }
+  return {
+    recordType: "other",
+    confidence: 0.2,
+    reasoning: "No strong keyword match and AI is unavailable — defaulted to 'other'.",
   };
 }
 

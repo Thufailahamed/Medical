@@ -70,6 +70,7 @@ import { doseRemindersRouter } from "./cron/dose-reminders";
 import { refillRemindersRouter } from "./cron/refill-reminders";
 import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
+import { symptomAnomaliesRouter } from "./cron/symptom-anomalies";
 import { postVisitSummaryRouter } from "./cron/post-visit-summary-router";
 import ratingsRouter from "./routes/ratings";
 import familyActiveRouter from "./routes/family-active";
@@ -306,11 +307,14 @@ app.route("/admin/health", adminHealthRouter);
 //   POST /__cron/refill-reminders         with x-cron-secret header.
 //   POST /__cron/reclassify               with x-cron-secret header.
 //   POST /__cron/vaccination-reminders    with x-cron-secret header.
+//   POST /__cron/symptom-anomalies        with x-cron-secret header.
+//   POST /__cron/post-visit-summary       with x-cron-secret header.
 app.route("/", bookingRemindersRouter);
 app.route("/", doseRemindersRouter);
 app.route("/", refillRemindersRouter);
 app.route("/", reclassifyRouter);
 app.route("/", vaccinationRemindersRouter);
+app.route("/", symptomAnomaliesRouter);
 app.route("/", postVisitSummaryRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
@@ -363,6 +367,10 @@ export default {
     // 4. Daily tasks (reclassify sweep): run once a day around 23:30 UTC (between minute 30 and 35)
     if (utcHour === 23 && utcMin >= 30 && utcMin < 35) {
       paths.push("/__cron/reclassify");
+      // Day 5 #8: symptom-log anomaly detector. Scans last 7 days
+      // for clusters of moderate/severe symptoms and fires a
+      // notification + audit row. Cheap (one SELECT, tiny JS work).
+      paths.push("/__cron/symptom-anomalies");
     }
 
     for (const path of paths) {

@@ -297,6 +297,42 @@ export const aiSoapDraftSchema = z.object({
   locale: z.enum(["en", "si", "ta"]).optional(),
 });
 
+// Day 5 #2: symptom → record-type suggestion.
+//
+// Takes the patient's free-text symptom description (typically what
+// they'd type as a new record's title/notes) and asks the model to
+// pick the best medical_records.recordType. The full enum is in
+// `medical_records.recordType` in packages/db/src/schema.ts; we mirror
+// it here so the validator can short-circuit invalid picks.
+export const RECORD_TYPE_VALUES = [
+  "lab_report",
+  "imaging",
+  "prescription",
+  "hospital_visit",
+  "vaccination",
+  "surgery",
+  "allergy",
+  "insurance",
+  "fitness",
+  "discharge_summary",
+  "medical_certificate",
+  "operation_note",
+  "invoice",
+  "clinical_note",
+  "lab_order",
+  "follow_up",
+  "other",
+] as const;
+
+export const aiSuggestRecordTypeSchema = z.object({
+  text: z.string().min(3).max(4000),
+  // Optional: let the caller pass a hint (e.g. "from a hospital visit"
+  // when the user came from the appointment-detail page). The model
+  // still picks the canonical recordType.
+  hint: z.string().max(200).optional(),
+  locale: z.enum(["en", "si", "ta"]).optional(),
+});
+
 // Day 3 #6: lab-test trend narrative.
 //
 // `type` is the user-typed label they want trends for (e.g. "HbA1c",
