@@ -1,0 +1,137 @@
+// tests/ai-router.test.ts
+//
+// P1 bundle 3 — LLM router.
+//
+// Asserts: (1) workers-AI success path is used first, (2) workers-AI
+// failure falls through to Anthropic, (3) Anthropic failure with no
+// other provider raises, (4) missing AI binding + missing key throws,
+// (5) the streaming shape is AsyncGenerator<string>.
+
+import { describe, it, expect } from "bun:test";
+import { streamRouted } from "../src/lib/ai/router";
+
+function makeWorkersAi(chunks: string[] | Error) {
+  return {
+    async run() {
+      if (chunks instanceof Error) throw chunks;
+      const body = chunks
+        .map((c) => `data: {"response":"${c}"}\n\n`)
+        .join("") + "data: [DONE]\n\n";
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(body));
+          controller.close();
+        },
+      });
+      return new Response(stream, { headers: { "content-type": "text/event-stream" } });
+    },
+  };
+}
+
+async function collect<T>(gen: AsyncGenerator<T>): Promise<T[]> {
+  const out: T[] = [];
+  for await (const v of gen) out.push(v);
+  return out;
+}
+
+describe("LLM router", () => {
+  it("uses workers-ai when it succeeds", async () => {
+    const providers: string[] = [];
+    const out = await collect(
+      streamRouted([{ role: "user", content: "hi" }], {
+        ai: makeWorkersAi(["hello", " world"]),
+        env: {},
+        onProvider: (p) => providers.push(p),
+      }),
+    );
+    expect(out.join("")).toBe("hello world");
+    expect(providers).toContain("workers-ai");
+  });
+
+  it("falls back to anthropic when workers-ai throws", async () => {
+    const env = { ANTHROPIC_API_KEY: "sk-test-1234" };
+    // Stub global fetch so we don't actually call Anthropic.
+    const origFetch = globalThis.fetch;
+    const encoder = new TextEncoder();
+    const sseChunks = [
+      `event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"via "}}\n\n`,
+      `event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"anthropic"}}\n\n`,
+      `event: message_stop\ndata: {"type":"message_stop"}\n\n`,
+    ];
+    let consumed = 0;
+    globalThis.fetch = (async (_url: any, _init: any) => {
+      const body = new ReadableStream({
+        start(controller) {
+          for (const c of sseChunks) {
+            controller.enqueue(encoder.encode(c));
+            consumed++;
+          }
+          controller.close();
+        },
+      });
+      return new Response(body, { headers: { "content-type": "text/event-stream" } });
+    }) as any;
+
+    try {
+      const providers: string[] = [];
+      const out = await collect(
+        streamRouted([{ role: "user", content: "hi" }], {
+          ai: makeWorkersAi(new Error("workers down")),
+          env,
+          onProvider: (p) => providers.push(p),
+        }),
+      );
+      expect(out.join("")).toBe("via anthropic");
+      expect(providers).toContain("anthropic");
+      expect(consumed).toBeGreaterThan(0);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("throws when both providers fail", async () => {
+    const env = { ANTHROPIC_API_KEY: "sk-test-1234" };
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response("rate limited", { status: 429 })) as any;
+    try {
+      const gen = streamRouted([{ role: "user", content: "hi" }], {
+        ai: makeWorkersAi(new Error("primary down")),
+        env,
+      });
+      await expect(collect(gen)).rejects.toThrow(/exhausted|429/);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("throws when no providers are configured", async () => {
+    const gen = streamRouted([{ role: "user", content: "hi" }], {
+      env: {},
+    });
+    await expect(collect(gen)).rejects.toThrow(/exhausted|AI binding/);
+  });
+
+  it("emits a non-empty fallback provider tag on exhaustion", async () => {
+    const env = { ANTHROPIC_API_KEY: "sk-test-1234" };
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response("internal error", { status: 500 })) as any;
+    let lastProvider = "";
+    try {
+      await collect(
+        streamRouted([{ role: "user", content: "hi" }], {
+          ai: makeWorkersAi(new Error("down")),
+          env,
+          onProvider: (p) => (lastProvider = p),
+        }),
+      );
+    } catch {
+      /* expected */
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+    expect(lastProvider).toBe("fallback");
+  });
+});

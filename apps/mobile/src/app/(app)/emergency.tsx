@@ -30,6 +30,7 @@ import {
   QrCode,
   Pill,
   HeartPulse,
+  ArrowLeft,
 } from "lucide-react-native";
 import {
   useTriggerSOS,
@@ -243,6 +244,20 @@ export default function EmergencyScreen() {
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          {router.canGoBack() && (
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              style={({ pressed }) => ({
+                marginRight: spacing.xs,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <ArrowLeft size={24} color={colors.text} />
+            </Pressable>
+          )}
           <Pressable
             onPress={() => router.push("/(app)/profile")}
             accessibilityRole="button"

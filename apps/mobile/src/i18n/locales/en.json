@@ -337,7 +337,7 @@
         "subtitle": "FAQs and contact options"
       },
       "recordsV2": {
-        "label": "Health records (v2)",
+        "label": "Health records",
         "subtitle": "Unified hub · encrypted"
       }
     }
@@ -2861,6 +2861,7 @@
       "family": "Family",
       "medicines": "Medicines",
       "emergency": "Emergency",
+      "messages": "Messages",
       "profile": "Profile",
       "doctorHome": "Home",
       "doctorSchedule": "Schedule",

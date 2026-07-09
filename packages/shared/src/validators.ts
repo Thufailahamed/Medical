@@ -104,6 +104,33 @@ export const followUpSchema = z.object({
   followUpDate: z.string().min(1), // YYYY-MM-DD
 });
 
+// ─── Doctor-recorded vaccination (P1 bundle 2) ──────────
+//
+// Mirrors the patient self-record schema in apps/api/src/routes/vaccinations.ts
+// but adds an explicit `patientId` so the doctor portal can target a
+// specific patient. `vaccineId` (catalog reference) and a free-text
+// `vaccineName` are both accepted — the route will resolve to a
+// catalog row when possible and fall back to a raw string otherwise.
+export const recordPatientVaccinationSchema = z.object({
+  patientId: z.string().min(1),
+  hospitalId: z.string().optional(),
+  vaccineId: z.string().min(1).optional(),
+  vaccineName: z.string().min(1).max(200).optional(),
+  doseNumber: z.number().int().min(1).max(20).optional(),
+  administeredAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "administeredAt must be YYYY-MM-DD")
+    .optional(),
+  nextDueAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "nextDueAt must be YYYY-MM-DD")
+    .nullable()
+    .optional(),
+  provider: z.string().max(200).optional(),
+  notes: z.string().max(1000).optional(),
+});
+export type RecordPatientVaccinationInput = z.infer<typeof recordPatientVaccinationSchema>;
+
 // ─── Doctor↔Patient Care Team (Phase 1) ─────────────────
 // Patient-initiated: pick a known doctor + their role on the team.
 export const careTeamAddSchema = z.object({

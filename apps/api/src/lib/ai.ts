@@ -2,8 +2,9 @@
 // Cloudflare Workers AI helpers — text generation with JSON parsing, cache,
 // and graceful fallback. Used by /ai and /chat routes.
 
-import { aiCache } from "@healthcare/db";
+import { aiCache, aiCalls } from "@healthcare/db";
 import { and, eq, gt, sql } from "drizzle-orm";
+import { redactPii, redactMessages } from "./redact";
 
 export type AiKind =
   | "summary"
@@ -77,6 +78,39 @@ export async function cacheGet(
   }
 }
 
+// ─── Telemetry ──────────────────────────────────────────
+//
+// Best-effort write of an `ai_calls` row. Failures here must NEVER
+// bubble up — telemetry is downstream of the actual model call.
+export interface RecordAiCallInput {
+  db: any;
+  kind: AiKind;
+  model: string;
+  userId?: string | null;
+  patientId?: string | null;
+  cachedHit?: boolean;
+  latencyMs?: number;
+  status?: "ok" | "error" | "timeout" | "fallback";
+  errorMessage?: string | null;
+}
+
+export async function recordAiCall(input: RecordAiCallInput): Promise<void> {
+  try {
+    await input.db.insert(aiCalls).values({
+      kind: input.kind,
+      userId: input.userId ?? null,
+      patientId: input.patientId ?? null,
+      model: input.model,
+      cachedHit: !!input.cachedHit,
+      latencyMs: Math.max(0, Math.round(input.latencyMs ?? 0)),
+      status: input.status ?? "ok",
+      errorMessage: input.errorMessage ?? null,
+    } as any);
+  } catch (err) {
+    console.error("[ai] recordAiCall failed", (err as Error)?.message || err);
+  }
+}
+
 // ─── R2 fetch helper (safe, bounded) ─────────────────────
 // Fetches an R2 object as text with a hard size cap. Strips non-printable
 // characters. Returns "" on any failure. Only used for *our* R2 bucket
@@ -122,7 +156,7 @@ export type ChatMsg = { role: "system" | "user" | "assistant"; content: string }
 export async function aiComplete(
   ai: any,
   messages: ChatMsg[],
-  opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number } = {}
+  opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number; telemetry?: RecordAiCallInput } = {}
 ): Promise<string> {
   if (!ai) {
     console.error("[aiComplete] no AI binding");
@@ -130,13 +164,19 @@ export async function aiComplete(
   }
   const model = opts.model || TEXT_MODEL;
 
-  // Cap the prompt size to prevent abuse / token overflow.
-  const safeMessages: ChatMsg[] = messages.map((m) => ({
+  // Cap the prompt size to prevent abuse / token overflow, and strip
+  // PII (NIC, phone, email) before the message hits the LLM endpoint.
+  // The order matters: redact first, then cap, so the redaction tag
+  // never gets truncated mid-token.
+  const safeMessages: ChatMsg[] = redactMessages(messages).map((m) => ({
     role: m.role,
     content: (m.content || "").slice(0, MAX_INPUT_CHARS),
   }));
 
   const timeoutMs = opts.timeoutMs ?? AI_TIMEOUT_MS;
+  const start = Date.now();
+  let finalStatus: "ok" | "error" | "timeout" | "fallback" = "ok";
+  let finalErr: string | null = null;
   const work = (async () => {
     try {
       const res = await ai.run(model, {
@@ -161,15 +201,197 @@ export async function aiComplete(
           JSON.stringify(val)
         );
       }
+      finalStatus = "fallback";
       return "";
     } catch (err) {
       console.error("[aiComplete] ai.run threw:", (err as Error)?.message || err);
+      finalStatus = "error";
+      finalErr = (err as Error)?.message || "ai.run threw";
       return "";
     }
   })();
 
-  const timer = new Promise<string>((resolve) => setTimeout(() => resolve(""), timeoutMs));
-  return Promise.race([work, timer]);
+  const timer = new Promise<string>((resolve) => {
+    setTimeout(() => {
+      finalStatus = "timeout";
+      finalErr = `timed out after ${timeoutMs}ms`;
+      resolve("");
+    }, timeoutMs);
+  });
+  const out = await Promise.race([work, timer]);
+
+  if (opts.telemetry) {
+    await recordAiCall({
+      ...opts.telemetry,
+      model,
+      latencyMs: Date.now() - start,
+      status: finalStatus,
+      errorMessage: finalErr,
+    });
+  }
+
+  return out;
+}
+
+// ─── Streaming variant ───────────────────────────────────
+//
+// Yields incremental text deltas from the same Workers AI model. The
+// underlying binding returns an SSE-shaped ReadableStream when called
+// with `stream: true`; we decode and forward only the text fragments.
+//
+// `signal` is an AbortSignal so the route can cancel on client
+// disconnect (Hono streamSSE passes stream.abort). The deadline caps
+// total wall-clock so a stuck stream cannot hang forever.
+export async function* streamAiComplete(
+  ai: any,
+  messages: ChatMsg[],
+  opts: {
+    maxTokens?: number;
+    temperature?: number;
+    model?: string;
+    timeoutMs?: number;
+    signal?: AbortSignal;
+    telemetry?: Omit<RecordAiCallInput, "latencyMs" | "status" | "errorMessage" | "model">;
+  } = {}
+): AsyncGenerator<string, void, void> {
+  if (!ai) {
+    console.error("[streamAiComplete] no AI binding");
+    return;
+  }
+  const model = opts.model || TEXT_MODEL;
+  // Redact PII before the SSE stream starts so we never emit NIC /
+  // phone / email to the inference endpoint. Order: redact, then cap.
+  const safeMessages: ChatMsg[] = redactMessages(messages).map((m) => ({
+    role: m.role,
+    content: (m.content || "").slice(0, MAX_INPUT_CHARS),
+  }));
+
+  const deadlineMs = opts.timeoutMs ?? AI_TIMEOUT_MS;
+  const start = Date.now();
+  let finalStatus: "ok" | "error" | "timeout" | "fallback" = "ok";
+  let finalErr: string | null = null;
+  let yieldedAny = false;
+
+  let res: Response;
+  try {
+    res = await ai.run(model, {
+      messages: safeMessages,
+      max_tokens: opts.maxTokens ?? 800,
+      temperature: opts.temperature ?? 0.3,
+      stream: true,
+    });
+  } catch (err) {
+    console.error("[streamAiComplete] ai.run threw:", (err as Error)?.message || err);
+    finalStatus = "error";
+    finalErr = (err as Error)?.message || "ai.run threw";
+    if (opts.telemetry) {
+      await recordAiCall({
+        ...opts.telemetry,
+        model,
+        latencyMs: Date.now() - start,
+        status: finalStatus,
+        errorMessage: finalErr,
+      });
+    }
+    return;
+  }
+
+  if (!res?.body) {
+    console.error("[streamAiComplete] no response body");
+    finalStatus = "fallback";
+    if (opts.telemetry) {
+      await recordAiCall({
+        ...opts.telemetry,
+        model,
+        latencyMs: Date.now() - start,
+        status: finalStatus,
+      });
+    }
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+
+  try {
+    while (true) {
+      if (opts.signal?.aborted) {
+        finalStatus = "error";
+        finalErr = "client disconnected";
+        return;
+      }
+      if (Date.now() - start > deadlineMs) {
+        finalStatus = "timeout";
+        finalErr = `timed out after ${deadlineMs}ms`;
+        return;
+      }
+
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      // Workers AI streams SSE: lines separated by \n\n, each event may
+      // contain a `data: ` JSON line with a `response` chunk.
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {
+        const evt = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        const line = evt
+          .split("\n")
+          .find((l) => l.startsWith("data: "));
+        if (!line) continue;
+        const payload = line.slice(6).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const obj = JSON.parse(payload);
+          const chunk =
+            obj?.response ??
+            obj?.output_text ??
+            (typeof obj === "string" ? obj : "");
+          if (typeof chunk === "string" && chunk.length > 0) {
+            yieldedAny = true;
+            yield chunk;
+          }
+        } catch {
+          // non-JSON line — skip
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[streamAiComplete] read error:", (err as Error)?.message || err);
+    finalStatus = "error";
+    finalErr = (err as Error)?.message || "read error";
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      /* ignore */
+    }
+    if (opts.telemetry) {
+      await recordAiCall({
+        ...opts.telemetry,
+        model,
+        latencyMs: Date.now() - start,
+        status: !yieldedAny ? "fallback" : finalStatus,
+        errorMessage: finalErr,
+      });
+    }
+  }
+}
+
+// Helper that wraps streamAiComplete in a Promise<string> so non-streaming
+// callers (and tests) can still consume the full text.
+export async function collectStream(
+  ai: any,
+  messages: ChatMsg[],
+  opts: Parameters<typeof streamAiComplete>[2] = {}
+): Promise<string> {
+  let out = "";
+  for await (const chunk of streamAiComplete(ai, messages, opts)) {
+    out += chunk;
+  }
+  return out;
 }
 
 // ─── JSON parser ─────────────────────────────────────────

@@ -265,7 +265,7 @@ export default function ProfileScreen() {
       subtitle: t("profile.item.recordsV2.subtitle", "Unified hub · encrypted"),
       icon: ClipboardList,
       tone: "primary" as const,
-      onPress: () => router.push("/(app)/records-v2" as any),
+      onPress: () => router.push("/(app)/records" as any),
     },
     {
       labelKey: "profile.item.healthSummary.label",

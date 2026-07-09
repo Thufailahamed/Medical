@@ -19,7 +19,8 @@
     "test:watch": "bun run --filter @healthcare/api test:watch",
     "test:coverage": "bun run --filter @healthcare/api test:coverage",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "i18n:check": "bun run scripts/check-i18n.ts"
   },
   "devDependencies": {
     "turbo": "^2.0.0",

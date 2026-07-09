@@ -50,6 +50,7 @@ import {
 } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
 import { requirePasskeyFresh } from "../middleware/stepup";
+import { anonymisePatient } from "../lib/dsar";
 import { flattenTranslated } from "../lib/validation-error";
 import { coerceSettingValue, getSetting, invalidateSetting } from "../lib/settings";
 import { notify } from "../lib/notifications";
@@ -1030,6 +1031,21 @@ adminRouter.post("/dsar/:id/complete", async (c) => {
   }
   const [existing] = await db.select().from(dsarRequests).where(eq(dsarRequests.id, id)).limit(1);
   if (!existing) return c.json({ error: "DSAR request not found" }, 404);
+
+  // Erasure is the one purpose that side-effects data on completion —
+  // for everything else, the operator is just stamping a result URL.
+  // We only run anonymisation when the request was approved; this
+  // avoids a re-run on operator retries.
+  if (existing.purpose === "erasure") {
+    try {
+      await anonymisePatient(db, existing.userId);
+    } catch (err) {
+      return c.json(
+        { error: "erasure_failed", reason: (err as Error).message },
+        500,
+      );
+    }
+  }
 
   const expires = new Date(Date.now() + 14 * 86400_000).toISOString();
   await db

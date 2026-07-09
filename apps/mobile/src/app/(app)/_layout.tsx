@@ -71,7 +71,7 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="records-v2"
+        name="records"
         options={{
           title: t("nav.tabs.records"),
           tabBarIcon: ({ focused }) => (
@@ -91,14 +91,8 @@ export default function AppLayout() {
       <Tabs.Screen
         name="emergency"
         options={{
-          title: t("nav.tabs.emergency"),
-          tabBarIcon: ({ focused }) => (
-            <TabIcon
-              icon={Siren}
-              focused={focused}
-              tint={focused ? colors.danger : undefined}
-            />
-          ),
+          href: null,
+          tabBarStyle: { display: "none" },
         }}
       />
       <Tabs.Screen
@@ -113,7 +107,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="inbox"
         options={{
-          title: "Messages",
+          title: t("nav.tabs.messages"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={MessageCircle} focused={focused} badge={msgUnread} />
           ),
@@ -314,23 +308,19 @@ export default function AppLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
-        name="records"
+        name="records/[id]/files"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
-        name="records-v2/[id]/files"
+        name="records/[id]/history"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
-        name="records-v2/[id]/history"
+        name="records/[id]/lock"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
-        name="records-v2/[id]/lock"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
-        name="records-v2/[id]/share"
+        name="records/[id]/share"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
