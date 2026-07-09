@@ -275,6 +275,41 @@ export const aiClinicalNoteSummarySchema = z.object({
   locale: z.enum(["en", "si", "ta"]).optional(),
 });
 
+// Day 4 #9: SOAP draft generator.
+//
+// Inverse of `aiClinicalNoteSummarySchema` — instead of distilling a
+// free-text note into structured SOAP, this takes short bullet
+// observations (one per SOAP section) and asks the model to draft
+// polished, full-sentence SOAP prose a doctor can paste into the chart.
+//
+// Bullets per section are optional; missing sections are left as
+// empty strings in the output.
+export const aiSoapDraftSchema = z.object({
+  patientId: z.string().min(1),
+  bullets: z
+    .object({
+      subjective: z.string().max(2000).optional(),
+      objective: z.string().max(2000).optional(),
+      assessment: z.string().max(2000).optional(),
+      plan: z.string().max(2000).optional(),
+    })
+    .strict(),
+  locale: z.enum(["en", "si", "ta"]).optional(),
+});
+
+// Day 3 #6: lab-test trend narrative.
+//
+// `type` is the user-typed label they want trends for (e.g. "HbA1c",
+// "Lipid Panel", "CBC"). We do a case-insensitive `LIKE` match against
+// lab_reports.reportType. `months` controls the look-back window
+// (default 24 — covers a typical chronic-disease monitoring horizon).
+export const aiLabTrendSchema = z.object({
+  patientId: z.string().min(1),
+  type: z.string().min(1).max(120),
+  months: z.number().int().min(1).max(120).optional(),
+  locale: z.enum(["en", "si", "ta"]).optional(),
+});
+
 // ─── Phase 3.1 slice 3: hospital staff invites ────────────
 // Role enum mirrors `hospitalStaff.role` in packages/db/src/schema.ts
 // (`nurse | receptionist | technician | manager | housekeeping |

@@ -13,6 +13,10 @@ import { requireRole } from "../middleware/rbac";
 import { upsertRecordFts } from "../lib/fts";
 import { audit } from "../lib/audit";
 import { canAccessRecord } from "../lib/access";
+import {
+  checkAndStoreEmbedding,
+  recordText,
+} from "../lib/ai/dedupe";
 import type { AppEnvironment } from "../types";
 
 const filesRouter = new Hono<AppEnvironment>();
@@ -380,9 +384,47 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
     }
   }
 
+  // Day 3 #4: duplicate-record detection. Embed the new record's text
+  // and compare against the last 50 records for this patient. The verdict
+  // lands in the response so the client can prompt the user ("This looks
+  // similar to record X, upload anyway?"). Best-effort: any failure
+  // (no AI binding, model error, no prior records) returns
+  // `{ duplicate: false, reason }` and never blocks the upload.
+  let dedupeVerdict: any = { duplicate: false, reason: "skipped" };
+  try {
+    dedupeVerdict = await checkAndStoreEmbedding(
+      db,
+      c.env.AI,
+      record.id,
+      patientId,
+      {
+        title,
+        diagnosis,
+        notes: null,
+        recordType,
+      }
+    );
+    if (dedupeVerdict.duplicate) {
+      await audit(db, {
+        userId,
+        action: "record_duplicate_flagged",
+        resource: "medical_record",
+        resourceId: record.id,
+        details: {
+          duplicateOf: dedupeVerdict.of,
+          similarity: Number(dedupeVerdict.similarity.toFixed(4)),
+          patientId,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("[files.upload-with-record] dedupe failed:", err);
+  }
+
   return c.json({
     record,
     file: fileRecord,
+    duplicate: dedupeVerdict,
   }, 201);
 });
 

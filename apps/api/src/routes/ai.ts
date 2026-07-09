@@ -22,6 +22,8 @@ import {
   aiChatSchema,
   aiOcrSchema,
   aiClinicalNoteSummarySchema,
+  aiLabTrendSchema,
+  aiSoapDraftSchema,
 } from "@healthcare/shared";
 import {
   aiComplete,
@@ -34,13 +36,18 @@ import {
   fetchR2Text,
   fallbackSummary,
   fallbackLabExplain,
+  fallbackLabTrend,
   fallbackDrugCheck,
   fallbackChat,
   fallbackOcr,
   fallbackClinicalNoteSummary,
+  fallbackSoapDraft,
   streamAiComplete,
   type ChatMsg,
 } from "../lib/ai";
+import { like } from "drizzle-orm";
+// `like` is unused now (filtering moved client-side) but kept imported
+// to avoid churn if a future route re-introduces server-side LIKE.
 import { streamSSE } from "hono/streaming";
 import { canAccessPatient, getPatientForUser } from "../lib/access";
 import { flattenTranslated } from "../lib/validation-error";
@@ -998,6 +1005,251 @@ ai.post("/clinical-note-summary", async (c) => {
 
   await cacheStore(db, "clinical_note_summary", cacheKey, summary);
   return c.json({ summary });
+});
+
+// ─── Lab-Test Trend Narrative (Day 3 #6) ─────────────────
+//
+// GET /ai/lab-trend?patientId=...&type=HbA1c&months=24
+//
+// We don't have numeric test values in `lab_reports` (just `reportType`
+// + `status` + `createdAt`), so the trend is the cadence of testing —
+// useful for chronic patients who need to know if they're overdue
+// ("HbA1c was last done 14 months ago, guidelines say every 3").
+//
+// The LLM layers a short narrative on top of the structural skeleton
+// so the patient gets a plain-language takeaway, not just a table.
+//
+// Cache: 6h by `(patientId, type, months)`. Faster than the global
+// 24h default because test cadence shouldn't drift mid-day but the
+// underlying data may.
+ai.get("/lab-trend", async (c) => {
+  const db = c.get("db");
+  const aiBinding = c.env.AI;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
+  const body = {
+    patientId: c.req.query("patientId") || "",
+    type: c.req.query("type") || "",
+    months: c.req.query("months") ? Number(c.req.query("months")) : undefined,
+    locale: c.req.query("locale") || undefined,
+  };
+  const parsed = aiLabTrendSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  const { patientId, type, months } = parsed.data;
+  const windowMonths = months ?? 24;
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const cacheKey = { patientId, type: type.toLowerCase(), months: windowMonths };
+  const cached = await cacheGet(db, "lab_trend", cacheKey);
+  if (cached) return c.json({ trend: cached, cached: true });
+
+  // Pull matching reports. Case-insensitive substring match on the
+  // user-supplied type label — patients type "hba1c" / "HbA1c" /
+  // "HBA1C" interchangeably. We do the matching client-side over the
+  // last 200 reports for the patient; D1 doesn't index free-form
+  // substrings and the set is bounded enough that JS filtering is
+  // faster than chasing a LIKE plan.
+  const cutoff = new Date(Date.now() - windowMonths * 30 * 24 * 60 * 60 * 1000)
+    .toISOString();
+  const typeNeedle = type.toLowerCase();
+  const rows = await db
+    .select({
+      id: labReports.id,
+      reportType: labReports.reportType,
+      status: labReports.status,
+      createdAt: labReports.createdAt,
+    })
+    .from(labReports)
+    .where(eq(labReports.patientId, patientId))
+    .orderBy(desc(labReports.createdAt))
+    .limit(200);
+
+  const matched = rows.filter((r) =>
+    (r.reportType || "").toLowerCase().includes(typeNeedle)
+  );
+  const inWindow = matched.filter((r) => (r.createdAt || "") >= cutoff);
+
+  const series = inWindow.map((r) => ({
+    date: (r.createdAt || "").slice(0, 10),
+    status: r.status || "unknown",
+  }));
+
+  // Reference cutoff is used in the prompt; the model uses it to flag
+  // "overdue" patterns.
+  const messages: ChatMsg[] = [
+    {
+      role: "system",
+      content:
+        systemPrompt(
+          "Summarise a patient's lab-test cadence and highlight overdue testing."
+        ) +
+        ' Return JSON with keys: narrative (string, 1-2 short sentences for a patient), ' +
+        "overdue (boolean — true if the most recent test is older than the typical interval for this test), " +
+        "intervalMonths (number — typical recommended gap in months; null if unknown), " +
+        "nextSuggestedDate (string YYYY-MM-DD; null if unknown). Be concise; do not fabricate dates.",
+    },
+    {
+      role: "user",
+      content: `Test type: ${type}\nWindow: last ${windowMonths} months (since ${cutoff.slice(0, 10)})\nSeries (most recent first): ${JSON.stringify(series)}`,
+    },
+  ];
+
+  let trend;
+  try {
+    const out = await aiComplete(aiBinding, messages, {
+      maxTokens: 250,
+      temperature: 0.2,
+      telemetry: {
+        db,
+        kind: "lab_trend",
+        userId,
+        patientId,
+      },
+    });
+    const parsedJson = tryParseJson<any>(out);
+    const skeleton = fallbackLabTrend(type, series);
+    trend = {
+      ...skeleton,
+      narrative:
+        (typeof parsedJson?.narrative === "string" && parsedJson.narrative) ||
+        skeleton.narrative,
+      overdue: typeof parsedJson?.overdue === "boolean" ? parsedJson.overdue : null,
+      intervalMonths:
+        typeof parsedJson?.intervalMonths === "number"
+          ? parsedJson.intervalMonths
+          : null,
+      nextSuggestedDate:
+        typeof parsedJson?.nextSuggestedDate === "string"
+          ? parsedJson.nextSuggestedDate.slice(0, 10)
+          : null,
+    };
+  } catch (err) {
+    console.error("[ai/lab-trend] failed", err);
+    trend = fallbackLabTrend(type, series);
+  }
+
+  await cacheStore(db, "lab_trend", cacheKey, trend, 60 * 60 * 6);
+  return c.json({ trend });
+});
+
+// ─── SOAP-note draft generator (Day 4 #9) ────────────────
+//
+// POST /ai/soap-draft  { patientId, bullets: { subjective, objective, assessment, plan } }
+//
+// Inverse of /ai/clinical-note-summary: instead of distilling free-text
+// into SOAP, this takes short bullet observations and asks the model
+// to draft full-sentence SOAP prose a doctor can paste into the chart.
+//
+// RBAC: same `canAccessPatient` gate — only the patient or a doctor
+// with an active relationship may draft against that patient.
+//
+// Cache: 24h by hash(bullets) — the same bullet list from the same
+// patient hits the same row.
+ai.post("/soap-draft", async (c) => {
+  const db = c.get("db");
+  const aiBinding = c.env.AI;
+  const userId = c.get("userId");
+  const userRole = c.get("dbUser")?.role || "patient";
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = aiSoapDraftSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  const { patientId, bullets } = parsed.data;
+
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  // Pre-flight: at least one bullet must be non-empty so we don't
+  // spend a call on a fully-blank form.
+  const anyBullet = Object.values(bullets).some((v) => (v ?? "").trim());
+  if (!anyBullet) {
+    return c.json(
+      { error: "At least one bullet must be provided" },
+      400
+    );
+  }
+
+  const cacheKey = { patientId, bullets };
+  const cached = await cacheGet(db, "soap_draft", cacheKey);
+  if (cached) return c.json({ draft: cached, cached: true });
+
+  // Build the user prompt from the bullets. Empty sections become
+  // explicit "—" placeholders so the model knows they're missing.
+  const promptBullets = {
+    subjective: bullets.subjective?.trim() || "—",
+    objective: bullets.objective?.trim() || "—",
+    assessment: bullets.assessment?.trim() || "—",
+    plan: bullets.plan?.trim() || "—",
+  };
+
+  const messages: ChatMsg[] = [
+    {
+      role: "system",
+      content:
+        systemPrompt(
+          "Draft clinical SOAP prose from short bullet observations."
+        ) +
+        ' Return JSON with keys: subjective, objective, assessment, plan — each a short paragraph (1-3 sentences). ' +
+        "Expand telegraphic bullets into full clinical language but do NOT fabricate findings. " +
+        "Where a section's bullet was '—', return an empty string for that section.",
+    },
+    {
+      role: "user",
+      content: `Patient: ${patientId}\n\nBullets:\n${JSON.stringify(promptBullets, null, 2)}`,
+    },
+  ];
+
+  let draft;
+  try {
+    const out = await aiComplete(aiBinding, messages, {
+      maxTokens: 600,
+      temperature: 0.2,
+      telemetry: {
+        db,
+        kind: "soap_draft",
+        userId,
+        patientId,
+      },
+    });
+    const parsedJson = tryParseJson<any>(out);
+    draft =
+      parsedJson &&
+      typeof parsedJson === "object" &&
+      typeof parsedJson.subjective === "string" &&
+      typeof parsedJson.objective === "string" &&
+      typeof parsedJson.assessment === "string" &&
+      typeof parsedJson.plan === "string"
+        ? {
+            subjective: parsedJson.subjective.slice(0, 1500),
+            objective: parsedJson.objective.slice(0, 1500),
+            assessment: parsedJson.assessment.slice(0, 1500),
+            plan: parsedJson.plan.slice(0, 1500),
+            draftedByAI: true,
+          }
+        : { ...fallbackSoapDraft(bullets), draftedByAI: false };
+  } catch (err) {
+    console.error("[ai/soap-draft] failed", err);
+    draft = { ...fallbackSoapDraft(bullets), draftedByAI: false };
+  }
+
+  await cacheStore(db, "soap_draft", cacheKey, draft);
+  return c.json({ draft });
 });
 
 export default ai;

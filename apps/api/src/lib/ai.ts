@@ -9,11 +9,14 @@ import { redactPii, redactMessages } from "./redact";
 export type AiKind =
   | "summary"
   | "lab_explain"
+  | "drug_trend"
+  | "lab_trend"
   | "drug_interaction"
   | "chat"
   | "ocr"
   | "classify"
-  | "clinical_note_summary";
+  | "clinical_note_summary"
+  | "soap_draft";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
@@ -913,6 +916,29 @@ export function fallbackLabExplain() {
   };
 }
 
+// Day 3 #6: lab-test trend narrative fallback. lab_reports has no
+// numeric test values — only the reportType + status + createdAt — so
+// the trend is the cadence of testing. The LLM narrative is layered on
+// top; this fallback is the structural skeleton the LLM would have
+// populated.
+export function fallbackLabTrend(
+  type: string,
+  series: Array<{ date: string; status: string }>
+) {
+  return {
+    type,
+    count: series.length,
+    lastDate: series[0]?.date ?? null,
+    pendingCount: series.filter((s) => s.status === "pending").length,
+    completedCount: series.filter((s) => s.status === "completed").length,
+    series: series.slice(0, 30),
+    narrative:
+      series.length === 0
+        ? `No ${type} reports found in the selected window.`
+        : `Found ${series.length} ${type} report(s). Last on file: ${series[0]?.date ?? "unknown"}.`,
+  };
+}
+
 export function fallbackDrugCheck() {
   return {
     interactions: [],
@@ -948,6 +974,26 @@ export function fallbackClinicalNoteSummary() {
       plan: "",
     },
     keyTerms: [] as string[],
+  };
+}
+
+// Day 4 #9: SOAP-draft fallback. We pass through the user's bullets
+// verbatim — the caller still sees something useful even when the LLM
+// is down. Empty sections get a friendly placeholder string so the
+// doctor knows the AI didn't author that part.
+export function fallbackSoapDraft(bullets: {
+  subjective?: string;
+  objective?: string;
+  assessment?: string;
+  plan?: string;
+}) {
+  const placeholder = "(AI drafting unavailable — fill manually)";
+  return {
+    subjective: bullets.subjective?.trim() || placeholder,
+    objective: bullets.objective?.trim() || placeholder,
+    assessment: bullets.assessment?.trim() || placeholder,
+    plan: bullets.plan?.trim() || placeholder,
+    draftedByAI: false,
   };
 }
 

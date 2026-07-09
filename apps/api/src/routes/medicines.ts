@@ -27,6 +27,7 @@ import {
 } from "../lib/timezone";
 import { slotsForFrequency, isAsNeeded } from "../lib/medicine-slots";
 import { flattenTranslated } from "../lib/validation-error";
+import { findRefillsDue } from "../lib/refill";
 import type { AppEnvironment } from "../types";
 
 const medicinesRouter = new Hono<AppEnvironment>();
@@ -482,6 +483,63 @@ medicinesRouter.get("/today", authMiddleware, requireRole("patient"), async (c) 
     );
 
   return c.json({ medicines: todayMeds });
+});
+
+// ─── Day 4 #5: Refill prediction (no LLM) ────────────────
+//
+// GET /medicines/refill-due?patientId=...&days=14
+//
+// Pure heuristic: for each active medicine, infer an expected end
+// date from the row's `endDate` (if present) or from a typical
+// duration derived from `frequency` + `dosage`. Return rows whose
+// expected end is within the next `days` days (default 14).
+//
+// IMPORTANT: this route MUST be registered before `/:id` so Hono
+// doesn't route `/refill-due` to the by-id handler with id="refill-due".
+//
+// `patientId` is optional — defaults to the caller's own patient
+// record. Doctors and hospital staff can pass an explicit `patientId`
+// for a patient they have a relationship with; everyone else is
+// restricted to their own row.
+//
+// Cost: $0. No LLM, no embedding — just a single SELECT + a few
+// milliseconds of JS for the duration inference.
+medicinesRouter.get("/refill-due", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const userRole =
+    c.get("userRole") || (c.get("dbUser") as any)?.role || "patient";
+
+  const days = Number(c.req.query("days") ?? 14);
+  if (!Number.isFinite(days) || days < 1 || days > 365) {
+    return c.json({ error: "days must be 1..365" }, 400);
+  }
+
+  let patientId = c.req.query("patientId") || "";
+  if (!patientId) {
+    const own = await getOwnPatient(db, userId);
+    if (!own) return c.json({ error: "Patient profile not found" }, 404);
+    patientId = own.id;
+  }
+
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const rows = await db
+    .select()
+    .from(medicines)
+    .where(and(eq(medicines.patientId, patientId), eq(medicines.active, true)));
+
+  const candidates = findRefillsDue(rows, days);
+
+  return c.json({
+    patientId,
+    withinDays: days,
+    count: candidates.length,
+    refills: candidates,
+  });
 });
 
 // ─── Get one medicine ────────────────────────────────────

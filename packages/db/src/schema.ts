@@ -326,6 +326,12 @@ export const medicalRecords = sqliteTable(
     prevRecordHash: text("prev_record_hash"),
     lockedByUserId: text("locked_by_user_id"),
     lockedUntil: text("locked_until"),
+    // Day 3 #4: embedding blob for duplicate-record detection. Stored
+    // as JSON `{dim, data: number[]}` (Float32 → number[]). NULL until
+    // the upload pipeline runs the bge-small embedder.
+    embedding: text("embedding"),
+    embeddingModel: text("embedding_model"),
+    embeddedAt: text("embedded_at"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -1037,6 +1043,8 @@ export const aiCache = sqliteTable("ai_cache", {
       "chat",
       "ocr",
       "clinical_note_summary",
+      "lab_trend",
+      "soap_draft",
     ],
   }).notNull(),
   inputHash: text("input_hash").notNull(),
@@ -1066,6 +1074,8 @@ export const aiCalls = sqliteTable("ai_calls", {
       "chat",
       "ocr",
       "classify",
+      "lab_trend",
+      "soap_draft",
     ],
   }).notNull(),
   userId: text("user_id").references(() => users.id),

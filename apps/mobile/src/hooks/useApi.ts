@@ -2317,6 +2317,73 @@ export function useAiClinicalNoteSummary() {
   });
 }
 
+// Day 3 #6: lab-test cadence narrative. Returns the structural skeleton
+// (count, lastDate, completed/pending counts, series) plus the LLM's
+// narrative on top. We pass `months` to bound the look-back window.
+export type LabTrend = {
+  type: string;
+  count: number;
+  lastDate: string | null;
+  pendingCount: number;
+  completedCount: number;
+  series: Array<{ date: string; status: string }>;
+  narrative: string;
+  overdue: boolean | null;
+  intervalMonths: number | null;
+  nextSuggestedDate: string | null;
+};
+
+export function useAiLabTrend() {
+  return useMutation({
+    mutationFn: (data: {
+      patientId: string;
+      type: string;
+      months?: number;
+    }) => {
+      const qs = new URLSearchParams({
+        patientId: data.patientId,
+        type: data.type,
+        ...(data.months ? { months: String(data.months) } : {}),
+      }).toString();
+      return api<{ trend: LabTrend; cached?: boolean }>(
+        `/ai/lab-trend?${qs}`,
+        { method: "GET" }
+      );
+    },
+  });
+}
+
+// Day 4 #5: refill prediction. Pure heuristic on the server, no LLM.
+// Returns the medicines that need refill within the next N days.
+export type RefillCandidate = {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string | null;
+  timing: string | null;
+  startDate: string;
+  expectedEndDate: string;
+  daysRemaining: number;
+  refillReminder: boolean;
+  source: "explicit" | "inferred" | "unknown";
+};
+
+export type RefillResponse = {
+  patientId: string;
+  withinDays: number;
+  count: number;
+  refills: RefillCandidate[];
+};
+
+export function useRefillDue() {
+  return useQuery({
+    queryKey: ["refill-due"],
+    queryFn: () =>
+      api<RefillResponse>("/medicines/refill-due?days=14", { method: "GET" }),
+    staleTime: 60 * 60 * 1000, // 1h; server-side is pure SQL
+  });
+}
+
 /**
  * Read a paper prescription with AI OCR.
  *
