@@ -77,7 +77,8 @@
     "heroSubtitle": "குழுவை தொடர்பு கொள்ளுங்கள் அல்லது கீழே உள்ள பொதுவான கேள்விகளை பாருங்கள்.",
     "contactHeading": "தொடர்பு",
     "contactEmailLabel": "மின்னஞ்சல் ஆதரவு",
-    "contactChatLabel": "எங்களுக்கு செய்தி அனுப்புங்கள்",
+    "contactChatLabel": "WhatsApp-ல் அரட்டையடிக்கவும்",
+    "contactChatSubtitle": "திங்கள்–வெள்ளி, 9:00–18:00 · 4 மணி நேரத்தில் பதிலளிக்கப்படும்",
     "contactCallLabel": "ஆதரவை அழைக்கவும்",
     "hoursLabel": "திங்கள்–வெள்ளி, 9:00 – 18:00",
     "faqHeading": "அடிக்கடி கேட்கப்படுபவை",
@@ -2043,6 +2044,8 @@
     "subtitle": "நேர-வரம்பு. ஒவ்வொரு ஸ்கேனும் பதிவு செய்யப்படும்."
   },
   "doctorPatientDetail": {
+    "errorTitle": "பதிவுகளை ஏற்ற முடியவில்லை",
+    "errorBody": "உங்கள் இணைப்பை சோதித்து மீண்டும் முயற்சிக்கவும்.",
     "empty": "இன்னும் நோயாளிகள் இல்லை",
     "emptyBody": "பதிவு அணுகலை வழங்கும் நோயாளிகள் இங்கே தோன்றுவார்கள்.",
     "recordsTab": "பதிவுகள்",
@@ -2303,6 +2306,8 @@
     }
   },
   "recordDetail": {
+    "errorTitle": "பதிவை ஏற்ற முடியவில்லை",
+    "errorBody": "உங்கள் இணைப்பை சோதித்து மீண்டும் முயற்சிக்கவும்.",
     "shareFooter": "Shared from HealthHub",
     "shareTitleFallback": "Record",
     "notFound": {
@@ -2500,7 +2505,9 @@
     "rateTitle": "How was your visit?",
     "rateBody": "Tap a star to rate Dr {{name}}. Helps other patients.",
     "rateCta": "Rate this visit",
-    "youRated": "You rated this visit ★ {{stars}}"
+    "youRated": "You rated this visit ★ {{stars}}",
+    "helpCta": "இந்த சந்திப்பு குறித்து உதவி தேவையா?",
+    "helpBody": "WhatsApp-ல் எங்களுடன் அரட்டையடிக்கவும் — பொதுவாக ஒரு மணி நேரத்தில் பதிலளிக்கப்படும்."
   },
   "bookAppointment": {
     "title": "Book appointment",
@@ -3592,7 +3599,9 @@
     "notFound": "Conversation not found",
     "noMessagesYet": "No messages yet — say hello.",
     "composerPlaceholder": "Type a message…",
-    "youPrefix": "You:"
+    "youPrefix": "You:",
+    "errorTitle": "செய்திகளை ஏற்ற முடியவில்லை",
+    "errorBody": "உங்கள் இணைப்பை சோதித்து மீண்டும் முயற்சிக்கவும்."
   },
   "schedule": {
     "title": "Schedule",
@@ -3638,6 +3647,8 @@
     "noMeds": "No medicines",
     "emptyTitle": "No templates yet",
     "emptyBody": "Create a template to autofill the prescription composer with one tap.",
+    "errorTitle": "டெம்ப்ளேட்களை ஏற்ற முடியவில்லை",
+    "errorBody": "உங்கள் இணைப்பை சோதித்து மீண்டும் முயற்சிக்கவும்.",
     "deleteTitle": "Delete template?",
     "deleteMessage": "Delete \"{{name}}\" — this can't be undone.",
     "deleteCta": "Delete template",

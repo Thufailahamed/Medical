@@ -30,6 +30,7 @@ import {
   FormField,
   Skeleton,
   EmptyState,
+  ErrorState,
   IconButton,
   useToast,
 } from "@/components/ui";
@@ -40,7 +41,7 @@ export default function NotesScreen() {
   const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
-  const { data, isLoading } = useNotes();
+  const { data, isLoading, isError, refetch } = useNotes();
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
@@ -206,6 +207,13 @@ export default function NotesScreen() {
           <Skeleton height={120} radius={20} />
           <Skeleton height={120} radius={20} />
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load notes")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : notes.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
           <EmptyState

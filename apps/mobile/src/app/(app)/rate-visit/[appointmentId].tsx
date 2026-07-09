@@ -19,6 +19,7 @@ import {
   ScreenHeader,
   Card,
   Button,
+  ErrorState,
   useToast,
 } from "@/components/ui";
 
@@ -29,10 +30,12 @@ export default function RateVisitScreen() {
   const toast = useToast();
   const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>();
 
-  const { data: existing, isLoading } = useAppointmentRating(appointmentId);
+  const { data: existing, isLoading, isError, refetch } =
+    useAppointmentRating(appointmentId);
   const rate = useRateAppointment();
   const [stars, setStars] = useState<number>(0);
   const [comment, setComment] = useState<string>("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (existing?.rating) {
@@ -46,6 +49,7 @@ export default function RateVisitScreen() {
       toast.show(t("rateVisit.needStars"), "danger");
       return;
     }
+    setSubmitError(null);
     try {
       await rate.mutateAsync({
         appointmentId,
@@ -59,6 +63,7 @@ export default function RateVisitScreen() {
         err?.message && err.message !== "{}" && err.message !== "[object Object]"
           ? err.message
           : t("rateVisit.error");
+      setSubmitError(msg);
       toast.show(msg, "danger");
     }
   }
@@ -69,6 +74,14 @@ export default function RateVisitScreen() {
         title={t("rateVisit.title")}
         onBack={() => router.back()}
       />
+      {isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle")}
+          message={t("recordDetail.errorBody")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
+      ) : null}
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -177,6 +190,17 @@ export default function RateVisitScreen() {
           size="lg"
           fullWidth
         />
+        {submitError ? (
+          <Card>
+            <ErrorState
+              title={t("rateVisit.error")}
+              message={submitError}
+              actionLabel={t("common.retry")}
+              onAction={onSubmit}
+              tone="warning"
+            />
+          </Card>
+        ) : null}
         {existing?.rating ? (
           <Text
             style={[

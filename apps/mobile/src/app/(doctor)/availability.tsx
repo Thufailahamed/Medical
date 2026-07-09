@@ -39,6 +39,7 @@ import {
   TextInput,
   SectionHeader,
   BottomSheet,
+  ErrorState,
   useToast,
 } from "@/components/ui";
 
@@ -64,7 +65,7 @@ export default function AvailabilityScreen() {
 
   const days = t("doctorAvailability.days", { returnObjects: true }) as string[];
 
-  const { data, isLoading } = useDoctorAvailabilityMe();
+  const { data, isLoading, isError, refetch } = useDoctorAvailabilityMe();
   const update = useUpdateDoctorAvailability();
 
   const DEFAULT_SCHEDULE: DaySchedule[] = useMemo(
@@ -181,6 +182,24 @@ export default function AvailabilityScreen() {
             <Skeleton key={i} height={120} radius={20} />
           ))}
         </View>
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Screen padded={false} edges={["top"]} bottomInset>
+        <ScreenHeader
+          back
+          onBack={() => router.back()}
+          title={t("doctorAvailability.title")}
+        />
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load availability")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       </Screen>
     );
   }

@@ -37,6 +37,7 @@ import {
   Card,
   Button,
   Skeleton,
+  ErrorState,
   useToast,
 } from "@/components/ui";
 
@@ -46,7 +47,9 @@ export default function VerifyScreen() {
   const { colors, spacing, typography, radius } = useTheme();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading, error } = useVerifyPrescription(id as string);
+  const { data, isLoading, isError, refetch } = useVerifyPrescription(
+    id as string
+  );
 
   const valid = data?.valid === true;
   const hasSig = !!data?.signedAt && !!data?.payloadHash;
@@ -100,49 +103,14 @@ export default function VerifyScreen() {
           <Skeleton height={120} radius={radius.lg} />
           <Skeleton height={220} radius={radius.lg} />
         </View>
-      ) : error ? (
-        <View style={{ padding: spacing.xl }}>
-          <Card>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 16,
-                  backgroundColor: colors.dangerSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ShieldAlert size={22} color={colors.danger} strokeWidth={2.2} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    typography.title.sm,
-                    { color: colors.text, fontWeight: "700" },
-                  ]}
-                >
-                  {t("verify.errorTitle")}
-                </Text>
-                <Text
-                  style={[
-                    typography.body.sm,
-                    { color: colors.textMuted, marginTop: 2 },
-                  ]}
-                >
-                  {t("verify.errorBody")}
-                </Text>
-              </View>
-            </View>
-          </Card>
-        </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("verify.errorTitle")}
+          message={t("verify.errorBody")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+          style={{ padding: spacing.xl }}
+        />
       ) : !data ? (
         <View style={{ padding: spacing.xl }}>
           <Card>

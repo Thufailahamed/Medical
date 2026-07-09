@@ -36,6 +36,7 @@ import {
   Chip,
   ChipGroup,
   EmptyState,
+  ErrorState,
   BottomSheet,
   FormField,
   useToast,
@@ -62,7 +63,7 @@ export default function AllergiesScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
-  const { data, isLoading, refetch } = useAllergies();
+  const { data, isLoading, isError, refetch } = useAllergies();
   const addAllergy = useAddAllergy();
   const updateAllergy = useUpdateAllergy();
   const deleteAllergy = useDeleteAllergy();
@@ -251,6 +252,13 @@ export default function AllergiesScreen() {
         <View style={{ paddingHorizontal: spacing.lg }}>
           {isLoading ? (
             <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+          ) : isError ? (
+            <ErrorState
+              title={t("recordDetail.errorTitle", "Couldn't load allergies")}
+              message={t("recordDetail.errorBody", "Check your connection and try again.")}
+              actionLabel={t("common.retry")}
+              onAction={() => refetch()}
+            />
           ) : allergies.length === 0 ? (
             <EmptyState
               icon={CircleAlert}

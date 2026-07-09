@@ -14,8 +14,14 @@ compatibility_flags = ["nodejs_compat"]
 "@healthcare/shared/types" = "../../packages/shared/src/types.ts"
 
 [vars]
-ENVIRONMENT = "development"
-DEV_MODE = "true"
+# Top-level [vars] = production values. The production worker is deployed
+# via `wrangler deploy` (no --env flag) per the current deploy script, so
+# this block is what runs at https://healthcare-api.thufailahamed627.workers.dev.
+# For local dev, `wrangler dev` reads apps/api/.dev.vars automatically, which
+# overrides these values. `wrangler dev --env development` reads [env.development].
+ENVIRONMENT = "production"
+# Close the JWT-auth bypass (`auth.ts:20` short-circuits when true).
+DEV_MODE = "false"
 # Phase 1.4: domain that hosts personal email aliases, e.g.
 # "records.healthhub.app". Used to compose the `<alias>@<EMAIL_ALIAS_DOMAIN>`
 # address shown to users. Configure in CF dashboard → Email Routing.
@@ -28,28 +34,34 @@ CLASSIFY_CRON_THRESHOLD = "0.7"
 # recipients without the app installed see the HTML summary. Store URLs
 # are placeholders until the app is published.
 PUBLIC_URL = "https://app.healthhub.app"
-IOS_APP_STORE_URL = "https://apps.apple.com/app/id000000000"
-ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.healthhub"
-# Phase 1.3: WhatsApp onboarding. Set WA_VERIFY_TOKEN to whatever you
-# pasted into the Meta dashboard's webhook "verify token" field. Set
-# WA_ACCESS_TOKEN to a system-user token with whatsapp_business_messaging
-# scope. Phone number id is read from each webhook payload so it does
-# not need to be configured here.
-WA_VERIFY_TOKEN = "wa-verify-token-set-via-secret"
+IOS_APP_STORE_URL = "https://apps.apple.com/lk/app/healthhub/id000000000"
+ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.healthhub.lk"
+# Phase 1.3: WhatsApp onboarding. WA_VERIFY_TOKEN and WA_ACCESS_TOKEN are
+# secrets — push via `wrangler secret put`. Phone number id is read from
+# each webhook payload so it does not need to be configured here.
+#
+# Phase MVP-2: support channel. Same Meta business number is reused for
+# the wa.me deep-link in mobile + marketing surfaces. Operators triage
+# onboarding vs support messages from Meta Inbox directly. Digits only,
+# no `+` or `wa.me/` prefix.
+WA_SUPPORT_PHONE = "94771234567"
 # Phase 4: SMS OTP. SMS_PROVIDER controls which gateway is active:
 # "smslenz" uses the SMSLenz API; "console" logs to stdout (dev default).
 # SMSLENZ_USER_ID and SMSLENZ_API_KEY are set via `wrangler secret put`.
 SMS_PROVIDER = "smslenz"
-SMS_SENDER_ID = "SMSlenzDEMO"
+SMS_SENDER_ID = "HealthHub"
 # Phase 4: Email OTP. EMAIL_PROVIDER controls the gateway:
 #   "cloudflare" -> send via CF Email Workers binding (production, uses EMAIL_ALIAS_DOMAIN)
 #   "resend"     -> send via Resend API (set RESEND_API_KEY via wrangler secret)
 #   "console"    -> log to stdout (dev default; email body still has the code in dev mode)
-EMAIL_PROVIDER = "console"
+EMAIL_PROVIDER = "resend"
 EMAIL_FROM = "no-reply@records.healthhub.app"
 # Phase 5: PayHere payments. PAYHERE_MERCHANT_ID + PAYHERE_SECRET are set
 # via wrangler secret. Sandbox mode uses https://sandbox.payhere.lk.
-PAYHERE_SANDBOX = "true"
+PAYHERE_SANDBOX = "false"
+# Admin passkey relying-party id. In-memory store accepts `localhost`
+# fallback but prod passkeys register against the real admin subdomain.
+WEBAUTHN_RP_ID = "admin.healthhub.app"
 
 # Round 2 P0: TOTP MFA for doctors (HIPAA compliance floor).
 # MFA_SECRET_KEK is a 32-byte base64 secret used to AES-256-GCM-wrap
@@ -73,28 +85,27 @@ bucket_name = "healthcare-files"
 [ai]
 binding = "AI"
 
-[env.production]
-vars = { ENVIRONMENT = "production" }
-
 [env.development]
-vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
+# Local-dev overrides. Use with `wrangler dev --env development` for a
+# fully-isolated dev environment that uses console gateways, PayHere
+# sandbox, and DEV_MODE=true (JWT-auth bypass). For most local work,
+# just `wrangler dev` is fine — apps/api/.dev.vars auto-overrides.
+ENVIRONMENT = "development"
+DEV_MODE = "true"
+EMAIL_PROVIDER = "console"
+PAYHERE_SANDBOX = "true"
+SMS_SENDER_ID = "SMSlenzDEMO"
 
 # Cron triggers (UTC clock - wrangler runs in UTC).
-#   "7 * * * *"                                  -> booking reminders (hourly :07 UTC)
-#   "3,8,13,18,23,28,33,38,43,48,53,58 * * * *" -> dose reminders (every 5 min)
-#   "37 3 * * *"                                  -> refill reminders (daily 09:07 SL = 03:37 UTC)
-#   "30 23 * * *"                                 -> reclassify sweep (daily 05:00 SL = 23:30 UTC, Phase 2.1)
-#   "42 3 * * *"                                  -> vaccination reminders (daily 09:12 SL = 03:42 UTC, Phase 2.2)
-#   "17 * * * *"                                  -> post-visit summary sweep (Round 3 P1; off-minute to avoid :00)
-# Off-minute shifts avoid the :00/:05 spike seen by other cron jobs.
+# Runs every 5 minutes and routes tasks based on the system clock:
+#   - Dose reminders: run every 5 minutes
+#   - Booking reminders + post-visit summaries: run hourly
+#   - Refills + vaccinations: run daily at 03:35 UTC
+#   - Reclassify sweep: run daily at 23:30 UTC
+# Only uses 1 cron trigger slot to comply with Cloudflare Free account-wide limits.
 [triggers]
 crons = [
-  "3,8,13,18,23,28,33,38,43,48,53,58 * * * *",
-  "7 * * * *",
-  "37 3 * * *",
-  "30 23 * * *",
-  "42 3 * * *",
-  "17 * * * *",
+  "*/5 * * * *",
 ]
 
 [observability.logs]

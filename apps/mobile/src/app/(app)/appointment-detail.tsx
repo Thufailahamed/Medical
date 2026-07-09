@@ -8,7 +8,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from "react-native";
+import Constants from "expo-constants";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +25,8 @@ import {
   Clock,
   Building2,
   Sparkles,
+  MessageCircle,
+  ChevronRight,
 } from "lucide-react-native";
 import {
   useAppointmentRecords,
@@ -37,6 +41,7 @@ import {
   PillTone,
   EmptyState,
   Skeleton,
+  ErrorState,
   Button,
   SectionHeader,
   BottomSheet,
@@ -71,7 +76,18 @@ export default function AppointmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const toast = useToast();
 
-  const { data, isLoading } = useAppointmentRecords(id || null);
+  const waSupportPhone: string =
+    (Constants.expoConfig?.extra as any)?.waSupportPhone || "";
+
+  function openSupportChat() {
+    if (!waSupportPhone) return;
+    const text = encodeURIComponent(
+      `Hi HealthHub, I need help with my appointment${id ? ` (${id})` : ""}.`
+    );
+    Linking.openURL(`https://wa.me/${waSupportPhone}?text=${text}`);
+  }
+
+  const { data, isLoading, isError, refetch } = useAppointmentRecords(id || null);
   const reschedule = useRescheduleAppointment();
   const [reschedOpen, setReschedOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
@@ -130,6 +146,13 @@ export default function AppointmentDetailScreen() {
               <Skeleton height={120} radius={20} />
               <Skeleton height={180} radius={20} />
             </View>
+          ) : isError ? (
+            <ErrorState
+              title={t("recordDetail.errorTitle", "Couldn't load appointment")}
+              message={t("recordDetail.errorBody", "Check your connection and try again.")}
+              actionLabel={t("common.retry")}
+              onAction={() => refetch()}
+            />
           ) : !appt ? (
             <EmptyState
               icon={ClipboardList}
@@ -359,6 +382,56 @@ export default function AppointmentDetailScreen() {
                 </Text>
               ) : null}
             </Card>
+          ) : null}
+
+          {/* Support channel — opens WhatsApp with appointment id pre-filled.
+              Hidden if EXPO_PUBLIC_WA_SUPPORT_PHONE is not configured. */}
+          {waSupportPhone ? (
+            <Pressable
+              onPress={openSupportChat}
+              accessibilityRole="link"
+              accessibilityLabel={t("appointmentDetail.helpCta")}
+              style={{
+                backgroundColor: colors.primarySoft,
+                borderRadius: 16,
+                padding: spacing.md,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 14,
+                  backgroundColor: "#FFFFFF",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <MessageCircle size={20} color={colors.primary} strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    typography.title.sm,
+                    { color: colors.text, fontWeight: "700" },
+                  ]}
+                >
+                  {t("appointmentDetail.helpCta")}
+                </Text>
+                <Text
+                  style={[
+                    typography.body.sm,
+                    { color: colors.textMuted, marginTop: 2 },
+                  ]}
+                >
+                  {t("appointmentDetail.helpBody")}
+                </Text>
+              </View>
+              <ChevronRight size={18} color={colors.primary} strokeWidth={2.5} />
+            </Pressable>
           ) : null}
         </ScrollView>
 

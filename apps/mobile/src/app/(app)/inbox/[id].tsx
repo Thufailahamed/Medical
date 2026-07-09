@@ -17,22 +17,24 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, Send, Check, CheckCheck, Lock } from "lucide-react-native";
 import {
   usePatientConversation,
   useSendPatientMessage,
   useMarkPatientConversationRead,
 } from "@/hooks/useApi";
-import { Screen } from "@/components/ui";
+import { Screen, ErrorState, Skeleton } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function PatientConversationScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ id: string }>();
   const id = params?.id;
   const { colors, spacing, typography, fontFamily } = useTheme();
 
-  const { data, isLoading } = usePatientConversation(id);
+  const { data, isLoading, isError, refetch } = usePatientConversation(id);
   const sendMutation = useSendPatientMessage(id);
   const markRead = useMarkPatientConversationRead(id);
 
@@ -164,9 +166,23 @@ export default function PatientConversationScreen() {
 
         {/* Messages */}
         {isLoading ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <ActivityIndicator color={colors.primary} />
+          <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <View key={i} style={{
+                alignItems: i % 2 === 0 ? "flex-start" : "flex-end",
+                marginVertical: 4,
+              }}>
+                <Skeleton width={`${55 + (i % 4) * 10}%`} height={36} radius={18} />
+              </View>
+            ))}
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("inbox.errorTitle")}
+            message={t("inbox.errorBody")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : (
           <FlatList
             ref={listRef}

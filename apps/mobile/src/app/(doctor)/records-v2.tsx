@@ -7,7 +7,7 @@ import React from "react";
 import { View, ScrollView } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
-import { Screen, ScreenHeader, ListItem, Avatar, EmptyState } from "@/components/ui";
+import { Screen, ScreenHeader, ListItem, Avatar, EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import { useConsentsIssued } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { ShieldCheck, ChevronRight } from "lucide-react-native";
@@ -16,7 +16,7 @@ export default function DoctorRecordsV2() {
   const { t } = useTranslation();
   const router = useRouter();
   const { spacing, colors } = useTheme();
-  const { data, isLoading } = useConsentsIssued();
+  const { data, isLoading, isError, refetch } = useConsentsIssued();
 
   const items = (data?.items ?? []).filter((c: any) =>
     c.scope?.defaultScope?.includes("records_all") ||
@@ -40,11 +40,41 @@ export default function DoctorRecordsV2() {
 
   if (isLoading) {
     return (
+      <Screen padded={false} edges={["top"]}>
+        <ScreenHeader title={t("doctorPatientDetail.recordsTab", "Patient Records")} back />
+        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <View
+              key={i}
+              style={{
+                flexDirection: "row", alignItems: "center",
+                padding: spacing.md, borderRadius: 14,
+                backgroundColor: colors.surface,
+                borderWidth: 1, borderColor: colors.border,
+              }}
+            >
+              <Skeleton width={44} height={44} radius={22} style={{ marginRight: spacing.md }} />
+              <View style={{ flex: 1 }}>
+                <Skeleton width="55%" height={14} radius={4} style={{ marginBottom: 6 }} />
+                <Skeleton width="35%" height={12} radius={4} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
       <Screen padded>
         <ScreenHeader title={t("doctorPatientDetail.recordsTab", "Patient Records")} back />
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          {/* Fallback loading */}
-        </View>
+        <ErrorState
+          title={t("doctorPatientDetail.errorTitle", "Couldn't load records")}
+          message={t("doctorPatientDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       </Screen>
     );
   }

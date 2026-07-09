@@ -24,6 +24,8 @@ import {
   DateField,
   ScreenHeader,
   useToast,
+  Skeleton,
+  ErrorState,
 } from "@/components/ui";
 import { metaFor, type RecordType } from "@/lib/recordImportance";
 
@@ -50,7 +52,7 @@ export default function EditRecordScreen() {
   const { spacing, colors, typography, fontFamily } = useTheme();
   const toast = useToast();
 
-  const { data: record, isLoading } = useMedicalRecord(params.id);
+  const { data: record, isLoading, isError, refetch } = useMedicalRecord(params.id);
   const updateRec = useEditMedicalRecord();
   const deleteRec = useDeleteMedicalRecord();
 
@@ -141,11 +143,20 @@ export default function EditRecordScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         {isLoading ? (
-          <View style={{ padding: spacing.lg }}>
-            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-              {t("common.loading", { defaultValue: "Loading…" })}
-            </Text>
+          <View style={{ padding: spacing.lg, gap: spacing.md }}>
+            <Skeleton width="40%" height={20} radius={6} style={{ marginBottom: spacing.sm }} />
+            <Skeleton width="100%" height={56} radius={12} />
+            <Skeleton width="100%" height={56} radius={12} />
+            <Skeleton width="100%" height={120} radius={12} />
+            <Skeleton width={120} height={44} radius={22} />
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load record")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : (
           <View>
             {/* Attachment note */}

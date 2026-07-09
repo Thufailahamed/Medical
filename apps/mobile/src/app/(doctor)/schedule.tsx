@@ -20,7 +20,7 @@ import {
   Bell,
 } from "lucide-react-native";
 import { useDoctorScheduleRange } from "@/hooks/useApi";
-import { Screen } from "@/components/ui";
+import { Screen, ErrorState } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useLocaleStore } from "@/stores/locale";
 
@@ -97,7 +97,7 @@ export default function ScheduleScreen() {
   }, [weekStart]);
   const fromIso = toIso(weekStart);
 
-  const { data, isLoading } = useDoctorScheduleRange(fromIso, weekEnd);
+  const { data, isLoading, isError, refetch } = useDoctorScheduleRange(fromIso, weekEnd);
 
   const events = data?.events || [];
 
@@ -402,6 +402,13 @@ export default function ScheduleScreen() {
           <View style={{ paddingVertical: spacing.xxl, alignItems: "center" }}>
             <ActivityIndicator color={colors.primary} />
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load schedule")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : selectedEvents.length === 0 ? (
           <View
             style={{

@@ -268,6 +268,18 @@ export default function UnifiedLoginPage() {
             <a href="mailto:support@healthhub.app" className="hover:text-white transition-colors underline">
               Request access
             </a>
+            <a
+              href={
+                process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE
+                  ? `https://wa.me/${process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE}?text=${encodeURIComponent("Hi HealthHub, I need help signing in.")}`
+                  : "mailto:support@healthhub.app"
+              }
+              target="_blank"
+              rel="noopener"
+              className="hover:text-white transition-colors underline"
+            >
+              Chat on WhatsApp
+            </a>
             <Link href="/hospital/login" className="hover:text-white transition-colors underline">
               Hospital / lab login
             </Link>

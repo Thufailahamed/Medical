@@ -1,4 +1,7 @@
 // @ts-nocheck
+// Phase MVP-1: state pass — full Loading / Empty / Error / Content with
+// retry + pull-to-refresh. Skeleton rows for the loading state.
+
 import { useMemo, useCallback } from "react";
 import {
   View,
@@ -6,7 +9,7 @@ import {
   Pressable,
   FlatList,
   Image,
-  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -14,7 +17,7 @@ import { Inbox, MessageSquarePlus } from "lucide-react-native";
 import {
   useDoctorConversations,
 } from "@/hooks/useApi";
-import { Screen } from "@/components/ui";
+import { Screen, EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useLocaleStore } from "@/stores/locale";
 
@@ -37,12 +40,31 @@ function timeAgo(iso: string, locale: string): string {
   });
 }
 
+function ConversationRowSkeleton({ colors, spacing }: any) {
+  return (
+    <View style={{
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    }}>
+      <Skeleton width={48} height={48} radius={24} style={{ marginRight: spacing.md }} />
+      <View style={{ flex: 1 }}>
+        <Skeleton width="60%" height={14} radius={4} style={{ marginBottom: 8 }} />
+        <Skeleton width="40%" height={12} radius={4} />
+      </View>
+    </View>
+  );
+}
+
 export default function InboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
   const locale = useLocaleStore((s) => s.locale);
-  const { data, isLoading } = useDoctorConversations();
+  const { data, isLoading, isError, refetch, isRefetching } = useDoctorConversations();
 
   const conversations = data?.conversations || [];
   const totalUnread = data?.totalUnread || 0;
@@ -237,9 +259,18 @@ export default function InboxScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ paddingVertical: spacing.xxl, alignItems: "center" }}>
-          <ActivityIndicator color={colors.primary} />
+        <View style={{ flex: 1 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <ConversationRowSkeleton key={i} colors={colors} spacing={spacing} />
+          ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("inbox.errorTitle")}
+          message={t("inbox.errorBody")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : conversations.length === 0 ? (
         <View
           style={{
@@ -249,71 +280,13 @@ export default function InboxScreen() {
             justifyContent: "center",
           }}
         >
-          <View
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 48,
-              backgroundColor: colors.primarySoft,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: spacing.lg,
-            }}
-          >
-            <Inbox size={42} color={colors.primary} strokeWidth={1.6} />
-          </View>
-          <Text
-            style={[
-              typography.display.md,
-              {
-                color: colors.text,
-                fontFamily: fontFamily.displayBold,
-                textAlign: "center",
-              },
-            ]}
-          >
-            {t("inbox.emptyTitle")}
-          </Text>
-          <Text
-            style={[
-              typography.body,
-              {
-                color: colors.textSubtle,
-                textAlign: "center",
-                marginTop: 8,
-                maxWidth: 300,
-                lineHeight: 22,
-              },
-            ]}
-          >
-            {t("inbox.emptyBody")}
-          </Text>
-          <Pressable
-            onPress={() => router.push("/(doctor)/prescription" as any)}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              marginTop: spacing.lg,
-              paddingHorizontal: spacing.lg,
-              paddingVertical: spacing.md,
-              borderRadius: radius.full,
-              backgroundColor: colors.primary,
-              opacity: pressed ? 0.85 : 1,
-            })}
-          >
-            <MessageSquarePlus size={18} color="#FFFFFF" />
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 14,
-                fontWeight: "700",
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
-              {t("inbox.startCta")}
-            </Text>
-          </Pressable>
+          <EmptyState
+            icon={<Inbox size={42} color={colors.primary} strokeWidth={1.6} />}
+            title={t("inbox.emptyTitle")}
+            message={t("inbox.emptyBody")}
+            actionLabel={t("inbox.startCta")}
+            onAction={() => router.push("/(doctor)/prescription" as any)}
+          />
         </View>
       ) : (
         <FlatList
@@ -321,6 +294,13 @@ export default function InboxScreen() {
           keyExtractor={(c) => c.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={() => refetch()}
+              tintColor={colors.primary}
+            />
+          }
         />
       )}
     </Screen>

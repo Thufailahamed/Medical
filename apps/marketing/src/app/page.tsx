@@ -2507,6 +2507,19 @@ export default function HomePage() {
           <h4>Company</h4>
           <ul>
             <li><a href="mailto:hello@healthhub.app">hello@healthhub.app</a></li>
+            <li>
+              <a
+                href={
+                  process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE
+                    ? `https://wa.me/${process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE}?text=${encodeURIComponent("Hi HealthHub, ")}`
+                    : "https://wa.me/94771234567?text=Hi%20HealthHub%2C%20"
+                }
+                rel="noopener"
+                target="_blank"
+              >
+                Chat on WhatsApp
+              </a>
+            </li>
             <li><Link href="/privacy">Privacy</Link></li>
             <li><Link href="/terms">Terms</Link></li>
             <li><Link href="/login">Sign in</Link></li>

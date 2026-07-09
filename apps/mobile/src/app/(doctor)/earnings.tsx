@@ -22,7 +22,7 @@ import {
   useDoctorEarningsTimeseries,
   useDoctorPayouts,
 } from "@/hooks/useApi";
-import { Screen } from "@/components/ui";
+import { Screen, ErrorState } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 
 const PERIODS = [
@@ -126,7 +126,7 @@ export default function EarningsScreen() {
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
   const [period, setPeriod] = useState<"week" | "month" | "quarter" | "year">("month");
 
-  const { data: summary, isLoading } = useDoctorEarningsSummary(period);
+  const { data: summary, isLoading, isError, refetch } = useDoctorEarningsSummary(period);
   const { data: payoutData, isLoading: payoutsLoading } = useDoctorPayouts(20);
 
   const from = summary?.start || "";
@@ -146,6 +146,19 @@ export default function EarningsScreen() {
   const handlePeriod = useCallback((p: typeof PERIODS[number]["key"]) => {
     setPeriod(p);
   }, []);
+
+  if (isError) {
+    return (
+      <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load earnings")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>

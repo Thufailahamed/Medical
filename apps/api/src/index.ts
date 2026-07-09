@@ -339,4 +339,40 @@ export default {
       console.error("email handler error:", err);
     }
   },
+  async scheduled(event: any, env: any, ctx: any) {
+    const now = new Date();
+    const utcHour = now.getUTCHours();
+    const utcMin = now.getUTCMinutes();
+    const paths: string[] = [];
+
+    // 1. Dose reminders: run every 5 minutes (every trigger)
+    paths.push("/__cron/dose-reminders");
+
+    // 2. Hourly tasks (bookings + post-visit summaries): run once an hour (between minute 5 and 10)
+    if (utcMin >= 5 && utcMin < 10) {
+      paths.push("/__cron/booking-reminders");
+      paths.push("/__cron/post-visit-summary");
+    }
+
+    // 3. Daily tasks (refills + vaccinations): run once a day around 03:35 UTC (between minute 35 and 40)
+    if (utcHour === 3 && utcMin >= 35 && utcMin < 40) {
+      paths.push("/__cron/refill-reminders");
+      paths.push("/__cron/vaccination-reminders");
+    }
+
+    // 4. Daily tasks (reclassify sweep): run once a day around 23:30 UTC (between minute 30 and 35)
+    if (utcHour === 23 && utcMin >= 30 && utcMin < 35) {
+      paths.push("/__cron/reclassify");
+    }
+
+    for (const path of paths) {
+      const req = new Request(`http://localhost${path}`, {
+        method: "POST",
+        headers: {
+          "x-cron-secret": env.CRON_SECRET || "",
+        },
+      });
+      ctx.waitUntil(app.fetch(req, env, ctx));
+    }
+  },
 } satisfies ExportedHandler<any>;

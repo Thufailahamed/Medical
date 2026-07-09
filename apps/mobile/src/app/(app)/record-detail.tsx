@@ -8,7 +8,6 @@ import {
   Pressable,
   Image,
   Linking,
-  ActivityIndicator,
   Share,
   Alert,
   Modal,
@@ -55,6 +54,8 @@ import {
   useToast,
   Screen,
   IconButton,
+  ErrorState,
+  Skeleton,
 } from "@/components/ui";
 import { metaFor, type RecordType } from "@/lib/recordImportance";
 import { FamilyPickerSheet } from "@/components/FamilyPickerSheet";
@@ -154,7 +155,7 @@ export default function RecordDetailScreen() {
 
   const TYPE_META = useMemo(() => buildTypeMeta(t, colors), [t, colors]);
 
-  const { data: record, isLoading, refetch } = useMedicalRecord(params.id);
+  const { data: record, isLoading, isError, refetch } = useMedicalRecord(params.id);
   const updateTags = useUpdateRecordTags();
   const archiveRec = useArchiveRecord();
   const restoreRec = useRestoreRecord();
@@ -370,7 +371,38 @@ export default function RecordDetailScreen() {
     }
   }
 
-  if (isLoading || !record) {
+  if (isLoading || (!record && !isError)) {
+    return (
+      <Screen padded={false} edges={["top"]}>
+        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <Skeleton width="60%" height={28} radius={6} />
+          <Skeleton width="40%" height={14} radius={4} />
+          <View style={{ flexDirection: "row", gap: 8, marginTop: spacing.sm }}>
+            <Skeleton width={80} height={22} radius={11} />
+            <Skeleton width={90} height={22} radius={11} />
+          </View>
+          <Skeleton width="100%" height={120} radius={12} style={{ marginTop: spacing.md }} />
+          <Skeleton width="100%" height={120} radius={12} />
+          <Skeleton width="100%" height={120} radius={12} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Screen padded={false} edges={["top"]}>
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load record")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
+      </Screen>
+    );
+  }
+
+  if (!record) {
     return (
       <Screen padded={false} edges={["top"]}>
         <View
@@ -380,33 +412,29 @@ export default function RecordDetailScreen() {
             justifyContent: "center",
           }}
         >
-          {isLoading ? (
-            <ActivityIndicator size="large" color={colors.primary} />
-          ) : (
-            <Card style={{ margin: spacing.lg, padding: spacing.lg }}>
-              <Text style={[typography.title.md, { fontWeight: "700" }]}>
-                {t("recordDetail.notFound.title")}
-              </Text>
-              <Text
-                style={[
-                  typography.body.sm,
-                  {
-                    color: colors.textMuted,
-                    marginTop: spacing.xs,
-                  },
-                ]}
-              >
-                {t("recordDetail.notFound.body")}
-              </Text>
-              <Button
-                title={t("recordDetail.notFound.back")}
-                variant="primary"
-                size="md"
-                onPress={() => router.back()}
-                style={{ marginTop: spacing.md }}
-              />
-            </Card>
-          )}
+          <Card style={{ margin: spacing.lg, padding: spacing.lg }}>
+            <Text style={[typography.title.md, { fontWeight: "700" }]}>
+              {t("recordDetail.notFound.title")}
+            </Text>
+            <Text
+              style={[
+                typography.body.sm,
+                {
+                  color: colors.textMuted,
+                  marginTop: spacing.xs,
+                },
+              ]}
+            >
+              {t("recordDetail.notFound.body")}
+            </Text>
+            <Button
+              title={t("recordDetail.notFound.back")}
+              variant="primary"
+              size="md"
+              onPress={() => router.back()}
+              style={{ marginTop: spacing.md }}
+            />
+          </Card>
         </View>
       </Screen>
     );

@@ -251,8 +251,21 @@ function LoginForm() {
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-500">
               Need help signing in?{" "}
+              <a
+                href={
+                  process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE
+                    ? `https://wa.me/${process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE}?text=${encodeURIComponent("Hi HealthHub, I need help signing in to the clinician portal.")}`
+                    : "mailto:support@healthhub.app"
+                }
+                target="_blank"
+                rel="noopener"
+                className="text-sky-500 hover:text-sky-600 font-medium transition-colors"
+              >
+                Chat on WhatsApp
+              </a>
+              <span className="text-gray-400"> · </span>
               <a href="mailto:support@healthhub.app" className="text-sky-500 hover:text-sky-600 font-medium transition-colors">
-                Contact support
+                Email
               </a>
             </p>
           </div>

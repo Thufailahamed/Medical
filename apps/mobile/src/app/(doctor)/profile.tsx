@@ -44,7 +44,7 @@ import {
   useUnreadCount,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Screen, Card, Skeleton, Button } from "@/components/ui";
+import { Screen, Card, Skeleton, ErrorState, Button } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
 
@@ -212,7 +212,7 @@ export default function DoctorProfileScreen() {
     router.replace("/(auth)/login" as any);
   }
 
-  const { data, isLoading } = useDoctorMe();
+  const { data, isLoading, isError, refetch } = useDoctorMe();
   const { data: dashboard } = useDoctorDashboard();
   const { data: queue } = useDoctorQueue();
   const { data: rxData } = useDoctorPrescriptions();
@@ -239,6 +239,19 @@ export default function DoctorProfileScreen() {
   const labCount = labData?.orders?.length ?? 0;
   const followCount = followData?.followUps?.length ?? 0;
   const unreadN = unread?.count ?? 0;
+
+  if (isError) {
+    return (
+      <Screen padded={false} edges={["top"]} bottomInset={false}>
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load profile")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
+      </Screen>
+    );
+  }
 
   if (isLoading || !doctor || !dbUser) {
     return (

@@ -43,6 +43,7 @@ import {
   IconButton,
   Skeleton,
   EmptyState,
+  ErrorState,
   useToast,
 } from "@/components/ui";
 import { VitalsChart, AlertsCard, DerivedMetricsCard, ClassificationBadge } from "@/components/vitals";
@@ -82,7 +83,7 @@ export default function VitalsScreen() {
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
   const locale = useLocaleStore((s) => s.locale);
-  const { data, isLoading } = useVitals();
+  const { data, isLoading, isError, refetch } = useVitals();
   const addVital = useAddVital();
   const deleteVital = useDeleteVital();
   const { data: derivedData } = useVitalsDerived();
@@ -314,6 +315,13 @@ export default function VitalsScreen() {
           <Skeleton height={84} radius={16} />
           <Skeleton height={84} radius={16} />
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load vitals")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={{

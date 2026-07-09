@@ -52,6 +52,9 @@ export default {
       // (no `+` or `wa.me/` prefix), e.g. "94771234567". When unset the
       // "Continue with WhatsApp" button is hidden from the login screen.
       waPhone: process.env.EXPO_PUBLIC_WA_PHONE || "",
+      // Support WhatsApp number — wa.me deep-link from the Support screen
+      // and appointment-detail help CTA. Same digits-only format.
+      waSupportPhone: process.env.EXPO_PUBLIC_WA_SUPPORT_PHONE || "",
     },
   },
 };

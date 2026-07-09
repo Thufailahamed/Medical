@@ -77,7 +77,8 @@
     "heroSubtitle": "Reach the team or browse common questions below.",
     "contactHeading": "CONTACT",
     "contactEmailLabel": "Email support",
-    "contactChatLabel": "Text us",
+    "contactChatLabel": "Chat on WhatsApp",
+    "contactChatSubtitle": "Mon–Fri, 9:00–18:00 IST · reply within 4h",
     "contactCallLabel": "Call support",
     "hoursLabel": "Mon–Fri, 9:00–18:00 IST",
     "faqHeading": "FREQUENTLY ASKED",
@@ -1588,6 +1589,8 @@
     }
   },
   "recordDetail": {
+    "errorTitle": "Couldn't load record",
+    "errorBody": "Check your connection and try again.",
     "shareFooter": "Shared from HealthHub",
     "shareTitleFallback": "Record",
     "notFound": {
@@ -1823,7 +1826,9 @@
     "rateTitle": "How was your visit?",
     "rateBody": "Tap a star to rate Dr {{name}}. Helps other patients.",
     "rateCta": "Rate this visit",
-    "youRated": "You rated this visit ★ {{stars}}"
+    "youRated": "You rated this visit ★ {{stars}}",
+    "helpCta": "Need help with this visit?",
+    "helpBody": "Chat with us on WhatsApp — usually replies within an hour."
   },
   "bookAppointment": {
     "title": "Book appointment",
@@ -2725,6 +2730,8 @@
     "saveAction": "Save reading"
   },
   "doctorPatientDetail": {
+    "errorTitle": "Couldn't load records",
+    "errorBody": "Check your connection and try again.",
     "fallbackTitle": "Patient",
     "loadingTitle": "Patient",
     "noPatientTitle": "No patient",
@@ -3214,7 +3221,9 @@
     "notFound": "Conversation not found",
     "noMessagesYet": "No messages yet — say hello.",
     "composerPlaceholder": "Type a message…",
-    "youPrefix": "You:"
+    "youPrefix": "You:",
+    "errorTitle": "Couldn't load messages",
+    "errorBody": "Check your connection and try again."
   },
   "schedule": {
     "title": "Schedule",
@@ -3260,6 +3269,8 @@
     "noMeds": "No medicines",
     "emptyTitle": "No templates yet",
     "emptyBody": "Create a template to autofill the prescription composer with one tap.",
+    "errorTitle": "Couldn't load templates",
+    "errorBody": "Check your connection and try again.",
     "deleteTitle": "Delete template?",
     "deleteMessage": "Delete \"{{name}}\" — this can't be undone.",
     "deleteCta": "Delete template",

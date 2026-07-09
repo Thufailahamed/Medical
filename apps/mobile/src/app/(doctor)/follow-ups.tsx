@@ -23,6 +23,7 @@ import {
   Card,
   Pill as PillCmp,
   EmptyState,
+  ErrorState,
   Skeleton,
   ChipGroup,
   useToast,
@@ -45,7 +46,7 @@ export default function FollowUpsScreen() {
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const [tab, setTab] = useState("upcoming");
-  const { data, isLoading } = useFollowUps({ upcoming: tab === "upcoming" });
+  const { data, isLoading, isError, refetch } = useFollowUps({ upcoming: tab === "upcoming" });
   const updateStatus = useUpdateFollowUpStatus();
 
   const TABS = [
@@ -123,6 +124,13 @@ export default function FollowUpsScreen() {
             <Skeleton key={i} height={120} radius={20} />
           ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load follow-ups")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : list.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
           <EmptyState

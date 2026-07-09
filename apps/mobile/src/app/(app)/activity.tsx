@@ -20,6 +20,7 @@ import {
   ListItem,
   Skeleton,
   EmptyState,
+  ErrorState,
 } from "@/components/ui";
 
 // ACTION_META stores i18n keys (not raw strings) so translators can swap
@@ -49,7 +50,7 @@ export default function ActivityScreen() {
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography } = useTheme();
-  const { data, isLoading } = useAuditLog();
+  const { data, isLoading, isError, refetch } = useAuditLog();
   const entries: any[] = data?.auditLogs || [];
 
   return (
@@ -64,6 +65,13 @@ export default function ActivityScreen() {
           <Skeleton height={64} radius={16} />
           <Skeleton height={64} radius={16} />
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load activity")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : entries.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
           <EmptyState

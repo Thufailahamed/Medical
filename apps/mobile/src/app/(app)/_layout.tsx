@@ -331,6 +331,10 @@ export default function AppLayout() {
         name="audit"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="rate-visit/[appointmentId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

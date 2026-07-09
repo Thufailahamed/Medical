@@ -34,6 +34,7 @@ import {
   FormField,
   Button,
   EmptyState,
+  ErrorState,
   IconButton,
   useToast,
 } from "@/components/ui";
@@ -43,7 +44,7 @@ export default function VaccinationsScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
-  const { data, isLoading } = useVaccinations();
+  const { data, isLoading, isError, refetch } = useVaccinations();
   const { data: dueData, isLoading: dueLoading } = useVaccinationsDue();
   const addVaccination = useAddVaccination();
 
@@ -128,6 +129,13 @@ export default function VaccinationsScreen() {
         {/* Status banners */}
         {isLoading || dueLoading ? (
           <ActivityIndicator color={colors.primary} />
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load vaccinations")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : (
           <>
             {overdue.length > 0 && (

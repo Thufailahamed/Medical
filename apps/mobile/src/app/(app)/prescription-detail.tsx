@@ -27,6 +27,7 @@ import {
   Button,
   Skeleton,
   EmptyState,
+  ErrorState,
   useToast,
 } from "@/components/ui";
 
@@ -36,7 +37,7 @@ export default function PatientPrescriptionDetailScreen() {
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading } = useMyPrescription(id);
+  const { data, isLoading, isError, refetch } = useMyPrescription(id);
   const [downloading, setDownloading] = useState(false);
   const createShare = useCreateShareLink();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -94,6 +95,15 @@ export default function PatientPrescriptionDetailScreen() {
           <Skeleton height={120} radius={radius.lg} />
           <Skeleton height={180} radius={radius.lg} />
           <Skeleton height={80} radius={radius.lg} />
+        </View>
+      ) : isError ? (
+        <View style={{ padding: spacing.xl }}>
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load prescription")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         </View>
       ) : !rx ? (
         <View style={{ padding: spacing.xl }}>

@@ -24,6 +24,7 @@ import {
   Screen,
   ScreenHeader,
   EmptyState,
+  ErrorState,
   Skeleton,
   IconButton,
   useToast,
@@ -34,7 +35,7 @@ export default function DoctorPrescriptionsScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
-  const { data, isLoading, refetch } = useDoctorPrescriptions();
+  const { data, isLoading, isError, refetch } = useDoctorPrescriptions();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("");
   const [scope, setScope] = useState<"all" | "recent">("recent");
@@ -194,6 +195,13 @@ export default function DoctorPrescriptionsScreen() {
               <Skeleton key={i} height={92} radius={18} />
             ))}
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load prescriptions")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             style={{ marginTop: spacing.xl }}

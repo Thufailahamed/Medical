@@ -77,7 +77,8 @@
     "heroSubtitle": "කණ්ඩායම සම්බන්ධ කර ගන්න හෝ පහත පොදු ප්‍රශ්න බලන්න.",
     "contactHeading": "සම්බන්ධතා",
     "contactEmailLabel": "ඊමේල් සහාය",
-    "contactChatLabel": "අපට පණිවිඩය යවන්න",
+    "contactChatLabel": "WhatsApp හරහා කතා කරන්න",
+    "contactChatSubtitle": "සඳු-සිකු, උදේ 9:00 – සවස 6:00 · පැය 4 කින් පිළිතුර",
     "contactCallLabel": "සහාය ඇමතුම",
     "hoursLabel": "සඳු-සිකු, උදේ 9:00 – සවස 6:00",
     "faqHeading": "නිතර අසන ප්‍රශ්න",
@@ -2043,6 +2044,8 @@
     "subtitle": "කාල-සීමාව. සෑම ස්කෑන් එකක්ම ලොග් වේ."
   },
   "doctorPatientDetail": {
+    "errorTitle": "වාර්තා පූරණය කළ නොහැකි විය",
+    "errorBody": "ඔබේ අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
     "empty": "තවම රෝගීන් නැත",
     "emptyBody": "ඔබට වාර්තා ප්‍රවේශය දෙන රෝගීන් මෙහි පෙන්වනු ඇත.",
     "recordsTab": "වාර්තා",
@@ -2303,6 +2306,8 @@
     }
   },
   "recordDetail": {
+    "errorTitle": "වාර්තාව පූරණය කළ නොහැකි විය",
+    "errorBody": "ඔබේ අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
     "shareFooter": "Shared from HealthHub",
     "shareTitleFallback": "Record",
     "notFound": {
@@ -2500,7 +2505,9 @@
     "rateTitle": "How was your visit?",
     "rateBody": "Tap a star to rate Dr {{name}}. Helps other patients.",
     "rateCta": "Rate this visit",
-    "youRated": "You rated this visit ★ {{stars}}"
+    "youRated": "You rated this visit ★ {{stars}}",
+    "helpCta": "මෙම පැමිණිල්ල සම්බන්ධයෙන් උදව් අවශ්‍යද?",
+    "helpBody": "WhatsApp හරහා අප සමඟ කතා කරන්න — සාමාන්‍යයෙන් පැයකින් පිළිතුරු ලැබේ."
   },
   "bookAppointment": {
     "title": "Book appointment",
@@ -3592,7 +3599,9 @@
     "notFound": "Conversation not found",
     "noMessagesYet": "No messages yet — say hello.",
     "composerPlaceholder": "Type a message…",
-    "youPrefix": "You:"
+    "youPrefix": "You:",
+    "errorTitle": "පණිවුඩ පූරණය කළ නොහැකි විය",
+    "errorBody": "ඔබේ අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න."
   },
   "schedule": {
     "title": "Schedule",
@@ -3638,6 +3647,8 @@
     "noMeds": "No medicines",
     "emptyTitle": "No templates yet",
     "emptyBody": "Create a template to autofill the prescription composer with one tap.",
+    "errorTitle": "අච්චු පූරණය කළ නොහැකි විය",
+    "errorBody": "ඔබේ අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
     "deleteTitle": "Delete template?",
     "deleteMessage": "Delete \"{{name}}\" — this can't be undone.",
     "deleteCta": "Delete template",

@@ -5,7 +5,6 @@ import {
   View,
   Text,
   ScrollView,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -34,6 +33,8 @@ import {
   ChipGroup,
   Timeline,
   EmptyState,
+  ErrorState,
+  Skeleton,
   Card,
 } from "@/components/ui";
 
@@ -99,7 +100,7 @@ export default function TimelineScreen() {
   const locale = useLocaleStore((s) => s.locale);
   const [filter, setFilter] = useState<TimelineEventKind | "all">("all");
 
-  const { data, isLoading, refetch, isFetching } = useUnifiedTimeline({
+  const { data, isLoading, isError, refetch, isFetching } = useUnifiedTimeline({
     type: filter,
   });
 
@@ -145,7 +146,19 @@ export default function TimelineScreen() {
         }
       >
         {isLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+          <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
+            <Skeleton width={"100%"} height={88} radius={radius.lg} />
+            <Skeleton width={"100%"} height={88} radius={radius.lg} />
+            <Skeleton width={"100%"} height={88} radius={radius.lg} />
+            <Skeleton width={"40%"} height={16} radius={radius.sm} />
+          </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle")}
+            message={t("recordDetail.errorBody")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : events.length === 0 ? (
           <EmptyState
             icon={History}

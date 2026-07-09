@@ -27,6 +27,7 @@ import {
   Avatar,
   Pill,
   EmptyState,
+  ErrorState,
   Skeleton,
   Button,
   useToast,
@@ -42,7 +43,7 @@ export default function DoctorQueue() {
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
 
-  const { data, isLoading } = useDoctorQueue();
+  const { data, isLoading, isError, refetch } = useDoctorQueue();
   const updateStatus = useUpdateAppointmentStatus();
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -93,6 +94,13 @@ export default function DoctorQueue() {
             <Skeleton key={i} height={88} radius={20} />
           ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load queue")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : queue.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
           <EmptyState

@@ -40,6 +40,7 @@ import {
   Avatar,
   Pill as PillCmp,
   EmptyState,
+  ErrorState,
   Skeleton,
   SectionHeader,
   ListItem,
@@ -58,7 +59,7 @@ export default function DoctorPatientDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>("summary");
 
-  const { data, isLoading } = usePatientSummary(id || null);
+  const { data, isLoading, isError, refetch } = usePatientSummary(id || null);
   const { data: overview, isLoading: overviewLoading } = usePatientOverview(id || null);
 
   if (!id) {
@@ -68,6 +69,20 @@ export default function DoctorPatientDetail() {
           icon={User}
           title={t("doctorPatientDetail.noPatientTitle")}
           message={t("doctorPatientDetail.noPatientBody")}
+        />
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Screen padded={false} edges={["top"]} bottomInset>
+        <ScreenHeader back onBack={() => router.back()} title={t("doctorPatientDetail.loadingTitle")} />
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load patient")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
         />
       </Screen>
     );

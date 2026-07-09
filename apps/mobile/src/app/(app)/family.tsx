@@ -30,6 +30,7 @@ import {
   IconButton,
   ListItem,
   EmptyState,
+  ErrorState,
   Skeleton,
   Avatar,
   Card,
@@ -82,7 +83,7 @@ export default function FamilyScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
-  const { data, isLoading } = useFamilyMembers();
+  const { data, isLoading, isError, refetch } = useFamilyMembers();
   const addMember = useAddFamilyMember();
   const deleteMember = useDeleteFamilyMember();
   const toggleLock = useToggleFamilyLock();
@@ -522,6 +523,13 @@ export default function FamilyScreen() {
               <Skeleton key={i} height={84} radius={20} />
             ))}
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load family")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : family.length === 0 ? (
           <EmptyState
             icon={Users}

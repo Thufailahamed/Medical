@@ -20,6 +20,7 @@ import {
   Screen,
   ScreenHeader,
   EmptyState,
+  ErrorState,
   Skeleton,
   ListItem,
   Timeline,
@@ -72,7 +73,7 @@ export default function NotificationsScreen() {
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography } = useTheme();
-  const { data, isLoading } = useNotifications();
+  const { data, isLoading, isError, refetch } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllRead();
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -155,6 +156,13 @@ export default function NotificationsScreen() {
             <Skeleton key={i} height={90} radius={20} />
           ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load notifications")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Bell}

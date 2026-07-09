@@ -5,7 +5,7 @@ import {
   Text,
   Pressable,
   FlatList,
-  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
@@ -20,14 +20,14 @@ import {
   useDoctorRxTemplates,
   useDeleteRxTemplate,
 } from "@/hooks/useApi";
-import { Screen } from "@/components/ui";
+import { Screen, EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function RxTemplatesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
-  const { data, isLoading } = useDoctorRxTemplates();
+  const { data, isLoading, isError, refetch, isRefetching } = useDoctorRxTemplates();
   const deleteMutation = useDeleteRxTemplate();
 
   const handleDelete = useCallback(
@@ -216,64 +216,46 @@ export default function RxTemplatesScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ paddingVertical: spacing.xxl, alignItems: "center" }}>
-          <ActivityIndicator color={colors.primary} />
+        <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View key={i} style={{
+              flexDirection: "row", alignItems: "center",
+              padding: spacing.md, marginBottom: spacing.sm,
+              borderRadius: radius.md, backgroundColor: colors.surface,
+              borderWidth: 1, borderColor: colors.border,
+            }}>
+              <Skeleton width={44} height={44} radius={14} style={{ marginRight: spacing.md }} />
+              <View style={{ flex: 1 }}>
+                <Skeleton width="60%" height={14} radius={4} style={{ marginBottom: 6 }} />
+                <Skeleton width="40%" height={12} radius={4} />
+              </View>
+            </View>
+          ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("rxTemplates.errorTitle")}
+          message={t("rxTemplates.errorBody")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : (data?.templates?.length ?? 0) === 0 ? (
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: spacing.xl,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <View
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 48,
-              backgroundColor: colors.primarySoft,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: spacing.lg,
-            }}
-          >
-            <Stethoscope size={42} color={colors.primary} strokeWidth={1.6} />
-          </View>
-          <Text
-            style={[
-              typography.display.md,
-              {
-                color: colors.text,
-                fontFamily: fontFamily.displayBold,
-                textAlign: "center",
-              },
-            ]}
-          >
-            {t("rxTemplates.emptyTitle")}
-          </Text>
-          <Text
-            style={[
-              typography.body,
-              {
-                color: colors.textSubtle,
-                textAlign: "center",
-                marginTop: 8,
-                maxWidth: 300,
-                lineHeight: 22,
-              },
-            ]}
-          >
-            {t("rxTemplates.emptyBody")}
-          </Text>
-        </View>
+        <EmptyState
+          icon={<Stethoscope size={42} color={colors.primary} strokeWidth={1.6} />}
+          title={t("rxTemplates.emptyTitle")}
+          message={t("rxTemplates.emptyBody")}
+          actionLabel={t("rxTemplates.newCta")}
+          onAction={() => router.push("/(doctor)/rx-templates/new" as any)}
+        />
       ) : (
         <FlatList
           data={data?.templates || []}
           keyExtractor={(t) => t.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingTop: spacing.sm, paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />
+          }
         />
       )}
     </Screen>

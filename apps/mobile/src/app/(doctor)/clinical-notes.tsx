@@ -18,6 +18,7 @@ import {
   Screen,
   ScreenHeader,
   EmptyState,
+  ErrorState,
   Skeleton,
 } from "@/components/ui";
 
@@ -25,7 +26,7 @@ export default function DoctorClinicalNotesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
-  const { data, isLoading, refetch } = useDoctorClinicalNotes();
+  const { data, isLoading, isError, refetch } = useDoctorClinicalNotes();
   const [refreshing, setRefreshing] = useState(false);
   const [q, setQ] = useState("");
 
@@ -128,6 +129,13 @@ export default function DoctorClinicalNotesScreen() {
               <Skeleton key={i} height={120} radius={18} />
             ))}
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load clinical notes")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             style={{ marginTop: spacing.xl }}

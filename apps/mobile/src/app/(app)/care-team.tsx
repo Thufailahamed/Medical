@@ -30,6 +30,7 @@ import {
   Card,
   Button,
   EmptyState,
+  ErrorState,
   Pill,
   useToast,
   Skeleton,
@@ -51,7 +52,7 @@ export default function CareTeamScreen() {
   const { data: profileData } = usePatientProfile();
   const patientId: string | null =
     profileData?.patient?.patients?.id ?? null;
-  const { data, isLoading } = useCareTeam(patientId);
+  const { data, isLoading, isError, refetch } = useCareTeam(patientId);
   const updateMember = useUpdateCareTeamMember();
   const createInvite = useCreateCareTeamInvite();
   const toast = useToast();
@@ -152,6 +153,13 @@ export default function CareTeamScreen() {
             <Skeleton height={72} />
             <Skeleton height={72} />
           </View>
+        ) : isError ? (
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load care team")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
         ) : members.length === 0 ? (
           <EmptyState
             icon={Stethoscope}

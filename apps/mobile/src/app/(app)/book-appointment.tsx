@@ -43,6 +43,7 @@ import {
   TimeSlots,
   NextActionCard,
   EmptyState,
+  ErrorState,
   Skeleton,
   BottomSheet,
   useToast,
@@ -85,7 +86,7 @@ export default function BookAppointmentScreen() {
   const debouncedQuery = useDebounce(query, 300);
 
   const { data: specialtiesData } = useSpecialties();
-  const { data: doctorsData, isLoading: doctorsLoading } = useDoctorSearch({
+  const { data: doctorsData, isLoading: doctorsLoading, isError, refetch } = useDoctorSearch({
     query: debouncedQuery || undefined,
     specialization: specialtyFilter || undefined,
   });
@@ -273,6 +274,13 @@ export default function BookAppointmentScreen() {
                 <Skeleton height={84} radius={16} />
                 <Skeleton height={84} radius={16} />
               </View>
+            ) : isError ? (
+              <ErrorState
+                title={t("recordDetail.errorTitle", "Couldn't load doctors")}
+                message={t("recordDetail.errorBody", "Check your connection and try again.")}
+                actionLabel={t("common.retry")}
+                onAction={() => refetch()}
+              />
             ) : doctors.length === 0 ? (
               <EmptyState
                 icon={Stethoscope}

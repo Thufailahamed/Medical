@@ -6,11 +6,12 @@ import {
   ScrollView,
   Pressable,
 } from "react-native";
+import Constants from "expo-constants";
 import {
   LifeBuoy,
   Mail,
   Phone,
-  MessageSquare,
+  MessageCircle,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -40,6 +41,12 @@ const CONTACT = {
   phone: "+94 11 234 5678",
 };
 
+// WhatsApp Business support — reads from app.config.js `extra.waSupportPhone`.
+// Same Meta business number as the WA webhook in apps/api/wrangler.toml.
+// Falls back to empty (tile hidden) if unset.
+const WA_SUPPORT_PHONE: string =
+  (Constants.expoConfig?.extra as any)?.waSupportPhone || "";
+
 export default function SupportScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
@@ -53,8 +60,11 @@ export default function SupportScreen() {
     Linking.openURL(`tel:${CONTACT.phone.replace(/\s/g, "")}`);
   }
 
-  function openChat() {
-    Linking.openURL(`sms:${CONTACT.phone.replace(/\s/g, "")}`);
+  function openWhatsApp() {
+    if (!WA_SUPPORT_PHONE) return;
+    // wa.me deep-link works in WhatsApp mobile app and web.whatsapp.com.
+    const text = encodeURIComponent("Hi HealthHub support, ");
+    Linking.openURL(`https://wa.me/${WA_SUPPORT_PHONE}?text=${text}`);
   }
 
   return (
@@ -115,14 +125,16 @@ export default function SupportScreen() {
               onPress={openEmail}
               trailing={<ExternalLink size={16} color={colors.textMuted} />}
             />
-            <ListItem
-              icon={MessageSquare}
-              iconTone="accent2"
-              title={t("support.contactChatLabel")}
-              subtitle={`${CONTACT.phone} · ${t("support.hoursLabel")}`}
-              onPress={openChat}
-              trailing={<ExternalLink size={16} color={colors.textMuted} />}
-            />
+            {WA_SUPPORT_PHONE ? (
+              <ListItem
+                icon={MessageCircle}
+                iconTone="accent2"
+                title={t("support.contactChatLabel")}
+                subtitle={t("support.contactChatSubtitle")}
+                onPress={openWhatsApp}
+                trailing={<ExternalLink size={16} color={colors.textMuted} />}
+              />
+            ) : null}
             <ListItem
               icon={Phone}
               iconTone="success"

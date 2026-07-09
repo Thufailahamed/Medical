@@ -51,6 +51,7 @@ import {
   Skeleton,
   Pill,
   EmptyState,
+  ErrorState,
   DoseRing,
 } from "@/components/ui";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
@@ -65,6 +66,7 @@ export default function DoctorHub() {
   const {
     data: dashboard,
     isLoading,
+    isError,
     refetch: refetchDashboard,
   } = useDoctorDashboard();
   const { data: queueData, refetch: refetchQueue } = useDoctorQueue();
@@ -585,6 +587,13 @@ export default function DoctorHub() {
                 <Skeleton height={72} radius={radius.xl} />
                 <Skeleton height={72} radius={radius.xl} />
               </View>
+            ) : isError ? (
+              <ErrorState
+                title={t("recordDetail.errorTitle", "Couldn't load dashboard")}
+                message={t("recordDetail.errorBody", "Check your connection and try again.")}
+                actionLabel={t("common.retry")}
+                onAction={() => refetchDashboard()}
+              />
             ) : queueList.length === 0 ? (
               <EmptyState
                 icon={Clock4}

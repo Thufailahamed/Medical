@@ -3,6 +3,9 @@
 // Patients CANNOT start a conversation; only the doctor can initiate.
 // If there are no open conversations, a neutral empty state is shown
 // without any CTA to start a chat.
+//
+// Phase MVP-1: state pass — full Loading / Empty / Error / Content with
+// retry. Pull-to-refresh re-uses the React Query refetch.
 
 import { useMemo, useCallback } from "react";
 import {
@@ -11,13 +14,13 @@ import {
   Pressable,
   FlatList,
   Image,
-  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MessageCircle } from "lucide-react-native";
 import { usePatientConversations } from "@/hooks/useApi";
-import { Screen } from "@/components/ui";
+import { Screen, EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useLocaleStore } from "@/stores/locale";
 
@@ -35,11 +38,30 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
+function ConversationRowSkeleton({ colors, spacing }: any) {
+  return (
+    <View style={{
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    }}>
+      <Skeleton width={48} height={48} radius={24} style={{ marginRight: spacing.md }} />
+      <View style={{ flex: 1 }}>
+        <Skeleton width="60%" height={14} radius={4} style={{ marginBottom: 8 }} />
+        <Skeleton width="40%" height={12} radius={4} />
+      </View>
+    </View>
+  );
+}
+
 export default function PatientInboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, spacing, typography, fontFamily } = useTheme();
-  const { data, isLoading } = usePatientConversations();
+  const { data, isLoading, isError, refetch, isRefetching } = usePatientConversations();
 
   const conversations = data?.conversations || [];
   const totalUnread = data?.totalUnread || 0;
@@ -154,37 +176,38 @@ export default function PatientInboxScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ paddingVertical: spacing.xxl, alignItems: "center" }}>
-          <ActivityIndicator color={colors.primary} />
+        <View style={{ flex: 1 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <ConversationRowSkeleton key={i} colors={colors} spacing={spacing} />
+          ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("inbox.errorTitle")}
+          message={t("inbox.errorBody")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : conversations.length === 0 ? (
         /* Empty state — no CTA to start a chat */
-        <View style={{ flex: 1, paddingHorizontal: spacing.xl, alignItems: "center", justifyContent: "center" }}>
-          <View style={{
-            width: 96, height: 96, borderRadius: 48,
-            backgroundColor: colors.primarySoft, alignItems: "center",
-            justifyContent: "center", marginBottom: spacing.lg,
-          }}>
-            <MessageCircle size={42} color={colors.primary} strokeWidth={1.6} />
-          </View>
-          <Text style={[typography.display?.md ?? { fontSize: 22, fontWeight: "700" }, {
-            color: colors.text, fontFamily: fontFamily.displayBold, textAlign: "center",
-          }]}>
-            No messages yet
-          </Text>
-          <Text style={[typography.body, {
-            color: colors.textSubtle, textAlign: "center",
-            marginTop: 8, maxWidth: 280, lineHeight: 22,
-          }]}>
-            Your doctor will reach out here when needed. You'll receive a notification when a message arrives.
-          </Text>
-        </View>
+        <EmptyState
+          icon={<MessageCircle size={42} color={colors.primary} strokeWidth={1.6} />}
+          title={t("inbox.emptyTitle")}
+          message={t("inbox.emptyBody")}
+        />
       ) : (
         <FlatList
           data={conversations}
           keyExtractor={(c) => c.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={() => refetch()}
+              tintColor={colors.primary}
+            />
+          }
         />
       )}
     </Screen>

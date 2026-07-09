@@ -20,6 +20,7 @@ import {
   Card,
   Pill as PillCmp,
   EmptyState,
+  ErrorState,
   Skeleton,
   ChipGroup,
   useToast,
@@ -70,7 +71,7 @@ export default function LabOrdersList() {
   ];
 
   const [status, setStatus] = useState("");
-  const { data, isLoading } = useLabOrders(status);
+  const { data, isLoading, isError, refetch } = useLabOrders(status);
   const updateOrder = useUpdateLabOrder();
 
   const orders = data?.orders || [];
@@ -114,6 +115,13 @@ export default function LabOrdersList() {
             <Skeleton key={i} height={88} radius={20} />
           ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("recordDetail.errorTitle", "Couldn't load lab orders")}
+          message={t("recordDetail.errorBody", "Check your connection and try again.")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetch()}
+        />
       ) : orders.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
           <EmptyState
