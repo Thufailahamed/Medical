@@ -41,6 +41,7 @@ import { requireRole } from "../middleware/rbac";
 import { audit } from "../lib/audit";
 import { txWrite } from "../lib/tx";
 import { withStatusGuard } from "../lib/status-guard";
+import { notify } from "../lib/notifications";
 import {
   generateKeyPair,
   importPrivateKey,
@@ -245,6 +246,26 @@ router.post(
         signatureId: sig?.id,
       },
     });
+
+    const [patient] = await db
+      .select({ userId: patients.userId })
+      .from(patients)
+      .where(eq(patients.id, snap.rx.patientId))
+      .limit(1);
+    if (patient?.userId) {
+      await notify({
+        db,
+        userId: patient.userId,
+        type: "prescription",
+        title: "New e-prescription ready",
+        body: "Your doctor has signed a new e-prescription.",
+        data: {
+          kind: "prescription_signed",
+          prescriptionId,
+          doctorId: doctor.id,
+        },
+      });
+    }
 
     return c.json({
       prescriptionId,

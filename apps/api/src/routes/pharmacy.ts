@@ -29,12 +29,12 @@ import {
   patients,
   users,
   hospitals,
-  clinics,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { applyRxTransition } from "../lib/rxStatus";
 import { audit } from "../lib/audit";
+import { notify } from "../lib/notifications";
 import type { AppEnvironment } from "../types";
 
 const router = new Hono<AppEnvironment>();
@@ -71,7 +71,6 @@ async function loadRxForPharmacy(
       id: prescriptions.id,
       patientId: prescriptions.patientId,
       hospitalId: prescriptions.hospitalId,
-      clinicId: prescriptions.clinicId,
       status: prescriptions.status,
     })
     .from(prescriptions)
@@ -81,7 +80,10 @@ async function loadRxForPharmacy(
   if (tenant.hospitalId && row.hospitalId && row.hospitalId !== tenant.hospitalId) {
     return null;
   }
-  if (tenant.clinicId && row.clinicId && row.clinicId !== tenant.clinicId) {
+  // prescriptions has no clinic_id column today. Until clinic-scoped
+  // prescriptions are modeled, clinic-only pharmacy tenants cannot see
+  // hospital prescriptions through this route.
+  if (!tenant.hospitalId && tenant.clinicId) {
     return null;
   }
   return row;
@@ -112,7 +114,7 @@ router.get(
     if (tenant.hospitalId) {
       conditions.push(eq(prescriptions.hospitalId, tenant.hospitalId));
     } else if (tenant.clinicId) {
-      conditions.push(eq(prescriptions.clinicId, tenant.clinicId));
+      return c.json({ prescriptions: [], count: 0 });
     }
 
     const rows = await db
@@ -298,6 +300,22 @@ router.post(
       );
     }
 
+    const [patient] = await db
+      .select({ userId: patients.userId })
+      .from(patients)
+      .where(eq(patients.id, scoped.patientId))
+      .limit(1);
+    if (patient?.userId) {
+      await notify({
+        db,
+        userId: patient.userId,
+        type: "prescription",
+        title: "Prescription dispensed",
+        body: "Your prescription has been dispensed by the pharmacy.",
+        data: { kind: "prescription_dispensed", prescriptionId: id },
+      });
+    }
+
     return c.json({
       ok: true,
       prescriptionId: id,
@@ -377,6 +395,22 @@ router.post(
         },
         409
       );
+    }
+
+    const [patient] = await db
+      .select({ userId: patients.userId })
+      .from(patients)
+      .where(eq(patients.id, scoped.patientId))
+      .limit(1);
+    if (patient?.userId) {
+      await notify({
+        db,
+        userId: patient.userId,
+        type: "prescription",
+        title: "Prescription rejected",
+        body: reason || "The pharmacy rejected your prescription.",
+        data: { kind: "prescription_rejected", prescriptionId: id, reason },
+      });
     }
 
     return c.json({

@@ -22,6 +22,7 @@ export type Tone = "info" | "success" | "warn" | "danger" | "neutral";
 export const TYPE_TONE: Record<string, Tone> = {
   admission_created: "warn",
   admission_discharged: "success",
+  prescription_signed: "info",
   prescription_dispensed: "success",
   prescription_rejected: "danger",
   invoice_issued: "info",
@@ -48,6 +49,7 @@ export const TYPE_TONE: Record<string, Tone> = {
 export const TYPE_ICON: Record<string, LucideIcon> = {
   admission_created: UserPlus,
   admission_discharged: CheckCircle2,
+  prescription_signed: Pill,
   prescription_dispensed: Pill,
   prescription_rejected: AlertCircle,
   invoice_issued: Receipt,
@@ -71,39 +73,42 @@ export const TYPE_ICON: Record<string, LucideIcon> = {
   discharge_handoff_acknowledged: CheckCircle2,
 };
 
-export function resolveHref(notificationType: string, data: any): string | null {
+type NotificationData = Record<string, unknown> | null | undefined;
+
+export function resolveHref(notificationType: string, data: NotificationData): string | null {
   // The data.kind discriminator is the new (HOS-14) approach; the legacy
   // type-based discriminator stays for backwards compatibility.
-  const kind = data?.kind ?? notificationType;
+  const kind = typeof data?.kind === "string" ? data.kind : notificationType;
   switch (kind) {
     case "prescription_dispensed":
     case "prescription_rejected":
-      return data.prescriptionId
+    case "prescription_signed":
+      return typeof data?.prescriptionId === "string"
         ? `/portal/prescriptions/${data.prescriptionId}`
         : null;
     case "admission_created":
     case "admission_discharged":
-      return data.admissionId ? `/hospital/ipd/${data.admissionId}` : null;
+      return typeof data?.admissionId === "string" ? `/hospital/ipd/${data.admissionId}` : null;
     case "invoice_issued":
-      return data.invoiceId ? `/hospital/billing/${data.invoiceId}` : null;
+      return typeof data?.invoiceId === "string" ? `/hospital/billing/${data.invoiceId}` : null;
     case "lab_ready":
-      return data.labOrderId ? `/hospital/lab` : null;
+      return typeof data?.labOrderId === "string" ? `/hospital/lab` : null;
     case "hospital_request_incoming":
     case "hospital_request_approved":
     case "hospital_request_declined":
     case "hospital_request_revoked":
-      return data.requestId
+      return typeof data?.requestId === "string"
         ? `/hospital/collab/requests/${data.requestId}`
         : "/hospital/collab/requests";
     case "referral_received":
     case "referral_accepted":
     case "referral_declined":
-      return data.referralId
+      return typeof data?.referralId === "string"
         ? `/hospital/collab/referrals`
         : "/hospital/collab/referrals";
     case "consult_note_received":
     case "consult_note_reply":
-      return data.consultId
+      return typeof data?.consultId === "string"
         ? `/hospital/collab/consults`
         : "/hospital/collab/consults";
     case "lab_routing_received":
@@ -112,7 +117,7 @@ export function resolveHref(notificationType: string, data: any): string | null 
       return "/hospital/collab/lab-routing";
     case "discharge_handoff_received":
     case "discharge_handoff_acknowledged":
-      return data.handoffId
+      return typeof data?.handoffId === "string"
         ? `/hospital/collab/discharges`
         : "/hospital/collab/discharges";
     case "hospital_request_patient_notice":

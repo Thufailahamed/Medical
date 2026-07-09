@@ -16,7 +16,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import type { AppEnvironment } from "../types";
 import { notify } from "../lib/notifications";
-import { writeAudit } from "../lib/audit";
+import { applyRxTransition } from "../lib/rxStatus";
 
 const pharmacyRouter = new Hono<AppEnvironment>();
 
@@ -75,16 +75,23 @@ pharmacyRouter.get("/queue", async (c) => {
     .orderBy(asc(prescriptions.signedAt));
 
   // Fetch items per prescription.
-  const items = await db
-    .select({
-      id: medicines.id,
-      prescriptionId: medicines.prescriptionId,
-      medicineName: medicines.name,
-      dosage: medicines.dosage,
-      quantity: sql<number>`1`,
-    })
-    .from(medicines)
-    .where(sql`${medicines.prescriptionId} in (${sql.join(rows.map((r) => sql`${r.id}`), sql`, `)})`);
+  const items = rows.length
+    ? await db
+        .select({
+          id: medicines.id,
+          prescriptionId: medicines.prescriptionId,
+          medicineName: medicines.name,
+          dosage: medicines.dosage,
+          quantity: sql<number>`1`,
+        })
+        .from(medicines)
+        .where(
+          sql`${medicines.prescriptionId} in (${sql.join(
+            rows.map((r) => sql`${r.id}`),
+            sql`, `
+          )})`
+        )
+    : [];
 
   const itemsByRx: Record<string, typeof items> = {};
   for (const it of items) {
@@ -100,14 +107,52 @@ pharmacyRouter.post("/prescriptions/:id/dispense", async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const id = c.req.param("id");
+  const scopeId = await resolveScopeId(c);
+  if (!scopeId) return c.json({ error: "No active hospital" }, 400);
+
+  const [row] = await db
+    .select({
+      id: prescriptions.id,
+      status: prescriptions.status,
+      patientUserId: patients.userId,
+    })
+    .from(prescriptions)
+    .innerJoin(patients, eq(patients.id, prescriptions.patientId))
+    .where(and(eq(prescriptions.id, id), eq(prescriptions.hospitalId, scopeId)))
+    .limit(1);
+  if (!row) return c.json({ error: "Prescription not found" }, 404);
+  if (row.status !== "signed") {
+    return c.json(
+      { error: `Cannot dispense a ${row.status} prescription`, status: row.status },
+      409
+    );
+  }
+
   const now = new Date().toISOString();
-  await db
-    .update(prescriptions)
-    .set({ status: "dispensed", dispensedAt: now, updatedAt: now })
-    .where(eq(prescriptions.id, id));
-  const [row] = await db.select().from(prescriptions).where(eq(prescriptions.id, id)).limit(1);
-  if (row) await notify(db, row.patientId, "prescription_dispensed", { prescriptionId: id });
-  await writeAudit(db, userId, "prescription.dispense", { id });
+  const updated = await applyRxTransition({
+    db,
+    table: prescriptions,
+    id,
+    from: "signed",
+    to: "dispensed",
+    patch: { dispensedAt: now },
+    actorId: userId,
+    action: "prescription.dispensed",
+    details: { actorRole: "hospital_pharmacy", hospitalId: scopeId },
+  });
+  if (!updated) {
+    return c.json({ error: "Prescription is not in 'signed' state" }, 409);
+  }
+  if (row.patientUserId) {
+    await notify({
+      db,
+      userId: row.patientUserId,
+      type: "prescription",
+      title: "Prescription dispensed",
+      body: "Your prescription has been dispensed by the pharmacy.",
+      data: { kind: "prescription_dispensed", prescriptionId: id },
+    });
+  }
   return c.json({ ok: true });
 });
 
@@ -118,21 +163,52 @@ pharmacyRouter.post("/prescriptions/:id/reject", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
   const reason: string = body?.reason || "Rejected by pharmacy";
+  const scopeId = await resolveScopeId(c);
+  if (!scopeId) return c.json({ error: "No active hospital" }, 400);
 
-  // Soft-reject: cancel + record reason.
-  const now = new Date().toISOString();
-  await db
-    .update(prescriptions)
-    .set({
-      status: "cancelled",
-      cancelledAt: now,
-      cancellationReason: reason,
-      updatedAt: now,
+  const [row] = await db
+    .select({
+      id: prescriptions.id,
+      status: prescriptions.status,
+      patientUserId: patients.userId,
     })
-    .where(eq(prescriptions.id, id));
-  const [row] = await db.select().from(prescriptions).where(eq(prescriptions.id, id)).limit(1);
-  if (row) await notify(db, row.patientId, "prescription_rejected", { prescriptionId: id, reason });
-  await writeAudit(db, userId, "prescription.reject", { id, reason });
+    .from(prescriptions)
+    .innerJoin(patients, eq(patients.id, prescriptions.patientId))
+    .where(and(eq(prescriptions.id, id), eq(prescriptions.hospitalId, scopeId)))
+    .limit(1);
+  if (!row) return c.json({ error: "Prescription not found" }, 404);
+  if (row.status !== "signed") {
+    return c.json(
+      { error: `Cannot reject a ${row.status} prescription`, status: row.status },
+      409
+    );
+  }
+
+  const now = new Date().toISOString();
+  const updated = await applyRxTransition({
+    db,
+    table: prescriptions,
+    id,
+    from: "signed",
+    to: "cancelled",
+    patch: { cancelledAt: now, cancellationReason: reason },
+    actorId: userId,
+    action: "prescription.cancelled",
+    details: { actorRole: "hospital_pharmacy", hospitalId: scopeId, reason },
+  });
+  if (!updated) {
+    return c.json({ error: "Prescription is not in 'signed' state" }, 409);
+  }
+  if (row.patientUserId) {
+    await notify({
+      db,
+      userId: row.patientUserId,
+      type: "prescription",
+      title: "Prescription rejected",
+      body: reason,
+      data: { kind: "prescription_rejected", prescriptionId: id, reason },
+    });
+  }
   return c.json({ ok: true });
 });
 

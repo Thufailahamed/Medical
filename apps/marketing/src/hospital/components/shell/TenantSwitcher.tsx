@@ -13,7 +13,7 @@ interface Tenant {
   type: "hospital" | "clinic";
   id: string;
   name: string;
-  role: string;
+  role: string | null;
 }
 
 interface MeTenantsResponse {
@@ -196,7 +196,7 @@ function TenantRow({
         </div>
         <div className="text-[10px] text-text-muted capitalize mt-0.5 flex items-center gap-1">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-text-muted/40" />
-          {tenant.type} · {tenant.role.replace(/_/g, " ")}
+          {tenant.type}{tenant.role ? ` · ${tenant.role.replace(/_/g, " ")}` : ""}
         </div>
       </div>
       {selected && (
