@@ -1085,7 +1085,17 @@
       "filterDue": "Due",
       "dose": "Dose {{n}}",
       "nextDue": "Next due {{date}}",
-      "administered": "Given {{date}}"
+      "administered": "Given {{date}}",
+      "createTitle": "Record a vaccination",
+      "createSuccess": "Vaccination recorded",
+      "createFail": "Couldn't record vaccination",
+      "form": {
+        "name": "Vaccine",
+        "dose": "Dose #",
+        "date": "Administered on",
+        "provider": "Provider",
+        "notes": "Notes"
+      }
     },
     "visits": {
       "title": "Visits",

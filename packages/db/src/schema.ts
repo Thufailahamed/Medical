@@ -993,6 +993,41 @@ export const aiCache = sqliteTable("ai_cache", {
   ttlAt: text("ttl_at").notNull(),
 });
 
+// ─── P1: AI Call Telemetry ──────────────────────────────
+//
+// One row per AI invocation. Tracks who called which model, latency,
+// cached-hit status, and any error message. No token counts — Workers
+// AI doesn't surface them through the binding today. Drives:
+//   - per-user spend caps (aggregate latencyMs × model weight)
+//   - audit ("why did Dr. X's summary fire?" → grep aiCalls.userId)
+//   - rate-limit analytics
+// Retention: 30 days. Cron purge lives outside this PR.
+export const aiCalls = sqliteTable("ai_calls", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  kind: text("kind", {
+    enum: [
+      "summary",
+      "lab_explain",
+      "drug_interaction",
+      "chat",
+      "ocr",
+      "classify",
+    ],
+  }).notNull(),
+  userId: text("user_id").references(() => users.id),
+  patientId: text("patient_id").references(() => patients.id),
+  model: text("model").notNull(),
+  cachedHit: integer("cached_hit", { mode: "boolean" }).notNull().default(false),
+  latencyMs: integer("latency_ms").notNull().default(0),
+  status: text("status", { enum: ["ok", "error", "timeout", "fallback"] })
+    .notNull()
+    .default("ok"),
+  errorMessage: text("error_message"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
 // ─── V2: Chat Sessions (Health Q&A) ──────────────────────
 export const chatSessions = sqliteTable("chat_sessions", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

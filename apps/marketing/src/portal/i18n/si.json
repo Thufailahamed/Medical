@@ -774,7 +774,17 @@
       "filterDue": "නියමිත",
       "dose": "මාත්‍රාව {{n}}",
       "nextDue": "ඊළඟ නියමිත {{date}}",
-      "administered": "ලබා දුන් {{date}}"
+      "administered": "ලබා දුන් {{date}}",
+      "createTitle": "එන්නතක් සටහන් කරන්න",
+      "createSuccess": "එන්නත සටහන් කළා",
+      "createFail": "එන්නත සටහන් කිරීම අසාර්ථක විය",
+      "form": {
+        "name": "එන්නත",
+        "dose": "මාත්‍රාව #",
+        "date": "ලබා දුන් දිනය",
+        "provider": "සපයන්නා",
+        "notes": "සටහන්"
+      }
     }
   },
   "status": {

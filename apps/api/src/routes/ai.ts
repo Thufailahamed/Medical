@@ -212,6 +212,12 @@ ai.post("/summary", async (c) => {
     const out = await aiComplete(aiBinding, messages, {
       maxTokens: 700,
       temperature: 0.2,
+      telemetry: {
+        db,
+        kind: "summary",
+        userId,
+        patientId: parsed.data.patientId,
+      },
     });
     const parsedJson = tryParseJson<any>(out);
     const safe = hasShape(parsedJson, {
@@ -747,6 +753,12 @@ ai.post("/chat/stream", async (c) => {
         maxTokens: 400,
         temperature: 0.4,
         signal,
+        telemetry: {
+          db,
+          kind: "chat",
+          userId,
+          patientId: patientId ?? null,
+        },
       })) {
         full += delta;
         await stream.writeSSE({
