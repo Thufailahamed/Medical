@@ -41,6 +41,19 @@ const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   general: [[]],
 };
 
+/**
+ * Typed SSE events from /realtime (non-notification).
+ * Matches the event names emitted by apps/api/src/routes/realtime.ts.
+ */
+const EVENT_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
+  record: [["medical-records"], ["patient", "records"], ["timeline"]],
+  lab_report: [["medical-records"], ["patient", "records"], ["lab-orders"]],
+  lab_order: [["lab-orders"], ["patient", "lab-orders"]],
+  prescription: [["prescriptions"], ["patient", "prescriptions"]],
+  walk_in: [["walk-ins"]],
+  message: [["chat-sessions"], ["inbox"]],
+};
+
 function invalidateFor(qc: ReturnType<typeof useQueryClient>, n: RealtimeNotification) {
   qc.invalidateQueries({ queryKey: ["notifications"] });
   const mapped = TYPE_TO_QUERY_KEYS[n.type];
@@ -48,6 +61,17 @@ function invalidateFor(qc: ReturnType<typeof useQueryClient>, n: RealtimeNotific
   for (const key of mapped) {
     if (key.length === 0) qc.invalidateQueries();
     else qc.invalidateQueries({ queryKey: key as readonly string[] });
+  }
+}
+
+function invalidateForEvent(
+  qc: ReturnType<typeof useQueryClient>,
+  eventName: string
+) {
+  const mapped = EVENT_TO_QUERY_KEYS[eventName];
+  if (!mapped) return;
+  for (const key of mapped) {
+    qc.invalidateQueries({ queryKey: key as readonly string[] });
   }
 }
 
@@ -89,6 +113,12 @@ export function useRealtime() {
           // ignore malformed payload
         }
       });
+
+      for (const eventName of Object.keys(EVENT_TO_QUERY_KEYS)) {
+        es.addEventListener(eventName, () => {
+          invalidateForEvent(qc, eventName);
+        });
+      }
 
       es.addEventListener("ping", () => {
         // Heartbeat — keep-alive only.

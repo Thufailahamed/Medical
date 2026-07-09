@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   Alert,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -34,6 +35,7 @@ import {
   Download,
   Lock,
   Pill as PillIcon,
+  ScrollText,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -200,6 +202,13 @@ export default function ProfileScreen() {
       icon: Inbox,
       tone: "accent" as const,
       onPress: () => router.push("/(app)/email-import" as any),
+    },
+    {
+      labelKey: "profile.item.auditLog.label",
+      subtitle: t("profile.item.auditLog.subtitle"),
+      icon: ScrollText,
+      tone: "neutral" as const,
+      onPress: () => router.push("/(app)/audit" as any),
     },
     {
       labelKey: "profile.item.family.label",

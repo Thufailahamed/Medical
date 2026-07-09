@@ -247,6 +247,10 @@
         "label": "Email-to-records",
         "subtitle": "Send PDFs and lab reports to a personal inbox"
       },
+      "auditLog": {
+        "label": "Access log",
+        "subtitle": "Who viewed your records recently"
+      },
       "notificationPreferences": {
         "label": "Notification preferences",
         "subtitle": "Choose in-app & push per category"
@@ -341,6 +345,14 @@
         "subtitle": "Unified hub · encrypted"
       }
     }
+  },
+  "audit": {
+    "title": "Access log",
+    "subtitle": "Recent activity against your record",
+    "emptyTitle": "No recent activity",
+    "emptyBody": "No one has viewed your records in the last 30 days.",
+    "loadError": "Could not load the access log",
+    "actorSystem": "System"
   },
   "editProfile": {
     "title": "Edit Profile",

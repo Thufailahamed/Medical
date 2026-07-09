@@ -164,3 +164,134 @@ export async function apiWithRefresh<T = any>(
 ): Promise<T> {
   return api<T>(endpoint, options);
 }
+
+// ─── SSE consumer ────────────────────────────────────────
+// Opens a streamed POST/GET to the API and invokes `onEvent` for each
+// parsed SSE message. `onEvent` receives `{ event, data }`; the caller
+// is responsible for parsing `data` (it is always a JSON string).
+//
+// Aborts automatically on the returned `abort()` call or when the
+// caller-supplied `signal` fires. Re-uses the same headers as the JSON
+// `api()` helper (auth, locale, family member, tenant, tz) so SSE
+// routes get the full request context.
+export type SseEvent = { event: string; data: string };
+
+export type SseOptions = {
+  method?: "GET" | "POST";
+  body?: any;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+};
+
+export async function apiSse(
+  endpoint: string,
+  options: SseOptions,
+  onEvent: (e: SseEvent) => void
+): Promise<{ abort: () => void; done: Promise<void> }> {
+  let token: string | null = null;
+  if (DEV_MODE) {
+    token = "dev-token";
+  } else {
+    try {
+      token = await SecureStore.getItemAsync("auth_token");
+    } catch {
+      token = null;
+    }
+  }
+
+  const requestHeaders: Record<string, string> = { ...(options.headers || {}) };
+  if (token) requestHeaders["Authorization"] = `Bearer ${token}`;
+  requestHeaders["Accept-Language"] = intlLocale(
+    useLocaleStore.getState().locale
+  );
+  const activeFmId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
+  if (activeFmId) {
+    requestHeaders["x-active-family-member-id"] = activeFmId;
+  }
+  const activeHospId = useActiveTenantStore.getState().activeHospitalId;
+  const activeClinicId = useActiveTenantStore.getState().activeClinicId;
+  if (activeHospId) {
+    requestHeaders["x-active-hospital-id"] = activeHospId;
+  } else if (activeClinicId) {
+    requestHeaders["x-active-clinic-id"] = activeClinicId;
+  }
+  requestHeaders["x-timezone-offset"] = String(
+    -new Date().getTimezoneOffset()
+  );
+  if (options.body && !requestHeaders["Content-Type"]) {
+    requestHeaders["Content-Type"] = "application/json";
+  }
+  requestHeaders["Accept"] = "text/event-stream";
+
+  const ctrl = new AbortController();
+  // Forward caller-supplied signal into our internal abort controller.
+  if (options.signal) {
+    if (options.signal.aborted) ctrl.abort();
+    else options.signal.addEventListener("abort", () => ctrl.abort(), { once: true });
+  }
+
+  const done = (async () => {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: options.method || "POST",
+      headers: requestHeaders,
+      body: options.body
+        ? typeof options.body === "string"
+          ? options.body
+          : JSON.stringify(options.body)
+        : undefined,
+      signal: ctrl.signal,
+    });
+    if (!res.ok) {
+      const err = await res
+        .json()
+        .catch(() => ({ error: `HTTP ${res.status}` }));
+      const e: any = new Error(err?.error || `HTTP ${res.status}`);
+      e.status = res.status;
+      throw e;
+    }
+    if (!res.body) return;
+
+    // React Native's fetch returns a ReadableStream that supports
+    // getReader(); iterate line-by-line, splitting on blank lines per
+    // the SSE wire format.
+    const reader = (res.body as any).getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    try {
+      while (true) {
+        const { value, done: rDone } = await reader.read();
+        if (rDone) break;
+        buf += decoder.decode(value, { stream: true });
+
+        let sep;
+        while ((sep = buf.indexOf("\n\n")) >= 0) {
+          const raw = buf.slice(0, sep);
+          buf = buf.slice(sep + 2);
+          if (!raw.trim()) continue;
+          let event = "message";
+          let data = "";
+          for (const line of raw.split("\n")) {
+            if (line.startsWith("event: ")) event = line.slice(7).trim();
+            else if (line.startsWith("data: ")) data += line.slice(6);
+            // SSE allows multi-line `data:`; concatenate. The first
+            // line keeps its prefix in the concat above — strip the
+            // first "data: " if multiple lines (harmless if not).
+          }
+          try {
+            onEvent({ event, data: data.replace(/^data: /, "") });
+          } catch (cbErr) {
+            console.error("[apiSse] onEvent threw:", cbErr);
+          }
+        }
+      }
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {
+        /* ignore */
+      }
+    }
+  })();
+
+  return { abort: () => ctrl.abort(), done };
+}

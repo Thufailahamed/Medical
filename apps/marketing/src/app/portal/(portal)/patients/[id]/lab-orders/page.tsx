@@ -2,13 +2,14 @@
 
 import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FlaskConical, Plus } from "lucide-react";
+import { FlaskConical, Plus, Sparkles } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Button } from "@/portal/components/ui/Button";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { LabOrderForm } from "@/portal/components/labs/LabOrderForm";
+import { AiExplainLabDrawer } from "@/portal/components/ai/AiExplainLabDrawer";
 import { useT } from "@/portal/i18n";
 import { formatDateTime } from "@/portal/lib/format";
 import {
@@ -31,6 +32,9 @@ interface LabOrder {
   tests: string[] | string;
   notes?: string | null;
   orderedAt?: string | null;
+  resultUrl?: string | null;
+  resultSummary?: string | null;
+  patientName?: string | null;
 }
 
 interface LabList {
@@ -50,6 +54,7 @@ export default function LabOrdersTab({
   const t = useT();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("all");
+  const [explainFor, setExplainFor] = useState<LabOrder | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "lab-orders", id, status],
@@ -139,6 +144,17 @@ export default function LabOrdersTab({
                 </span>
               ) : null
             }
+            actions={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t("ai.labExplain.title")}
+                title={t("ai.labExplain.title")}
+                onClick={() => setExplainFor(o)}
+              >
+                <Sparkles size={14} />
+              </Button>
+            }
           />
         )}
       />
@@ -155,6 +171,20 @@ export default function LabOrdersTab({
           onCancel={() => setOpen(false)}
         />
       </Drawer>
+
+      {explainFor ? (
+        <AiExplainLabDrawer
+          labOrder={{
+            id: explainFor.id,
+            patientId: explainFor.patientId,
+            tests: explainFor.tests,
+            notes: explainFor.notes,
+            resultUrl: explainFor.resultUrl,
+            resultSummary: explainFor.resultSummary,
+          }}
+          onClose={() => setExplainFor(null)}
+        />
+      ) : null}
     </div>
   );
 }

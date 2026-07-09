@@ -16,8 +16,10 @@ import {
   aiComplete,
   systemPrompt,
   fallbackChat,
+  streamAiComplete,
   type ChatMsg,
 } from "../lib/ai";
+import { streamSSE } from "hono/streaming";
 import type { AppEnvironment } from "../types";
 
 const chatRouter = new Hono<AppEnvironment>();
@@ -233,6 +235,157 @@ chatRouter.post("/sessions/:id/messages", async (c) => {
   }
 
   return c.json({ userMessage: userMsg, assistantMessage: assistantMsg });
+});
+
+// ─── Streaming send ──────────────────────────────────────
+// POST /chat/sessions/:id/messages/stream  { content }
+//
+// Token-streaming variant. Emits `userMessage` first, then incremental
+// `delta` events as the model generates the assistant reply, then a
+// final `done` event carrying the persisted assistant message. The
+// user message is persisted before streaming begins (so a mid-stream
+// disconnect still preserves the user's intent); the assistant row is
+// inserted after the stream completes with the accumulated text.
+chatRouter.post("/sessions/:id/messages/stream", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const aiBinding = c.env.AI;
+  const id = c.req.param("id");
+
+  const body = await c.req.json();
+  const parsed = chatMessageSchema.safeParse({ ...body, sessionId: id });
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+
+  const [sess] = await db
+    .select()
+    .from(chatSessions)
+    .where(and(eq(chatSessions.id, id), eq(chatSessions.userId, userId)))
+    .limit(1);
+  if (!sess) return c.json({ error: "Session not found" }, 404);
+
+  const [userMsg] = await db
+    .insert(chatMessages)
+    .values({ sessionId: id, role: "user", content: parsed.data.content })
+    .returning();
+
+  // Build context (same as non-streaming)
+  let context: any = null;
+  if (sess.patientId) {
+    const [p] = await db
+      .select({ patient: patients, user: users })
+      .from(patients)
+      .innerJoin(users, eq(patients.userId, users.id))
+      .where(eq(patients.id, sess.patientId))
+      .limit(1);
+    if (p) {
+      const meds = await db
+        .select()
+        .from(medicines)
+        .where(and(eq(medicines.patientId, sess.patientId), eq(medicines.active, true)))
+        .limit(20);
+      const allergies = (() => {
+        try {
+          return p.patient.allergies ? JSON.parse(p.patient.allergies) : [];
+        } catch {
+          return [];
+        }
+      })();
+      const conditions = (() => {
+        try {
+          return p.patient.medicalConditions
+            ? JSON.parse(p.patient.medicalConditions)
+            : [];
+        } catch {
+          return [];
+        }
+      })();
+      context = {
+        name: p.user.name,
+        allergies,
+        conditions,
+        activeMedicines: meds.map((m) => ({ name: m.name, dosage: m.dosage })),
+      };
+    }
+  }
+
+  const recent = await db
+    .select()
+    .from(chatMessages)
+    .where(eq(chatMessages.sessionId, id))
+    .orderBy(desc(chatMessages.createdAt))
+    .limit(20);
+  const history: ChatMsg[] = recent.reverse().slice(0, -1).map((m) => ({
+    role: m.role as "user" | "assistant" | "system",
+    content: m.content,
+  }));
+
+  const messages: ChatMsg[] = [
+    {
+      role: "system",
+      content:
+        systemPrompt(
+          "Answer health questions for a patient. Be brief, recommend seeing a doctor for serious issues, never claim to be a doctor."
+        ) +
+        (context ? ` Patient context: ${JSON.stringify(context).slice(0, 1500)}.` : ""),
+    },
+    ...history,
+    { role: "user", content: parsed.data.content },
+  ];
+
+  return streamSSE(c, async (stream) => {
+    const signal = stream.abortSignal;
+    let replyText = "";
+
+    // Emit the user message first so the client can render immediately.
+    await stream.writeSSE({
+      event: "user",
+      data: JSON.stringify({ userMessage: userMsg }),
+    });
+
+    try {
+      for await (const delta of streamAiComplete(aiBinding, messages, {
+        maxTokens: 500,
+        temperature: 0.4,
+        signal,
+      })) {
+        replyText += delta;
+        await stream.writeSSE({ event: "delta", data: JSON.stringify({ delta }) });
+      }
+    } catch (err) {
+      console.error("[chat/stream] ai failed", err);
+    }
+
+    if (!replyText) replyText = fallbackChat(parsed.data.content);
+
+    const [assistantMsg] = await db
+      .insert(chatMessages)
+      .values({ sessionId: id, role: "assistant", content: replyText })
+      .returning();
+
+    // Auto-title on first user message
+    if (sess.title === "New chat" || sess.title === "Health Q&A") {
+      const title = parsed.data.content.slice(0, 60).trim() || "Health Q&A";
+      await db
+        .update(chatSessions)
+        .set({ title, updatedAt: new Date().toISOString() })
+        .where(eq(chatSessions.id, id));
+    } else {
+      await db
+        .update(chatSessions)
+        .set({ updatedAt: new Date().toISOString() })
+        .where(eq(chatSessions.id, id));
+    }
+
+    await stream.writeSSE({
+      event: "done",
+      data: JSON.stringify({ done: true, assistantMessage: assistantMsg }),
+    });
+  });
 });
 
 // ─── Delete session ──────────────────────────────────────

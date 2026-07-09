@@ -6,13 +6,15 @@
 
 import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Search } from "lucide-react";
+import { FileText, Search, Sparkles } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Button } from "@/portal/components/ui/Button";
 import { Card } from "@/portal/components/ui/Card";
 import { Skeleton } from "@/portal/components/ui/Empty";
+import { AiExplainLabDrawer } from "@/portal/components/ai/AiExplainLabDrawer";
+import { RecordUploader } from "@/portal/components/upload/RecordUploader";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
 import {
@@ -44,6 +46,9 @@ const TYPE_TONE: Record<string, "info" | "success" | "warn" | "violet" | "neutra
 interface MedicalRecord {
   id: string;
   title?: string | null;
+  /** Canonical record-type field (v3). Falls back to `recordType` for older rows. */
+  kind?: string | null;
+  /** Legacy record-type enum. */
   recordType: string;
   diagnosis?: string | null;
   date?: string | null;
@@ -61,6 +66,17 @@ export default function PatientRecordsTab({
   const t = useT();
   const [search, setSearch] = useState("");
   const [type, setType] = useState<string>("all");
+  // Synthetic lab order built from a lab_report medical record. Used
+  // by the AI explain drawer when the doctor clicks the sparkles
+  // button on a lab_report row in the records list.
+  const [explainFor, setExplainFor] = useState<{
+    id: string;
+    patientId: string;
+    tests: string[];
+    notes: string | null;
+    resultUrl: null;
+    resultSummary: string | null;
+  } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "patient", id, "records", { type, q: search }],
@@ -87,6 +103,8 @@ export default function PatientRecordsTab({
         subtitle={t("chart.recordsSubtitle", { count: total })}
         icon={<FileText size={18} className="text-sky-600" />}
       />
+
+      <RecordUploader patientId={id} />
 
       <Card padding={false} className="rounded-2xl border-border/50">
         <div className="px-3 py-2 flex items-center gap-2">
@@ -149,6 +167,8 @@ export default function PatientRecordsTab({
               ]
                 .filter(Boolean)
                 .join(" · ");
+              // Canonical kind (v3) > legacy recordType.
+              const recordKind = r.kind || r.recordType;
               return (
                 <li
                   key={r.id}
@@ -156,13 +176,37 @@ export default function PatientRecordsTab({
                 >
                   <ChartRow
                     icon={<FileText size={18} />}
-                    iconTone={TYPE_TONE[r.recordType] ?? "neutral"}
+                    iconTone={TYPE_TONE[recordKind] ?? "neutral"}
                     title={r.title || t("chart.recordsUntitled")}
                     meta={meta}
                     actions={
-                      <Pill tone="neutral">
-                        {t(`recordTypes.${r.recordType}`) || r.recordType}
-                      </Pill>
+                      <div className="flex items-center gap-1">
+                        {recordKind === "lab_report" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t("ai.labExplain.title")}
+                            title={t("ai.labExplain.title")}
+                            onClick={() =>
+                              setExplainFor({
+                                id: r.id,
+                                patientId: id,
+                                tests: r.title
+                                  ? r.title.split(/[·,;]/).map((s) => s.trim()).filter(Boolean)
+                                  : [r.title || t("chart.recordsUntitled")],
+                                notes: r.diagnosis ?? null,
+                                resultUrl: null,
+                                resultSummary: r.diagnosis ?? null,
+                              })
+                            }
+                          >
+                            <Sparkles size={14} />
+                          </Button>
+                        ) : null}
+                        <Pill tone="neutral">
+                          {t(`recordTypes.${recordKind}`) || recordKind}
+                        </Pill>
+                      </div>
                     }
                     hideChevron
                   />
@@ -172,6 +216,13 @@ export default function PatientRecordsTab({
           </ul>
         </Card>
       )}
+
+      {explainFor ? (
+        <AiExplainLabDrawer
+          labOrder={explainFor}
+          onClose={() => setExplainFor(null)}
+        />
+      ) : null}
     </div>
   );
 }
