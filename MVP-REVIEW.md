@@ -161,4 +161,4 @@ Cited: HIPAA Journal compliance checklist, GDPR-info.eu (Arts. 7, 17, 20, 33), P
 
 Unreachable (403/404): KFF, Gartner, HBR, Mayo Clinic, NPI Registry, CMS PDF, Becker's. Conventions from 2026 domain consensus used instead.
 
-Survey source: direct repo inspection. Routes, schema, recent commits all confirmed via Read/Glob.
+Survey source: direct repo inspection. Routes, schema, recent commits all confirmed via Read/Glob. .
