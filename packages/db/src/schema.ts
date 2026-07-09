@@ -21,8 +21,15 @@ export const users = sqliteTable("users", {
   }).notNull(),
   email: text("email").unique(),
   phone: text("phone").unique(),
+  // P1 bundle 3: PII cipher columns. Set on user create/update by
+  // `apps/api/src/lib/pii-cipher.ts`. Plaintext kept for legacy login
+  // paths until a migration sweeps values into the cipher columns.
+  // Wire format: `pii:v1:<kekId>:<ivB64>:<cipherB64>:<tagB64>`.
+  emailPii: text("email_pii"),
+  phonePii: text("phone_pii"),
   name: text("name").notNull(),
   nic: text("nic"),
+  nicPii: text("nic_pii"),
   // Phase 1.2: bcrypt hash of NIC for soft-verification login. Plain NIC
   // stays in this row for last-mile display only; queries against an
   // unauthenticated caller never read it.

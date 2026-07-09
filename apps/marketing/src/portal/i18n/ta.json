@@ -92,7 +92,14 @@
     "careTeam": "பராமரிப்பு குழு",
     "availability": "கிடைக்கும் நேரம்",
     "clinics": "கிளினிக்குகள்",
-    "settings": "அமைப்புகள்"
+    "settings": "அமைப்புகள்",
+    "queue": "Queue",
+    "clinicalNotes": "Clinical notes",
+    "followUps": "Follow-ups",
+    "records": "Records",
+    "tenants": "Tenants",
+    "relationships": "Relationships",
+    "profile": "Profile"
   },
   "dashboard": {
     "title": "நல்ல நாள், {{name}}",
@@ -196,7 +203,9 @@
       "clinical-notes": "மருத்துவ குறிப்புகள்",
       "follow-ups": "பின்தொடர்தல்",
       "visits": "வருகைகள்",
-      "messages": "செய்திகள்"
+      "messages": "செய்திகள்",
+      "vaccinations": "Vaccinations",
+      "share": "Share"
     },
     "backToList": "நோயாளிகளுக்கு திரும்பு",
     "messages": {
@@ -261,7 +270,21 @@
     "statusDraft": "வரைவு",
     "statusSigned": "கையொப்பமிடப்பட்டது",
     "statusCancelled": "ரத்து",
-    "statusDispensed": "வழங்கப்பட்டது"
+    "statusDispensed": "வழங்கப்பட்டது",
+    "sign": "Sign prescription",
+    "signed": "Prescription signed",
+    "signedAt": "Signed at",
+    "payloadHash": "Payload hash",
+    "downloadPdf": "Download PDF",
+    "patient": "Patient",
+    "doctor": "Doctor",
+    "signature": "Signature",
+    "composerTitle": "New prescription",
+    "empty": "No prescriptions on file",
+    "emptyGlobal": "No prescriptions found",
+    "untitled": "Untitled prescription",
+    "new": "New prescription",
+    "status": {}
   },
   "rx": {
     "status": {
@@ -289,7 +312,8 @@
       "verify": "சரிபார்",
       "cancel": "ரத்து செய்",
       "discard": "நிராகரி",
-      "view": "காண்க"
+      "view": "காண்க",
+      "dispense": "Mark dispensed"
     },
     "detail": {
       "signedBy": "கையொப்பமிட்டவர்",
@@ -297,7 +321,8 @@
       "backToList": "அனைத்து மருந்துச்சீட்டுகள்",
       "backToChart": "நோயாளி விவரம்",
       "cancelledNote": "இந்த மருந்துச்சீட்டு ரத்து செய்யப்பட்டது.",
-      "dispensedNote": "இந்த மருந்துச்சீட்டு வழங்கப்பட்டது."
+      "dispensedNote": "இந்த மருந்துச்சீட்டு வழங்கப்பட்டது.",
+      "dispensedToast": "Prescription marked as dispensed"
     },
     "cancel": {
       "confirmTitle": "மருந்துச்சீட்டை ரத்து செய்யவா?",
@@ -407,7 +432,21 @@
     "status_in_progress": "செயலில்",
     "status_completed": "முடிந்தது",
     "status_cancelled": "ரத்து",
-    "status_no_show": "வரவில்லை"
+    "status_no_show": "வரவில்லை",
+    "empty": "No appointments for this date",
+    "bookForPatient": "Book for patient",
+    "details": "Appointment Details",
+    "reschedule": "Reschedule",
+    "cancelAppointment": "Cancel appointment",
+    "cancelConfirm": "Are you sure you want to cancel this appointment?",
+    "rescheduled": "Appointment rescheduled",
+    "cancelled": "Appointment cancelled",
+    "newDate": "New date",
+    "newTime": "New time",
+    "patient": "Patient",
+    "queueNumber": "Queue #",
+    "reason": "Reason",
+    "openChart": "Open chart"
   },
   "earnings": {
     "title": "வருவாய்",
@@ -615,7 +654,10 @@
       "addFollowUp": "புதிய பின்தொடர்தல்",
       "bookVisit": "சந்திப்பை முன்பதிவு செய்",
       "openInbox": "இன்பாக்ஸ் திற",
-      "addInsurance": "காப்பீடு சேர்"
+      "addInsurance": "காப்பீடு சேர்",
+      "print": "Print summary",
+      "refresh": "Refresh",
+      "view": "View"
     },
     "status": {
       "signed": "கையொப்பமிடப்பட்டது",
@@ -634,7 +676,23 @@
       "low": "குறைவு",
       "critical": "ஆபத்தானது",
       "normal": "இயல்பானது"
-    }
+    },
+    "severity": {
+      "mild": "Mild",
+      "moderate": "Moderate",
+      "severe": "Severe",
+      "critical": "Critical"
+    },
+    "lastUpdated": "Updated {{time}} ago",
+    "allergiesBanner": {
+      "title": "Allergies & chronic conditions",
+      "severeWarning": "Severe allergies on file — review before prescribing",
+      "none": "No known allergies",
+      "reaction": "Reaction: {{reaction}}",
+      "since": "Since {{date}}",
+      "chronicEmpty": "No chronic conditions recorded"
+    },
+    "quickActions": "Quick actions"
   },
   "vitals": {
     "empty": "உயிர் அறிகுறிகள் இல்லை",
@@ -680,7 +738,8 @@
       "subtitle": "அறியப்பட்ட ஒவ்வாமை {{count}}",
       "new": "ஒவ்வாமையைச் சேர்",
       "empty": "ஒவ்வாமை பதிவு இல்லை",
-      "emptyBody": "ஒவ்வொரு சந்திப்பிலும் காண்பிக்க மருந்து, உணவு அல்லது சுற்றுச்சூழல் ஒவ்வாமைகளைச் சேர்க்கவும்."
+      "emptyBody": "ஒவ்வொரு சந்திப்பிலும் காண்பிக்க மருந்து, உணவு அல்லது சுற்றுச்சூழல் ஒவ்வாமைகளைச் சேர்க்கவும்.",
+      "subtitle_other": "{{count}} known allergies"
     },
     "medications": {
       "title": "மருந்துகள்",
@@ -689,7 +748,8 @@
       "empty": "மருந்துகள் பதிவு இல்லை",
       "emptyBody": "நோயாளியின் மருந்து பட்டியலைத் தொடங்க புதிய மருந்துச் சீட்டை எழுதவும்.",
       "filterActive": "செயலில்",
-      "filterAll": "அனைத்தும்"
+      "filterAll": "அனைத்தும்",
+      "subtitle_other": "{{count}} active medications"
     },
     "notes": {
       "title": "மருத்துவ குறிப்புகள்",
@@ -697,7 +757,8 @@
       "new": "புதிய குறிப்பு",
       "empty": "இன்னும் மருத்துவ குறிப்புகள் இல்லை",
       "emptyBody": "SOAP குறிப்பு, வருகை சுருக்கம் அல்லது வேறு மருத்துவ அவதானிப்பை ஆவணப்படுத்தவும்.",
-      "searchPlaceholder": "குறிப்புகளைத் தேடு…"
+      "searchPlaceholder": "குறிப்புகளைத் தேடு…",
+      "subtitle_other": "{{count}} notes on file"
     },
     "prescriptions": {
       "title": "மருந்துச் சீட்டுகள்",
@@ -708,7 +769,8 @@
       "filterAll": "அனைத்தும்",
       "medicineCount_one": "மருந்து {{count}}",
       "medicineCount_other": "மருந்துகள் {{count}}",
-      "view": "பார்"
+      "view": "பார்",
+      "subtitle_other": "{{count}} prescriptions"
     },
     "labs": {
       "title": "ஆய்வக ஆணைகள்",
@@ -720,7 +782,8 @@
       "filterOrdered": "ஆணையிடப்பட்டது",
       "filterProcessing": "செயலாக்கம்",
       "filterCompleted": "நிறைவு",
-      "filterCancelled": "ரத்து"
+      "filterCancelled": "ரத்து",
+      "subtitle_other": "{{count}} orders on file"
     },
     "followups": {
       "title": "பின்தொடர்தல்கள்",
@@ -732,7 +795,8 @@
       "cancel": "ரத்து",
       "filterUpcoming": "வரவிருக்கும்",
       "filterPast": "கடந்த",
-      "filterAll": "அனைத்தும்"
+      "filterAll": "அனைத்தும்",
+      "subtitle_other": "{{count}} scheduled follow-ups"
     },
     "visits": {
       "title": "வருகைகள்",
@@ -743,19 +807,22 @@
       "addWalkin": "Walk-in",
       "filterUpcoming": "வரவிருக்கும்",
       "filterPast": "கடந்த",
-      "filterAll": "அனைத்தும்"
+      "filterAll": "அனைத்தும்",
+      "subtitle_other": "{{count}} visits on file"
     },
     "vitals": {
       "title": "உயிர் அறிகுறிகள்",
       "subtitle": "பதிவான அளவீடுகள் {{count}}",
       "add": "உயிர் அறிகுறிகளை பதிவு செய்",
       "empty": "உயிர் அறிகுறிகள் பதிவு இல்லை",
-      "normalRange": "சாதாரண {{min}}–{{max}}"
+      "normalRange": "சாதாரண {{min}}–{{max}}",
+      "subtitle_other": "{{count}} readings recorded"
     },
     "messages": {
       "title": "செய்திகள்",
       "subtitle": "உரையாடல்கள் {{count}}",
-      "openInbox": "இன்பாக்ஸ் திற"
+      "openInbox": "இன்பாக்ஸ் திற",
+      "subtitle_other": "{{count}} conversations"
     },
     "overview": {
       "title": "மேலோட்டம்",
@@ -807,7 +874,10 @@
     "abnormal": "இயல்பற்றது",
     "critical": "தீவிரம்",
     "normal": "இயல்பானது",
-    "dispensed": "வழங்கப்பட்டது"
+    "dispensed": "வழங்கப்பட்டது",
+    "elevated": "Elevated",
+    "high": "High",
+    "low": "Low"
   },
   "severity": {
     "mild": "லேசான",
@@ -883,7 +953,14 @@
     "newSubtitle": "SOAP குறிப்பைத் தொடங்க நோயாளியைத் தேர்ந்தெடுக்கவும்",
     "fields": {
       "patient": "நோயாளி"
-    }
+    },
+    "title": "Clinical Notes",
+    "subtitle": "{{count}} notes on file",
+    "searchPlaceholder": "Search by title, diagnosis, patient…",
+    "empty": "No clinical notes yet",
+    "emptySearch": "No notes match your search",
+    "untitled": "Untitled note",
+    "unknownPatient": "Unknown patient"
   },
   "labOrders": {
     "new": "புதிய ஆய்வக ஆர்டர்",
@@ -891,6 +968,14 @@
     "newSubtitle": "ஆர்டர் செய்ய நோயாளியைத் தேர்ந்தெடுக்கவும்",
     "fields": {
       "patient": "நோயாளி"
+    },
+    "title": "Lab orders",
+    "subtitle": "All lab orders you've placed",
+    "emptyGlobal": "No lab orders yet",
+    "filterAll": "All",
+    "actions": {
+      "viewChart": "Open chart",
+      "explain": "Explain this report"
     }
   },
   "followUps": {
@@ -899,6 +984,243 @@
     "newSubtitle": "திட்டமிட நோயாளியைத் தேர்ந்தெடுக்கவும்",
     "fields": {
       "patient": "நோயாளி"
+    },
+    "title": "Follow-ups",
+    "subtitle": "Track patient follow-up appointments",
+    "tabs": {
+      "upcoming": "Upcoming",
+      "completed": "Completed",
+      "all": "All"
+    },
+    "empty": {
+      "upcoming": "No upcoming follow-ups",
+      "completed": "No completed follow-ups",
+      "all": "No follow-ups found"
+    },
+    "markCompleted": "Mark completed",
+    "cancel": "Cancel",
+    "reopen": "Reopen",
+    "noDate": "No date set",
+    "scheduled": "Scheduled",
+    "unknownPatient": "Unknown patient"
+  },
+  "queue": {
+    "title": "Today's queue",
+    "subtitle": "Walk-ins + scheduled appointments",
+    "lastUpdated": "Updated {{time}} ago",
+    "empty": {
+      "title": "Nothing in the queue right now",
+      "description": "No walk-ins or appointments match the current filter."
+    },
+    "filter": {
+      "all": "All",
+      "walkIns": "Walk-ins",
+      "appointments": "Appointments",
+      "active": "Active",
+      "completed": "Done"
+    },
+    "stat": {
+      "waiting": "Waiting",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "noShow": "No-show"
+    },
+    "row": {
+      "walkIn": "Walk-in",
+      "appointment": "Appt",
+      "urgent": "Urgent",
+      "arrived": "Arrived"
+    },
+    "action": {
+      "refresh": "Refresh",
+      "openChart": "Open patient chart"
+    },
+    "toast": {
+      "statusUpdated": "Status updated",
+      "error": "Couldn't update status",
+      "tryAgain": "Please try again."
     }
+  },
+  "ai": {
+    "summary": {
+      "title": "AI summary",
+      "subtitle": "Synthesised from records, vitals, labs and meds",
+      "generate": "Generate summary",
+      "regenerate": "Regenerate",
+      "cached": "Cached · {{time}}",
+      "error": "Could not generate summary",
+      "empty": "Generate an AI summary to see a synthesised view of this patient's recent history."
+    },
+    "labExplain": {
+      "title": "Explain this lab report",
+      "placeholder": "Paste lab report text if no file is attached",
+      "run": "Explain",
+      "abnormal": "Abnormal values",
+      "recommendations": "Recommended follow-up",
+      "error": "Could not generate explanation",
+      "cached": "Cached result"
+    }
+  },
+  "pharmacy": {
+    "title": "Pharmacy",
+    "subtitle": "Prescriptions awaiting dispensing",
+    "filter": {
+      "awaiting": "Awaiting",
+      "dispensed": "Dispensed",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "empty": {
+      "awaiting": "No prescriptions waiting to be dispensed.",
+      "dispensed": "No prescriptions dispensed today.",
+      "rejected": "No rejected prescriptions."
+    },
+    "actions": {
+      "view": "View",
+      "dispense": "Dispense",
+      "reject": "Reject",
+      "dispensed": "Prescription dispensed",
+      "rejected": "Prescription rejected",
+      "dispenseHint": "Confirm medications match the prescription before dispensing."
+    },
+    "reject": {
+      "confirmTitle": "Reject prescription?",
+      "confirmBody": "This will cancel the prescription and notify the issuing doctor. The reason is recorded in the audit trail.",
+      "confirm": "Reject prescription",
+      "reason": "Reason (e.g. out of stock, wrong dose)"
+    },
+    "detail": {
+      "backToList": "Back to pharmacy",
+      "dispenseSuccess": "Prescription dispensed",
+      "rejectSuccess": "Prescription rejected"
+    }
+  },
+  "bookAppointment": {
+    "title": "Book Appointment",
+    "subtitle": "Schedule an appointment for a patient",
+    "selectPatient": "Select Patient",
+    "searchPatient": "Search by name, NIC, phone…",
+    "selectDate": "Select Date",
+    "selectTime": "Select Time",
+    "confirm": "Confirm Booking",
+    "patient": "Patient",
+    "date": "Date",
+    "time": "Time",
+    "reason": "Reason (optional)",
+    "reasonPlaceholder": "e.g. Follow-up for blood pressure",
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "noSlots": "No available slots for this date",
+    "booked": "Appointment booked successfully",
+    "selectPatientFirst": "Please select a patient first",
+    "back": "Back",
+    "next": "Next",
+    "confirmBooking": "Book Appointment",
+    "summary": "Booking Summary",
+    "noPatientResults": "No patients match your search",
+    "searchHint": "Type at least 2 characters to search"
+  },
+  "records": {
+    "title": "Medical Records",
+    "subtitle": "{{count}} records on file",
+    "searchPlaceholder": "Search by title, type, patient, tags…",
+    "empty": "No records found",
+    "emptySearch": "No records match your search",
+    "unknownPatient": "Unknown patient",
+    "filterAll": "All",
+    "kindPrescription": "Prescription",
+    "kindLabOrder": "Lab order",
+    "kindDiagnosis": "Diagnosis",
+    "kindNote": "Note"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "subtitle": "Hospitals and clinics you're affiliated with",
+    "hospitals": "Hospitals",
+    "clinics": "Clinics",
+    "noHospitals": "No hospital affiliations",
+    "noClinics": "No clinic affiliations"
+  },
+  "relationships": {
+    "title": "Clinical Relationships",
+    "subtitle": "Manage your clinical context with patients",
+    "active": "Active",
+    "inactive": "Inactive",
+    "noActive": "No active relationships",
+    "revoke": "Revoke",
+    "unknownPatient": "Unknown patient"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "{{count}} unread notifications",
+    "showAll": "Show all",
+    "showUnread": "Show unread",
+    "markAllRead": "Mark all read",
+    "markRead": "Mark read",
+    "markedAllRead": "All notifications marked as read",
+    "empty": "No notifications",
+    "emptyUnread": "No unread notifications",
+    "bell": {
+      "aria": "Notifications",
+      "unread": "{{count}} unread"
+    }
+  },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "Your action history — every sign, cancel, and update",
+    "empty": "No actions logged yet",
+    "filter": {
+      "action": {
+        "all": "All actions",
+        "create": "Create",
+        "sign": "Sign",
+        "cancel": "Cancel",
+        "update": "Update",
+        "dispense": "Dispense"
+      },
+      "resource": {
+        "all": "All resources",
+        "prescription": "Prescriptions",
+        "lab_order": "Lab orders",
+        "patient": "Patients",
+        "note": "Notes",
+        "other": "Other"
+      }
+    },
+    "col": {
+      "resource": "Resource"
+    },
+    "actions": {
+      "sign": "Signed",
+      "cancel": "Cancelled",
+      "dispense": "Dispensed",
+      "completeLab": "Completed lab",
+      "create": "Created",
+      "update": "Updated",
+      "other": "Action"
+    },
+    "openPrescription": "Verify prescription",
+    "openPatient": "Open chart"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your public profile",
+    "personalInfo": "Personal Information",
+    "professionalInfo": "Professional Information",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell patients about yourself, your experience, and your approach to care…"
+  },
+  "visitSummary": {
+    "title": "Visit Summary",
+    "patient": "Patient",
+    "doctor": "Doctor",
+    "chiefComplaint": "Chief Complaint",
+    "historyOfPresentIllness": "History of Present Illness",
+    "examinationFindings": "Examination Findings",
+    "diagnosis": "Diagnosis",
+    "treatmentPlan": "Treatment Plan",
+    "followUpInstructions": "Follow-up Instructions",
+    "notProvided": "Not provided"
   }
 }

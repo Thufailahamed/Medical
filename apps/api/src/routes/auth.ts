@@ -28,6 +28,7 @@ import {
   maskTarget,
 } from "../lib/crypto";
 import { nicVerificationLevel } from "../lib/nic";
+import { encryptPii } from "../lib/pii-cipher";
 import { normalizeSLPhone } from "../lib/phone";
 import { createSmsProvider, formatOtpMessage } from "../lib/sms";
 import type { AppEnvironment } from "../types";
@@ -103,15 +104,26 @@ auth.post("/register", async (c) => {
   const approvalRoles = await getApprovalRequiredRoles(db);
   const requiresApproval = approvalRoles.includes(role);
   try {
+    // P1 bundle 3: PII columns get a cipher copy on insert. Plaintext
+    // stays populated for the legacy login paths (login-by-phone,
+    // login-by-email) until a sweep migrates them. Failures here would
+    // block registration — encryption is best-effort so a transient
+    // crypto error doesn't lock users out.
+    const emailPiiValue = await encryptPii(c.env, email || null).catch(() => null);
+    const phonePiiValue = await encryptPii(c.env, phone || null).catch(() => null);
+    const nicPiiValue = await encryptPii(c.env, nic ? normalizeNic(nic) : null).catch(() => null);
     const [u] = await db
       .insert(users)
       .values({
         supabaseId: crypto.randomUUID(),
         email: email || null,
         phone: phone || null,
+        emailPii: emailPiiValue,
+        phonePii: phonePiiValue,
         name,
         role,
         nic: nic ? normalizeNic(nic) : null,
+        nicPii: nicPiiValue,
         nicHash,
         dateOfBirth: dob || null,
         nicVerificationLevel: nicLevel === "none" ? null : nicLevel,
