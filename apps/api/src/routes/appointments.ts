@@ -11,6 +11,8 @@ import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { ACTIVE_STATUSES, MAX_PER_SLOT, compactQueue } from "../lib/booking";
 import { upsertActiveCareTeam } from "../lib/status-guard";
+import { computeCancellationEstimate } from "../lib/cancellation";
+import { appointmentPayments } from "@healthcare/db";
 import type { AppEnvironment } from "../types";
 
 const appointmentsRouter = new Hono<AppEnvironment>();
@@ -532,11 +534,44 @@ appointmentsRouter.delete(
       );
     }
 
+    // Phase 5: compute refund estimate BEFORE mutation so the UI can
+    // confirm with the patient. Also expose as a separate GET endpoint
+    // for the appointment-detail screen.
+    const estimate = computeCancellationEstimate(
+      existing.date,
+      existing.time,
+      existing.paymentAmount ?? 0
+    );
+
     const [updated] = await db
       .update(appointments)
       .set({ status: "cancelled" })
       .where(eq(appointments.id, appointmentId))
       .returning();
+
+    // If the patient had paid, mark the latest payment record per the
+    // estimate. Actual refund disbursement is still manual in MVP — the
+    // row carries the owed amount for finance to act on.
+    if ((existing.paymentStatus as any) === "paid" && estimate.refundLkr > 0) {
+      await db
+        .update(appointmentPayments)
+        .set({
+          status: "refunded",
+          refundedAmountLkr: estimate.refundLkr,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(appointmentPayments.appointmentId, appointmentId));
+    } else if ((existing.paymentStatus as any) === "paid" && estimate.refundLkr === 0) {
+      await db
+        .update(appointmentPayments)
+        .set({
+          status: "refunded",
+          refundedAmountLkr: 0,
+          failureReason: estimate.rule,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(appointmentPayments.appointmentId, appointmentId));
+    }
 
     // Notify the patient (confirmation).
     await notify({
@@ -576,7 +611,68 @@ appointmentsRouter.delete(
     });
     await compactQueue(db, existing.doctorId, existing.date, existing.time);
 
-    return c.json({ appointment: updated });
+    return c.json({
+      appointment: updated,
+      refund: {
+        bucket: estimate.bucket,
+        refundPct: estimate.refundPct,
+        refundLkr: estimate.refundLkr,
+        rule: estimate.rule,
+      },
+    });
+  }
+);
+
+/**
+ * GET /appointments/:id/cancellation-estimate
+ * Preview the refund the patient would receive if they cancelled now.
+ * UI uses this to display the policy before the patient confirms.
+ */
+appointmentsRouter.get(
+  "/:id/cancellation-estimate",
+  authMiddleware,
+  requireRole("patient"),
+  async (c) => {
+    const appointmentId = c.req.param("id");
+    const userId = c.get("userId");
+    const db = c.get("db");
+
+    const [patient] = await db
+      .select()
+      .from(patients)
+      .where(eq(patients.userId, userId))
+      .limit(1);
+    if (!patient) return c.json({ error: "Patient not found" }, 404);
+
+    const [existing] = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, appointmentId))
+      .limit(1);
+
+    if (
+      !existing ||
+      existing.patientId !== (patient.patients?.id ?? patient.id)
+    ) {
+      return c.json({ error: "Appointment not found or access denied" }, 404);
+    }
+
+    if (existing.status === "cancelled") {
+      return c.json({ error: "Already cancelled" }, 409);
+    }
+
+    const estimate = computeCancellationEstimate(
+      existing.date,
+      existing.time,
+      existing.paymentAmount ?? 0
+    );
+    return c.json({
+      appointmentId,
+      date: existing.date,
+      time: existing.time,
+      amountPaidLkr: existing.paymentAmount ?? 0,
+      ...estimate,
+    });
   }
 );
 

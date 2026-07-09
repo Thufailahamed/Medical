@@ -54,6 +54,7 @@ import {
   Card,
   BottomSheet,
   useToast,
+  ErrorState,
   Button,
 } from "@/components/ui";
 
@@ -173,7 +174,7 @@ export default function MedicinesScreen() {
     { value: "all", label: t("medicines.tabs.all") },
   ];
 
-  const { data: allMeds, isLoading, refetch: refetchAll } = useMyMedicines(
+  const { data: allMeds, isLoading, isError, refetch: refetchAll } = useMyMedicines(
     tab === "all" ? { includeInactive: true } : undefined
   );
   const { data: todayMeds, refetch: refetchToday } = useTodayMedicines();
@@ -885,6 +886,14 @@ export default function MedicinesScreen() {
             size="large"
             color={colors.primary}
             style={{ marginTop: 60 }}
+          />
+        ) : isError ? (
+          <ErrorState
+            style={{ paddingHorizontal: spacing.lg, marginTop: 24 }}
+            title={t("common.errorTitle")}
+            message={t("common.errorLoad")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetchAll()}
           />
         ) : list.length === 0 ? (
           <View style={{ paddingHorizontal: spacing.lg, marginTop: 24 }}>

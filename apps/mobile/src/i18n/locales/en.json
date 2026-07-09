@@ -9,7 +9,10 @@
     "remove": "Remove",
     "add": "Add",
     "clear": "Clear",
-    "you": "You"
+    "you": "You",
+    "retry": "Retry",
+    "errorTitle": "Something went wrong",
+    "errorLoad": "We couldn't load this. Check your connection and try again."
   },
   "appLock": {
     "setup": {
@@ -1695,6 +1698,9 @@
     "cancelConfirm": "Cancel appointment",
     "cancelSuccess": "Appointment cancelled",
     "cancelError": "Could not cancel",
+    "cancelEstimating": "Calculating refund...",
+    "cancelRefundEstimate": "Refund: {{amount}} ({{pct}}%) — paid out within 5–7 business days.",
+    "cancelNoRefund": "No refund for this cancellation.",
     "empty": {
       "pastTitle": "No past appointments",
       "pastBody": "Past appointments will appear here",
@@ -1781,16 +1787,39 @@
     "summaryHospital": "Hospital",
     "summaryDate": "Date",
     "summaryTime": "Time",
+    "summaryFee": "Consultation fee",
     "step3ReasonLabel": "Reason for visit",
     "step3ReasonHelper": "Optional — short description",
     "step3ReasonPlaceholder": "e.g., annual checkup",
     "back": "Back",
     "continue": "Continue",
     "confirmBooking": "Confirm booking",
+    "policyTitle": "Cancellation policy",
+    "policyIntro": "Please review our cancellation and refund policy before confirming.",
+    "policyFull": "Free cancellation up to 24 hours before the appointment.",
+    "policyHalf": "50% fee applies if you cancel within 2–24 hours.",
+    "policyNone": "No refund if you cancel under 2 hours before, or if you don't show up.",
+    "policyPayNote": "Consultation fee: {{amount}}. PayHere will open after you accept.",
+    "policyAccept": "Accept & pay",
+    "policyDecline": "Cancel",
     "toast": {
       "booked": "Appointment booked",
-      "bookError": "Could not book appointment"
+      "bookError": "Could not book appointment",
+      "paid": "Payment confirmed",
+      "paymentCancelled": "Payment cancelled. You can pay later.",
+      "paymentFailed": "Payment failed. Try again from Appointments.",
+      "paymentError": "Payment error"
     }
+  },
+  "cancellationPolicy": {
+    "title": "Cancellation policy",
+    "intro": "Please review our cancellation and refund policy.",
+    "full": "Cancel 24h+ before — full refund",
+    "half": "Cancel 2–24h before — 50% refund",
+    "none": "Cancel under 2h or no-show — no refund",
+    "payNote": "Consultation fee: {{amount}}",
+    "accept": "Accept",
+    "decline": "Decline"
   },
   "healthSummary": {
     "title": "Health Summary",

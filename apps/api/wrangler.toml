@@ -41,6 +41,15 @@ WA_VERIFY_TOKEN = "wa-verify-token-set-via-secret"
 # SMSLENZ_USER_ID and SMSLENZ_API_KEY are set via `wrangler secret put`.
 SMS_PROVIDER = "smslenz"
 SMS_SENDER_ID = "SMSlenzDEMO"
+# Phase 4: Email OTP. EMAIL_PROVIDER controls the gateway:
+#   "cloudflare" -> send via CF Email Workers binding (production, uses EMAIL_ALIAS_DOMAIN)
+#   "resend"     -> send via Resend API (set RESEND_API_KEY via wrangler secret)
+#   "console"    -> log to stdout (dev default; email body still has the code in dev mode)
+EMAIL_PROVIDER = "console"
+EMAIL_FROM = "no-reply@records.healthhub.app"
+# Phase 5: PayHere payments. PAYHERE_MERCHANT_ID + PAYHERE_SECRET are set
+# via wrangler secret. Sandbox mode uses https://sandbox.payhere.lk.
+PAYHERE_SANDBOX = "true"
 
 [[d1_databases]]
 binding = "DB"
@@ -60,17 +69,20 @@ vars = { ENVIRONMENT = "production" }
 [env.development]
 vars = { ENVIRONMENT = "development", DEV_MODE = "true" }
 
-# Cron triggers:
-#   - "7 * * * *"                          → booking reminders (hourly :07)
-#   - "3,8,13,...,58 * * * *"               → dose reminders (every 5 min)
-#   - "37 3 * * *"                         → refill reminders (daily 09:07 SL)
-#   - "0 5 * * *"                          → reclassify sweep (daily 05:00 SL, Phase 2.1)
-#   - "42 3 * * *"                         → vaccination reminders (daily 09:12 SL, Phase 2.2)
+# Cron triggers (UTC clock - wrangler runs in UTC).
+#   "7 * * * *"                                  -> booking reminders (hourly :07 UTC)
+#   "3,8,13,18,23,28,33,38,43,48,53,58 * * * *" -> dose reminders (every 5 min)
+#   "37 3 * * *"                                  -> refill reminders (daily 09:07 SL = 03:37 UTC)
+#   "30 23 * * *"                                 -> reclassify sweep (daily 05:00 SL = 23:30 UTC, Phase 2.1)
+#   "42 3 * * *"                                  -> vaccination reminders (daily 09:12 SL = 03:42 UTC, Phase 2.2)
 # Off-minute shifts avoid the :00/:05 spike seen by other cron jobs.
 [triggers]
 crons = [
-  "3,18,33,48 * * * *",
+  "3,8,13,18,23,28,33,38,43,48,53,58 * * * *",
+  "7 * * * *",
   "37 3 * * *",
+  "30 23 * * *",
+  "42 3 * * *",
 ]
 
 [observability.logs]

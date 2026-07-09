@@ -83,6 +83,7 @@ import {
   TextInput,
   useToast,
   AppText,
+  ErrorState,
 } from "@/components/ui";
 import {
   RecordFilters,
@@ -397,7 +398,7 @@ export default function RecordsV2() {
   // ─── Data (1:1 with previous version) ──────────────────────────────────
   const { data: profileData, isLoading: profileLoading } = usePatientProfile();
   const { data: stats } = useRecordStats();
-  const { data: recordsData, isLoading: recordsLoading, refetch: refetchRecords } =
+  const { data: recordsData, isLoading: recordsLoading, isError: recordsErrored, refetch: refetchRecords } =
     useUnifiedRecords({ limit: 200 });
   const { data: searchData } = useRecordSearch(query, { limit: 50 });
   const { data: timeline } = useUnifiedTimeline();
@@ -1236,6 +1237,14 @@ export default function RecordsV2() {
                   />
                 ))}
               </View>
+            ) : recordsErrored ? (
+              <ErrorState
+                style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}
+                title={t("common.errorTitle")}
+                message={t("common.errorLoad")}
+                actionLabel={t("common.retry")}
+                onAction={() => refetchRecords()}
+              />
             ) : filteredRecords.length === 0 ? (
               <View
                 style={{

@@ -24,6 +24,7 @@ import {
   Screen,
   ScreenHeader,
   EmptyState,
+  ErrorState,
   Skeleton,
 } from "@/components/ui";
 
@@ -31,7 +32,7 @@ export default function MyPrescriptionsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
-  const { data, isLoading, refetch } = useMyPrescriptions();
+  const { data, isLoading, isError, refetch } = useMyPrescriptions();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("");
 
@@ -121,6 +122,14 @@ export default function MyPrescriptionsScreen() {
               <Skeleton key={i} height={92} radius={18} />
             ))}
           </View>
+        ) : isError ? (
+          <ErrorState
+            style={{ marginTop: spacing.xl }}
+            title={t("common.errorTitle", { defaultValue: "Something went wrong" })}
+            message={t("prescriptions.errorLoad", { defaultValue: "We couldn't load your prescriptions. Check your connection and try again." })}
+            actionLabel={t("common.retry", { defaultValue: "Retry" })}
+            onAction={() => refetch()}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             style={{ marginTop: spacing.xl }}

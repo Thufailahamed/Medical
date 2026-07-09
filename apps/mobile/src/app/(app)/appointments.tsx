@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { View, Text, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Plus, CalendarPlus, Clock, X, Loader, FileText } from "lucide-react-native";
+import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet } from "lucide-react-native";
 import { useMyAppointments, useCancelAppointment } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { api } from "@/lib/api";
 import {
   Screen,
   ScreenHeader,
@@ -15,8 +16,11 @@ import {
   Pill,
   PillTone,
   EmptyState,
+  ErrorState,
   Skeleton,
   Timeline,
+  BottomSheet,
+  Button,
   useToast,
 } from "@/components/ui";
 
@@ -70,40 +74,50 @@ export default function AppointmentsScreen() {
   const { t } = useTranslation();
   const toast = useToast();
   const { spacing, colors, typography, radius } = useTheme();
-  const { data, isLoading } = useMyAppointments();
+  const { data, isLoading, isError, refetch } = useMyAppointments();
   const cancelAppointment = useCancelAppointment();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
+  const [cancelSheet, setCancelSheet] = useState<any | null>(null);
+  const [cancelEstimate, setCancelEstimate] = useState<any | null>(null);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
 
-  function confirmCancel(item: any) {
-    Alert.alert(
-      t("appointments.cancelConfirmTitle"),
-      t("appointments.cancelConfirmBody", {
+  async function openCancelSheet(item: any) {
+    setCancelSheet(item);
+    setCancelEstimate(null);
+    setLoadingEstimate(true);
+    try {
+      const est: any = await api.get(
+        `/appointments/${item.id}/cancellation-estimate`
+      );
+      setCancelEstimate(est);
+    } catch {
+      setCancelEstimate({ rule: t("appointments.cancelConfirmBody", {
         date: item.date,
         time: item.time || "—",
-      }),
-      [
-        { text: t("appointments.cancelKeep"), style: "cancel" },
-        {
-          text: t("appointments.cancelConfirm"),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setCancellingId(item.id);
-              await cancelAppointment.mutateAsync(item.id);
-              toast.show(t("appointments.cancelSuccess"), "info");
-            } catch (err: any) {
-              toast.show(
-                err?.message || t("appointments.cancelError"),
-                "danger"
-              );
-            } finally {
-              setCancellingId(null);
-            }
-          },
-        },
-      ]
-    );
+      }) });
+    } finally {
+      setLoadingEstimate(false);
+    }
+  }
+
+  async function performCancel() {
+    if (!cancelSheet) return;
+    const id = cancelSheet.id;
+    setCancelSheet(null);
+    setCancelEstimate(null);
+    try {
+      setCancellingId(id);
+      await cancelAppointment.mutateAsync(id);
+      toast.show(t("appointments.cancelSuccess"), "info");
+    } catch (err: any) {
+      toast.show(
+        err?.message || t("appointments.cancelError"),
+        "danger"
+      );
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   const all: any[] = data?.appointments || [];
@@ -172,6 +186,13 @@ export default function AppointmentsScreen() {
             <Skeleton key={i} height={92} radius={20} />
           ))}
         </View>
+      ) : isError ? (
+        <ErrorState
+          title={t("common.errorTitle", { defaultValue: "Something went wrong" })}
+          message={t("appointments.errorLoad", { defaultValue: "We couldn't load your appointments. Check your connection and try again." })}
+          actionLabel={t("common.retry", { defaultValue: "Retry" })}
+          onAction={() => refetch()}
+        />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={CalendarPlus}
@@ -316,7 +337,7 @@ export default function AppointmentsScreen() {
                       item.status === "confirmed" ||
                       item.status === "pending") ? (
                       <Pressable
-                        onPress={() => confirmCancel(item)}
+                        onPress={() => openCancelSheet(item)}
                         accessibilityRole="button"
                         accessibilityLabel={t(
                           "appointments.a11y.cancelAppointment"
@@ -358,6 +379,72 @@ export default function AppointmentsScreen() {
           />
         </View>
       )}
+
+      {/* Cancellation policy sheet — shows refund estimate before user confirms. */}
+      <BottomSheet
+        visible={!!cancelSheet}
+        onDismiss={() => {
+          setCancelSheet(null);
+          setCancelEstimate(null);
+        }}
+        title={t("appointments.cancelConfirmTitle")}
+      >
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" }}>
+            <AlertCircle size={20} color={colors.warning || "#FF9500"} strokeWidth={2} />
+            <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+              {loadingEstimate
+                ? t("appointments.cancelEstimating")
+                : cancelEstimate?.rule ||
+                  t("appointments.cancelConfirmBody", {
+                    date: cancelSheet?.date,
+                    time: cancelSheet?.time || "—",
+                  })}
+            </Text>
+          </View>
+          {!loadingEstimate && cancelEstimate ? (
+            <View
+              style={{
+                flexDirection: "row",
+                gap: spacing.sm,
+                alignItems: "center",
+                padding: spacing.md,
+                backgroundColor: colors.surfaceMuted || colors.bgMuted,
+                borderRadius: 12,
+              }}
+            >
+              <Wallet size={18} color={colors.textMuted} strokeWidth={2} />
+              <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+                {cancelEstimate.refundLkr > 0
+                  ? t("appointments.cancelRefundEstimate", {
+                      amount: `LKR ${Number(cancelEstimate.refundLkr).toLocaleString()}`,
+                      pct: cancelEstimate.refundPct,
+                    })
+                  : t("appointments.cancelNoRefund")}
+              </Text>
+            </View>
+          ) : null}
+          <View style={{ flexDirection: "row", gap: spacing.md, marginTop: spacing.sm }}>
+            <Button
+              title={t("appointments.cancelKeep")}
+              variant="outline"
+              onPress={() => {
+                setCancelSheet(null);
+                setCancelEstimate(null);
+              }}
+              fullWidth={false}
+            />
+            <View style={{ flex: 1 }}>
+              <Button
+                title={t("appointments.cancelConfirm")}
+                onPress={performCancel}
+                loading={!!cancellingId}
+                variant="danger"
+              />
+            </View>
+          </View>
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }

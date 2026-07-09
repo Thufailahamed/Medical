@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useMemo, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +18,8 @@ import {
   Sparkles,
   Building2,
   Search,
+  Wallet,
+  AlertCircle,
 } from "lucide-react-native";
 import {
   useBookAppointment,
@@ -42,8 +44,11 @@ import {
   NextActionCard,
   EmptyState,
   Skeleton,
+  BottomSheet,
   useToast,
 } from "@/components/ui";
+import { api } from "@/lib/api";
+import { runPayHereCheckout } from "@/lib/payhere";
 
 const TIME_SLOTS = [
   "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
@@ -74,6 +79,8 @@ export default function BookAppointmentScreen() {
   const [step, setStep] = useState(1);
   const [query, setQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState<string | null>(null);
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
 
   const { data: specialtiesData } = useSpecialties();
@@ -92,6 +99,7 @@ export default function BookAppointmentScreen() {
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -122,15 +130,60 @@ export default function BookAppointmentScreen() {
   }, [availabilityData, period]);
 
   const onSubmit = async (data: any) => {
+    // Phase 5: gate confirm behind cancellation policy modal.
+    setPolicyOpen(true);
+  };
+
+  const acceptAndBook = async () => {
+    setPolicyOpen(false);
+    const data = getValues();
     try {
-      await bookAppointment.mutateAsync({
+      const booked = await bookAppointment.mutateAsync({
         hospitalId: data.hospitalId,
         doctorId: data.doctorId,
         date: data.date.toISOString().slice(0, 10),
         time: data.time,
         reason: data.reason || undefined,
       });
-      toast.show(t("bookAppointment.toast.booked"), "success");
+
+      const appointmentId = booked?.id || booked?.appointment?.id;
+      const fee = selectedDoctor?.consultationFee ?? booked?.paymentAmount ?? 0;
+
+      if (appointmentId && fee > 0) {
+        // Initiate payment + open PayHere checkout.
+        try {
+          setPaying(true);
+          const init: any = await api.post("/payments/initiate", {
+            appointmentId,
+          });
+          const result = await runPayHereCheckout({
+            appointmentId,
+            fields: init.fields,
+            checkoutUrl: init.checkoutUrl,
+            pollStatus: async () => {
+              const s: any = await api.get(`/payments/${appointmentId}`);
+              return { status: s.status };
+            },
+          });
+          if (result.status === "paid") {
+            toast.show(t("bookAppointment.toast.paid"), "success");
+          } else if (result.status === "cancelled") {
+            toast.show(t("bookAppointment.toast.paymentCancelled"), "info");
+          } else {
+            toast.show(t("bookAppointment.toast.paymentFailed"), "danger");
+          }
+        } catch (payErr: any) {
+          toast.show(
+            payErr?.message || t("bookAppointment.toast.paymentError"),
+            "danger"
+          );
+        } finally {
+          setPaying(false);
+        }
+      } else {
+        toast.show(t("bookAppointment.toast.booked"), "success");
+      }
+
       router.back();
     } catch (err: any) {
       toast.show(
@@ -438,6 +491,13 @@ export default function BookAppointmentScreen() {
                   label={t("bookAppointment.summaryTime")}
                   value={values.time || "—"}
                 />
+                {selectedDoctor?.consultationFee ? (
+                  <SummaryRow
+                    icon={Wallet}
+                    label={t("bookAppointment.summaryFee")}
+                    value={`LKR ${Number(selectedDoctor.consultationFee).toLocaleString()}`}
+                  />
+                ) : null}
               </View>
             </Card>
 
@@ -507,12 +567,61 @@ export default function BookAppointmentScreen() {
             <Button
               title={t("bookAppointment.confirmBooking")}
               onPress={handleSubmit(onSubmit)}
-              loading={bookAppointment.isPending}
+              loading={bookAppointment.isPending || paying}
               icon={Sparkles}
             />
           )}
         </View>
       </View>
+
+      {/* Cancellation policy modal — gates the final confirm. */}
+      <BottomSheet
+        visible={policyOpen}
+        onDismiss={() => setPolicyOpen(false)}
+        title={t("bookAppointment.policyTitle")}
+      >
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" }}>
+            <AlertCircle size={20} color={colors.warning || "#FF9500"} strokeWidth={2} />
+            <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+              {t("bookAppointment.policyIntro")}
+            </Text>
+          </View>
+          <View style={{ gap: spacing.xs, paddingLeft: spacing.lg }}>
+            <Text style={[typography.body.sm, { color: colors.text }]}>
+              {t("bookAppointment.policyFull")}
+            </Text>
+            <Text style={[typography.body.sm, { color: colors.text }]}>
+              {t("bookAppointment.policyHalf")}
+            </Text>
+            <Text style={[typography.body.sm, { color: colors.text }]}>
+              {t("bookAppointment.policyNone")}
+            </Text>
+          </View>
+          {selectedDoctor?.consultationFee ? (
+            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+              {t("bookAppointment.policyPayNote", {
+                amount: `LKR ${Number(selectedDoctor.consultationFee).toLocaleString()}`,
+              })}
+            </Text>
+          ) : null}
+          <View style={{ flexDirection: "row", gap: spacing.md, marginTop: spacing.sm }}>
+            <Button
+              title={t("bookAppointment.policyDecline")}
+              variant="outline"
+              onPress={() => setPolicyOpen(false)}
+              fullWidth={false}
+            />
+            <View style={{ flex: 1 }}>
+              <Button
+                title={t("bookAppointment.policyAccept")}
+                onPress={acceptAndBook}
+                loading={bookAppointment.isPending || paying}
+              />
+            </View>
+          </View>
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }

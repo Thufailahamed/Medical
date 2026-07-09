@@ -31,6 +31,7 @@ import { nicVerificationLevel } from "../lib/nic";
 import { encryptPii } from "../lib/pii-cipher";
 import { normalizeSLPhone } from "../lib/phone";
 import { createSmsProvider, formatOtpMessage } from "../lib/sms";
+import { createEmailProvider, formatOtpEmail } from "../lib/email";
 import type { AppEnvironment } from "../types";
 
 const auth = new Hono<AppEnvironment>();
@@ -728,10 +729,24 @@ auth.post("/send-otp", async (c) => {
       console.error(`[otp] SMS send failed: ${smsResult.error}`);
     }
   } else {
-    // Email channel — no provider wired yet, log for dev.
-    console.log(
-      `[otp] channel=${channel} target=${maskTarget(destination)} purpose=${purpose} code=${code} expiresAt=${expiresAt}`,
-    );
+    // Email channel — wire Resend/Cloudflare/SES via EMAIL_PROVIDER.
+    const email = createEmailProvider(c.env);
+    const { subject, text, html } = formatOtpEmail(code, purpose);
+    const emailResult = await email.sendEmail({
+      to: destination,
+      subject,
+      text,
+      html,
+    });
+    if (!emailResult.success) {
+      console.error(`[otp] email send failed: ${emailResult.error}`);
+    }
+    // Keep dev-mode plaintext logging gated on DEV_MODE so prod doesn't leak.
+    if (c.env.DEV_MODE === "true" || c.env.ENVIRONMENT === "development") {
+      console.log(
+        `[otp] channel=${channel} target=${maskTarget(destination)} purpose=${purpose} code=${code} expiresAt=${expiresAt}`,
+      );
+    }
   }
 
   const isDev = c.env.DEV_MODE === "true" || c.env.ENVIRONMENT === "development";

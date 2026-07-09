@@ -23,6 +23,7 @@ import vitalsRouter from "./routes/vitals";
 import notesRouter from "./routes/notes";
 import dosesRouter from "./routes/doses";
 import auditRouter from "./routes/audit";
+import paymentsRouter from "./routes/payments";
 import insuranceRouter from "./routes/insurance";
 import labsRouter from "./routes/labs";
 import wellnessRouter from "./routes/wellness";
@@ -198,6 +199,9 @@ app.route("/vitals", vitalsRouter);
 app.route("/notes", notesRouter);
 app.route("/doses", dosesRouter);
 app.route("/audit", auditRouter);
+// Phase 5: PayHere payment flow. /payments/initiate + /payments/notify
+// + /payments/:appointmentId. Notify is public; others require auth.
+app.route("/payments", paymentsRouter);
 app.route("/insurance", insuranceRouter);
 app.route("/labs", labsRouter);
 app.route("/wellness", wellnessRouter);

@@ -11,6 +11,7 @@ export type { ChipTone } from "./Chip";
 export { Pill } from "./Pill";
 export type { PillTone } from "./Pill";
 export { EmptyState } from "./EmptyState";
+export { ErrorState } from "./ErrorState";
 export { ListItem } from "./ListItem";
 export { StatCard, MetricTile } from "./StatCard";
 export type { StatTone } from "./StatCard";

@@ -2844,6 +2844,51 @@ export const payments = sqliteTable(
   }),
 );
 
+// ─── Phase 5: PayHere online payments for appointments ──────
+// Separate from the existing `payments` (hospital billing) table.
+// Tracks online gateway transactions initiated by the patient.
+export const appointmentPayments = sqliteTable(
+  "appointment_payments",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    appointmentId: text("appointment_id")
+      .notNull()
+      .references(() => appointments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    amountLkr: real("amount_lkr").notNull(),
+    currency: text("currency").notNull().default("LKR"),
+    status: text("status", {
+      enum: ["pending", "paid", "failed", "refunded"],
+    })
+      .notNull()
+      .default("pending"),
+    payhereOrderId: text("payhere_order_id").notNull().unique(),
+    payherePaymentId: text("payhere_payment_id"),
+    payhereStatusCode: text("payhere_status_code"),
+    payhereMethod: text("payhere_method"),
+    rawNotify: text("raw_notify"),
+    failureReason: text("failure_reason"),
+    refundedAmountLkr: real("refunded_amount_lkr").notNull().default(0),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    appointmentIdx: index("appointment_payments_appointment_idx").on(
+      t.appointmentId
+    ),
+    userStatusIdx: index("appointment_payments_user_idx").on(
+      t.userId,
+      t.status
+    ),
+  })
+);
+
 // ─── Phase HOS-14: Inter-hospital collaboration ──────────────
 // Hospital-to-hospital record requests, referrals, lab routing,
 // doctor consult notes, and discharge handoffs.
