@@ -347,6 +347,10 @@
       "recordsV2": {
         "label": "Health records",
         "subtitle": "Unified hub · encrypted"
+      },
+      "refill": {
+        "label": "Medicine Refills",
+        "subtitle": "Check and request refills"
       }
     }
   },

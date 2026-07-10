@@ -284,6 +284,13 @@ export default function ProfileScreen() {
       onPress: () => router.push("/(app)/health-summary" as any),
     },
     {
+      labelKey: "profile.item.refill.label",
+      subtitle: t("profile.item.refill.subtitle"),
+      icon: PillIcon,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/refill" as any),
+    },
+    {
       labelKey: "profile.item.vitals.label",
       subtitle: abnormalCount > 0
         ? t("profile.item.vitals.subtitleAlert", { count: abnormalCount })
