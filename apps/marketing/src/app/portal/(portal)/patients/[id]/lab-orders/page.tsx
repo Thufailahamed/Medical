@@ -42,8 +42,14 @@ interface LabList {
   count: number;
 }
 
-type Status = "all" | "ordered" | "processing" | "completed" | "cancelled";
-const STATUS_VALUES: Status[] = ["all", "ordered", "processing", "completed", "cancelled"];
+import {
+  LAB_ORDER_STATUS_FILTERS,
+  labOrderFilterLabelKey,
+  labOrderFilterToQuery,
+  labOrderPriorityLabelKey,
+  labOrderStatusLabelKey,
+  type LabOrderStatusFilter,
+} from "@/portal/lib/labOrderFilters";
 
 export default function LabOrdersTab({
   params,
@@ -53,8 +59,8 @@ export default function LabOrdersTab({
   const { id } = use(params);
   const t = useT();
   const [open, setOpen] = useState(false);
-  const [status, setStatus] = useState<Status>("all");
-  const [explainFor, setExplainFor] = useState<LabOrder | null>(null);
+  const [status, setStatus] = useState<LabOrderStatusFilter>("all");
+  const [explainFor, setExplainFor] = useState<(Omit<LabOrder, "tests"> & { tests: string[] }) | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "lab-orders", id, status],
@@ -62,7 +68,10 @@ export default function LabOrdersTab({
       const q = new URLSearchParams();
       q.set("patientId", id);
       q.set("limit", "100");
-      if (status !== "all") q.set("status", status);
+      if (status !== "all") {
+        const statusParam = labOrderFilterToQuery(status);
+        if (statusParam) q.set("status", statusParam);
+      }
       return api<LabList>(`/doctor-portal/lab-orders?${q.toString()}`);
     },
   });
@@ -95,15 +104,12 @@ export default function LabOrdersTab({
         isLoading={isLoading}
         isEmpty={!isLoading && rows.length === 0}
         toolbar={
-          <FilterPills<Status>
+          <FilterPills<LabOrderStatusFilter>
             value={status}
             onChange={setStatus}
-            options={STATUS_VALUES.map((s) => ({
+            options={LAB_ORDER_STATUS_FILTERS.map((s) => ({
               value: s,
-              label:
-                s === "all"
-                  ? t("tab.labs.filterAll")
-                  : t(`tab.labs.filter${s[0].toUpperCase()}${s.slice(1)}`),
+              label: t(labOrderFilterLabelKey(s)),
             }))}
           />
         }
@@ -131,10 +137,10 @@ export default function LabOrdersTab({
             subtitle={o.notes ?? undefined}
             pills={[
               <Pill key="priority" tone={labOrderPriorityToTone(o.priority)}>
-                {o.priority}
+                {t(labOrderPriorityLabelKey(o.priority))}
               </Pill>,
               <Pill key="status" tone={labOrderStatusToTone(o.status)}>
-                {t(`status.${o.status}`)}
+                {t(labOrderStatusLabelKey(o.status))}
               </Pill>,
             ]}
             meta={

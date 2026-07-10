@@ -17,6 +17,8 @@ export interface AppEnvironment {
     AI: Ai;
     ENVIRONMENT: string;
     DEV_MODE: string;
+    /** When "true", POST /auth/login accepts dev-doctor@healthhub.local + password `dev` and auto-seeds. */
+    ALLOW_DEV_SEED?: string;
     JWT_SECRET?: string;
     CRON_SECRET?: string;
     // Phase 1.4: domain hosting email aliases for Phase 1.4 ingestion.

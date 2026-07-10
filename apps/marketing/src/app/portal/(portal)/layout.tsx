@@ -80,11 +80,13 @@ export default function PortalLayout({
   return (
     <div className="h-screen flex bg-bg overflow-hidden">
       <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col h-full overflow-y-auto">
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
         <Topbar />
-        <main className="flex-1 min-w-0 px-4 md:px-6 py-5 max-w-[1600px] w-full mx-auto">
-          {children}
-        </main>
+        <div className="flex-1 min-w-0 overflow-y-auto">
+          <main className="min-h-full px-4 md:px-6 py-5 max-w-[1600px] w-full mx-auto">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -26,7 +26,6 @@ import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { Input } from "@/portal/components/ui/Form";
 import { Button } from "@/portal/components/ui/Button";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { ageFrom, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -119,11 +118,6 @@ export default function PatientsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title={t("patients.title")}
-        subtitle={t("patients.subtitle")}
-        icon={<Users size={18} className="text-brand" />}
-      />
 
       {/* Stats strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
@@ -177,17 +171,13 @@ export default function PatientsPage() {
               </span>
             ) : null}
           </div>
-          <div className="relative">
-            <Search
-              size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-              aria-hidden="true"
-            />
+          <div className="portal-input-search-wrap">
+            <Search size={15} className="portal-input-search-icon" aria-hidden="true" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("patients.searchPlaceholder")}
-              className="pl-10 h-11 text-sm font-medium"
+              className={cn("portal-input-icon-left h-11 text-sm font-medium", q.length > 0 && "portal-input-clearable")}
               aria-label="Search patients"
               autoComplete="off"
               spellCheck={false}
@@ -196,7 +186,7 @@ export default function PatientsPage() {
               <button
                 type="button"
                 onClick={() => setQ("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-md text-text-muted hover:text-text hover:bg-surface-2 inline-flex items-center justify-center"
+                className="portal-input-clear-btn"
                 aria-label={t("patients.clearSearch")}
               >
                 ×

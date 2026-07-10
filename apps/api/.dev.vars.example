@@ -1,5 +1,7 @@
 # Set to "true" to bypass Supabase authentication (dev only)
 DEV_MODE=true
+# Optional: enable dev auto-seed login without full DEV_MODE (Cloudflare demo)
+ALLOW_DEV_SEED=true
 
 # Supabase (only needed when DEV_MODE=false)
 SUPABASE_URL=https://your-project.supabase.co

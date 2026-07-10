@@ -14,7 +14,6 @@ import {
   Download,
   XCircle,
   CheckCircle,
-  Pill,
   Edit3,
   ShieldCheck,
   Activity,
@@ -40,6 +39,8 @@ import { cn } from "@/portal/lib/utils";
 import { formatDate, formatDateTime } from "@/portal/lib/format";
 import { useT } from "@/portal/i18n";
 import { PrescriptionComposer } from "./PrescriptionComposer";
+import { RxMedicineList } from "./RxMedicineList";
+import { RxAuditDetails, auditActionLabel } from "./RxAuditDetails";
 import {
   usePrescription,
   usePrescriptionAudit,
@@ -405,80 +406,11 @@ export function RxDetail({
         </Card>
       ) : null}
 
-      {/* Medicines */}
-      <Card padding={false} className="dashboard-card overflow-hidden">
-        <div className="p-5 pb-0">
-          <CardHeader
-            title={t("prescription.medicines")}
-            icon={<Pill size={15} className="text-brand" />}
-            right={
-              <PillBadge tone="brand">
-                {rx.medicines.length}{" "}
-                {rx.medicines.length === 1 ? "med" : "meds"}
-              </PillBadge>
-            }
-            className="border-0 pb-0"
-          />
-        </div>
-        {rx.medicines.length === 0 ? (
-          <Empty title={t("chart.medsEmpty")} className="m-5" />
-        ) : (
-          <ul className="flex flex-col gap-1 p-3 pt-2">
-            {rx.medicines.map((med, idx) => {
-              const ongoing = !med.endDate;
-              return (
-                <li
-                  key={med.id}
-                  className="flex items-start gap-3 px-3 py-3 rounded-xl border border-border/50 bg-surface-2/30 hover:bg-surface-2/60 transition-colors"
-                >
-                  <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/80">
-                    <Pill size={16} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-bold text-text-muted bg-surface px-1.5 py-0.5 rounded-md border border-border/60">
-                        #{idx + 1}
-                      </span>
-                      <span className="text-sm font-semibold text-text">
-                        {med.name}
-                      </span>
-                      {med.dosage ? (
-                        <PillBadge tone="neutral">{med.dosage}</PillBadge>
-                      ) : null}
-                      {ongoing ? (
-                        <PillBadge tone="info">Ongoing</PillBadge>
-                      ) : null}
-                    </div>
-                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5 text-xs text-text-soft">
-                      {med.frequency ? (
-                        <span className="capitalize">
-                          {med.frequency.replace(/_/g, " ")}
-                        </span>
-                      ) : null}
-                      {med.timing ? (
-                        <span className="capitalize">
-                          · {med.timing.replace(/_/g, " ")}
-                        </span>
-                      ) : null}
-                      {med.startDate && med.endDate ? (
-                        <span>
-                          · {formatDate(med.startDate)} →{" "}
-                          {formatDate(med.endDate)}
-                        </span>
-                      ) : null}
-                    </div>
-                    {med.instructions ? (
-                      <p className="text-xs text-text-muted mt-1.5 leading-relaxed">
-                        {med.instructions}
-                      </p>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
+      <RxMedicineList
+        medicines={rx.medicines}
+        title={t("prescription.medicines")}
+        emptyTitle={t("chart.medsEmpty")}
+      />
 
       {rx.notes ? (
         <Card className="dashboard-card">
@@ -531,14 +463,10 @@ export function RxDetail({
                     className="text-brand mt-0.5 shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-text capitalize">
-                      {a.action.replace(/_/g, " ")}
+                    <div className="text-xs font-semibold text-text">
+                      {auditActionLabel(t, a.action)}
                     </div>
-                    {a.details ? (
-                      <pre className="text-[10px] text-text-muted whitespace-pre-wrap break-all font-mono mt-1 leading-relaxed">
-                        {JSON.stringify(a.details, null, 0)}
-                      </pre>
-                    ) : null}
+                    <RxAuditDetails action={a.action} details={a.details} t={t} />
                   </div>
                   <span className="text-[10px] text-text-muted shrink-0 tabular-nums">
                     {formatDateTime(a.createdAt)}

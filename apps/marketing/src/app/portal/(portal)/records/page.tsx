@@ -135,53 +135,69 @@ export default function RecordsPage() {
           />
         ) : (
           <ul className="flex flex-col">
-            {filtered.map((record) => (
-              <li
-                key={record.id}
-                className="group flex items-center gap-3 p-4 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors"
-              >
-                <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
-                  <FileText size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text truncate">
-                    {record.title}
+            {filtered.map((record) => {
+              const patientId = record.patient?.id ?? record.patientId;
+              const href = patientId
+                ? `/portal/patients/${patientId}/records`
+                : null;
+              const rowInner = (
+                <>
+                  <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                    <FileText size={18} />
                   </div>
-                  <div className="text-xs text-text-soft truncate">
-                    {record.patient?.name || t("records.unknownPatient")} · {typeOf(record)}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-text truncate">
+                      {record.title}
+                    </div>
+                    <div className="text-xs text-text-soft truncate">
+                      {record.patient?.name || t("records.unknownPatient")} · {typeOf(record)}
+                    </div>
+                    {record.tags && record.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {record.tags.slice(0, 3).map((tag, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] bg-surface-2 text-text-muted"
+                          >
+                            <Tag size={8} />
+                            {tag}
+                          </span>
+                        ))}
+                        {record.tags.length > 3 && (
+                          <span className="text-[10px] text-text-muted">
+                            +{record.tags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {record.tags && record.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {record.tags.slice(0, 3).map((tag, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] bg-surface-2 text-text-muted"
-                        >
-                          <Tag size={8} />
-                          {tag}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {record.date && (
+                      <div className="flex items-center gap-1">
+                        <Calendar size={11} className="text-text-muted" />
+                        <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">
+                          {formatDate(record.date)}
                         </span>
-                      ))}
-                      {record.tags.length > 3 && (
-                        <span className="text-[10px] text-text-muted">
-                          +{record.tags.length - 3}
-                        </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                    <ChevronRight size={16} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </>
+              );
+              const rowClass =
+                "group flex items-center gap-3 p-4 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors";
+              return (
+                <li key={record.id}>
+                  {href ? (
+                    <Link href={href} className={cn(rowClass, "w-full text-left")}>
+                      {rowInner}
+                    </Link>
+                  ) : (
+                    <div className={rowClass}>{rowInner}</div>
                   )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {record.date && (
-                    <div className="flex items-center gap-1">
-                      <Calendar size={11} className="text-text-muted" />
-                      <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">
-                        {formatDate(record.date)}
-                      </span>
-                    </div>
-                  )}
-                  <ChevronRight size={16} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

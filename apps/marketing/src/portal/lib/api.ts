@@ -28,6 +28,7 @@ export class ApiError extends Error {
 }
 
 type Init = Omit<RequestInit, "body"> & {
+  body?: BodyInit | null;
   json?: unknown;
   // Allow overriding the path on the API root (default API_URL).
   base?: string;
@@ -63,25 +64,38 @@ export async function api<T = any>(
     body: json !== undefined ? JSON.stringify(json) : (rest as RequestInit).body,
   });
 
-  // Unauthorised → drop the session and bounce to /login.
-  if (res.status === 401) {
-    if (typeof window !== "undefined") {
-      useAuthStore.getState().logout();
-      if (window.location.pathname !== "/portal/login") {
-        const next = encodeURIComponent(window.location.pathname);
-        window.location.href = `/login?next=${next}`;
-      }
-    }
-    throw new ApiError("Session expired. Please sign in again.", 401);
-  }
-
+  let body: any = null;
   if (!res.ok) {
-    let body: any = null;
     try {
       body = await res.json();
     } catch {
       // Non-JSON error body — fall through.
     }
+  }
+
+  // Unauthorised → drop the session and bounce to /login.
+  // On the login page itself, surface the server's message (e.g. "Invalid
+  // credentials") instead of the generic session-expired copy.
+  if (res.status === 401) {
+    const onLoginPage =
+      typeof window !== "undefined" &&
+      (window.location.pathname === "/portal/login" ||
+        window.location.pathname === "/login");
+    const msg =
+      onLoginPage && body?.error
+        ? body.error
+        : "Session expired. Please sign in again.";
+    if (typeof window !== "undefined") {
+      useAuthStore.getState().logout();
+      if (!onLoginPage) {
+        const next = encodeURIComponent(window.location.pathname);
+        window.location.href = `/login?next=${next}`;
+      }
+    }
+    throw new ApiError(msg, 401, body?.details ?? body);
+  }
+
+  if (!res.ok) {
     const msg = body?.error ?? `Request failed (${res.status})`;
     throw new ApiError(msg, res.status, body?.details ?? body);
   }

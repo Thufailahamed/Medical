@@ -364,29 +364,11 @@ export default function HomePage() {
     setInterval(update, 30 * 1000);
   }
 
-  // ---------- 14. Hero phone: subtle floating animation ------
-  const heroPhone = document.querySelector('.hero .phone');
-  if (heroPhone) {
-    heroPhone.style.animation = 'phoneFloat 7s ease-in-out infinite';
-  }
-  // Add the keyframes to head if not present
-  if (!document.getElementById('phone-float-keyframes')) {
-    const s = document.createElement('style');
-    s.id = 'phone-float-keyframes';
-    s.textContent = `
-      @keyframes phoneFloat {
-        0%, 100% { transform: translateY(0) rotate(0deg); }
-        50% { transform: translateY(-6px) rotate(-0.4deg); }
-      }
-    `;
-    document.head.appendChild(s);
-  }
-
   // ============================================================
   // PREMIUM LAYER
   // ============================================================
 
-  // ---------- 14b. Always-on bento decoration ----------------
+  // ---------- 14. Always-on bento decoration -----------------
   // Inject corner halos + faint animated grid into each bento card.
   // Cheap, "always on" — no hover required.
   document.querySelectorAll('.bento__item').forEach((card, i) => {
@@ -403,59 +385,7 @@ export default function HomePage() {
     card.appendChild(deco);
   });
 
-  // ---------- 15. Aurora: cursor-reactive radial blobs --------
-  // The hero sits over an <div class="aurora"> with three blobs.
-  // We lerp the blobs toward the pointer with a soft spring.
-  const aurora = document.querySelector('.aurora');
-  if (aurora && matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    const blobs = aurora.querySelectorAll('.aurora__blob');
-    const targets = [
-      { x: 0.30, y: 0.25, i: 0 },
-      { x: 0.72, y: 0.18, i: 1 },
-      { x: 0.50, y: 0.72, i: 2 },
-    ];
-    let tx = 0.5, ty = 0.4;
-    let rx = 0.5, ry = 0.4;
-    let raf = null;
-    document.addEventListener('mousemove', (e) => {
-      tx = e.clientX / window.innerWidth;
-      ty = e.clientY / window.innerHeight;
-    }, { passive: true });
-    function loop() {
-      rx += (tx - rx) * 0.05;
-      ry += (ty - ry) * 0.05;
-      blobs.forEach((b, i) => {
-        const t = targets[i];
-        const ax = (t.x * 0.7) + (rx * 0.3);
-        const ay = (t.y * 0.7) + (ry * 0.3);
-        b.style.setProperty('--mx', (ax * 100) + 'vw');
-        b.style.setProperty('--my', (ay * 100) + 'vh');
-      });
-      raf = requestAnimationFrame(loop);
-    }
-    loop();
-  }
-
-  // ---------- 16. Kinetic headline: letter-by-letter wrap ----
-  // We don't want to ship 80 <span> in HTML. Build them on load.
-  const headline = document.querySelector('[data-headline]');
-  if (headline) {
-    headline.querySelectorAll('[data-text]').forEach((row) => {
-      const text = row.getAttribute('data-text') || '';
-      row.innerHTML = '';
-      let i = 0;
-      [...text].forEach((ch) => {
-        const span = document.createElement('span');
-        span.className = 'char' + (ch === ' ' ? ' char--space' : '');
-        span.textContent = ch === ' ' ? ' ' : ch;
-        span.style.setProperty('--i', i);
-        row.appendChild(span);
-        i++;
-      });
-    });
-  }
-
-  // ---------- 17. Bento tilt + spotlight -------------------
+  // ---------- 15. Bento tilt + spotlight -------------------
   // Mouse position drives --rx, --ry (rotateX/Y) and --mx, --my (spotlight).
   // The CSS already wires ::before to use these vars.
   if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
@@ -662,18 +592,13 @@ export default function HomePage() {
   return (
     <>
       
-  <div className="nav-frame" aria-hidden="true">
-    <div className="nav-frame__border"></div>
-  </div>
   <nav className="nav" aria-label="Primary">
     <div className="container nav__inner">
       <a href="#" className="nav__brand" aria-label="MedLocker home">
         <span className="nav__brand-mark">
-          <span className="nav__brand-ring"></span>
-          <img className="logo" src="assets/logo.svg" alt="" width="28" height="28" />
+          <img className="logo" src="assets/logo.svg" alt="" width="22" height="22" />
         </span>
         <span className="nav__brand-name">MedLocker</span>
-        <span className="nav__brand-ver">v1.0</span>
       </a>
       <div className="nav__links hidden-mobile">
         <a className="nav__link" href="#features">Features</a>
@@ -683,16 +608,15 @@ export default function HomePage() {
         <a className="nav__link" href="#faq">FAQ</a>
       </div>
       <div className="nav__cta">
-        <span className="nav__status" data-nav-status>
+        <span className="nav__status hidden-mobile" data-nav-status>
           <span className="pulse"></span>
           <span><span data-nav-count>147</span> in beta</span>
         </span>
         <Link className="nav__link hidden-mobile" href="/portal/login">
           Clinician sign in
         </Link>
-        <a className="btn btn--primary nav__btn" href="#waitlist">
+        <a className="nav__btn" href="#waitlist">
           Get the app
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
         </a>
       </div>
     </div>
@@ -700,20 +624,9 @@ export default function HomePage() {
 
   
   
-  <div className="aurora" aria-hidden="true">
-    <div className="aurora__grid"></div>
-    <div className="aurora__blob aurora__blob--1"></div>
-    <div className="aurora__blob aurora__blob--2"></div>
-    <div className="aurora__blob aurora__blob--3"></div>
-    <div className="aurora__particles">
-      <span className="aurora__p"></span><span className="aurora__p"></span><span className="aurora__p"></span>
-      <span className="aurora__p"></span><span className="aurora__p"></span><span className="aurora__p"></span>
-      <span className="aurora__p"></span><span className="aurora__p"></span><span className="aurora__p"></span>
-      <span className="aurora__p"></span><span className="aurora__p"></span><span className="aurora__p"></span>
-      <span className="aurora__p"></span><span className="aurora__p"></span><span className="aurora__p"></span>
-    </div>
-    <div className="aurora__orb" aria-hidden="true"></div>
-    <div className="aurora__grain"></div>
+  <div className="hero-bg" aria-hidden="true">
+    <div className="hero-bg__gradient"></div>
+    <div className="hero-bg__grid"></div>
   </div>
 
   <header className="hero">
@@ -724,20 +637,10 @@ export default function HomePage() {
             <span className="pill__dot"></span>
             v1.0 — Now in private beta
           </span>
-          <h1 className="h-display hero__headline" data-headline>
-            <span className="headline__line"><span className="headline__row" data-text="Your health,"></span></span><br />
-            <span className="headline__line headline__line--em"><em><span className="headline__row" data-text="finally in one place."></span></em></span>
+          <h1 className="h-display hero__headline">
+            <span className="headline__line">Your health,</span>
+            <span className="headline__line headline__line--em"><em>finally in one place.</em></span>
           </h1>
-          
-          <svg className="hero__trace" viewBox="0 0 600 24" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M2 18 Q 60 4 140 12 T 280 10 T 420 14 T 560 6" fill="none" stroke="url(#traceGrad)" strokeWidth="2.4" strokeLinecap="round" />
-            <defs>
-              <linearGradient id="traceGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#0EA5E9" />
-                <stop offset="1" stopColor="#FF7A59" />
-              </linearGradient>
-            </defs>
-          </svg>
           <p className="lede hero__lede">
             MedLocker is the calm, private health companion that brings your records,
             medicines, vitals and care team into a single, beautifully designed app.
@@ -755,15 +658,15 @@ export default function HomePage() {
           </div>
           <div className="hero__meta">
             <span className="hero__meta-item">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/></svg>
               End-to-end encrypted
             </span>
             <span className="hero__meta-item">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
               Built in Colombo 🇱🇰
             </span>
             <span className="hero__meta-item">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
               iOS · Android
             </span>
           </div>
@@ -773,31 +676,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        
         <div className="hero__visual" data-reveal>
-          
-          <div className="float-card float-card--dose">
-            <div className="float-card__icon" style={{"background":"#D1FAE5","color":"#059669"}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
-            </div>
-            <div>
-              <div className="float-card__title">Metformin 500mg</div>
-              <div className="float-card__sub">Taken · 08:30</div>
-            </div>
-          </div>
-
-          
-          <div className="annot" style={{"top":"8%","right":"-8%"}}>
-            <div className="annot__text">your dose ring ✦</div>
-            <div className="annot__arrow" style={{"top":"100%","left":"30%","transform":"rotate(155deg)"}}>
-              <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M50 5 Q 30 30 50 60 T 30 95" strokeDasharray="3 3" />
-                <path d="M30 95 l 6 -8 l -2 10 z" fill="currentColor" />
-              </svg>
-            </div>
-          </div>
-
-          
           <div className="phone">
             <div className="phone__frame">
               <div className="phone__screen">
@@ -826,7 +705,6 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  
                   <div className="app-hero-card">
                     <div className="app-hero-card__date">Good morning · Sat 4 Jul</div>
                     <div className="app-hero-card__name">
@@ -861,7 +739,6 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  
                   <div className="app-section-label">Quick actions</div>
                   <div className="app-quick-grid">
                     <div className="app-quick-tile">
@@ -892,7 +769,6 @@ export default function HomePage() {
 
                   <div style={{"flex":"1"}}></div>
 
-                  
                   <div className="app-tabbar">
                     <div className="app-tab app-tab--active">
                       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l9-9 9 9-2 0v9h-5v-6h-4v6H5v-9H3z"/></svg>
@@ -916,33 +792,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          
-          <div className="float-card float-card--ai">
-            <div className="float-card__icon" style={{"background":"linear-gradient(135deg,#1E1B4B,#4338CA)","color":"#fff"}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.39 6.95H22l-5.81 4.22 2.22 6.83L12 16.99 5.59 20l2.22-6.83L2 8.95h7.61L12 2z"/></svg>
-            </div>
-            <div>
-              <div className="float-card__title">Lab results explained</div>
-              <div className="float-card__sub">AI · ready in 3 sec</div>
-            </div>
-          </div>
-
-          
-          <div className="annot" style={{"top":"50%","left":"-14%"}}>
-            <div className="annot__text" style={{"animationDelay":"-3s"}}>↑ tap the FAB to add a record</div>
-          </div>
-
-          
-          <div className="float-card float-card--emerg">
-            <div className="float-card__icon" style={{"background":"#FEE2E2","color":"#DC2626"}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>
-            </div>
-            <div>
-              <div className="float-card__title">Tap to call emergency</div>
-              <div className="float-card__sub">110 · Ambulance</div>
             </div>
           </div>
         </div>
@@ -2477,7 +2326,7 @@ export default function HomePage() {
       <div className="footer__top">
         <div className="footer__brand">
           <div className="footer__mark" data-reveal>
-            <span className="footer__mark-row" data-text="MedLocker"></span>
+            <span className="footer__mark-row">MedLocker</span>
             <span className="footer__mark-rule"></span>
           </div>
           <p className="footer__tag" data-reveal>

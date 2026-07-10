@@ -1138,6 +1138,7 @@
     "ordered": "Ordered",
     "accepted": "Accepted",
     "collected": "Collected",
+    "sample_collected": "Sample collected",
     "processing": "Processing",
     "in_progress": "In progress",
     "waiting": "Waiting",
@@ -1152,6 +1153,11 @@
     "high": "High",
     "low": "Low",
     "dispensed": "Dispensed"
+  },
+  "priority": {
+    "routine": "Routine",
+    "urgent": "Urgent",
+    "stat": "STAT"
   },
   "severity": {
     "mild": "Mild",

@@ -22,6 +22,9 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "production"
 # Close the JWT-auth bypass (`auth.ts:20` short-circuits when true).
 DEV_MODE = "false"
+# Portal "Dev Test Login" on the deployed worker (email dev-doctor@healthhub.local,
+# password `dev`). Disable before public launch.
+ALLOW_DEV_SEED = "true"
 # Phase 1.4: domain that hosts personal email aliases, e.g.
 # "records.healthhub.app". Used to compose the `<alias>@<EMAIL_ALIAS_DOMAIN>`
 # address shown to users. Configure in CF dashboard → Email Routing.

@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, desc, asc, or, like, gte, lt, isNull, sql } from "drizzle-orm";
+import { eq, and, desc, asc, or, like, gte, lt, isNull, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
   doctors,
@@ -1569,7 +1569,15 @@ doctorPortalRouter.get("/lab-orders", async (c) => {
 
   const conditions: any[] = [eq(labOrders.doctorId, doctor.id)];
   if (status) {
-    conditions.push(eq(labOrders.status, status));
+    const statuses = status
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (statuses.length === 1) {
+      conditions.push(eq(labOrders.status, statuses[0]));
+    } else if (statuses.length > 1) {
+      conditions.push(inArray(labOrders.status, statuses));
+    }
   }
   if (patientId) {
     conditions.push(eq(labOrders.patientId, patientId));

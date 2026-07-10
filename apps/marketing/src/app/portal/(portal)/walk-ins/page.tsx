@@ -16,6 +16,7 @@ import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
 import { toast } from "@/portal/components/ui/Toast";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
+import { FilterPills } from "@/portal/components/chart/FilterPills";
 import { useAuthStore } from "@/portal/stores/auth";
 import { useT } from "@/portal/i18n";
 import { relativeTime } from "@/portal/lib/format";
@@ -158,9 +159,14 @@ function WalkInForm({ open, onClose, onCreated }: { open: boolean; onClose: () =
             </div>
           ) : (
             <>
-              <div className="relative">
-                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                <Input value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} placeholder={t("walkins.searchPatient")} className="pl-10" />
+              <div className="portal-input-search-wrap">
+                <Search size={14} className="portal-input-search-icon" aria-hidden="true" />
+                <Input
+                  value={patientQuery}
+                  onChange={(e) => setPatientQuery(e.target.value)}
+                  placeholder={t("walkins.searchPatient")}
+                  className="portal-input-icon-left"
+                />
               </div>
               {debouncedQuery.length >= 2 && (
                 <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-border/70 bg-surface">
@@ -190,12 +196,36 @@ function WalkInForm({ open, onClose, onCreated }: { open: boolean; onClose: () =
         <div>
           <label className="text-xs font-semibold text-text-soft mb-1.5 block">{t("walkins.priority")}</label>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setPriority("routine")} className={cn("flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border", priority === "routine" ? "bg-brand-soft text-brand border-brand/30" : "bg-surface border-border/80 text-text-soft hover:bg-surface-2")}>
+            <div
+              role="button"
+              tabIndex={0}
+              data-active={priority === "routine" ? "true" : "false"}
+              className="portal-filter-pill h-10 px-3 text-sm justify-center"
+              onClick={() => setPriority("routine")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setPriority("routine");
+                }
+              }}
+            >
               <User size={16} /> {t("walkins.routine")}
-            </button>
-            <button type="button" onClick={() => setPriority("urgent")} className={cn("flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border", priority === "urgent" ? "bg-danger-soft text-danger border-danger/30" : "bg-surface border-border/80 text-text-soft hover:bg-surface-2")}>
+            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              data-active={priority === "urgent" ? "true" : "false"}
+              className="portal-filter-pill h-10 px-3 text-sm justify-center"
+              onClick={() => setPriority("urgent")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setPriority("urgent");
+                }
+              }}
+            >
               <AlertTriangle size={16} /> {t("walkins.urgent")}
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -235,26 +265,47 @@ export default function WalkInsPage() {
       />
 
       {/* Filter tabs */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {FILTER_TABS.map((s) => (
-          <button key={s} type="button" onClick={() => setStatus(s)} className={cn(
-            "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 whitespace-nowrap",
-            s === status ? "bg-brand text-white shadow-sm" : "bg-surface border border-border/80 text-text-soft hover:bg-surface-2 hover:border-border"
-          )}>{t(`walkins.status.${s}`)}</button>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <div className="flex flex-col gap-3"><Skeleton className="h-36 w-full rounded-2xl" /><Skeleton className="h-36 w-full rounded-2xl" /></div>
-      ) : rows.length === 0 ? (
-        <Empty icon={<DoorOpen size={20} className="text-text-muted" />} title={t("walkins.emptyTitle")} description={t("walkins.emptyDescription")} className="py-12" />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {rows.map((w) => (
-            <WalkInCard key={w.id} walkIn={w} onStatusChange={(id, s) => transitions.mutate({ id, status: s })} isPending={transitions.isPending && transitions.variables?.id === w.id} />
-          ))}
+      <Card padding={false} className="overflow-hidden">
+        <div className="px-3 py-3 border-b border-border/50 bg-surface-2/30">
+          <FilterPills
+            size="md"
+            value={status}
+            onChange={setStatus}
+            options={FILTER_TABS.map((s) => ({
+              value: s,
+              label: t(`walkins.status.${s}`),
+              count: s === "waiting" && waitingCount != null ? waitingCount : undefined,
+            }))}
+          />
         </div>
-      )}
+
+        <div className="p-4">
+          {isLoading ? (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-36 w-full rounded-2xl" />
+              <Skeleton className="h-36 w-full rounded-2xl" />
+            </div>
+          ) : rows.length === 0 ? (
+            <Empty
+              icon={<DoorOpen size={20} className="text-text-muted" />}
+              title={t("walkins.emptyTitle")}
+              description={t("walkins.emptyDescription")}
+              className="py-12"
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {rows.map((w) => (
+                <WalkInCard
+                  key={w.id}
+                  walkIn={w}
+                  onStatusChange={(id, s) => transitions.mutate({ id, status: s })}
+                  isPending={transitions.isPending && transitions.variables?.id === w.id}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
 
       <WalkInForm open={showForm} onClose={() => setShowForm(false)} onCreated={() => refetch()} />
     </div>

@@ -413,6 +413,11 @@
   width: 15px;
   height: 15px;
 }
+[data-app="portal"] input[type="search"].portal-input::-webkit-search-decoration,
+[data-app="portal"] input[type="search"].portal-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
 [data-app="portal"] .portal-input-clearable {
   padding-right: 2.25rem;
 }
@@ -1035,6 +1040,87 @@
 }
 
 /* Topbar dropdown entrance animation */
+[data-app="portal"] .portal-topbar .portal-input-search-wrap input.portal-input {
+  padding-left: 2.75rem;
+  padding-right: 4.5rem;
+}
+[data-app="portal"] .portal-topbar .portal-input-search-wrap input.portal-input.portal-input-clearable {
+  padding-right: 2.25rem;
+}
+[data-app="portal"] .portal-topbar {
+  background-color: #ffffff;
+}
+[data-app="portal"] .portal-chart-tabs {
+  background-color: #ffffff;
+}
+
+/* Schedule week day picker — CSS classes beat marketing button reset */
+[data-app="portal"] .portal-schedule-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 3.625rem;
+  padding: 0.625rem 0.625rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: #ffffff;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+[data-app="portal"] .portal-schedule-day:hover {
+  background: var(--surface-2);
+}
+[data-app="portal"] .portal-schedule-day[data-today="true"]:not([data-selected="true"]) {
+  background: var(--brand-soft);
+  border-color: rgba(2, 132, 199, 0.25);
+  color: var(--brand);
+}
+[data-app="portal"] .portal-schedule-day[data-selected="true"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.28);
+}
+[data-app="portal"] .portal-schedule-day-weekday {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+[data-app="portal"] .portal-schedule-day-num {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+}
+[data-app="portal"] .portal-schedule-day[data-today="true"]:not([data-selected="true"]) .portal-schedule-day-weekday,
+[data-app="portal"] .portal-schedule-day[data-today="true"]:not([data-selected="true"]) .portal-schedule-day-num {
+  color: var(--brand);
+}
+[data-app="portal"] .portal-schedule-day[data-selected="true"] .portal-schedule-day-weekday {
+  color: rgba(255, 255, 255, 0.85);
+}
+[data-app="portal"] .portal-schedule-day[data-selected="true"] .portal-schedule-day-num {
+  color: #ffffff;
+}
+[data-app="portal"] .portal-schedule-day-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  margin-top: 0.125rem;
+  background: var(--brand);
+}
+[data-app="portal"] .portal-schedule-day[data-selected="true"] .portal-schedule-day-dot {
+  background: rgba(255, 255, 255, 0.85);
+}
+[data-app="portal"] .portal-schedule-day-spacer {
+  height: 0.375rem;
+  margin-top: 0.125rem;
+}
 @keyframes animate-in {
   from {
     opacity: 0;
@@ -1047,5 +1133,71 @@
 }
 .animate-in {
   animation: animate-in 180ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Prescription medicine list */
+[data-app="portal"] .portal-rx-med-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgba(226, 232, 240, 0.75);
+}
+[data-app="portal"] .portal-rx-med-item {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+[data-app="portal"] .portal-rx-med-item:last-child {
+  border-bottom: none;
+}
+[data-app="portal"] .portal-rx-med-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  flex-shrink: 0;
+}
+[data-app="portal"] .portal-rx-med-body {
+  min-width: 0;
+}
+[data-app="portal"] .portal-rx-med-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+[data-app="portal"] .portal-rx-med-index {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+[data-app="portal"] .portal-rx-med-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+[data-app="portal"] .portal-rx-med-meta {
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+[data-app="portal"] .portal-rx-med-instructions {
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 

@@ -65,7 +65,7 @@ export default function PatientChartLayout({
         )}
       </Card>
 
-      <nav className="flex items-center gap-0.5 overflow-x-auto border-b border-border/60 px-1">
+      <nav className="portal-chart-tabs sticky top-[var(--topbar-h,64px)] z-20 -mx-4 md:-mx-6 px-4 md:px-6 flex items-center gap-0.5 overflow-x-auto border-b border-border/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)]">
         {TABS.map((tab) => {
           const href = `${base}${tab.path}`;
           const active = pathname.startsWith(href);

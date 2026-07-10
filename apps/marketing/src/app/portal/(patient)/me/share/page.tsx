@@ -53,7 +53,7 @@ export default function PatientSharePage() {
     mutationFn: () =>
       api<{ link: ShareLink; url: string; expiresAt: string }>("/share/links", {
         method: "POST",
-        body: {
+        json: {
           expiresInHours: Number(hours),
           label: label.trim() || undefined,
           scope: "all",

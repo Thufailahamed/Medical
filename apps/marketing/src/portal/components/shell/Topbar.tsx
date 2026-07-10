@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -23,9 +23,13 @@ import { logout } from "@/portal/lib/auth";
 import { api, qk } from "@/portal/lib/api";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
+import { usePortalPageMeta, topbarShowsPageTitle } from "@/portal/lib/page-meta";
 
 export function Topbar() {
   const router = useRouter();
+  const pathname = usePathname();
+  const pageMeta = usePortalPageMeta(pathname);
+  const showPageTitle = topbarShowsPageTitle(pathname) && pageMeta;
   const t = useT();
   const user = useAuthStore((s) => s.user);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -87,24 +91,44 @@ export function Topbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-20 h-[var(--topbar-h)] flex items-center justify-between gap-4 px-6 md:px-8 lg:px-10 transition-shadow duration-300",
-        "bg-surface border-b border-border",
-        searchFocused && "shadow-[0_4px_12px_rgba(0,0,0,0.03)]"
+        "portal-topbar shrink-0 min-h-[var(--topbar-h,64px)] h-[var(--topbar-h,64px)] flex items-center gap-3 md:gap-4 px-4 md:px-6 lg:px-8 transition-shadow duration-300",
+        "bg-white border-b border-border shadow-sm",
+        searchFocused && "shadow-md"
       )}
     >
+      {showPageTitle ? (
+        <div className="flex items-center gap-2.5 shrink-0 min-w-0 max-w-[min(220px,28vw)]">
+          <div className="h-9 w-9 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
+            {pageMeta.icon}
+          </div>
+          <div className="min-w-0 hidden sm:block">
+            <h1 className="text-sm font-bold text-text truncate leading-tight">
+              {pageMeta.title}
+            </h1>
+            {pageMeta.subtitle ? (
+              <p className="text-[11px] text-text-muted truncate leading-tight mt-0.5">
+                {pageMeta.subtitle}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {/* ── Search bar ────────────────────────────────────────────────────── */}
-      <form onSubmit={onSubmitSearch} className="flex-1 max-w-xl relative">
-        <div className={cn(
-          "relative flex items-center rounded-xl transition-all duration-200",
-          searchFocused
-            ? "ring-2 ring-brand/20 border-brand/40 bg-white shadow-sm"
-            : "border-border/80 bg-surface-2/50 hover:bg-surface-2/80 hover:border-border",
-          "border"
-        )}>
+      <form onSubmit={onSubmitSearch} className="flex-1 min-w-0 max-w-xl">
+        <div
+          className={cn(
+            "portal-input-search-wrap rounded-xl transition-all duration-200",
+            searchFocused
+              ? "ring-2 ring-brand/20 border-brand/40 bg-white shadow-sm"
+              : "border-border/80 bg-surface-2/50 hover:bg-surface-2/80 hover:border-border",
+            "border"
+          )}
+        >
           <Search
             size={15}
             className={cn(
-              "absolute left-3.5 transition-colors duration-200",
+              "portal-input-search-icon",
               searchFocused ? "text-brand" : "text-text-muted"
             )}
             aria-hidden="true"
@@ -117,13 +141,17 @@ export function Topbar() {
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className="w-full h-10 pl-10 pr-20 bg-transparent text-sm text-text placeholder:text-text-muted outline-none"
+            className={cn(
+              "portal-input portal-input-icon-left h-10 !border-0 !bg-transparent",
+              "!shadow-none focus:!shadow-none focus:!border-transparent",
+              search ? "portal-input-clearable pr-10" : "pr-20"
+            )}
             aria-label="Search"
           />
 
           {/* ⌘K hint */}
           {!searchFocused && !search && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none z-[1]">
               <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-surface border border-border text-[10px] font-semibold text-text-muted leading-none">
                 <Command size={10} />K
               </kbd>
@@ -131,20 +159,24 @@ export function Topbar() {
           )}
 
           {/* Clear button */}
-          {search && (
+          {search ? (
             <button
               type="button"
-              onClick={() => { setSearch(""); searchRef.current?.focus(); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
+              onClick={() => {
+                setSearch("");
+                searchRef.current?.focus();
+              }}
+              className="portal-input-clear-btn"
+              aria-label="Clear search"
             >
               <X size={12} />
             </button>
-          )}
+          ) : null}
         </div>
       </form>
 
       {/* ── Right section ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2 shrink-0 ml-auto">
         <LocaleSwitcher />
         <TenantSwitcher />
 

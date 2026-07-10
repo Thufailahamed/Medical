@@ -284,6 +284,19 @@ auth.post("/register", async (c) => {
   }, 201);
 });
 
+const DEV_SEED_EMAIL = "dev-doctor@healthhub.local";
+
+/** Portal "Dev Test Login" — auto-seed doctor + tenants. Local: DEV_MODE. Cloud: ALLOW_DEV_SEED + password `dev`. */
+function canUseDevSeedLogin(
+  env: { DEV_MODE?: string; ALLOW_DEV_SEED?: string },
+  email: string | undefined,
+  password: string | undefined
+): boolean {
+  if (email !== DEV_SEED_EMAIL) return false;
+  if (env.DEV_MODE === "true") return true;
+  return env.ALLOW_DEV_SEED === "true" && password === "dev";
+}
+
 // ─── Login (email / phone + password) ────────────────────
 auth.post("/login", async (c) => {
   const body = await c.req.json();
@@ -299,8 +312,8 @@ auth.post("/login", async (c) => {
   // Get user from D1 database
   let dbUser = null;
 
-  // Dev mode bypass for developer login
-  if (c.env.DEV_MODE === "true" && email === "dev-doctor@healthhub.local") {
+  // Dev auto-seed login (portal Dev Test Login button)
+  if (canUseDevSeedLogin(c.env, email, password)) {
     const DEV_DOCTOR_USER_ID = "dev-doctor-user-001";
     const { hospitals, hospitalDoctors, clinics, clinicDoctors } = await import("@healthcare/db");
 
@@ -310,7 +323,7 @@ auth.post("/login", async (c) => {
       [dbUser] = await db.insert(users).values({
         id: DEV_DOCTOR_USER_ID,
         supabaseId: DEV_DOCTOR_USER_ID,
-        email: "dev-doctor@healthhub.local",
+        email: DEV_SEED_EMAIL,
         name: "Dr. Dev",
         role: "doctor",
       }).returning();
