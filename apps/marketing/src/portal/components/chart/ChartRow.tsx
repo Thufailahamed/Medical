@@ -97,7 +97,7 @@ export function ChartRow({
       {actions ? (
         <div className="shrink-0 flex items-center gap-1">{actions}</div>
       ) : null}
-      {isLink && !hideChevron ? (
+      {(isLink || onClick) && !hideChevron ? (
         <ChevronRight
           size={14}
           className="text-text-muted shrink-0 transition-transform group-hover:translate-x-0.5"

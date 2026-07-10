@@ -210,7 +210,24 @@ billingRouter.post("/invoices/:id/issue", async (c) => {
   if (inv.status !== "draft") return c.json({ error: "Invoice already issued" }, 400);
   const now = new Date().toISOString();
   await db.update(invoices).set({ status: "issued", issuedAt: now }).where(eq(invoices.id, id));
-  await notify(db, inv.patientId, "invoice_issued", { invoiceId: id, total: inv.totalLkr });
+
+  const [patientRow] = await db
+    .select({ userId: patients.userId })
+    .from(patients)
+    .where(eq(patients.id, inv.patientId))
+    .limit(1);
+
+  if (patientRow) {
+    await notify({
+      db,
+      userId: patientRow.userId,
+      type: "hospital",
+      title: "Invoice issued",
+      body: `Your hospital invoice total is LKR ${inv.totalLkr ?? 0}.`,
+      data: { kind: "invoice_issued", invoiceId: id, total: inv.totalLkr },
+    });
+  }
+
   return c.json({ ok: true });
 });
 

@@ -951,6 +951,9 @@
     "new": "නව සටහන",
     "newTitle": "නව සායනික සටහන",
     "newSubtitle": "සටහන ආරම්භ කිරීමට රෝගියෙකු තෝරන්න",
+    "pickPatientHint": "මෙම සටහන සඳහා රෝගියා සොයා ගැනීමට නම, දුරකථනය, හෝ ජා.හැ.අංකයෙන් සොයන්න.",
+    "soapSection": "SOAP සටහන",
+    "soapHint": "සම්මත SOAP ව්‍යුහය භාවිතයෙන් හමුවීම ලියා තබන්න.",
     "fields": {
       "patient": "රෝගියා"
     },
@@ -962,7 +965,11 @@
     "untitled": "Untitled note",
     "unknownPatient": "Unknown patient"
   },
-  "labOrders": {
+  "patientCombobox": {
+    "placeholder": "නම, දුරකථනය, හෝ ජා.හැ.අංකයෙන් සොයන්න…",
+    "noMatches": "රෝගීන් හමු නොවීය",
+    "minChars": "සෙවීමට අක්ෂර 2 ක්වත් ටයිප් කරන්න"
+  },
     "new": "නව රසායනාගාර ඇණවුම",
     "newTitle": "රසායනාගාර පරීක්ෂණ ඇණවුම් කරන්න",
     "newSubtitle": "ඇණවුම තැබීමට රෝගියෙකු තෝරන්න",

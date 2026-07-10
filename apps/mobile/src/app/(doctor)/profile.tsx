@@ -789,7 +789,7 @@ export default function DoctorProfileScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push("/notifications" as any)}
+            onPress={() => router.push("/(doctor)/notifications" as any)}
             accessibilityLabel={t("doctorProfile.notificationsTitle")}
           >
             <Card padded={false}>

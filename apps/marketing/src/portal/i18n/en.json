@@ -729,9 +729,32 @@
     "new": "New note",
     "newTitle": "New clinical note",
     "newSubtitle": "Pick a patient to start the SOAP note",
+    "pickPatientHint": "Search by name, phone, or NIC to find the patient for this note.",
+    "soapSection": "SOAP note",
+    "soapHint": "Document the encounter using standard SOAP structure.",
+    "save": "Save note",
+    "savedToast": "Note saved",
+    "detail": {
+      "diagnosis": "Diagnosis",
+      "noBody": "No note body recorded.",
+      "openChart": "Open patient chart"
+    },
     "fields": {
-      "patient": "Patient"
+      "patient": "Patient",
+      "title": "Title",
+      "titlePlaceholder": "e.g. Visit — Jul 07, 2026",
+      "diagnosis": "Diagnosis (optional)",
+      "diagnosisPlaceholder": "e.g. Acute pharyngitis",
+      "subjectivePlaceholder": "Patient's reported symptoms and history",
+      "objectivePlaceholder": "Exam findings, vitals, labs reviewed",
+      "assessmentPlaceholder": "Clinical impression",
+      "planPlaceholder": "Treatment plan, prescriptions, follow-up"
     }
+  },
+  "patientCombobox": {
+    "placeholder": "Search by name, phone, or NIC…",
+    "noMatches": "No patients found",
+    "minChars": "Type at least 2 characters to search"
   },
   "followUps": {
     "title": "Follow-ups",
@@ -1205,6 +1228,7 @@
       "catalog": "Catalog",
       "system": "System",
       "dashboard": "Dashboard",
+      "inbox": "Inbox",
       "approvals": "Approvals",
       "users": "Users",
       "doctors": "Doctors",

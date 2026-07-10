@@ -54,8 +54,9 @@ const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   hospital: [["hospital-portal"], ["doctor-portal"]],
   emergency: [["emergency"]],
   vaccination: [["vaccinations"]],
-  general: [[]],
+  general: [["doctor-messages", "conversations"], ["doctor-portal", "messages"], ["inbox"]],
   account_pending_review: [["admin", "approvals"], ["admin", "users"]],
+  hospital_request: [["hospital-portal"], ["hospital", "collab"]],
 };
 
 /**

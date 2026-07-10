@@ -60,6 +60,7 @@ export function LabOrderForm({ patientId, onSaved, onCancel }: Props) {
     onSuccess: (res) => {
       toast.success("Lab order placed", `#${res.order?.id}`);
       qc.invalidateQueries({ queryKey: ["doctor-portal", "lab-orders"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "lab-orders-all"] });
       qc.invalidateQueries({ queryKey: qk.patientOverview(patientId) });
       onSaved?.(res.order?.id);
     },

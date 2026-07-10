@@ -369,7 +369,8 @@ careTeamRouter.post("/", async (c) => {
         .where(eq(doctors.id, doctorId))
         .limit(1);
       if (doc) {
-        notify(db, {
+        notify({
+          db,
           userId: doc.userId,
           type: "general",
           title: "Patient added you to their care team",
@@ -384,7 +385,8 @@ careTeamRouter.post("/", async (c) => {
         .where(eq(patients.id, patientId))
         .limit(1);
       if (p) {
-        notify(db, {
+        notify({
+          db,
           userId: p.userId,
           type: "general",
           title: "Doctor joined your care team",

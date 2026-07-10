@@ -1007,6 +1007,28 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
   // Phase 2.1: FTS5 sync.
   if (row) await upsertRecordFts(db, row);
 
+  const recordId = row?.medical_records?.id || row?.id;
+  const [patientRow] = await db
+    .select({ userId: patients.userId })
+    .from(patients)
+    .where(eq(patients.id, parsed.data.patientId))
+    .limit(1);
+
+  if (patientRow) {
+    await notify({
+      db,
+      userId: patientRow.userId,
+      type: "general",
+      title: "New clinical note from your doctor",
+      body: parsed.data.title,
+      data: {
+        kind: "clinical_note",
+        recordId,
+        patientId: parsed.data.patientId,
+      },
+    });
+  }
+
   return c.json({ record: row?.medical_records || row }, 201);
 });
 
@@ -1597,8 +1619,8 @@ doctorPortalRouter.get("/lab-orders", async (c) => {
       resultUrl: labOrders.resultUrl,
       resultSummary: labOrders.resultSummary,
       patientName: users.name,
-      patientNic: patients.nic,
-      patientPhoto: patients.photo,
+      patientNic: users.nic,
+      patientPhoto: users.photo,
     })
     .from(labOrders)
     .innerJoin(patients, eq(patients.id, labOrders.patientId))
@@ -2911,7 +2933,7 @@ doctorPortalRouter.get("/share/links", async (c) => {
       lastViewedAt: shareLinks.lastViewedAt,
       patientId: shareLinks.patientId,
       patientName: users.name,
-      patientNic: patients.nic,
+      patientNic: users.nic,
     })
     .from(shareLinks)
     .innerJoin(patients, eq(patients.id, shareLinks.patientId))

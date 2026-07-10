@@ -15,6 +15,7 @@ import {
   useUnreadCount,
   useDoctorConversations,
 } from "@/hooks/useApi";
+import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
@@ -37,6 +38,7 @@ const WIDE_TAB_LABEL = {
 
 export default function DoctorLayout() {
   const { colors } = useTheme();
+  useRealtime();
   const { data: unread } = useUnreadCount();
   const { data: convs } = useDoctorConversations();
   const unreadN = unread?.count ?? 0;
@@ -242,6 +244,10 @@ export default function DoctorLayout() {
       />
       <Tabs.Screen
         name="inbox/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="notifications"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen

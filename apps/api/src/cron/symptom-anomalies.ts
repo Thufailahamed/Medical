@@ -28,7 +28,7 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { symptoms } from "@healthcare/db";
+import { patients, symptoms } from "@healthcare/db";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import type { AppEnvironment } from "../types";
@@ -142,25 +142,27 @@ symptomAnomaliesRouter.post("/__cron/symptom-anomalies", async (c) => {
 
     if (dryRun) continue;
 
-    // Fire a notification. Re-uses the "prescription"-typed channel
-    // because we haven't added a new notification type and the title
-    // is descriptive enough. (TODO if Day 5.1+: dedicated
-    // `symptom_cluster` type.)
+    const [patientRow] = await db
+      .select({ userId: patients.userId })
+      .from(patients)
+      .where(eq(patients.id, patientId))
+      .limit(1);
+
+    if (!patientRow?.userId) continue;
+
     await notify({
       db,
-      userId: patientRows[0].patientId,
-      // For now the `patientId` column holds the user id when the
-      // recipient is the patient themselves; double-check schema.
-      patientId: patientRows[0].patientId,
-      type: "prescription",
+      userId: patientRow.userId,
+      type: "general",
       title: "Unusual symptom pattern detected",
       body: `We noticed ${patientRows.length} entries in the last ${WINDOW_DAYS} days. Worth a doctor review.`,
-    } as any).catch((err) => {
+      data: { patientId, kind: "symptom_cluster" },
+    }).catch((err) => {
       console.error("[symptom-anomalies] notify failed", err);
     });
 
     await audit(db, {
-      userId: patientRows[0].patientId,
+      userId: patientRow.userId,
       action: "symptom_cluster_flagged",
       resource: "symptoms",
       details: {

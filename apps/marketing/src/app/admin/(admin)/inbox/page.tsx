@@ -2,25 +2,14 @@
 
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Bell, Check, CheckCheck, ChevronRight,
-} from "lucide-react";
+import { Bell, Check, CheckCheck, ChevronRight, UserCheck } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Button } from "@/portal/components/ui/Button";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
-import { useT } from "@/portal/i18n";
 import { relativeTime } from "@/portal/lib/format";
-import { cn } from "@/portal/lib/utils";
-import {
-  iconForNotification,
-  parseNotificationData,
-  resolveDoctorPortalHref,
-  toneForNotification,
-} from "@/portal/lib/notifications-types";
 
 interface Notification {
   id: string;
@@ -32,16 +21,15 @@ interface Notification {
   data?: unknown;
 }
 
-const TONE_CLASS: Record<string, string> = {
-  info: "bg-sky-50 text-sky-600",
-  success: "bg-emerald-50 text-emerald-600",
-  warn: "bg-amber-50 text-amber-600",
-  danger: "bg-red-50 text-red-600",
-  neutral: "bg-surface-2 text-text-muted",
-};
+function resolveAdminHref(type: string): string | null {
+  if (type === "account_pending_review" || type === "tenant_pending_review") {
+    return "/admin/approvals";
+  }
+  if (type === "general") return "/admin/dashboard";
+  return null;
+}
 
-export default function NotificationsPage() {
-  const t = useT();
+export default function AdminInboxPage() {
   const qc = useQueryClient();
 
   const { data: notificationsData, isLoading } = useQuery({
@@ -55,69 +43,108 @@ export default function NotificationsPage() {
   });
 
   const markRead = useMutation({
-    mutationFn: async (id: string) => { await api(`/notifications/${id}/read`, { method: "PUT" }); },
+    mutationFn: async (id: string) => {
+      await api(`/notifications/${id}/read`, { method: "PUT" });
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
   const markAllRead = useMutation({
-    mutationFn: async () => { await api("/notifications/read-all", { method: "PUT" }); },
-    onSuccess: () => { toast.success(t("notifications.markedAllRead")); qc.invalidateQueries({ queryKey: ["notifications"] }); },
+    mutationFn: async () => {
+      await api("/notifications/read-all", { method: "PUT" });
+    },
+    onSuccess: () => {
+      toast.success("All notifications marked as read");
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 
   const notifications = notificationsData?.notifications ?? [];
   const unreadCount = unreadData?.count ?? 0;
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={t("notifications.title")}
-        subtitle={unreadCount > 0 ? t("notifications.subtitle", { count: unreadCount }) : t("notifications.emptyUnread")}
-        icon={<Bell size={18} className="text-brand" />}
-        badge={unreadCount > 0 ? <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-amber-500 text-[11px] font-bold text-white flex items-center justify-center">{unreadCount}</span> : undefined}
-        actions={unreadCount > 0 ? (
-          <Button size="sm" variant="secondary" leftIcon={<CheckCheck size={14} />} onClick={() => markAllRead.mutate()} loading={markAllRead.isPending}>
-            {t("notifications.markAllRead")}
+    <div className="flex flex-col gap-5 max-w-3xl">
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-text">Inbox</h1>
+          <p className="text-sm text-text-soft mt-0.5">
+            {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
+          </p>
+        </div>
+        {unreadCount > 0 ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            leftIcon={<CheckCheck size={14} />}
+            onClick={() => markAllRead.mutate()}
+            loading={markAllRead.isPending}
+          >
+            Mark all read
           </Button>
-        ) : undefined}
-      />
+        ) : null}
+      </header>
 
       <Card padding={false}>
         {isLoading ? (
           <div className="p-4 flex flex-col gap-2">
-            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
           </div>
         ) : notifications.length === 0 ? (
-          <Empty title={t("notifications.empty")} icon={<Bell size={20} className="text-text-muted" />} className="py-12" />
+          <Empty
+            title="No notifications yet"
+            icon={<Bell size={20} className="text-text-muted" />}
+            className="py-12"
+          />
         ) : (
           <ul className="flex flex-col">
             {notifications.map((n) => {
-              const data = parseNotificationData(n.data);
-              const tone = toneForNotification(n.type, data);
-              const Icon = iconForNotification(n.type, data);
-              const href = resolveDoctorPortalHref(n.type, data);
-              const toneClass = TONE_CLASS[tone] ?? TONE_CLASS.neutral;
+              const href = resolveAdminHref(n.type);
+              const Icon =
+                n.type === "account_pending_review" || n.type === "tenant_pending_review"
+                  ? UserCheck
+                  : Bell;
 
               const row = (
                 <div
                   className={cn(
                     "flex items-start gap-3 px-4 py-3.5 border-b border-border/50 last:border-0 transition-colors group",
-                    !n.read && "bg-sky-50/30",
+                    !n.read && "bg-amber-50/40",
                     href && "hover:bg-surface-2/70"
                   )}
                 >
-                  <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5", n.read ? "bg-surface-2 text-text-muted" : toneClass)}>
+                  <div
+                    className={cn(
+                      "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
+                      n.read ? "bg-surface-2 text-text-muted" : "bg-amber-50 text-amber-700"
+                    )}
+                  >
                     <Icon size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={cn("text-[13px] truncate", n.read ? "font-medium text-text-soft" : "font-bold text-text")}>{n.title}</span>
-                      {!n.read && <span className="h-2 w-2 rounded-full bg-sky-500 shrink-0" />}
+                      <span
+                        className={cn(
+                          "text-[13px] truncate",
+                          n.read ? "font-medium text-text-soft" : "font-bold text-text"
+                        )}
+                      >
+                        {n.title}
+                      </span>
+                      {!n.read && <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />}
                     </div>
-                    {n.body && <p className="text-xs text-text-muted mt-0.5 line-clamp-2 leading-relaxed">{n.body}</p>}
-                    <span className="text-[10px] text-text-muted mt-1 block">{relativeTime(n.createdAt)}</span>
+                    {n.body ? (
+                      <p className="text-xs text-text-muted mt-0.5 line-clamp-2 leading-relaxed">
+                        {n.body}
+                      </p>
+                    ) : null}
+                    <span className="text-[10px] text-text-muted mt-1 block">
+                      {relativeTime(n.createdAt)}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {!n.read && (
+                    {!n.read ? (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -129,9 +156,9 @@ export default function NotificationsPage() {
                         }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        {t("notifications.markRead")}
+                        Mark read
                       </Button>
-                    )}
+                    ) : null}
                     {href ? <ChevronRight size={16} className="text-text-muted" /> : null}
                   </div>
                 </div>

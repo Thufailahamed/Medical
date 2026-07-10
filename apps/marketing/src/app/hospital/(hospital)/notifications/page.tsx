@@ -39,7 +39,7 @@ export default function NotificationsPage() {
       api(`/notifications/${id}/read`, { method: "PUT" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["unreadCount"] });
+      qc.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
     },
   });
 
@@ -47,7 +47,7 @@ export default function NotificationsPage() {
     mutationFn: () => api("/notifications/read-all", { method: "PUT" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["unreadCount"] });
+      qc.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
       toast.success("All marked as read");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),

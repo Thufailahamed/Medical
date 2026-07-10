@@ -29,6 +29,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore } from "@/stores/locale";
 import { useAppLockStore } from "@/stores/appLock";
 import { registerForPushNotifications, onPushResponse } from "@/lib/push";
+import { navigateFromPushData } from "@/lib/pushNavigation";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
 
@@ -75,6 +76,7 @@ export default function RootLayout() {
   useProtectedRoute();
   useAppLockGate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userRole = useAuthStore((s) => s.user?.role ?? null);
   const [fontsLoaded, fontError] = useFonts({
     Outfit_400Regular: require("@expo-google-fonts/outfit/400Regular/Outfit_400Regular.ttf"),
     Outfit_500Medium: require("@expo-google-fonts/outfit/500Medium/Outfit_500Medium.ttf"),
@@ -139,15 +141,10 @@ export default function RootLayout() {
   useEffect(() => {
     const cleanup = onPushResponse((resp) => {
       const data: any = (resp.notification?.request?.content as any)?.data;
-      if (data?.appointmentId) {
-        router.push({
-          pathname: "/(app)/appointment-detail",
-          params: { id: data.appointmentId },
-        });
-      }
+      navigateFromPushData(router, data, userRole);
     });
     return cleanup;
-  }, []);
+  }, [userRole]);
 
   // Keep i18next in sync with persisted locale changes (from LocaleSwitcher).
   useEffect(() => {

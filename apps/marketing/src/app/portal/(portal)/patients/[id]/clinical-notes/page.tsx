@@ -8,8 +8,10 @@ import { api } from "@/portal/lib/api";
 import { Button } from "@/portal/components/ui/Button";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { ClinicalNoteEditor } from "@/portal/components/notes/ClinicalNoteEditor";
+import { ClinicalNoteDetail } from "@/portal/components/notes/ClinicalNoteDetail";
 import { useT } from "@/portal/i18n";
 import { formatDateTime } from "@/portal/lib/format";
+import type { ClinicalNoteRecord } from "@/portal/lib/clinicalNote";
 import {
   ChartTabHeader,
   ChartList,
@@ -17,17 +19,8 @@ import {
   ChartEmpty,
 } from "@/portal/components/chart";
 
-interface ClinicalNote {
-  id: string;
-  patientId: string;
-  title: string;
-  diagnosis?: string | null;
-  notes?: string | null;
-  createdAt?: string;
-}
-
 interface NotesResponse {
-  notes: ClinicalNote[];
+  notes: ClinicalNoteRecord[];
   count: number;
 }
 
@@ -39,6 +32,7 @@ export default function ClinicalNotesTab({
   const { id } = use(params);
   const t = useT();
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<ClinicalNoteRecord | null>(null);
   const [q, setQ] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -70,17 +64,14 @@ export default function ClinicalNotesTab({
         isLoading={isLoading}
         isEmpty={!isLoading && rows.length === 0}
         toolbar={
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <Search
-              size={13}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted"
-            />
+          <div className="portal-input-search-wrap flex-1 min-w-[180px] max-w-xs">
+            <Search size={13} className="portal-input-icon-left text-text-muted" />
             <input
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("tab.notes.searchPlaceholder")}
-              className="w-full h-8 pl-8 pr-3 rounded-lg border border-border/70 bg-surface text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-colors"
+              className="portal-input w-full text-xs"
             />
           </div>
         }
@@ -100,10 +91,10 @@ export default function ClinicalNotesTab({
           <ChartRow
             icon={<Stethoscope size={16} />}
             iconTone="brand"
-            title={n.title || t("prescription.untitled")}
+            title={n.title || t("clinicalNotes.untitled")}
             subtitle={
               n.diagnosis
-                ? `${t("overview.dx") || "Dx"}: ${n.diagnosis}`
+                ? `${t("clinicalNotes.detail.diagnosis")}: ${n.diagnosis}`
                 : n.notes
                   ? n.notes.slice(0, 120) + (n.notes.length > 120 ? "…" : "")
                   : undefined
@@ -115,6 +106,7 @@ export default function ClinicalNotesTab({
                 </span>
               ) : null
             }
+            onClick={() => setSelected(n)}
           />
         )}
       />
@@ -130,6 +122,15 @@ export default function ClinicalNotesTab({
           onSaved={() => setOpen(false)}
           onCancel={() => setOpen(false)}
         />
+      </Drawer>
+
+      <Drawer
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected?.title || t("clinicalNotes.untitled")}
+        size="lg"
+      >
+        {selected ? <ClinicalNoteDetail note={selected} /> : null}
       </Drawer>
     </div>
   );

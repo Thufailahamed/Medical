@@ -295,7 +295,7 @@ export default function DoctorHub() {
           <TenantSwitcher />
 
           <Pressable
-            onPress={() => router.push("/notifications" as any)}
+            onPress={() => router.push("/(doctor)/notifications" as any)}
             accessibilityRole="button"
             accessibilityLabel={t("doctor.notificationsA11y")}
             hitSlop={8}

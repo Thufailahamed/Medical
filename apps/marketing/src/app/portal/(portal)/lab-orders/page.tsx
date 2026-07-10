@@ -14,7 +14,7 @@ import {
 import { api, qk } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { Empty, ErrorState, Skeleton } from "@/portal/components/ui/Empty";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Drawer } from "@/portal/components/ui/Modal";
@@ -74,7 +74,7 @@ export default function DoctorLabOrdersPage() {
     setPickedPatient(null);
   }
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: [...qk.labOrdersAll({ status })],
     queryFn: () => {
       const q = new URLSearchParams();
@@ -127,6 +127,13 @@ export default function DoctorLabOrdersPage() {
             {[0, 1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-14 w-full rounded-xl" />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="p-4">
+            <ErrorState
+              title={t("errors.generic")}
+              description={(error as Error)?.message ?? t("errors.tryAgain")}
+            />
           </div>
         ) : rows.length === 0 ? (
           <Empty

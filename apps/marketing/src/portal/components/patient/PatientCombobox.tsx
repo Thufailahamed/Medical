@@ -122,6 +122,12 @@ export function PatientCombobox({
         </div>
       )}
 
+      {!value && open && debounced.length < 2 && q.trim().length > 0 && (
+        <div className="absolute z-30 mt-1 left-0 right-0 rounded-lg border border-border bg-surface shadow-lg p-3 text-xs text-text-muted">
+          {t("patientCombobox.minChars")}
+        </div>
+      )}
+
       {!value && open && debounced.length >= 2 && (
         <div className="absolute z-30 mt-1 left-0 right-0 max-h-72 overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">
           {search.isFetching && candidates.length === 0 ? (

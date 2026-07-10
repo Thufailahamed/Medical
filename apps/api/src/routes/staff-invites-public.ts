@@ -97,7 +97,8 @@ staffInviteRouter.post(
         .where(eq(hospitalStaffInvites.token, token))
         .limit(1);
       if (inviteRow?.createdByUserId) {
-        await notify(db, {
+        await notify({
+          db,
           userId: inviteRow.createdByUserId,
           type: "general",
           title: "Staff invite accepted",

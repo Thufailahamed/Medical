@@ -21,6 +21,7 @@ import {
   Megaphone,
   BookOpen,
   MailCheck,
+  Bell,
   Settings as SettingsIcon,
   UserCog,
   Activity,
@@ -48,6 +49,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     labelKey: "admin.nav.overview",
     items: [
       { href: "/admin/dashboard", labelKey: "admin.nav.dashboard", icon: LayoutDashboard },
+      { href: "/admin/inbox", labelKey: "admin.nav.inbox", icon: Bell },
     ],
   },
   {

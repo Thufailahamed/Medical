@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { notifications } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
@@ -16,7 +16,8 @@ notificationsRouter.get("/me", authMiddleware, async (c) => {
   const notifs = await db
     .select()
     .from(notifications)
-    .where(eq(notifications.userId, userId));
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt));
 
   return c.json({ notifications: notifs });
 });
@@ -27,8 +28,8 @@ notificationsRouter.get("/unread-count", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
 
-  const all = await db
-    .select()
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
     .from(notifications)
     .where(
       and(
@@ -37,7 +38,7 @@ notificationsRouter.get("/unread-count", authMiddleware, async (c) => {
       )
     );
 
-  return c.json({ count: all.length });
+  return c.json({ count: Number(count ?? 0) });
 });
 
 // ─── Mark all as read ────────────────────────────────────

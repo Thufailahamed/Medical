@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { eq, and, lte, gte } from "drizzle-orm";
-import { appointments, users } from "@healthcare/db";
+import { appointments, doctors, patients, users } from "@healthcare/db";
 import { notify } from "../lib/notifications";
 import { createDb } from "../lib/db";
 import type { AppEnvironment } from "../types";
@@ -46,10 +46,14 @@ bookingRemindersRouter.post("/__cron/booking-reminders", async (c) => {
       doctorId: appointments.doctorId,
       date: appointments.date,
       time: appointments.time,
+      patientUserId: patients.userId,
       patientName: users.name,
+      doctorUserId: doctors.userId,
     })
     .from(appointments)
-    .innerJoin(users, eq(users.id, appointments.patientId))
+    .innerJoin(patients, eq(patients.id, appointments.patientId))
+    .innerJoin(users, eq(users.id, patients.userId))
+    .leftJoin(doctors, eq(doctors.id, appointments.doctorId))
     .where(
       and(
         eq(appointments.status, "scheduled"),
@@ -74,23 +78,25 @@ bookingRemindersRouter.post("/__cron/booking-reminders", async (c) => {
     try {
       const whenLabel = `${row.date}${row.time ? " at " + row.time : ""}`;
 
-      await notify({
-        db,
-        userId: row.patientId,
-        type: "appointment",
-        title: "Upcoming appointment",
-        body: `Your visit is on ${whenLabel}.`,
-        data: { appointmentId: row.id, deepLink: `/appointment-detail?id=${row.id}` },
-      });
-
-      if (row.doctorId) {
+      if (row.patientUserId) {
         await notify({
           db,
-          userId: row.doctorId,
+          userId: row.patientUserId,
+          type: "appointment",
+          title: "Upcoming appointment",
+          body: `Your visit is on ${whenLabel}.`,
+          data: { appointmentId: row.id, deepLink: `/appointment-detail?id=${row.id}` },
+        });
+      }
+
+      if (row.doctorUserId) {
+        await notify({
+          db,
+          userId: row.doctorUserId,
           type: "appointment",
           title: "Upcoming patient",
           body: `${row.patientName || "A patient"} has a visit on ${whenLabel}.`,
-          data: { appointmentId: row.id, deepLink: `/doctor/queue` },
+          data: { appointmentId: row.id, deepLink: `/portal/queue` },
         });
       }
 

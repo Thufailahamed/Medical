@@ -599,6 +599,8 @@ export const notifications = sqliteTable("notifications", {
       // Phase ADM-1: super_admin notifications for new gated-role
       // applications awaiting approval.
       "account_pending_review",
+      "tenant_pending_review",
+      "hospital_request",
     ],
   }).notNull(),
   title: text("title").notNull(),
@@ -769,6 +771,7 @@ export const notificationPreferences = sqliteTable("notification_preferences", {
       "emergency",
       "vaccination",
       "general",
+      "hospital_request",
     ],
   }).notNull(),
   inApp: integer("in_app", { mode: "boolean" }).default(true).notNull(),

@@ -67,7 +67,11 @@ const toneConfig = {
 export function ToastHost() {
   const toasts = useToastStore((s) => s.toasts);
   return (
-    <div className="pointer-events-none fixed top-3 right-3 z-[60] flex flex-col gap-2 w-[min(380px,90vw)]">
+    <div
+      className="portal-toast-host pointer-events-none fixed bottom-5 right-5 z-[210] flex w-[min(22rem,calc(100vw-2.5rem))] flex-col-reverse gap-2"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
       {toasts.map((t) => (
         <ToastCard key={t.id} toast={t} />
       ))}
@@ -86,25 +90,24 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       className={cn(
-        "pointer-events-auto rounded-2xl bg-surface border border-border/70 shadow-[0_12px_40px_rgba(0,0,0,0.08)] px-4 py-3 flex items-start gap-3 border-l-[3px] animate-in",
+        "portal-toast-card pointer-events-auto flex items-start gap-3 rounded-2xl border border-border/70 bg-surface px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)] border-l-[3px] animate-in",
         cfg.border
       )}
       role="status"
-      aria-live="polite"
     >
-      <div className={cn("mt-0.5 h-7 w-7 rounded-xl flex items-center justify-center shrink-0", cfg.bg)}>
+      <div className={cn("portal-toast-icon mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl", cfg.bg)}>
         <Icon size={15} className={cfg.iconColor} />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold text-text">{toast.title}</div>
         {toast.body ? (
-          <div className="text-xs text-text-muted mt-0.5 leading-relaxed">{toast.body}</div>
+          <div className="mt-0.5 text-xs leading-relaxed text-text-muted">{toast.body}</div>
         ) : null}
       </div>
       <button
         type="button"
         onClick={() => dismiss(toast.id)}
-        className="text-text-muted hover:text-text h-6 w-6 flex items-center justify-center rounded-lg hover:bg-surface-2 transition-colors"
+        className="portal-toast-dismiss inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
         aria-label="Dismiss"
       >
         <X size={14} />

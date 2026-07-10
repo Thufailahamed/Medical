@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   Home,
   FileText,
@@ -10,10 +11,12 @@ import {
   ScrollText,
   LogOut,
   Heart,
+  Bell,
 } from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
 import { useRealtime } from "@/portal/hooks/useRealtime";
+import { api } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
 
 /**
@@ -39,6 +42,14 @@ export default function PatientLayout({
   const logout = useAuthStore((s) => s.logout);
 
   useRealtime({ token: token ?? null, userId: user?.id ?? null });
+
+  const { data: unread } = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => api<{ count: number }>("/notifications/unread-count"),
+    enabled: !!token,
+    refetchInterval: 60_000,
+  });
+  const unreadCount = unread?.count ?? 0;
 
   useEffect(() => {
     if (!hydrated) return;
@@ -104,6 +115,21 @@ export default function PatientLayout({
             </NavLink>
           </nav>
           <div className="flex-1" />
+          <Link
+            href="/portal/me/notifications"
+            className={cn(
+              "relative inline-flex items-center justify-center h-8 w-8 rounded-lg text-text-soft hover:text-text hover:bg-surface-2 transition-colors",
+              pathname?.startsWith("/portal/me/notifications") && "bg-primary-soft text-primary"
+            )}
+            aria-label="Notifications"
+          >
+            <Bell size={16} />
+            {unreadCount > 0 ? (
+              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-white flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            ) : null}
+          </Link>
           <button
             type="button"
             onClick={() => {

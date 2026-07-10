@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Bell, ChevronRight } from "lucide-react";
 import { ADMIN_NAV_GROUPS } from "./admin-nav";
 import { useT } from "@/portal/i18n";
+import { api } from "@/portal/lib/api";
 
 function flatten(items: { href: string; labelKey: string }[]) {
   return items.map((i) => i);
@@ -12,6 +15,13 @@ function flatten(items: { href: string; labelKey: string }[]) {
 export function AdminTopbar() {
   const pathname = usePathname() || "";
   const t = useT();
+
+  const { data: unread } = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => api<{ count: number }>("/notifications/unread-count"),
+    refetchInterval: 60_000,
+  });
+  const unreadCount = unread?.count ?? 0;
 
   // Resolve current page label for the breadcrumb-style title.
   const all = ADMIN_NAV_GROUPS.flatMap((g) => flatten(g.items));
@@ -31,6 +41,18 @@ export function AdminTopbar() {
         <span>{currentLabel}</span>
       </div>
       <div className="flex-1" />
+      <Link
+        href="/admin/inbox"
+        className="relative inline-flex items-center justify-center h-8 w-8 rounded-lg text-text-soft hover:text-text hover:bg-surface-2 transition-colors"
+        aria-label="Notifications inbox"
+      >
+        <Bell size={16} />
+        {unreadCount > 0 ? (
+          <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-white flex items-center justify-center">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        ) : null}
+      </Link>
       <a
         href="/portal/dashboard"
         className="text-xs text-text-soft hover:text-text underline-offset-2 hover:underline"
