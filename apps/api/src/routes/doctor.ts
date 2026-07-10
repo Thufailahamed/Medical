@@ -26,8 +26,34 @@ doctorRouter.get("/dashboard", authMiddleware, requireRole("doctor"), async (c) 
   const userId = c.get("userId");
   const db = c.get("db");
 
+  // Explicit projection: never return `signingPrivateKeyEnc` (the
+  // AES-256-GCM-wrapped RSA private key) or any MFA secret material
+  // (`mfaSecretEnc`, recovery-code hashes, used codes) to the client.
+  // These are server-side only and must not leak via JSON.
   const [doctor] = await db
-    .select()
+    .select({
+      id: doctors.id,
+      userId: doctors.userId,
+      hospitalId: doctors.hospitalId,
+      specialization: doctors.specialization,
+      registrationNumber: doctors.registrationNumber,
+      qualification: doctors.qualification,
+      experience: doctors.experience,
+      consultationFee: doctors.consultationFee,
+      availableSlots: doctors.availableSlots,
+      rating: doctors.rating,
+      slmcRegistrationNo: doctors.slmcRegistrationNo,
+      slmcVerifiedAt: doctors.slmcVerifiedAt,
+      // Public key is safe to send — it's published by GET /verify too.
+      signingPublicKey: doctors.signingPublicKey,
+      signingKeyId: doctors.signingKeyId,
+      signingKeyCreatedAt: doctors.signingKeyCreatedAt,
+      signingKeyRevokedAt: doctors.signingKeyRevokedAt,
+      // MFA flags are non-secret; secrets stay server-side.
+      mfaEnabled: doctors.mfaEnabled,
+      mfaEnrolledAt: doctors.mfaEnrolledAt,
+      createdAt: doctors.createdAt,
+    })
     .from(doctors)
     .where(eq(doctors.userId, userId))
     .limit(1);

@@ -30,11 +30,22 @@ import {
   users,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { requireRole } from "../middleware/rbac";
 import { z } from "zod";
 import type { AppEnvironment } from "../types";
 
 const router = new Hono<AppEnvironment>();
-router.use("*", authMiddleware);
+
+// RBAC: only doctors and hospital admins can read or mutate the
+// clinical-context relationship table. Patients must never be able
+// to grant themselves access to another doctor — `canAccessPatient`
+// reads from this table, so an attacker who could POST here would
+// bypass the care-team gate entirely.
+router.use(
+  "*",
+  authMiddleware,
+  requireRole("doctor", "hospital_admin")
+);
 
 const createSchema = z.object({
   doctorId: z.string().min(1),

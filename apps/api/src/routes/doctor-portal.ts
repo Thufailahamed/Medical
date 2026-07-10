@@ -612,17 +612,28 @@ doctorPortalRouter.get("/patients/:id/overview", async (c) => {
       .where(eq(medicalRecords.patientId, patientId))
       .groupBy(medicalRecords.recordType)
       .catch(() => []),
+    // Vaccinations: source of truth is `medical_records` where
+    // recordType = 'vaccination'. Reading from `vaccine_reminders`
+    // (the cron dedupe table for outbound reminders) is wrong — those
+    // rows represent "when the reminder fired", not "when the dose was
+    // administered", so we'd be showing doctors false dates.
     db
       .select({
-        id: vaccineReminders.id,
-        vaccineId: vaccineReminders.vaccineId,
-        doseIndex: vaccineReminders.doseIndex,
-        dueDate: vaccineReminders.dueDate,
-        reminderSentAt: vaccineReminders.reminderSentAt,
+        id: medicalRecords.id,
+        title: medicalRecords.title,
+        description: medicalRecords.description,
+        date: medicalRecords.date,
+        followUpDate: medicalRecords.followUpDate,
+        notes: medicalRecords.notes,
       })
-      .from(vaccineReminders)
-      .where(eq(vaccineReminders.patientId, patientId))
-      .orderBy(desc(vaccineReminders.dueDate))
+      .from(medicalRecords)
+      .where(
+        and(
+          eq(medicalRecords.patientId, patientId),
+          eq(medicalRecords.recordType, "vaccination")
+        )
+      )
+      .orderBy(desc(medicalRecords.date), desc(medicalRecords.createdAt))
       .limit(30)
       .catch(() => []),
     db
@@ -876,11 +887,17 @@ doctorPortalRouter.get("/patients/:id/overview", async (c) => {
 
   const vaccPayload = (vaccinationRows || []).slice(0, 10).map((r: any) => ({
     id: r.id,
-    vaccine: catalogMap[r.vaccineId]?.name || r.vaccineId,
-    shortName: catalogMap[r.vaccineId]?.shortName || null,
-    doseNumber: r.doseIndex ?? 1,
-    administeredAt: r.reminderSentAt || null,
-    nextDueAt: r.dueDate || null,
+    // medical_records.title holds the vaccine name (set by the
+    // POST /vaccinations handler from vaccineCatalog or free-text).
+    vaccine: r.title,
+    // shortName is no longer denormalised into medical_records; the UI
+    // falls back gracefully when null.
+    shortName: null,
+    // dose number isn't a column on medical_records; we default to 1.
+    // Stored in `description` historically — left as null on legacy rows.
+    doseNumber: 1,
+    administeredAt: r.date || null,
+    nextDueAt: r.followUpDate || null,
   }));
 
   const visitsPayload = visits.map((v: any) => ({
@@ -1494,6 +1511,23 @@ doctorPortalRouter.post("/lab-orders", async (c) => {
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
 
+  // RBAC: a doctor can only order labs for a patient they have a clinical
+  // relationship with. Without this check any doctor could insert a lab
+  // order against any patient_id. Doctor role is already enforced by the
+  // router-level requireRole("doctor"), so passing "doctor" here is safe.
+  const labAccess = await canAccessPatient(
+    db,
+    userId,
+    "doctor",
+    parsed.data.patientId
+  );
+  if (!labAccess.allowed) {
+    return c.json(
+      { error: labAccess.reason || "No relationship with this patient" },
+      403
+    );
+  }
+
   const [order] = await db
     .insert(labOrders)
     .values({
@@ -2004,6 +2038,20 @@ doctorPortalRouter.get("/records", async (c) => {
 
   if (linkedPatientIds.length === 0) {
     return c.json({ records: [], total: 0, limit, offset });
+  }
+
+  // RBAC: when the caller scopes the query to a specific patient, the
+  // doctor must have an active clinical relationship with that patient.
+  // Without this check, the legacy `inScopeIds = [patientId]` branch let
+  // any doctor read another doctor's patient records.
+  if (patientId && !linkedPatientIds.includes(patientId)) {
+    const access = await canAccessPatient(db, userId, "doctor", patientId);
+    if (!access.allowed) {
+      return c.json(
+        { error: access.reason || "No relationship with this patient" },
+        403
+      );
+    }
   }
 
   const inScopeIds = patientId ? [patientId] : linkedPatientIds;
