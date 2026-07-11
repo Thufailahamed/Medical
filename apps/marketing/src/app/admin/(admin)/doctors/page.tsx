@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck, ShieldOff } from "lucide-react";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
@@ -9,7 +10,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { SlmcDocsPanel } from "@/portal/components/admin/SlmcDocsPanel";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
 type Row = {
@@ -32,10 +33,19 @@ const FILTERS = [
   { key: "unverified", label: "Not verified" },
 ] as const;
 
+type Filter = (typeof FILTERS)[number]["key"];
+
 export default function AdminDoctorsPage() {
   const qc = useQueryClient();
-  const [slmc, setSlmc] = useState<"all" | "verified" | "unverified">("all");
+  const params = useSearchParams();
+  const initialSlmc = (params.get("slmc") as Filter) ?? "all";
+  const [slmc, setSlmc] = useState<Filter>(initialSlmc);
   const [openDoctor, setOpenDoctor] = useState<Row | null>(null);
+
+  useEffect(() => {
+    const next = (params.get("slmc") as Filter) ?? "all";
+    setSlmc(next);
+  }, [params]);
 
   const { data, isLoading } = useQuery({
     queryKey: adminQk.doctors({ slmc }),
@@ -44,7 +54,7 @@ export default function AdminDoctorsPage() {
 
   const verify = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "verify-slmc" | "revoke-slmc" }) =>
-      adminApi(`/admin/doctors/${id}/${action}`, { method: "POST", json: {} }),
+      adminApiWithStepUp(`/admin/doctors/${id}/${action}`, { method: "POST", json: {} }),
     onSuccess: (_, vars) => {
       toast.success(vars.action === "verify-slmc" ? "SLMC verified" : "SLMC revoked");
       qc.invalidateQueries({ queryKey: ["admin", "doctors"] });

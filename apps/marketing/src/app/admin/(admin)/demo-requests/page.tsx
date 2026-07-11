@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Megaphone, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
 type Row = {
@@ -38,16 +39,26 @@ const STATUS_TONE: Record<string, "brand" | "success" | "neutral"> = {
 
 export default function AdminDemoRequestsPage() {
   const qc = useQueryClient();
-  const [status, setStatus] = useState<string | undefined>(undefined);
+  const params = useSearchParams();
+  const [status, setStatus] = useState<string | undefined>(params.get("status") ?? undefined);
+
+  useEffect(() => {
+    setStatus(params.get("status") ?? undefined);
+  }, [params]);
 
   const { data, isLoading } = useQuery({
     queryKey: adminQk.demoRequests(status),
-    queryFn: () => adminApi<{ items: Row[]; total: number }>(`/admin/demo-requests${status ? `?status=${status}` : ""}&limit=200`),
+    queryFn: () =>
+      adminApi<{ items: Row[]; total: number }>(
+        status
+          ? `/admin/demo-requests?status=${status}&limit=200`
+          : `/admin/demo-requests?limit=200`,
+      ),
   });
 
   const respond = useMutation({
     mutationFn: ({ id, newStatus }: { id: string; newStatus: string }) =>
-      adminApi(`/admin/demo-requests/${id}/respond`, { method: "POST", json: { status: newStatus } }),
+      adminApiWithStepUp(`/admin/demo-requests/${id}/respond`, { method: "POST", json: { status: newStatus } }),
     onSuccess: () => {
       toast.success("Updated");
       qc.invalidateQueries({ queryKey: ["admin", "demo-requests"] });

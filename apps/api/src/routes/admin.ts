@@ -70,7 +70,6 @@ adminRouter.get("/dashboard", async (c) => {
   startOfToday.setUTCHours(0, 0, 0, 0);
   const todayIso = startOfToday.toISOString();
 
-  // Run small, indexed queries in parallel.
   const [
     usersByRole,
     pendingApprovals,
@@ -83,6 +82,9 @@ adminRouter.get("/dashboard", async (c) => {
     newDemoRequests,
     activeRxLast7d,
     appointmentsToday,
+    waitlistTotal,
+    broadcastsSent,
+    broadcastsLast7d,
   ] = await Promise.all([
     db
       .select({ role: users.role, status: users.status, count: sql<number>`count(*)` })
@@ -134,6 +136,26 @@ adminRouter.get("/dashboard", async (c) => {
       .select({ count: sql<number>`count(*)` })
       .from(appointments)
       .where(eq(appointments.date, new Date().toISOString().slice(0, 10))),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(marketingWaitlist),
+    // Broadcasts = notifications authored by an admin. Broadcasts are
+    // written with `type:"general"` + `data: JSON({broadcast:true})`
+    // (see /admin/notifications/broadcast). Count them by the data
+    // marker rather than introducing a new enum value.
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(like(notifications.data, '%"broadcast":true%')),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(
+        and(
+          like(notifications.data, '%"broadcast":true%'),
+          gte(notifications.createdAt, new Date(Date.now() - 7 * 86400_000).toISOString()),
+        ),
+      ),
   ]);
 
   return c.json({
@@ -156,6 +178,11 @@ adminRouter.get("/dashboard", async (c) => {
       openInsuranceClaims: openInsuranceClaims[0]?.count ?? 0,
       openDsarRequests: openDsarRequests[0]?.count ?? 0,
       newDemoRequests: newDemoRequests[0]?.count ?? 0,
+    },
+    marketing: {
+      waitlistTotal: Number(waitlistTotal[0]?.count ?? 0),
+      broadcastsSent: Number(broadcastsSent[0]?.count ?? 0),
+      broadcastsLast7d: Number(broadcastsLast7d[0]?.count ?? 0),
     },
   });
 });
@@ -203,7 +230,7 @@ const approvalDecisionSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
-adminRouter.post("/approvals/:userId/approve", async (c) => {
+adminRouter.post("/approvals/:userId/approve", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const userId = c.req.param("userId");
   const body = await c.req.json().catch(() => ({}));
@@ -256,7 +283,7 @@ adminRouter.post("/approvals/:userId/approve", async (c) => {
   return c.json({ ok: true, userId, status: "active" });
 });
 
-adminRouter.post("/approvals/:userId/reject", async (c) => {
+adminRouter.post("/approvals/:userId/reject", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const userId = c.req.param("userId");
   const body = await c.req.json().catch(() => ({}));
@@ -388,7 +415,7 @@ const patchUserSchema = z.object({
     .optional(),
 });
 
-adminRouter.patch("/users/:id", async (c) => {
+adminRouter.patch("/users/:id", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
@@ -414,7 +441,7 @@ adminRouter.patch("/users/:id", async (c) => {
 
 const suspendSchema = z.object({ reason: z.string().min(3).max(500) });
 
-adminRouter.post("/users/:id/suspend", async (c) => {
+adminRouter.post("/users/:id/suspend", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
@@ -451,7 +478,7 @@ adminRouter.post("/users/:id/suspend", async (c) => {
   return c.json({ ok: true });
 });
 
-adminRouter.post("/users/:id/unsuspend", async (c) => {
+adminRouter.post("/users/:id/unsuspend", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const [existing] = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -570,7 +597,7 @@ adminRouter.get("/doctors/:id", async (c) => {
   return c.json(row);
 });
 
-adminRouter.post("/doctors/:id/verify-slmc", async (c) => {
+adminRouter.post("/doctors/:id/verify-slmc", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const [existing] = await db.select().from(doctors).where(eq(doctors.id, id)).limit(1);
@@ -591,7 +618,7 @@ adminRouter.post("/doctors/:id/verify-slmc", async (c) => {
   return c.json({ ok: true });
 });
 
-adminRouter.post("/doctors/:id/revoke-slmc", async (c) => {
+adminRouter.post("/doctors/:id/revoke-slmc", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const [existing] = await db.select().from(doctors).where(eq(doctors.id, id)).limit(1);
@@ -661,6 +688,66 @@ adminRouter.get("/tenants", async (c) => {
       .limit(limit);
     return c.json({ items: rows, total: rows.length });
   }
+  return c.json({ error: "type must be 'hospital' or 'clinic'" }, 400);
+});
+
+// Single-tenant detail. Phase C.14 closes the stub hospital/clinic rows
+// by making them drill-in-able. Dispatches + related users are joined
+// inline so the detail page is one round-trip.
+adminRouter.get("/tenants/:type/:id", async (c) => {
+  const db = c.get("db");
+  const type = c.req.param("type");
+  const id = c.req.param("id");
+
+  if (type === "hospital") {
+    const [row] = await db
+      .select({
+        id: hospitals.id,
+        name: hospitals.name,
+        license: hospitals.license,
+        address: hospitals.address,
+        phone: hospitals.phone,
+        rating: hospitals.rating,
+        createdAt: hospitals.createdAt,
+        ownerUserId: users.id,
+        ownerName: users.name,
+        ownerEmail: users.email,
+        ownerStatus: users.status,
+        ownerLastLoginAt: users.lastLoginAt,
+      })
+      .from(hospitals)
+      .innerJoin(users, eq(hospitals.userId, users.id))
+      .where(eq(hospitals.id, id))
+      .limit(1);
+    if (!row) return c.json({ error: "Hospital not found" }, 404);
+    return c.json({ type, tenant: row });
+  }
+
+  if (type === "clinic") {
+    const [row] = await db
+      .select({
+        id: clinics.id,
+        name: clinics.name,
+        license: clinics.license,
+        address: clinics.address,
+        phone: clinics.phone,
+        shortCode: clinics.shortCode,
+        rating: clinics.rating,
+        createdAt: clinics.createdAt,
+        ownerUserId: users.id,
+        ownerName: users.name,
+        ownerEmail: users.email,
+        ownerStatus: users.status,
+        ownerLastLoginAt: users.lastLoginAt,
+      })
+      .from(clinics)
+      .innerJoin(users, eq(clinics.userId, users.id))
+      .where(eq(clinics.id, id))
+      .limit(1);
+    if (!row) return c.json({ error: "Clinic not found" }, 404);
+    return c.json({ type, tenant: row });
+  }
+
   return c.json({ error: "type must be 'hospital' or 'clinic'" }, 400);
 });
 
@@ -751,7 +838,7 @@ const demoRespondSchema = z.object({
   reply: z.string().max(2000).optional(),
 });
 
-adminRouter.post("/demo-requests/:id/respond", async (c) => {
+adminRouter.post("/demo-requests/:id/respond", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
@@ -919,7 +1006,7 @@ adminRouter.get("/insurance-claims", async (c) => {
 
 const claimDecisionSchema = z.object({ reason: z.string().max(500).optional() });
 
-adminRouter.post("/insurance-claims/:id/approve", async (c) => {
+adminRouter.post("/insurance-claims/:id/approve", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
@@ -945,7 +1032,7 @@ adminRouter.post("/insurance-claims/:id/approve", async (c) => {
   return c.json({ ok: true });
 });
 
-adminRouter.post("/insurance-claims/:id/reject", async (c) => {
+adminRouter.post("/insurance-claims/:id/reject", requirePasskeyFresh, async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({}));
@@ -1534,10 +1621,80 @@ adminRouter.get("/medicines-master", async (c) => {
       .where(where)
       .limit(limit)
       .offset(offset),
-    db.select({ count: sql<number>`count(*)` }).from(medicinesMaster),
+    db.select({ count: sql<number>`count(*)` }).from(medicinesMaster).where(where),
   ]);
 
   return c.json({ items: rows, total: total[0]?.count ?? 0, limit, offset });
+});
+
+const medicineSchema = z.object({
+  genericName: z.string().min(1).max(200),
+  brandName: z.string().max(200).optional().nullable(),
+  strength: z.string().max(80).optional().nullable(),
+  scheduleClass: z.string().max(80).optional().nullable(),
+  isGeneric: z.boolean().optional(),
+  active: z.boolean().optional(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+adminRouter.post("/medicines-master", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = medicineSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed" }, 400);
+  }
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await db.insert(medicinesMaster).values({
+    id,
+    genericName: parsed.data.genericName,
+    brandName: parsed.data.brandName ?? null,
+    strength: parsed.data.strength ?? null,
+    scheduleClass: parsed.data.scheduleClass ?? null,
+    isGeneric: parsed.data.isGeneric ?? true,
+    active: parsed.data.active ?? true,
+    notes: parsed.data.notes ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await recordAdminAction(c, {
+    action: "medicines_master.create",
+    resource: "medicine",
+    resourceId: id,
+    details: { genericName: parsed.data.genericName },
+  });
+  return c.json({ ok: true, id });
+});
+
+adminRouter.patch("/medicines-master/:id", requirePasskeyFresh, async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = medicineSchema.partial().safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed" }, 400);
+  }
+  const now = new Date().toISOString();
+  await db
+    .update(medicinesMaster)
+    .set({
+      ...(parsed.data.genericName !== undefined ? { genericName: parsed.data.genericName } : {}),
+      ...(parsed.data.brandName !== undefined ? { brandName: parsed.data.brandName } : {}),
+      ...(parsed.data.strength !== undefined ? { strength: parsed.data.strength } : {}),
+      ...(parsed.data.scheduleClass !== undefined ? { scheduleClass: parsed.data.scheduleClass } : {}),
+      ...(parsed.data.isGeneric !== undefined ? { isGeneric: parsed.data.isGeneric } : {}),
+      ...(parsed.data.active !== undefined ? { active: parsed.data.active } : {}),
+      ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes } : {}),
+      updatedAt: now,
+    })
+    .where(eq(medicinesMaster.id, id));
+  await recordAdminAction(c, {
+    action: "medicines_master.update",
+    resource: "medicine",
+    resourceId: id,
+  });
+  return c.json({ ok: true });
 });
 
 // ─────────────────────────────────────────────────────────────

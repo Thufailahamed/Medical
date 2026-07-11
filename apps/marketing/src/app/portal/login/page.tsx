@@ -166,7 +166,7 @@ function LoginForm() {
                     id="identifier"
                     autoComplete="username"
                     placeholder="doctor@clinic.lk"
-                    className="pl-10"
+                    className="portal-input-icon-left"
                     {...register("identifier")}
                   />
                 </div>
@@ -187,7 +187,7 @@ function LoginForm() {
                     type="password"
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className="pl-10"
+                    className="portal-input-icon-left"
                     {...register("password")}
                   />
                 </div>

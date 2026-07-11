@@ -67,7 +67,7 @@ export default function AdminUsersPage() {
 
   const toggleSuspend = useMutation({
     mutationFn: ({ id, action, reason }: { id: string; action: "suspend" | "unsuspend"; reason?: string }) =>
-      adminApi(`/admin/users/${id}/${action}`, {
+      adminApiWithStepUp(`/admin/users/${id}/${action}`, {
         method: "POST",
         json: action === "suspend" ? { reason } : {},
       }),

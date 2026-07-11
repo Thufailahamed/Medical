@@ -98,3 +98,48 @@ export async function recordAdminAction(
     ip: c.get("clientIp") ?? null,
   });
 }
+
+// Phase ADM-2: gate operator-only routes. Accepts super_admin (cross-org)
+// AND insurance/ambulance operators (must have operatorOrgId set).
+// Unlike requireAdmin this does NOT require aud === "admin" — operator
+// login already mints that, but a few emergency-call flows may carry a
+// mobile token for a super_admin; we accept both.
+export async function requireOperator(c: Context<AppEnvironment>, next: Next) {
+  const dbUser = c.get("dbUser");
+  if (!dbUser) return c.json({ error: "Unauthorized" }, 401);
+
+  const role = dbUser.role as string;
+  if (role === "super_admin") {
+    // super_admin gets cross-org view; leave operatorOrgId as-is.
+  } else if (role === "insurance" || role === "ambulance") {
+    if ((dbUser as any).status && (dbUser as any).status !== "active") {
+      return c.json(
+        { error: "Operator account is not active", code: "operator_inactive" },
+        403,
+      );
+    }
+    if (!(dbUser as any).operatorOrgId) {
+      return c.json(
+        {
+          error: "Operator account is not assigned to an organization. Contact platform ops.",
+          code: "operator_no_org",
+        },
+        403,
+      );
+    }
+  } else {
+    return c.json(
+      { error: "Operator portal is restricted to platform operators", code: "not_operator" },
+      403,
+    );
+  }
+
+  // Stamp actor + IP for downstream handlers.
+  c.set("adminActor", dbUser);
+  const ip =
+    c.req.header("cf-connecting-ip") ||
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    null;
+  c.set("clientIp", ip);
+  await next();
+}

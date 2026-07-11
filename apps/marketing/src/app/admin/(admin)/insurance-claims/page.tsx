@@ -9,7 +9,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
 type Row = {
@@ -46,7 +46,7 @@ export default function AdminInsuranceClaimsPage() {
 
   const decide = useMutation({
     mutationFn: ({ id, action, reason }: { id: string; action: "approve" | "reject"; reason?: string }) =>
-      adminApi(`/admin/insurance-claims/${id}/${action}`, { method: "POST", json: reason ? { reason } : {} }),
+      adminApiWithStepUp(`/admin/insurance-claims/${id}/${action}`, { method: "POST", json: reason ? { reason } : {} }),
     onSuccess: (_, vars) => {
       toast.success(`Claim ${vars.action}d`);
       qc.invalidateQueries({ queryKey: ["admin", "insurance-claims"] });

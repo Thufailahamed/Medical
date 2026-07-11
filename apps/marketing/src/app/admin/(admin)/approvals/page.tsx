@@ -11,7 +11,7 @@ import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
 import { BulkActionBar } from "@/portal/components/admin/BulkActionBar";
 import { ExportButton } from "@/portal/components/admin/ExportButton";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
 const STATUS_FILTERS = [
@@ -62,7 +62,7 @@ export default function ApprovalsPage() {
 
   const approve = useMutation({
     mutationFn: (userId: string) =>
-      adminApi(`/admin/approvals/${userId}/approve`, { method: "POST", json: {} }),
+      adminApiWithStepUp(`/admin/approvals/${userId}/approve`, { method: "POST", json: {} }),
     onSuccess: () => {
       toast.success("Approved");
       qc.invalidateQueries({ queryKey: ["admin", "approvals"] });
@@ -72,7 +72,7 @@ export default function ApprovalsPage() {
 
   const reject = useMutation({
     mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
-      adminApi(`/admin/approvals/${userId}/reject`, { method: "POST", json: { reason } }),
+      adminApiWithStepUp(`/admin/approvals/${userId}/reject`, { method: "POST", json: { reason } }),
     onSuccess: () => {
       toast.success("Rejected");
       setRejectTarget(null);

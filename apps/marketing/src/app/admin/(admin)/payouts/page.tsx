@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wallet, CheckCircle2, XCircle } from "lucide-react";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
@@ -32,11 +33,18 @@ const STATUS_TONE: Record<string, "warn" | "success" | "danger"> = {
 
 export default function AdminPayoutsPage() {
   const qc = useQueryClient();
-  const [status, setStatus] = useState<string>("pending");
+  const params = useSearchParams();
+  const initialStatus = params.get("status") ?? "pending";
+  const [status, setStatus] = useState<string>(initialStatus);
   const [payTarget, setPayTarget] = useState<Row | null>(null);
   const [reference, setReference] = useState("");
   const [failTarget, setFailTarget] = useState<Row | null>(null);
   const [failReason, setFailReason] = useState("");
+
+  useEffect(() => {
+    const next = params.get("status") ?? "pending";
+    setStatus(next);
+  }, [params]);
 
   const { data, isLoading } = useQuery({
     queryKey: adminQk.payouts(status),

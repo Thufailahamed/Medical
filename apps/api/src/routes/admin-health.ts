@@ -51,7 +51,7 @@ healthRouter.get("/overview", async (c) => {
     db
       .select({ count: sql<number>`count(*)` })
       .from(users)
-      .where(eq(users.status, "pending_review")),
+      .where(eq(users.status, "pending")),
     db
       .select({ count: sql<number>`count(*)` })
       .from(notifications)
@@ -155,10 +155,10 @@ healthRouter.get("/errors", async (c) => {
     .orderBy(desc(auditLogs.createdAt))
     .limit(50);
 
-  await recordAdminAction(c, {
-    action: "health_errors",
-    resource: "system",
-  });
+  // Health reads are not audited — the 60s auto-refresh would otherwise
+  // pollute audit_logs with one `admin.health_errors` row per minute per
+  // logged-in admin. The /admin/health/overview audit at line 89 is
+  // preserved because it's a deliberate "I'm checking the system" event.
 
   return c.json({ items: rows });
 });

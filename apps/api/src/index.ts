@@ -80,6 +80,7 @@ import adminExportRouter from "./routes/admin-export";
 import adminWebauthnRouter from "./routes/admin-webauthn";
 import adminImpersonateRouter from "./routes/admin-impersonate";
 import adminHealthRouter from "./routes/admin-health";
+import adminOperatorRouter from "./routes/admin-operator";
 import familyInviteRouter from "./routes/family-invites";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
@@ -295,6 +296,8 @@ app.route("/admin/export", adminExportRouter);
 app.route("/admin/webauthn", adminWebauthnRouter);
 app.route("/admin/impersonate", adminImpersonateRouter);
 app.route("/admin/health", adminHealthRouter);
+// Phase ADM-2: operator surface (super_admin + insurance/ambulance).
+app.route("/admin/operator", adminOperatorRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]

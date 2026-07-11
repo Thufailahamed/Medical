@@ -202,7 +202,7 @@ function PromoteModal({ open, onClose, onSubmit, isPending }: {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "promote-search", email],
     queryFn: () => adminApi<{ items: Array<{ id: string; name: string; email: string; role: string }> }>(
-      `/admin/users?search=${encodeURIComponent(email)}&limit=10`,
+      `/admin/users?q=${encodeURIComponent(email)}&limit=10`,
     ),
     enabled: email.length >= 3,
   });

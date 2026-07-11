@@ -204,7 +204,7 @@ export function SlmcDocsPanel({ doctorId }: { doctorId: string }) {
               </div>
               <Pill tone={decisionTone(d.decision)}>{d.decision}</Pill>
               <a
-                href={`/admin/api-proxy/doctors/${doctorId}/docs/${d.id}/download`}
+                href={`/admin/doctors/${doctorId}/docs/${d.id}/download`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-text-soft hover:text-text"

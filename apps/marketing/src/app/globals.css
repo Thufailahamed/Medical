@@ -3311,3 +3311,33 @@ path[data-path-draw] {
   .footer__mark-rule { transition: none !important; }
 }
 
+/* ============================================================
+   ADMIN FILTER PILLS
+   ============================================================
+   Reusable pill used by /admin/approvals, /admin/demo-requests,
+   /admin/payouts etc. The UI sets `data-active="true"` when selected;
+   the rule below is the visual counterpart. */
+.admin-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-soft);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+}
+.admin-filter-pill:hover {
+  background: var(--bg-surface-2);
+  color: var(--text);
+}
+.admin-filter-pill[data-active="true"] {
+  background: var(--c-amber-600);
+  color: white;
+  border-color: var(--c-amber-600);
+}
+

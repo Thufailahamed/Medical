@@ -22,11 +22,33 @@ interface Notification {
 }
 
 function resolveAdminHref(type: string): string | null {
-  if (type === "account_pending_review" || type === "tenant_pending_review") {
-    return "/admin/approvals";
+  switch (type) {
+    case "account_pending_review":
+    case "tenant_pending_review":
+      return "/admin/approvals";
+    case "medicine":
+      return "/admin/medicines-master";
+    case "appointment":
+    case "prescription":
+      return "/admin/audit";
+    case "lab_ready":
+      return "/admin/audit";
+    case "insurance":
+      return "/admin/insurance-claims";
+    case "hospital":
+    case "hospital_request":
+      return "/admin/hospitals";
+    case "emergency":
+      return "/admin/system-health";
+    case "vaccination":
+      return "/admin/users";
+    case "general":
+      return "/admin/dashboard";
+    default:
+      // Unknown type — surface to the inbox itself so the admin can
+      // see the notification but cannot take a contextual action.
+      return null;
   }
-  if (type === "general") return "/admin/dashboard";
-  return null;
 }
 
 export default function AdminInboxPage() {

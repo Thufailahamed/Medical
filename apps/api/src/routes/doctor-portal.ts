@@ -1754,6 +1754,15 @@ doctorPortalRouter.get("/availability", async (c) => {
 
 // PUT /doctor-portal/availability
 // Replaces the doctor's weekly schedule wholesale.
+//
+// Earlier this endpoint delete-then-insert'd outside a transaction: if
+// the insert failed (validation, constraint, network), the doctor's
+// schedule was wiped with no error path. Now we snapshot existing rows,
+// insert the new ones, and on failure restore the snapshot before
+// returning 500. Wrapped in `txWrite` for consistency with the rest of
+// the doctor-portal surface — D1 doesn't expose true transactions
+// through Drizzle, but the wrapping documents intent and lets us swap
+// in a real tx without changing call sites.
 doctorPortalRouter.put("/availability", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
@@ -1769,23 +1778,86 @@ doctorPortalRouter.put("/availability", async (c) => {
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
 
-  // Replace all rows
-  await db
-    .delete(doctorAvailability)
+  // Snapshot existing rows up front so the catch handler can rebuild
+  // the schedule if the replace throws mid-flight. Without this a
+  // partial failure would leave the doctor's published availability
+  // empty with no recoverable error path.
+  const existing = await db
+    .select()
+    .from(doctorAvailability)
     .where(eq(doctorAvailability.doctorId, doctor.id));
 
-  if (parsed.data.schedule.length > 0) {
-    await db.insert(doctorAvailability).values(
-      parsed.data.schedule.map((s) => ({
-        doctorId: doctor.id,
-        dayOfWeek: s.dayOfWeek,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        slotMinutes: s.slotMinutes,
-        active: s.active,
-      }))
+  try {
+    await txWrite(db, async (tx) => {
+      if (existing.length > 0) {
+        await tx
+          .delete(doctorAvailability)
+          .where(eq(doctorAvailability.doctorId, doctor.id));
+      }
+
+      if (parsed.data.schedule.length > 0) {
+        await tx.insert(doctorAvailability).values(
+          parsed.data.schedule.map((s) => ({
+            doctorId: doctor.id,
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            slotMinutes: s.slotMinutes,
+            active: s.active,
+          }))
+        );
+      }
+    });
+  } catch (err) {
+    // Restore the snapshot so the doctor's published schedule survives
+    // a mid-replace failure. If the restore itself fails (rare — same
+    // DB just accepted an unrelated write moments ago), log both errors
+    // and surface a 500 with an instruction to retry. The caller can
+    // re-PUT the original schedule to repopulate.
+    console.error("[availability.put] replace failed", err);
+    try {
+      const stillEmpty = await db
+        .select({ id: doctorAvailability.id })
+        .from(doctorAvailability)
+        .where(eq(doctorAvailability.doctorId, doctor.id));
+      if (stillEmpty.length === 0 && existing.length > 0) {
+        await db.insert(doctorAvailability).values(
+          existing.map((r: any) => ({
+            doctorId: r.doctorId,
+            dayOfWeek: r.dayOfWeek,
+            startTime: r.startTime,
+            endTime: r.endTime,
+            slotMinutes: r.slotMinutes,
+            active: r.active,
+          }))
+        );
+        console.error(
+          "[availability.put] restored snapshot after replace failure"
+        );
+      }
+    } catch (restoreErr) {
+      console.error(
+        "[availability.put] snapshot restore ALSO failed",
+        restoreErr
+      );
+    }
+    return c.json(
+      { error: "Failed to update availability. Please retry." },
+      500
     );
   }
+
+  // Audit: schedule changes need to be traceable so we can answer
+  // "what was the doctor's published availability on date X?" later.
+  await audit(db, {
+    userId,
+    action: "availability.replace",
+    resource: "availability",
+    resourceId: doctor.id,
+    details: {
+      dayCount: parsed.data.schedule.length,
+    },
+  }).catch(() => {});
 
   const rows = await db
     .select()
@@ -1860,6 +1932,21 @@ doctorPortalRouter.delete("/time-off/:id", async (c) => {
     .limit(1);
   if (!own) return c.json({ error: "Not found" }, 404);
   await db.delete(doctorTimeOff).where(eq(doctorTimeOff.id, id));
+  // Audit: keep parity with /appointments/:id which writes an audit
+  // row on every state change. Future "when did the doctor cancel
+  // leave on date X?" investigations need this trail.
+  await audit(db, {
+    userId,
+    action: "time_off.delete",
+    resource: "time_off",
+    resourceId: id,
+    details: {
+      date: own.date,
+      startTime: own.startTime,
+      endTime: own.endTime,
+      reason: own.reason ?? null,
+    },
+  }).catch(() => {});
   return c.json({ ok: true });
 });
 
@@ -2538,6 +2625,13 @@ doctorPortalRouter.get("/search-patients", async (c) => {
 
   const tenant = await resolveActiveTenant(db, c, doctor);
   const safeQuery = query.replace(/[%_]/g, "\\$&");
+  // LIKE pattern with explicit ESCAPE — without it the leading backslash
+  // produced by the sanitiser above is matched literally by SQLite, which
+  // means `%` / `_` in the search term still act as wildcards. Pair the
+  // escape with the ESCAPE clause so backslashed metacharacters match
+  // themselves.
+  const likePat = `%${safeQuery}%`;
+  const likeCol = (col: any) => sql`${col} LIKE ${likePat} ESCAPE '\\'`;
 
   // If doctor has an active hospital, search patients registered there.
   if (tenant.hospitalId) {
@@ -2552,11 +2646,7 @@ doctorPortalRouter.get("/search-patients", async (c) => {
       .where(
         and(
           eq(hospitalPatients.hospitalId, tenant.hospitalId),
-          or(
-            like(users.name, `%${safeQuery}%`),
-            like(users.nic, `%${safeQuery}%`),
-            like(users.phone, `%${safeQuery}%`)
-          )
+          or(likeCol(users.name), likeCol(users.nic), likeCol(users.phone))
         )
       )
       .limit(20);
@@ -2577,11 +2667,7 @@ doctorPortalRouter.get("/search-patients", async (c) => {
     .innerJoin(users, eq(patients.userId, users.id))
     .where(
       and(
-        or(
-          like(users.name, `%${safeQuery}%`),
-          like(users.nic, `%${safeQuery}%`),
-          like(users.phone, `%${safeQuery}%`)
-        ),
+        or(likeCol(users.name), likeCol(users.nic), likeCol(users.phone)),
         sql`${patients.id} IN (${sql.join(
           accessibleIds.map((id) => sql`${id}`),
           sql`, `

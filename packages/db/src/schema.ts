@@ -87,6 +87,13 @@ export const users = sqliteTable("users", {
   suspendedByUserId: text("suspended_by_user_id").references((): any => users.id),
   suspendedAt: text("suspended_at"),
   suspendedReason: text("suspended_reason"),
+  // Phase ADM-2: scope insurance/ambulance operators to their org.
+  // super_admin may leave this NULL for cross-org view.
+  operatorOrgId: text("operator_org_id"),
+  // Phase ADM-3: track last successful login. Set by /auth/login +
+  // /login-by-nic + /verify-otp when the JWT is minted. NULL for
+  // legacy rows that never logged in post-deploy.
+  lastLoginAt: text("last_login_at"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -3210,6 +3217,52 @@ export const aiCounters = sqliteTable("ai_counters", {
   scope: text("scope").primaryKey(),
   count: integer("count").notNull().default(0),
   updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Phase ADM-2: Operator orgs + ambulance dispatches ────
+//
+// Insurance + ambulance operators belong to an operator_org (a company).
+// Their UI/API is scoped to that org. super_admin may have operatorOrgId
+// NULL for cross-org ops. Mapping to existing insuranceClaims.insuranceId
+// is intentionally NOT done here — insuranceClaims represent a patient's
+// insurance POLICY, not the insurance COMPANY. The denormalized org
+// linkage is `users.operatorOrgId` for the operator's company, and a
+// separate mapping table (or per-claim claim_operators) would be needed
+// to bind claims → companies; that ships in a follow-up migration.
+export const operatorOrgs = sqliteTable("operator_orgs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  kind: text("kind", { enum: ["insurance", "ambulance"] }).notNull(),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  status: text("status", { enum: ["active", "suspended"] })
+    .notNull()
+    .default("active"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const ambulanceDispatches = sqliteTable("ambulance_dispatches", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  operatorOrgId: text("operator_org_id")
+    .notNull()
+    .references(() => operatorOrgs.id),
+  patientId: text("patient_id").references(() => patients.id),
+  pickupAddress: text("pickup_address").notNull(),
+  destinationAddress: text("destination_address"),
+  status: text("status", {
+    enum: ["queued", "acknowledged", "enroute", "completed", "cancelled"],
+  })
+    .notNull()
+    .default("queued"),
+  assignedUserId: text("assigned_user_id").references(() => users.id),
+  notes: text("notes"),
+  acknowledgedAt: text("acknowledged_at"),
+  completedAt: text("completed_at"),
+  createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });

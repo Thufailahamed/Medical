@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
@@ -18,7 +19,7 @@ type Row = {
 export default function AdminInsurancesPage() {
   const { data, isLoading } = useQuery({
     queryKey: adminQk.users({ role: "insurance" }),
-    queryFn: () => adminApi<{ items: Row[]; total: number }>("/admin/users?role=insurance&limit=200"),
+    queryFn: () => adminApi<{ items: Row[]; total: number }>("/admin/operator/users?role=insurance"),
   });
 
   return (
@@ -43,8 +44,12 @@ export default function AdminInsurancesPage() {
           </THead>
           <TBody>
             {data.items.map((i) => (
-              <TR key={i.id}>
-                <TD className="font-semibold">{i.name}</TD>
+              <TR key={i.id} className="hover:bg-surface-2 cursor-pointer">
+                <TD className="font-semibold">
+                  <Link href={`/admin/users/${i.id}`} className="hover:underline">
+                    {i.name}
+                  </Link>
+                </TD>
                 <TD className="text-xs">{i.email || "—"}</TD>
                 <TD className="text-xs">{i.phone || "—"}</TD>
                 <TD><Pill tone={i.status === "active" ? "success" : "warn"}>{i.status}</Pill></TD>

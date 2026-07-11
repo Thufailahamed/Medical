@@ -32,6 +32,11 @@ type Dashboard = {
     openDsarRequests: number;
     newDemoRequests: number;
   };
+  marketing: {
+    waitlistTotal: number;
+    broadcastsSent: number;
+    broadcastsLast7d: number;
+  };
 };
 
 function Tile({
@@ -168,8 +173,9 @@ export default function AdminDashboardPage() {
           <section>
             <SectionHeader title="Marketing" className="mb-3" />
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Tile icon={<MailCheck size={18} />} label="Waitlist (total)" value={0} href="/admin/waitlist" />
-              <Tile icon={<ScrollText size={18} />} label="Broadcasts sent" value={0} href="/admin/notifications" />
+              <Tile icon={<MailCheck size={18} />} label="Waitlist (total)" value={data.marketing.waitlistTotal} href="/admin/waitlist" />
+              <Tile icon={<ScrollText size={18} />} label="Broadcasts sent" value={data.marketing.broadcastsSent} href="/admin/notifications" />
+              <Tile icon={<Megaphone size={18} />} label="Broadcasts (7d)" value={data.marketing.broadcastsLast7d} href="/admin/notifications" />
             </div>
           </section>
         </>

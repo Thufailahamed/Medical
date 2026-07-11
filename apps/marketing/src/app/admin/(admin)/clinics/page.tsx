@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
@@ -46,8 +47,12 @@ export default function AdminClinicsPage() {
           </THead>
           <TBody>
             {data.items.map((c) => (
-              <TR key={c.id}>
-                <TD className="font-semibold">{c.name}</TD>
+              <TR key={c.id} className="hover:bg-surface-2 cursor-pointer">
+                <TD className="font-semibold">
+                  <Link href={`/admin/tenants/clinic/${c.id}`} className="hover:underline">
+                    {c.name}
+                  </Link>
+                </TD>
                 <TD className="text-xs font-mono">{c.shortCode || "—"}</TD>
                 <TD className="text-xs">{c.license || "—"}</TD>
                 <TD className="text-xs">{c.address || "—"}</TD>

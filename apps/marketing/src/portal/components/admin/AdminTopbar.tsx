@@ -7,6 +7,7 @@ import { Bell, ChevronRight } from "lucide-react";
 import { ADMIN_NAV_GROUPS } from "./admin-nav";
 import { useT } from "@/portal/i18n";
 import { api } from "@/portal/lib/api";
+import { useAuthStore } from "@/portal/stores/auth";
 
 function flatten(items: { href: string; labelKey: string }[]) {
   return items.map((i) => i);
@@ -15,6 +16,12 @@ function flatten(items: { href: string; labelKey: string }[]) {
 export function AdminTopbar() {
   const pathname = usePathname() || "";
   const t = useT();
+  const user = useAuthStore((s) => s.user);
+  // Doctor portal link only makes sense for admins who also have a
+  // doctor profile (e.g. an admin who is themselves a clinician).
+  // Insurance/ambulance operators and super_admin-only operators
+  // would 403 on /portal/dashboard.
+  const showDoctorPortal = user?.role === "doctor";
 
   const { data: unread } = useQuery({
     queryKey: ["notifications", "unread-count"],
@@ -53,12 +60,14 @@ export function AdminTopbar() {
           </span>
         ) : null}
       </Link>
-      <a
-        href="/portal/dashboard"
-        className="text-xs text-text-soft hover:text-text underline-offset-2 hover:underline"
-      >
-        ← Doctor portal
-      </a>
+      {showDoctorPortal ? (
+        <a
+          href="/portal/dashboard"
+          className="text-xs text-text-soft hover:text-text underline-offset-2 hover:underline"
+        >
+          ← Doctor portal
+        </a>
+      ) : null}
     </header>
   );
 }

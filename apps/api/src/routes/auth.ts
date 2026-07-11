@@ -40,6 +40,26 @@ const auth = new Hono<AppEnvironment>();
 const OTP_TTL_MINUTES = 5;
 const OTP_MAX_ATTEMPTS = 5;
 
+// Phase ADM-2: tokens minted for the admin portal must carry `aud:"admin"`
+// or the admin middleware rejects them with `audience_mismatch`. Every
+// other role keeps `aud:"mobile"` so the existing patient/doctor surfaces
+// stay unaffected.
+const ADMIN_AUDIENCE_ROLES = new Set(["super_admin", "insurance", "ambulance"]);
+function adminAudFor(role: string | null | undefined): "admin" | "mobile" {
+  return role && ADMIN_AUDIENCE_ROLES.has(role) ? "admin" : "mobile";
+}
+
+// Phase ADM-3: stamp last_login_at on successful login. Fire-and-forget
+// — we never block the response on this write.
+async function stampLastLogin(db: any, userId: string) {
+  const now = new Date().toISOString();
+  try {
+    await db.update(users).set({ lastLoginAt: now }).where(eq(users.id, userId));
+  } catch {
+    // ignore — non-critical; surface counts/lastLogin will catch up next login
+  }
+}
+
 // ─── MFA branch (Round 2 P0) ──────────────────────────────
 // For doctors whose `doctors.mfa_enabled = 1`, return a 5-minute
 // `mfaToken` instead of a full session JWT. The mobile app posts the
@@ -474,12 +494,13 @@ auth.post("/login", async (c) => {
   }
 
   const loginAge = ageAtRegistration(dbUser.dateOfBirth);
+  await stampLastLogin(db, dbUser.id);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
     nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
     isMinor: loginAge !== null && loginAge < 18,
-  });
+  }, { aud: adminAudFor(dbUser.role) });
 
   return c.json({
     user: dbUser,
@@ -572,13 +593,14 @@ auth.post("/login-by-nic", async (c) => {
   }
 
   const nicLoginAge = ageAtRegistration(dbUser.dateOfBirth);
+  await stampLastLogin(db, dbUser.id);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
     nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
     isMinor: nicLoginAge !== null && nicLoginAge < 18,
     nicVerified: true,
-  });
+  }, { aud: adminAudFor(dbUser.role) });
 
   return c.json({
     user: dbUser,
@@ -977,13 +999,14 @@ auth.post("/verify-otp", async (c) => {
   }
 
   const otpAge = ageAtRegistration(dbUser.dateOfBirth);
+  await stampLastLogin(db, dbUser.id);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
     dob: dbUser.dateOfBirth,
     isMinor: otpAge !== null && otpAge < 18,
     nicVerified: true,
     otpVerified: true,
-  });
+  }, { aud: adminAudFor(dbUser.role) });
 
   return c.json({
     verified: true,

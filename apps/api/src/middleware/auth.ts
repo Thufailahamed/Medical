@@ -17,6 +17,34 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
   // JWT path (e.g. multi-role smoke tests) without restarting wrangler
   // every time we need to act as a doctor / hospital admin.
   const hasBearer = c.req.header("Authorization")?.startsWith("Bearer ");
+
+  // Production safety: refuse to engage the dev bypass if this Worker
+  // is serving a non-development environment. `ENVIRONMENT` is set by
+  // wrangler.toml per-env ("production" / "staging" / "preview"); the
+  // Cloudflare Pages-style fallback covers the case where wrangler
+  // didn't set it explicitly. The bypass would otherwise mint a
+  // `role: 'patient'` `dev-user-001` for any request that arrives
+  // without a Bearer header — a misconfigured prod (DEV_MODE=true
+  // leaked via env) would expose every auth-only route as that
+  // patient. Failing closed here prevents the disaster scenario.
+  const envName = String(
+    (c.env as any).ENVIRONMENT ?? (c.env as any).CF_PAGES_BRANCH ?? ""
+  ).toLowerCase();
+  const isProdLike = envName === "production" || envName === "prod";
+  if (
+    c.env.DEV_MODE === "true" &&
+    !hasBearer &&
+    isProdLike
+  ) {
+    return c.json(
+      {
+        error:
+          "Dev mode bypass disabled in production. Set DEV_MODE=false or unset it for this environment.",
+      },
+      401
+    );
+  }
+
   if (c.env.DEV_MODE === "true" && !hasBearer) {
     const db = c.get("db");
 
