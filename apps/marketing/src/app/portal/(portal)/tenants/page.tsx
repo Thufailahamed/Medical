@@ -7,6 +7,7 @@ import { api } from "@/portal/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { RoleGate } from "@/portal/lib/rbac";
 import { useT } from "@/portal/i18n";
 
 interface Tenant {
@@ -26,6 +27,15 @@ interface TenantsResponse {
   activeClinicId: string | null;
 }
 
+// Tenant roster is admin-only. Patients and doctors see no value here —
+// the backend /me/tenants endpoint returns their own memberships, but
+// the page UI is geared at super_admin / hospital_admin pickers.
+const TENANT_VIEW_ROLES = [
+  "super_admin",
+  "hospital_admin",
+  "hospital_staff",
+] as const;
+
 export default function TenantsPage() {
   const t = useT();
 
@@ -38,11 +48,19 @@ export default function TenantsPage() {
   const clinics = data?.clinics ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-text">{t("tenants.title")}</h1>
-        <p className="text-sm text-text-soft mt-1">{t("tenants.subtitle")}</p>
-      </div>
+    <RoleGate
+      allow={[...TENANT_VIEW_ROLES]}
+      fallback={
+        <div className="rounded-xl border border-border/60 bg-surface-1 p-6 text-sm text-text-soft">
+          {t("common.noAccess")}
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-text">{t("tenants.title")}</h1>
+          <p className="text-sm text-text-soft mt-1">{t("tenants.subtitle")}</p>
+        </div>
 
       {/* Hospitals */}
       <Card>
@@ -153,6 +171,7 @@ export default function TenantsPage() {
           </ul>
         )}
       </Card>
-    </div>
+      </div>
+    </RoleGate>
   );
 }

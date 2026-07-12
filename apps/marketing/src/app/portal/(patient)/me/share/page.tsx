@@ -18,6 +18,7 @@ import { Button } from "@/portal/components/ui/Button";
 import { Input, Select } from "@/portal/components/ui/Form";
 import { Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
+import { useT } from "@/portal/i18n";
 import { formatDateTime, relativeTime } from "@/portal/lib/format";
 
 interface ShareLink {
@@ -31,18 +32,19 @@ interface ShareLink {
   lastViewedAt: string | null;
 }
 
-const EXPIRY_OPTIONS = [
-  { value: "1", label: "1 hour" },
-  { value: "24", label: "24 hours" },
-  { value: "168", label: "1 week" },
-  { value: "720", label: "30 days" },
-];
-
 export default function PatientSharePage() {
+  const t = useT();
   const qc = useQueryClient();
   const [hours, setHours] = useState("24");
   const [label, setLabel] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+
+  const EXPIRY_OPTIONS = [
+    { value: "1", label: t("patientPortal.share.expiry1h") },
+    { value: "24", label: t("patientPortal.share.expiry24h") },
+    { value: "168", label: t("patientPortal.share.expiry1w") },
+    { value: "720", label: t("patientPortal.share.expiry30d") },
+  ];
 
   const list = useQuery({
     queryKey: ["share", "links"],
@@ -62,10 +64,10 @@ export default function PatientSharePage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["share", "links"] });
       setLabel("");
-      toast.success("Share link created");
+      toast.success(t("patientPortal.share.created"));
     },
     onError: (err: any) => {
-      toast.error("Could not create link", err?.message);
+      toast.error(t("patientPortal.share.createFailed"), err?.message);
     },
   });
 
@@ -74,7 +76,7 @@ export default function PatientSharePage() {
       api(`/share/links/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["share", "links"] });
-      toast.success("Link revoked");
+      toast.success(t("patientPortal.share.revoked"));
     },
   });
 
@@ -83,29 +85,32 @@ export default function PatientSharePage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-xl font-bold text-text">Share records</h1>
+        <h1 className="text-xl font-bold text-text">
+          {t("patientPortal.share.title")}
+        </h1>
         <p className="text-sm text-text-soft mt-0.5">
-          Generate a time-limited link to share with a doctor or family
-          member.
+          {t("patientPortal.share.subtitle")}
         </p>
       </header>
 
       <Card>
-        <h2 className="text-sm font-semibold text-text mb-3">New link</h2>
+        <h2 className="text-sm font-semibold text-text mb-3">
+          {t("patientPortal.share.newLink")}
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px_auto] gap-2 items-end">
           <div>
             <label className="text-xs text-text-soft block mb-1">
-              Label (optional)
+              {t("patientPortal.share.label")}
             </label>
             <Input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="For Dr. Perera's visit"
+              placeholder={t("patientPortal.share.labelPlaceholder")}
             />
           </div>
           <div>
             <label className="text-xs text-text-soft block mb-1">
-              Expires in
+              {t("patientPortal.share.expiresIn")}
             </label>
             <Select value={hours} onChange={(e) => setHours(e.target.value)}>
               {EXPIRY_OPTIONS.map((o) => (
@@ -121,18 +126,20 @@ export default function PatientSharePage() {
             onClick={() => create.mutate()}
             loading={create.isPending}
           >
-            Create
+            {t("patientPortal.share.create")}
           </Button>
         </div>
       </Card>
 
-      <h2 className="text-sm font-semibold text-text">Existing links</h2>
+      <h2 className="text-sm font-semibold text-text">
+        {t("patientPortal.share.existing")}
+      </h2>
       {list.isLoading ? (
         <Skeleton className="h-24 w-full" />
       ) : links.length === 0 ? (
         <Card>
           <div className="text-center py-6 text-sm text-text-soft">
-            No share links yet.
+            {t("patientPortal.share.empty")}
           </div>
         </Card>
       ) : (
@@ -150,24 +157,31 @@ export default function PatientSharePage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-text">
-                        {l.label || "Untitled link"}
+                        {l.label || t("patientPortal.share.untitled")}
                       </span>
                       {l.revoked ? (
-                        <Pill tone="danger">Revoked</Pill>
+                        <Pill tone="danger">
+                          {t("patientPortal.share.statusRevoked")}
+                        </Pill>
                       ) : expired ? (
-                        <Pill tone="warn">Expired</Pill>
+                        <Pill tone="warn">
+                          {t("patientPortal.share.statusExpired")}
+                        </Pill>
                       ) : (
-                        <Pill tone="success">Active</Pill>
+                        <Pill tone="success">
+                          {t("patientPortal.share.statusActive")}
+                        </Pill>
                       )}
                     </div>
                     <p className="text-xs text-text-soft mt-0.5 truncate">
                       {url}
                     </p>
                     <p className="text-[11px] text-text-muted mt-1">
-                      {relativeTime(l.createdAt)} · expires{" "}
+                      {relativeTime(l.createdAt)} ·{" "}
+                      {t("patientPortal.share.expires")}{" "}
                       {formatDateTime(l.expiresAt)}
                       {l.lastViewedAt
-                        ? ` · last viewed ${relativeTime(l.lastViewedAt)}`
+                        ? ` · ${t("patientPortal.share.lastViewed")} ${relativeTime(l.lastViewedAt)}`
                         : ""}
                     </p>
                   </div>
@@ -183,7 +197,7 @@ export default function PatientSharePage() {
                           setCopied(l.id);
                           setTimeout(() => setCopied(null), 1500);
                         }}
-                        aria-label="Copy link"
+                        aria-label={t("common.copyLink")}
                       >
                         {copied === l.id ? (
                           <Check size={14} />
@@ -196,7 +210,7 @@ export default function PatientSharePage() {
                         target="_blank"
                         rel="noreferrer"
                         className="text-text-muted hover:text-text"
-                        aria-label="Open link"
+                        aria-label={t("common.openLink")}
                       >
                         <ExternalLink size={14} />
                       </a>
@@ -204,7 +218,7 @@ export default function PatientSharePage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => revoke.mutate(l.id)}
-                        aria-label="Revoke"
+                        aria-label={t("common.revoke")}
                       >
                         <Trash2 size={14} />
                       </Button>

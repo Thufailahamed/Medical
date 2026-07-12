@@ -37,7 +37,9 @@ describe("POST /admin/users/:id/suspend", () => {
     const app = buildAdminApp(db, { id: ADMIN_ID, role: "super_admin" });
     db.setWhere("users", (r) => r.id === TARGET_ID);
 
-    const res = await postJson(app, `/admin/users/${TARGET_ID}/suspend`, { reason: "x" });
+    const res = await postJson(app, `/admin/users/${TARGET_ID}/suspend`, { reason: "x" }, {
+      "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
+    });
     expect(res.status).toBe(400);
   });
 
@@ -47,6 +49,8 @@ describe("POST /admin/users/:id/suspend", () => {
 
     const res = await postJson(app, `/admin/users/${ADMIN_ID}/suspend`, {
       reason: "self-suspend attempt",
+    }, {
+      "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
     });
     expect(res.status).toBe(400);
   });
@@ -57,6 +61,8 @@ describe("POST /admin/users/:id/suspend", () => {
 
     const res = await postJson(app, `/admin/users/${TARGET_ID}/suspend`, {
       reason: "policy violation",
+    }, {
+      "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
     });
     expect(res.status).toBe(200);
   });

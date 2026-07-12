@@ -57,10 +57,13 @@ export default function PatientRecordsPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-xl font-bold text-text">My records</h1>
+        <h1 className="text-xl font-bold text-text">
+          {t("patientPortal.records.title")}
+        </h1>
         <p className="text-sm text-text-soft mt-0.5">
-          {data?.total ?? records.length} record
-          {(data?.total ?? records.length) === 1 ? "" : "s"}
+          {t("patientPortal.records.subtitle", {
+            count: data?.total ?? records.length,
+          })}
         </p>
       </header>
 
@@ -73,7 +76,7 @@ export default function PatientRecordsPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search records…"
+            placeholder={t("patientPortal.records.search")}
             className="pl-9"
           />
         </div>
@@ -84,7 +87,9 @@ export default function PatientRecordsPage() {
         >
           {kinds.map((k) => (
             <option key={k} value={k}>
-              {k === "all" ? "All types" : k.replace(/_/g, " ")}
+              {k === "all"
+                ? t("patientPortal.records.allTypes")
+                : k.replace(/_/g, " ")}
             </option>
           ))}
         </select>
@@ -101,7 +106,7 @@ export default function PatientRecordsPage() {
           <div className="text-center py-8">
             <FileText size={28} className="mx-auto text-text-muted" />
             <p className="text-sm text-text-soft mt-2">
-              No records yet. Use the mobile app to add your first record.
+              {t("patientPortal.records.empty")}
             </p>
           </div>
         </Card>

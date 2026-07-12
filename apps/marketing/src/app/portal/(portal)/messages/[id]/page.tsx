@@ -84,7 +84,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
             <div className="min-w-0">
               <div className="text-sm font-semibold text-text truncate">{patient.name}</div>
               <div className="text-[10px] text-text-muted">
-                Conversation #{id.slice(0, 8)}
+                {t("messages.conversationHash", { id: id.slice(0, 8) })}
               </div>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
       <Card padding={false} className="flex-1 flex flex-col overflow-hidden">
         <CardHeader
-          title="Messages"
+          title={t("messages.title")}
           right={
             <Button
               size="sm"
@@ -103,7 +103,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
                 qc.invalidateQueries({ queryKey: ["doctor-messages", "conversation", id] })
               }
             >
-              Refresh
+              {t("common.retry")}
             </Button>
           }
         />
@@ -111,7 +111,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
           {isLoading ? (
             <Skeleton className="h-20 w-full" />
           ) : msgs.length === 0 ? (
-            <Empty title="No messages yet — say hi." />
+            <Empty title={t("messages.emptyConversation")} />
           ) : (
             msgs.map((m) => {
               const mine = m.senderRole === "doctor";
@@ -163,7 +163,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
             loading={send.isPending}
             leftIcon={<Send size={14} />}
           >
-            Send
+            {t("common.send")}
           </Button>
         </form>
       </Card>

@@ -78,6 +78,7 @@ export function useCreatePatientVital(patientId: string) {
       qc.invalidateQueries({
         queryKey: qk.patientOverview(patientId),
       });
+      qc.invalidateQueries({ queryKey: qk.timeline(patientId) });
       qc.invalidateQueries({ queryKey: ["doctor-portal", "vitals"] });
     },
   });

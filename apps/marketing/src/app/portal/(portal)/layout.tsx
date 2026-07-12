@@ -22,6 +22,15 @@ import { useRealtime } from "@/portal/hooks/useRealtime";
  * We can't pre-render at build time because the auth state lives in
  * localStorage; the AuthBoot component runs the /auth/me call once we
  * know a token exists.
+ *
+ * Phase 1.2: a server-side DAL lives at `@/portal/lib/dal.ts` that
+ * can gate SSR via the `portal_session` cookie. The backend
+ * `/auth/login` does NOT currently emit that cookie, so SSR-side
+ * gating is dormant and this client layout remains the gate. When
+ * the backend emits `Set-Cookie: portal_session=<jwt>; HttpOnly`,
+ * swap the body of this layout for a server component that calls
+ * `requireServerRole("doctor", "pharmacy")` from the DAL and renders
+ * `<PortalShell>{children}</PortalShell>` for the chrome.
  */
 const PORTAL_ROLES = ["doctor", "pharmacy"] as const;
 

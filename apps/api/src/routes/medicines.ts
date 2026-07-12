@@ -24,6 +24,7 @@ import {
   localDayToUtcRange,
   localHHMM,
   localToday,
+  localTimeToUtc,
 } from "../lib/timezone";
 import { slotsForFrequency, isAsNeeded } from "../lib/medicine-slots";
 import { flattenTranslated } from "../lib/validation-error";
@@ -74,13 +75,11 @@ async function scheduleTodayForMedicine(
   let created = 0;
   for (const time of slotsForFrequency(medicineRow.frequency, medicineRow.timing)) {
     if (existingTimes.has(time)) continue;
-    const [hh, mm] = time.split(":").map(Number);
-    const scheduled = new Date();
-    scheduled.setHours(hh ?? 9, mm ?? 0, 0, 0);
+    const scheduledIso = localTimeToUtc(today, time, offsetMinutes);
     await db.insert(medicineDoses).values({
       medicineId: medicineRow.id,
       patientId: medicineRow.patientId,
-      scheduledFor: scheduled.toISOString(),
+      scheduledFor: scheduledIso,
     } as any);
     created += 1;
   }

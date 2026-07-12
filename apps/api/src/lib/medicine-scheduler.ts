@@ -12,6 +12,7 @@ import {
   localDayToUtcRange,
   localHHMM,
   localToday,
+  localTimeToUtc,
 } from "./timezone";
 import { slotsForFrequency } from "./medicine-slots";
 
@@ -31,7 +32,6 @@ export async function scheduleTodayForPatient(
   const today = localToday(offsetMinutes);
   const { startUtc: dayStartIso, endUtc: dayEndIso } =
     localDayToUtcRange(today, offsetMinutes);
-  const now = new Date();
 
   const activeMeds = await db
     .select()
@@ -65,14 +65,12 @@ export async function scheduleTodayForPatient(
       const key = `${m.id}@${time}`;
       if (existingKey.has(key)) continue;
 
-      const [hh, mm] = time.split(":").map((n) => parseInt(n, 10));
-      const scheduled = new Date(now);
-      scheduled.setHours(hh ?? 9, mm ?? 0, 0, 0);
+      const scheduledIso = localTimeToUtc(today, time, offsetMinutes);
 
       await db.insert(medicineDoses).values({
         medicineId: m.id,
         patientId,
-        scheduledFor: scheduled.toISOString(),
+        scheduledFor: scheduledIso,
       } as any);
       existingKey.add(key);
       created++;

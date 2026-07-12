@@ -54,7 +54,13 @@
     "remove": "Remove",
     "confirm": "Confirm",
     "areYouSure": "Are you sure?",
-    "change": "Change"
+    "change": "Change",
+    "noAccess": "You don't have access to this page.",
+    "copy": "Copy",
+    "copyLink": "Copy link",
+    "openLink": "Open link",
+    "revoke": "Revoke",
+    "send": "Send"
   },
   "auth": {
     "title": "Doctor Portal",
@@ -247,7 +253,10 @@
     "backToList": "Back to patients",
     "messages": {
       "empty": "No conversations yet",
-      "openInbox": "Open inbox"
+      "openInbox": "Open inbox",
+      "title": "Messages",
+      "emptyConversation": "No messages yet — say hi.",
+      "conversationHash": "Conversation #{{id}}"
     },
     "age": "{{age}} yrs",
     "bloodGroup": "Blood group",
@@ -524,6 +533,8 @@
     "routine": "Routine",
     "urgent": "Urgent",
     "created": "Walk-in registered",
+    "markedAs": "Marked as {{status}}",
+    "reasonPlaceholder": "Brief reason for visit",
     "status": {
       "waiting": "Waiting",
       "in_consultation": "In consult",
@@ -666,12 +677,28 @@
     "revoke": "Revoke",
     "newInvite": "New invite",
     "inviteLabel": "Label",
-    "inviteScope": "Scope"
+    "inviteScope": "Scope",
+    "accessRevoked": "Access revoked",
+    "inviteSent": "Invite sent",
+    "invite": "Invite",
+    "inviteTitle": "Invite to care team",
+    "searchPatient": "Search patient",
+    "searchPlaceholder": "Name or NIC",
+    "patientSelected": "Patient selected · {{id}}…",
+    "scope": "Scope",
+    "scopeRead": "Read",
+    "scopeReadWrite": "Read + Write",
+    "role": "Role",
+    "rolePrimaryCare": "Primary care",
+    "roleSpecialist": "Specialist",
+    "roleConsultant": "Consultant",
+    "validForDays": "Valid for (days)",
+    "since": "since {{date}}",
+    "revokeConfirm": "Revoke access for {{name}}?"
   },
   "availability": {
     "title": "Availability",
     "subtitle": "Set the days and hours you take appointments",
-    "day": "Day",
     "start": "Start",
     "end": "End",
     "slotMinutes": "Slot length (min)",
@@ -680,8 +707,28 @@
     "timeOff": "Time off",
     "newTimeOff": "New time off",
     "from": "From",
-    "to": "To",
-    "reason": "Reason"
+    "to": "to",
+    "reason": "Reason",
+    "weekly": "Weekly schedule",
+    "addSlot": "Add slot",
+    "empty": "No availability set",
+    "min": "min",
+    "active": "Active",
+    "add": "Add",
+    "remove": "Remove",
+    "emptyTimeOff": "No time off scheduled",
+    "reasonPlaceholder": "Leave / holiday",
+    "timeOffAdded": "Time off added",
+    "removed": "Removed",
+    "day": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
   },
   "clinics": {
     "title": "Clinics",
@@ -871,6 +918,69 @@
     "professionalInfo": "Professional Information",
     "bio": "Bio",
     "bioPlaceholder": "Tell patients about yourself, your experience, and your approach to care…"
+  },
+  "patientPortal": {
+    "home": {
+      "welcome": "Welcome",
+      "tagline": "Your health record, at a glance.",
+      "recordsCount": "Records",
+      "vitalsCount": "Vitals tracked",
+      "addRecord": "Add a record",
+      "addRecordBody": "Upload a lab report, image, or document.",
+      "share": "Share with a doctor",
+      "shareBody": "Generate a time-limited link to your records.",
+      "audit": "View access log",
+      "auditBody": "See who has looked at your records recently."
+    },
+    "records": {
+      "title": "My records",
+      "subtitle_one": "{{count}} record",
+      "subtitle_other": "{{count}} records",
+      "search": "Search records…",
+      "allTypes": "All types",
+      "empty": "No records yet. Use the mobile app to add your first record."
+    },
+    "audit": {
+      "title": "Access log",
+      "subtitle": "Who has looked at your records recently.",
+      "loadError": "Could not load the access log.",
+      "empty": "No access events in the last 30 days.",
+      "actorSystem": "system"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle_one": "{{count}} unread",
+      "subtitle_other": "{{count}} unread",
+      "caughtUp": "You're all caught up",
+      "markAllRead": "Mark all read",
+      "empty": "No notifications yet",
+      "markRead": "Mark read",
+      "markedAllRead": "All notifications marked as read"
+    },
+    "share": {
+      "title": "Share records",
+      "subtitle": "Generate a time-limited link to share with a doctor or family member.",
+      "newLink": "New link",
+      "label": "Label (optional)",
+      "labelPlaceholder": "For Dr. Perera's visit",
+      "expiresIn": "Expires in",
+      "create": "Create",
+      "created": "Share link created",
+      "createFailed": "Could not create link",
+      "existing": "Existing links",
+      "empty": "No share links yet.",
+      "untitled": "Untitled link",
+      "statusRevoked": "Revoked",
+      "statusExpired": "Expired",
+      "statusActive": "Active",
+      "expires": "expires",
+      "lastViewed": "last viewed",
+      "revoked": "Link revoked",
+      "expiry1h": "1 hour",
+      "expiry24h": "24 hours",
+      "expiry1w": "1 week",
+      "expiry30d": "30 days"
+    }
   },
   "visitSummary": {
     "title": "Visit Summary",

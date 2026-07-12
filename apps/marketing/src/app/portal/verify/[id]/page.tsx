@@ -25,7 +25,7 @@ import { Pill as PillBadge } from "@/portal/components/ui/Pill";
 import { Button } from "@/portal/components/ui/Button";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
-import { API_URL } from "@/portal/lib/api";
+import { api, ApiError } from "@/portal/lib/api";
 import { formatDateTime } from "@/portal/lib/format";
 import { useT } from "@/portal/i18n";
 import { useAuthStore } from "@/portal/stores/auth";
@@ -50,14 +50,20 @@ interface VerifyResponse {
 }
 
 async function verifyFetch(id: string): Promise<VerifyResponse> {
-  const res = await fetch(`${API_URL}/verify/${id}`);
-  if (res.status === 404) {
-    return { valid: false, reason: "not_found", prescriptionId: id };
+  // /verify/:id is a public endpoint — api() tolerates missing token. We
+  // stringify the error reason so React Query sees a serializable payload
+  // (matching the shape returned by the raw `/verify` handler).
+  try {
+    return await api<VerifyResponse>(`/verify/${id}`);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      if (err.status === 404) {
+        return { valid: false, reason: "not_found", prescriptionId: id };
+      }
+      return { valid: false, reason: "error", prescriptionId: id };
+    }
+    throw err;
   }
-  if (!res.ok) {
-    return { valid: false, reason: "error", prescriptionId: id };
-  }
-  return res.json();
 }
 
 function humanize(value?: string | null) {

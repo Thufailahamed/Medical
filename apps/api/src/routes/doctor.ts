@@ -17,7 +17,22 @@ import {
   computeFirstResponseMinutes,
   computeFirstResponseMinutesBatch,
 } from "../lib/response-time";
+import { z } from "zod";
 import type { AppEnvironment } from "../types";
+
+// PATCH /doctor/profile body. Only the `doctors.*` professional columns
+// are mutable from this surface; name/email/phone/bio live on `users`
+// and require a separate flow (email changes need OTP verification).
+// `slmcRegistrationNo` is editable but a backend job flips
+// `slmcVerifiedAt` back to NULL on change — portal callers should not
+// expect it to survive.
+const doctorProfilePatchSchema = z.object({
+  specialization: z.string().min(1).max(200).optional(),
+  slmcRegistrationNo: z.string().max(50).nullable().optional(),
+  qualification: z.string().max(1000).nullable().optional(),
+  experience: z.number().int().min(0).max(80).nullable().optional(),
+  consultationFee: z.number().min(0).max(1_000_000).nullable().optional(),
+});
 
 const doctorRouter = new Hono<AppEnvironment>();
 
@@ -936,6 +951,79 @@ doctorRouter.get("/me", authMiddleware, requireRole("doctor"), async (c) => {
 
   return c.json({ doctor });
 });
+
+// ─── Update doctor profile ───────────────────────────────
+//
+// PATCH /doctor/profile
+//   role=doctor. Mutates the `doctors` row only — name/email/phone/bio
+//   sit on `users` and are out of scope (email change requires an OTP
+//   flow we don't ship yet). When `slmcRegistrationNo` changes we null
+//   out `slmcVerifiedAt` so the SLMC badge reverts to "unverified"
+//   until our manual review queue catches up — same shape the existing
+//   admin tool expects.
+//
+//   On success: writes a `doctor.profile.update` audit row with the
+//   patched field set so reviewers can see who changed what.
+doctorRouter.patch(
+  "/profile",
+  authMiddleware,
+  requireRole("doctor"),
+  async (c) => {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const body = await c.req.json().catch(() => ({}));
+
+    const parsed = doctorProfilePatchSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json(
+        { error: "Invalid patch body", issues: parsed.error.flatten() },
+        400
+      );
+    }
+    const patch = parsed.data;
+    if (Object.keys(patch).length === 0) {
+      return c.json({ error: "No editable fields supplied" }, 400);
+    }
+
+    const [doctor] = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.userId, userId))
+      .limit(1);
+    if (!doctor) return c.json({ error: "Doctor not found" }, 404);
+
+    const update: Record<string, any> = { updatedAt: new Date().toISOString() };
+    for (const [k, v] of Object.entries(patch)) {
+      update[k] = v;
+    }
+    // SLMC number edits null the verification flag — the value is
+    // unchanged in the portal badge until the admin queue re-clears it.
+    if (patch.slmcRegistrationNo !== undefined) {
+      update.slmcVerifiedAt = null;
+    }
+    await db
+      .update(doctors)
+      .set(update)
+      .where(eq(doctors.id, doctor.id));
+
+    await audit(db, {
+      userId,
+      action: "doctor.profile.update",
+      resource: "doctor",
+      resourceId: doctor.id,
+      details: { fields: Object.keys(patch) },
+    });
+
+    const [updated] = await db
+      .select()
+      .from(doctors)
+      .innerJoin(users, eq(doctors.userId, users.id))
+      .where(eq(doctors.id, doctor.id))
+      .limit(1);
+
+    return c.json({ doctor: updated });
+  }
+);
 
 // ─── Search doctors (public to logged-in users) ──────────
 // Used by the patient booking flow to find a doctor by name / specialization.

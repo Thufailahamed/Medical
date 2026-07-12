@@ -25,7 +25,15 @@ export function LocaleSwitcher() {
           "cursor-pointer transition-all duration-200"
         )}
         value={locale}
-        onChange={(e) => setLocale(e.target.value as Locale)}
+        onChange={(e) => {
+          const next = e.target.value as Locale;
+          setLocale(next);
+          // P3.3: keep <html lang> in sync so screen readers + browser
+          // hyphenation pick up the active locale.
+          if (typeof document !== "undefined") {
+            document.documentElement.lang = next;
+          }
+        }}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

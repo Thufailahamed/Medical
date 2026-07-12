@@ -54,94 +54,102 @@ async function getDoctorByUserId(db: any, userId: string) {
 //   - hospital_admin|staff: see their hospital's walk-ins
 //   - doctor: see their own
 //   - super_admin: see all (filterable)
-walkInsRouter.get("/", authMiddleware, async (c) => {
-  const userId = c.get("userId");
-  const role = (c.get("dbUser") as any)?.role;
-  const db = c.get("db");
+//
+// P0 audit fix: tightened with `requireRole` so patients (and any
+// other authenticated caller without a clinical role) can't list
+// walk-in queues. The downstream role-based filter still applies for
+// row scoping; this is defense in depth.
+walkInsRouter.get(
+  "/",
+  authMiddleware,
+  requireRole("doctor", "hospital_admin", "hospital_staff", "super_admin"),
+  async (c) => {
+    const userId = c.get("userId");
+    const role = (c.get("dbUser") as any)?.role;
+    const db = c.get("db");
 
-  const dateQ = c.req.query("date");
-  const statusQ = c.req.query("status");
-  const doctorQ = c.req.query("doctorId");
+    const dateQ = c.req.query("date");
+    const statusQ = c.req.query("status");
+    const doctorQ = c.req.query("doctorId");
 
-  const filters: any[] = [];
-  if (doctorQ) filters.push(eq(walkIns.doctorId, doctorQ));
-  if (statusQ) filters.push(eq(walkIns.status, statusQ));
-  if (dateQ) {
-    filters.push(gte(walkIns.arrivedAt, `${dateQ} 00:00:00`));
-    filters.push(lt(walkIns.arrivedAt, `${dateQ} 23:59:59`));
-  }
+    const filters: any[] = [];
+    if (doctorQ) filters.push(eq(walkIns.doctorId, doctorQ));
+    if (statusQ) filters.push(eq(walkIns.status, statusQ));
+    if (dateQ) {
+      filters.push(gte(walkIns.arrivedAt, `${dateQ} 00:00:00`));
+      filters.push(lt(walkIns.arrivedAt, `${dateQ} 23:59:59`));
+    }
 
-  if (role === "doctor") {
-    const doctor = await getDoctorByUserId(db, userId);
-    if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
-    filters.push(eq(walkIns.doctorId, (doctor as any).id));
-  } else if (role === "hospital_admin" || role === "hospital_staff") {
-    const hospitalId = await getHospitalForUser(db, userId);
-    if (!hospitalId) return c.json({ error: "No hospital found" }, 404);
-    filters.push(eq(walkIns.hospitalId, hospitalId));
-  } else if (role !== "super_admin") {
-    return c.json({ error: "Access denied" }, 403);
-  }
+    if (role === "doctor") {
+      const doctor = await getDoctorByUserId(db, userId);
+      if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+      filters.push(eq(walkIns.doctorId, (doctor as any).id));
+    } else if (role === "hospital_admin" || role === "hospital_staff") {
+      const hospitalId = await getHospitalForUser(db, userId);
+      if (!hospitalId) return c.json({ error: "No hospital found" }, 404);
+      filters.push(eq(walkIns.hospitalId, hospitalId));
+    }
 
-  const rows = await db
-    .select()
-    .from(walkIns)
-    .where(filters.length ? and(...filters) : undefined)
-    .orderBy(desc(walkIns.arrivedAt))
-    .limit(200);
+    const rows = await db
+      .select()
+      .from(walkIns)
+      .where(filters.length ? and(...filters) : undefined)
+      .orderBy(desc(walkIns.arrivedAt))
+      .limit(200);
 
-  // Hydrate patient name + doctor name + hospital name
-  const result = await Promise.all(
-    rows.map(async (w: any) => {
-      const [p] = await db
-        .select()
-        .from(patients)
-        .where(eq(patients.id, w.patientId))
-        .limit(1);
-      const patientUserId = (p as any)?.patients?.userId ?? (p as any)?.userId;
-      let patientName: string | null = null;
-      let patientPhone: string | null = null;
-      if (patientUserId) {
-        const [u] = await db
+    // Hydrate patient name + doctor name + hospital name
+    const result = await Promise.all(
+      rows.map(async (w: any) => {
+        const [p] = await db
           .select()
-          .from(users)
-          .where(eq(users.id, patientUserId))
+          .from(patients)
+          .where(eq(patients.id, w.patientId))
           .limit(1);
-        patientName = (u as any)?.name || null;
-        patientPhone = (u as any)?.phone || null;
-      }
-      const [d] = await db
-        .select()
-        .from(doctors)
-        .where(eq(doctors.id, w.doctorId))
-        .limit(1);
-      const doctorUserId = (d as any)?.userId;
-      let doctorName: string | null = null;
-      if (doctorUserId) {
-        const [du] = await db
+        const patientUserId = (p as any)?.patients?.userId ?? (p as any)?.userId;
+        let patientName: string | null = null;
+        let patientPhone: string | null = null;
+        if (patientUserId) {
+          const [u] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, patientUserId))
+            .limit(1);
+          patientName = (u as any)?.name || null;
+          patientPhone = (u as any)?.phone || null;
+        }
+        const [d] = await db
           .select()
-          .from(users)
-          .where(eq(users.id, doctorUserId))
+          .from(doctors)
+          .where(eq(doctors.id, w.doctorId))
           .limit(1);
-        doctorName = (du as any)?.name || null;
-      }
-      const [h] = await db
-        .select()
-        .from(hospitals)
-        .where(eq(hospitals.id, w.hospitalId))
-        .limit(1);
-      return {
-        ...w,
-        patientName,
-        patientPhone,
-        doctorName,
-        hospitalName: (h as any)?.name || null,
-      };
-    })
-  );
+        const doctorUserId = (d as any)?.userId;
+        let doctorName: string | null = null;
+        if (doctorUserId) {
+          const [du] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, doctorUserId))
+            .limit(1);
+          doctorName = (du as any)?.name || null;
+        }
+        const [h] = await db
+          .select()
+          .from(hospitals)
+          .where(eq(hospitals.id, w.hospitalId))
+          .limit(1);
+        return {
+          ...w,
+          patientName,
+          patientPhone,
+          doctorName,
+          hospitalName: (h as any)?.name || null,
+        };
+      })
+    );
 
-  return c.json({ walkIns: result });
-});
+    return c.json({ walkIns: result });
+  },
+);
 
 // ─── Create walk-in ──────────────────────────────────────
 // POST /walk-ins  { patientId, doctorId, reason, priority }
@@ -252,84 +260,95 @@ walkInsRouter.post(
 
 // ─── Update walk-in (status, notes) ──────────────────────
 // PATCH /walk-ins/:id  { status?, notes? }
-walkInsRouter.patch("/:id", authMiddleware, async (c) => {
-  const userId = c.get("userId");
-  const role = (c.get("dbUser") as any)?.role;
-  const db = c.get("db");
-  const id = c.req.param("id");
-  const body = await c.req.json().catch(() => ({}));
+//
+// P0 audit fix: added `requireRole` so the inline ownership check
+// below can rely on the caller being in a clinical role at all.
+// Previously a logged-in patient could PATCH another patient's
+// walk-in status and only the row-level guard rejected them — better
+// to fail fast at the role gate.
+walkInsRouter.patch(
+  "/:id",
+  authMiddleware,
+  requireRole("doctor", "hospital_admin", "hospital_staff", "super_admin"),
+  async (c) => {
+    const userId = c.get("userId");
+    const role = (c.get("dbUser") as any)?.role;
+    const db = c.get("db");
+    const id = c.req.param("id");
+    const body = await c.req.json().catch(() => ({}));
 
-  const [own] = await db
-    .select()
-    .from(walkIns)
-    .where(eq(walkIns.id, id))
-    .limit(1);
-  if (!own) return c.json({ error: "Not found" }, 404);
+    const [own] = await db
+      .select()
+      .from(walkIns)
+      .where(eq(walkIns.id, id))
+      .limit(1);
+    if (!own) return c.json({ error: "Not found" }, 404);
 
-  // Permission: doctor (assigned), hospital staff (their hospital), or super_admin.
-  let allowed = role === "super_admin";
-  if (!allowed && role === "doctor") {
-    const d = await getDoctorByUserId(db, userId);
-    allowed = !!d && ((d as any).id === own.doctorId || (d as any).doctors?.id === own.doctorId);
-  }
-  if (!allowed && (role === "hospital_admin" || role === "hospital_staff")) {
-    const hospitalId = await getHospitalForUser(db, userId);
-    allowed = hospitalId === own.hospitalId;
-  }
-  if (!allowed) return c.json({ error: "Access denied" }, 403);
-
-  const updates: any = {};
-  if (body.status) {
-    const allowedStatus = [
-      "waiting",
-      "in_consultation",
-      "completed",
-      "no_show",
-    ];
-    if (!allowedStatus.includes(body.status)) {
-      return c.json({ error: "invalid status" }, 400);
+    // Permission: doctor (assigned), hospital staff (their hospital), or super_admin.
+    let allowed = role === "super_admin";
+    if (!allowed && role === "doctor") {
+      const d = await getDoctorByUserId(db, userId);
+      allowed = !!d && ((d as any).id === own.doctorId || (d as any).doctors?.id === own.doctorId);
     }
-    updates.status = body.status;
-    if (body.status === "completed" || body.status === "no_show") {
-      updates.consultationEndedAt = new Date().toISOString();
+    if (!allowed && (role === "hospital_admin" || role === "hospital_staff")) {
+      const hospitalId = await getHospitalForUser(db, userId);
+      allowed = hospitalId === own.hospitalId;
     }
-  }
-  if (typeof body.notes === "string") updates.notes = body.notes.slice(0, 1000);
+    if (!allowed) return c.json({ error: "Access denied" }, 403);
 
-  if (Object.keys(updates).length === 0) {
-    return c.json({ error: "no updates" }, 400);
-  }
+    const updates: any = {};
+    if (body.status) {
+      const allowedStatus = [
+        "waiting",
+        "in_consultation",
+        "completed",
+        "no_show",
+      ];
+      if (!allowedStatus.includes(body.status)) {
+        return c.json({ error: "invalid status" }, 400);
+      }
+      updates.status = body.status;
+      if (body.status === "completed" || body.status === "no_show") {
+        updates.consultationEndedAt = new Date().toISOString();
+      }
+    }
+    if (typeof body.notes === "string") updates.notes = body.notes.slice(0, 1000);
 
-  const [updated] = await db
-    .update(walkIns)
-    .set(updates)
-    .where(eq(walkIns.id, id))
-    .returning();
+    if (Object.keys(updates).length === 0) {
+      return c.json({ error: "no updates" }, 400);
+    }
 
-  // Phase 4: billable event. Recorded when the walk-in flips to
-  // `completed`; the unique index on (doctor, source_kind, source_id)
-  // makes this safe to retry.
-  if (body.status === "completed") {
-    await recordRevenueEvent({
-      db,
-      doctorId: own.doctorId,
-      sourceKind: "walkin",
-      sourceId: id,
-      patientId: own.patientId,
-      occurredAt: updates.consultationEndedAt || undefined,
+    const [updated] = await db
+      .update(walkIns)
+      .set(updates)
+      .where(eq(walkIns.id, id))
+      .returning();
+
+    // Phase 4: billable event. Recorded when the walk-in flips to
+    // `completed`; the unique index on (doctor, source_kind, source_id)
+    // makes this safe to retry.
+    if (body.status === "completed") {
+      await recordRevenueEvent({
+        db,
+        doctorId: own.doctorId,
+        sourceKind: "walkin",
+        sourceId: id,
+        patientId: own.patientId,
+        occurredAt: updates.consultationEndedAt || undefined,
+      });
+    }
+
+    await audit(db, {
+      userId,
+      action: "walkin.update",
+      resource: "walk_in",
+      resourceId: id,
+      details: updates,
     });
-  }
 
-  await audit(db, {
-    userId,
-    action: "walkin.update",
-    resource: "walk_in",
-    resourceId: id,
-    details: updates,
-  });
-
-  return c.json({ walkIn: updated });
-});
+    return c.json({ walkIn: updated });
+  },
+);
 
 // ─── Search patients for walk-in registration ────────────
 // GET /walk-ins/search?q=...

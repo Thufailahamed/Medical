@@ -5,6 +5,7 @@ import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { auditLogs, patients, prescriptions, doctors, users } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { canAccessPatient } from "../lib/access";
 import type { AppEnvironment } from "../types";
 
 const auditRouter = new Hono<AppEnvironment>();
@@ -154,6 +155,29 @@ auditRouter.get("/", authMiddleware, requireRole("doctor"), async (c) => {
       .where(
         and(
           eq(auditLogs.resource, "prescription"),
+          eq(auditLogs.resourceId, resourceId)
+        )
+      )
+      .orderBy(desc(auditLogs.createdAt));
+
+    return c.json({ auditLogs: rows });
+  }
+
+  if (resource === "patient") {
+    // Reuse the cross-tenant access check used by the chart so a doctor
+    // cannot read another doctor's patient audit log.
+    const role = (c.get("userRole") as string) || "doctor";
+    const access = await canAccessPatient(db, userId, role, resourceId);
+    if (!access.allowed) {
+      return c.json({ error: access.reason ?? "Forbidden" }, 403);
+    }
+
+    const rows = await db
+      .select()
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.resource, "patient"),
           eq(auditLogs.resourceId, resourceId)
         )
       )

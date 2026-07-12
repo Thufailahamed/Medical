@@ -32,11 +32,11 @@ interface PatientSearchResult { id: string; name: string; phone: string | null; 
 
 type StatusFilter = "all" | "waiting" | "in_consultation" | "completed" | "no_show";
 
-const STATUS_META: Record<string, { tone: "brand" | "warn" | "success" | "danger" | "neutral"; label: string; icon: typeof CheckCircle2 }> = {
-  waiting:          { tone: "warn",    label: "Waiting",     icon: Clock },
-  in_consultation:  { tone: "brand",   label: "In consult",  icon: CheckCircle2 },
-  completed:        { tone: "success", label: "Completed",   icon: Check },
-  no_show:          { tone: "danger",  label: "No show",     icon: X },
+const STATUS_META: Record<string, { tone: "brand" | "warn" | "success" | "danger" | "neutral"; icon: typeof CheckCircle2 }> = {
+  waiting:          { tone: "warn",    icon: Clock },
+  in_consultation:  { tone: "brand",   icon: CheckCircle2 },
+  completed:        { tone: "success", icon: Check },
+  no_show:          { tone: "danger",  icon: X },
 };
 
 const FILTER_TABS: StatusFilter[] = ["waiting", "in_consultation", "completed", "no_show", "all"];
@@ -45,6 +45,7 @@ function WalkInCard({ walkIn, onStatusChange, isPending }: { walkIn: WalkIn; onS
   const t = useT();
   const meta = STATUS_META[walkIn.status] ?? STATUS_META.waiting;
   const StatusIcon = meta.icon;
+  const statusLabel = t(`walkins.status.${walkIn.status}`);
   const isUrgent = walkIn.priority === "urgent";
 
   return (
@@ -64,8 +65,8 @@ function WalkInCard({ walkIn, onStatusChange, isPending }: { walkIn: WalkIn; onS
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isUrgent && <Pill tone="danger"><AlertTriangle size={10} /> Urgent</Pill>}
-            <Pill tone={meta.tone}><StatusIcon size={10} /> {meta.label}</Pill>
+            {isUrgent && <Pill tone="danger"><AlertTriangle size={10} /> {t("walkins.urgent")}</Pill>}
+            <Pill tone={meta.tone}><StatusIcon size={10} /> {statusLabel}</Pill>
           </div>
         </div>
 
@@ -130,7 +131,7 @@ function WalkInForm({ open, onClose, onCreated }: { open: boolean; onClose: () =
       onCreated(); onClose();
       setPatientQuery(""); setDebouncedQuery(""); setSelectedPatient(null); setReason(""); setPriority("routine");
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("toast.error"), err?.message),
   });
 
   function handleClose() {
@@ -247,8 +248,11 @@ export default function WalkInsPage() {
 
   const transitions = useMutation({
     mutationFn: (vars: { id: string; status: string }) => api(`/walk-ins/${vars.id}`, { method: "PATCH", json: { status: vars.status } }),
-    onSuccess: (_d, vars) => { toast.success(`Marked ${vars.status.replace("_", " ")}`); qc.invalidateQueries({ queryKey: ["walk-ins"] }); },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onSuccess: (_d, vars) => {
+      toast.success(t("walkins.markedAs", { status: t(`walkins.status.${vars.status}`) }));
+      qc.invalidateQueries({ queryKey: ["walk-ins"] });
+    },
+    onError: (err: any) => toast.error(t("toast.error"), err?.message),
   });
 
   const rows = data?.walkIns ?? [];

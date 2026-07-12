@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 
 import { useUiStore } from "@/portal/stores/ui";
-import { useAuthStore } from "@/portal/stores/auth";
+import { useAuthStore, type UserRole } from "@/portal/stores/auth";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
 import { logout } from "@/portal/lib/auth";
@@ -48,7 +48,12 @@ import { logout } from "@/portal/lib/auth";
 // Pharmacy users get a slim sidebar: just Pharmacy + Profile + the
 // footer settings. The other groups are doctor-only surfaces and
 // would 403 a pharmacist anyway.
-type PortalRole = "doctor" | "pharmacy";
+//
+// Phase 2.3: widened `PortalRole` to the full UserRole union. The
+// pharmacy-specific filter still applies; everyone else falls into the
+// doctor-default branch. Admin users get a separate AdminSidebar via
+// (portal)/layout.tsx when useIsAdmin() is true.
+type PortalRole = UserRole | string;
 
 const NAV_GROUPS: Array<{
   label: string;

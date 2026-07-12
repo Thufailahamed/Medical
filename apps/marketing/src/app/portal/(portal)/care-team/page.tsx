@@ -2,21 +2,40 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldOff, UserPlus, Search, ChevronRight } from "lucide-react";
+import { ShieldOff, UserPlus, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { z } from "zod";
 
 import { api } from "@/portal/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
-import { Input, Select } from "@/portal/components/ui/Form";
+import { Input } from "@/portal/components/ui/Form";
+import {
+  RHFFormProvider,
+  RHFInput,
+  RHFSelect,
+} from "@/portal/components/ui/FormKit";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { toast } from "@/portal/components/ui/Toast";
-import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
+import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
-import { cn } from "@/portal/lib/utils";
+
+const inviteSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  patientQuery: z.string().optional(),
+  scope: z.enum(["read", "read_write"]),
+  role: z.enum(["primary_care", "specialist", "consultant"]),
+  days: z
+    .string()
+    .refine((v) => !v || /^\d+$/.test(v), { message: "Must be a positive number" })
+    .refine((v) => !v || Number(v) > 0, { message: "Must be greater than 0" })
+    .refine((v) => !v || Number(v) <= 3650, { message: "Must be 3650 days or fewer" }),
+});
+
+type InviteValues = z.infer<typeof inviteSchema>;
 
 interface Member {
   id: string;
@@ -51,10 +70,10 @@ export default function CareTeamPage() {
     mutationFn: (id: string) =>
       api(`/care-team/${id}`, { method: "PATCH", json: { status: "revoked" } }),
     onSuccess: () => {
-      toast.success("Access revoked");
+      toast.success(t("careTeam.accessRevoked"));
       qc.invalidateQueries({ queryKey: ["care-team"] });
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("toast.error"), err?.message),
   });
 
   return (
@@ -96,15 +115,21 @@ export default function CareTeamPage() {
                   </div>
                   <div className="text-xs text-text-soft">
                     {m.role} · {m.scope}
-                    {m.grantedAt ? ` · since ${formatDate(m.grantedAt)}` : ""}
+                    {m.grantedAt
+                      ? ` · ${t("careTeam.since", { date: formatDate(m.grantedAt) })}`
+                      : ""}
                   </div>
                 </div>
-                {m.active ? <Pill tone="success">Active</Pill> : <Pill tone="neutral">Inactive</Pill>}
+                {m.active ? (
+                  <Pill tone="success">{t("common.active")}</Pill>
+                ) : (
+                  <Pill tone="neutral">{t("common.inactive")}</Pill>
+                )}
                 <Link
                   href={`/portal/patients/${m.patientId}`}
                   className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5"
                 >
-                  Open
+                  {t("common.open")}
                   <ChevronRight size={12} />
                 </Link>
                 <Button
@@ -112,10 +137,11 @@ export default function CareTeamPage() {
                   variant="ghost"
                   leftIcon={<ShieldOff size={12} />}
                   onClick={() => {
-                    if (confirm(`Revoke access for ${m.patientName}?`)) revoke.mutate(m.id);
+                    if (confirm(t("careTeam.revokeConfirm", { name: m.patientName })))
+                      revoke.mutate(m.id);
                   }}
                 >
-                  Revoke
+                  {t("careTeam.revoke")}
                 </Button>
               </li>
             ))}
@@ -140,11 +166,9 @@ export default function CareTeamPage() {
 }
 
 function InviteForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
+  const t = useT();
   const [q, setQ] = useState("");
-  const [patientId, setPatientId] = useState<string | null>(null);
-  const [scope, setScope] = useState("read");
-  const [role, setRole] = useState("specialist");
-  const [days, setDays] = useState("365");
+  const [selectedName, setSelectedName] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ["doctor", "search-patients", q],
@@ -156,94 +180,110 @@ function InviteForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () =
   });
 
   const create = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: InviteValues) =>
       api(`/care-team`, {
         method: "POST",
         json: {
-          patientId,
-          scope,
-          role,
-          expiresInDays: Number(days) || null,
+          patientId: values.patientId,
+          scope: values.scope,
+          role: values.role,
+          expiresInDays: values.days ? Number(values.days) : null,
         },
       }),
     onSuccess: () => {
-      toast.success("Invite sent");
+      toast.success(t("careTeam.inviteSent"));
       onSaved();
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("toast.error"), err?.message),
   });
 
   return (
-    <div className="flex flex-col gap-3">
-      <Input
-        label="Search patient"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Name or NIC"
-      />
-      {data?.patients && data.patients.length > 0 && !patientId ? (
-        <ul className="border border-border/60 rounded-xl divide-y divide-border/50 max-h-40 overflow-y-auto">
-          {data.patients.map((p) => (
-            <li key={p.patient.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  setPatientId(p.patient.id);
-                  setQ(p.user.name);
-                }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-surface-2/40 flex items-center gap-2 transition-colors"
-              >
-                <Avatar name={p.user.name} size="xs" />
-                <span className="truncate">{p.user.name}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {patientId ? (
-        <div className="text-xs text-success">Patient selected · {patientId.slice(0, 8)}...</div>
-      ) : null}
-
-      <div className="grid grid-cols-3 gap-2">
-        <Select
-          label="Scope"
-          value={scope}
-          onChange={(e) => setScope(e.target.value)}
-          options={[
-            { value: "read", label: "Read" },
-            { value: "read_write", label: "Read + Write" },
-          ]}
-        />
-        <Select
-          label="Role"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          options={[
-            { value: "primary_care", label: "Primary care" },
-            { value: "specialist", label: "Specialist" },
-            { value: "consultant", label: "Consultant" },
-          ]}
-        />
-        <Input
-          label="Valid for (days)"
-          type="number"
-          value={days}
-          onChange={(e) => setDays(e.target.value)}
-          placeholder="365"
-        />
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button
-          leftIcon={<UserPlus size={14} />}
-          disabled={!patientId || create.isPending}
-          loading={create.isPending}
-          onClick={() => create.mutate()}
+    <RHFFormProvider
+      schema={inviteSchema}
+      defaultValues={{
+        patientId: "",
+        patientQuery: "",
+        scope: "read",
+        role: "specialist",
+        days: "365",
+      }}
+      mode="onSubmit"
+    >
+      {(form) => (
+        <form
+          onSubmit={form.handleSubmit((values) => create.mutate(values))}
+          className="flex flex-col gap-3"
         >
-          Invite
-        </Button>
-      </div>
-    </div>
+          <Input
+            label={t("careTeam.searchPatient")}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t("careTeam.searchPlaceholder")}
+          />
+          {data?.patients && data.patients.length > 0 && !form.watch("patientId") ? (
+            <ul className="border border-border/60 rounded-xl divide-y divide-border/50 max-h-40 overflow-y-auto">
+              {data.patients.map((p) => (
+                <li key={p.patient.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      form.setValue("patientId", p.patient.id, { shouldValidate: true });
+                      setQ(p.user.name);
+                      setSelectedName(p.user.name);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-surface-2/40 flex items-center gap-2 transition-colors"
+                  >
+                    <Avatar name={p.user.name} size="xs" />
+                    <span className="truncate">{p.user.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {selectedName ? (
+            <div className="text-xs text-success">
+              {t("careTeam.patientSelected", { id: selectedName })}
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-3 gap-2">
+            <RHFSelect
+              name="scope"
+              label={t("careTeam.scope")}
+              options={[
+                { value: "read", label: t("careTeam.scopeRead") },
+                { value: "read_write", label: t("careTeam.scopeReadWrite") },
+              ]}
+            />
+            <RHFSelect
+              name="role"
+              label={t("careTeam.role")}
+              options={[
+                { value: "primary_care", label: t("careTeam.rolePrimaryCare") },
+                { value: "specialist", label: t("careTeam.roleSpecialist") },
+                { value: "consultant", label: t("careTeam.roleConsultant") },
+              ]}
+            />
+            <RHFInput
+              name="days"
+              label={t("careTeam.validForDays")}
+              type="number"
+              placeholder="365"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={onCancel}>{t("common.cancel")}</Button>
+            <Button
+              type="submit"
+              leftIcon={<UserPlus size={14} />}
+              loading={create.isPending}
+            >
+              {t("careTeam.invite")}
+            </Button>
+          </div>
+        </form>
+      )}
+    </RHFFormProvider>
   );
 }

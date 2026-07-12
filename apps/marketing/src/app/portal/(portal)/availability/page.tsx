@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save, Plus, Trash2, CalendarOff, CalendarDays } from "lucide-react";
+import { z } from "zod";
 
 import { api } from "@/portal/lib/api";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
@@ -10,10 +11,25 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
 import { Input, Select } from "@/portal/components/ui/Form";
+import {
+  RHFFormProvider,
+  RHFInput,
+} from "@/portal/components/ui/FormKit";
 import { toast } from "@/portal/components/ui/Toast";
-import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
+import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
+
+const timeOffSchema = z.object({
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  reason: z.string().max(200, "Reason must be 200 characters or fewer").optional().or(z.literal("")),
+}).refine((v) => !v.startDate || !v.endDate || v.startDate <= v.endDate, {
+  message: "End date must be on or after start date",
+  path: ["endDate"],
+});
+
+type TimeOffValues = z.infer<typeof timeOffSchema>;
 
 interface Slot {
   id?: string;
@@ -32,13 +48,13 @@ interface TimeOff {
 }
 
 const DAYS = [
-  { value: 1, label: "Mon" },
-  { value: 2, label: "Tue" },
-  { value: 3, label: "Wed" },
-  { value: 4, label: "Thu" },
-  { value: 5, label: "Fri" },
-  { value: 6, label: "Sat" },
-  { value: 0, label: "Sun" },
+  { value: 1, key: "mon" },
+  { value: 2, key: "tue" },
+  { value: 3, key: "wed" },
+  { value: 4, key: "thu" },
+  { value: 5, key: "fri" },
+  { value: 6, key: "sat" },
+  { value: 0, key: "sun" },
 ];
 
 export default function AvailabilityPage() {
@@ -67,10 +83,10 @@ export default function AvailabilityPage() {
         json: { schedule: slots },
       }),
     onSuccess: () => {
-      toast.success("Availability saved");
+      toast.success(t("availability.saved"));
       qc.invalidateQueries({ queryKey: ["doctor-portal", "availability"] });
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("toast.error"), err?.message),
   });
 
   function addSlot() {
@@ -108,17 +124,17 @@ export default function AvailabilityPage() {
 
       <Card className="rounded-2xl border-border/50">
         <CardHeader
-          title="Weekly schedule"
+          title={t("availability.weekly")}
           right={
             <Button size="sm" variant="secondary" leftIcon={<Plus size={12} />} onClick={addSlot}>
-              Add slot
+              {t("availability.addSlot")}
             </Button>
           }
         />
         {isLoading ? (
           <Skeleton className="h-10 w-full mt-3" />
         ) : slots.length === 0 ? (
-          <Empty title="No availability set" />
+          <Empty title={t("availability.empty")} />
         ) : (
           <ul className="flex flex-col gap-2 mt-3">
             {slots.map((s, i) => (
@@ -127,7 +143,7 @@ export default function AvailabilityPage() {
                   className="w-24"
                   value={String(s.dayOfWeek)}
                   onChange={(e) => updateSlot(i, { dayOfWeek: Number(e.target.value) })}
-                  options={DAYS.map((d) => ({ value: String(d.value), label: d.label }))}
+                  options={DAYS.map((d) => ({ value: String(d.value), label: t(`availability.day.${d.key}`) }))}
                 />
                 <Input
                   type="time"
@@ -135,7 +151,7 @@ export default function AvailabilityPage() {
                   value={s.startTime}
                   onChange={(e) => updateSlot(i, { startTime: e.target.value })}
                 />
-                <span className="text-text-muted text-xs">to</span>
+                <span className="text-text-muted text-xs">{t("availability.to")}</span>
                 <Input
                   type="time"
                   className="w-28"
@@ -150,14 +166,14 @@ export default function AvailabilityPage() {
                     updateSlot(i, { slotMinutes: Number(e.target.value) || 15 })
                   }
                 />
-                <span className="text-xs text-text-muted">min</span>
+                <span className="text-xs text-text-muted">{t("availability.min")}</span>
                 <label className="flex items-center gap-1 ml-2 text-xs">
                   <input
                     type="checkbox"
                     checked={s.active}
                     onChange={(e) => updateSlot(i, { active: e.target.checked })}
                   />
-                  Active
+                  {t("availability.active")}
                 </label>
                 <button
                   type="button"
@@ -187,88 +203,95 @@ function TimeOffSection({
   items: TimeOff[];
   onChanged: () => void;
 }) {
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [reason, setReason] = useState("");
+  const t = useT();
 
   const create = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: TimeOffValues) =>
       api(`/doctor-portal/time-off`, {
         method: "POST",
-        json: { startDate: start, endDate: end, reason: reason || undefined },
+        json: {
+          startDate: values.startDate,
+          endDate: values.endDate,
+          reason: values.reason?.trim() ? values.reason.trim() : undefined,
+        },
       }),
     onSuccess: () => {
-      toast.success("Time off added");
+      toast.success(t("availability.timeOffAdded"));
       onChanged();
-      setStart("");
-      setEnd("");
-      setReason("");
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("toast.error"), err?.message),
   });
 
   const del = useMutation({
     mutationFn: (id: string) => api(`/doctor-portal/time-off/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success("Removed");
+      toast.success(t("availability.removed"));
       onChanged();
     },
-    onError: (err: any) => toast.error("Failed", err?.message),
+    onError: (err: any) => toast.error(t("toast.error"), err?.message),
   });
 
   return (
     <Card padding={false} className="rounded-2xl border-border/50">
-      <CardHeader title="Time off" />
-      <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-b border-border/50">
-        <Input
-          type="date"
-          label="Start"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-        />
-        <Input
-          type="date"
-          label="End"
-          value={end}
-          onChange={(e) => setEnd(e.target.value)}
-        />
-        <Input
-          label="Reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Leave / holiday"
-        />
-        <Button
-          leftIcon={<CalendarOff size={14} />}
-          disabled={!start || !end || create.isPending}
-          loading={create.isPending}
-          onClick={() => create.mutate()}
-        >
-          Add
-        </Button>
-      </div>
+      <CardHeader title={t("availability.timeOff")} />
+      <RHFFormProvider
+        schema={timeOffSchema}
+        defaultValues={{ startDate: "", endDate: "", reason: "" }}
+      >
+        {(form) => (
+          <form
+            onSubmit={form.handleSubmit((values) => create.mutate(values))}
+            className="px-4 py-3 grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-b border-border/50"
+          >
+            <RHFInput
+              type="date"
+              name="startDate"
+              label={t("availability.start")}
+              required
+            />
+            <RHFInput
+              type="date"
+              name="endDate"
+              label={t("availability.end")}
+              required
+            />
+            <RHFInput
+              name="reason"
+              label={t("availability.reason")}
+              placeholder={t("availability.reasonPlaceholder")}
+            />
+            <Button
+              type="submit"
+              leftIcon={<CalendarOff size={14} />}
+              loading={create.isPending}
+            >
+              {t("availability.add")}
+            </Button>
+          </form>
+        )}
+      </RHFFormProvider>
       {items.length === 0 ? (
-        <Empty title="No time off scheduled" className="m-4" />
+        <Empty title={t("availability.emptyTimeOff")} className="m-4" />
       ) : (
         <ul className="flex flex-col">
-          {items.map((t) => (
-            <li key={t.id} className="group flex items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors">
+          {items.map((it) => (
+            <li key={it.id} className="group flex items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors">
               <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                 <CalendarOff size={18} />
               </div>
               <Pill tone="warn">
-                {t.startDate} to {t.endDate}
+                {it.startDate} {t("availability.to")} {it.endDate}
               </Pill>
               <span className="text-sm text-text flex-1 truncate">
-                {t.reason ?? "---"}
+                {it.reason ?? "---"}
               </span>
               <Button
                 size="sm"
                 variant="ghost"
                 leftIcon={<Trash2 size={12} />}
-                onClick={() => del.mutate(t.id)}
+                onClick={() => del.mutate(it.id)}
               >
-                Remove
+                {t("availability.remove")}
               </Button>
             </li>
           ))}

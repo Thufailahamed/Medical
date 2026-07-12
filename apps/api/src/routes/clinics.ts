@@ -271,7 +271,32 @@ clinicRouter.get("/:id", async (c) => {
   const id = c.req.param("id");
   const [row] = await db.select().from(clinics).where(eq(clinics.id, id)).limit(1);
   if (!row) return c.json({ error: "Not found" }, 404);
-  return c.json(row, 200);
+
+  // Phase MTN-1 audit fix: previously this endpoint returned the clinic
+  // row alone — the portal clinic detail page renders a `doctors`
+  // section and silently got an empty array. Inline the join here so
+  // the detail surface lights up. We filter to status='active' so
+  // historical / suspended partners don't pollute the UI list. The
+  // dedicated `GET /clinics/:id/doctors` route is kept intact for the
+  // raw list shape that admin tools depend on.
+  const docs = await db
+    .select({
+      doctorId: doctors.id,
+      doctorUserId: doctors.userId,
+      doctorName: users.name,
+      role: clinicDoctors.role,
+      ownershipPct: clinicDoctors.ownershipPct,
+      status: clinicDoctors.status,
+      specialization: doctors.specialization,
+    })
+    .from(clinicDoctors)
+    .innerJoin(doctors, eq(doctors.id, clinicDoctors.doctorId))
+    .innerJoin(users, eq(users.id, doctors.userId))
+    .where(
+      and(eq(clinicDoctors.clinicId, id), eq(clinicDoctors.status, "active")),
+    );
+
+  return c.json({ ...row, doctors: docs }, 200);
 });
 
 // ── PATCH /clinics/:id ──────────────────────────────────

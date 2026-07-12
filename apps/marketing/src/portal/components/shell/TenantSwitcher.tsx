@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Check, ChevronsUpDown, Hospital } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,6 +8,7 @@ import { api } from "@/portal/lib/api";
 import { useAuthStore, type ActiveTenant } from "@/portal/stores/auth";
 import { cn } from "@/portal/lib/utils";
 import { useT } from "@/portal/i18n";
+import { toast } from "@/portal/components/ui/Toast";
 
 interface Tenant {
   type: "hospital" | "clinic";
@@ -35,9 +36,29 @@ export function TenantSwitcher() {
   const active = useAuthStore((s) => s.activeTenant);
   const setActiveTenant = useAuthStore((s) => s.setActiveTenant);
   const clearActiveTenant = useAuthStore((s) => s.clearActiveTenant);
+  const qc = useQueryClient();
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Persist the active tenant to the backend so /auth/me picks it up
+   * on the next request. Backend reads `users.activeTenantType/Id`
+   * via tenantContextMiddleware as the fallback header source.
+   */
+  const persistTenant = useMutation({
+    mutationFn: (payload: { type: "hospital" | "clinic"; id: string } | null) =>
+      api("/me/active-tenant", {
+        method: "PATCH",
+        json: payload ?? { type: null, id: null },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me", "tenants"] });
+      qc.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
+    onError: (err: { message?: string }) =>
+      toast.error(err?.message ?? t("toast.error")),
+  });
 
   useEffect(() => {
     function onClickAway(e: MouseEvent) {
@@ -106,6 +127,7 @@ export function TenantSwitcher() {
             type="button"
             onClick={() => {
               clearActiveTenant();
+              persistTenant.mutate(null);
               setOpen(false);
             }}
             className={cn(
@@ -132,8 +154,10 @@ export function TenantSwitcher() {
                   key={`h_${h.id}`}
                   tenant={h}
                   selected={active?.type === "hospital" && active.id === h.id}
-                  onPick={(t) => {
-                    setActiveTenant(t);
+                  onPick={(pick) => {
+                    if (!pick) return;
+                    setActiveTenant(pick);
+                    persistTenant.mutate({ type: pick.type, id: pick.id });
                     setOpen(false);
                   }}
                 />
@@ -152,8 +176,10 @@ export function TenantSwitcher() {
                   key={`c_${c.id}`}
                   tenant={c}
                   selected={active?.type === "clinic" && active.id === c.id}
-                  onPick={(t) => {
-                    setActiveTenant(t);
+                  onPick={(pick) => {
+                    if (!pick) return;
+                    setActiveTenant(pick);
+                    persistTenant.mutate({ type: pick.type, id: pick.id });
                     setOpen(false);
                   }}
                 />

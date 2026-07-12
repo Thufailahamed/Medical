@@ -5,7 +5,15 @@
  * - Adds `Accept-Language` from the auth store's locale field.
  * - Adds `x-active-hospital-id` / `x-active-clinic-id` for tenant scoping.
  * - Throws `ApiError` on non-2xx so React Query surfaces a useful message.
- * - On 401 the store is cleared and the window redirected to /login.
+ *
+ * 401 handling (Phase 1.1):
+ *   - If we have a refresh_token AND this is the first 401 for the
+ *     request, hit POST /auth/refresh once, swap the access token in
+ *     the store, and retry the original request. This keeps a user
+ *     who briefly outlives their access token from being forced back
+ *     to /login mid-session.
+ *   - If refresh fails, or the retried request 401s again, fall through
+ *     to the legacy logout+redirect flow.
  *
  * NOTE: This module is browser-only. Server components reach the API
  * directly via fetch + the same base URL — they don't go through here.
@@ -32,16 +40,82 @@ type Init = Omit<RequestInit, "body"> & {
   json?: unknown;
   // Allow overriding the path on the API root (default API_URL).
   base?: string;
+  // Internal: skip the 401 refresh+retry path. Set on the recursive
+  // retry so we don't loop forever if the refreshed token is also bad.
+  __skipRefresh?: boolean;
 };
+
+interface RefreshResponse {
+  session?: { access_token: string; refresh_token: string };
+}
+
+/**
+ * Hit POST /auth/refresh with a raw fetch — bypasses api() entirely so
+ * a 400 from the backend (no refresh_token) doesn't get classified as a
+ * session-expired 401 and trigger another logout cycle. On success,
+ * swap the access token into the store so the retry sees it.
+ */
+async function attemptRefresh(refreshToken: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json().catch(() => null)) as RefreshResponse | null;
+    const next = data?.session?.access_token;
+    const nextRefresh = data?.session?.refresh_token;
+    if (!next) return false;
+    // Update only the token/refreshToken — keep user + tenant state.
+    const state = useAuthStore.getState();
+    // `useAuthStore` exposes a setter for the access token via setSession
+    // (which also re-derives activeHospitalId) but we want to preserve
+    // the existing user, so we mutate the store directly via a minimal
+    // partial set. Using setSession would clobber user. So write token
+    // through the persisted shape: easiest path is to update both fields
+    // via the dedicated setRefreshToken + a direct token assignment.
+    // (Zustand persists automatically; direct assignment works because
+    // the store doesn't use immer.)
+    (useAuthStore as any).setState({
+      token: next,
+      refreshToken: nextRefresh ?? null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function bounceToLogin(reason?: string) {
+  if (typeof window === "undefined") return;
+  const path = window.location.pathname;
+  const onLoginPage =
+    path === "/portal/login" ||
+    path === "/login" ||
+    path === "/hospital/login" ||
+    path === "/admin/login";
+  if (onLoginPage) return;
+  const next = encodeURIComponent(path);
+  const loginTarget = path.startsWith("/portal")
+    ? "/portal/login"
+    : path.startsWith("/hospital")
+      ? "/hospital/login"
+      : path.startsWith("/admin")
+        ? "/admin/login"
+        : "/login";
+  const qs = reason ? `&reason=${encodeURIComponent(reason)}` : "";
+  window.location.href = `${loginTarget}?next=${next}${qs}`;
+}
 
 export async function api<T = any>(
   path: string,
   init: Init = {}
 ): Promise<T> {
-  const { json, headers, base, ...rest } = init;
+  const { json, headers, base, __skipRefresh, ...rest } = init;
 
   const store = useAuthStore.getState();
-  const token = store.token;
+  let token = store.token;
   const locale = store.locale;
   const hospitalId = store.activeHospitalId;
   const clinicId = store.activeClinicId;
@@ -58,11 +132,34 @@ export async function api<T = any>(
   if (hospitalId) reqHeaders["x-active-hospital-id"] = hospitalId;
   if (clinicId) reqHeaders["x-active-clinic-id"] = clinicId;
 
-  const res = await fetch(url, {
+  let res = await fetch(url, {
     ...rest,
     headers: reqHeaders,
     body: json !== undefined ? JSON.stringify(json) : (rest as RequestInit).body,
   });
+
+  // ─── 401 → refresh + retry once (Phase 1.1) ────────────────────
+  if (res.status === 401 && !__skipRefresh) {
+    const onLoginPage =
+      typeof window !== "undefined" &&
+      (window.location.pathname === "/portal/login" ||
+        window.location.pathname === "/login");
+    // The refresh endpoint is itself auth-free, so even when /auth/me
+    // bounces us here there's a path back. Don't try to refresh on the
+    // login page (where the user has no refresh token yet anyway).
+    if (!onLoginPage) {
+      const rt = useAuthStore.getState().refreshToken;
+      if (rt) {
+        const ok = await attemptRefresh(rt);
+        if (ok) {
+          // Retry the original request exactly once with the new token.
+          return api<T>(path, { ...init, __skipRefresh: true });
+        }
+      }
+    }
+    // No refresh token, or refresh failed — fall through to the legacy
+    // logout+redirect block below.
+  }
 
   let body: any = null;
   if (!res.ok) {
@@ -87,16 +184,7 @@ export async function api<T = any>(
         : "Session expired. Please sign in again.";
     if (typeof window !== "undefined") {
       useAuthStore.getState().logout();
-      if (!onLoginPage) {
-        const next = encodeURIComponent(window.location.pathname);
-        const path = window.location.pathname;
-        const loginTarget =
-          path.startsWith("/portal") ? "/portal/login" :
-          path.startsWith("/hospital") ? "/hospital/login" :
-          path.startsWith("/admin") ? "/admin/login" :
-          "/login";
-        window.location.href = `${loginTarget}?next=${next}`;
-      }
+      if (!onLoginPage) bounceToLogin("session_expired");
     }
     throw new ApiError(msg, 401, body?.details ?? body);
   }
@@ -163,7 +251,8 @@ export const qk = {
   clinics: (params: Record<string, unknown>) =>
     ["clinics", JSON.stringify(params)] as const,
   meTenants: ["me", "tenants"] as const,
-  safetyCheck: (payload: unknown) => ["safety", "check", JSON.stringify(payload)] as const,
+  safetyCheck: (payload: unknown) =>
+    ["safety", "check", JSON.stringify(payload)] as const,
   medicinesMasterSearch: (q: string) =>
     ["medicines-master", "search", q] as const,
   portalPatientSearch: (q: string) =>

@@ -9,6 +9,7 @@ import { Card } from "@/portal/components/ui/Card";
 import { Button } from "@/portal/components/ui/Button";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
+import { useT } from "@/portal/i18n";
 import { relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 import {
@@ -28,6 +29,7 @@ interface Notification {
 }
 
 export default function PatientNotificationsPage() {
+  const t = useT();
   const qc = useQueryClient();
 
   const { data: notificationsData, isLoading } = useQuery({
@@ -52,7 +54,7 @@ export default function PatientNotificationsPage() {
       await api("/notifications/read-all", { method: "PUT" });
     },
     onSuccess: () => {
-      toast.success("All notifications marked as read");
+      toast.success(t("patientPortal.notifications.markedAllRead"));
       qc.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
@@ -64,9 +66,15 @@ export default function PatientNotificationsPage() {
     <div className="flex flex-col gap-5">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-text">Notifications</h1>
+          <h1 className="text-xl font-bold text-text">
+            {t("patientPortal.notifications.title")}
+          </h1>
           <p className="text-sm text-text-soft mt-0.5">
-            {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
+            {unreadCount > 0
+              ? t("patientPortal.notifications.subtitle", {
+                  count: unreadCount,
+                })
+              : t("patientPortal.notifications.caughtUp")}
           </p>
         </div>
         {unreadCount > 0 ? (
@@ -77,7 +85,7 @@ export default function PatientNotificationsPage() {
             onClick={() => markAllRead.mutate()}
             loading={markAllRead.isPending}
           >
-            Mark all read
+            {t("patientPortal.notifications.markAllRead")}
           </Button>
         ) : null}
       </header>
@@ -91,7 +99,7 @@ export default function PatientNotificationsPage() {
           </div>
         ) : notifications.length === 0 ? (
           <Empty
-            title="No notifications yet"
+            title={t("patientPortal.notifications.empty")}
             icon={<Bell size={20} className="text-text-muted" />}
             className="py-12"
           />
@@ -152,7 +160,7 @@ export default function PatientNotificationsPage() {
                         }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        Mark read
+                        {t("patientPortal.notifications.markRead")}
                       </Button>
                     ) : null}
                     {href ? <ChevronRight size={16} className="text-text-muted" /> : null}

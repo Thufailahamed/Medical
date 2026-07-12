@@ -8,15 +8,14 @@ import {
   ScrollText,
   ChevronRight,
   Activity,
-  Pill,
   Upload,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Skeleton } from "@/portal/components/ui/Empty";
-import { Pill as PillComp } from "@/portal/components/ui/Pill";
 import { useAuthStore } from "@/portal/stores/auth";
+import { useT } from "@/portal/i18n";
 
 interface PatientMe {
   patient: {
@@ -33,6 +32,7 @@ interface RecordsSummary {
 }
 
 export default function PatientHome() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const me = useQuery({
     queryKey: ["patient", "me"],
@@ -47,32 +47,26 @@ export default function PatientHome() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-text">
-          {me.data?.patient.fullName || user?.email || "Welcome"}
+          {me.data?.patient.fullName || user?.email || t("patientPortal.home.welcome")}
         </h1>
         <p className="text-sm text-text-soft mt-1">
-          Your health record, at a glance.
+          {t("patientPortal.home.tagline")}
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <SummaryCard
           loading={summary.isLoading}
           icon={<FileText size={16} />}
-          label="Records"
+          label={t("patientPortal.home.recordsCount")}
           value={summary.data?.total}
           href="/portal/me/records"
         />
         <SummaryCard
           loading={summary.isLoading}
           icon={<Activity size={16} />}
-          label="Vitals tracked"
+          label={t("patientPortal.home.vitalsCount")}
           value={Object.keys(summary.data?.byKind || {}).length}
-        />
-        <SummaryCard
-          icon={<Pill size={16} />}
-          label="Medicines"
-          value="—"
-          href="/portal/me/medicines"
         />
       </div>
 
@@ -80,26 +74,20 @@ export default function PatientHome() {
         <ActionCard
           href="/portal/me/records"
           icon={<Upload size={16} />}
-          title="Add a record"
-          body="Upload a lab report, image, or document."
+          title={t("patientPortal.home.addRecord")}
+          body={t("patientPortal.home.addRecordBody")}
         />
         <ActionCard
           href="/portal/me/share"
           icon={<Share2 size={16} />}
-          title="Share with a doctor"
-          body="Generate a time-limited link to your records."
+          title={t("patientPortal.home.share")}
+          body={t("patientPortal.home.shareBody")}
         />
         <ActionCard
           href="/portal/me/audit"
           icon={<ScrollText size={16} />}
-          title="View access log"
-          body="See who has looked at your records recently."
-        />
-        <ActionCard
-          href="/portal/me/medicines"
-          icon={<Pill size={16} />}
-          title="Medicines"
-          body="Track what you're taking and when."
+          title={t("patientPortal.home.audit")}
+          body={t("patientPortal.home.auditBody")}
         />
       </div>
     </div>

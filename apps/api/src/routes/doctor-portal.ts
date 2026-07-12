@@ -988,8 +988,14 @@ doctorPortalRouter.get("/patients/:id/overview", async (c) => {
 
 // ─── Clinical note ───────────────────────────────────────
 // POST /doctor-portal/clinical-notes
+//
+// P0 audit fix: missing canAccessPatient. Mirrors the gate that
+// /vitals, /vaccinations, /lab-orders, /visit-summary and /share/links
+// already enforce — a doctor must have an active relationship with
+// the patient before writing a clinical note.
 doctorPortalRouter.post("/clinical-notes", async (c) => {
   const userId = c.get("userId");
+  const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role || "doctor";
   const db = c.get("db");
   const body = await c.req.json();
   const parsed = clinicalNoteSchema.safeParse(body);
@@ -998,6 +1004,11 @@ doctorPortalRouter.post("/clinical-notes", async (c) => {
       { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
+  }
+
+  const access = await canAccessPatient(db, userId, userRole, parsed.data.patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
   }
 
   const doctor = await getDoctor(db, userId);
@@ -1333,8 +1344,13 @@ doctorPortalRouter.get("/clinical-notes", async (c) => {
 
 // ─── Follow-ups ──────────────────────────────────────────
 // POST /doctor-portal/follow-ups
+//
+// P0 audit fix: missing canAccessPatient. Without it, any doctor could
+// write a follow-up for any patient — same hole closed elsewhere by the
+// vitals/vaccinations/lab-orders pattern.
 doctorPortalRouter.post("/follow-ups", async (c) => {
   const userId = c.get("userId");
+  const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role || "doctor";
   const db = c.get("db");
   const body = await c.req.json();
   const parsed = followUpSchema.safeParse(body);
@@ -1343,6 +1359,11 @@ doctorPortalRouter.post("/follow-ups", async (c) => {
       { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
       400
     );
+  }
+
+  const access = await canAccessPatient(db, userId, userRole, parsed.data.patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
   }
 
   const doctor = await getDoctor(db, userId);
@@ -2681,8 +2702,13 @@ doctorPortalRouter.get("/search-patients", async (c) => {
 // ─── Book appointment for patient ───────────────────────
 // POST /doctor-portal/appointments
 //   Body: { patientId, date, time, reason? }
+//
+// P0 audit fix: missing canAccessPatient. Any doctor could previously
+// book an appointment slot against any patient. The care-team
+// relationship (or one of the legacy evidence rows) is required.
 doctorPortalRouter.post("/appointments", async (c) => {
   const userId = c.get("userId");
+  const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role || "doctor";
   const db = c.get("db");
 
   const doctor = await getDoctor(db, userId);
@@ -2698,6 +2724,12 @@ doctorPortalRouter.post("/appointments", async (c) => {
   if (!patientId) return c.json({ error: "patientId is required" }, 400);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return c.json({ error: "date must be YYYY-MM-DD" }, 400);
   if (!/^\d{2}:\d{2}$/.test(time)) return c.json({ error: "time must be HH:MM (24h)" }, 400);
+
+  // P0: gate the book path on the same access helper the other writes use.
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
 
   // Reject past dates
   const today = new Date().toISOString().slice(0, 10);
@@ -2797,8 +2829,13 @@ doctorPortalRouter.post("/appointments", async (c) => {
 // ─── Reschedule appointment (doctor) ────────────────────
 // PATCH /doctor-portal/appointments/:id/reschedule
 //   Body: { date, time }
+//
+// P0 audit fix: ownership check (`doctorId === doctor.id`) was the only
+// gate. Add `canAccessPatient` after fetching the row so a doctor
+// who lost care-team access can't keep reshuffling the slot.
 doctorPortalRouter.patch("/appointments/:id/reschedule", async (c) => {
   const userId = c.get("userId");
+  const userRole = c.get("userRole") || (c.get("dbUser") as any)?.role || "doctor";
   const db = c.get("db");
   const appointmentId = c.req.param("id");
 
@@ -2830,6 +2867,12 @@ doctorPortalRouter.patch("/appointments/:id/reschedule", async (c) => {
     .where(and(eq(appointments.id, appointmentId), eq(appointments.doctorId, doctor.id)))
     .limit(1);
   if (!existing) return c.json({ error: "Appointment not found" }, 404);
+
+  // P0: also gate on the active doctor↔patient relationship.
+  const access = await canAccessPatient(db, userId, userRole, existing.patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
 
   if (["cancelled", "completed", "no_show"].includes(existing.status)) {
     return c.json(

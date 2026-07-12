@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { MockD1 } from "../_mockDb";
-import { buildAdminApp, get, postJson } from "./_adminTestApp";
+import { buildAdminApp, get, postJson, stepUpTokenFor } from "./_adminTestApp";
 
 const ADMIN_ID = "admin-1";
 const PENDING_DOCTOR_ID = "user-pending-doc";
@@ -40,7 +40,9 @@ describe("POST /admin/approvals/:userId/approve", () => {
     // The route does a SELECT users WHERE id=?, then UPDATE.
     db.setWhere("users", (r) => r.id === PENDING_DOCTOR_ID);
 
-    const res = await postJson(app, `/admin/approvals/${PENDING_DOCTOR_ID}/approve`, {});
+    const res = await postJson(app, `/admin/approvals/${PENDING_DOCTOR_ID}/approve`, {}, {
+      "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
+    });
     expect(res.status).toBe(200);
 
     const after = db.tables.users?.rows.find((u: any) => u.id === PENDING_DOCTOR_ID);
@@ -52,7 +54,9 @@ describe("POST /admin/approvals/:userId/approve", () => {
     const app = buildAdminApp(db, { id: ADMIN_ID, role: "super_admin" });
     db.setWhere("users", (r) => r.id === ACTIVE_PATIENT_ID);
 
-    const res = await postJson(app, `/admin/approvals/${ACTIVE_PATIENT_ID}/approve`, {});
+    const res = await postJson(app, `/admin/approvals/${ACTIVE_PATIENT_ID}/approve`, {}, {
+      "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
+    });
     expect(res.status).toBe(409);
   });
 
@@ -60,7 +64,9 @@ describe("POST /admin/approvals/:userId/approve", () => {
     const app = buildAdminApp(db, { id: ADMIN_ID, role: "super_admin" });
     db.setWhere("users", (r) => r.id === PENDING_DOCTOR_ID);
 
-    const res = await postJson(app, `/admin/approvals/${PENDING_DOCTOR_ID}/reject`, {});
+    const res = await postJson(app, `/admin/approvals/${PENDING_DOCTOR_ID}/reject`, {}, {
+      "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
+    });
     expect(res.status).toBe(400);
   });
 
@@ -72,6 +78,9 @@ describe("POST /admin/approvals/:userId/approve", () => {
       app,
       `/admin/approvals/${PENDING_DOCTOR_ID}/reject`,
       { reason: "SLMC number unverifiable" },
+      {
+        "X-Stepup-Token": stepUpTokenFor({ id: ADMIN_ID, role: "super_admin" }),
+      }
     );
     expect(res.status).toBe(200);
   });

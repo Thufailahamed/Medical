@@ -54,7 +54,13 @@
     "remove": "ඉවත් කරන්න",
     "confirm": "තහවුරු කරන්න",
     "areYouSure": "ඔබට විශ්වාසද?",
-    "change": "මාරු කරන්න"
+    "change": "මාරු කරන්න",
+    "noAccess": "මෙම පිටුවට ප්‍රවේශය ඔබට නැත.",
+    "copy": "පිටපත් කරන්න",
+    "copyLink": "සබැඳිය පිටපත් කරන්න",
+    "openLink": "සබැඳිය විවෘත කරන්න",
+    "revoke": "අවලංගු කරන්න",
+    "send": "යවන්න"
   },
   "auth": {
     "title": "වෛද්‍ය ද්වාරය",
@@ -210,7 +216,10 @@
     "backToList": "රෝගීන් වෙත ආපසු",
     "messages": {
       "empty": "තවම සංවාද නැත",
-      "openInbox": "එනතුම විවෘත කරන්න"
+      "openInbox": "එනතුම විවෘත කරන්න",
+      "title": "පණිවිඩ",
+      "emptyConversation": "තවම පණිවිඩ නැත — ආයුබෝවන් කියන්න.",
+      "conversationHash": "සංවාද #{{id}}"
     },
     "age": "වයස {{age}}",
     "bloodGroup": "ලේ වර්ගය",
@@ -414,6 +423,8 @@
     "routine": "සාමාන්‍ය",
     "urgent": "හදිසි",
     "created": "ඇතුළු වීම ලියාපදිංචි කරන ලදි",
+    "markedAs": "{{status}} ලෙස සලකුණු කරන ලදි",
+    "reasonPlaceholder": "පැමිණීමට කෙටි හේතුව",
     "status": {
       "waiting": "රැඳී",
       "in_consultation": "පරීක්ෂාවේ",
@@ -530,12 +541,28 @@
     "revoke": "අවලංගු කරන්න",
     "newInvite": "නව ආරාධනයක්",
     "inviteLabel": "ලේබලය",
-    "inviteScope": "විෂය පථය"
+    "inviteScope": "විෂය පථය",
+    "accessRevoked": "ප්‍රවේශය අවලංගු කෙරිණි",
+    "inviteSent": "ආරාධනය යවන ලදී",
+    "invite": "ආරාධනය කරන්න",
+    "inviteTitle": "ප්‍රතිකාර කණ්ඩායමට ආරාධනය කරන්න",
+    "searchPatient": "රෝගියා සොයන්න",
+    "searchPlaceholder": "නම හෝ NIC",
+    "patientSelected": "රෝගියා තෝරා ඇසින් · {{id}}…",
+    "scope": "විෂය පථය",
+    "scopeRead": "කියවීම",
+    "scopeReadWrite": "කියවීම + ලිවීම",
+    "role": "කාර්ය භාරය",
+    "rolePrimaryCare": "ප්‍රාථමික සත්කාරය",
+    "roleSpecialist": "විශේෂඥ",
+    "roleConsultant": "උපදේශක",
+    "validForDays": "වලංගු දින (දින)",
+    "since": "{{date}} සිට",
+    "revokeConfirm": "{{name}} සඳහා ප්‍රවේශය අවලංගු කරන්නද?"
   },
   "availability": {
     "title": "ලබා ගැනීමේ හැකියාව",
     "subtitle": "ඔබ හමුවීම් ගන්නා දින සහ වේලා සකසන්න",
-    "day": "දිනය",
     "start": "ආරම්භය",
     "end": "අවසානය",
     "slotMinutes": "කාල පරතරය (මිනිත්තු)",
@@ -544,8 +571,28 @@
     "timeOff": "නිවාඩු",
     "newTimeOff": "නව නිවාඩුවක්",
     "from": "සිට",
-    "to": "දක්වා",
-    "reason": "හේතුව"
+    "to": "සිට",
+    "reason": "හේතුව",
+    "weekly": "සතිපතා කාල සටහන",
+    "addSlot": "කාල පරතරයක් එකතු කරන්න",
+    "empty": "ලබා ගැනීමේ හැකියාවක් නැත",
+    "min": "මිනිත්තු",
+    "active": "සක්‍රිය",
+    "add": "එකතු කරන්න",
+    "remove": "ඉවත් කරන්න",
+    "emptyTimeOff": "නිවාඩු නියම නැත",
+    "reasonPlaceholder": "නිවාඩු / නිවාඩු දිනය",
+    "timeOffAdded": "නිවාඩුව එකතු කරන ලදී",
+    "removed": "ඉවත් කරන ලදී",
+    "day": {
+      "mon": "සඳු",
+      "tue": "අඟහ",
+      "wed": "බදා",
+      "thu": "සිකු",
+      "fri": "සෙන",
+      "sat": "සෙනස",
+      "sun": "ඉරිදා"
+    }
   },
   "clinics": {
     "title": "සායන",
@@ -1217,6 +1264,69 @@
     "professionalInfo": "Professional Information",
     "bio": "Bio",
     "bioPlaceholder": "Tell patients about yourself, your experience, and your approach to care…"
+  },
+  "patientPortal": {
+    "home": {
+      "welcome": "සාදරයෙන් පිළිගනිමු",
+      "tagline": "ඔබේ සෞඛ්‍ය වාර්තාව, එක බැල්මකින්.",
+      "recordsCount": "වාර්තා",
+      "vitalsCount": "පෙනෙන දත්ත",
+      "addRecord": "වාර්තාවක් එකතු කරන්න",
+      "addRecordBody": "රසායනාගාර වාර්තාවක්, රූපයක් හෝ ලේඛනයක් උඩුගත කරන්න.",
+      "share": "වෛද්‍යවරයෙකු සමඟ බෙදාගන්න",
+      "shareBody": "ඔබේ වාර්තා සඳහා කාල-සීමිත සබැඳියක් සාදන්න.",
+      "audit": "ප්‍රවේශ සටහන බලන්න",
+      "auditBody": "මෑතකදී ඔබේ වාර්තා බැලූ අය බලන්න."
+    },
+    "records": {
+      "title": "මගේ වාර්තා",
+      "subtitle_one": "වාර්තා {{count}}ක්",
+      "subtitle_other": "වාර්තා {{count}}ක්",
+      "search": "වාර්තා සොයන්න…",
+      "allTypes": "සියලු වර්ග",
+      "empty": "තවම වාර්තා නැත. පළමු වාර්තාව එක් කිරීමට ජංගම යෙදුම භාවිතා කරන්න."
+    },
+    "audit": {
+      "title": "ප්‍රවේශ සටහන",
+      "subtitle": "මෑතකදී ඔබේ වාර්තා බැලූ අය.",
+      "loadError": "ප්‍රවේශ සටහන පූරණය කළ නොහැකි විය.",
+      "empty": "අවසන් දින 30 තුළ ප්‍රවේශ සිදුවීම් නැත.",
+      "actorSystem": "පද්ධතිය"
+    },
+    "notifications": {
+      "title": "දැනුම්දීම්",
+      "subtitle_one": "නොකියවූ {{count}}ක්",
+      "subtitle_other": "නොකියවූ {{count}}ක්",
+      "caughtUp": "සියල්ල කියවා ඇසින්",
+      "markAllRead": "සියල්ල කියවූ ලෙස සලකුණු කරන්න",
+      "empty": "තවම දැනුම්දීම් නැත",
+      "markRead": "කියවූ ලෙස සලකුණු කරන්න",
+      "markedAllRead": "සියලු දැනුම්දීම් කියවූ ලෙස සලකුණු කෙරිණි"
+    },
+    "share": {
+      "title": "වාර්තා බෙදාගන්න",
+      "subtitle": "වෛද්‍යවරයෙකු හෝ පවුලේ අයෙකු සමඟ බෙදා ගැනීමට කාල-සීමිත සබැඳියක් සාදන්න.",
+      "newLink": "නව සබැඳිය",
+      "label": "නම (අමතර)",
+      "labelPlaceholder": "ආචාර්ය පෙරේරාගේ පැමිණීම සඳහා",
+      "expiresIn": "කල් ඉකුත් වන්නේ",
+      "create": "සාදන්න",
+      "created": "බෙදාගැනීමේ සබැඳිය සාදන ලදී",
+      "createFailed": "සබැඳිය සෑදීම අසාර්ථක විය",
+      "existing": "පවතින සබැඳි",
+      "empty": "තවම බෙදාගැනීමේ සබැඳි නැත.",
+      "untitled": "නම් නොකළ සබැඳිය",
+      "statusRevoked": "අවලංගු කළ",
+      "statusExpired": "කල් ඉකුත්",
+      "statusActive": "ක්‍රියාකාරී",
+      "expires": "කල් ඉකුත් වේ",
+      "lastViewed": "අවසන් වරට බැලූ",
+      "revoked": "සබැඳිය අවලංගු කෙරිණි",
+      "expiry1h": "පැය 1",
+      "expiry24h": "පැය 24",
+      "expiry1w": "සතියක්",
+      "expiry30d": "දින 30"
+    }
   },
   "visitSummary": {
     "title": "Visit Summary",

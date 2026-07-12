@@ -7,6 +7,7 @@ import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Skeleton } from "@/portal/components/ui/Empty";
+import { useT } from "@/portal/i18n";
 import { formatDateTime } from "@/portal/lib/format";
 
 interface AuditEntry {
@@ -29,6 +30,7 @@ interface AuditEntry {
  * returned rows in a recent-first list.
  */
 export default function PatientAuditPage() {
+  const t = useT();
   const { data, isLoading, error } = useQuery({
     queryKey: ["audit", "me"],
     queryFn: () => api<{ entries: AuditEntry[] }>("/audit/me?limit=200"),
@@ -39,16 +41,18 @@ export default function PatientAuditPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-xl font-bold text-text">Access log</h1>
+        <h1 className="text-xl font-bold text-text">
+          {t("patientPortal.audit.title")}
+        </h1>
         <p className="text-sm text-text-soft mt-0.5">
-          Who has looked at your records recently.
+          {t("patientPortal.audit.subtitle")}
         </p>
       </header>
 
       {error ? (
         <Card>
           <div className="text-sm text-danger">
-            Could not load the access log.
+            {t("patientPortal.audit.loadError")}
           </div>
         </Card>
       ) : isLoading ? (
@@ -62,7 +66,7 @@ export default function PatientAuditPage() {
           <div className="text-center py-8">
             <ScrollText size={28} className="mx-auto text-text-muted" />
             <p className="text-sm text-text-soft mt-2">
-              No access events in the last 30 days.
+              {t("patientPortal.audit.empty")}
             </p>
           </div>
         </Card>
@@ -85,8 +89,10 @@ export default function PatientAuditPage() {
                     <Pill tone="neutral">{e.resource}</Pill>
                   </div>
                   <p className="text-xs text-text-soft mt-0.5">
-                    {e.actorName || e.actorId || "system"} ·{" "}
-                    {formatDateTime(e.createdAt)}
+                    {e.actorName ||
+                      e.actorId ||
+                      t("patientPortal.audit.actorSystem")}{" "}
+                    · {formatDateTime(e.createdAt)}
                   </p>
                   {e.details ? (
                     <p className="text-xs text-text-muted mt-0.5 line-clamp-2">

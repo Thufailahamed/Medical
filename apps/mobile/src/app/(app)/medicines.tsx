@@ -263,8 +263,9 @@ export default function MedicinesScreen() {
     (k) => periods[k].length > 0
   );
 
-  const totalCount = list.length;
-  const takenCount = list.filter((m) => isMedicineTaken(m.id)).length;
+  const todayList = todayMeds?.medicines ?? [];
+  const totalCount = todayList.length;
+  const takenCount = todayList.filter((m) => isMedicineTaken(m.id)).length;
   const remainingCount = totalCount - takenCount;
   const adherence = totalCount > 0 ? Math.round((takenCount / totalCount) * 100) : 0;
 
@@ -524,8 +525,7 @@ export default function MedicinesScreen() {
         </View>
 
         {/* ─── Hero (premium glass — adherence overview) ─── */}
-        {tab === "today" ? (
-          <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
             <View
               style={{
                 borderRadius: 32,
@@ -765,7 +765,6 @@ export default function MedicinesScreen() {
               </View>
             </View>
           </View>
-        ) : null}
 
         {/* Tab pills + actions row */}
         <View

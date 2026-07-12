@@ -25,8 +25,13 @@ function makeQueryClient() {
         gcTime: 30 * 60 * 1000,
         refetchOnWindowFocus: false,
         retry: (failureCount, err) => {
-          // Don't retry 4xx; retry 5xx up to twice.
-          if (err && (err as any).status >= 400 && (err as any).status < 500) return false;
+          // Don't retry 4xx (client errors — retrying just amplifies).
+          // Retry 5xx + network errors up to twice (capped to bound
+          // thundering-herd on a transient outage).
+          const status = (err as { status?: unknown })?.status;
+          if (typeof status === "number" && status >= 400 && status < 500) {
+            return false;
+          }
           return failureCount < 2;
         },
       },

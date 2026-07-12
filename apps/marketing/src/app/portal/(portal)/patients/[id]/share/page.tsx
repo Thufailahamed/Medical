@@ -12,12 +12,12 @@ import {
   Clock,
   ExternalLink,
 } from "lucide-react";
+import { z } from "zod";
 
 import { api, qk } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Button } from "@/portal/components/ui/Button";
-import { Input, Select } from "@/portal/components/ui/Form";
 import { Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
 import {
@@ -25,6 +25,11 @@ import {
   ChartList,
   ChartEmpty,
 } from "@/portal/components/chart";
+import {
+  RHFFormProvider,
+  RHFInput,
+  RHFSelect,
+} from "@/portal/components/ui/FormKit";
 import { useT } from "@/portal/i18n";
 import { formatDateTime, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -62,6 +67,14 @@ const SCOPE_OPTIONS = [
   { value: "recent6m", label: "Recent 6 months" },
 ];
 
+const createLinkSchema = z.object({
+  label: z.string().max(100, "Label must be 100 characters or fewer").optional().or(z.literal("")),
+  expiresInHours: z.enum(["24", "72", "168", "720"]),
+  scope: z.enum(["all", "recent6m"]),
+});
+
+type CreateLinkValues = z.infer<typeof createLinkSchema>;
+
 export default function ShareTab({
   params,
 }: {
@@ -70,9 +83,6 @@ export default function ShareTab({
   const { id } = use(params);
   const t = useT();
   const qc = useQueryClient();
-  const [label, setLabel] = useState("");
-  const [expiresInHours, setExpiresInHours] = useState("168");
-  const [scope, setScope] = useState("all");
   const [lastCreated, setLastCreated] = useState<CreateResponse | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
@@ -87,20 +97,19 @@ export default function ShareTab({
   const links = (data?.links ?? []).filter((l) => l.patientId === id);
 
   const create = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (values: CreateLinkValues) => {
       return api<CreateResponse>("/doctor-portal/share/links", {
         method: "POST",
         json: {
           patientId: id,
-          label: label.trim() || undefined,
-          expiresInHours: Number(expiresInHours),
-          scope,
+          label: values.label?.trim() ? values.label.trim() : undefined,
+          expiresInHours: Number(values.expiresInHours),
+          scope: values.scope,
         },
       });
     },
     onSuccess: (res) => {
       setLastCreated(res);
-      setLabel("");
       qc.invalidateQueries({ queryKey: qk.shareDoctorLinks });
       toast.success(t("share.created"));
     },
@@ -165,32 +174,39 @@ export default function ShareTab({
               {t("share.createTitle")}
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr,160px,160px,auto] gap-3">
-            <Input
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder={t("share.labelPlaceholder")}
-              maxLength={100}
-            />
-            <Select
-              value={expiresInHours}
-              onChange={(e) => setExpiresInHours(e.target.value)}
-              options={EXPIRY_OPTIONS}
-            />
-            <Select
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              options={SCOPE_OPTIONS}
-            />
-            <Button
-              variant="primary"
-              onClick={() => create.mutate()}
-              loading={create.isPending}
-              leftIcon={<LinkIcon size={13} />}
-            >
-              {t("share.create")}
-            </Button>
-          </div>
+          <RHFFormProvider
+            schema={createLinkSchema}
+            defaultValues={{ label: "", expiresInHours: "168", scope: "all" }}
+          >
+            {(form) => (
+              <form
+                onSubmit={form.handleSubmit((values) => create.mutate(values))}
+                className="grid grid-cols-1 md:grid-cols-[1fr,160px,160px,auto] gap-3"
+              >
+                <RHFInput
+                  name="label"
+                  placeholder={t("share.labelPlaceholder")}
+                  maxLength={100}
+                />
+                <RHFSelect
+                  name="expiresInHours"
+                  options={EXPIRY_OPTIONS}
+                />
+                <RHFSelect
+                  name="scope"
+                  options={SCOPE_OPTIONS}
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={create.isPending}
+                  leftIcon={<LinkIcon size={13} />}
+                >
+                  {t("share.create")}
+                </Button>
+              </form>
+            )}
+          </RHFFormProvider>
 
           {/* Last created URL — only renders after a successful create */}
           {lastCreated ? (

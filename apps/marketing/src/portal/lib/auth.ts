@@ -28,7 +28,11 @@ export async function login(input: LoginInput): Promise<AuthUser> {
     method: "POST",
     json: input,
   });
-  useAuthStore.getState().setSession({ token: res.session.access_token, user: res.user });
+  useAuthStore.getState().setSession({
+    token: res.session.access_token,
+    user: res.user,
+    refreshToken: res.session.refresh_token,
+  });
   return res.user;
 }
 

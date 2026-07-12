@@ -86,6 +86,34 @@ export function localDayToUtcRange(
 }
 
 /**
+ * Convert a local YYYY-MM-DD date and HH:MM time in the user's timezone
+ * to an ISO UTC timestamp.
+ */
+export function localTimeToUtc(
+  dateStr: string,
+  timeStr: string,
+  offsetMinutes?: number
+): string {
+  const parts = dateStr.split("-").map(Number);
+  const [y, m, d] = parts;
+  const timeParts = timeStr.split(":").map(Number);
+  const [hh, mm] = timeParts;
+
+  if (!y || !m || !d || parts.length !== 3 || hh == null || mm == null || timeParts.length !== 2) {
+    throw new Error(`Invalid date/time input: ${dateStr} ${timeStr}`);
+  }
+
+  if (offsetMinutes != null) {
+    const utcMs = Date.UTC(y, m - 1, d, hh, mm, 0, 0) - offsetMinutes * 60_000;
+    return new Date(utcMs).toISOString();
+  }
+
+  // Fallback: server local time
+  const localDate = new Date(y, m - 1, d, hh, mm, 0, 0);
+  return localDate.toISOString();
+}
+
+/**
  * Extract "HH:MM" in the user's timezone from an ISO timestamp.
  * Pass `offsetMinutes` for correct results on UTC servers.
  * Use for dedup keys where the slot list ("09:00", "21:00") is in local
