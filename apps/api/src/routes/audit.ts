@@ -55,8 +55,7 @@ auditRouter.get("/me", authMiddleware, async (c) => {
       details: auditLogs.details,
       ip: auditLogs.ip,
       createdAt: auditLogs.createdAt,
-      actorFirstName: users.firstName,
-      actorLastName: users.lastName,
+      actorName: users.name,
     })
     .from(auditLogs)
     .leftJoin(users, eq(users.id, auditLogs.userId))
@@ -82,10 +81,7 @@ auditRouter.get("/me", authMiddleware, async (c) => {
     resource: r.resource,
     resourceId: r.resourceId,
     actorId: r.userId,
-    actorName: actorNameOf({
-      firstName: r.actorFirstName,
-      lastName: r.actorLastName,
-    }),
+    actorName: r.actorName ?? "System",
     details: r.details ? safeParse(r.details) : null,
     ip: r.ip,
     createdAt: r.createdAt,
