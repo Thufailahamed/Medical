@@ -14,5 +14,25 @@
       }
     },
     "production": {}
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "${env.ASC_APP_ID}",
+        "appleTeamId": "${env.APPLE_TEAM_ID}"
+      },
+      "android": {
+        "track": "internal",
+        "serviceAccountKeyPath": "${env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH}"
+      }
+    },
+    "preview": {
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }

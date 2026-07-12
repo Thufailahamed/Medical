@@ -21,6 +21,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
+import { getPublicBaseUrl } from "@/lib/api";
 import {
   useCreateFamilyInvite,
   type FamilyInvite,
@@ -52,11 +53,7 @@ type Props = {
 function buildInviteUrl(token: string): string {
   // Same env-derived origin as the share-link page. Recipients deep-link
   // to /invite/<token>; the route handles unauthenticated users.
-  const base =
-    (process.env as any)?.EXPO_PUBLIC_PUBLIC_URL ||
-    (process.env as any)?.EXPO_PUBLIC_API_URL?.replace(/\/api$/, "") ||
-    "";
-  return `${base}/invite/${token}`;
+  return `${getPublicBaseUrl()}/invite/${token}`;
 }
 
 // Phase 2.3.1: 2-step sheet. Step 1 collects name + relationship; step 2

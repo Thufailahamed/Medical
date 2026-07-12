@@ -157,12 +157,28 @@ export async function api<T = any>(
   return runRequest<T>(endpoint, options, token);
 }
 
-// ─── Public: call with auto-refresh on 401 ────────────────
-export async function apiWithRefresh<T = any>(
-  endpoint: string,
-  options: ApiOptions = {}
-): Promise<T> {
-  return api<T>(endpoint, options);
+// ─── Public: derive the marketing-site origin for share/invite URLs ─
+// The marketing app serves /share/<token> and /invite/<token> links
+// out-of-band of the API. Prefer an explicit PUBLIC_URL; otherwise
+// derive it from API_URL by stripping a trailing /api. Returns "" when
+// neither is set — callers can detect and hide share UI.
+export function getPublicBaseUrl(): string {
+  const explicit = process.env.EXPO_PUBLIC_PUBLIC_URL;
+  if (explicit && explicit.length > 0) return explicit;
+  const api = process.env.EXPO_PUBLIC_API_URL;
+  if (api && api.length > 0) return api.replace(/\/api$/, "");
+  return "";
+}
+
+// ─── Public: derive the API origin for non-fetch URL consumers ─────
+// `api()` handles every authenticated request. This helper exists for
+// the rare cases that need a raw URL string — RN `<Image source={uri}>`
+// and `Linking.openURL(url)` — neither of which can carry auth headers.
+// Auth-required downloads must go through `api({responseType:"blob"})`
+// instead. Falls back to "" when unset so callers can branch on it.
+export function getApiBaseUrl(): string {
+  const api = process.env.EXPO_PUBLIC_API_URL;
+  return api && api.length > 0 ? api : "";
 }
 
 // ─── SSE consumer ────────────────────────────────────────

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { api, apiWithRefresh } from "@/lib/api";
+import { api } from "@/lib/api";
 import { setLastAllergies, setLastMeds } from "@/lib/offline-cache";
 
 const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === "true";
@@ -62,7 +62,7 @@ export type PatientProfileResponse = {
 export function usePatientProfile() {
   return useQuery({
     queryKey: ["patient", "me"],
-    queryFn: () => apiWithRefresh<PatientProfileResponse>("/patients/me"),
+    queryFn: () => api<PatientProfileResponse>("/patients/me"),
   });
 }
 
@@ -77,7 +77,7 @@ export type EmailAliasResponse = {
 export function useEmailAlias() {
   return useQuery({
     queryKey: ["patient", "me", "email-alias"],
-    queryFn: () => apiWithRefresh<EmailAliasResponse>("/patients/me/email-alias"),
+    queryFn: () => api<EmailAliasResponse>("/patients/me/email-alias"),
   });
 }
 
@@ -1103,29 +1103,15 @@ export function useUploadFile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, recordId }: { file: File; recordId?: string }) => {
-      const token = await getAuthToken();
-
       const formData = new FormData();
       formData.append("file", file);
       if (recordId) formData.append("recordId", recordId);
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/files/upload`,
-        {
-          method: "POST",
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(error.error || `HTTP ${response.status}`);
-      }
-
-      return response.json();
+      return api("/files/upload", {
+        method: "POST",
+        body: formData,
+        isFormData: true,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medical-records"] });
@@ -1146,8 +1132,6 @@ export function useUploadRecordWithFile() {
       summary?: string;
       notes?: string;
     }) => {
-      const token = await getAuthToken();
-
       // Pull patientId from the cached profile if available, otherwise
       // hit the API via the shared helper (handles 401 refresh).
       const cached = queryClient.getQueryData<any>(["patient", "me"]);
@@ -1171,25 +1155,11 @@ export function useUploadRecordWithFile() {
       if (args.summary) formData.append("summary", args.summary);
       if (args.notes) formData.append("notes", args.notes);
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/files/upload-with-record`,
-        {
-          method: "POST",
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ error: "Upload failed" }));
-        throw new Error(error.error || `HTTP ${response.status}`);
-      }
-
-      return response.json();
+      return api("/files/upload-with-record", {
+        method: "POST",
+        body: formData,
+        isFormData: true,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medical-records"] });
@@ -1204,26 +1174,17 @@ export function useDownloadFile() {
     mutationFn: async (key: string) => {
       const urlData = await api<{ url: string }>(`/files/download/${encodeURIComponent(key)}`);
 
-      const token = await getAuthToken();
-
-      // If the server returned our own stream proxy, attach auth.
-      // If it returned a real R2 presigned URL, fetch directly.
+      // If the server returned our own stream proxy, route through api()
+      // (responseType: "blob") so locale/family/tenant headers + 401/410
+      // plumbing run. If it returned a real R2 presigned URL, fetch
+      // directly — never attach auth to a signed URL.
       const isProxy = urlData.url.startsWith("/files/");
-      const fetchUrl = isProxy
-        ? `${process.env.EXPO_PUBLIC_API_URL}${urlData.url}`
-        : urlData.url;
+      const blob = isProxy
+        ? await api<Blob>(urlData.url, { responseType: "blob" })
+        : await (await fetch(urlData.url)).blob();
+      const contentType = isProxy ? "application/octet-stream" : undefined;
 
-      const response = await fetch(fetchUrl, {
-        headers: {
-          ...(token && isProxy ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      return {
-        blob: await response.blob(),
-        contentType: response.headers.get("Content-Type"),
-      };
+      return { blob, contentType };
     },
   });
 }
@@ -1265,7 +1226,7 @@ export type WellnessResponse = {
 export function useWellness() {
   return useQuery({
     queryKey: ["wellness", "me"],
-    queryFn: () => apiWithRefresh<WellnessResponse>("/wellness/me"),
+    queryFn: () => api<WellnessResponse>("/wellness/me"),
     staleTime: 60_000,
     refetchInterval: 5 * 60_000,
   });
@@ -2405,9 +2366,6 @@ export function useReadPrescription() {
       fileName: string;
       patientId: string;
     }) => {
-      const token = await getAuthToken();
-      const apiBase = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
-
       // 1. Upload the image, linked to the new record.
       const fd = new FormData();
       fd.append("recordId", args.recordId);
@@ -2418,36 +2376,31 @@ export function useReadPrescription() {
         type: args.mimeType,
       } as any);
 
-      const upRes = await fetch(`${apiBase}/files/upload`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: fd as any,
-      });
-      if (!upRes.ok) {
+      let upJson: any = null;
+      try {
+        upJson = await api("/files/upload", {
+          method: "POST",
+          body: fd,
+          isFormData: true,
+        });
+      } catch {
         return { medicines: [] as Array<{ name: string; dosage?: string }> };
       }
-      const upJson = await upRes.json().catch(() => null);
       const r2Key: string | undefined = upJson?.file?.r2Key || upJson?.file?.url;
       if (!r2Key) {
         return { medicines: [] as Array<{ name: string; dosage?: string }> };
       }
 
       // 2. Run OCR on the uploaded file. Endpoint returns structured JSON.
-      const ocrRes = await fetch(`${apiBase}/ai/ocr/prescription`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          fileUrl: r2Key,
-          patientId: args.patientId,
-        }),
-      });
-      if (!ocrRes.ok) {
+      let ocrJson: any = null;
+      try {
+        ocrJson = await api("/ai/ocr/prescription", {
+          method: "POST",
+          body: { fileUrl: r2Key, patientId: args.patientId },
+        });
+      } catch {
         return { medicines: [] as Array<{ name: string; dosage?: string }> };
       }
-      const ocrJson = await ocrRes.json().catch(() => null);
       const meds = (ocrJson?.result?.medicines || []) as Array<{
         name?: string;
         dosage?: string;
@@ -2657,29 +2610,11 @@ export function useAddMedicineWithConfirm() {
       const headers: Record<string, string> = {};
       if (confirmOverride) headers["X-Confirm-Warning"] = "true";
 
-      const token = await getAuthToken();
-
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/medicines`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...headers,
-          },
-          body: JSON.stringify(data),
-        }
-      );
-
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const err: any = new Error(json.error || `HTTP ${response.status}`);
-        err.status = response.status;
-        err.body = json;
-        throw err;
-      }
-      return json;
+      return api("/medicines", {
+        method: "POST",
+        body: data,
+        headers,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["medicines"] });
@@ -3353,7 +3288,7 @@ export function useDoctorConversations() {
   return useQuery({
     queryKey: ["doctor", "messages", "conversations"],
     queryFn: () =>
-      apiWithRefresh<DoctorConversationsResponse>(
+      api<DoctorConversationsResponse>(
         "/doctor-messages/conversations"
       ),
     refetchInterval: 30_000,
@@ -3364,7 +3299,7 @@ export function useDoctorConversation(id: string | string[] | undefined) {
   return useQuery({
     queryKey: ["doctor", "messages", "conversation", id],
     queryFn: () =>
-      apiWithRefresh<DoctorConversationDetail>(
+      api<DoctorConversationDetail>(
         `/doctor-messages/conversations/${id}/messages`
       ),
     enabled: !!id,
@@ -3465,7 +3400,7 @@ export function usePatientConversations() {
   return useQuery({
     queryKey: ["patient", "messages", "conversations"],
     queryFn: () =>
-      apiWithRefresh<PatientConversationsResponse>("/patient-messages/conversations"),
+      api<PatientConversationsResponse>("/patient-messages/conversations"),
     refetchInterval: 20_000,
   });
 }
@@ -3474,7 +3409,7 @@ export function usePatientConversation(id: string | string[] | undefined) {
   return useQuery({
     queryKey: ["patient", "messages", "conversation", id],
     queryFn: () =>
-      apiWithRefresh<PatientConversationDetail>(
+      api<PatientConversationDetail>(
         `/patient-messages/conversations/${id}/messages`
       ),
     enabled: !!id,
@@ -3503,7 +3438,7 @@ export function useMarkPatientConversationRead(conversationId: string | undefine
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      apiWithRefresh<PatientConversationDetail>(
+      api<PatientConversationDetail>(
         `/patient-messages/conversations/${conversationId}/messages?markRead=true`
       ),
     onSuccess: () => {
@@ -3535,7 +3470,7 @@ export function useDoctorScheduleRange(from: string, to: string) {
     queryKey: ["doctor", "schedule", from, to],
     queryFn: () => {
       const params = new URLSearchParams({ from, to });
-      return apiWithRefresh<{
+      return api<{
         from: string;
         to: string;
         count: number;
@@ -3565,7 +3500,7 @@ export function useDoctorEarningsSummary(period = "month") {
   return useQuery({
     queryKey: ["doctor", "earnings", "summary", period],
     queryFn: () =>
-      apiWithRefresh<EarningsSummary>(
+      api<EarningsSummary>(
         `/doctor-earnings/summary?period=${encodeURIComponent(period)}`
       ),
   });
@@ -3584,7 +3519,7 @@ export function useDoctorEarningsTimeseries(opts: {
         to: opts.to,
         bucket: opts.bucket || "day",
       });
-      return apiWithRefresh<{
+      return api<{
         bucket: string;
         from: string;
         to: string;
@@ -3612,7 +3547,7 @@ export function useDoctorPayouts(limit = 20) {
   return useQuery({
     queryKey: ["doctor", "earnings", "payouts", limit],
     queryFn: () =>
-      apiWithRefresh<{ payouts: Payout[] }>(
+      api<{ payouts: Payout[] }>(
         `/doctor-earnings/payouts?limit=${limit}`
       ),
   });
@@ -3661,7 +3596,7 @@ export function useDoctorRxTemplates() {
   return useQuery({
     queryKey: ["doctor", "rx-templates"],
     queryFn: () =>
-      apiWithRefresh<{ templates: RxTemplate[] }>("/doctor-rx-templates"),
+      api<{ templates: RxTemplate[] }>("/doctor-rx-templates"),
   });
 }
 
@@ -3669,7 +3604,7 @@ export function useDoctorRxTemplate(id: string | string[] | undefined) {
   return useQuery({
     queryKey: ["doctor", "rx-templates", id],
     queryFn: () =>
-      apiWithRefresh<{ template: RxTemplate }>(
+      api<{ template: RxTemplate }>(
         `/doctor-rx-templates/${id}`
       ),
     enabled: !!id,

@@ -7,6 +7,7 @@ import {
   getLastAllergies,
   type CachedEmergencyProfile,
 } from "@/lib/offline-cache";
+import { getApiBaseUrl } from "@/lib/api";
 import {
   View,
   Text,
@@ -194,8 +195,8 @@ export default function EmergencyScreen() {
       const byte4 = Number.isNaN(c3) ? 64 : c3 & 63;
       base64 += chars.charAt(byte1) + chars.charAt(byte2) + chars.charAt(byte3) + chars.charAt(byte4);
     }
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
-    return `${apiUrl}/emergency/card/view?data=${encodeURIComponent(base64)}`;
+    const apiUrl = getApiBaseUrl();
+    return `${apiUrl || "http://localhost:8787"}/emergency/card/view?data=${encodeURIComponent(base64)}`;
   }, [qrPayload]);
 
   async function doSOS() {

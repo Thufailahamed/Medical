@@ -553,23 +553,15 @@ export default function AddRecordScreen() {
                 try {
                   // Add each OCR'd medicine to the patient's list.
                   // Sequential POSTs keep the payload shape simple.
-                  const token = await (
-                    await import("@/hooks/useApi")
-                  ).getAuthToken();
-                  const apiBase =
-                    process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
+                  const { api } = await import("@/lib/api");
                   for (const m of extractedMeds) {
-                    await fetch(`${apiBase}/medicines`, {
+                    await api("/medicines", {
                       method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                      },
-                      body: JSON.stringify({
+                      body: {
                         name: m.name,
                         dosage: m.dosage || undefined,
                         status: "active",
-                      }),
+                      },
                     });
                   }
                   toast.show(

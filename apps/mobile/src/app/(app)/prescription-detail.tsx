@@ -20,6 +20,7 @@ import {
   useCreateShareLink,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { getPublicBaseUrl } from "@/lib/api";
 import {
   Screen,
   ScreenHeader,
@@ -71,7 +72,7 @@ export default function PatientPrescriptionDetailScreen() {
         // Default 7-day TTL — share-with-doctor links are short-lived by design.
         expiresInHours: 168,
       });
-      const base = process.env.EXPO_PUBLIC_PUBLIC_URL || "https://app.healthhub.app";
+      const base = getPublicBaseUrl() || "https://app.healthhub.app";
       setShareUrl(`${base}${res.url}`);
       toast.show(t("patientPrescriptionDetail.shareCreated"), "success");
     } catch (err: any) {

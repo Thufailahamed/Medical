@@ -24,6 +24,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
 import { fmtDate, fmtDateTime } from "@/lib/format";
+import { getPublicBaseUrl } from "@/lib/api";
 import {
   useShareLinks,
   useCreateShareLink,
@@ -115,10 +116,7 @@ export default function ShareScreen() {
 
   async function onShareLink(link: ShareLink) {
     try {
-      const base =
-        (process.env as any)?.EXPO_PUBLIC_PUBLIC_URL ||
-        (process.env as any)?.EXPO_PUBLIC_API_URL?.replace(/\/api$/, "") ||
-        "";
+      const base = getPublicBaseUrl();
       const url = `${base}/share/${link.token}`;
       await RNShare.share({
         message: t("share.shareMessage", {

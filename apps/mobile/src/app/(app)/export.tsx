@@ -22,7 +22,7 @@ import {
   getExportUrl,
   usePatientProfile,
 } from "@/hooks/useApi";
-import { api, API_BASE } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -30,6 +30,7 @@ import {
   ScreenHeader,
   Card,
   Button,
+  AppText,
   useToast,
 } from "@/components/ui";
 
@@ -72,13 +73,14 @@ export default function ExportScreen() {
   async function downloadExport() {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}${getExportUrl(format)}`, {
-        headers: (api as any).authHeaders
-          ? (api as any).authHeaders()
-          : undefined,
+      // The export endpoint returns JSON/text bytes. Fetch via api() with
+      // responseType: "blob" so the auth/locale/family/tenant headers
+      // apply; the payload is then read as text and pretty-printed when
+      // it's JSON, before being handed to the system share sheet.
+      const blob = await api<Blob>(getExportUrl(format), {
+        responseType: "blob",
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
+      const text = await blob.text();
       let payload = text;
       try {
         const json = JSON.parse(text);
@@ -243,17 +245,14 @@ export default function ExportScreen() {
             {t("dsar.exportBody", "Receive a portable, encrypted copy of all your data.")}
           </AppText>
           <Button
-            label={t("dsar.exportTitle", "Export my data")}
+            title={t("dsar.exportTitle", "Export my data")}
+            variant="danger"
             onPress={async () => {
               try {
-                const r = await fetch(`${API_BASE}/dsar/export`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                });
-                if (!r.ok) throw new Error(`DSAR export failed: ${r.status}`);
-                toast.show({ message: "Export ready", tone: "success" });
+                await api("/dsar/export", { method: "POST" });
+                toast.show({ message: t("dsar.exportReady", "Export ready"), tone: "success" });
               } catch (e: any) {
-                toast.show({ message: e?.message ?? "Failed", tone: "danger" });
+                toast.show({ message: e?.message ?? t("dsar.exportFailed", "Export failed"), tone: "danger" });
               }
             }}
             icon={FileText}

@@ -46,6 +46,7 @@ import {
   useReturnRecordToOwn,
   useDeleteRecord,
 } from "@/hooks/useApi";
+import { api, getApiBaseUrl } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Card,
@@ -175,6 +176,49 @@ export default function RecordDetailScreen() {
     if (Array.isArray(record.attachments)) return record.attachments;
     return [];
   }, [record]);
+  // Presign each attachment so `<Image source>` and `Linking.openURL` can
+  // fetch the bytes without attaching a Bearer header. The proxy
+  // `/files/download/:key` is auth-gated and would 401 on a raw Image.
+  const presign = usePresignFile();
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = attachments
+        .map((a: any) => a?.id)
+        .filter((x: unknown): x is string => typeof x === "string");
+      if (!ids.length) return;
+      try {
+        const results = await Promise.all(
+          ids.map((id) =>
+            api<{ token: string; url: string }>("/files/presign", {
+              method: "POST",
+              body: { fileId: id },
+              silent401: true,
+            }).catch(() => null)
+          )
+        );
+        if (cancelled) return;
+        const next: Record<string, string> = {};
+        const base = getApiBaseUrl();
+        results.forEach((r, i) => {
+          if (r && ids[i]) {
+            // r.url is a server-relative path; prepend the API origin.
+            next[ids[i]] = r.url.startsWith("http")
+              ? r.url
+              : `${base}${r.url}`;
+          }
+        });
+        setSignedUrls(next);
+      } catch {
+        // best-effort — thumbnails just won't render
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [attachments]);
+
   const lastActionRef = useRef<null | (() => Promise<void>)>(null);
 
   function doArchive() {
@@ -347,22 +391,22 @@ export default function RecordDetailScreen() {
     }
   }
 
-  // Open the first attachment in the system viewer, via its r2Key.
+  // Open the first attachment in the system viewer. Uses the presigned
+  // token (unauthenticated `/files/download/:token`) because Linking
+  // cannot attach the Bearer header and the auth-gated proxy would 401.
   async function openAttachment(att: any) {
-    if (!att?.r2Key) {
+    const signed = att?.id ? signedUrls[att.id] : null;
+    if (!signed) {
       toast.show(t("recordDetail.toast.noFileKey"), "warning");
       return;
     }
-    const url = `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
-      att.r2Key
-    )}`;
     try {
-      const ok = await Linking.canOpenURL(url);
+      const ok = await Linking.canOpenURL(signed);
       if (!ok) {
         toast.show(t("recordDetail.toast.noFileKey"), "warning");
         return;
       }
-      await Linking.openURL(url);
+      await Linking.openURL(signed);
     } catch (err: any) {
       toast.show(
         err?.message || t("recordDetail.toast.openError"),
@@ -875,12 +919,10 @@ export default function RecordDetailScreen() {
                         backgroundColor: "#F4F2F8",
                       }}
                     >
-                      {isImage && att.r2Key ? (
+                      {isImage && att.id && signedUrls[att.id] ? (
                         <Image
                           source={{
-                            uri: `${process.env.EXPO_PUBLIC_API_URL}/files/download/${encodeURIComponent(
-                              att.r2Key
-                            )}?stream=1`,
+                            uri: signedUrls[att.id],
                           }}
                           style={{
                             width: 56,

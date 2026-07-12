@@ -16,8 +16,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
 
 import { useAuthStore } from "@/stores/auth";
+import { getApiBaseUrl } from "@/lib/api";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8787";
+const API_URL = getApiBaseUrl() || "http://localhost:8787";
 
 export interface RealtimeNotification {
   id: string;

@@ -316,10 +316,6 @@ export default function AppLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
-        name="records/[id]/lock"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
         name="records/[id]/share"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
