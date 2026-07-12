@@ -155,10 +155,10 @@ function LoginForm() {
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <Field label={t("auth.identifierLabel")} error={errors.identifier?.message}>
-              <div className="relative">
+              <div className="portal-input-search-wrap">
                 <Mail
                   size={15}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                  className="portal-input-search-icon"
                   aria-hidden
                 />
                 <Input
@@ -166,17 +166,16 @@ function LoginForm() {
                   type="text"
                   placeholder={t("auth.identifierPlaceholder")}
                   autoComplete="username"
-                  className="pl-9"
                   aria-invalid={!!errors.identifier}
                 />
               </div>
             </Field>
 
             <Field label={t("auth.passwordLabel")} error={errors.password?.message}>
-              <div className="relative">
+              <div className="portal-input-search-wrap">
                 <Lock
                   size={15}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                  className="portal-input-search-icon"
                   aria-hidden
                 />
                 <Input
@@ -184,7 +183,6 @@ function LoginForm() {
                   type="password"
                   placeholder={t("auth.passwordPlaceholder")}
                   autoComplete="current-password"
-                  className="pl-9"
                   aria-invalid={!!errors.password}
                 />
               </div>

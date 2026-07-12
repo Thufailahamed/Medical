@@ -3,6 +3,7 @@ import { users } from "@healthcare/db";
 import type { Context, Next } from "hono";
 import type { AppEnvironment } from "../types";
 import { verifyToken } from "../lib/crypto";
+import { readSessionCookie } from "../lib/session-cookie";
 
 const DEV_USER = {
   id: "dev-user-001",
@@ -84,13 +85,18 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
   const ssePath = c.req.path === "/realtime" || c.req.path.startsWith("/realtime/");
   const queryToken = ssePath ? c.req.query("token") : undefined;
 
-  if (!authHeader?.startsWith("Bearer ") && !queryToken) {
+  // Phase 1.3: the portal stores its JWT in an httpOnly cookie so
+  // client JS can't exfiltrate it via XSS. The cookie is the
+  // fallback when no `Authorization: Bearer` header is supplied.
+  const cookieToken = readSessionCookie(c);
+
+  if (!authHeader?.startsWith("Bearer ") && !queryToken && !cookieToken) {
     return c.json({ error: "Missing or invalid authorization header" }, 401);
   }
 
   const token = authHeader?.startsWith("Bearer ")
     ? authHeader.split(" ")[1]
-    : (queryToken as string);
+    : (queryToken as string) ?? cookieToken ?? "";
   const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
   const decoded = await verifyToken(token, secret);
 

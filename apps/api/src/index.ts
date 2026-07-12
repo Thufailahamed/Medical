@@ -129,10 +129,11 @@ app.use("*", cors({
     "x-active-clinic-id",
     "x-timezone-offset",
   ],
-  // Allow the marketing site to read the JSON response from
-  // the waitlist POST (default is no credentials; we want
-  // same-origin + the listed cross-origins to work cleanly).
-  credentials: false,
+  // Phase 1.3: enable credentials so the portal can carry the
+  // httpOnly `portal_session` cookie across cross-origin XHR.
+  // The mobile app doesn't send cookies (Bearer-only), so the
+  // upgrade is safe for it too.
+  credentials: true,
   maxAge: 86400,
 }));
 

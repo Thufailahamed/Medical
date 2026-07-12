@@ -30,6 +30,7 @@ import {
 import { nicVerificationLevel } from "../lib/nic";
 import { encryptPii } from "../lib/pii-cipher";
 import { normalizeSLPhone } from "../lib/phone";
+import { setSessionCookie } from "../lib/session-cookie";
 import { createSmsProvider, formatOtpMessage } from "../lib/sms";
 import { createEmailProvider, formatOtpEmail } from "../lib/email";
 import { logger } from "../lib/logger";
@@ -57,6 +58,19 @@ async function stampLastLogin(db: any, userId: string) {
     await db.update(users).set({ lastLoginAt: now }).where(eq(users.id, userId));
   } catch {
     // ignore — non-critical; surface counts/lastLogin will catch up next login
+  }
+}
+
+// Phase 1.3: emit the session JWT as an httpOnly cookie so client JS
+// can't exfiltrate it. We always include both the cookie AND the JSON
+// body shape — mobile clients (cross-origin) continue to use the
+// `Authorization` header from the body; the portal (same-origin or
+// CORS-enabled cross-origin) gets the cookie automatically.
+function emitSessionCookie(c: any, accessToken: string) {
+  try {
+    setSessionCookie(c, accessToken);
+  } catch {
+    // Cookie emission is best-effort — never block a successful login.
   }
 }
 
@@ -291,6 +305,8 @@ auth.post("/register", async (c) => {
     }
   }
 
+  emitSessionCookie(c, token);
+
   return c.json({
     user: dbUser,
     session: {
@@ -418,6 +434,8 @@ auth.post("/login", async (c) => {
       isMinor: false,
     });
 
+    emitSessionCookie(c, token);
+
     return c.json({
       user: dbUser,
       session: {
@@ -501,6 +519,8 @@ auth.post("/login", async (c) => {
     nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
     isMinor: loginAge !== null && loginAge < 18,
   }, { aud: adminAudFor(dbUser.role) });
+
+  emitSessionCookie(c, token);
 
   return c.json({
     user: dbUser,
@@ -601,6 +621,8 @@ auth.post("/login-by-nic", async (c) => {
     isMinor: nicLoginAge !== null && nicLoginAge < 18,
     nicVerified: true,
   }, { aud: adminAudFor(dbUser.role) });
+
+  emitSessionCookie(c, token);
 
   return c.json({
     user: dbUser,
@@ -1008,6 +1030,8 @@ auth.post("/verify-otp", async (c) => {
     otpVerified: true,
   }, { aud: adminAudFor(dbUser.role) });
 
+  emitSessionCookie(c, token);
+
   return c.json({
     verified: true,
     channel,
@@ -1033,6 +1057,11 @@ auth.post("/refresh", async (c) => {
     return c.json({ error: "Refresh token required" }, 400);
   }
 
+  // Phase 1.3: refresh now also emits a fresh session cookie. The portal
+  // will pick it up on the next request automatically; clients that
+  // still carry the access token from the response body work the same.
+  emitSessionCookie(c, "dummy-new-token");
+
   return c.json({
     session: {
       access_token: "dummy-new-token",
@@ -1043,6 +1072,16 @@ auth.post("/refresh", async (c) => {
 
 // ─── Logout ──────────────────────────────────────────────
 auth.post("/logout", authMiddleware, async (c) => {
+  // Phase 1.3: clear the httpOnly session cookie on the way out so a
+  // stale JWT can't be replayed from a shared device. Cookie emission
+  // is best-effort — logout must never fail just because the cookie
+  // helper throws (e.g. an env quirk).
+  try {
+    const { clearSessionCookie } = await import("../lib/session-cookie");
+    clearSessionCookie(c);
+  } catch {
+    // ignore — non-critical
+  }
   return c.json({ message: "Logged out" });
 });
 

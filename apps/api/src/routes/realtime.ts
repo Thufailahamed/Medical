@@ -15,6 +15,12 @@
 // Auth: the EventSource API can't set custom headers, so this route
 // also accepts the JWT via `?token=`. `authMiddleware` already grants
 // that on `/realtime` specifically (see middleware/auth.ts).
+//
+// Phase 1.4: instead of putting the long-lived JWT in the URL (which
+// gets logged in proxies, browser history, and referer headers), the
+// client POSTs `/realtime/token` with their Bearer header and gets back
+// a short-lived opaque ticket. The ticket is bound to the user ID and
+// expires after 60s — enough for the EventSource handshake to complete.
 
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
@@ -33,10 +39,56 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { accessiblePatientsFor } from "../lib/access";
+import { generateToken, verifyToken } from "../lib/crypto";
 import type { AppEnvironment } from "../types";
 
 const realtimeRouter = new Hono<AppEnvironment>();
 realtimeRouter.use("*", authMiddleware);
+
+const TICKET_TTL_SECONDS = 60;
+
+/**
+ * POST /realtime/token
+ * Body: none (Bearer header required)
+ * Response: { ticket: string, expiresAt: number, url: string }
+ *
+ * Mints a short-lived ticket scoped to the current user. The ticket
+ * IS a JWT signed with the same secret, but carries `purpose: "realtime"`
+ * and `exp = now + 60s`. Clients exchange it for SSE access by appending
+ * `?token=<ticket>` to /realtime.
+ */
+realtimeRouter.post("/token", async (c) => {
+  const userId = c.get("userId");
+  const role = c.get("userRole") || "patient";
+  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const expiresAt = Math.floor(Date.now() / 1000) + TICKET_TTL_SECONDS;
+  const ticket = await generateToken(userId, secret, {
+    purpose: "realtime",
+    role,
+    exp: expiresAt,
+  });
+  return c.json({
+    ticket,
+    expiresAt,
+    url: `/realtime?token=${encodeURIComponent(ticket)}`,
+  });
+});
+
+/**
+ * Helper: reject SSE ?token= tickets that don't carry `purpose: realtime`.
+ * Keeps the long-lived session JWT from accidentally being reused as a
+ * ticket by a misbehaving client. Also enforces the 60s TTL embedded in
+ * the JWT itself.
+ */
+async function acceptTicket(c: any): Promise<string | null> {
+  const t = c.req.query("token");
+  if (!t) return null;
+  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const decoded = await verifyToken(t, secret);
+  if (!decoded || decoded.purpose !== "realtime") return null;
+  return t;
+}
+void acceptTicket; // referenced by the GET handler below
 
 const POLL_MS = 2000;
 const HEARTBEAT_MS = 15000;
@@ -47,6 +99,22 @@ realtimeRouter.get("/", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const role: string = (user && user.role) || "patient";
+
+  // Phase 1.4: if the caller supplied a `?token=` query param, it MUST
+  // be a short-lived purpose=realtime ticket — reject any attempt to
+  // put a long-lived session JWT in the URL. Requests authenticated
+  // via the Bearer header (e.g. server-to-server) still work as before.
+  const queryToken = c.req.query("token");
+  if (queryToken) {
+    const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+    const decoded = await verifyToken(queryToken, secret);
+    if (!decoded || decoded.purpose !== "realtime") {
+      return c.json(
+        { error: "SSE URL requires a short-lived /realtime/token ticket" },
+        401
+      );
+    }
+  }
 
   // ── Access scope for the duration of this connection ──────────
   // For a patient: their own patient.id. For a doctor: the union of

@@ -141,85 +141,87 @@ export default function PatientsPage() {
               className="py-12"
             />
           ) : (
-            <Table className="border-0 rounded-none shadow-none">
-              <THead>
-                <TR>
-                  <TH>{t("common.name")}</TH>
-                  <TH>{t("patients.mrn")}</TH>
-                  <TH>{t("common.phone")}</TH>
-                  <TH>{t("common.status")}</TH>
-                  <TH>{t("patients.admitted")}</TH>
-                  <TH>{t("patients.registeredAt")}</TH>
-                  <TH className="text-right">{t("common.actions")}</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {patients.map((p: any) => (
-                  <TR
-                    key={p.id}
-                    className="hospital-patient-row group"
-                    onClick={() => router.push(`/hospital/reception/patients/${p.id}`)}
-                  >
-                    <TD>
-                      <div className="flex items-center gap-3">
-                        <div className="hospital-patient-avatar">
-                          {patientInitials(p.name)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-semibold text-text truncate">
-                            {p.name ?? "—"}
+            <div className="hospital-data-table-wrap">
+              <table className="hospital-data-table">
+                <thead>
+                  <tr>
+                    <th className="text-left">{t("common.name")}</th>
+                    <th className="text-left">{t("patients.mrn")}</th>
+                    <th className="text-left">{t("common.phone")}</th>
+                    <th className="text-left">{t("common.status")}</th>
+                    <th className="text-left">{t("patients.admitted")}</th>
+                    <th className="text-left">{t("patients.registeredAt")}</th>
+                    <th className="text-right">{t("common.actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.map((p: any) => (
+                    <tr
+                      key={p.id}
+                      className="hospital-patient-row group"
+                      onClick={() => router.push(`/hospital/reception/patients/${p.id}`)}
+                    >
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="hospital-patient-avatar">
+                            {patientInitials(p.name)}
                           </div>
-                          {p.email ? (
-                            <div className="text-[11px] text-text-muted truncate max-w-[220px]">
-                              {p.email}
+                          <div className="min-w-0">
+                            <div className="font-semibold text-text truncate">
+                              {p.name ?? "—"}
                             </div>
-                          ) : null}
+                            {p.email ? (
+                              <div className="text-[11px] text-text-muted truncate max-w-[220px]">
+                                {p.email}
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </TD>
-                    <TD>
-                      <span className="hospital-mrn">{p.mrn ?? t("patients.actions.noMrn")}</span>
-                    </TD>
-                    <TD className="text-text-soft text-sm whitespace-nowrap">
-                      {p.phone ?? "—"}
-                    </TD>
-                    <TD>
-                      <Pill tone={STATUS_TONE[p.status] ?? "neutral"} className="text-[11px]">
-                        {p.status === "registered"
-                          ? t("patients.registered")
-                          : p.status === "discharged"
-                            ? t("patients.discharged")
-                            : p.status}
-                      </Pill>
-                    </TD>
-                    <TD>
-                      {p.currentlyAdmitted ? (
-                        <Pill tone="warn" className="text-[11px]">
-                          {t("patients.admitted")}
+                      </td>
+                      <td>
+                        <span className="hospital-mrn">{p.mrn ?? t("patients.actions.noMrn")}</span>
+                      </td>
+                      <td className="text-text-soft text-sm whitespace-nowrap">
+                        {p.phone ?? "—"}
+                      </td>
+                      <td>
+                        <Pill tone={STATUS_TONE[p.status] ?? "neutral"} className="text-[11px]">
+                          {p.status === "registered"
+                            ? t("patients.registered")
+                            : p.status === "discharged"
+                              ? t("patients.discharged")
+                              : p.status}
                         </Pill>
-                      ) : (
-                        <span className="text-xs text-text-muted">
-                          {t("patients.notAdmitted")}
-                        </span>
-                      )}
-                    </TD>
-                    <TD className="text-xs text-text-muted whitespace-nowrap">
-                      {p.registeredAt ? formatDate(p.registeredAt, locale) : "—"}
-                    </TD>
-                    <TD className="text-right">
-                      <Link
-                        href={`/hospital/reception/patients/${p.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="portal-btn portal-btn-ghost portal-btn-sm opacity-70 group-hover:opacity-100"
-                      >
-                        {t("patients.actions.view")}
-                        <ArrowRight size={13} />
-                      </Link>
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
+                      </td>
+                      <td>
+                        {p.currentlyAdmitted ? (
+                          <Pill tone="warn" className="text-[11px]">
+                            {t("patients.admitted")}
+                          </Pill>
+                        ) : (
+                          <span className="text-xs text-text-muted">
+                            {t("patients.notAdmitted")}
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-xs text-text-muted whitespace-nowrap">
+                        {p.registeredAt ? formatDate(p.registeredAt, locale) : "—"}
+                      </td>
+                      <td className="text-right">
+                        <Link
+                          href={`/hospital/reception/patients/${p.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="portal-btn portal-btn-ghost portal-btn-sm opacity-70 group-hover:opacity-100"
+                        >
+                          {t("patients.actions.view")}
+                          <ArrowRight size={13} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </Card>

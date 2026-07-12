@@ -60,6 +60,7 @@ async function attemptRefresh(refreshToken: string): Promise<boolean> {
     const res = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
+      credentials: "include",
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (!res.ok) return false;
@@ -135,6 +136,7 @@ export async function api<T = any>(
   let res = await fetch(url, {
     ...rest,
     headers: reqHeaders,
+    credentials: "include",
     body: json !== undefined ? JSON.stringify(json) : (rest as RequestInit).body,
   });
 

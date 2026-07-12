@@ -136,49 +136,83 @@ export function useRealtime({ token, userId, silent }: UseRealtimeArgs) {
     if (typeof window === "undefined") return;
     if (esRef.current) return; // already connected
 
-    // EventSource can't send custom headers — token goes on the URL.
-    // Server's auth middleware accepts `?token=` for /realtime specifically.
-    const url = `${API_URL}/realtime?token=${encodeURIComponent(token)}`;
-    const es = new EventSource(url, { withCredentials: false });
-    esRef.current = es;
+    // Phase 1.4: instead of putting the long-lived session JWT in the
+    // URL (which gets logged in proxies, browser history, and the
+    // Referer header), we POST /realtime/token with the Bearer header
+    // to mint a short-lived (60s) opaque ticket. EventSource then
+    // opens with that ticket as `?token=`. If the ticket mint fails
+    // we silently give up — the page still polls on focus.
+    let cancelled = false;
 
-    es.addEventListener("hello", () => {
-      // Connection confirmed — could be used to flip a "live" badge.
-    });
-
-    es.addEventListener("notification", (ev) => {
+    (async () => {
       try {
-        const n = JSON.parse((ev as MessageEvent).data) as RealtimeNotification;
-        invalidateFor(qc, n);
-        if (!silent) {
-          toast.info(n.title, n.body);
+        const res = await fetch(`${API_URL}/realtime/token`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json().catch(() => null)) as
+          | { url?: string; ticket?: string }
+          | null;
+        const url = data?.url
+          ? `${API_URL}${data.url}`
+          : data?.ticket
+            ? `${API_URL}/realtime?token=${encodeURIComponent(data.ticket)}`
+            : null;
+        if (!url || cancelled) return;
+        const es = new EventSource(url);
+        esRef.current = es;
+
+        es.addEventListener("hello", () => {
+          // Connection confirmed — could be used to flip a "live" badge.
+        });
+
+        es.addEventListener("notification", (ev) => {
+          try {
+            const n = JSON.parse((ev as MessageEvent).data) as RealtimeNotification;
+            invalidateFor(qc, n);
+            if (!silent) {
+              toast.info(n.title, n.body);
+            }
+          } catch {
+            // ignore malformed payload
+          }
+        });
+
+        // Typed SSE events from /realtime for non-notification tables.
+        // Each event name maps to one or more React Query keys.
+        for (const eventName of Object.keys(EVENT_TO_QUERY_KEYS)) {
+          es.addEventListener(eventName, () => {
+            invalidateForEvent(qc, eventName);
+          });
         }
+
+        es.addEventListener("ping", () => {
+          // Heartbeat — keep-alive only. No-op here.
+        });
+
+        es.onerror = () => {
+          if (es.readyState === EventSource.CLOSED) {
+            esRef.current = null;
+          }
+        };
       } catch {
-        // ignore malformed payload
+        // Ticket mint or EventSource setup failed — silently give up.
+        // The page's staleTime + on-focus refetch will keep things fresh.
       }
-    });
-
-    // Typed SSE events from /realtime for non-notification tables.
-    // Each event name maps to one or more React Query keys.
-    for (const eventName of Object.keys(EVENT_TO_QUERY_KEYS)) {
-      es.addEventListener(eventName, () => {
-        invalidateForEvent(qc, eventName);
-      });
-    }
-
-    es.addEventListener("ping", () => {
-      // Heartbeat — keep-alive only. No-op here.
-    });
-
-    es.onerror = () => {
-      if (es.readyState === EventSource.CLOSED) {
-        esRef.current = null;
-      }
-    };
+    })();
 
     return () => {
-      es.close();
-      esRef.current = null;
+      cancelled = true;
+      const current = esRef.current;
+      if (current) {
+        current.close();
+        esRef.current = null;
+      }
     };
   }, [token, userId, qc, silent]);
 }

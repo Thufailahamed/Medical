@@ -126,10 +126,10 @@ export default function AuditLogScreen() {
         subtitle={t("audit.subtitle")}
       />
 
-      {/* ─── Filter chips ─── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
           paddingVertical: spacing.sm,

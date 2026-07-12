@@ -25,8 +25,8 @@ export function LocaleSwitcher() {
   // Best-effort: if the network call fails, the local change still sticks.
   const onSelect = (code: Locale) => {
     setLocale(code);
-    api("/me/locale", { method: "PATCH", body: { locale: code } }).catch(
-      (err) => console.warn("[locale] PATCH /me/locale failed:", err?.message)
+    api("/patients/me/locale", { method: "PATCH", body: { locale: code } }).catch(
+      (err) => console.warn("[locale] PATCH /patients/me/locale failed:", err?.message)
     );
   };
 
