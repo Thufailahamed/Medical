@@ -43,7 +43,7 @@ export default function PortalLayout({
     if (!hydrated) return;
     if (!token) {
       const next = encodeURIComponent(window.location.pathname);
-      router.replace(`/login?next=${next}`);
+      router.replace(`/portal/login?next=${next}`);
       return;
     }
     if (user && user.role && !PORTAL_ROLES.includes(user.role as any)) {

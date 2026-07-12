@@ -89,7 +89,13 @@ export async function api<T = any>(
       useAuthStore.getState().logout();
       if (!onLoginPage) {
         const next = encodeURIComponent(window.location.pathname);
-        window.location.href = `/login?next=${next}`;
+        const path = window.location.pathname;
+        const loginTarget =
+          path.startsWith("/portal") ? "/portal/login" :
+          path.startsWith("/hospital") ? "/hospital/login" :
+          path.startsWith("/admin") ? "/admin/login" :
+          "/login";
+        window.location.href = `${loginTarget}?next=${next}`;
       }
     }
     throw new ApiError(msg, 401, body?.details ?? body);

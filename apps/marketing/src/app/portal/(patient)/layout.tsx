@@ -55,7 +55,7 @@ export default function PatientLayout({
     if (!hydrated) return;
     if (!token) {
       const next = encodeURIComponent(window.location.pathname);
-      router.replace(`/login?next=${next}`);
+      router.replace(`/portal/login?next=${next}`);
       return;
     }
     if (user && user.role && !PATIENT_ROLES.includes(user.role as any)) {
@@ -134,7 +134,7 @@ export default function PatientLayout({
             type="button"
             onClick={() => {
               logout();
-              router.replace("/login");
+              router.replace("/portal/login");
             }}
             className="text-xs text-text-soft hover:text-text inline-flex items-center gap-1"
           >

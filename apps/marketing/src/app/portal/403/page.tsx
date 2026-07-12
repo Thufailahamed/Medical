@@ -19,7 +19,7 @@ export default function ForbiddenPage() {
 
   function onLogout() {
     logout();
-    router.replace("/login");
+    router.replace("/portal/login");
   }
 
   const role = user?.role;

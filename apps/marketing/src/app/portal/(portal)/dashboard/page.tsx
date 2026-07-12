@@ -452,7 +452,7 @@ export default function DashboardPage() {
               {recent.map((c) => (
                 <li key={c.id}>
                   <Link
-                    href={`/messages/${c.id}`}
+                    href={`/portal/messages/${c.id}`}
                     className={cn(
                       "group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
                       c.doctorUnread > 0

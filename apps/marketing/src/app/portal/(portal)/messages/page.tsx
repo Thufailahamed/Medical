@@ -74,7 +74,7 @@ export default function MessagesInboxPage() {
           <ul className="flex flex-col">
             {rows.map((c) => (
               <li key={c.id}>
-                <Link href={`/messages/${c.id}`} className={cn(
+                <Link href={`/portal/messages/${c.id}`} className={cn(
                   "flex items-center gap-3 px-4 py-3 transition-colors group",
                   c.doctorUnread > 0 ? "bg-sky-50/40 hover:bg-sky-50/70" : "hover:bg-surface-2/40"
                 )}>
