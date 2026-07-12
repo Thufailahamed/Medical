@@ -144,6 +144,10 @@ export default function AppLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
+        name="caretakers"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
         name="hospital/dashboard"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />

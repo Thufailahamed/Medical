@@ -29,7 +29,7 @@ import {
   medicines,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
-import { canAccessPatient } from "../lib/access";
+import { canActAsPatient } from "../lib/access";
 import {
   checkAllergy,
   checkInteractions,
@@ -68,7 +68,7 @@ router.post("/check", authMiddleware, async (c) => {
   // Drop malformed rows so the checkers can assume name is present.
   const cleanCandidates = candidates.filter((c) => c && c.name);
 
-  const access = await canAccessPatient(db, userId, userRole, patientId);
+  const access = await canActAsPatient(db, userId, userRole, patientId);
   if (!access.allowed) {
     return c.json({ error: "Access denied", reason: access.reason }, 403);
   }

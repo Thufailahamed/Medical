@@ -54,21 +54,15 @@ import {
 import { recordUploadEnvelopeSchema, type RecordKind } from "@healthcare/shared/records";
 import { listByKind, findByHash } from "../lib/records-v3-source";
 import { renderPrescriptionPdf } from "../lib/prescription-pdf";
+import { resolvePatientContext } from "../lib/caretaker";
 import type { AppEnvironment } from "../types";
 
 const medicalRecordsRouter = new Hono<AppEnvironment>();
 
-// ─── Ownership helper ────────────────────────────────────
-// Returns the patient row for the current patient user, or null if the
-// caller is not a patient or has no patient row.
-async function getOwnPatient(db: any, userId: string) {
-  const [p] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
-  return p || null;
-}
+// Caretaker Profiles: getOwnPatient removed in favor of resolvePatientContext,
+// which respects the active-principal header for caretakers (legacy
+// "find patients row by users.id" returned null for caretakers since they
+// have no patients row of their own).
 
 // Returns the doctor row for the current doctor user, or null.
 async function getOwnDoctor(db: any, userId: string) {
@@ -118,11 +112,11 @@ async function resolveFamilyMember(db: any, familyMemberId: string | null | unde
 
 // ─── Get my records (with pagination) ────────────────────
 // GET /medical-records/me?limit=50&offset=0&type=lab_report
-medicalRecordsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
+medicalRecordsRouter.get("/me", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
 
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) {
     return c.json({ error: "Patient profile not found" }, 404);
   }
@@ -361,10 +355,10 @@ medicalRecordsRouter.get("/me", authMiddleware, requireRole("patient"), async (c
 
 // ─── Stats for filter chips ───────────────────────────────
 // GET /medical-records/me/stats
-medicalRecordsRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (c) => {
+medicalRecordsRouter.get("/me/stats", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ total: 0, byType: {}, lastDate: null });
 
   const rows = await db
@@ -1006,11 +1000,11 @@ medicalRecordsRouter.get("/timeline/:patientId", authMiddleware, async (c) => {
 // the rows carry the real lifecycle status + signature state and the
 // ids work with the public GET /verify/:id endpoint. Drafts are
 // excluded — patients only see what the doctor has actually issued.
-medicalRecordsRouter.get("/me/prescriptions", authMiddleware, requireRole("patient"), async (c) => {
+medicalRecordsRouter.get("/me/prescriptions", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
 
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ prescriptions: [] });
 
   const rows = await db
@@ -1080,13 +1074,13 @@ medicalRecordsRouter.get("/me/prescriptions", authMiddleware, requireRole("patie
 medicalRecordsRouter.get(
   "/me/prescriptions/:id/pdf",
   authMiddleware,
-  requireRole("patient"),
+  requireRole("patient", "caretaker"),
   async (c) => {
     const userId = c.get("userId");
     const db = c.get("db");
     const id = c.req.param("id");
 
-    const patient = await getOwnPatient(db, userId);
+    const patient = await resolvePatientContext(c);
     if (!patient) return c.json({ error: "Patient not found" }, 404);
 
     const [owned] = await db
@@ -1122,13 +1116,13 @@ medicalRecordsRouter.get(
 medicalRecordsRouter.get(
   "/me/prescriptions/:id",
   authMiddleware,
-  requireRole("patient"),
+  requireRole("patient", "caretaker"),
   async (c) => {
     const userId = c.get("userId");
     const db = c.get("db");
     const id = c.req.param("id");
 
-    const patient = await getOwnPatient(db, userId);
+    const patient = await resolvePatientContext(c);
     if (!patient) return c.json({ error: "Patient not found" }, 404);
 
     const [row] = await db
@@ -1187,10 +1181,10 @@ medicalRecordsRouter.get(
 // prescriptions + labReports + labOrders + medicines + vaccinations into a
 // single response keyed by category. The mobile records-v2 hub uses this.
 
-medicalRecordsRouter.get("/me/canonical", authMiddleware, requireRole("patient"), async (c) => {
+medicalRecordsRouter.get("/me/canonical", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "patient_not_found" }, 404);
 
   const [records, allergyRows, vitalsRows, symptomRows, notesRows, rxRows, labRows, orderRows, medRows] =
@@ -1241,10 +1235,10 @@ medicalRecordsRouter.get("/me/canonical", authMiddleware, requireRole("patient")
 // New canonical writer. Accepts the envelope schema, encrypts the payload,
 // writes the row with hash-chain links, and writes an initial revision.
 
-medicalRecordsRouter.post("/envelope", authMiddleware, requireRole("patient"), async (c) => {
+medicalRecordsRouter.post("/envelope", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "patient_not_found" }, 404);
 
   const body = await c.req.json().catch(() => ({}));
@@ -1353,23 +1347,23 @@ medicalRecordsRouter.get("/:id/revisions", authMiddleware, async (c) => {
 
 // ─── Phase v3: Kind-sourced listing ──────────────────────────────
 // GET /medical-records/by-kind/:kind?limit=50
-medicalRecordsRouter.get("/by-kind/:kind", authMiddleware, requireRole("patient"), async (c) => {
+medicalRecordsRouter.get("/by-kind/:kind", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const kind = c.req.param("kind") as RecordKind;
   const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "patient_not_found" }, 404);
   const items = await listByKind(db, patient.id, kind, limit);
   return c.json({ items });
 });
 
 // GET /medical-records/by-hash/:hash
-medicalRecordsRouter.get("/by-hash/:hash", authMiddleware, requireRole("patient"), async (c) => {
+medicalRecordsRouter.get("/by-hash/:hash", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const hash = c.req.param("hash");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "patient_not_found" }, 404);
   const row = await findByHash(db, patient.id, hash);
   if (!row) return c.json({ error: "not_found" }, 404);

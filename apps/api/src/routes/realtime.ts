@@ -36,6 +36,7 @@ import {
   walkIns,
   patients,
   hospitalStaff,
+  patientLinks,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { accessiblePatientsFor } from "../lib/access";
@@ -144,6 +145,18 @@ realtimeRouter.get("/", async (c) => {
         .where(eq(medicalRecords.hospitalId, staff.hospitalId));
       scopedPatientIds = rows.map((r: any) => r.pid).filter(Boolean);
     }
+  } else if (role === "caretaker") {
+    // Caretaker Profiles: union of every active link's principal.
+    const rows = await db
+      .selectDistinct({ pid: patientLinks.principalPatientId })
+      .from(patientLinks)
+      .where(
+        and(
+          eq(patientLinks.caretakerUserId, userId),
+          eq(patientLinks.status, "active")
+        )
+      );
+    scopedPatientIds = rows.map((r: any) => r.pid).filter(Boolean);
   }
 
   let closed = false;
@@ -442,6 +455,43 @@ function buildPollers(ctx: {
         sessionId: r.sessionId,
         role: r.role,
         createdAt: r.createdAt,
+      }),
+    },
+    {
+      // Caretaker Profiles: emit when a link is added/revoked/paused
+      // so linked caretakers + the principal refresh link state. The
+      // poller runs for everyone; `where` filters by user involvement.
+      key: "patient_link",
+      eventName: "caretaker_link",
+      idColumn: "id",
+      cursorColumn: patientLinks.id,
+      where: () =>
+        sql`${patientLinks.caretakerUserId} = ${userId} OR ${patientLinks.invitedByUserId} = ${userId}`,
+      select: (where: any) =>
+        ctx.db
+          .select({
+            id: patientLinks.id,
+            caretakerUserId: patientLinks.caretakerUserId,
+            principalPatientId: patientLinks.principalPatientId,
+            careRole: patientLinks.careRole,
+            status: patientLinks.status,
+            invitedAt: patientLinks.invitedAt,
+            acceptedAt: patientLinks.acceptedAt,
+            revokedAt: patientLinks.revokedAt,
+            updatedAt: patientLinks.updatedAt,
+          })
+          .from(patientLinks)
+          .where(where),
+      payload: (r: any) => ({
+        id: r.id,
+        caretakerUserId: r.caretakerUserId,
+        principalPatientId: r.principalPatientId,
+        careRole: r.careRole,
+        status: r.status,
+        invitedAt: r.invitedAt,
+        acceptedAt: r.acceptedAt,
+        revokedAt: r.revokedAt,
+        updatedAt: r.updatedAt,
       }),
     },
   ];

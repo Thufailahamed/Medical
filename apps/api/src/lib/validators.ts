@@ -234,6 +234,46 @@ export const familyMemberSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 
+// ─── Caretaker Profiles ───────────────────────────────────
+//
+// careRole values surfaced in mobile chips. Distinct from
+// FAMILY_RELATIONSHIP_VALUES because caretakers are a different
+// relationship domain (cross-account, not household).
+export const CARE_ROLE_VALUES = [
+  "parent",
+  "guardian",
+  "spouse_caregiver",
+  "child_caregiver",
+  "sibling_caregiver",
+  "other",
+] as const;
+
+/** POST /caretaker/invites — principal creates an invite for a phone/email. */
+export const createCaretakerInviteSchema = z.object({
+  caretakerName: z.string().min(1).max(120),
+  careRole: z.enum(CARE_ROLE_VALUES).default("other"),
+  channel: z.enum(["mobile", "email"]),
+  contact: z.string().min(3).max(254),
+  expiresInHours: z.number().int().min(1).max(24 * 30).optional(),
+});
+
+/** POST /caretaker/invites/:token/accept — caretaker proves contact possession. */
+export const acceptCaretakerInviteSchema = z.object({
+  otp: z.string().regex(/^\d{6}$/),
+  channel: z.enum(["mobile", "email"]),
+});
+
+/** PATCH /caretaker/links/:linkId — principal pauses/resumes a link. */
+export const patchCaretakerLinkSchema = z.object({
+  status: z.enum(["active", "paused"]),
+  reason: z.string().max(500).optional(),
+});
+
+/** PATCH /caretaker/me/active-principal — caretaker picks active principal. */
+export const setActivePrincipalSchema = z.object({
+  patientId: z.string().uuid().nullable(),
+});
+
 export const loginSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),

@@ -76,9 +76,12 @@ export function useProtectedRoute() {
       }, 0);
       return () => clearTimeout(t);
     } else if (isAuthenticated && inAuthGroup) {
+      const role = (useAuthStore.getState().user as any)?.role;
       const home =
-        (useAuthStore.getState().user as any)?.role === "doctor"
+        role === "doctor"
           ? "/(doctor)"
+          : role === "caretaker"
+          ? "/(caretaker)"
           : "/(app)";
       const t = setTimeout(() => {
         router.replace(home as any);

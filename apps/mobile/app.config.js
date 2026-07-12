@@ -4,7 +4,7 @@ export default {
     slug: "healthcare-mobile",
     version: "1.0.0",
     orientation: "portrait",
-    scheme: "healthcare",
+    scheme: ["healthcare", "caretaker"],
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
 

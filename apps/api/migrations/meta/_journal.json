@@ -183,6 +183,20 @@
       "when": 1784300000000,
       "tag": "0044_appointment_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1790000000000,
+      "tag": "0049_caretaker_patient_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1790000000001,
+      "tag": "0050_audit_actor_user_id",
+      "breakpoints": true
     }
   ]
 }

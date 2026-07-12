@@ -3564,5 +3564,64 @@
   },
   "hospitalPatientDetail": {
     "recordsTab": "Records (unified)"
+  },
+  "caretaker": {
+    "title": "Caretakers",
+    "subtitle": "Family members who can manage your health info",
+    "addCta": "Add a caretaker",
+    "emptyTitle": "No caretakers yet",
+    "emptyBody": "Invite a family member to help manage your records, medicines, and appointments.",
+    "inviteSheetTitle": "Invite a caretaker",
+    "nameField": "Their name",
+    "nameHelper": "So they recognise the invite.",
+    "roleLabel": "How are they related?",
+    "role": {
+      "parent": "Parent",
+      "guardian": "Guardian",
+      "spouse_caregiver": "Spouse",
+      "child_caregiver": "Adult child caring for parent",
+      "sibling_caregiver": "Sibling",
+      "other": "Other"
+    },
+    "channelLabel": "How should we reach them?",
+    "channel": {
+      "mobile": "Mobile number",
+      "email": "Email"
+    },
+    "contactPlaceholder": "+94 77 … or name@example.com",
+    "contactHelper": "They'll receive a 6-digit code to confirm.",
+    "sendInvite": "Send invite",
+    "sending": "Sending…",
+    "otpTitle": "Enter the 6-digit code",
+    "otpHelper": "We sent a code to {{contact}}.",
+    "otpPlaceholder": "6-digit code",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "tooManyRequests": "Too many requests. Try again in a few minutes.",
+    "inviteFailed": "Could not {{action}} invite",
+    "link": {
+      "active": "Active",
+      "paused": "Paused",
+      "revoked": "Revoked"
+    },
+    "actionRevoke": "Revoke",
+    "actionPause": "Pause",
+    "actionResume": "Resume",
+    "revokeConfirmTitle": "Revoke caretaker access?",
+    "revokeConfirmBody": "{{name}} will lose access to your records immediately.",
+    "revokeConfirmYes": "Revoke",
+    "inviteAcceptedTitle": "Caretaker invite accepted",
+    "inviteAcceptedBody": "{{name}} can now manage your records.",
+    "footerActingOnBehalfOf": "Acting on behalf of {{name}}",
+    "previewTitle": "Caretaker invite",
+    "previewFrom": "Invited by {{name}}",
+    "previewExpired": "This invite has expired.",
+    "previewConsumed": "This invite has already been accepted.",
+    "previewAccept": "Accept invite",
+    "previewLocked": "Too many attempts. Ask {{name}} for a new invite.",
+    "previewRoleLabel": "Role",
+    "pickerTitle": "Switch principal",
+    "noPrincipals": "No linked principals yet.",
+    "switchFailed": "Could not switch principal."
   }
 }

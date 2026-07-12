@@ -68,6 +68,12 @@ export interface AppEnvironment {
     // Used by requireAdmin so handlers can read the actor + IP.
     adminActor?: typeof users.$inferSelect;
     clientIp?: string | null;
+    // Caretaker Profiles: resolved by caretaker-context middleware.
+    // The patientId the caretaker is currently acting on behalf of
+    // (verified against active patient_links rows). Empty string
+    // when not in caretaker mode or no principal is active.
+    activePrincipalPatientId?: string;
+    activeCaretakerLinkId?: string;
   };
 }
 

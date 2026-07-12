@@ -29,7 +29,46 @@ import {
   doctorPatientRelationships,
   clinics,
   hospitals,
+  patientLinks,
 } from "@healthcare/db";
+
+/**
+ * Caretaker Profiles: union of clinical and caretaker access checks.
+ * Use this on routes that accept BOTH clinical callers (doctors, staff,
+ * admins) and caretaker callers. Same return shape as canAccessPatient
+ * with an optional `linkId` field when the access came via a patient_links
+ * row.
+ */
+export async function canActAsPatient(
+  db: any,
+  userId: string,
+  role: string,
+  patientId: string
+): Promise<{
+  allowed: boolean;
+  reason?: string;
+  patient?: any;
+  linkId?: string;
+}> {
+  return canAccessPatient(db, userId, role, patientId) as any;
+}
+
+/** List the patient ids a caretaker is currently linked to (status='active'). */
+export async function accessiblePrincipalsFor(
+  db: any,
+  caretakerUserId: string
+): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ pid: patientLinks.principalPatientId })
+    .from(patientLinks)
+    .where(
+      and(
+        eq(patientLinks.caretakerUserId, caretakerUserId),
+        eq(patientLinks.status, "active")
+      )
+    );
+  return rows.map((r: any) => r.pid).filter(Boolean);
+}
 
 export async function getPatientForUser(db: any, userId: string) {
   const [row] = await db
@@ -201,6 +240,26 @@ export async function canAccessPatient(
       .limit(1);
     if (mr) return { allowed: true, patient: p };
     return { allowed: false, reason: "Staff has no records for this patient at their hospital" };
+  }
+
+  // Caretaker Profiles: a user with role='caretaker' may access the
+  // principal's data if and only if an active patient_links row exists
+  // for (caretakerUserId, principalPatientId). Paused or revoked links
+  // deny. Returns linkId so callers can stamp audit rows.
+  if (role === "caretaker") {
+    const [link] = await db
+      .select({ id: patientLinks.id, status: patientLinks.status })
+      .from(patientLinks)
+      .where(
+        and(
+          eq(patientLinks.caretakerUserId, userId),
+          eq(patientLinks.principalPatientId, patientId),
+          eq(patientLinks.status, "active")
+        )
+      )
+      .limit(1);
+    if (link) return { allowed: true, patient: p, linkId: link.id };
+    return { allowed: false, reason: "No active caretaker link to this patient" };
   }
 
   return { allowed: false, reason: "Role not permitted" };

@@ -2,8 +2,10 @@
 
 import { Hono } from "hono";
 import { eq, and, desc, gte, lte, asc } from "drizzle-orm";
-import { vitals, symptoms, patients } from "@healthcare/db";
+import { vitals, symptoms } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { requireRole } from "../middleware/rbac";
+import { resolvePatientContext } from "../lib/caretaker";
 import type { AppEnvironment } from "../types";
 import {
   VITAL_REGISTRY,
@@ -21,35 +23,19 @@ import { derivedBlock, latestByType, classifyAlerts } from "../lib/vitals-derive
 
 const vitalsRouter = new Hono<AppEnvironment>();
 
-async function getPatientId(db: any, userId: string) {
-  const [p] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
-  return p?.id || null;
-}
+// Caretaker Profiles: getPatientId + getOwnPatient removed in favor of
+// resolvePatientContext which respects the active-principal header for
+// caretakers.
 
-async function getOwnPatient(db: any, userId: string) {
-  const [p] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
-  return p || null;
-}
-
-// ─── List vitals ─────────────────────────────────────────
 vitalsRouter.get("/me", authMiddleware, async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ vitals: [] });
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ vitals: [] });
 
   const type = c.req.query("type");
   const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 200);
 
-  const conditions = [eq(vitals.patientId, patientId)];
+  const conditions = [eq(vitals.patientId, patient.id)];
   if (type) {
     if (!(VITAL_TYPES as readonly string[]).includes(type)) {
       return c.json({ error: `type must be one of: ${VITAL_TYPES.join(", ")}` }, 400);
@@ -67,12 +53,10 @@ vitalsRouter.get("/me", authMiddleware, async (c) => {
   return c.json({ vitals: rows });
 });
 
-// ─── Add vital ───────────────────────────────────────────
-vitalsRouter.post("/", authMiddleware, async (c) => {
+vitalsRouter.post("/", authMiddleware, requireRole("patient", "caretaker", "doctor"), async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ error: "Patient not found" }, 404);
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const body = await c.req.json();
   const parsed = addVitalSchema.safeParse(body);
@@ -91,7 +75,7 @@ vitalsRouter.post("/", authMiddleware, async (c) => {
   const [row] = await db
     .insert(vitals)
     .values({
-      patientId,
+      patientId: patient.id,
       type: v.type as VitalType,
       value: v.value,
       unit: v.unit || defaultUnit(v.type as VitalType),
@@ -106,19 +90,17 @@ vitalsRouter.post("/", authMiddleware, async (c) => {
   return c.json({ vital: row }, 201);
 });
 
-// ─── Delete vital ────────────────────────────────────────
-vitalsRouter.delete("/:id", authMiddleware, async (c) => {
+vitalsRouter.delete("/:id", authMiddleware, requireRole("patient", "caretaker", "doctor"), async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ error: "Patient not found" }, 404);
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const id = c.req.param("id");
   if (!id) return c.json({ error: "Missing id" }, 400);
   const [row] = await db
     .select()
     .from(vitals)
-    .where(and(eq(vitals.id, id), eq(vitals.patientId, patientId)))
+    .where(and(eq(vitals.id, id), eq(vitals.patientId, patient.id)))
     .limit(1);
   if (!row) return c.json({ error: "Vital not found" }, 404);
 
@@ -126,12 +108,10 @@ vitalsRouter.delete("/:id", authMiddleware, async (c) => {
   return c.json({ message: "Vital deleted" });
 });
 
-// ─── Vitals trend series (chart-ready) ───────────────────
 vitalsRouter.get("/me/series", authMiddleware, async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ type: null, points: [], stats: null });
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ type: null, points: [], stats: null });
 
   const type = c.req.query("type");
   const from = c.req.query("from");
@@ -143,7 +123,7 @@ vitalsRouter.get("/me/series", authMiddleware, async (c) => {
   }
 
   const conditions: any[] = [
-    eq(vitals.patientId, patientId),
+    eq(vitals.patientId, patient.id),
     eq(vitals.type, type as any),
   ];
   if (from) conditions.push(gte(vitals.recordedAt, from));
@@ -177,11 +157,9 @@ vitalsRouter.get("/me/series", authMiddleware, async (c) => {
     stats = { min, max, avg, latest, delta, count: values.length };
   }
 
-  // Add classification for the latest point
   let latestClassification: string | null = null;
   if (points.length > 0) {
     const lastRow = rows[rows.length - 1];
-    const patient = await getOwnPatient(db, userId);
     const alerts = classifyAlerts([lastRow], { patient });
     if (alerts.length > 0) {
       latestClassification = alerts[0].classification;
@@ -197,26 +175,20 @@ vitalsRouter.get("/me/series", authMiddleware, async (c) => {
   });
 });
 
-// ─── Derived metrics block ────────────────────────────────
-// Returns MAP / pulse pressure / WHR / BMR / BMI computed from latest
-// readings and the patient profile. Pure derived math — no extra
-// storage required.
 vitalsRouter.get("/me/derived", authMiddleware, async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) {
+  const patient = await resolvePatientContext(c);
+  if (!patient) {
     return c.json({
       derived: { map: null, pulsePressure: null, whr: null, bmr: null, bmi: null, bmiCategory: null },
       latestByType: [],
     });
   }
 
-  const patient = await getOwnPatient(db, userId);
   const allRows = await db
     .select()
     .from(vitals)
-    .where(eq(vitals.patientId, patientId))
+    .where(eq(vitals.patientId, patient.id))
     .orderBy(desc(vitals.recordedAt))
     .limit(500);
 
@@ -225,22 +197,19 @@ vitalsRouter.get("/me/derived", authMiddleware, async (c) => {
   return c.json({ derived, latestByType: lbt });
 });
 
-// ─── Out-of-range alerts (last 30 days by default) ────────
 vitalsRouter.get("/me/alerts", authMiddleware, async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ alerts: [], count: 0 });
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ alerts: [], count: 0 });
 
   const days = Math.min(parseInt(c.req.query("days") || "30", 10), 365);
   const since = new Date();
   since.setDate(since.getDate() - days);
 
-  const patient = await getOwnPatient(db, userId);
   const rows = await db
     .select()
     .from(vitals)
-    .where(and(eq(vitals.patientId, patientId), gte(vitals.recordedAt, since.toISOString())))
+    .where(and(eq(vitals.patientId, patient.id), gte(vitals.recordedAt, since.toISOString())))
     .orderBy(desc(vitals.recordedAt))
     .limit(500);
 
@@ -248,27 +217,24 @@ vitalsRouter.get("/me/alerts", authMiddleware, async (c) => {
   return c.json({ alerts, count: alerts.length, days });
 });
 
-// ─── Symptoms list ────────────────────────────────────────
 vitalsRouter.get("/symptoms/me", authMiddleware, async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ symptoms: [] });
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ symptoms: [] });
 
   const rows = await db
     .select()
     .from(symptoms)
-    .where(eq(symptoms.patientId, patientId))
+    .where(eq(symptoms.patientId, patient.id))
     .orderBy(desc(symptoms.startedAt))
     .limit(100);
   return c.json({ symptoms: rows });
 });
 
-vitalsRouter.post("/symptoms", authMiddleware, async (c) => {
+vitalsRouter.post("/symptoms", authMiddleware, requireRole("patient", "caretaker", "doctor"), async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ error: "Patient not found" }, 404);
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const body = await c.req.json();
   if (!body.symptom) return c.json({ error: "symptom required" }, 400);
@@ -280,7 +246,7 @@ vitalsRouter.post("/symptoms", authMiddleware, async (c) => {
   const [row] = await db
     .insert(symptoms)
     .values({
-      patientId,
+      patientId: patient.id,
       symptom: body.symptom,
       severity: severity as any,
       startedAt: body.startedAt || new Date().toISOString(),
@@ -292,18 +258,17 @@ vitalsRouter.post("/symptoms", authMiddleware, async (c) => {
   return c.json({ symptom: row }, 201);
 });
 
-vitalsRouter.delete("/symptoms/:id", authMiddleware, async (c) => {
+vitalsRouter.delete("/symptoms/:id", authMiddleware, requireRole("patient", "caretaker", "doctor"), async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patientId = await getPatientId(db, userId);
-  if (!patientId) return c.json({ error: "Patient not found" }, 404);
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const id = c.req.param("id");
   if (!id) return c.json({ error: "Missing id" }, 400);
   const [row] = await db
     .select()
     .from(symptoms)
-    .where(and(eq(symptoms.id, id), eq(symptoms.patientId, patientId)))
+    .where(and(eq(symptoms.id, id), eq(symptoms.patientId, patient.id)))
     .limit(1);
   if (!row) return c.json({ error: "Symptom not found" }, 404);
 
@@ -311,9 +276,6 @@ vitalsRouter.delete("/symptoms/:id", authMiddleware, async (c) => {
   return c.json({ message: "Symptom deleted" });
 });
 
-// Re-export registry helpers for clients that may want to look them up.
-// (Not strictly needed for the API surface itself but keeps the module
-// self-contained for shared consumers.)
 export const __meta = {
   types: VITAL_TYPES,
   contexts: VITAL_CONTEXTS,

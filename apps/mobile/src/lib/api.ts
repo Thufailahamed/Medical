@@ -2,6 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore } from "@/stores/locale";
 import { useActiveFamilyMemberStore } from "@/stores/activeFamilyMember";
+import { useActivePrincipalStore } from "@/stores/activePrincipal";
 import { useActiveTenantStore } from "@/stores/tenant-store";
 import { intlLocale } from "./format";
 
@@ -57,6 +58,12 @@ async function runRequest<T>(
   if (activeFmId) {
     requestHeaders["x-active-family-member-id"] = activeFmId;
   }
+  // Caretaker Profiles: forward active principal so list endpoints scope
+  // to the chosen patient. Mirrors family-member pattern.
+  const activePrincipalId = useActivePrincipalStore.getState().activePrincipalPatientId;
+  if (activePrincipalId) {
+    requestHeaders["x-active-principal-patient-id"] = activePrincipalId;
+  }
   // Phase MTN-1: forward active tenant so list endpoints scope to the
   // chosen hospital/clinic. Mutex by design — server returns 400 if
   // both headers are set. Header wins over the user's persisted
@@ -109,6 +116,10 @@ async function runRequest<T>(
         const body = await response.clone().json().catch(() => ({}));
         if (body?.reason === "family_member_gone") {
           useActiveFamilyMemberStore.getState().clear();
+        }
+        // Caretaker Profiles: principal link revoked mid-session.
+        if (body?.reason === "principal_access_gone") {
+          useActivePrincipalStore.getState().clear();
         }
       } catch {
         // ignore parse errors — clear() is idempotent
@@ -223,6 +234,10 @@ export async function apiSse(
   const activeFmId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
   if (activeFmId) {
     requestHeaders["x-active-family-member-id"] = activeFmId;
+  }
+  const activePrincipalId = useActivePrincipalStore.getState().activePrincipalPatientId;
+  if (activePrincipalId) {
+    requestHeaders["x-active-principal-patient-id"] = activePrincipalId;
   }
   const activeHospId = useActiveTenantStore.getState().activeHospitalId;
   const activeClinicId = useActiveTenantStore.getState().activeClinicId;

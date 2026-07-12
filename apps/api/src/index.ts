@@ -4,6 +4,7 @@ import { logger } from "hono/logger";
 import { createDb } from "./lib/db";
 import { localeMiddleware } from "./middleware/locale";
 import { familyContextMiddleware } from "./middleware/family-context";
+import { caretakerContextMiddleware } from "./middleware/caretaker-context";
 import { tenantContextMiddleware } from "./middleware/tenant-context";
 import authRoutes from "./routes/auth";
 import patientsRoutes from "./routes/patients";
@@ -82,6 +83,8 @@ import adminImpersonateRouter from "./routes/admin-impersonate";
 import adminHealthRouter from "./routes/admin-health";
 import adminOperatorRouter from "./routes/admin-operator";
 import familyInviteRouter from "./routes/family-invites";
+import caretakerInviteRouter from "./routes/caretaker-invites";
+import caretakerLinksRouter from "./routes/caretaker-links";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
 import whatsappRouter from "./routes/whatsapp";
@@ -123,8 +126,9 @@ app.use("*", cors({
     "Accept-Language",
     // E-Rx safety override ack (doctor confirmed a blocking warning).
     "X-Confirm-Warning",
-    // Family + tenant context headers set by the clients.
+    // Family + tenant + caretaker context headers set by the clients.
     "x-active-family-member-id",
+    "x-active-principal-patient-id",
     "x-active-hospital-id",
     "x-active-clinic-id",
     "x-timezone-offset",
@@ -153,6 +157,15 @@ app.use("*", localeMiddleware);
 // on `c.get("activeFamilyMemberId")`. No-op for unauthenticated
 // requests — let auth handle them.
 app.use("*", familyContextMiddleware);
+
+// ─── Caretaker-context middleware (Phase Caretaker-Profiles) ─
+// Reads `x-active-principal-patient-id` header (or falls back to
+// `users.active_principal_patient_id` column) and stashes the resolved
+// id on `c.get("activePrincipalPatientId")` + linkId on
+// `c.get("activeCaretakerLinkId")`. No-op for non-caretaker roles and
+// for unauthenticated requests (cron + email + health probes pass
+// through unchanged).
+app.use("*", caretakerContextMiddleware);
 
 // ─── Tenant-context middleware (Phase MTN-1) ─────────────
 // Reads `x-active-hospital-id` / `x-active-clinic-id` headers
@@ -227,6 +240,10 @@ app.route("/vaccinations", vaccinationsRouter);
 app.route("/family", familyActiveRouter);
 app.route("/family", familyInviteRouter);
 app.route("/family", familyLockRouter);
+// Caretaker Profiles: cross-account identity linking + active-principal
+// switch. Mounted at /caretaker (sibling of /family).
+app.route("/caretaker", caretakerInviteRouter);
+app.route("/caretaker", caretakerLinksRouter);
 app.route("/timeline", timelineRouter);
 app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);

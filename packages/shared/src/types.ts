@@ -7,7 +7,46 @@ export type UserRole =
   | "pharmacy"
   | "insurance"
   | "ambulance"
-  | "super_admin";
+  | "super_admin"
+  | "caretaker";
+
+export type CareRole =
+  | "parent"
+  | "guardian"
+  | "spouse_caregiver"
+  | "child_caregiver"
+  | "sibling_caregiver"
+  | "other";
+
+export type CaretakerLinkStatus = "active" | "paused" | "revoked";
+
+export interface PatientLink {
+  id: string;
+  caretakerUserId: string;
+  principalPatientId: string;
+  careRole: CareRole;
+  status: CaretakerLinkStatus;
+  invitedAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
+export interface CaretakerInvite {
+  id: string;
+  token: string;
+  principalPatientId: string;
+  invitedByUserId: string;
+  caretakerName: string;
+  careRole: CareRole;
+  channel: "mobile" | "email";
+  contactTarget: string;
+  expiresAt: string;
+  revoked: boolean;
+  consumedAt: string | null;
+  redeemedByUserId: string | null;
+  createdAt: string;
+}
 
 export type AppointmentStatus =
   | "scheduled"

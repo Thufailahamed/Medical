@@ -29,20 +29,15 @@ import {
 import { slotsForFrequency, isAsNeeded } from "../lib/medicine-slots";
 import { flattenTranslated } from "../lib/validation-error";
 import { findRefillsDue } from "../lib/refill";
+import { resolvePatientContext } from "../lib/caretaker";
 import type { AppEnvironment } from "../types";
 
 const medicinesRouter = new Hono<AppEnvironment>();
 
 // slotsForFrequency + isAsNeeded now imported from ../lib/medicine-slots.
 
-async function getOwnPatient(db: any, userId: string) {
-  const [p] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
-  return p || null;
-}
+// Caretaker Profiles: getOwnPatient removed in favor of resolvePatientContext
+// which respects the active-principal header for caretakers.
 
 async function scheduleTodayForMedicine(
   db: any,
@@ -88,11 +83,11 @@ async function scheduleTodayForMedicine(
 
 // ─── Get my medicines (active only by default) ───────────
 // GET /medicines/me?includeInactive=true
-medicinesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
+medicinesRouter.get("/me", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
 
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) {
     return c.json({ error: "Patient not found" }, 404);
   }
@@ -128,10 +123,10 @@ medicinesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => 
 
 // ─── Stats + 7-day adherence ─────────────────────────────
 // GET /medicines/me/stats
-medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (c) => {
+medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) {
     return c.json({
       activeCount: 0,
@@ -270,10 +265,10 @@ medicinesRouter.get("/me/stats", authMiddleware, requireRole("patient"), async (
 // Phase E-Rx 3: routes through `safety-engine` (DB-backed) instead of
 // the legacy in-memory CLASS_GROUPS + findStaticInteractions. Same
 // response shape so the mobile client stays unchanged.
-medicinesRouter.get("/me/interactions", authMiddleware, requireRole("patient"), async (c) => {
+medicinesRouter.get("/me/interactions", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) {
     return c.json({ allergies: [], interactions: [], hasWarnings: false, severity: null });
   }
@@ -330,13 +325,13 @@ medicinesRouter.get("/me/interactions", authMiddleware, requireRole("patient"), 
 // ─── Suggest medicine names (autocomplete) ───────────────
 // GET /medicines/suggest?q=metf&limit=8
 // Combines curated catalog + patient's own history. Patient-only.
-medicinesRouter.get("/suggest", authMiddleware, requireRole("patient"), async (c) => {
+medicinesRouter.get("/suggest", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const q = (c.req.query("q") || "").trim().toLowerCase();
   const limit = Math.min(20, Math.max(1, parseInt(c.req.query("limit") || "8", 10) || 8));
 
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   const personalByName = new Map<
     string,
     { name: string; commonDosages: Set<string>; commonFrequencies: Set<string>; commonTimings: Set<string> }
@@ -455,11 +450,11 @@ medicinesRouter.get("/suggest", authMiddleware, requireRole("patient"), async (c
 });
 
 // ─── Today's schedule ────────────────────────────────────
-medicinesRouter.get("/today", authMiddleware, requireRole("patient"), async (c) => {
+medicinesRouter.get("/today", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
 
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) {
     return c.json({ error: "Patient not found" }, 404);
   }
@@ -516,7 +511,7 @@ medicinesRouter.get("/refill-due", authMiddleware, async (c) => {
 
   let patientId = c.req.query("patientId") || "";
   if (!patientId) {
-    const own = await getOwnPatient(db, userId);
+    const own = await resolvePatientContext(c);
     if (!own) return c.json({ error: "Patient profile not found" }, 404);
     patientId = own.id;
   }
@@ -723,7 +718,7 @@ medicinesRouter.patch("/:id", authMiddleware, async (c) => {
 });
 
 // ─── Update medicine (PUT, legacy) ────────────────────────
-medicinesRouter.put("/:id", authMiddleware, requireRole("patient", "doctor"), async (c) => {
+medicinesRouter.put("/:id", authMiddleware, requireRole("patient", "caretaker", "doctor"), async (c) => {
   const medicineId = c.req.param("id");
   const userId = c.get("userId");
   const userRole = c.get("userRole");
@@ -761,7 +756,7 @@ medicinesRouter.put("/:id", authMiddleware, requireRole("patient", "doctor"), as
 });
 
 // ─── Stop medicine (with ownership check) ────────────────
-medicinesRouter.post("/:id/stop", authMiddleware, requireRole("patient", "doctor"), async (c) => {
+medicinesRouter.post("/:id/stop", authMiddleware, requireRole("patient", "caretaker", "doctor"), async (c) => {
   const medicineId = c.req.param("id");
   const userId = c.get("userId");
   const userRole = c.get("userRole");
@@ -789,7 +784,7 @@ medicinesRouter.post("/:id/stop", authMiddleware, requireRole("patient", "doctor
 });
 
 // ─── Delete medicine (with ownership check) ──────────────
-medicinesRouter.delete("/:id", authMiddleware, requireRole("patient", "doctor"), async (c) => {
+medicinesRouter.delete("/:id", authMiddleware, requireRole("patient", "caretaker", "doctor"), async (c) => {
   const medicineId = c.req.param("id");
   const userId = c.get("userId");
   const userRole = c.get("userRole");

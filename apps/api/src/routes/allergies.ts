@@ -7,26 +7,18 @@ import { eq, and, desc } from "drizzle-orm";
 import { allergies, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { resolvePatientContext } from "../lib/caretaker";
+import { writeAudit } from "../lib/audit";
 import type { AppEnvironment } from "../types";
 
 const allergiesRouter = new Hono<AppEnvironment>();
 
 const SEVERITIES = ["mild", "moderate", "severe", "critical"] as const;
 
-async function getOwnPatient(db: any, userId: string) {
-  const [p] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
-  return p || null;
-}
-
 // ─── List my allergies ───────────────────────────────────
-allergiesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
-  const userId = c.get("userId");
+allergiesRouter.get("/me", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ allergies: [] });
 
   const rows = await db
@@ -39,10 +31,10 @@ allergiesRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => 
 });
 
 // ─── Add an allergy ───────────────────────────────────────
-allergiesRouter.post("/me", authMiddleware, requireRole("patient"), async (c) => {
+allergiesRouter.post("/me", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const body = await c.req.json().catch(() => ({}));
@@ -65,17 +57,26 @@ allergiesRouter.post("/me", authMiddleware, requireRole("patient"), async (c) =>
     } as any)
     .returning();
 
+  await writeAudit(db, {
+    userId: patient.userId,
+    actorUserId: userId,
+    action: "allergy_added",
+    resource: "allergy",
+    resourceId: row.id,
+    details: { substance, severity },
+  });
+
   return c.json({ allergy: row }, 201);
 });
 
 // ─── Update an allergy ────────────────────────────────────
-allergiesRouter.patch("/:id", authMiddleware, requireRole("patient"), async (c) => {
+allergiesRouter.patch("/:id", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const allergyId = c.req.param("id");
   if (!allergyId) return c.json({ error: "Missing id" }, 400);
 
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const [existing] = await db
@@ -106,17 +107,26 @@ allergiesRouter.patch("/:id", authMiddleware, requireRole("patient"), async (c) 
     .where(eq(allergies.id, allergyId))
     .returning();
 
+  await writeAudit(db, {
+    userId: patient.userId,
+    actorUserId: userId,
+    action: "allergy_updated",
+    resource: "allergy",
+    resourceId: allergyId,
+    details: partial,
+  });
+
   return c.json({ allergy: updated });
 });
 
 // ─── Delete an allergy ────────────────────────────────────
-allergiesRouter.delete("/:id", authMiddleware, requireRole("patient"), async (c) => {
+allergiesRouter.delete("/:id", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const allergyId = c.req.param("id");
   if (!allergyId) return c.json({ error: "Missing id" }, 400);
 
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const [existing] = await db
@@ -127,6 +137,16 @@ allergiesRouter.delete("/:id", authMiddleware, requireRole("patient"), async (c)
   if (!existing) return c.json({ error: "Allergy not found" }, 404);
 
   await db.delete(allergies).where(eq(allergies.id, allergyId));
+
+  await writeAudit(db, {
+    userId: patient.userId,
+    actorUserId: userId,
+    action: "allergy_removed",
+    resource: "allergy",
+    resourceId: allergyId,
+    details: { substance: existing.substance },
+  });
+
   return c.json({ message: "Allergy removed" });
 });
 

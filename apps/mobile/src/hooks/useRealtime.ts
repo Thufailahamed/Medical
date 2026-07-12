@@ -54,6 +54,14 @@ const EVENT_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   prescription: [["prescriptions"], ["patient", "prescriptions"]],
   walk_in: [["walk-ins"]],
   message: [["chat-sessions"], ["inbox"]],
+  // Caretaker Profiles: link state changes invalidate link/principals/invites
+  // caches so the principal-side list + caretaker-side pill re-fetch.
+  caretaker_link: [
+    ["caretaker", "links"],
+    ["caretaker", "invites"],
+    ["caretaker", "me", "principals"],
+    ["caretaker", "me", "active-principal"],
+  ],
 };
 
 function invalidateFor(qc: ReturnType<typeof useQueryClient>, n: RealtimeNotification) {

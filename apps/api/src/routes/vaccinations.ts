@@ -16,6 +16,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { computeVaccineDueSlots } from "../lib/vaccine-schedule";
 import { parseAcceptLanguage, type Locale } from "../lib/locale";
+import { resolvePatientContext } from "../lib/caretaker";
 import type { AppEnvironment } from "../types";
 
 const vaccinationsRouter = new Hono<AppEnvironment>();
@@ -39,20 +40,14 @@ function diseaseNameFor(v: any, locale: Locale): string | undefined {
   return v.targetDisease;
 }
 
-async function getOwnPatient(db: any, userId: string) {
-  const [p] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
-  return p || null;
-}
+// Caretaker Profiles: getOwnPatient removed in favor of resolvePatientContext
+// which respects the active-principal header for caretakers.
 
 // ─── List my administered + catalog ──────────────────────
-vaccinationsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
+vaccinationsRouter.get("/me", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ administered: [], catalog: [] });
 
   // Phase 2.3: family-context filter — when active FM is set, scope to
@@ -103,10 +98,10 @@ vaccinationsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) 
 });
 
 // ─── Due / overdue / upcoming ────────────────────────────
-vaccinationsRouter.get("/me/due", authMiddleware, requireRole("patient"), async (c) => {
+vaccinationsRouter.get("/me/due", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ due: [], overdue: [], upcoming: [] });
 
   const administered = await db
@@ -160,10 +155,10 @@ vaccinationsRouter.get("/me/due", authMiddleware, requireRole("patient"), async 
 });
 
 // ─── Add a vaccination record ────────────────────────────
-vaccinationsRouter.post("/me", authMiddleware, requireRole("patient"), async (c) => {
+vaccinationsRouter.post("/me", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "Patient not found" }, 404);
 
   const body = await c.req.json().catch(() => ({}));

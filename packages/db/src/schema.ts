@@ -17,6 +17,7 @@ export const users = sqliteTable("users", {
       "insurance",
       "ambulance",
       "super_admin",
+      "caretaker",
     ],
   }).notNull(),
   email: text("email").unique(),
@@ -55,6 +56,13 @@ export const users = sqliteTable("users", {
   // resolve via the lazy-callback pattern alone.
   activeFamilyMemberId: text("active_family_member_id").references(
     ((): any => familyMembers.id)
+  ),
+  // Caretaker Profiles: durable active-principal pointer. NULL for
+  // non-caretaker users. Set via PATCH /caretaker/me/active-principal;
+  // read by the caretaker-context middleware to scope list filters +
+  // POST defaults (mirror of activeFamilyMemberId).
+  activePrincipalPatientId: text("active_principal_patient_id").references(
+    (): any => patients.id
   ),
   // Phase 2.2.1: durable locale preference. Mobile PATCHes this on
   // every locale change so crons + share-link consumers see the right
@@ -876,6 +884,11 @@ export const auditLogs = sqliteTable("audit_logs", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
+  // Caretaker Profiles: actor_user_id records the human who actually
+  // performed the action when it differs from `userId` (which remains
+  // the data subject). E.g. caretaker writes a medicine on behalf of a
+  // principal → userId = principal.userId, actorUserId = caretaker.userId.
+  actorUserId: text("actor_user_id").references(() => users.id),
   action: text("action").notNull(),
   resource: text("resource").notNull(),
   resourceId: text("resource_id"),
@@ -3266,3 +3279,146 @@ export const ambulanceDispatches = sqliteTable("ambulance_dispatches", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });
+
+// ─── Caretaker Profiles: Patient Links ────────────────────
+//
+// M:N join between a caretaker user (role='caretaker') and a principal
+// patient. Each row grants the caretaker full management on the
+// principal's data. status lifecycle: active → paused → revoked.
+//
+// Distinct from family_members (which is principal-owned data rows for
+// household members, no auth identity) — patient_links connect two
+// separate auth identities.
+//
+// On insert: validate that caretakerUserId references a users row with
+// role='caretaker' and principalPatientId references an existing patient.
+// Enforced at the route layer (apps/api/src/lib/caretaker.ts) rather than
+// via a check constraint because D1 SQLite lacks subquery constraints.
+
+export const patientLinks = sqliteTable(
+  "patient_links",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    caretakerUserId: text("caretaker_user_id")
+      .notNull()
+      .references(() => users.id),
+    principalPatientId: text("principal_patient_id")
+      .notNull()
+      .references(() => patients.id),
+    careRole: text("care_role", {
+      enum: [
+        "parent",
+        "guardian",
+        "spouse_caregiver",
+        "child_caregiver",
+        "sibling_caregiver",
+        "other",
+      ],
+    })
+      .notNull()
+      .default("other"),
+    inviteId: text("invite_id").references((): any => caretakerInvites.id),
+    status: text("status", {
+      enum: ["active", "paused", "revoked"],
+    })
+      .notNull()
+      .default("active"),
+    invitedByUserId: text("invited_by_user_id").references(() => users.id),
+    invitedAt: text("invited_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    acceptedAt: text("accepted_at"),
+    revokedAt: text("revoked_at"),
+    revokedByUserId: text("revoked_by_user_id").references(() => users.id),
+    revokedReason: text("revoked_reason"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    // Partial unique: only one active link per (caretaker, principal) pair.
+    // Paused and revoked rows can exist alongside an active one for the
+    // same pair (audit trail), but only one may be 'active' at a time.
+    uniqueActive: uniqueIndex("uniq_patient_links_active")
+      .on(t.caretakerUserId, t.principalPatientId)
+      .where(sql`status = 'active'`),
+    byCaretakerStatus: index("idx_patient_links_caretaker_status").on(
+      t.caretakerUserId,
+      t.status
+    ),
+    byPrincipalStatus: index("idx_patient_links_principal_status").on(
+      t.principalPatientId,
+      t.status
+    ),
+    byInvite: index("idx_patient_links_invite").on(t.inviteId),
+  })
+);
+
+// ─── Caretaker Profiles: Invites ──────────────────────────
+//
+// Distinct from share_links(kind='family_invite') because:
+//   1. Caretaker invites mint a new user (or upgrade existing), not
+//      just a family_members row.
+//   2. Lifecycle: token → phone/email OTP → user upsert → patient_links.
+//   3. Required metadata: principalPatientId, channel, contactTarget.
+//
+// Token is 24-byte hex (existing pattern). expiresAt defaults to 14d.
+// rate-limit inherited from /auth/send-otp.
+
+export const caretakerInvites = sqliteTable(
+  "caretaker_invites",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    token: text("token").notNull().unique(),
+    principalPatientId: text("principal_patient_id")
+      .notNull()
+      .references(() => patients.id),
+    invitedByUserId: text("invited_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    caretakerName: text("caretaker_name").notNull(),
+    careRole: text("care_role", {
+      enum: [
+        "parent",
+        "guardian",
+        "spouse_caregiver",
+        "child_caregiver",
+        "sibling_caregiver",
+        "other",
+      ],
+    })
+      .notNull()
+      .default("other"),
+    channel: text("channel", {
+      enum: ["mobile", "email"],
+    }).notNull(),
+    contactTarget: text("contact_target").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    revoked: integer("revoked", { mode: "boolean" }).default(false),
+    consumedAt: text("consumed_at"),
+    redeemedByUserId: text("redeemed_by_user_id").references(() => users.id),
+    // OTP brute-force tracking — separate from /auth OTP counters so a
+    // locked invite does not also lock the contact's login OTP.
+    otpAttempts: integer("otp_attempts").notNull().default(0),
+    lockedAt: text("locked_at"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    byPrincipal: index("idx_caretaker_invites_principal").on(
+      t.principalPatientId,
+      t.createdAt
+    ),
+    byContact: index("idx_caretaker_invites_contact").on(
+      t.channel,
+      t.contactTarget
+    ),
+  })
+);

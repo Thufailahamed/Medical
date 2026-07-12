@@ -64,6 +64,7 @@ function ThemedStack() {
       >
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
+        <Stack.Screen name="(caretaker)" />
         <Stack.Screen name="(doctor)" />
         <Stack.Screen name="lock/index" options={{ gestureEnabled: false }} />
         <Stack.Screen name="lock/setup" options={{ gestureEnabled: false }} />
