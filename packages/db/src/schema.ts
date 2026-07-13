@@ -555,6 +555,64 @@ export const appointmentRatings = sqliteTable(
   })
 );
 
+// ─── Teleconsult Sessions (Round 4: in-app video) ────────
+// One row per video call. Doctor creates from an appointment (status
+// `requested`), flips to `ringing` when the doctor opens the room,
+// then `active` once the first peer WebSocket connects (which also
+// flips the appointment `status` to `in_progress`). Either side can
+// end the call; if both peers disconnect the DO times out the room
+// after 60s and stamps `status = 'timeout'`.
+//
+// Multiple sessions per appointment are allowed (rescheduled calls,
+// dropped attempts), but the partial unique index below ensures at
+// most ONE live row per appointment at any time.
+export const teleconsultSessions = sqliteTable(
+  "teleconsult_sessions",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    appointmentId: text("appointment_id")
+      .notNull()
+      .references(() => appointments.id, { onDelete: "cascade" }),
+    doctorId: text("doctor_id")
+      .notNull()
+      .references(() => users.id),
+    // patient user id (NOT patients.id) — denormalized so the WS auth
+    // path can verify "is this peer the right participant" without a
+    // join. The doctor-side row fetch joins patients.id separately.
+    patientUserId: text("patient_user_id")
+      .notNull()
+      .references(() => users.id),
+    status: text("status", {
+      enum: ["requested", "ringing", "active", "ended", "failed", "timeout"],
+    })
+      .notNull()
+      .default("requested"),
+    // The roomId is also the DO instance name (TeleconsultRoom.idFromName
+    // → namespace.get). Independent of `id` so a row can be re-created
+    // against the same appointment without colliding prior rooms.
+    roomId: text("room_id").notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    startedAt: text("started_at"),
+    endedAt: text("ended_at"),
+    durationSec: integer("duration_sec"),
+    signalingMsgCount: integer("signaling_msg_count").notNull().default(0),
+    iceRestartCount: integer("ice_restart_count").notNull().default(0),
+    lastError: text("last_error"),
+  },
+  (t) => ({
+    apptIdx: index("teleconsult_sessions_appt_idx").on(t.appointmentId, t.createdAt),
+    doctorRecentIdx: index("teleconsult_sessions_doctor_recent_idx").on(t.doctorId, t.createdAt),
+    patientRecentIdx: index("teleconsult_sessions_patient_recent_idx").on(t.patientUserId, t.createdAt),
+    // At most one live row per appointment (requested | ringing | active).
+    // Partial unique index — D1 supports it via `WHERE`.
+    oneLivePerAppt: uniqueIndex("teleconsult_sessions_one_live_per_appt").on(
+      t.appointmentId
+    ).where(sql`status IN ('requested','ringing','active')`),
+  }),
+);
+
 // ─── Insurance ───────────────────────────────────────────
 export const insurance = sqliteTable("insurance", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

@@ -76,6 +76,38 @@ AI_USER_HOURLY_LIMIT = "20"
 ANTHROPIC_DAILY_CAP = "100"
 AI_FAIL_OPEN = "false"
 
+# Round 4 — In-App Video Teleconsultation (WebRTC signaling).
+# TURN_URLS is a JSON-encoded array of `turn:` / `turns:` URIs that the
+# GET /teleconsult/sessions/:id handler hands back to both clients in
+# `iceServers`. Defaults to Google STUN if unset. Without a real TURN
+# relay, calls fail under symmetric NAT (~12% of mobile + corp networks)
+# so provision one before public launch (e.g. coturn on your infra,
+# metered.ca, Twilio NTS).
+# Set via `wrangler secret put TURN_URLS` to avoid leaking the JSON in
+# source control.
+# TURN_USERNAME / TURN_CREDENTIAL: TURN REST auth credentials. Same
+# `wrangler secret put` workflow.
+#
+# TeleconsultRoom is a Durable Object that owns the WebSocket lifecycle
+# for a single video room. Each session's `roomId` is its instance name.
+# The DO does NOT relay media — that's P2P over the ICE candidates the
+# clients exchange via the WS — it only routes SDP offers/answers/ICE
+# between the two peers and persists state transitions to D1.
+#
+# Durable Object class export is registered in `src/index.ts` alongside
+# the Hono `app` export.
+[durable_objects]
+bindings = [
+  { name = "TELECONSULT_ROOM", class_name = "TeleconsultRoom" }
+]
+
+# SQLite-backed DO class (Cloudflare's default storage backend). This
+# migration tag is the deployment-time marker — bump it if you rename
+# the class or add a second DO.
+[[migrations]]
+tag = "v0053_teleconsult_room"
+new_sqlite_classes = ["TeleconsultRoom"]
+
 # Round 2 P0: TOTP MFA for doctors (HIPAA compliance floor).
 # MFA_SECRET_KEK is a 32-byte base64 secret used to AES-256-GCM-wrap
 # each doctor's TOTP secret. Generate with:

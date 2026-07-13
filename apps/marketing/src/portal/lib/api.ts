@@ -267,4 +267,68 @@ export const qk = {
   auditMe: (params: Record<string, unknown>) =>
     ["audit", "me", JSON.stringify(params)] as const,
   shareDoctorLinks: ["doctor-portal", "share-links"] as const,
+  // Round 4 — In-App Video Teleconsultation. `sessionId` only — no
+  // status polling needed; the WebSocket push drives UI.
+  teleconsultSession: (id: string) => ["teleconsult", "session", id] as const,
+  teleconsultActive: ["teleconsult", "session", "me", "active"] as const,
+};
+
+/**
+ * Thin Teleconsult API wrapper. All endpoints resolve through `api()` so
+ * the same auth + 401-refresh + tenant headers apply. The browser
+ * passes its portal_session cookie to the WS upgrade — no ticket
+ * needed for portal-side WS opens.
+ */
+export const teleconsultApi = {
+  createSession: (appointmentId: string) =>
+    api<{ id: string; roomId: string; status: string; appointmentId: string }>(
+      "/teleconsult/sessions",
+      { method: "POST", json: { appointmentId } }
+    ),
+  getSession: (id: string) =>
+    api<{
+      session: {
+        id: string;
+        roomId: string;
+        status: string;
+        appointmentId: string;
+        doctorId: string;
+        patientUserId: string;
+        patientId: string | null;
+        startedAt: string | null;
+        endedAt: string | null;
+        durationSec: number | null;
+      };
+      iceServers: RTCIceServer[];
+      partyMax: number;
+      you: { role: "doctor" | "patient"; userId: string };
+    }>(`/teleconsult/sessions/${encodeURIComponent(id)}`),
+  getActiveForMe: () =>
+    api<{
+      session: {
+        id: string;
+        roomId: string;
+        status: string;
+        appointmentId: string;
+        createdAt: string;
+      } | null;
+    }>(`/teleconsult/sessions/me/active`),
+  startSession: (id: string) =>
+    api<{ ok: boolean; status: string }>(
+      `/teleconsult/sessions/${encodeURIComponent(id)}/start`,
+      { method: "POST" }
+    ),
+  endSession: (id: string) =>
+    api<{ ok: boolean; status: string; durationSec?: number }>(
+      `/teleconsult/sessions/${encodeURIComponent(id)}/end`,
+      { method: "POST" }
+    ),
+  // Browser-side WS doesn't need a ticket — the portal_session cookie
+  // rides the upgrade. This helper is a no-op kept for symmetry with
+  // the mobile flow.
+  mintWsTicket: (id: string) =>
+    api<{ ticket: string; expiresAt: number; url: string }>(
+      `/teleconsult/sessions/${encodeURIComponent(id)}/ws-ticket`,
+      { method: "POST" }
+    ),
 };

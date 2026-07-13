@@ -27,10 +27,12 @@ import {
   Sparkles,
   MessageCircle,
   ChevronRight,
+  Video,
 } from "lucide-react-native";
 import {
   useAppointmentRecords,
   useRescheduleAppointment,
+  useActiveTeleconsultSession,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -89,6 +91,7 @@ export default function AppointmentDetailScreen() {
 
   const { data, isLoading, isError, refetch } = useAppointmentRecords(id || null);
   const reschedule = useRescheduleAppointment();
+  const { data: activeSession } = useActiveTeleconsultSession();
   const [reschedOpen, setReschedOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
@@ -236,6 +239,20 @@ export default function AppointmentDetailScreen() {
                       size="sm"
                       fullWidth={false}
                       onPress={startReschedule}
+                    />
+                  ) : null}
+                  {activeSession?.session?.appointmentId === id ? (
+                    <Button
+                      title={t("consult.joinVideoVisit")}
+                      icon={Video}
+                      variant="primary"
+                      size="md"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(app)/teleconsult/[roomId]" as any,
+                          params: { roomId: activeSession.session!.roomId },
+                        })
+                      }
                     />
                   ) : null}
                 </View>

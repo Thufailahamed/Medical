@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
@@ -11,11 +12,12 @@ import {
   Clock,
   AlertTriangle,
   ChevronRight as ChevronRightIcon,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { addDays, format, parseISO } from "date-fns";
 
-import { api } from "@/portal/lib/api";
+import { api, teleconsultApi, qk } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
@@ -120,6 +122,22 @@ function AppointmentDetail({
     onError: (err: any) => toast.error("Failed", err?.message),
   });
 
+  // Round 4 — In-App Video Teleconsultation. The "Start video visit"
+  // button is only available on confirmed | in_progress appointments
+  // (the same gate as the queue row button). Creates a session row
+  // and navigates to /portal/teleconsult/[roomId] where the doctor
+  // joins the WebRTC room.
+  const router = useRouter();
+  const startVideoVisit = useMutation({
+    mutationFn: (appointmentId: string) =>
+      teleconsultApi.createSession(appointmentId),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: qk.teleconsultActive });
+      router.push(`/portal/teleconsult/${data.roomId}`);
+    },
+    onError: (err: any) => toast.error("Failed", err?.message),
+  });
+
   const cfg = STATUS_CONFIG[row.status] ?? STATUS_CONFIG.scheduled;
 
   return (
@@ -180,6 +198,20 @@ function AppointmentDetail({
         <Link href={`/portal/patients/${row.patientId}`} className="text-sm text-brand font-medium hover:underline flex items-center gap-1">
           {t("appointments.openChart")} <ChevronRightIcon size={14} />
         </Link>
+        {isActive &&
+          row.appointmentId &&
+          (row.status === "confirmed" || row.status === "in_progress") && (
+            <Button
+              size="sm"
+              variant="primary"
+              leftIcon={<Video size={14} />}
+              loading={startVideoVisit.isPending}
+              disabled={startVideoVisit.isPending}
+              onClick={() => startVideoVisit.mutate(row.appointmentId!)}
+            >
+              {t("consult.startVideoVisit")}
+            </Button>
+          )}
         {canReschedule && !showReschedule && (
           <Button size="sm" variant="secondary" leftIcon={<Clock size={14} />} onClick={() => setShowReschedule(true)}>{t("appointments.reschedule")}</Button>
         )}

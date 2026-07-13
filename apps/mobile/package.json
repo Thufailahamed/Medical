@@ -75,6 +75,7 @@
     "react-native-svg": "15.2.0",
     "react-native-url-polyfill": "^3.0.0",
     "react-native-vision-camera": "^4.0.0",
+    "react-native-webrtc": "^124.0.7",
     "victory": "^37.3.6",
     "zod": "^3.23.0",
     "zustand": "^4.5.0"

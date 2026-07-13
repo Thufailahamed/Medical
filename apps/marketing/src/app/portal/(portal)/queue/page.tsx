@@ -22,6 +22,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ListOrdered,
@@ -36,10 +37,11 @@ import {
   AlertTriangle,
   Hash,
   Clock,
+  Video,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
-import { api, qk } from "@/portal/lib/api";
+import { api, qk, teleconsultApi } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Avatar } from "@/portal/components/ui/Avatar";
@@ -265,6 +267,24 @@ export default function QueuePage() {
     },
   });
 
+  // Round 4 — In-App Video Teleconsultation. Doctor taps the icon
+  // button on a row to spin up a Teleconsult session and jump to the
+  // video page. The mutation creates a row in `teleconsult_sessions`
+  // and returns the roomId we navigate to.
+  const router = useRouter();
+  const startVideoVisit = useMutation({
+    mutationFn: (appointmentId: string) =>
+      teleconsultApi.createSession(appointmentId),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: qk.doctorQueue(date) });
+      qc.invalidateQueries({ queryKey: qk.teleconsultActive });
+      router.push(`/portal/teleconsult/${data.roomId}`);
+    },
+    onError: () => {
+      toast.error(t("queue.toast.error"), t("queue.toast.tryAgain"));
+    },
+  });
+
   // ─── Derived counts ─────────────────────────────────────────────────
 
   const items = data?.queue ?? [];
@@ -395,13 +415,18 @@ export default function QueuePage() {
                 key={`${item.kind}-${item.appointmentId ?? item.walkInId}`}
                 item={item}
                 isPending={
-                  apptMutation.isPending || walkinMutation.isPending
+                  apptMutation.isPending ||
+                  walkinMutation.isPending ||
+                  startVideoVisit.isPending
                 }
                 onApptStatus={(id, status) =>
                   apptMutation.mutate({ id, status })
                 }
                 onWalkInStatus={(id, status) =>
                   walkinMutation.mutate({ id, status })
+                }
+                onStartVideoVisit={(appointmentId) =>
+                  startVideoVisit.mutate(appointmentId)
                 }
               />
             )}
@@ -474,11 +499,13 @@ function QueueRow({
   isPending,
   onApptStatus,
   onWalkInStatus,
+  onStartVideoVisit,
 }: {
   item: QueueItem;
   isPending: boolean;
   onApptStatus: (id: string, status: ApptStatus) => void;
   onWalkInStatus: (id: string, status: WalkInStatus) => void;
+  onStartVideoVisit: (appointmentId: string) => void;
 }) {
   const t = useT();
 
@@ -651,6 +678,24 @@ function QueueRow({
             >
               {secondary.label}
             </Button>
+          ) : null}
+          {/* Round 4: "Start video visit" icon button — only on
+              appointments (not walk-ins), status confirmed | in_progress
+              so the doctor doesn't try to start a call on a no-show
+              or completed row. Disabled while another mutation is in
+              flight so we don't double-create sessions. */}
+          {!isWalkIn &&
+          item.appointmentId &&
+          (item.status === "confirmed" || item.status === "in_progress") ? (
+            <button
+              type="button"
+              onClick={() => onStartVideoVisit(item.appointmentId!)}
+              disabled={isPending}
+              title={t("consult.startVideoVisit")}
+              className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-semibold text-white bg-brand hover:bg-brand/90 transition-colors disabled:opacity-50"
+            >
+              <Video size={11} />
+            </button>
           ) : null}
           <Link
             href={`/portal/patients/${item.patientId}/overview`}

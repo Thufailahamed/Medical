@@ -16,6 +16,16 @@
       "bodyDueToday": "{{vaccine}} dose {{dose}} is due today.",
       "bodyDueSoon_one": "{{vaccine}} dose {{dose}} is due in {{count}} day ({{date}}).",
       "bodyDueSoon_other": "{{vaccine}} dose {{dose}} is due in {{count}} days ({{date}})."
+    },
+    "teleconsult": {
+      "roomReady": {
+        "title": "Video call ready",
+        "body": "Your doctor is ready for the video visit. Open HealthHub to join."
+      },
+      "callEnded": {
+        "title": "Video call ended",
+        "body": "Your video visit has ended. Records and any prescriptions are saved."
+      }
     }
   },
   "family": {

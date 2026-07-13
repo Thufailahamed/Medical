@@ -3993,3 +3993,28 @@ export function useRevokeQrToken() {
     },
   });
 }
+
+// ─── Teleconsult (video visits) ──────────────────────────
+// Resolves the patient's currently-live video session, if any. Used
+// by the appointments list + appointment-detail screen to decide
+// whether to surface a "Join video visit" button. The route file
+// re-fetches this same endpoint on mount to verify roomId matches.
+export type ActiveTeleconsultSession = {
+  id: string;
+  roomId: string;
+  status: string;
+  appointmentId: string;
+  createdAt: string;
+} | null;
+
+export function useActiveTeleconsultSession() {
+  return useQuery({
+    queryKey: ["teleconsult", "me", "active"],
+    queryFn: () =>
+      api<{ session: ActiveTeleconsultSession }>("/teleconsult/sessions/me/active"),
+    // Short staleTime — appointment status flips in real time as the
+    // doctor starts/ends the call, and the mobile UI needs to pick up
+    // the session within a few seconds of creation.
+    staleTime: 5_000,
+  });
+}

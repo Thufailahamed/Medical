@@ -98,6 +98,8 @@ import consultNotesRouter from "./routes/consult-notes";
 import dischargeHandoffsRouter from "./routes/discharge-handoffs";
 import realtimeRouter from "./routes/realtime";
 import healthIdRouter, { scanRouter } from "./routes/health-id";
+import teleconsultRouter from "./routes/teleconsult";
+import { TeleconsultRoom } from "./durable-objects/teleconsult-room";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -299,6 +301,10 @@ app.route("/me", meTenantsRouter);
 // /portal/scan/resolve. Both routers live in routes/health-id.ts.
 app.route("/me/health-id", healthIdRouter);
 app.route("/portal/scan", scanRouter);
+// Round 4: In-App Video Teleconsultation. REST + WS upgrade mounted
+// under /teleconsult/*; signaling itself lives in the TeleconsultRoom
+// Durable Object (see durable-objects/teleconsult-room.ts).
+app.route("/teleconsult", teleconsultRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);
@@ -411,3 +417,8 @@ export default {
     }
   },
 } satisfies ExportedHandler<any>;
+
+// Round 4: TeleconsultRoom Durable Object. CF requires DO classes to
+// be named exports of the Worker module — the runtime looks them up
+// by `class_name` from `wrangler.toml`'s [[durable_objects]] binding.
+export { TeleconsultRoom };

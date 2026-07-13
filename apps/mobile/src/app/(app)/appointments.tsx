@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import { View, Text, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet } from "lucide-react-native";
-import { useMyAppointments, useCancelAppointment } from "@/hooks/useApi";
+import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Video } from "lucide-react-native";
+import { useMyAppointments, useCancelAppointment, useActiveTeleconsultSession } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
 import {
@@ -76,6 +76,7 @@ export default function AppointmentsScreen() {
   const { spacing, colors, typography, radius } = useTheme();
   const { data, isLoading, isError, refetch } = useMyAppointments();
   const cancelAppointment = useCancelAppointment();
+  const { data: activeSession } = useActiveTeleconsultSession();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
   const [cancelSheet, setCancelSheet] = useState<any | null>(null);
@@ -87,7 +88,7 @@ export default function AppointmentsScreen() {
     setCancelEstimate(null);
     setLoadingEstimate(true);
     try {
-      const est: any = await api.get(
+      const est: any = await api(
         `/appointments/${item.id}/cancellation-estimate`
       );
       setCancelEstimate(est);
@@ -370,6 +371,41 @@ export default function AppointmentsScreen() {
                             strokeWidth={2.5}
                           />
                         )}
+                      </Pressable>
+                    ) : null}
+                    {activeSession?.session?.appointmentId === item.id &&
+                    activeSession.session.roomId ? (
+                      <Pressable
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(app)/teleconsult/[roomId]",
+                            params: { roomId: activeSession.session!.roomId },
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={t("consult.joinVideoVisit")}
+                        hitSlop={6}
+                        style={({ pressed }) => ({
+                          height: 36,
+                          paddingHorizontal: spacing.md,
+                          borderRadius: 18,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                          backgroundColor: pressed
+                            ? colors.primary
+                            : colors.primarySoft,
+                        })}
+                      >
+                        <Video size={15} color={colors.primary} strokeWidth={2.5} />
+                        <Text
+                          style={[
+                            typography.label.sm,
+                            { color: colors.primary, fontWeight: "700" },
+                          ]}
+                        >
+                          {t("consult.joinVideoVisit")}
+                        </Text>
                       </Pressable>
                     ) : null}
                   </View>

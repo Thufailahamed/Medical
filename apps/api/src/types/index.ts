@@ -47,6 +47,16 @@ export interface AppEnvironment {
     SMSLENZ_USER_ID?: string;    // From SMSLenz dashboard
     SMSLENZ_API_KEY?: string;    // Secret
     SMS_SENDER_ID?: string;      // e.g. "HealthHub" or "SMSlenzDEMO"
+    // Round 4: In-App Video Teleconsultation. `TELECONSULT_ROOM` is the
+    // Durable Object namespace binding registered in wrangler.toml.
+    // TURN_URLS is a JSON-encoded string array of `turn:` URIs (set via
+    // `wrangler secret put TURN_URLS`); TURN_USERNAME / TURN_CREDENTIAL
+    // are the REST-auth credentials. Defaults to Google STUN only when
+    // TURN_URLS is unset — symmetric-NAT clients will fail to connect.
+    TELECONSULT_ROOM: DurableObjectNamespace;
+    TURN_URLS?: string;
+    TURN_USERNAME?: string;
+    TURN_CREDENTIAL?: string;
   };
   Variables: {
     user: User;

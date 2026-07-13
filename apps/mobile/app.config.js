@@ -27,6 +27,10 @@ export default {
       package: "com.healthcare.app",
       // arm64 only — avoids Windows CMake/ninja failures on armeabi-v7a
       abiFilters: ["arm64-v8a"],
+      // Round 4: react-native-webrtc 124.x requires API 24+ (default
+      // for Expo SDK 51 is 23 — bump so the WebRTC native module can
+      // link). EAS rebuild required after this change.
+      minSdkVersion: 24,
       permissions: [
         // Biometric unlock for app-lock
         "android.permission.USE_BIOMETRIC",
@@ -54,13 +58,13 @@ export default {
         NSFaceIDUsageDescription:
           "Unlock HealthHub with Face ID so your health records stay private.",
         NSCameraUsageDescription:
-          "Capture documents, prescriptions, and profile photos for your medical record.",
+          "Capture documents, prescriptions, and profile photos, and to show your face during video consultations with your doctor.",
         NSPhotoLibraryUsageDescription:
           "Attach existing images to your medical records.",
         NSPhotoLibraryAddUsageDescription:
           "Save prescriptions and lab reports to your photo library.",
         NSMicrophoneUsageDescription:
-          "Record voice notes for your doctor.",
+          "Send live audio during video consultations and record voice notes for your doctor.",
         NSLocationWhenInUseUsageDescription:
           "Share your location during an emergency SOS.",
       },

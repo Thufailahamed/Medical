@@ -3698,5 +3698,32 @@
     "pickerTitle": "Switch principal",
     "noPrincipals": "No linked principals yet.",
     "switchFailed": "Could not switch principal."
+  },
+  "consult": {
+    "startVideoVisit": "Start video visit",
+    "joinVideoVisit": "Join video visit",
+    "endCall": "End call",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "cameraOff": "Turn camera off",
+    "cameraOn": "Turn camera on",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "ended": "Call ended",
+    "connectionLost": "Connection lost — reconnecting…",
+    "waitingForDoctor": "Waiting for your doctor to start the call…",
+    "waitingForPatient": "Waiting for the patient to join…",
+    "camera": "Camera",
+    "microphone": "Microphone",
+    "leave": "Leave",
+    "duration": "Duration",
+    "iceRestarting": "Reconnecting…",
+    "turnMissing": "Your network may block video calls. Contact support if this keeps happening.",
+    "permissionDenied": "Camera or microphone access was blocked. Allow it in Settings and rejoin.",
+    "tabs": {
+      "records": "Records",
+      "prescriptions": "Prescriptions",
+      "clinicalNote": "Notes"
+    }
   }
 }
