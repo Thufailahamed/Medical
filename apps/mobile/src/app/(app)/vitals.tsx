@@ -46,7 +46,7 @@ import {
   ErrorState,
   useToast,
 } from "@/components/ui";
-import { VitalsChart, AlertsCard, DerivedMetricsCard, ClassificationBadge } from "@/components/vitals";
+import { VitalsChart, AlertsCard, DerivedMetricsCard, ClassificationBadge, GlucoseChart, TrendComparison } from "@/components/vitals";
 import {
   VITAL_REGISTRY,
   VITAL_TYPES,
@@ -99,6 +99,19 @@ export default function VitalsScreen() {
   const [chartType, setChartType] = useState<VitalType>("blood_pressure");
   const [chartRange, setChartRange] = useState(30);
   const [showSecondary, setShowSecondary] = useState(false);
+  const [glucoseFocus, setGlucoseFocus] = useState(false);
+
+  // Previous period range for trend comparison
+  const prevRangeFrom = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - chartRange * 2);
+    return d.toISOString();
+  }, [chartRange]);
+  const prevRangeTo = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - chartRange);
+    return d.toISOString();
+  }, [chartRange]);
 
   const vitals: any[] = data?.vitals || [];
   const derived = derivedData?.derived ?? null;
@@ -119,6 +132,14 @@ export default function VitalsScreen() {
     type: chartType,
     from: rangeFrom,
     enabled: !composing,
+  });
+
+  // Previous period series for trend comparison
+  const { data: prevSeries } = useVitalsSeries({
+    type: chartType,
+    from: prevRangeFrom,
+    to: prevRangeTo,
+    enabled: !composing && chartRange > 7,
   });
 
   const points: VitalsPoint[] = series?.points || [];
@@ -439,7 +460,7 @@ export default function VitalsScreen() {
               })}
             </ScrollView>
 
-            <View style={{ flexDirection: "row", gap: spacing.xs, marginBottom: spacing.sm }}>
+            <View style={{ flexDirection: "row", gap: spacing.xs, marginBottom: spacing.sm, flexWrap: "wrap" }}>
               {RANGES.map((r) => (
                 <Chip
                   key={r}
@@ -458,10 +479,25 @@ export default function VitalsScreen() {
                   onPress={() => setShowSecondary((s) => !s)}
                 />
               ) : null}
+              {chartType === "blood_sugar" ? (
+                <Chip
+                  label={t("vitals.chart.glucoseFocus")}
+                  tone={glucoseFocus ? "primary" : "neutral"}
+                  size="sm"
+                  onPress={() => setGlucoseFocus((s) => !s)}
+                />
+              ) : null}
             </View>
 
             {seriesLoading ? (
               <Skeleton height={240} radius={12} />
+            ) : glucoseFocus && chartType === "blood_sugar" ? (
+              <GlucoseChart
+                points={points}
+                stats={stats ?? null}
+                width={chartWidth}
+                height={240}
+              />
             ) : (
               <VitalsChart
                 type={chartType}
@@ -519,6 +555,20 @@ export default function VitalsScreen() {
                       : colors.text
                   }
                   Icon={deltaIcon}
+                />
+              </View>
+            ) : null}
+
+            {/* Trend comparison (previous vs current period) */}
+            {!seriesLoading && prevSeries?.points && prevSeries.points.length > 0 && points.length > 0 ? (
+              <View style={{ marginTop: spacing.md }}>
+                <TrendComparison
+                  currentPoints={points}
+                  currentStats={stats ?? null}
+                  previousPoints={prevSeries.points}
+                  previousStats={prevSeries.stats ?? null}
+                  width={chartWidth}
+                  height={80}
                 />
               </View>
             ) : null}

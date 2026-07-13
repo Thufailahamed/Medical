@@ -913,6 +913,44 @@
     "toast": {
       "logged": "Vaccination logged",
       "saveError": "Save failed"
+    },
+    "scanCard": "Scan card"
+  },
+  "vaccinationCard": {
+    "title": "Scan Vaccination Card",
+    "subtitle": "Take a photo of your vaccination card",
+    "scanHeading": "Capture Card",
+    "cameraButton": "Take Photo",
+    "galleryButton": "Choose from Gallery",
+    "scanButton": "Scan Card",
+    "removeButton": "Remove photo",
+    "imageEmptyTitle": "No photo selected",
+    "imageEmptyBody": "Take a photo or choose from your gallery",
+    "pickFirst": "Please select a photo first",
+    "pickImageError": "Failed to pick image",
+    "permissionDenied": "Camera permission is required",
+    "scanning": "Reading vaccination card...",
+    "noVaccinesFound": "No vaccinations detected. Try a clearer photo.",
+    "ocrError": "Could not read the card. Try a clearer photo.",
+    "reviewTitle": "Review Extracted Vaccinations",
+    "reviewSubtitle": "{{count}} vaccination(s) found. Edit before saving.",
+    "noMatch": "No match",
+    "saveAll": "Save {{count}}",
+    "addRow": "Add Vaccination",
+    "rescan": "Rescan",
+    "noValidEntries": "Please add at least one valid vaccination",
+    "disclaimer": "AI-extracted data may contain errors. Please verify before saving.",
+    "field": {
+      "name": "Vaccine name",
+      "namePlaceholder": "e.g. Influenza",
+      "date": "Date",
+      "dose": "Dose",
+      "provider": "Provider",
+      "providerPlaceholder": "Hospital or clinic"
+    },
+    "toast": {
+      "saved": "{{count}} vaccination(s) saved!",
+      "error": "Failed to save vaccinations"
     }
   },
   "vitals": {
@@ -986,6 +1024,7 @@
       "diastolic": "Diastolic",
       "statsLabel": "Reading statistics",
       "legendLabel": "Chart legend",
+      "glucoseFocus": "Glucose focus",
       "stats": {
         "latest": "Latest",
         "avg": "Avg",
@@ -1024,6 +1063,14 @@
       "30": "30d",
       "90": "90d",
       "365": "1y"
+    },
+    "trendComparison": {
+      "title": "Period comparison",
+      "current": "Current",
+      "previous": "Previous",
+      "avg": "Avg",
+      "min": "Min",
+      "max": "Max"
     }
   },
   "family": {
@@ -3077,12 +3124,40 @@
       "emergency": "Emergency",
       "messages": "Messages",
       "profile": "Profile",
+      "healthId": "Health ID",
       "doctorHome": "Home",
       "doctorSchedule": "Schedule",
       "doctorInbox": "Inbox",
       "doctorPrescribe": "Prescribe",
       "doctorProfile": "Profile"
     }
+  },
+  "healthId": {
+    "kicker": "My Health ID",
+    "title": "Show this QR at reception or pharmacy",
+    "caption": "Staff scan it to pull up your chart or dispense your prescriptions — no spelling your name out loud.",
+    "actingAsCaretaker": "Acting as caretaker",
+    "purpose": {
+      "checkin": "Check-in",
+      "dispense": "Pharmacy",
+      "id": "ID",
+      "all": "All"
+    },
+    "rotateIn": "Rotates in {{seconds}}s",
+    "rotateNow": "Rotate now",
+    "rotateFailed": "Could not rotate — tap again",
+    "revoke": "Revoke",
+    "revoked": "QR revoked",
+    "revokeFailed": "Could not revoke",
+    "showPicker": "Manage caretakers",
+    "issue": "Issue my QR",
+    "emptyTitle": "Tap to issue your QR",
+    "emptyBody": "Your QR rotates automatically so a screenshot can't be reused.",
+    "footnote": "Open-scope: any registered staff can resolve. Revoke any time to invalidate.",
+    "checkedInToast": "Checked in via QR",
+    "checkedInToastShortcut": "QR check-in successful",
+    "issuedAt": "Issued at {{hospital}}",
+    "unnamed": "Patient"
   },
   "emailImport": {
     "title": "Email-to-Records",

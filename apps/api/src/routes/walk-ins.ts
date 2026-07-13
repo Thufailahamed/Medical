@@ -14,6 +14,7 @@ import {
   prescriptions,
   labOrders,
   messagesConversations,
+  qrAccessTokens,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -167,6 +168,37 @@ walkInsRouter.post(
     const reason = body?.reason ? String(body.reason).slice(0, 500) : null;
     const priority =
       body?.priority === "urgent" ? "urgent" : "routine";
+    // QR-Code Check-in: optional token from a resolved portal scan.
+    // When present, we validate the token, mark the walk-in as
+    // `origin: "qr_scan"`, and audit a separate event so the live
+    // demo can filter to QR-triggered check-ins via SSE.
+    const qrToken = body?.qrToken ? String(body.qrToken).trim() : null;
+    let qrTokenTail: string | null = null;
+    let qrTokenPurpose: string | null = null;
+    if (qrToken) {
+      const [tok] = await db
+        .select()
+        .from(qrAccessTokens)
+        .where(eq(qrAccessTokens.token, qrToken))
+        .limit(1);
+      if (!tok || tok.revokedAt || tok.expiresAt <= new Date().toISOString()) {
+        return c.json(
+          { error: "invalid_qr_token", reason: "expired_or_revoked" },
+          410,
+        );
+      }
+      // QR-derived walk-in: the patient id from the token must
+      // match the body. This blocks a stolen patientId from being
+      // sneaked into a different patient's QR session.
+      if ((tok as any).patientId !== patientId) {
+        return c.json(
+          { error: "qr_token_patient_mismatch" },
+          403,
+        );
+      }
+      qrTokenTail = tok.token.slice(0, 6) + "…" + tok.token.slice(-4);
+      qrTokenPurpose = tok.purpose;
+    }
 
     if (!patientId || !doctorId) {
       return c.json({ error: "patientId and doctorId required" }, 400);
@@ -217,6 +249,7 @@ walkInsRouter.post(
         priority,
         status: "waiting",
         assignedByUserId: userId,
+        origin: qrToken ? "qr_scan" : "manual",
       } as any)
       .returning();
 
@@ -251,8 +284,23 @@ walkInsRouter.post(
       action: "walkin.create",
       resource: "walk_in",
       resourceId: row?.id,
-      details: { patientId, doctorId, priority },
+      details: {
+        patientId,
+        doctorId,
+        priority,
+        origin: qrToken ? "qr_scan" : "manual",
+        ...(qrToken ? { qrTokenTail, qrTokenPurpose } : {}),
+      },
     });
+    if (qrToken) {
+      await audit(db, {
+        userId,
+        action: "walk_in.created_via_qr",
+        resource: "walk_in",
+        resourceId: row?.id,
+        details: { qrTokenTail, qrTokenPurpose, patientId, doctorId },
+      });
+    }
 
     return c.json({ walkIn: row }, 201);
   }

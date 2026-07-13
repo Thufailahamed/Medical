@@ -3001,6 +3001,68 @@ export function useAddVaccination() {
   });
 }
 
+// ─── Vaccination Card OCR ───────────────────────────────
+export type VaccinationExtracted = {
+  vaccineName: string;
+  date: string;
+  doseNumber: number | null;
+  provider: string;
+  batchNumber: string;
+  catalogId: string | null;
+  catalogName: string | null;
+  catalogShortName: string | null;
+  matched: boolean;
+};
+
+export type VaccinationCardOcrResult = {
+  vaccinations: VaccinationExtracted[];
+  raw: Array<{
+    vaccineName: string;
+    date: string;
+    doseNumber: number | null;
+    provider: string;
+    batchNumber: string;
+  }>;
+  note?: string;
+};
+
+export function useVaccinationCardOcr() {
+  return useMutation({
+    mutationFn: (data: { fileUrl: string; textHint?: string }) =>
+      api<{ result: VaccinationCardOcrResult; cached?: boolean }>(
+        "/ai/ocr/vaccination-card",
+        { method: "POST", body: data }
+      ),
+  });
+}
+
+// ─── Bulk Add Vaccinations ──────────────────────────────
+export function useBulkAddVaccinations() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      vaccinations: Array<{
+        vaccineName: string;
+        vaccineId?: string;
+        dose?: number;
+        recordDate: string;
+        provider?: string;
+        notes?: string;
+        batchNumber?: string;
+      }>;
+      familyMemberId?: string;
+    }) =>
+      api<{ created: any[]; due: VaccinationDueItem[] }>("/vaccinations/me/bulk", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vaccinations"] });
+      qc.invalidateQueries({ queryKey: ["medical-records"] });
+    },
+  });
+}
+
 // ─── V3: Vitals trend series ─────────────────────────────
 export type VitalsPoint = {
   t: string;

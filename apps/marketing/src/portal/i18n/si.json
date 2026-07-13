@@ -1124,6 +1124,9 @@
       "rejected": "Rejected",
       "all": "All"
     },
+    "qrFiltered": "Showing {{patient}}{{via}}",
+    "viaQr": " · via QR",
+    "clearFilter": "Show all",
     "empty": {
       "awaiting": "No prescriptions waiting to be dispensed.",
       "dispensed": "No prescriptions dispensed today.",
@@ -1339,5 +1342,91 @@
     "treatmentPlan": "Treatment Plan",
     "followUpInstructions": "Follow-up Instructions",
     "notProvided": "Not provided"
+  },
+  "scan": {
+    "title": "රෝගීයාගේ QR ස්කෑන් කරන්න",
+    "subtitle": {
+      "checkin": "රෝගීයා පරීක්ෂණය සඳහා ලිපින ගත කරනු ඇත.",
+      "dispense": "රෝගීයාගේ අත්සන් කළ බෙහෙත් පෙන්වනු ඇත.",
+      "id": "රෝගීයාගේ වාර්තාව විවෘත කරන්න."
+    },
+    "idleBody": "රූගත කැමරාව විවෘත කිරීමට ඔබන්න, ඉන්පසු රෝගීයාගේ භ්‍රමණය වන QR වෙත යොමු කරන්න.",
+    "startCamera": "කැමරාව ආරම්භ කරන්න",
+    "starting": "කැමරාව විවෘත කරමින්…",
+    "cancel": "අවලංගු",
+    "resolving": "රෝගීයා විසඳමින්…",
+    "resolved": "විසඳුණි",
+    "tryAgain": "නැවත උත්සාහ කරන්න",
+    "noPendingRx": "මෙම රෝගීයා සඳහා අත්සන් කළ බෙහෙත් නැත.",
+    "insecure_origin": {
+      "title": "HTTPS අවශ්‍යයි",
+      "body": "කැමරා ප්‍රවේශයට ආරක්ෂිත මූලාරම්භයක් අවශ්‍යයි. https:// හෝ http://localhost භාවිත කරන්න."
+    },
+    "permission_denied": {
+      "title": "කැමරා අවසරය ප්‍රතික්ෂේප විය",
+      "body": "බ්‍රවුසර සැකසුම් වල කැමරා ප්‍රවේශයට ඉඩ දී, ඉන්පසු 'නැවත උත්සාහ කරන්න' ඔබන්න."
+    },
+    "no_camera": {
+      "title": "කැමරාවක් හමු නොවීය",
+      "body": "කැමරාවක් සම්බන්ධ කර නැවත උත්සාහ කරන්න."
+    },
+    "no_match": {
+      "title": "ගැලපීමක් නැත",
+      "body": "එම කේතය සෞඛ්‍ය හැඳුනුමක් නොවේ. රෝගීයාගෙන් ඔවුන්ගේ මගේ සෞඛ්‍ය හැඳුනුම තිරය පෙන්වන්න ඉල්ලන්න."
+    },
+    "revoked": {
+      "title": "QR අවලංගු කරන ලදී",
+      "body": "මෙම QR අවලංගු කරන ලදී. රෝගීයාගෙන් එය නැවුම් කරන්න ඉල්ලන්න."
+    },
+    "expired": {
+      "title": "QR කල් ඉකුත් විය",
+      "body": "මෙම QR කල් ඉකුත් විය. රෝගීයාගෙන් එය නැවුම් කරන්න ඉල්ලන්න."
+    },
+    "wrong_purpose": {
+      "title": "වැරදි QR වර්ගය",
+      "body": "මෙම QR වෙනත් ස්කෑනරයක් සඳහායි. නිවැරදි මේසයේ ස්කෑන් කරන්න."
+    },
+    "tenant_mismatch": {
+      "title": "වැරදි රෝහල",
+      "body": "මෙම QR වෙනත් රෝහලකට අගුළු දමා ඇත."
+    },
+    "max_scans_reached": {
+      "title": "QR භාවිත අවසන්",
+      "body": "මෙම QR එහි ස්කෑන් සීමාවට ළඟා විය."
+    },
+    "rate_limited": {
+      "title": "ඕනෑවට වැඩි ස්කෑන්",
+      "body": "මොහොතක් මන්දගාමී වන්න, ඉන්පසු නැවත උත්සාහ කරන්න."
+    },
+    "unknown": {
+      "title": "යම් දෝෂයක්",
+      "body": "එම කේතය විසඳීමට නොහැක. නැවත උත්සාහ කරන්න."
+    }
+  },
+  "checkInConfirm": {
+    "title": "ලිපින ගත කිරීම තහවුරු කරන්න",
+    "subtitle": "පෝලිම් කොටස නිර්මාණය කිරීමට පෙර රෝගීයාගේ විස්තර සත්‍යාපනය කරන්න.",
+    "back": "ස්කෑන් වෙත ආපසු",
+    "patient": "රෝගීයා",
+    "fromQr": "QR මගින්",
+    "nic": "NIC",
+    "dob": "උපන් දිනය",
+    "bloodGroup": "රුධිර වර්ගය",
+    "allergies": "ආසාත්මිකතා",
+    "viewChart": "සම්පූර්ණ වාර්තාව බලන්න",
+    "assignDoctor": "වෛද්‍යවරයාට පවරන්න",
+    "loadingDoctors": "වෛද්‍යවරු පූරණය කරමින්…",
+    "noneDoctor": "මෙම රෝහල සඳහා වෛද්‍යවරු නැත.",
+    "priority": {
+      "routine": "සාමාන්‍ය",
+      "urgent": "ගඩු"
+    },
+    "reasonPlaceholder": "පැමිණීමේ හේතුව (අමතර)",
+    "confirm": "ලිපින ගත කරන්න",
+    "checkingIn": "ලිපින ගත කරමින්…",
+    "failed": "ලිපින ගත කිරීමට නොහැක. නැවත උත්සාහ කරන්න.",
+    "expiredTitle": "QR තවදුරටත් වලංගු නැත",
+    "expiredBody": "ඔබට තහවුරු කිරීමට පෙර ස්කෑන් කළ QR අවලංගු කරන ලද හෝ කල් ඉකුත් විය.",
+    "noPatient": "රෝගීයෙකු තෝරා ගෙන නැත"
   }
 }

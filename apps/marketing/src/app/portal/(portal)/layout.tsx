@@ -32,7 +32,17 @@ import { useRealtime } from "@/portal/hooks/useRealtime";
  * `requireServerRole("doctor", "pharmacy")` from the DAL and renders
  * `<PortalShell>{children}</PortalShell>` for the chrome.
  */
-const PORTAL_ROLES = ["doctor", "pharmacy"] as const;
+// Phase QR-Code Check-in & Dispensing: widened the portal gate so
+// hospital_admin + hospital_staff + super_admin can also reach the
+// scan surface (reception / pharmacy desks). They get a role-filtered
+// sidebar via Sidebar.tsx so doctor-only routes stay hidden.
+const PORTAL_ROLES = [
+  "doctor",
+  "pharmacy",
+  "hospital_admin",
+  "hospital_staff",
+  "super_admin",
+] as const;
 
 export default function PortalLayout({
   children,

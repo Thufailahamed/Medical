@@ -17,6 +17,7 @@ import {
   CalendarClock,
   AlertCircle,
   Clock,
+  Camera,
 } from "lucide-react-native";
 import {
   useVaccinations,
@@ -114,11 +115,18 @@ export default function VaccinationsScreen() {
         subtitle={subtitle}
         onBack={() => router.back()}
         right={
-          <IconButton
-            icon={Plus}
-            onPress={openSheet}
-            accessibilityLabel={t("vaccinations.logLabel")}
-          />
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <IconButton
+              icon={Camera}
+              onPress={() => router.push("/(app)/ai/vaccination-card")}
+              accessibilityLabel={t("vaccinations.scanCard")}
+            />
+            <IconButton
+              icon={Plus}
+              onPress={openSheet}
+              accessibilityLabel={t("vaccinations.logLabel")}
+            />
+          </View>
         }
       />
 

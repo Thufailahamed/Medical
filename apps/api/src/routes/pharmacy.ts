@@ -116,6 +116,14 @@ router.get(
     } else if (tenant.clinicId) {
       return c.json({ prescriptions: [], count: 0 });
     }
+    // Phase QR-Code Check-in & Dispensing: when a patient scans their
+    // QR at the pharmacy desk, the portal redirects to this endpoint
+    // with `?patient=<patientId>` so the pharmacist sees ONLY that
+    // patient's signed Rx — empty-state card when none.
+    const patientIdQ = c.req.query("patient");
+    if (patientIdQ) {
+      conditions.push(eq(prescriptions.patientId, patientIdQ));
+    }
 
     const rows = await db
       .select({
@@ -262,6 +270,15 @@ router.post(
     const tenant = resolveTenant(c);
     const userId = c.get("userId");
     const id = c.req.param("id");
+    // Phase QR-Code Check-in & Dispensing: when the pharmacist clicked
+    // "Dispense" from the QR-scanned patient view, the portal sends
+    // the originating token tail here so we can audit a parallel
+    // event (`prescription.dispensed_via_qr`) on top of the standard
+    // `prescription.dispensed` row.
+    const viaQrToken = c.req.header("x-via-qr-token") || null;
+    const viaQrTokenTail = viaQrToken
+      ? viaQrToken.slice(0, 6) + "…" + viaQrToken.slice(-4)
+      : null;
 
     const scoped = await loadRxForPharmacy(db, id, tenant);
     if (!scoped) {
@@ -316,11 +333,26 @@ router.post(
       });
     }
 
+    if (viaQrToken) {
+      await audit(db, {
+        userId,
+        action: "prescription.dispensed_via_qr",
+        resource: "prescription",
+        resourceId: id,
+        details: {
+          qrTokenTail: viaQrTokenTail,
+          hospitalId: tenant.hospitalId,
+          patientId: scoped.patientId,
+        },
+      });
+    }
+
     return c.json({
       ok: true,
       prescriptionId: id,
       status: "dispensed",
       dispensedAt: updated.dispensedAt ?? null,
+      viaQr: Boolean(viaQrToken),
     });
   }
 );

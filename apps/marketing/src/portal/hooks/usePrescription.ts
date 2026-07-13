@@ -169,16 +169,29 @@ export function useDispensePrescription() {
 }
 
 /** Pharmacy-side dispense. POSTs to /pharmacy/prescriptions/:id/dispense.
- *  Used by the pharmacy portal flow (`/portal/pharmacy`). */
+ *  Used by the pharmacy portal flow (`/portal/pharmacy`).
+ *  Phase QR-Code Check-in & Dispensing: if the caller passes the
+ *  originating QR token, the API audits a parallel
+ *  `prescription.dispensed_via_qr` row. */
 export function usePharmacyDispense() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) =>
-      api<{ ok: true; prescriptionId: string; status: string; dispensedAt: string }>(
-        `/pharmacy/prescriptions/${id}/dispense`,
-        { method: "POST", json: {} }
-      ),
-    onSuccess: (_res, id) => {
+    mutationFn: async ({ id, viaQrToken }: { id: string; viaQrToken?: string | null }) => {
+      const headers: Record<string, string> = {};
+      if (viaQrToken) headers["x-via-qr-token"] = viaQrToken;
+      return api<{
+        ok: true;
+        prescriptionId: string;
+        status: string;
+        dispensedAt: string;
+        viaQr?: boolean;
+      }>(`/pharmacy/prescriptions/${id}/dispense`, {
+        method: "POST",
+        json: {},
+        headers,
+      });
+    },
+    onSuccess: (_res, { id }) => {
       qc.invalidateQueries({ queryKey: ["prescription", id] });
       qc.invalidateQueries({ queryKey: ["pharmacy", "prescriptions"] });
     },

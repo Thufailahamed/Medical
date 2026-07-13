@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { Home, ClipboardList, Pill, Siren, UserRound, MessageCircle } from "lucide-react-native";
+import { Home, ClipboardList, Pill, Siren, UserRound, MessageCircle, ScanLine } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount, usePatientConversations } from "@/hooks/useApi";
 import { useRealtime } from "@/hooks/useRealtime";
@@ -110,6 +110,15 @@ export default function AppLayout() {
           title: t("nav.tabs.messages"),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={MessageCircle} focused={focused} badge={msgUnread} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="health-id"
+        options={{
+          title: t("nav.tabs.healthId"),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={ScanLine} focused={focused} />
           ),
         }}
       />

@@ -838,6 +838,11 @@ export const walkIns = sqliteTable("walk_ins", {
   consultationEndedAt: text("consultation_ended_at"),
   assignedByUserId: text("assigned_by_user_id").references(() => users.id),
   notes: text("notes"),
+  // QR-Code Check-in: stamps where this walk-in came from. Mobile
+  // filters the realtime stream to `origin === "qr_scan"` for the
+  // "you're checked in" toast. Manual front-desk entries leave it
+  // null.
+  origin: text("origin", { enum: ["manual", "qr_scan"] }).default("manual"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -2588,21 +2593,93 @@ export const consentGrants = sqliteTable(
   }
 );
 
-export const qrAccessTokens = sqliteTable("qr_access_tokens", {
-  token: text("token").primaryKey(),
-  patientId: text("patient_id")
-    .notNull()
-    .references(() => patients.id),
-  familyMemberId: text("family_member_id").references(() => familyMembers.id),
-  encryptedPayload: text("encrypted_payload").notNull(),
-  expiresAt: text("expires_at").notNull(),
-  maxScans: integer("max_scans").notNull().default(5),
-  scansJson: text("scans_json").notNull().default("[]"),
-  revokedAt: text("revoked_at"),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+// QR-Code Check-in & Dispensing: rotate-purpose tokens. Existing
+// emergency rows keep `purpose='emergency'`; new checkin/dispense/id
+// rows share the same table so we don't duplicate the rotation +
+// audit machinery. The partial-unique index below ensures at most
+// one live token per (patientId, purpose) so each issue kills the
+// prior row in the same write.
+export const qrAccessTokens = sqliteTable(
+  "qr_access_tokens",
+  {
+    token: text("token").primaryKey(),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    familyMemberId: text("family_member_id").references(() => familyMembers.id),
+    encryptedPayload: text("encrypted_payload").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    maxScans: integer("max_scans").notNull().default(5),
+    scansJson: text("scans_json").notNull().default("[]"),
+    revokedAt: text("revoked_at"),
+    // New: purpose lets us share the table between emergency profile
+    // tokens + rotating Health ID tokens. Emergency rows default to
+    // 'emergency'; Health ID tokens issue with purpose in
+    // {checkin, dispense, id, all}. A partial-unique index on
+    // (patient_id, purpose) WHERE revoked_at IS NULL keeps at most
+    // one live token per slot.
+    purpose: text("purpose").notNull().default("emergency"),
+    // CSV of capabilities. '*' = open-scope (any portal role can
+    // resolve). Otherwise 'checkin', 'dispense', or comma mix.
+    scopes: text("scopes"),
+    createdByUserId: text("created_by_user_id").references(() => users.id),
+    hospitalId: text("hospital_id").references(() => hospitals.id),
+    lastIssuedAt: text("last_issued_at"),
+    rotationSeconds: integer("rotation_seconds").default(30),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    // Only one *live* (non-revoked) token per (patient, purpose) at a
+    // time. Issuing a fresh token in the same slot revokes the prior
+    // row in a single write so a stolen old QR can never be scanned.
+    qrPatPurposeIdx: uniqueIndex("qr_access_tokens_pat_purpose_idx")
+      .on(t.patientId, t.purpose)
+      .where(sql`${t.revokedAt} IS NULL`),
+    // Lookups by expiry for the future cron sweeper.
+    qrExpiryIdx: index("qr_access_tokens_expiry_idx").on(t.expiresAt),
+  }),
+);
+
+// QR-Code Check-in & Dispensing: append-only log of every staff scan
+// attempt. Lets ops trace who scanned whose QR, when, from which
+// tenant, and why any rejection happened. `success=false` rows are
+// common during the demo (wrong-purpose + tenant-mismatch are
+// expected on the live investor walkthrough) so the table grows
+// fast — flagged for a 90-day retention cron in the next iteration.
+export const portalScanEvents = sqliteTable(
+  "portal_scan_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    token: text("token").notNull(),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    scannedByUserId: text("scanned_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    portalRole: text("portal_role").notNull(),
+    purpose: text("purpose").notNull(),
+    hospitalId: text("hospital_id").references(() => hospitals.id),
+    success: integer("success", { mode: "boolean" }).notNull(),
+    reason: text("reason"),
+    ip: text("ip"),
+    userAgent: text("user_agent"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    byTimeIdx: index("portal_scan_events_time_idx").on(t.createdAt),
+    byPatientIdx: index("portal_scan_events_patient_idx").on(
+      t.patientId,
+      t.createdAt,
+    ),
+  }),
+);
 
 // ─── Phase ADM-2: runtime settings + admin notes ─────────────
 //

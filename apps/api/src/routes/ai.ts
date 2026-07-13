@@ -11,6 +11,7 @@ import {
   vitals,
   chatSessions,
   chatMessages,
+  vaccineCatalog,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -21,6 +22,7 @@ import {
   aiDrugInteractionSchema,
   aiChatSchema,
   aiOcrSchema,
+  aiVaccinationCardOcrSchema,
   aiClinicalNoteSummarySchema,
   aiLabTrendSchema,
   aiSoapDraftSchema,
@@ -29,6 +31,7 @@ import {
 } from "@healthcare/shared";
 import {
   aiComplete,
+  aiVisionComplete,
   cacheGet,
   cacheStore,
   tryParseJson,
@@ -36,12 +39,14 @@ import {
   systemPrompt,
   findStaticInteractions,
   fetchR2Text,
+  fetchR2Base64,
   fallbackSummary,
   fallbackLabExplain,
   fallbackLabTrend,
   fallbackDrugCheck,
   fallbackChat,
   fallbackOcr,
+  fallbackVaccinationCardOcr,
   fallbackClinicalNoteSummary,
   fallbackSoapDraft,
   fallbackSuggestRecordType,
@@ -653,6 +658,116 @@ ai.post("/ocr/prescription", async (c) => {
   }
 
   await cacheStore(db, "ocr", cacheKey, result);
+  return c.json({ result });
+});
+
+// ─── Vaccination Card OCR (Vision Model) ─────────────────
+// POST /ai/ocr/vaccination-card  { fileUrl, textHint? }
+//
+// Uses the Workers AI vision model to extract vaccination records from
+// a photo of a physical vaccination card. Returns structured data with
+// fuzzy-matched catalog entries.
+ai.post("/ocr/vaccination-card", async (c) => {
+  const db = c.get("db");
+  const aiBinding = c.env.AI;
+  const r2 = c.env.R2;
+  const userId = c.get("userId");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = aiVaccinationCardOcrSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) },
+      400
+    );
+  }
+  const textHint: string | undefined = body.textHint;
+  const fileUrl: string = parsed.data.fileUrl;
+
+  const cacheKey = { fileUrl, textHint: textHint || null };
+  const cached = await cacheGet(db, "vaccination_card_ocr", cacheKey);
+  if (cached) return c.json({ result: cached, cached: true });
+
+  // Fetch image from R2 as base64 for the vision model
+  let imageBase64 = "";
+  const key = extractR2Key(fileUrl);
+  if (key) {
+    imageBase64 = await fetchR2Base64(r2, key);
+  }
+
+  if (!imageBase64) {
+    return c.json({ result: fallbackVaccinationCardOcr() });
+  }
+
+  const messages: ChatMsg[] = [
+    {
+      role: "system",
+      content:
+        systemPrompt(
+          "Extract vaccination records from a photo of a vaccination card."
+        ) +
+        ' Return JSON with key "vaccinations" containing an array of objects with: vaccineName (string), date (string YYYY-MM-DD or empty if unclear), doseNumber (number or null), provider (string or empty), batchNumber (string or empty). Extract ALL visible entries. If the image is unclear, do your best guess. Always return valid JSON.',
+    },
+    {
+      role: "user",
+      content: [
+        ...(textHint ? [{ type: "text" as const, text: `Additional context: ${textHint}` }] : []),
+        {
+          type: "image_url" as const,
+          image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+        },
+      ],
+    },
+  ];
+
+  let result;
+  try {
+    const out = await aiVisionComplete(aiBinding, messages, {
+      maxTokens: 1200,
+      temperature: 0.1,
+    });
+    const parsedJson = tryParseJson<any>(out);
+    if (parsedJson && Array.isArray(parsedJson.vaccinations)) {
+      // Normalize extracted entries
+      const raw = parsedJson.vaccinations
+        .filter((v: any) => v && typeof v.vaccineName === "string" && v.vaccineName.trim().length > 0)
+        .map((v: any) => ({
+          vaccineName: String(v.vaccineName).trim(),
+          date: typeof v.date === "string" ? v.date : "",
+          doseNumber: v.doseNumber != null ? Number(v.doseNumber) : null,
+          provider: typeof v.provider === "string" ? v.provider.trim() : "",
+          batchNumber: typeof v.batchNumber === "string" ? v.batchNumber.trim() : "",
+        }));
+
+      // Fuzzy-match against vaccine catalog
+      const catalog = await db.select().from(vaccineCatalog);
+      const matched = raw.map((entry: any) => {
+        const nameLC = entry.vaccineName.toLowerCase();
+        const match = (catalog as any[]).find(
+          (v: any) =>
+            v.name?.toLowerCase() === nameLC ||
+            v.shortName?.toLowerCase() === nameLC ||
+            nameLC.includes(v.name?.toLowerCase() || "") ||
+            (v.shortName && nameLC.includes(v.shortName.toLowerCase()))
+        );
+        return {
+          ...entry,
+          catalogId: match?.id || null,
+          catalogName: match?.name || null,
+          catalogShortName: match?.shortName || null,
+          matched: !!match,
+        };
+      });
+
+      result = { vaccinations: matched, raw };
+    } else {
+      result = fallbackVaccinationCardOcr();
+    }
+  } catch (err) {
+    console.error("[ai/vaccination-card-ocr] failed", err);
+    result = fallbackVaccinationCardOcr();
+  }
+
+  await cacheStore(db, "vaccination_card_ocr", cacheKey, result);
   return c.json({ result });
 });
 

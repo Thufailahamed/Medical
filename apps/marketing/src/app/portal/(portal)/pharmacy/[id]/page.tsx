@@ -101,7 +101,7 @@ export default function PharmacyDetailPage({
 
   async function handleDispense() {
     try {
-      await dispenseMutation.mutateAsync(rx!.id);
+      await dispenseMutation.mutateAsync({ id: rx!.id });
       toast.success(t("pharmacy.detail.dispenseSuccess"), `#${rx!.id.slice(0, 8)}`);
     } catch (err: any) {
       toast.error(t("toast.error"), err?.message ?? "Dispense failed");

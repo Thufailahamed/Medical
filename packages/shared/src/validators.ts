@@ -266,6 +266,11 @@ export const aiOcrSchema = z.object({
   textHint: z.string().max(8000).optional(),
 });
 
+export const aiVaccinationCardOcrSchema = z.object({
+  fileUrl: z.string().url().or(z.string().min(1)),
+  textHint: z.string().max(8000).optional(),
+});
+
 // Day 2 #1: clinical-note auto-summary.
 // Free-text doctor note → 1-line summary + SOAP fields + key terms.
 // Patient-scoped for RBAC; cache by note hash + patientId.

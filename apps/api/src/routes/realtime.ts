@@ -417,6 +417,7 @@ function buildPollers(ctx: {
             id: walkIns.id,
             patientId: walkIns.patientId,
             status: walkIns.status,
+            origin: walkIns.origin,
             createdAt: walkIns.createdAt,
           })
           .from(walkIns)
@@ -425,6 +426,7 @@ function buildPollers(ctx: {
         id: r.id,
         patientId: r.patientId,
         status: r.status,
+        origin: r.origin ?? "manual",
         createdAt: r.createdAt,
       }),
     },

@@ -38,13 +38,16 @@ export type PharmacyRxFilter = "signed" | "dispensed" | "cancelled" | "all";
 export function usePharmacyPrescriptions(opts: {
   status: PharmacyRxFilter;
   limit?: number;
+  patientId?: string | null;
 }) {
+  const { status, limit = 200, patientId = null } = opts;
   return useQuery({
-    queryKey: ["pharmacy", "prescriptions", opts.status, opts.limit ?? 200],
+    queryKey: ["pharmacy", "prescriptions", status, limit, patientId],
     queryFn: () => {
       const q = new URLSearchParams();
-      q.set("limit", String(opts.limit ?? 200));
-      if (opts.status !== "all") q.set("status", opts.status);
+      q.set("limit", String(limit));
+      if (status !== "all") q.set("status", status);
+      if (patientId) q.set("patient", patientId);
       return api<{ prescriptions: PharmacyRxRow[]; count: number }>(
         `/pharmacy/prescriptions?${q.toString()}`
       );

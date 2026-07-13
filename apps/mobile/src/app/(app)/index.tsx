@@ -2022,12 +2022,14 @@ function VitalsGlanceCard() {
   const { data: hrSeries } = useVitalsSparkline("heart_rate", 7);
   const { data: spo2Series } = useVitalsSparkline("spo2", 7);
   const { data: wtSeries } = useVitalsSparkline("weight", 7);
+  const { data: glucoseSeries } = useVitalsSparkline("blood_sugar", 7);
 
   const latestByType = derivedData?.latestByType ?? [];
   const latest = (type: any) => latestByType.find((l) => l.type === type)?.latest;
 
   const tiles: Array<{ type: any; series: any; icon: any }> = [
     { type: "blood_pressure", series: bpSeries, icon: Heart },
+    { type: "blood_sugar", series: glucoseSeries, icon: Droplet },
     { type: "heart_rate", series: hrSeries, icon: Activity },
     { type: "spo2", series: spo2Series, icon: Activity },
     { type: "weight", series: wtSeries, icon: Scale },

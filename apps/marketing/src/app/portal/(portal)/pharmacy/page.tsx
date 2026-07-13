@@ -11,11 +11,25 @@
  * /portal/prescriptions/page.tsx and the role-aware `<RxActions>` in
  * `mode="pharmacy"`, which renders Dispense + Reject buttons that
  * talk to /pharmacy/prescriptions/:id/{dispense,reject}.
+ *
+ * Phase QR-Code Check-in & Dispensing: when the pharmacist scanned a
+ * patient QR the scanner redirects to /portal/pharmacy?patient=<id>
+ * so this page filters the list to ONLY that patient's signed Rx.
+ * A ?via=<token> param is forwarded to the dispense mutation so the
+ * API can audit `prescription.dispensed_via_qr`.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Pill as PillIcon, FileText, ArrowRight, Pill } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import {
+  Pill as PillIcon,
+  FileText,
+  ArrowRight,
+  Pill,
+  ScanLine,
+  X as CloseIcon,
+} from "lucide-react";
 
 import { Card } from "@/portal/components/ui/Card";
 import { Pill as PillBadge } from "@/portal/components/ui/Pill";
@@ -49,8 +63,18 @@ const emptyKey: Record<PharmacyRxFilter, string> = {
 
 export default function PharmacyListPage() {
   const t = useT();
+  const sp = useSearchParams();
+  // QR-Code: when the scan redirected us, ?patient=<id> filters
+  // the list to only that patient's signed Rx. ?via=<token> is
+  // forwarded into the dispense mutation so the API can audit a
+  // parallel `prescription.dispensed_via_qr` row.
+  const patientQ = sp.get("patient");
+  const viaQ = sp.get("via");
   const [status, setStatus] = useState<PharmacyRxFilter>("signed");
-  const { data, isLoading } = usePharmacyPrescriptions({ status });
+  const { data, isLoading } = usePharmacyPrescriptions({
+    status,
+    patientId: patientQ,
+  });
 
   const rows = data?.prescriptions ?? [];
 
@@ -61,6 +85,27 @@ export default function PharmacyListPage() {
         subtitle={t("pharmacy.subtitle")}
         icon={<Pill size={18} className="text-emerald-600" />}
       />
+
+      {patientQ ? (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-900 px-4 py-2.5 text-sm">
+          <div className="inline-flex items-center gap-2 min-w-0">
+            <ScanLine size={16} />
+            <span className="truncate">
+              {t("pharmacy.qrFiltered", {
+                patient: `…${patientQ.slice(-6)}`,
+                via: viaQ ? t("pharmacy.viaQr") : "",
+              })}
+            </span>
+          </div>
+          <Link
+            href="/portal/pharmacy"
+            className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+          >
+            <CloseIcon size={12} />
+            {t("pharmacy.clearFilter")}
+          </Link>
+        </div>
+      ) : null}
 
       <Card padding={false} className="rounded-2xl border-border/50">
         <div className="px-4 py-3 flex flex-wrap items-center gap-1.5">
@@ -90,7 +135,14 @@ export default function PharmacyListPage() {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : rows.length === 0 ? (
-          <Empty title={t(emptyKey[status])} className="py-12" />
+          <Empty
+            title={
+              patientQ
+                ? t("scan.noPendingRx")
+                : t(emptyKey[status])
+            }
+            className="py-12"
+          />
         ) : (
           <ul className="flex flex-col">
             {rows.map((r) => (
@@ -136,6 +188,7 @@ export default function PharmacyListPage() {
                   hideEdit
                   compact
                   mode="pharmacy"
+                  viaQrToken={viaQ}
                 />
               </li>
             ))}

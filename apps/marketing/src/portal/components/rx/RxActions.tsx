@@ -63,6 +63,13 @@ interface Props {
    * Dispense + Reject, talking to the /pharmacy/... endpoints.
    */
   mode?: "doctor" | "pharmacy";
+  /**
+   * Phase QR-Code Check-in & Dispensing: when the dispense originated
+   * from a scanned patient QR, the originating token is forwarded to
+   * the API via the `x-via-qr-token` header so the audit chain captures
+   * `prescription.dispensed_via_qr`. Omit for normal pharmacy flow.
+   */
+  viaQrToken?: string | null;
 }
 
 export function RxActions({
@@ -72,6 +79,7 @@ export function RxActions({
   compact,
   onEdit,
   mode = "doctor",
+  viaQrToken = null,
 }: Props) {
   const t = useT();
   const signMutation = useSignPrescription();
@@ -128,7 +136,10 @@ export function RxActions({
 
   async function handlePharmacyDispense() {
     try {
-      await pharmacyDispenseMutation.mutateAsync(id);
+      await pharmacyDispenseMutation.mutateAsync({
+        id,
+        viaQrToken: viaQrToken ?? null,
+      });
       toast.success(t("pharmacy.detail.dispenseSuccess"), `#${id.slice(0, 8)}`);
     } catch (err: any) {
       toast.error(t("toast.error"), err?.message ?? "Dispense failed");

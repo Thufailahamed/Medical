@@ -477,6 +477,9 @@
       "rejected": "Rejected",
       "all": "All"
     },
+    "qrFiltered": "Showing {{patient}}{{via}}",
+    "viaQr": " · via QR",
+    "clearFilter": "Show all",
     "empty": {
       "awaiting": "No prescriptions waiting to be dispensed.",
       "dispensed": "No prescriptions dispensed today.",
@@ -1360,5 +1363,91 @@
       "admins": "Administrators",
       "systemHealth": "System health"
     }
+  },
+  "scan": {
+    "title": "Scan patient QR",
+    "subtitle": {
+      "checkin": "Patient will be checked in for consultation.",
+      "dispense": "Patient's signed prescriptions will be shown.",
+      "id": "Open the patient chart."
+    },
+    "idleBody": "Tap to open the camera and point it at the patient's rotating QR.",
+    "startCamera": "Start camera",
+    "starting": "Opening camera…",
+    "cancel": "Cancel",
+    "resolving": "Resolving patient…",
+    "resolved": "Resolved",
+    "tryAgain": "Try again",
+    "noPendingRx": "No signed prescriptions for this patient.",
+    "insecure_origin": {
+      "title": "HTTPS required",
+      "body": "Camera access requires a secure origin. Use https:// or http://localhost."
+    },
+    "permission_denied": {
+      "title": "Camera permission denied",
+      "body": "Allow camera access in your browser settings, then tap Try again."
+    },
+    "no_camera": {
+      "title": "No camera found",
+      "body": "Connect a camera and try again."
+    },
+    "no_match": {
+      "title": "No match",
+      "body": "That code isn't a Health ID. Ask the patient to show their My Health ID screen."
+    },
+    "revoked": {
+      "title": "QR revoked",
+      "body": "This QR has been revoked. Ask the patient to refresh it on their phone."
+    },
+    "expired": {
+      "title": "QR expired",
+      "body": "This QR expired. Ask the patient to refresh it on their phone."
+    },
+    "wrong_purpose": {
+      "title": "Wrong QR type",
+      "body": "This QR is for a different scanner. Scan it at the correct desk."
+    },
+    "tenant_mismatch": {
+      "title": "Wrong hospital",
+      "body": "This QR is locked to a different hospital. Switch the tenant or ask the patient to re-issue."
+    },
+    "max_scans_reached": {
+      "title": "QR used up",
+      "body": "This QR has reached its scan limit. Ask the patient to refresh it."
+    },
+    "rate_limited": {
+      "title": "Too many scans",
+      "body": "Slow down a moment, then try again."
+    },
+    "unknown": {
+      "title": "Something went wrong",
+      "body": "We couldn't resolve that code. Try again or scan a different QR."
+    }
+  },
+  "checkInConfirm": {
+    "title": "Confirm check-in",
+    "subtitle": "Verify the patient details before creating the queue slot.",
+    "back": "Back to scan",
+    "patient": "Patient",
+    "fromQr": "From QR",
+    "nic": "NIC",
+    "dob": "Date of birth",
+    "bloodGroup": "Blood group",
+    "allergies": "Allergies",
+    "viewChart": "View full chart",
+    "assignDoctor": "Assign to doctor",
+    "loadingDoctors": "Loading doctors…",
+    "noneDoctor": "No doctors available for this hospital.",
+    "priority": {
+      "routine": "Routine",
+      "urgent": "Urgent"
+    },
+    "reasonPlaceholder": "Reason for visit (optional)",
+    "confirm": "Check in",
+    "checkingIn": "Checking in…",
+    "failed": "Could not check in. Try again.",
+    "expiredTitle": "QR no longer valid",
+    "expiredBody": "The scanned QR was revoked or expired before you could confirm. Scan again from the patient's phone.",
+    "noPatient": "No patient selected"
   }
 }

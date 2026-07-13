@@ -97,6 +97,7 @@ import crossHospitalLabRoutingsRouter from "./routes/cross-hospital-lab-routings
 import consultNotesRouter from "./routes/consult-notes";
 import dischargeHandoffsRouter from "./routes/discharge-handoffs";
 import realtimeRouter from "./routes/realtime";
+import healthIdRouter, { scanRouter } from "./routes/health-id";
 import type { AppEnvironment } from "./types";
 
 const app = new Hono<AppEnvironment>();
@@ -293,6 +294,11 @@ app.route("/cross-hospital-lab-routings", crossHospitalLabRoutingsRouter);
 app.route("/consult-notes", consultNotesRouter);
 app.route("/discharge-handoffs", dischargeHandoffsRouter);
 app.route("/me", meTenantsRouter);
+// QR-Code Check-in & Dispensing (Health ID). Patient endpoints under
+// /me/health-id (issue / current / revoke); staff endpoint under
+// /portal/scan/resolve. Both routers live in routes/health-id.ts.
+app.route("/me/health-id", healthIdRouter);
+app.route("/portal/scan", scanRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);

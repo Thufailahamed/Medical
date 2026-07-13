@@ -666,3 +666,44 @@ export interface Payment {
   paidAt: string;
   notes: string | null;
 }
+
+// ─── QR-Code Check-in & Dispensing (Health ID) ───────────
+//
+// Purpose enum drives both token issuance (mobile decides which
+// scanner context the QR is for) and resolution (staff scanner
+// enforces a matching purpose or rejects with 409 purpose_mismatch).
+//   - "checkin"  → reception / front-desk creates a walk_in row
+//   - "dispense" → pharmacy shows only that patient's signed Rx
+//   - "id"       → opens the patient overview
+//   - "all"      → emergency-style opener (no scan intent pinned)
+//   - "emergency" → reserved for the legacy profile bundle flow;
+//                   the QR itself still uses this row but never
+//                   resolves through the portal scanner.
+
+export type HealthIdPurpose = "checkin" | "dispense" | "id" | "all" | "emergency";
+
+export interface HealthIdToken {
+  token: string;
+  purpose: HealthIdPurpose;
+  rotationSeconds: number;
+  expiresAt: string;
+  scopes: string[];
+}
+
+export interface ResolveScanPatient {
+  id: string;
+  name: string;
+  photo: string | null;
+  nic: string | null;
+  dob: string | null;
+  bloodGroup: string | null;
+}
+
+export interface ResolveScanResult {
+  patient: ResolveScanPatient;
+  purpose: HealthIdPurpose;
+  scopes: string[];
+  hospitalId: string | null;
+  expiresAt: string;
+  remainingScans: number;
+}

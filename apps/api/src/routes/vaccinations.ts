@@ -223,5 +223,111 @@ vaccinationsRouter.post("/me", authMiddleware, requireRole("patient", "caretaker
   return c.json({ vaccination: row }, 201);
 });
 
+// ─── Bulk create vaccination records ─────────────────────
+// POST /me/bulk — accepts array of vaccination records from OCR scan.
+// Each entry is matched against the catalog and inserted as a medical
+// record. Returns created records + recomputed due schedule.
+vaccinationsRouter.post("/me/bulk", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ error: "Patient not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const entries: any[] = Array.isArray(body.vaccinations) ? body.vaccinations : [];
+  if (entries.length === 0) {
+    return c.json({ error: "vaccinations array is required and must not be empty" }, 400);
+  }
+
+  // Pre-fetch catalog for matching
+  const catalog = await db.select().from(vaccineCatalog);
+  const catalogArr = catalog as any[];
+
+  const explicitFm = (body as any).familyMemberId ?? null;
+  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+  const familyMemberId = explicitFm || activeFm || null;
+
+  const created: any[] = [];
+
+  for (const entry of entries) {
+    const vaccineName = String(entry.vaccineName || entry.title || "").trim();
+    if (!vaccineName || vaccineName.length < 2) continue;
+
+    const recordDate =
+      entry.recordDate ||
+      entry.administeredAt ||
+      new Date().toISOString().slice(0, 10);
+
+    // Find matching catalog entry
+    let catalogEntry: any = null;
+    if (entry.vaccineId) {
+      catalogEntry = catalogArr.find((v) => v.id === entry.vaccineId) || null;
+    } else {
+      const nameLC = vaccineName.toLowerCase();
+      catalogEntry =
+        catalogArr.find(
+          (v: any) =>
+            v.name?.toLowerCase() === nameLC ||
+            (v.shortName && v.shortName.toLowerCase() === nameLC) ||
+            nameLC.includes(v.name?.toLowerCase() || "")
+        ) || null;
+    }
+
+    const title = catalogEntry ? catalogEntry.name : vaccineName;
+    const dose = entry.dose != null ? Number(entry.dose) : null;
+    const description =
+      dose != null
+        ? `Dose ${dose}${catalogEntry?.targetDisease ? " • " + catalogEntry.targetDisease : ""}`
+        : catalogEntry?.targetDisease
+        ? catalogEntry.targetDisease
+        : entry.notes || null;
+
+    try {
+      const [row] = await db
+        .insert(medicalRecords)
+        .values({
+          patientId: patient.id,
+          recordType: "vaccination",
+          title,
+          description,
+          recordDate,
+          provider: entry.provider || null,
+          notes:
+            entry.notes ||
+            (catalogEntry ? `Vaccine ID: ${catalogEntry.id}` : null) +
+            (entry.batchNumber ? ` • Batch: ${entry.batchNumber}` : ""),
+          familyMemberId,
+        } as any)
+        .returning();
+      if (row) created.push(row);
+    } catch (err) {
+      console.error("[vaccinations/bulk] insert failed for", vaccineName, err);
+    }
+  }
+
+  // Recompute due schedule after bulk insert
+  const allAdministered = await db
+    .select()
+    .from(medicalRecords)
+    .where(
+      and(
+        eq(medicalRecords.patientId, patient.id),
+        eq(medicalRecords.recordType, "vaccination")
+      )
+    );
+
+  const { computeVaccineDueSlots } = await import("../lib/vaccine-schedule");
+  const slots = computeVaccineDueSlots({
+    patient: { dateOfBirth: patient.dateOfBirth },
+    catalog: catalogArr,
+    administered: allAdministered as any,
+  });
+
+  return c.json({
+    created,
+    due: [...slots.overdue, ...slots.due, ...slots.upcoming],
+  }, 201);
+});
+
 // ─── Tiny RBAC helper (avoids extra import cycle) ────────
 export default vaccinationsRouter;

@@ -1400,6 +1400,7 @@
       "diastolic": "ඩයාස්ටොලික්",
       "statsLabel": "කියවීම් සංඛ්‍යාලේඛන",
       "legendLabel": "ප්‍රස්ථාර නාම",
+      "glucoseFocus": "ග්ලූකෝස් අවධානය",
       "stats": {
         "latest": "නවතම",
         "avg": "සාමාන්‍ය",
@@ -1413,6 +1414,14 @@
       "30": "දින 30",
       "90": "දින 90",
       "365": "වසර 1"
+    },
+    "trendComparison": {
+      "title": "කාල සංසන්දනය",
+      "current": "වර්තමාන",
+      "previous": "පෙර",
+      "avg": "සාමාන්‍ය",
+      "min": "කුඩාම",
+      "max": "වැඩිම"
     },
     "toast": {
       "invalidValue": "වලංගු අගයක් ඇතුළත් කරන්න",
@@ -1621,6 +1630,44 @@
     },
     "error": {
       "nameRequired": "Vaccine name required"
+    },
+    "scanCard": "කාඩ් පත පරිලෝකනය"
+  },
+  "vaccinationCard": {
+    "title": "එන්නත් කාඩ් පත පරිලෝකනය",
+    "subtitle": "ඔබේ එන්නත් කාඩ් පතේ ඡායාරූපයක් ගන්න",
+    "scanHeading": "කාඩ් පත ග්‍රහණය",
+    "cameraButton": "ඡායාරූපයක් ගන්න",
+    "galleryButton": "ගැලරියෙන් තෝරන්න",
+    "scanButton": "කාඩ් පත පරිලෝකනය",
+    "removeButton": "ඡායාරූපය ඉවත් කරන්න",
+    "imageEmptyTitle": "ඡායාරූපයක් තෝරා නැත",
+    "imageEmptyBody": "ඡායාරූපයක් ගන්න හෝ ඔබේ ගැලරියෙන් තෝරන්න",
+    "pickFirst": "කරුණාකර පළමුව ඡායාරූපයක් තෝරන්න",
+    "pickImageError": "ඡායාරූපය තෝරා ගැනීම අසාර්ථක විය",
+    "permissionDenied": "කැමරා අවසරය අවශ්‍යයි",
+    "scanning": "එන්නත් කාඩ් පත කියවමින්...",
+    "noVaccinesFound": "එන්නත් හඳුනාගෙන නැත. වඩා පැහැදිලි ඡායාරූපයක් උත්සාහ කරන්න.",
+    "ocrError": "කාඩ් පත කියවිය නොහැකි විය. වඩා පැහැදිලි ඡායාරූපයක් උත්සාහ කරන්න.",
+    "reviewTitle": "උකහා ගත් එන්නත් සමාලෝචනය",
+    "reviewSubtitle": "එන්නත් {{count}} ක් හමු විය. සුරැකීමට පෙර සංස්කරණය කරන්න.",
+    "noMatch": "ගැලපීමක් නැත",
+    "saveAll": "{{count}} සුරකින්න",
+    "addRow": "එන්නතක් එකතු කරන්න",
+    "rescan": "නැවත පරිලෝකනය",
+    "noValidEntries": "කරුණාකර අවම වශයෙන් වලංගු එන්නතක් එකතු කරන්න",
+    "disclaimer": "AI මගින් උකහා ගත් දත්තවල දෝෂ තිබිය හැක. සුරැකීමට පෙර සත්‍යාපනය කරන්න.",
+    "field": {
+      "name": "එන්නතේ නම",
+      "namePlaceholder": "උදා: ඉන්ෆ්ලුවෙන්සා",
+      "date": "දිනය",
+      "dose": "මාත්‍රාව",
+      "provider": "සැපයුම්කරු",
+      "providerPlaceholder": "රෝහල හෝ සායනය"
+    },
+    "toast": {
+      "saved": "එන්නත් {{count}} ක් සුරක්ෂිත කෙරිණි!",
+      "error": "එන්නත් සුරැකීම අසාර්ථක විය"
     }
   },
   "notes": {
@@ -1911,12 +1958,40 @@
       "medicines": "ඖෂධ",
       "emergency": "හදිසි",
       "profile": "ගිණුම",
+      "healthId": "සෞඛ්‍ය හැඳුනුම",
       "doctorHome": "Home",
       "doctorSchedule": "Schedule",
       "doctorInbox": "Inbox",
       "doctorPrescribe": "Prescribe",
       "doctorProfile": "Profile"
     }
+  },
+  "healthId": {
+    "kicker": "මගේ සෞඛ්‍ය හැඳුනුම",
+    "title": "මෙය ලිපින ගත කිරීමේ මේසයේ හෝ බෙහෙත් ශාලාවේ පෙන්වන්න",
+    "caption": "ඔබේ වාර්තාව ලබා ගැනීමට හෝ බෙහෙත් බෙදා දීමට කාර්ය මණ්ඩලය මෙය ස්කෑන් කරයි — නම කියා දීමට අවශ්‍ය නැත.",
+    "actingAsCaretaker": "සත්කාරකයෙකු ලෙස ක්‍රියා කරයි",
+    "purpose": {
+      "checkin": "ලිපින ගත කිරීම",
+      "dispense": "බෙහෙත් ශාලාව",
+      "id": "හැඳුනුම",
+      "all": "සියල්ල"
+    },
+    "rotateIn": "{{seconds}} තත්පරයෙන් හැකිලේ",
+    "rotateNow": "දැන් හරවන්න",
+    "rotateFailed": "හරවා ගැනීමට නොහැක — නැවත උත්සාහ කරන්න",
+    "revoke": "අවලංගු කරන්න",
+    "revoked": "QR අවලංගු කරන ලදී",
+    "revokeFailed": "අවලංගු කිරීමට නොහැක",
+    "showPicker": "සත්කාරකයින් කළමනාත් කරන්න",
+    "issue": "මගේ QR නිකුත් කරන්න",
+    "emptyTitle": "ඔබේ QR නිකුත් කිරීමට ඔබන්න",
+    "emptyBody": "ඔබේ QR ස්වයංක්‍රීයව හැකිලේ, එබැවින් screenshot එකක් නැවත භාවිත කළ නොහැක.",
+    "footnote": "විවෘත පරාසය: ලියාපදිංචි ඕනෑම කාර්ය මණ්ඩලයකට විසඳිය හැක. ඕනෑම වේලාවක අවලංගු කරන්න.",
+    "checkedInToast": "QR හරහා ලිපින ගත කරන ලදී",
+    "checkedInToastShortcut": "QR ලිපින ගත කිරීම සාර්ථකයි",
+    "issuedAt": "{{hospital}} හි නිකුත් කරන ලදී",
+    "unnamed": "රෝගීයා"
   },
   "emailImport": {
     "title": "ඊමේල් හරහා වාර්තා",

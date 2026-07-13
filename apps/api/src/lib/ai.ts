@@ -17,13 +17,16 @@ export type AiKind =
   | "classify"
   | "clinical_note_summary"
   | "soap_draft"
-  | "suggest_record_type";
+  | "suggest_record_type"
+  | "vaccination_card_ocr";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const VISION_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
 
 // Hard caps to prevent abuse / runaway costs.
 const MAX_INPUT_CHARS = 8000;        // prompt payload cap
 const MAX_R2_FETCH_BYTES = 2_000_000; // 2 MB read from R2 per AI call
+const MAX_R2_BASE64_BYTES = 5_000_000; // 5 MB cap for vision image fetches
 const AI_TIMEOUT_MS = 25_000;        // per-call deadline
 
 // ─── Cache helpers ───────────────────────────────────────
@@ -155,8 +158,48 @@ export async function fetchR2Text(
   }
 }
 
+// ─── R2 fetch as base64 (for vision models) ─────────────
+// Fetches an R2 object and returns it as a base64-encoded string.
+// Used by vision model endpoints that need to pass images inline.
+// Returns "" on any failure. Hard-capped at 5 MB.
+export async function fetchR2Base64(
+  r2: any,
+  key: string,
+  maxBytes = MAX_R2_BASE64_BYTES
+): Promise<string> {
+  if (!r2 || !key) return "";
+  try {
+    const obj = await r2.get(key);
+    if (!obj) return "";
+    const size = obj.size ?? 0;
+    if (size > maxBytes) return "";
+    const buf = await obj.arrayBuffer();
+    // Convert ArrayBuffer to base64 in chunks to avoid call-stack overflow
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  } catch (err) {
+    console.error("[ai] fetchR2Base64 failed", err);
+    return "";
+  }
+}
+
 // ─── Model call ──────────────────────────────────────────
-export type ChatMsg = { role: "system" | "user" | "assistant"; content: string };
+
+// Vision-compatible message: content can be a string (text-only) or an
+// array of content parts (text + image_url for multimodal models).
+export type VisionContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+export type ChatMsg = {
+  role: "system" | "user" | "assistant";
+  content: string | VisionContentPart[];
+};
 
 export async function aiComplete(
   ai: any,
@@ -210,6 +253,99 @@ export async function aiComplete(
       return "";
     } catch (err) {
       console.error("[aiComplete] ai.run threw:", (err as Error)?.message || err);
+      finalStatus = "error";
+      finalErr = (err as Error)?.message || "ai.run threw";
+      return "";
+    }
+  })();
+
+  const timer = new Promise<string>((resolve) => {
+    setTimeout(() => {
+      finalStatus = "timeout";
+      finalErr = `timed out after ${timeoutMs}ms`;
+      resolve("");
+    }, timeoutMs);
+  });
+  const out = await Promise.race([work, timer]);
+
+  if (opts.telemetry) {
+    await recordAiCall({
+      ...opts.telemetry,
+      model,
+      latencyMs: Date.now() - start,
+      status: finalStatus,
+      errorMessage: finalErr,
+    });
+  }
+
+  return out;
+}
+
+// ─── Vision model call (multimodal) ─────────────────────
+// Like aiComplete but supports messages with image content parts.
+// Uses the vision model (Llama 3.2 11B Vision) by default.
+export async function aiVisionComplete(
+  ai: any,
+  messages: ChatMsg[],
+  opts: { maxTokens?: number; temperature?: number; timeoutMs?: number; telemetry?: RecordAiCallInput } = {}
+): Promise<string> {
+  if (!ai) {
+    console.error("[aiVisionComplete] no AI binding");
+    return "";
+  }
+  const model = VISION_MODEL;
+
+  // For vision messages, we don't redact image content parts — only text parts.
+  const safeMessages = messages.map((m) => {
+    if (Array.isArray(m.content)) {
+      return {
+        role: m.role,
+        content: m.content.map((part) => {
+          if (part.type === "text") {
+            return { type: "text" as const, text: (part.text || "").slice(0, MAX_INPUT_CHARS) };
+          }
+          return part; // image_url passes through untouched
+        }),
+      };
+    }
+    return {
+      role: m.role,
+      content: (m.content || "").slice(0, MAX_INPUT_CHARS),
+    };
+  });
+
+  const timeoutMs = opts.timeoutMs ?? AI_TIMEOUT_MS;
+  const start = Date.now();
+  let finalStatus: "ok" | "error" | "timeout" | "fallback" = "ok";
+  let finalErr: string | null = null;
+  const work = (async () => {
+    try {
+      const res = await ai.run(model, {
+        messages: safeMessages,
+        max_tokens: opts.maxTokens ?? 800,
+        temperature: opts.temperature ?? 0.1,
+      });
+      console.log("[aiVisionComplete] raw response:", JSON.stringify(res));
+      const val =
+        res?.response ??
+        res?.output_text ??
+        res?.result?.response ??
+        (typeof res === "string" ? res : "");
+
+      if (typeof val === "string") return val;
+      if (val && typeof val === "object") {
+        return (
+          (val as any).text ??
+          (val as any).message ??
+          (val as any).response ??
+          (val as any).content ??
+          JSON.stringify(val)
+        );
+      }
+      finalStatus = "fallback";
+      return "";
+    } catch (err) {
+      console.error("[aiVisionComplete] ai.run threw:", (err as Error)?.message || err);
       finalStatus = "error";
       finalErr = (err as Error)?.message || "ai.run threw";
       return "";
@@ -961,6 +1097,14 @@ export function fallbackOcr() {
     date: "",
     diagnosis: "",
     note: "OCR unavailable. Please enter medicines manually.",
+  };
+}
+
+export function fallbackVaccinationCardOcr() {
+  return {
+    vaccinations: [],
+    raw: [],
+    note: "Vaccination card OCR unavailable. Please enter vaccinations manually.",
   };
 }
 
