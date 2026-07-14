@@ -179,12 +179,12 @@ function makeStyles({
       marginBottom: compact ? spacing.sm : spacing.md,
     },
     name: {
-      fontSize: typography.fontSize.lg ?? 18,
+      fontSize: 18,
       fontWeight: "700",
       color: colors.text,
     },
     meta: {
-      fontSize: typography.fontSize.sm ?? 13,
+      fontSize: 13,
       color: colors.textSubtle,
       marginTop: 2,
     },
@@ -224,13 +224,13 @@ function makeStyles({
     },
     timerLabel: {
       marginTop: spacing.xs,
-      fontSize: typography.fontSize.xs ?? 12,
+      fontSize: 12,
       color: colors.textSubtle,
       textAlign: "right",
     },
     hospital: {
       marginTop: spacing.xs,
-      fontSize: typography.fontSize.xs ?? 12,
+      fontSize: 12,
       color: colors.textSubtle,
       textAlign: "center",
     },

@@ -18,7 +18,15 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { RTCView } from "react-native-webrtc";
+
+let RTCView: any = null;
+let isExpoGo = false;
+try {
+  RTCView = require("react-native-webrtc").RTCView;
+} catch (e) {
+  isExpoGo = true;
+}
+
 import {
   Mic,
   MicOff,
@@ -52,6 +60,27 @@ export default function TeleconsultRoom({ sessionId, apiBase }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
   const { colors, radius, spacing } = useTheme();
+
+  if (isExpoGo || !RTCView) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <PhoneOff size={48} color="#ef4444" style={{ marginBottom: 16 }} />
+        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 8 }}>
+          Development Build Required
+        </Text>
+        <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, textAlign: "center", marginBottom: 24 }}>
+          WebRTC video calls use custom native modules not supported in Expo Go. Please create a development build to test.
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+        >
+          <Text style={{ color: colors.onPrimary, fontWeight: "600" }}>Go Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   const signalingRef = useRef<TeleconsultSignaling | null>(null);
   const [status, setStatus] = useState<SignalingStatus>("idle");
   const [muted, setMuted] = useState(false);

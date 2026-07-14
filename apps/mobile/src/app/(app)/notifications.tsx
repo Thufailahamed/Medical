@@ -97,6 +97,7 @@ export default function NotificationsScreen() {
   return (
     <Screen scroll tabBarOffset bottomInset={false}>
       <ScreenHeader
+        back
         title={t("notifications.title")}
         subtitle={t("notifications.subtitle", { count: unreadCount })}
         right={

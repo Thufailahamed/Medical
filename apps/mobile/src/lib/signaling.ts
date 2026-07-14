@@ -14,13 +14,22 @@
  *   - WS opens with `?ticket=<jwt>` rather than riding a cookie.
  */
 
-import {
-  RTCPeerConnection,
-  RTCSessionDescription,
-  RTCIceCandidate,
-  mediaDevices,
-  MediaStream,
-} from "react-native-webrtc";
+let RTCPeerConnection: any = null;
+let RTCSessionDescription: any = null;
+let RTCIceCandidate: any = null;
+let mediaDevices: any = null;
+let MediaStream: any = null;
+
+try {
+  const webrtc = require("react-native-webrtc");
+  RTCPeerConnection = webrtc.RTCPeerConnection;
+  RTCSessionDescription = webrtc.RTCSessionDescription;
+  RTCIceCandidate = webrtc.RTCIceCandidate;
+  mediaDevices = webrtc.mediaDevices;
+  MediaStream = webrtc.MediaStream;
+} catch (e) {
+  // Graceful fallback for Expo Go
+}
 
 export type SignalingRole = "doctor" | "patient";
 

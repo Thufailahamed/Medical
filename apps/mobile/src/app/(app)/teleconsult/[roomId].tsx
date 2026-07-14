@@ -14,7 +14,7 @@
  * SecureStore JWT via cookies.
  */
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
@@ -47,12 +47,8 @@ interface ActiveSessionResp {
   } | null;
 }
 
-export default function TeleconsultPage({
-  params,
-}: {
-  params: Promise<{ roomId: string }>;
-}) {
-  const { roomId } = use(params);
+export default function TeleconsultPage() {
+  const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
   const { colors, radius, spacing, typography } = useTheme();

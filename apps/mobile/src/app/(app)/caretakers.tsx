@@ -9,9 +9,8 @@ import { useState } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { useTranslation } from "react-i18next";
 import { UserPlus, Plus } from "lucide-react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Button, Card, Pill, Avatar, useToast } from "@/components/ui";
+import { Button, Card, Pill, Avatar, useToast, Screen, ScreenHeader } from "@/components/ui";
 import { CaretakerInviteSheet } from "@/components/CaretakerInviteSheet";
 import {
   useCaretakerLinks,
@@ -56,9 +55,23 @@ export default function CaretakersScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <Screen padded={false} edges={["top"]} bottomInset>
+      <ScreenHeader
+        back
+        title={t("caretaker.title")}
+        subtitle={t("caretaker.subtitle")}
+        right={
+          <Button
+            label={t("caretaker.addCta")}
+            onPress={() => setInviteOpen(true)}
+            icon={<Plus color={colors.primary} size={18} />}
+            compact
+          />
+        }
+      />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -70,34 +83,6 @@ export default function CaretakersScreen() {
           />
         }
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.h2, color: colors.text }}>
-              {t("caretaker.title")}
-            </Text>
-            <Text
-              style={{
-                ...typography.bodySmall,
-                color: colors.textSecondary,
-                marginTop: spacing.xs,
-              }}
-            >
-              {t("caretaker.subtitle")}
-            </Text>
-          </View>
-          <Button
-            label={t("caretaker.addCta")}
-            onPress={() => setInviteOpen(true)}
-            icon={<Plus color={colors.onPrimary} size={18} />}
-            compact
-          />
-        </View>
 
         {rows.length === 0 && inviteRows.length === 0 ? (
           <Card>
@@ -247,6 +232,6 @@ export default function CaretakersScreen() {
         visible={inviteOpen}
         onDismiss={() => setInviteOpen(false)}
       />
-    </SafeAreaView>
+    </Screen>
   );
 }

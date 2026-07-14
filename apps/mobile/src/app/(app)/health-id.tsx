@@ -358,20 +358,20 @@ function makeStyles({ colors, spacing, typography }: any) {
       marginBottom: spacing.md,
     },
     kicker: {
-      fontSize: typography.fontSize.xs ?? 12,
+      fontSize: 12,
       fontWeight: "700",
       letterSpacing: 0.5,
       textTransform: "uppercase",
       color: colors.primary,
     },
     title: {
-      fontSize: typography.fontSize.xl ?? 22,
+      fontSize: 22,
       fontWeight: "800",
       color: colors.text,
       marginTop: 2,
     },
     subtitle: {
-      fontSize: typography.fontSize.sm ?? 13,
+      fontSize: 13,
       color: colors.textSubtle,
       marginTop: 4,
     },
@@ -393,7 +393,7 @@ function makeStyles({ colors, spacing, typography }: any) {
       marginRight: spacing.sm,
     },
     chipText: {
-      fontSize: typography.fontSize.sm ?? 13,
+      fontSize: 13,
       fontWeight: "700",
     },
     cardShell: {
@@ -410,13 +410,13 @@ function makeStyles({ colors, spacing, typography }: any) {
       gap: spacing.md,
     },
     emptyTitle: {
-      fontSize: typography.fontSize.lg ?? 18,
+      fontSize: 18,
       fontWeight: "700",
       color: colors.text,
       textAlign: "center",
     },
     emptyBody: {
-      fontSize: typography.fontSize.sm ?? 13,
+      fontSize: 13,
       color: colors.textSubtle,
       textAlign: "center",
       paddingHorizontal: spacing.md,
@@ -436,7 +436,7 @@ function makeStyles({ colors, spacing, typography }: any) {
       borderWidth: 1,
     },
     actionLabel: {
-      fontSize: typography.fontSize.sm ?? 13,
+      fontSize: 13,
       fontWeight: "700",
     },
     caretakersRow: {
@@ -447,12 +447,12 @@ function makeStyles({ colors, spacing, typography }: any) {
       marginTop: spacing.sm,
     },
     caretakersLabel: {
-      fontSize: typography.fontSize.sm ?? 13,
+      fontSize: 13,
       color: colors.textSubtle,
       fontWeight: "600",
     },
     footnote: {
-      fontSize: typography.fontSize.xs ?? 12,
+      fontSize: 12,
       color: colors.textSubtle,
       textAlign: "center",
       marginTop: spacing.md,

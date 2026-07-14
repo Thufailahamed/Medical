@@ -10,6 +10,7 @@ import { View, Text, ScrollView } from "react-native";
 import { useTranslation } from "react-i18next";
 import { UserPlus } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
+import * as Clipboard from "expo-clipboard";
 import {
   BottomSheet,
   Button,
@@ -66,12 +67,15 @@ export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
     if (!name.trim() || !contact.trim()) return;
     setSubmitting(true);
     try {
-      await createInvite.mutateAsync({
+      const res = await createInvite.mutateAsync({
         caretakerName: name.trim(),
         careRole: role,
         channel,
         contact: contact.trim(),
       });
+      if (res?.url) {
+        await Clipboard.setStringAsync(res.url);
+      }
       toast.show({
         title: t("caretaker.invite.linkCopied", {
           defaultValue: "Invite sent",

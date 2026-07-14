@@ -18,14 +18,14 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outl
 export type ButtonSize = "sm" | "md" | "lg";
 
 type Props = {
-  title: string;
+  title?: string;
   onPress: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
-  icon?: LucideIcon;
-  iconRight?: LucideIcon;
+  icon?: any;
+  iconRight?: any;
   fullWidth?: boolean;
   style?: StyleProp<ViewStyle>;
   haptic?: "none" | "light" | "medium" | "heavy" | "soft";
@@ -49,15 +49,20 @@ export function Button({
   hapticOnPress = false,
   accessibilityLabel,
   accessibilityHint,
-}: Props) {
+  ...rest
+}: Props & { label?: string; compact?: boolean }) {
   const { colors, spacing, radius, typography } = useTheme();
+
+  const displayTitle = title ?? rest.label ?? "";
+  const actualSize = rest.compact ? "sm" : size;
+  const isFullWidth = rest.compact ? false : fullWidth;
 
   const sizeMap = {
     sm: { height: 40, px: spacing.md, font: typography.label.md },
     md: { height: 48, px: spacing.lg, font: typography.title.sm },
     lg: { height: 56, px: spacing.xl, font: typography.title.md },
   } as const;
-  const s = sizeMap[size];
+  const s = sizeMap[actualSize];
 
   // High-visibility Liquid Glass parameters
   let textColor = colors.primary;
@@ -96,7 +101,7 @@ export function Button({
   }
 
   const isDisabled = disabled || loading;
-  const iconSize = size === "sm" ? 16 : size === "lg" ? 22 : 18;
+  const iconSize = actualSize === "sm" ? 16 : actualSize === "lg" ? 22 : 18;
 
   const isGlass = variant !== "ghost";
 
@@ -110,7 +115,7 @@ export function Button({
       pressedOpacity={0.92}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
-      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityLabel={accessibilityLabel ?? displayTitle}
       accessibilityHint={accessibilityHint}
       style={[
         {
@@ -123,7 +128,7 @@ export function Button({
           alignItems: "center",
           justifyContent: "center",
           gap: spacing.sm,
-          alignSelf: fullWidth ? "stretch" : "flex-start",
+          alignSelf: isFullWidth ? "stretch" : "flex-start",
           opacity: isDisabled ? 0.55 : 1,
           overflow: "hidden", // Clips the blur and gradients to pill shape
 
@@ -189,7 +194,11 @@ export function Button({
       {loading ? (
         <ActivityIndicator size="small" color={textColor} />
       ) : Icon ? (
-        <Icon size={iconSize} color={textColor} strokeWidth={2.5} />
+        React.isValidElement(Icon) ? (
+          Icon
+        ) : (
+          <Icon size={iconSize} color={textColor} strokeWidth={2.5} />
+        )
       ) : null}
       
       <Text
@@ -204,11 +213,15 @@ export function Button({
         ]}
         numberOfLines={1}
       >
-        {title}
+        {displayTitle}
       </Text>
       
       {IconRight && !loading ? (
-        <IconRight size={iconSize} color={textColor} strokeWidth={2.5} />
+        React.isValidElement(IconRight) ? (
+          IconRight
+        ) : (
+          <IconRight size={iconSize} color={textColor} strokeWidth={2.5} />
+        )
       ) : null}
     </Pressable>
   );

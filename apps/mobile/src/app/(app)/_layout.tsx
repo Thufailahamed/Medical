@@ -356,6 +356,14 @@ export default function AppLayout() {
         name="ai/lab-trend"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="ai/vaccination-card"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="teleconsult/[roomId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }
