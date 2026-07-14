@@ -3463,6 +3463,10 @@ export const patientLinks = sqliteTable(
         "child_caregiver",
         "sibling_caregiver",
         "other",
+        "nurse",
+        "caregiver",
+        "home_aide",
+        "companion",
       ],
     })
       .notNull()
@@ -3538,6 +3542,10 @@ export const caretakerInvites = sqliteTable(
         "child_caregiver",
         "sibling_caregiver",
         "other",
+        "nurse",
+        "caregiver",
+        "home_aide",
+        "companion",
       ],
     })
       .notNull()
@@ -3625,5 +3633,107 @@ export const caretakerVerifications = sqliteTable(
       t.status,
       t.submittedAt
     ),
+  })
+);
+
+// ─── Caretaker Marketplace: Profiles ──────────────────────
+//
+// One row per verified caretaker who wants to be discoverable by
+// patients looking to hire help. `users.verified=true` is the trust
+// gate — patients only see profiles whose caretaker passes that bar.
+//
+// `careRolesOffered` is a JSON array of enum values (parent, guardian,
+// …, nurse, caregiver, home_aide, companion) so caretakers can offer
+// multiple specialties. Same shape for `languages` (en / si / ta).
+//
+// `hourlyRateLkr` is display-only — v1 has no payment processing.
+// NULL means "rate on request".
+//
+// Listing visibility is controlled by `isAvailable` (boolean), not by
+// deleting the row. This lets caretakers hide themselves without
+// losing the profile (e.g. during a break), and the historical
+// patient_links still tie back to a (now-hidden) profile.
+
+export const caretakerMarketplaceProfiles = sqliteTable(
+  "caretaker_marketplace_profiles",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    caretakerUserId: text("caretaker_user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id),
+    bio: text("bio").notNull().default(""),
+    languages: text("languages").notNull().default("[]"),
+    careRolesOffered: text("care_roles_offered").notNull().default("[]"),
+    district: text("district").notNull().default(""),
+    hourlyRateLkr: integer("hourly_rate_lkr"),
+    experienceYears: integer("experience_years").default(0),
+    isAvailable: integer("is_available", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    byDistrict: index("idx_caretaker_marketplace_profiles_district").on(
+      t.district,
+      t.isAvailable
+    ),
+  })
+);
+
+// ─── Caretaker Marketplace: Inquiries ──────────────────────
+//
+// Patient → caretaker pre-link handshake. Created when a patient
+// taps "Send inquiry" on a marketplace profile. Caretaker accepts
+// or declines.
+//
+// Acceptance creates a `patient_links` row (status=active) and sets
+// `linkId` here for the audit trail. Decline closes the inquiry
+// silently — no notification (per Phase 2 scope decision).
+//
+// `status='expired'` is set lazily on read (no cron) for pending
+// inquiries older than 7 days. Stale rows stay in the DB for audit,
+// just hide from active feeds.
+
+export const caretakerMarketplaceInquiries = sqliteTable(
+  "caretaker_marketplace_inquiries",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    marketplaceProfileId: text("marketplace_profile_id")
+      .notNull()
+      .references(() => caretakerMarketplaceProfiles.id),
+    caretakerUserId: text("caretaker_user_id")
+      .notNull()
+      .references(() => users.id),
+    patientUserId: text("patient_user_id")
+      .notNull()
+      .references(() => users.id),
+    patientMessage: text("patient_message").notNull(),
+    status: text("status", {
+      enum: ["pending", "accepted", "declined", "expired"],
+    })
+      .notNull()
+      .default("pending"),
+    decidedAt: text("decided_at"),
+    linkId: text("link_id").references((): any => patientLinks.id),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    byCaretakerStatus: index(
+      "idx_caretaker_marketplace_inquiries_caretaker"
+    ).on(t.caretakerUserId, t.status, t.createdAt),
+    byPatientStatus: index(
+      "idx_caretaker_marketplace_inquiries_patient"
+    ).on(t.patientUserId, t.status, t.createdAt),
   })
 );

@@ -7,8 +7,9 @@
 
 import { useState } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { UserPlus, Plus, BadgeCheck } from "lucide-react-native";
+import { UserPlus, Plus, BadgeCheck, Search } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, Pill, Avatar, useToast, Screen, ScreenHeader } from "@/components/ui";
 import { CaretakerInviteSheet } from "@/components/CaretakerInviteSheet";
@@ -21,6 +22,7 @@ import {
 } from "@/hooks/useCaretaker";
 
 export default function CaretakersScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
@@ -66,6 +68,39 @@ export default function CaretakersScreen() {
           />
         }
       />
+
+      {/* Caretaker Profiles: Marketplace discovery CTA. Routes to the
+          patient-side marketplace list so existing users can browse
+          verified caretakers beyond the ones they already have. */}
+      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.md }}>
+        <Card
+          onPress={() => router.push("/(app)/marketplace" as any)}
+          accessibilityRole="button"
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+            }}
+          >
+            <Search size={18} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ ...typography.body, color: colors.text, fontWeight: "700" }}>
+                {t("marketplace.title")}
+              </Text>
+              <Text
+                style={{
+                  ...typography.caption,
+                  color: colors.textSecondary,
+                }}
+              >
+                {t("marketplace.subtitle")}
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}

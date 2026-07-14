@@ -246,6 +246,13 @@ export const CARE_ROLE_VALUES = [
   "child_caregiver",
   "sibling_caregiver",
   "other",
+  // Marketplace: distinct from family roles. A professional caretaker
+  // who lists themselves on the marketplace picks one (or more) of
+  // these to describe what they offer.
+  "nurse",
+  "caregiver",
+  "home_aide",
+  "companion",
 ] as const;
 
 /** POST /caretaker/invites — principal creates an invite for a phone/email. */
@@ -272,6 +279,35 @@ export const patchCaretakerLinkSchema = z.object({
 /** PATCH /caretaker/me/active-principal — caretaker picks active principal. */
 export const setActivePrincipalSchema = z.object({
   patientId: z.string().uuid().nullable(),
+});
+
+// ─── Caretaker Marketplace ─────────────────────────────────
+//
+// Profiles are upserts keyed on `caretakerUserId` (UNIQUE). Gated
+// behind `users.verified=true` — clients should call
+// /caretaker/verification/me first if they're unverified.
+//
+// Inquiries are patient → caretaker text. 10..500 chars enforces
+// enough signal for a caretaker to accept/decline without becoming
+// a chat thread.
+
+/** PUT /caretaker/marketplace/me — upsert the caller's marketplace listing. */
+export const upsertMarketplaceProfileSchema = z.object({
+  bio: z.string().max(1000).default(""),
+  languages: z.array(z.string().min(2).max(8)).max(10).default([]),
+  careRolesOffered: z
+    .array(z.enum(CARE_ROLE_VALUES))
+    .min(1)
+    .max(6),
+  district: z.string().min(1).max(80),
+  hourlyRateLkr: z.number().int().min(0).max(100000).nullable().optional(),
+  experienceYears: z.number().int().min(0).max(80).default(0),
+  isAvailable: z.boolean().default(true),
+});
+
+/** POST /marketplace/caretakers/:userId/inquire — patient opens inquiry. */
+export const createMarketplaceInquirySchema = z.object({
+  patientMessage: z.string().min(10).max(500),
 });
 
 export const loginSchema = z.object({

@@ -3673,7 +3673,11 @@
       "spouse_caregiver": "Spouse",
       "child_caregiver": "Adult child caring for parent",
       "sibling_caregiver": "Sibling",
-      "other": "Other"
+      "other": "Other",
+      "nurse": "Nurse",
+      "caregiver": "Caregiver",
+      "home_aide": "Home aide",
+      "companion": "Companion"
     },
     "channelLabel": "How should we reach them?",
     "channel": {
@@ -3749,6 +3753,73 @@
       "cancelConfirm": "Cancel your pending verification request?",
       "requestFailed": "Could not submit verification",
       "rejectedReason": "Reason: {{reason}}"
+    }
+  },
+  "marketplace": {
+    "title": "Find a caretaker",
+    "subtitle": "Verified caretakers available to help",
+    "empty": "No caretakers match your filters",
+    "emptyBody": "Try changing your filters or invite someone you trust directly.",
+    "notFound": "Caretaker not found",
+    "filters": {
+      "district": "District",
+      "role": "Care role",
+      "language": "Language",
+      "any": "Any"
+    },
+    "ctaSendInquiry": "Send inquiry",
+    "ctaMyInquiries": "My sent inquiries",
+    "rateOnRequest": "Rate on request",
+    "verified": "Verified",
+    "experienceYears": "{{n}} yrs experience",
+    "inquiry": {
+      "title": "Send an inquiry",
+      "helper": "Tell {{name}} a bit about your needs.",
+      "messageLabel": "Your message",
+      "messagePlaceholder": "e.g. Looking for help with morning medication for my father in Colombo 7.",
+      "submit": "Send",
+      "sending": "Sending…",
+      "sent": "Inquiry sent",
+      "failed": "Could not send inquiry",
+      "alreadyLinked": "You already have this caretaker linked",
+      "alreadyPending": "Inquiry sent — awaiting response"
+    },
+    "listing": {
+      "title": "Marketplace",
+      "available": "Available for hire",
+      "notListed": "You're not listed",
+      "notVerified": "Verify your identity to list yourself on the marketplace",
+      "verifyCta": "Get verified",
+      "bio": "About",
+      "languages": "Languages",
+      "roles": "Care roles offered",
+      "district": "District",
+      "rate": "Hourly rate (LKR)",
+      "rateOptional": "Leave empty for 'rate on request'",
+      "experience": "Years of experience",
+      "save": "Save listing",
+      "saving": "Saving…",
+      "saved": "Listing updated",
+      "failed": "Could not save listing",
+      "accepted": "Inquiry accepted",
+      "declined": "Inquiry declined",
+      "inquiriesTitle": "Incoming inquiries",
+      "noInquiries": "No inquiries yet",
+      "accept": "Accept",
+      "decline": "Decline",
+      "acceptConfirm": "Accept this inquiry?",
+      "declineConfirm": "Decline this inquiry?",
+      "patientMessage": "Message from patient"
+    },
+    "inquiriesMine": {
+      "title": "Sent inquiries",
+      "empty": "No inquiries sent yet",
+      "status": {
+        "pending": "Awaiting response",
+        "accepted": "Accepted",
+        "declined": "Declined",
+        "expired": "Expired"
+      }
     }
   },
   "consult": {

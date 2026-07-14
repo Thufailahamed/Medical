@@ -86,6 +86,10 @@ import familyInviteRouter from "./routes/family-invites";
 import caretakerInviteRouter from "./routes/caretaker-invites";
 import caretakerLinksRouter from "./routes/caretaker-links";
 import caretakerVerificationsRouter from "./routes/caretaker-verifications";
+import caretakerMarketplaceRouter from "./routes/caretaker-marketplace";
+import marketplaceCaretakersRouter, {
+  marketplaceInquiriesRouter,
+} from "./routes/marketplace-caretakers";
 import adminCaretakerVerificationsRouter from "./routes/admin-caretaker-verifications";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
@@ -251,6 +255,12 @@ app.route("/family", familyLockRouter);
 app.route("/caretaker", caretakerInviteRouter);
 app.route("/caretaker", caretakerLinksRouter);
 app.route("/caretaker", caretakerVerificationsRouter);
+// Caretaker Marketplace: discovery + inquiry surface. Mounted at
+// /caretaker/marketplace (caretaker-side listing mgmt) and
+// /marketplace/* (patient-side discovery + inquiries).
+app.route("/caretaker/marketplace", caretakerMarketplaceRouter);
+app.route("/marketplace/caretakers", marketplaceCaretakersRouter);
+app.route("/marketplace/inquiries", marketplaceInquiriesRouter);
 app.route("/timeline", timelineRouter);
 app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);

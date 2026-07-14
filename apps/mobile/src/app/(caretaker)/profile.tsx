@@ -30,6 +30,7 @@ import {
   ShieldUser,
   Check,
   BadgeCheck,
+  Store,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -523,6 +524,16 @@ export default function CaretakerProfile() {
                 title={t("profile.item.helpSupport.label")}
                 subtitle={t("profile.item.helpSupport.subtitle")}
                 onPress={() => router.push("/(app)/support" as any)}
+                showChevron
+                bordered={false}
+              />
+              <Divider />
+              <ListItem
+                icon={Store}
+                iconTone="primary"
+                title={t("marketplace.listing.title")}
+                subtitle={t("marketplace.subtitle")}
+                onPress={() => router.push("/(caretaker)/marketplace" as any)}
                 showChevron
                 bordered={false}
               />
