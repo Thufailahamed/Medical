@@ -570,7 +570,11 @@
     "patient": "Patient",
     "queueNumber": "Queue #",
     "reason": "Reason",
-    "openChart": "Open chart"
+    "openChart": "Open chart",
+    "mode": {
+      "video": "Video visit",
+      "inPerson": "In-person"
+    }
   },
   "bookAppointment": {
     "title": "Book Appointment",

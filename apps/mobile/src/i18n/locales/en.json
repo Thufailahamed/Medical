@@ -1829,6 +1829,11 @@
     "cancelEstimating": "Calculating refund...",
     "cancelRefundEstimate": "Refund: {{amount}} ({{pct}}%) — paid out within 5–7 business days.",
     "cancelNoRefund": "No refund for this cancellation.",
+    "mode": {
+      "video": "Video visit",
+      "inPerson": "In-person"
+    },
+    "joinVideo": "Join video visit",
     "empty": {
       "pastTitle": "No past appointments",
       "pastBody": "Past appointments will appear here",
@@ -1925,6 +1930,12 @@
     "step3ReasonLabel": "Reason for visit",
     "step3ReasonHelper": "Optional — short description",
     "step3ReasonPlaceholder": "e.g., annual checkup",
+    "step3ModeTitle": "How would you like to meet?",
+    "step3ModeSubtitle": "Pick a video call or visit in person.",
+    "modeVideoLabel": "Video call",
+    "modeVideoBody": "Meet your doctor from anywhere — no travel needed.",
+    "modeInPersonLabel": "In person",
+    "modeInPersonBody": "Visit the hospital at your scheduled time.",
     "back": "Back",
     "continue": "Continue",
     "confirmBooking": "Confirm booking",

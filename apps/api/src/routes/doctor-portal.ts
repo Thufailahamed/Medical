@@ -170,6 +170,10 @@ doctorPortalRouter.get("/queue", async (c) => {
       arrivedAt: sql<string | null>`null`.as("arrived_at"),
       hospitalId: appointments.hospitalId,
       hospitalName: hospitals.name,
+      // Round 5: pass `mode` through so the portal queue can render a
+      // video/in-person pill and the doctor can spot video consultations
+      // at a glance. Walk-ins always default to in_person (no column).
+      mode: sql<string>`coalesce(${appointments.mode}, 'in_person')`.as("mode"),
     })
     .from(appointments)
     .innerJoin(patients, eq(appointments.patientId, patients.id))

@@ -194,6 +194,20 @@ export default function AppointmentDetailScreen() {
                       tone="neutral"
                       size="sm"
                     />
+                    {appt.mode === "video" ? (
+                      <PillCmp
+                        icon={Video}
+                        label={t("appointments.mode.video")}
+                        tone="primary"
+                        size="sm"
+                      />
+                    ) : appt.mode === "in_person" ? (
+                      <PillCmp
+                        label={t("appointments.mode.inPerson")}
+                        tone="neutral"
+                        size="sm"
+                      />
+                    ) : null}
                   </View>
                   <Text style={[typography.title.sm, { color: colors.text }]}>
                     {appt.date}
@@ -251,6 +265,20 @@ export default function AppointmentDetailScreen() {
                         router.push({
                           pathname: "/(app)/teleconsult/[roomId]" as any,
                           params: { roomId: activeSession.session!.roomId },
+                        })
+                      }
+                    />
+                  ) : appt.mode === "video" &&
+                    ["scheduled", "confirmed"].includes(appt.status) ? (
+                    <Button
+                      title={t("appointments.joinVideo")}
+                      icon={Video}
+                      variant="primary"
+                      size="md"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(app)/teleconsult/[roomId]" as any,
+                          params: { roomId: "__pending__" },
                         })
                       }
                     />

@@ -75,6 +75,12 @@
       }
     }
   },
+  "appointments": {
+    "mode": {
+      "video": "Video visit",
+      "inPerson": "In-person visit"
+    }
+  },
   "whatsapp": {
     "welcome": {
       "body": "Welcome to HealthHub 🇱🇰\n\nYour secure health locker. Store records, family history, vaccinations — all in one place.\n\nPick a language to start:",

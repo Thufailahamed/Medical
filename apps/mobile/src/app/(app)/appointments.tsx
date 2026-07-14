@@ -322,6 +322,20 @@ export default function AppointmentsScreen() {
                             size="sm"
                           />
                         ) : null}
+                        {item.mode === "video" ? (
+                          <Pill
+                            icon={Video}
+                            label={t("appointments.mode.video")}
+                            tone="primary"
+                            size="sm"
+                          />
+                        ) : item.mode === "in_person" ? (
+                          <Pill
+                            label={t("appointments.mode.inPerson")}
+                            tone="neutral"
+                            size="sm"
+                          />
+                        ) : null}
                         {item.recordCount ? (
                           <Pill
                             icon={FileText}
@@ -405,6 +419,48 @@ export default function AppointmentsScreen() {
                           ]}
                         >
                           {t("consult.joinVideoVisit")}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                    {/* Round 5: video-mode appointments get a join CTA
+                        *before* the doctor opens a room — taps navigate
+                        to the waiting screen, which polls /me/active and
+                        shows the doctor when they start. */}
+                    {item.mode === "video" &&
+                    (item.status === "scheduled" ||
+                      item.status === "confirmed" ||
+                      item.status === "pending") &&
+                    activeSession?.session?.appointmentId !== item.id ? (
+                      <Pressable
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(app)/teleconsult/[roomId]" as any,
+                            params: { roomId: "__pending__" },
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={t("appointments.joinVideo")}
+                        hitSlop={6}
+                        style={({ pressed }) => ({
+                          height: 36,
+                          paddingHorizontal: spacing.md,
+                          borderRadius: 18,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                          backgroundColor: pressed
+                            ? colors.primary
+                            : colors.primarySoft,
+                        })}
+                      >
+                        <Video size={15} color={colors.primary} strokeWidth={2.5} />
+                        <Text
+                          style={[
+                            typography.label.sm,
+                            { color: colors.primary, fontWeight: "700" },
+                          ]}
+                        >
+                          {t("appointments.joinVideo")}
                         </Text>
                       </Pressable>
                     ) : null}

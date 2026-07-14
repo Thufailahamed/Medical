@@ -388,6 +388,9 @@ export const appointmentSchema = z.object({
     .string()
     .regex(/^\d{2}:\d{2}$/, "Time must be HH:MM (24h)"),
   reason: z.string().max(500, "Reason must be under 500 chars").optional(),
+  // Round 5: patient-requested consultation mode. Default "in_person"
+  // — server still respects the DB default if zod is bypassed.
+  mode: z.enum(["in_person", "video"]).default("in_person").optional(),
 });
 
 export const medicalRecordSchema = z.object({

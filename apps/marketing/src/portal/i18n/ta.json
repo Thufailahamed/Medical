@@ -457,7 +457,11 @@
     "patient": "Patient",
     "queueNumber": "Queue #",
     "reason": "Reason",
-    "openChart": "Open chart"
+    "openChart": "Open chart",
+    "mode": {
+      "video": "வீடியோ ஆலோசனை",
+      "inPerson": "நேரடி வருகை"
+    }
   },
   "earnings": {
     "title": "வருவாய்",

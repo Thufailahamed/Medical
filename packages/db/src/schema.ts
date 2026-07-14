@@ -507,6 +507,13 @@ export const appointments = sqliteTable("appointments", {
     enum: ["pending", "paid", "refunded", "insurance"],
   }).default("pending"),
   reminderSent: integer("reminder_sent", { mode: "boolean" }).default(false),
+  // Round 5: patient-requested consultation mode. Drives (a) which
+  // "Join video visit" CTA surfaces on the mobile appointment screens
+  // and (b) the doctor's queue pill. Backed by a CHECK in
+  // migrations/0054_appointments_mode.sql. Drizzle enum mirrors DB.
+  mode: text("mode", { enum: ["in_person", "video"] })
+    .notNull()
+    .default("in_person"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -525,6 +532,14 @@ export const appointments = sqliteTable("appointments", {
   ),
   patientDateIdx: index("appointments_patient_date_idx").on(t.patientId, t.date),
   doctorDateIdx: index("appointments_doctor_date_idx").on(t.doctorId, t.date),
+  // Round 5: filter "today's video appointments" cheaply on both the
+  // doctor portal queue and the patient's "join video visit" CTA check.
+  doctorModeIdx: index("appointments_doctor_mode_idx").on(
+    t.doctorId,
+    t.mode,
+    t.date,
+    t.time
+  ),
 }));
 
 // ─── Appointment Ratings (Round 3 P1) ────────────────────

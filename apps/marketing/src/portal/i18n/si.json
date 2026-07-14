@@ -457,7 +457,11 @@
     "patient": "Patient",
     "queueNumber": "Queue #",
     "reason": "Reason",
-    "openChart": "Open chart"
+    "openChart": "Open chart",
+    "mode": {
+      "video": "වීඩියෝ පරීක්ෂාව",
+      "inPerson": "කෙලින්ම පැමිණීම"
+    }
   },
   "earnings": {
     "title": "ඉපැයීම්",

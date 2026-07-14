@@ -20,6 +20,8 @@ import {
   Search,
   Wallet,
   AlertCircle,
+  Video,
+  User,
 } from "lucide-react-native";
 import {
   useBookAppointment,
@@ -67,6 +69,10 @@ function buildSchema(t: (k: string) => string) {
     date: z.date({ required_error: t("bookAppointment.errors.dateRequired") }),
     time: z.string().min(1, t("bookAppointment.errors.timeRequired")),
     reason: z.string().max(500).optional(),
+    // Round 5: patient-requested consultation mode. Validated locally so
+    // the doctor-side queue + CTA pick it up at submission time. Server
+    // re-validates via Zod (lib/validators.ts).
+    mode: z.enum(["in_person", "video"]).default("in_person"),
   });
 }
 
@@ -105,7 +111,7 @@ export default function BookAppointmentScreen() {
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { hospitalId: "", doctorId: "", time: "", reason: "" },
+    defaultValues: { hospitalId: "", doctorId: "", time: "", reason: "", mode: "in_person" },
     mode: "onChange",
   });
 
@@ -146,6 +152,7 @@ export default function BookAppointmentScreen() {
         date: data.date.toISOString().slice(0, 10),
         time: data.time,
         reason: data.reason || undefined,
+        mode: data.mode,
       });
 
       const appointmentId = booked?.id || booked?.appointment?.id;
@@ -558,6 +565,46 @@ export default function BookAppointmentScreen() {
                 )}
               />
             </FormField>
+
+            {/* Round 5: video vs in-person selector. Two cards side-by-side
+                (stacked on narrow screens); selected card highlights with
+                primary tint + check icon. Persisted as `mode` on the
+                appointment row so the doctor's queue can filter + the
+                patient's "Join video visit" CTA can fire earlier. */}
+            <View style={{ gap: spacing.xs }}>
+              <Text style={[typography.label.md, { color: colors.text }]}>
+                {t("bookAppointment.step3ModeTitle")}
+              </Text>
+              <Text
+                style={[typography.body.sm, { color: colors.textMuted }]}
+              >
+                {t("bookAppointment.step3ModeSubtitle")}
+              </Text>
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              <Controller
+                control={control}
+                name="mode"
+                render={({ field: { value, onChange } }) => (
+                  <>
+                    <ModeOptionCard
+                      active={value === "video"}
+                      onPress={() => onChange("video")}
+                      icon={Video}
+                      label={t("bookAppointment.modeVideoLabel")}
+                      body={t("bookAppointment.modeVideoBody")}
+                    />
+                    <ModeOptionCard
+                      active={value === "in_person"}
+                      onPress={() => onChange("in_person")}
+                      icon={User}
+                      label={t("bookAppointment.modeInPersonLabel")}
+                      body={t("bookAppointment.modeInPersonBody")}
+                    />
+                  </>
+                )}
+              />
+            </View>
           </View>
         ) : null}
       </View>
@@ -746,5 +793,77 @@ function FilterPill({
         {label}
       </Text>
     </View>
+  );
+}
+
+// Mode-option card used in step 3 of the booking form. Selected card
+// highlights with primary tint + check icon. Tapping sets `mode` on the
+// form via react-hook-form's Controller.
+function ModeOptionCard({
+  active,
+  onPress,
+  icon: Icon,
+  label,
+  body,
+}: {
+  active: boolean;
+  onPress: () => void;
+  icon: any;
+  label: string;
+  body: string;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        padding: spacing.md,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: active ? colors.primary : colors.border,
+        backgroundColor: active ? colors.primarySoft : colors.surface,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          backgroundColor: colors.surface,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={20} color={colors.primary} strokeWidth={2.2} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+          {label}
+        </Text>
+        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
+          {body}
+        </Text>
+      </View>
+      {active ? (
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 999,
+            backgroundColor: colors.primary,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Check size={14} color={colors.onPrimary} strokeWidth={3} />
+        </View>
+      ) : null}
+    </Pressable>
   );
 }

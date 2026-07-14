@@ -32,6 +32,8 @@ import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { generateToken, verifyToken } from "../lib/crypto";
 import { writeAudit } from "../lib/audit";
+import { notify } from "../lib/notifications";
+import { LOCALE_TABLES } from "../lib/locale";
 import type { AppEnvironment } from "../types";
 
 const teleconsultRouter = new Hono<AppEnvironment>();
@@ -194,6 +196,25 @@ teleconsultRouter.post("/sessions", requireRole("doctor"), async (c) => {
     resourceId: created.id,
     details: { roomId, appointmentId, doctorId: doctor.id },
     ip: c.req.header("cf-connecting-ip"),
+  });
+
+  // Round 5: tell the patient the doctor opened a room. Push is best-effort
+  // (never throws) so we don't gate the response on it. The patient's
+  // `notificationPreferences` row opts them out of push by setting
+  // `push = false`; the in-app row is still inserted.
+  const locale = (c.get("locale") || "en") as "en" | "si" | "ta";
+  const table = LOCALE_TABLES[locale] || LOCALE_TABLES.en;
+  const fallback = LOCALE_TABLES.en;
+  const tr =
+    table?.notifications?.teleconsult?.roomReady ??
+    fallback.notifications.teleconsult.roomReady;
+  await notify({
+    db,
+    userId: patient.userId,
+    type: "teleconsult",
+    title: tr.title,
+    body: tr.body,
+    data: { roomId, sessionId: created.id, appointmentId },
   });
 
   return c.json({

@@ -151,6 +151,9 @@ interface QueueItem {
   arrivedAt?: string | null;
   hospitalId?: string | null;
   hospitalName?: string | null;
+  // Round 5: patient-requested video vs in-person mode. Appointment rows
+  // carry it; walk-ins (which have no `mode` column) leave it undefined.
+  mode?: "in_person" | "video" | null;
 }
 
 interface QueueResp {
@@ -631,6 +634,16 @@ function QueueRow({
         <Pill key="status" tone={STATUS_TONE[item.status]}>
           {statusLabel}
         </Pill>,
+        item.mode === "video" ? (
+          <Pill key="mode" tone="brand">
+            <Video size={11} className="mr-1" />
+            {t("appointments.mode.video")}
+          </Pill>
+        ) : item.mode === "in_person" ? (
+          <Pill key="mode" tone="neutral">
+            {t("appointments.mode.inPerson")}
+          </Pill>
+        ) : null,
         item.bloodGroup ? (
           <Pill key="bg" tone="info">
             {item.bloodGroup}

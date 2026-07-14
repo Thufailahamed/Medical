@@ -45,6 +45,10 @@ interface QueueRow {
   queueNumber?: number | null;
   reason?: string | null;
   hospitalName?: string | null;
+  // Round 5: video/in_person mode. Present on appointment rows; walk-ins
+  // (which have no `mode` column on the `walk_ins` table) leave this
+  // undefined so the pill is suppressed.
+  mode?: "in_person" | "video" | null;
 }
 
 interface QueueResp {
@@ -156,7 +160,14 @@ function AppointmentDetail({
             {row.queueNumber ? ` · Queue #${row.queueNumber}` : ""}
           </div>
         </div>
-        <Pill tone={cfg.tone}>{row.status.replace("_", " ")}</Pill>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Pill tone={cfg.tone}>{row.status.replace("_", " ")}</Pill>
+          {row.mode === "video" ? (
+            <Pill tone="brand">{t("appointments.mode.video")}</Pill>
+          ) : row.mode === "in_person" ? (
+            <Pill tone="neutral">{t("appointments.mode.inPerson")}</Pill>
+          ) : null}
+        </div>
       </div>
 
       {/* Details */}
@@ -306,7 +317,14 @@ export default function AppointmentsPage() {
                     </div>
                     <div className="text-xs text-text-muted truncate mt-0.5">{r.reason ?? "—"}</div>
                   </div>
-                  <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
+                    {r.mode === "video" ? (
+                      <Pill tone="brand">{t("appointments.mode.video")}</Pill>
+                    ) : r.mode === "in_person" ? (
+                      <Pill tone="neutral">{t("appointments.mode.inPerson")}</Pill>
+                    ) : null}
+                  </div>
                   <Link href={`/portal/patients/${r.patientId}`} className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     {t("common.open")}
                   </Link>

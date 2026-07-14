@@ -136,6 +136,10 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
           reason: data.reason ?? null,
           queueNumber,
           status: "scheduled",
+          // Round 5: patient-requested mode. Schema defaults to "in_person"
+          // if omitted, but we spread the explicit value to preserve intent
+          // and surface it on the doctor's queue + the patient's CTA.
+          mode: (data.mode ?? "in_person") as "in_person" | "video",
         } as any)
         .returning();
       return { row };

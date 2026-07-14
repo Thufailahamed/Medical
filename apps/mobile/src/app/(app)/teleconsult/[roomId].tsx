@@ -59,35 +59,71 @@ export default function TeleconsultPage({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [waiting, setWaiting] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [tab, setTab] = useState<"records" | "prescriptions">("records");
   const apiBase = getApiBaseUrl();
 
+  // Round 5: when the patient lands here from the video-mode appointments
+  // list (`roomId === "__pending__"`, doctor hasn't opened a room yet),
+  // poll /me/active every 5s and auto-route to the real room when one
+  // appears. Otherwise (legacy entry: roomId is a real id) the original
+  // one-shot lookup runs — if the active session's roomId matches we
+  // connect, otherwise we fall through to the "waiting" UI.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    if (roomId !== "__pending__") {
+      (async () => {
+        try {
+          const active: ActiveSessionResp = await api(
+            "/teleconsult/sessions/me/active"
+          );
+          if (cancelled) return;
+          if (!active.session || active.session.roomId !== roomId) {
+            setError(t("consult.waitingForDoctor"));
+            setWaiting(true);
+            setLoading(false);
+            return;
+          }
+          setSessionId(active.session.id);
+          setLoading(false);
+        } catch (err: any) {
+          if (cancelled) return;
+          setError(err?.message || t("consult.connectionLost"));
+          setLoading(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Pending state: poll until the doctor creates a session, then
+    // replace this route with the real roomId.
+    setLoading(false);
+    setWaiting(true);
+    setError(t("consult.waitingForDoctor"));
+    const interval = setInterval(async () => {
+      if (cancelled) return;
       try {
         const active: ActiveSessionResp = await api(
           "/teleconsult/sessions/me/active"
         );
-        if (cancelled) return;
-        if (!active.session || active.session.roomId !== roomId) {
-          setError(t("consult.waitingForDoctor"));
-          setLoading(false);
-          return;
-        }
-        setSessionId(active.session.id);
-        setLoading(false);
-      } catch (err: any) {
-        if (cancelled) return;
-        setError(err?.message || t("consult.connectionLost"));
-        setLoading(false);
+        if (cancelled || !active.session) return;
+        clearInterval(interval);
+        router.replace({
+          pathname: "/(app)/teleconsult/[roomId]" as any,
+          params: { roomId: active.session.roomId },
+        });
+      } catch {
+        // network blip — keep polling
       }
-    })();
+    }, 5_000);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
-  }, [roomId, t]);
+  }, [roomId, t, router]);
 
   if (loading) {
     return (
@@ -118,6 +154,13 @@ export default function TeleconsultPage({
           paddingHorizontal: 24,
         }}
       >
+        {waiting ? (
+          <ActivityIndicator
+            size="large"
+            color="#fff"
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
         <Text
           style={{
             color: "#fff",
