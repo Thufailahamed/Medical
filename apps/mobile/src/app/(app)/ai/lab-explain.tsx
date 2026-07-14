@@ -130,7 +130,7 @@ export default function LabExplainScreen() {
           </Card>
 
           <Card>
-            <SectionHeader title={t("aiLabExplain.sections.explanation")} />
+            <SectionHeader title={t("aiLabExplain.sectionExplanation")} />
             <View style={{ padding: spacing.lg, paddingTop: 0 }}>
               <Text
                 style={[
@@ -138,7 +138,7 @@ export default function LabExplainScreen() {
                   { color: colors.text, lineHeight: 22 },
                 ]}
               >
-                {result.explanation || t("aiLabExplain.noExplanation")}
+                {result.explanation || t("aiLabExplain.emptyExplanation")}
               </Text>
             </View>
           </Card>
@@ -146,7 +146,7 @@ export default function LabExplainScreen() {
           {result.abnormalValues && result.abnormalValues.length > 0 ? (
             <Card>
               <SectionHeader
-                title={t("aiLabExplain.sections.abnormal")}
+                title={t("aiLabExplain.sectionAbnormal")}
               />
               <View
                 style={{
@@ -186,7 +186,7 @@ export default function LabExplainScreen() {
           {result.recommendations && result.recommendations.length > 0 ? (
             <Card>
               <SectionHeader
-                title={t("aiLabExplain.sections.recommendations")}
+                title={t("aiLabExplain.sectionRecommendations")}
               />
               <View
                 style={{
@@ -253,8 +253,8 @@ export default function LabExplainScreen() {
         <View style={{ padding: spacing.lg }}>
           <EmptyState
             icon={FlaskConical}
-            title={t("aiLabExplain.noReportsTitle")}
-            message={t("aiLabExplain.noReportsBody")}
+            title={t("aiLabExplain.emptyReportsTitle")}
+            message={t("aiLabExplain.emptyReportsBody")}
             tone="neutral"
           />
         </View>
@@ -264,14 +264,17 @@ export default function LabExplainScreen() {
           <Skeleton height={80} radius={16} />
         </View>
       ) : (
-        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+        >
           <Text
             style={[
               typography.title.sm,
               { color: colors.text, marginBottom: spacing.xs },
             ]}
           >
-            {t("aiLabExplain.pickPrompt")}
+            {t("aiLabExplain.pickTitle")}
           </Text>
           {(reports?.reports || []).map((r: any) => (
             <ListItem
@@ -284,7 +287,7 @@ export default function LabExplainScreen() {
               onPress={() => explain(r)}
             />
           ))}
-        </View>
+        </ScrollView>
       )}
     </Screen>
   );

@@ -17,6 +17,7 @@ import {
   HelpCircle,
   LogOut,
   ShieldCheck,
+  ShieldUser,
   Palette,
   Droplet,
   Activity,
@@ -49,6 +50,7 @@ import {
   useVitalsAlerts,
   useMyPrescriptions,
 } from "@/hooks/useApi";
+import { useCaretakerLinks } from "@/hooks/useCaretaker";
 import { api } from "@/lib/api";
 import {
   Screen,
@@ -114,6 +116,7 @@ export default function ProfileScreen() {
   const { data: allergiesData } = useAllergies();
   const { data: prescriptionsData } = useMyPrescriptions();
   const { data: vitalsAlertsData } = useVitalsAlerts(30);
+  const { data: caretakerLinksData } = useCaretakerLinks();
 
   // If the API layer reports an unrecoverable 401, sign the user out.
   useEffect(() => {
@@ -155,6 +158,10 @@ export default function ProfileScreen() {
   );
 
   const familyCount: number = familyData?.family?.length ?? 0;
+  const activeCaretakerCount: number =
+    (caretakerLinksData?.links ?? []).filter(
+      (l: any) => l.status === "active"
+    ).length;
   const activeMeds: any[] = (medicinesData?.medicines || []).filter(
     (m: any) => m.active !== false
   );
@@ -221,6 +228,18 @@ export default function ProfileScreen() {
       icon: Users,
       tone: "accent" as const,
       onPress: () => router.push("/(app)/family" as any),
+    },
+    {
+      labelKey: "profile.item.caretakers.label",
+      subtitle:
+        activeCaretakerCount === 0
+          ? t("profile.item.caretakers.subtitleEmpty")
+          : t("profile.item.caretakers.subtitleCount", {
+              count: activeCaretakerCount,
+            }),
+      icon: ShieldUser,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/caretakers" as any),
     },
     {
       labelKey: "profile.item.notifications.label",

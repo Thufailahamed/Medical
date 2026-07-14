@@ -375,7 +375,10 @@ auth.post("/login", async (c) => {
         registrationNumber: "SLMC-12345",
         slmcRegistrationNo: "SLMC-12345",
         slmcVerifiedAt: new Date().toISOString(),
+        hospitalId: "dev-hospital-001",
       }).returning();
+    } else if (!dbDoctor.hospitalId) {
+      await db.update(doctors).set({ hospitalId: "dev-hospital-001" }).where(eq(doctors.id, "dev-doctor-001"));
     }
 
     // 3. Ensure hospital exists and link doctor

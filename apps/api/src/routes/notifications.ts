@@ -1,22 +1,45 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, desc, sql } from "drizzle-orm";
-import { notifications } from "@healthcare/db";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { notifications, patients } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
 
 const notificationsRouter = new Hono<AppEnvironment>();
 
 // ─── Get my notifications ────────────────────────────────
+// Caretaker Profiles: caretakers see a union of (a) their own link-state
+// notifications and (b) the active principal's notifications. The
+// principal's userId is resolved via the active patient row.
 notificationsRouter.get("/me", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
+  const dbUser = c.get("dbUser");
+
+  const userIds = new Set<string>([userId]);
+
+  if (dbUser?.role === "caretaker") {
+    const activeId =
+      (c.get("activePrincipalPatientId") as string | null) ||
+      dbUser?.activePrincipalPatientId ||
+      null;
+    if (activeId) {
+      const [principalPatient] = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.id, activeId))
+        .limit(1);
+      if (principalPatient?.userId) {
+        userIds.add(principalPatient.userId);
+      }
+    }
+  }
 
   const notifs = await db
     .select()
     .from(notifications)
-    .where(eq(notifications.userId, userId))
+    .where(inArray(notifications.userId, Array.from(userIds)))
     .orderBy(desc(notifications.createdAt));
 
   return c.json({ notifications: notifs });

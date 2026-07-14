@@ -13,7 +13,7 @@ import {
   patients,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
-import { canAccessPatient } from "../lib/access";
+import { resolvePatientContext } from "../lib/caretaker";
 import type { AppEnvironment } from "../types";
 
 const timelineRouter = new Hono<AppEnvironment>();
@@ -28,19 +28,11 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
   note: { icon: "sticky-note", color: "info", label: "Note" },
 };
 
-async function getOwnPatient(db: any, userId: string) {
-  const [p] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
-  return p || null;
-}
-
+// Caretaker Profiles: resolve the patient row via context — caretakers
+// see their active principal's timeline; patients see their own.
 timelineRouter.get("/me", authMiddleware, async (c) => {
   const db = c.get("db");
-  const userId = c.get("userId");
-  const patient = await getOwnPatient(db, userId);
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ events: [] });
 
   const type = c.req.query("type"); // optional filter: "vital", "record", etc.

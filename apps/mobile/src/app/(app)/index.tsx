@@ -967,6 +967,7 @@ export default function HomeScreen() {
                     label={t("home.aiDrugCheck")}
                     iconColor="#4F46E5"
                     iconBg="#EEF2FF"
+                    onPress={() => router.push("/(app)/ai/drug-check")}
                   />
                 </View>
               </LinearGradient>

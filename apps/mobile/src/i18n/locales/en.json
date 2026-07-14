@@ -242,6 +242,12 @@
         "subtitleCount_one": "{{count}} member on file",
         "subtitleCount_other": "{{count}} members on file"
       },
+      "caretakers": {
+        "label": "Caretakers",
+        "subtitleEmpty": "Invite someone to manage your records",
+        "subtitleCount_one": "{{count}} active caretaker",
+        "subtitleCount_other": "{{count}} active caretakers"
+      },
       "notifications": {
         "label": "Notifications",
         "subtitle": "Reminders and updates",
@@ -3708,7 +3714,18 @@
     "previewRoleLabel": "Role",
     "pickerTitle": "Switch principal",
     "noPrincipals": "No linked principals yet.",
-    "switchFailed": "Could not switch principal."
+    "switchFailed": "Could not switch principal.",
+    "profile": {
+      "rolePill": "Caretaker",
+      "actingAs": "Managing {{name}}",
+      "active": "Active",
+      "switchPrincipal": "Switch to {{name}}",
+      "empty": "You're not managing anyone yet. Ask a family member to invite you.",
+      "unmanage": "Stop managing",
+      "section": {
+        "managing": "Managing"
+      }
+    }
   },
   "consult": {
     "startVideoVisit": "Start video visit",

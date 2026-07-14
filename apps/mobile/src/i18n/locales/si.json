@@ -251,6 +251,12 @@
         "subtitleCount_one": "{{count}} member on file",
         "subtitleCount_other": "{{count}} members on file"
       },
+      "caretakers": {
+        "label": "සත්කාරකයින්",
+        "subtitleEmpty": "ඔබේ වාර්තා කළමනාකරණය කිරීමට කෙනෙකුට ආරාධනා කරන්න",
+        "subtitleCount_one": "{{count}} ක්‍රියාකාරී සත්කාරකයෙක්",
+        "subtitleCount_other": "{{count}} ක්‍රියාකාරී සත්කාරකයින්"
+      },
       "notifications": {
         "label": "Notifications",
         "subtitle": "Reminders and updates",
@@ -3899,7 +3905,18 @@
     "previewRoleLabel": "භූමිකාව",
     "pickerTitle": "ප්‍රධානියා මාරු කරන්න",
     "noPrincipals": "තවම සම්බන්ධ ප්‍රධානීන් නැත.",
-    "switchFailed": "ප්‍රධානියා මාරු කිරීමට නොහැකි විය."
+    "switchFailed": "ප්‍රධානියා මාරු කිරීමට නොහැකි විය.",
+    "profile": {
+      "rolePill": "සත්කාරක",
+      "actingAs": "{{name}} කළමනාකරණය කරමින්",
+      "active": "ක්‍රියාකාරී",
+      "switchPrincipal": "{{name}} වෙත මාරු වන්න",
+      "empty": "ඔබ තවම කිසිවෙකු කළමනාකරණය කරන්නේ නැත. පවුලේ අයෙකුගෙන් ඔබට ආරාධනාවක් ඉල්ලන්න.",
+      "unmanage": "කළමනාකරණය නවත්වන්න",
+      "section": {
+        "managing": "කළමනාකරණය කරමින්"
+      }
+    }
   },
   "consult": {
     "startVideoVisit": "වීඩියෝ පරීක්ෂාව ආරම්භ කරන්න",

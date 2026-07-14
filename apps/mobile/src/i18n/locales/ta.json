@@ -251,6 +251,12 @@
         "subtitleCount_one": "{{count}} member on file",
         "subtitleCount_other": "{{count}} members on file"
       },
+      "caretakers": {
+        "label": "பராமரிப்பாளர்கள்",
+        "subtitleEmpty": "உங்கள் பதிவுகளை நிர்வகிக்க ஒருவரை அழைக்கவும்",
+        "subtitleCount_one": "{{count}} செயலில் உள்ள பராமரிப்பாளர்",
+        "subtitleCount_other": "{{count}} செயலில் உள்ள பராமரிப்பாளர்கள்"
+      },
       "notifications": {
         "label": "Notifications",
         "subtitle": "Reminders and updates",
@@ -3899,7 +3905,18 @@
     "previewRoleLabel": "பங்கு",
     "pickerTitle": "முதன்மையாளரை மாற்று",
     "noPrincipals": "இன்னும் இணைக்கப்பட்ட முதன்மையாளர்கள் இல்லை.",
-    "switchFailed": "முதன்மையாளரை மாற்ற முடியவில்லை."
+    "switchFailed": "முதன்மையாளரை மாற்ற முடியவில்லை.",
+    "profile": {
+      "rolePill": "பராமரிப்பாளர்",
+      "actingAs": "{{name}} ஐ நிர்வகிக்கிறது",
+      "active": "செயலில்",
+      "switchPrincipal": "{{name}} க்கு மாறு",
+      "empty": "நீங்கள் இன்னும் யாரையும் நிர்வகிக்கவில்லை. குடும்ப உறுப்பினரிடம் அழைப்பைக் கோருங்கள்.",
+      "unmanage": "நிர்வகிப்பதை நிறுத்து",
+      "section": {
+        "managing": "நிர்வகிக்கிறது"
+      }
+    }
   },
   "consult": {
     "startVideoVisit": "வீடியோ ஆலோசனையைத் தொடங்கு",

@@ -13,8 +13,7 @@ import {
   FileSearch,
   Stethoscope,
 } from "lucide-react-native";
-import { useAiSummary } from "@/hooks/useApi";
-import { useAuthStore } from "@/stores/auth";
+import { useAiSummary, usePatientProfile } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -33,7 +32,9 @@ export default function AiSummaryScreen() {
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const toast = useToast();
-  const patient = useAuthStore((s) => s.patient);
+  
+  const { data: profileData } = usePatientProfile();
+  const patient = profileData?.patient?.patients;
 
   const aiSummary = useAiSummary();
   const [result, setResult] = useState<any>(null);
@@ -41,7 +42,7 @@ export default function AiSummaryScreen() {
 
   async function generate() {
     if (!patient?.id) {
-      toast.show(t("aiSummary.noPatient"), "warning");
+      toast.show(t("aiSummary.noProfile"), "warning");
       return;
     }
     try {
@@ -70,7 +71,10 @@ export default function AiSummaryScreen() {
         }
       />
 
-      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+      >
         <Card>
           <View
             style={{
@@ -97,7 +101,7 @@ export default function AiSummaryScreen() {
                 { color: colors.text, textAlign: "center" },
               ]}
             >
-              {result ? t("aiSummary.yourSummary") : t("aiSummary.generateTitle")}
+              {result ? t("aiSummary.headerResult") : t("aiSummary.headerIdle")}
             </Text>
             <Text
               style={[
@@ -106,11 +110,11 @@ export default function AiSummaryScreen() {
               ]}
             >
               {result
-                ? t("aiSummary.bodyReady")
-                : t("aiSummary.bodyIntro")}
+                ? t("aiSummary.bodyResult")
+                : t("aiSummary.bodyIdle")}
             </Text>
             <Button
-              title={result ? t("aiSummary.regenerate") : t("aiSummary.generateAction")}
+              title={result ? t("aiSummary.actionRegenerate") : t("aiSummary.actionGenerate")}
               icon={result ? RefreshCcw : Sparkles}
               onPress={generate}
               loading={aiSummary.isPending}
@@ -119,7 +123,7 @@ export default function AiSummaryScreen() {
               fullWidth={false}
             />
             {cached ? (
-              <PillCmp label={t("aiSummary.fromCache")} tone="neutral" size="sm" />
+              <PillCmp label={t("aiSummary.cached")} tone="neutral" size="sm" />
             ) : null}
           </View>
         </Card>
@@ -133,7 +137,7 @@ export default function AiSummaryScreen() {
         ) : result ? (
           <View style={{ gap: spacing.md }}>
             <Card>
-              <SectionHeader title={t("aiSummary.sections.overview")} />
+              <SectionHeader title={t("aiSummary.sectionOverview")} />
               <View style={{ padding: spacing.lg, paddingTop: 0 }}>
                 <Text
                   style={[
@@ -149,7 +153,7 @@ export default function AiSummaryScreen() {
             {result.diagnoses && result.diagnoses.length > 0 ? (
               <Card>
                 <SectionHeader
-                  title={t("aiSummary.sections.diagnoses")}
+                  title={t("aiSummary.sectionDiagnoses")}
                 />
                 <View
                   style={{
@@ -174,7 +178,7 @@ export default function AiSummaryScreen() {
 
             {result.medicines && result.medicines.length > 0 ? (
               <Card>
-                <SectionHeader title={t("aiSummary.sections.medicines")} />
+                <SectionHeader title={t("aiSummary.sectionMedicines")} />
                 <View
                   style={{
                     padding: spacing.lg,
@@ -198,7 +202,7 @@ export default function AiSummaryScreen() {
 
             {result.history && result.history.length > 0 ? (
               <Card>
-                <SectionHeader title={t("aiSummary.sections.history")} />
+                <SectionHeader title={t("aiSummary.sectionHistory")} />
                 <View
                   style={{
                     padding: spacing.lg,
@@ -240,7 +244,7 @@ export default function AiSummaryScreen() {
             {result.recentTests && result.recentTests.length > 0 ? (
               <Card>
                 <SectionHeader
-                  title={t("aiSummary.sections.recentTests")}
+                  title={t("aiSummary.sectionRecentTests")}
                 />
                 <View
                   style={{
@@ -266,7 +270,7 @@ export default function AiSummaryScreen() {
             {result.risks && result.risks.length > 0 ? (
               <Card>
                 <SectionHeader
-                  title={t("aiSummary.sections.risks")}
+                  title={t("aiSummary.sectionRisks")}
                 />
                 <View
                   style={{
@@ -319,7 +323,7 @@ export default function AiSummaryScreen() {
             message={t("aiSummary.emptyBody")}
           />
         )}
-      </View>
+      </ScrollView>
     </Screen>
   );
 }

@@ -739,7 +739,6 @@ function parsePredicate(
   if (parts.length === 0) {
     let col: any = null;
     let val: any = undefined;
-    let valIsArray = false;
     for (const c of chunks) {
       const name = c?.constructor?.name;
       // Column ref: SQLiteText has `name` and `table` properties.
@@ -748,15 +747,23 @@ function parsePredicate(
       } else if (name === "Param") {
         val = c.value;
       } else if (name === "Array") {
-        val = c[0];
-        valIsArray = true;
+        // Drizzle's `inArray(col, [...])` emits an Array chunk whose
+        // elements are themselves Param wrappers around the actual
+        // values. Unwrap one level so we get the bare value list.
+        if (Array.isArray(c)) {
+          val = c.map((entry: any) =>
+            entry?.constructor?.name === "Param" ? entry.value : entry
+          );
+        } else {
+          val = c[0];
+        }
       }
     }
     if (col && val !== undefined) {
       if (columnBelongsToTable(db, col, primaryTable)) {
         const colKey = resolveColumnKey(db, col);
         if (!colKey) return null;
-        if (valIsArray) {
+        if (Array.isArray(val)) {
           return (row: any) => val.includes(row[colKey]);
         }
         return (row: any) => row[colKey] === val;

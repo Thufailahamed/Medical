@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -140,11 +140,14 @@ export default function DrugCheckScreen() {
         right={<PillCmp icon={Sparkles} label={t("aiDrugCheck.aiPill")} tone="accent" size="sm" />}
       />
 
-      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+      >
         <ChipGroup
           options={[
-            { value: "pick", label: t("aiDrugCheck.mode.pick") },
-            { value: "custom", label: t("aiDrugCheck.mode.custom") },
+            { value: "pick", label: t("aiDrugCheck.modePick") },
+            { value: "custom", label: t("aiDrugCheck.modeCustom") },
           ]}
           value={mode}
           onChange={(v) => setMode(v as any)}
@@ -156,7 +159,7 @@ export default function DrugCheckScreen() {
               <Text
                 style={[typography.label.md, { color: colors.textMuted }]}
               >
-                {t("aiDrugCheck.common")}
+                {t("aiDrugCheck.commonHeader")}
               </Text>
               <View
                 style={{
@@ -189,7 +192,7 @@ export default function DrugCheckScreen() {
         ) : (
           <Card>
             <View style={{ padding: spacing.lg, gap: spacing.md }}>
-              <FormField label={t("aiDrugCheck.addLabel")}>
+              <FormField label={t("aiDrugCheck.customLabel")}>
                 <View
                   style={{
                     flexDirection: "row",
@@ -200,7 +203,7 @@ export default function DrugCheckScreen() {
                     <TextInput
                       value={draft}
                       onChangeText={setDraft}
-                      placeholder={t("aiDrugCheck.addPlaceholder")}
+                      placeholder={t("aiDrugCheck.customPlaceholder")}
                       onSubmitEditing={() => addMedicine(draft)}
                       returnKeyType="done"
                       leadingIcon={Pill}
@@ -314,8 +317,8 @@ export default function DrugCheckScreen() {
                       <PillCmp
                         label={
                           it.source === "curated"
-                            ? t("aiDrugCheck.source.verified")
-                            : t("aiDrugCheck.source.ai")
+                            ? t("aiDrugCheck.sourceVerified")
+                            : t("aiDrugCheck.sourceAI")
                         }
                         tone="neutral"
                         size="sm"
@@ -340,7 +343,7 @@ export default function DrugCheckScreen() {
                       { color: colors.text, textAlign: "center" },
                     ]}
                   >
-                    {t("aiDrugCheck.noInteractions")}
+                    {t("aiDrugCheck.noInteractionsTitle")}
                   </Text>
                   <Text
                     style={[
@@ -348,7 +351,7 @@ export default function DrugCheckScreen() {
                       { color: colors.textMuted, textAlign: "center" },
                     ]}
                   >
-                    {t("aiDrugCheck.confirmNote")}
+                    {t("aiDrugCheck.noInteractionsBody")}
                   </Text>
                 </View>
               </Card>
@@ -392,7 +395,7 @@ export default function DrugCheckScreen() {
             message={t("aiDrugCheck.emptyBody")}
           />
         ) : null}
-      </View>
+      </ScrollView>
     </Screen>
   );
 }

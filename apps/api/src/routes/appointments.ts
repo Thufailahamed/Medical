@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { resolvePatientContext } from "../lib/caretaker";
 import { appointmentSchema } from "../lib/validators";
 import { flattenTranslated } from "../lib/validation-error";
 import { notify } from "../lib/notifications";
@@ -22,7 +23,7 @@ const appointmentsRouter = new Hono<AppEnvironment>();
 // ─── Book appointment ────────────────────────────────────
 // Atomic: validates → checks slot capacity → inserts in one transaction.
 // Returns 409 if the slot is full or has just been taken.
-appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) => {
+appointmentsRouter.post("/", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
 
@@ -74,14 +75,12 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
     }
   }
 
-  // 2. Patient lookup.
-  const [patient] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
+  // 2. Patient lookup. For caretakers, caretaker-context middleware
+  //    resolves us to the active principal; for patients we fall back to
+  //    the user's own row.
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "Patient profile not found" }, 404);
-  const patientId = (patient as any).patients?.id ?? patient.id;
+  const patientId = patient.id;
 
   // 3. Doctor lookup + hospital match.
   const [doctor] = await db
@@ -157,9 +156,15 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
   }
 
   // 5. Notifications (after commit so we don't notify on rollback).
+  //    Caretaker Profiles: when a caretaker books on behalf of the
+  //    principal, route the confirmation to the principal's user row —
+  //    not the caretaker.
+  const dbUser = c.get("dbUser");
+  const recipientUserId =
+    dbUser?.role === "caretaker" ? (patient as any).userId : userId;
   await notify({
     db,
-    userId,
+    userId: recipientUserId,
     type: "appointment",
     title: "Appointment Booked",
     body: `Your appointment is on ${data.date} at ${data.time}. Queue #${queueNumber}`,
@@ -206,7 +211,6 @@ appointmentsRouter.post("/", authMiddleware, requireRole("patient"), async (c) =
 appointmentsRouter.patch(
   "/:id/reschedule",
   authMiddleware,
-  requireRole("patient"),
   async (c) => {
     const appointmentId = c.req.param("id");
     const userId = c.get("userId");
@@ -230,13 +234,11 @@ appointmentsRouter.patch(
       }
     }
 
-    const [patient] = await db
-      .select()
-      .from(patients)
-      .where(eq(patients.userId, userId))
-      .limit(1);
+    // Caretaker Profiles: resolve via context so caretakers can
+    // reschedule the principal's appointments.
+    const patient = await resolvePatientContext(c);
     if (!patient) return c.json({ error: "Patient not found" }, 404);
-    const patientId = (patient as any).patients?.id ?? patient.id;
+    const patientId = patient.id;
 
     const [existing] = await db
       .select()
@@ -336,15 +338,14 @@ appointmentsRouter.patch(
 );
 
 // ─── My appointments ─────────────────────────────────────
-appointmentsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) => {
+appointmentsRouter.get("/me", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
 
-  const [patient] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
+  // Caretaker Profiles: caretakers see their active principal's
+  // appointments via the x-active-principal-patient-id header (already
+  // resolved by caretaker-context middleware + resolvePatientContext).
+  const patient = await resolvePatientContext(c);
 
   if (!patient) {
     return c.json({ error: "Patient not found" }, 404);
@@ -353,7 +354,7 @@ appointmentsRouter.get("/me", authMiddleware, requireRole("patient"), async (c) 
   const upcoming = await db
     .select()
     .from(appointments)
-    .where(eq(appointments.patientId, (patient.patients?.id ?? patient.id)))
+    .where(eq(appointments.patientId, patient.id))
     .orderBy(appointments.date);
 
   // Annotate each row with recordCount (records tied to that appointment).
@@ -463,7 +464,8 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
     .limit(1);
   if (!appt) return c.json({ error: "Appointment not found" }, 404);
 
-  // Ownership: patient can view their own, doctor can view theirs.
+  // Ownership: patient can view their own, caretaker can view via the
+  // active-principal link, doctor can view theirs.
   if (userRole === "patient") {
     const [p] = await db
       .select()
@@ -472,6 +474,13 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
       .limit(1);
     const pid = (p as any)?.patients?.id ?? (p as any)?.id;
     if (!pid || appt.patientId !== pid) {
+      return c.json({ error: "Access denied" }, 403);
+    }
+  } else if (userRole === "caretaker") {
+    // resolvePatientContext enforces the active-principal link; the
+    // appointment must belong to that principal.
+    const p = await resolvePatientContext(c);
+    if (!p || appt.patientId !== p.id) {
       return c.json({ error: "Access denied" }, 403);
     }
   } else if (userRole === "doctor") {
@@ -537,18 +546,15 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
 appointmentsRouter.delete(
   "/:id",
   authMiddleware,
-  requireRole("patient"),
   async (c) => {
     const appointmentId = c.req.param("id");
     if (!appointmentId) return c.json({ error: "Missing id" }, 400);
     const userId = c.get("userId");
     const db = c.get("db");
 
-    const [patient] = await db
-      .select()
-      .from(patients)
-      .where(eq(patients.userId, userId))
-      .limit(1);
+    // Caretaker Profiles: caretakers can cancel their principal's
+    // appointments via resolvePatientContext.
+    const patient = await resolvePatientContext(c);
     if (!patient) return c.json({ error: "Patient not found" }, 404);
 
     const [existing] = await db
@@ -559,7 +565,7 @@ appointmentsRouter.delete(
 
     if (
       !existing ||
-      existing.patientId !== (patient.patients?.id ?? patient.id)
+      existing.patientId !== patient.id
     ) {
       return c.json({ error: "Appointment not found or access denied" }, 404);
     }
@@ -614,10 +620,14 @@ appointmentsRouter.delete(
         .where(eq(appointmentPayments.appointmentId, appointmentId));
     }
 
-    // Notify the patient (confirmation).
+    // Notify the principal (confirmation). Caretaker Profiles: route to
+    // principal's user row when a caretaker cancels on their behalf.
+    const dbUser = c.get("dbUser");
+    const recipientUserId =
+      dbUser?.role === "caretaker" ? (patient as any).userId : userId;
     await notify({
       db,
-      userId,
+      userId: recipientUserId,
       type: "appointment",
       title: "Appointment cancelled",
       body: `Your appointment on ${existing.date} at ${existing.time} was cancelled.`,
@@ -672,17 +682,13 @@ appointmentsRouter.delete(
 appointmentsRouter.get(
   "/:id/cancellation-estimate",
   authMiddleware,
-  requireRole("patient"),
   async (c) => {
     const appointmentId = c.req.param("id");
-    const userId = c.get("userId");
     const db = c.get("db");
 
-    const [patient] = await db
-      .select()
-      .from(patients)
-      .where(eq(patients.userId, userId))
-      .limit(1);
+    // Caretaker Profiles: caretakers can preview the refund for the
+    // principal's appointments.
+    const patient = await resolvePatientContext(c);
     if (!patient) return c.json({ error: "Patient not found" }, 404);
 
     const [existing] = await db
@@ -693,7 +699,7 @@ appointmentsRouter.get(
 
     if (
       !existing ||
-      existing.patientId !== (patient.patients?.id ?? patient.id)
+      existing.patientId !== patient.id
     ) {
       return c.json({ error: "Appointment not found or access denied" }, 404);
     }

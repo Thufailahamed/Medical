@@ -13,6 +13,8 @@ import {
   allergies,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
+import { requireRole } from "../middleware/rbac";
+import { resolvePatientContext } from "../lib/caretaker";
 import { audit } from "../lib/audit";
 import type { AppEnvironment } from "../types";
 import { notify } from "../lib/notifications";
@@ -20,7 +22,11 @@ import { notify } from "../lib/notifications";
 const emergencyRouter = new Hono<AppEnvironment>();
 
 // ─── Trigger SOS ─────────────────────────────────────────
-emergencyRouter.post("/sos", authMiddleware, async (c) => {
+// Patient-only. SOS is initiated by the person who needs help; remote
+// caretakers must not trigger emergency services silently on someone's
+// behalf. Family-context / caretaker-context middleware still runs and
+// the role check here forces a 403 for non-patients.
+emergencyRouter.post("/sos", authMiddleware, requireRole("patient"), async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
   const body = await c.req.json().catch(() => ({}));
@@ -623,18 +629,15 @@ function escapeHtml(str: string | null | undefined): string {
 }
 
 // ─── Update emergency status (with ownership check) ──────
+// Caretaker Profiles: caretakers can update the principal's emergency
+// record (e.g. mark as resolved when help has arrived). The active
+// link is enforced by resolvePatientContext.
 emergencyRouter.put("/:id/status", authMiddleware, async (c) => {
   const emergencyId = c.req.param("id");
-  const userId = c.get("userId");
   const { status } = await c.req.json();
   const db = c.get("db");
 
-  // Only the patient who triggered it or ambulance can update
-  const [patient] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
+  const patient = await resolvePatientContext(c);
 
   if (!patient) {
     return c.json({ error: "Access denied" }, 403);
@@ -646,7 +649,7 @@ emergencyRouter.put("/:id/status", authMiddleware, async (c) => {
     .where(eq(emergencies.id, emergencyId))
     .limit(1);
 
-  if (!existing || (existing.emergencies?.patientId ?? existing.patientId) !== (patient.patients?.id ?? patient.id)) {
+  if (!existing || (existing.emergencies?.patientId ?? existing.patientId) !== patient.id) {
     return c.json({ error: "Access denied" }, 403);
   }
 
@@ -660,15 +663,11 @@ emergencyRouter.put("/:id/status", authMiddleware, async (c) => {
 });
 
 // ─── Get my emergencies ──────────────────────────────────
+// Caretaker Profiles: caretakers see the principal's emergency history.
 emergencyRouter.get("/me", authMiddleware, async (c) => {
-  const userId = c.get("userId");
   const db = c.get("db");
 
-  const [patient] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.userId, userId))
-    .limit(1);
+  const patient = await resolvePatientContext(c);
 
   if (!patient) {
     return c.json({ emergencies: [] });
@@ -677,7 +676,7 @@ emergencyRouter.get("/me", authMiddleware, async (c) => {
   const history = await db
     .select()
     .from(emergencies)
-    .where(eq(emergencies.patientId, (patient.patients?.id ?? patient.id)));
+    .where(eq(emergencies.patientId, patient.id));
 
   return c.json({ emergencies: history });
 });
@@ -695,7 +694,9 @@ emergencyRouter.post("/qr/issue", authMiddleware, async (c) => {
   const maxScans = Number.isFinite(body.maxScans) ? Number(body.maxScans) : 5;
   const ttlHours = Number.isFinite(body.ttlHours) ? Number(body.ttlHours) : 2;
 
-  const [patient] = await db.select().from(patients).where(eq(patients.userId, userId)).limit(1);
+  // Caretaker Profiles: caretakers can issue an emergency QR for the
+  // principal; the token is bound to the principal's patient row.
+  const patient = await resolvePatientContext(c);
   if (!patient) return c.json({ error: "patient_not_found" }, 404);
 
   const bundle = await buildEmergencyBundle(db, patient.id, familyMemberId);

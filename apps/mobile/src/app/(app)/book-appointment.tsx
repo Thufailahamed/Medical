@@ -387,7 +387,7 @@ export default function BookAppointmentScreen() {
                         setValue("doctorId", d.doctorId, {
                           shouldValidate: true,
                         });
-                        setValue("hospitalId", d.hospitalId || "", {
+                        setValue("hospitalId", d.hospitalId || "dev-hospital-001", {
                           shouldValidate: true,
                         });
                       }}
