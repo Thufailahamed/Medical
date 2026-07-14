@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { useTranslation } from "react-i18next";
-import { UserPlus, Plus } from "lucide-react-native";
+import { UserPlus, Plus, BadgeCheck } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, Pill, Avatar, useToast, Screen, ScreenHeader } from "@/components/ui";
 import { CaretakerInviteSheet } from "@/components/CaretakerInviteSheet";
@@ -40,12 +40,9 @@ export default function CaretakersScreen() {
   function handleRevoke(linkId: string, name: string) {
     revokeLink.mutate(linkId, {
       onSuccess: () =>
-        toast.show({
-          title: t("caretaker.link.revoked"),
-          tone: "neutral",
-        }),
+        toast.show(t("caretaker.link.revoked"), "info"),
       onError: () =>
-        toast.show({ title: t("caretaker.switchFailed"), tone: "danger" }),
+        toast.show(t("caretaker.switchFailed"), "danger"),
     });
   }
 
@@ -144,6 +141,13 @@ export default function CaretakersScreen() {
                   label={t(`caretaker.link.${l.status}`)}
                   tone={tone as any}
                 />
+                {l.caretakerVerified ? (
+                  <Pill
+                    label={t("caretaker.verification.verified")}
+                    tone="success"
+                    icon={<BadgeCheck size={12} />}
+                  />
+                ) : null}
               </View>
 
               {l.status !== "revoked" ? (

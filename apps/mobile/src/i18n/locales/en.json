@@ -3725,6 +3725,30 @@
       "section": {
         "managing": "Managing"
       }
+    },
+    "verification": {
+      "verified": "Verified identity",
+      "pending": "Verification pending review",
+      "rejected": "Verification rejected",
+      "notStarted": "Get verified to build trust with the people you care for.",
+      "requestCta": "Get verified",
+      "sheetTitle": "Verify your identity",
+      "sheetHelper": "Upload a government-issued ID. An admin reviews submissions within 48 hours.",
+      "documentTypeLabel": "Document type",
+      "documentType": {
+        "nic": "National ID (NIC)",
+        "passport": "Passport",
+        "drivers_license": "Driver's license",
+        "other": "Other"
+      },
+      "uploadCta": "Upload document",
+      "uploadedHint": "Document uploaded — submit to request review",
+      "submitCta": "Submit for review",
+      "submitting": "Submitting…",
+      "cancelCta": "Cancel pending request",
+      "cancelConfirm": "Cancel your pending verification request?",
+      "requestFailed": "Could not submit verification",
+      "rejectedReason": "Reason: {{reason}}"
     }
   },
   "consult": {

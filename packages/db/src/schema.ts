@@ -3572,3 +3572,58 @@ export const caretakerInvites = sqliteTable(
     ),
   })
 );
+
+// ─── Caretaker Profiles: Verification Requests ─────────────
+//
+// Lifecycle of a verification request:
+//   pending  → caretaker just submitted, awaits admin review
+//   approved → admin flipped users.verified=true (badge visible)
+//   rejected → admin denied with `decisionNote`; users.verified unchanged
+//   superseded → a newer pending request replaced this one (history)
+//
+// Revocation is recorded separately on the latest approved row via
+// `revokedAt`/`revokedByUserId`/`revokedReason` so we keep an audit
+// chain rather than mutating a decided row.
+//
+// The `documentFileId` references a row uploaded by the caretaker via
+// the existing /files/upload endpoint — verified-tier requests just
+// snapshot a pointer, not the bytes. R2 key lookup happens at admin
+// review time.
+
+export const caretakerVerifications = sqliteTable(
+  "caretaker_verifications",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    caretakerUserId: text("caretaker_user_id")
+      .notNull()
+      .references(() => users.id),
+    documentType: text("document_type", {
+      enum: ["nic", "passport", "drivers_license", "other"],
+    }).notNull(),
+    documentFileId: text("document_file_id").notNull(),
+    status: text("status", {
+      enum: ["pending", "approved", "rejected", "superseded"],
+    })
+      .notNull()
+      .default("pending"),
+    submittedAt: text("submitted_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    decidedAt: text("decided_at"),
+    decidedByUserId: text("decided_by_user_id").references(() => users.id),
+    decisionNote: text("decision_note"),
+    revokedAt: text("revoked_at"),
+    revokedByUserId: text("revoked_by_user_id").references(() => users.id),
+    revokedReason: text("revoked_reason"),
+  },
+  (t) => ({
+    byCaretaker: index("idx_caretaker_verifications_caretaker").on(
+      t.caretakerUserId,
+      t.submittedAt
+    ),
+    byStatus: index("idx_caretaker_verifications_status").on(
+      t.status,
+      t.submittedAt
+    ),
+  })
+);

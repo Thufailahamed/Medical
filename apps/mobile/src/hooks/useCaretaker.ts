@@ -52,6 +52,9 @@ export type CaretakerLink = {
   caretakerPhone: string | null;
   caretakerEmail: string | null;
   caretakerPhoto: string | null;
+  // Verified Caretaker Tier: admin-verified identity. Drives the
+  // verified Pill on the principal-side caretakers list.
+  caretakerVerified: boolean;
 };
 
 export type PrincipalSummary = {
@@ -63,6 +66,9 @@ export type PrincipalSummary = {
   linkId: string;
   careRole: CareRole;
   linkedAt: string;
+  // Verified Caretaker Tier: the caretaker's own verified flag, surfaced
+  // alongside the principal pick so caretakers see their own badge too.
+  caretakerVerified: boolean;
 };
 
 // ─── Principal-side: invites ─────────────────────────────

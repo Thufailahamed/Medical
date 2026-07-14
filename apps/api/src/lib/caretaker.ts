@@ -2,7 +2,7 @@
 // Caretaker Profiles: shared helpers for the patient_links + caretaker_invites
 // domain. Mirrors apps/api/src/lib/access.ts shape so the routes stay thin.
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { patientLinks, users, patients } from "@healthcare/db";
 
 /**
@@ -73,6 +73,9 @@ export async function accessiblePrincipalsFor(
   db: any,
   caretakerUserId: string
 ) {
+  // Two-step: load principal rows, then map the caretaker's own
+  // verified state on top. Cleaner than a self-join that Drizzle's
+  // mock parser doesn't roundtrip well.
   const rows = await db
     .select({
       linkId: patientLinks.id,
@@ -95,7 +98,15 @@ export async function accessiblePrincipalsFor(
         eq(patientLinks.status, "active")
       )
     );
-  return rows;
+
+  const [self] = await db
+    .select({ verified: users.verified })
+    .from(users)
+    .where(eq(users.id, caretakerUserId))
+    .limit(1);
+  const caretakerVerified = !!(self as any)?.verified;
+
+  return rows.map((r: any) => ({ ...r, caretakerVerified }));
 }
 
 /** List every caretaker linked to a principal patient (with the caretaker's
@@ -115,6 +126,9 @@ export async function accessibleCaretakersFor(db: any, principalPatientId: strin
       caretakerPhone: users.phone,
       caretakerEmail: users.email,
       caretakerPhoto: users.photo,
+      // Verified-tier signal: drives the principal-side badge in
+      // (app)/caretakers.tsx.
+      caretakerVerified: users.verified,
     })
     .from(patientLinks)
     .innerJoin(users, eq(users.id, patientLinks.caretakerUserId))

@@ -85,6 +85,8 @@ import adminOperatorRouter from "./routes/admin-operator";
 import familyInviteRouter from "./routes/family-invites";
 import caretakerInviteRouter from "./routes/caretaker-invites";
 import caretakerLinksRouter from "./routes/caretaker-links";
+import caretakerVerificationsRouter from "./routes/caretaker-verifications";
+import adminCaretakerVerificationsRouter from "./routes/admin-caretaker-verifications";
 import invitePageRouter from "./routes/invite-page";
 import familyLockRouter from "./routes/family-lock";
 import whatsappRouter from "./routes/whatsapp";
@@ -244,9 +246,11 @@ app.route("/family", familyActiveRouter);
 app.route("/family", familyInviteRouter);
 app.route("/family", familyLockRouter);
 // Caretaker Profiles: cross-account identity linking + active-principal
-// switch. Mounted at /caretaker (sibling of /family).
+// switch + verified-tier request lifecycle. Mounted at /caretaker
+// (sibling of /family).
 app.route("/caretaker", caretakerInviteRouter);
 app.route("/caretaker", caretakerLinksRouter);
+app.route("/caretaker", caretakerVerificationsRouter);
 app.route("/timeline", timelineRouter);
 app.route("/health-summary", healthSummaryRouter);
 app.route("/export", exportRouter);
@@ -328,6 +332,8 @@ app.route("/admin/impersonate", adminImpersonateRouter);
 app.route("/admin/health", adminHealthRouter);
 // Phase ADM-2: operator surface (super_admin + insurance/ambulance).
 app.route("/admin/operator", adminOperatorRouter);
+// Caretaker Profiles: admin verification queue (approve / reject / revoke).
+app.route("/admin/caretaker-verifications", adminCaretakerVerificationsRouter);
 
 // ─── Cron (Wrangler scheduled + manual POST for testing) ──
 // Trigger via wrangler.toml: [triggers] crons = [...]

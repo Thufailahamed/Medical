@@ -11,12 +11,14 @@ import { View, Text, ScrollView } from "react-native";
 import { useRouter, Redirect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BadgeCheck } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Card, Pill, Avatar } from "@/components/ui";
 import {
   useMyPrincipals,
   useSetActivePrincipal,
 } from "@/hooks/useCaretaker";
+import { useMyVerification } from "@/hooks/useCaretakerVerification";
 import { useActivePrincipalStore } from "@/stores/activePrincipal";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -25,6 +27,7 @@ export default function CaretakerIndex() {
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const { data, isLoading } = useMyPrincipals();
+  const { data: verification } = useMyVerification();
   const setActive = useActivePrincipalStore(
     (s) => s.setActivePrincipalPatientId
   );
@@ -61,6 +64,17 @@ export default function CaretakerIndex() {
         >
           {t("caretaker.subtitle")}
         </Text>
+
+        {/* Verified Caretaker Tier banner — caretakers see their own
+            status at the top of the picker so it's visible the first
+            time they open the app. Tap-through link to /profile. */}
+        {verification?.verified ? (
+          <Pill
+            label={t("caretaker.verification.verified")}
+            tone="success"
+            icon={<BadgeCheck size={12} />}
+          />
+        ) : null}
 
         {(data?.principals ?? []).length === 0 ? (
           <Card>

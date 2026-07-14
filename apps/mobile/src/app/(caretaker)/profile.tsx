@@ -8,7 +8,7 @@
 // The screen is the caretaker's only "settings" entry point — they have
 // no patient row to edit, so account / app / sign-out rows live here.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import {
   ChevronRight,
   ShieldUser,
   Check,
+  BadgeCheck,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -36,8 +37,13 @@ import {
   useMyPrincipals,
   useSetActivePrincipal,
 } from "@/hooks/useCaretaker";
+import {
+  useMyVerification,
+  useCancelVerification,
+} from "@/hooks/useCaretakerVerification";
 import { useActivePrincipalStore } from "@/stores/activePrincipal";
 import { api } from "@/lib/api";
+import { VerificationRequestSheet } from "@/components/VerificationRequestSheet";
 import {
   Screen,
   Card,
@@ -59,12 +65,15 @@ export default function CaretakerProfile() {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useMyPrincipals();
+  const { data: verification, isLoading: verificationLoading } = useMyVerification();
+  const cancelVerification = useCancelVerification();
   const activeId = useActivePrincipalStore((s) => s.activePrincipalPatientId);
   const setActive = useActivePrincipalStore(
     (s) => s.setActivePrincipalPatientId
   );
   const clear = useActivePrincipalStore((s) => s.clear);
   const setServer = useSetActivePrincipal();
+  const [verifySheetOpen, setVerifySheetOpen] = useState(false);
 
   const principals = data?.principals ?? [];
   const activePrincipal = useMemo(
@@ -230,6 +239,114 @@ export default function CaretakerProfile() {
               </View>
             </View>
           </Card>
+        </View>
+
+        {/* ─── Verified Caretaker Tier section ───
+            Shown only to users with role='caretaker'. Surfaces the
+            caller's own verified state plus a CTA when unverified. */}
+        <View style={{ marginTop: spacing.lg }}>
+          <SectionHeader
+            title={t("caretaker.verification.sheetTitle")}
+            style={{ paddingHorizontal: spacing.lg }}
+          />
+          <View style={{ marginHorizontal: spacing.lg, gap: spacing.sm }}>
+            <Card>
+              {verificationLoading ? (
+                <Skeleton width="60%" height={18} />
+              ) : verification?.verified ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.sm,
+                  }}
+                >
+                  <BadgeCheck size={18} color={colors.success} />
+                  <Text
+                    style={{ ...typography.body, color: colors.text, flex: 1 }}
+                  >
+                    {t("caretaker.verification.verified")}
+                  </Text>
+                </View>
+              ) : verification?.verification?.status === "pending" ? (
+                <View style={{ gap: spacing.xs }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.sm,
+                    }}
+                  >
+                    <ShieldUser size={18} color={colors.textSecondary} />
+                    <Text style={{ ...typography.body, color: colors.text, flex: 1 }}>
+                      {t("caretaker.verification.pending")}
+                    </Text>
+                  </View>
+                  <Button
+                    label={t("caretaker.verification.cancelCta")}
+                    onPress={() =>
+                      Alert.alert(
+                        t("caretaker.verification.cancelConfirm"),
+                        "",
+                        [
+                          { text: t("common.cancel"), style: "cancel" },
+                          {
+                            text: t("common.confirm"),
+                            style: "destructive",
+                            onPress: () => cancelVerification.mutate(),
+                          },
+                        ]
+                      )
+                    }
+                    variant="outline"
+                    compact
+                  />
+                </View>
+              ) : verification?.verification?.status === "rejected" ? (
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={{ ...typography.body, color: colors.danger }}>
+                    {t("caretaker.verification.rejected")}
+                  </Text>
+                  {verification.verification.decisionNote ? (
+                    <Text
+                      style={{
+                        ...typography.bodySmall,
+                        color: colors.textSecondary,
+                      }}
+                    >
+                      {t("caretaker.verification.rejectedReason", {
+                        reason: verification.verification.decisionNote,
+                      })}
+                    </Text>
+                  ) : null}
+                  <Button
+                    label={t("caretaker.verification.requestCta")}
+                    onPress={() => setVerifySheetOpen(true)}
+                    variant="outline"
+                    fullWidth
+                  />
+                </View>
+              ) : (
+                <View style={{ gap: spacing.sm }}>
+                  <Text
+                    style={{
+                      ...typography.bodySmall,
+                      color: colors.textSecondary,
+                    }}
+                  >
+                    {t("caretaker.verification.notStarted")}
+                  </Text>
+                  <Button
+                    label={t("caretaker.verification.requestCta")}
+                    onPress={() => setVerifySheetOpen(true)}
+                    variant="outline"
+                    icon={<BadgeCheck size={16} />}
+                    fullWidth
+                  />
+                </View>
+              )}
+            </Card>
+          </View>
         </View>
 
         {/* ─── Managing section ─── */}
@@ -439,6 +556,10 @@ export default function CaretakerProfile() {
           </Text>
         </View>
       </ScrollView>
+      <VerificationRequestSheet
+        visible={verifySheetOpen}
+        onDismiss={() => setVerifySheetOpen(false)}
+      />
     </Screen>
   );
 }
