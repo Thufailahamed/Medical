@@ -6,7 +6,7 @@ import { useTone } from "@/theme/tone";
 import { Button } from "./Button";
 
 type Props = {
-  icon?: LucideIcon;
+  icon?: LucideIcon | React.ReactElement;
   title: string;
   message?: string;
   body?: string;
@@ -29,6 +29,14 @@ export function EmptyState({
   const { colors, spacing, typography, radius } = useTheme();
   const { bg, fg } = useTone(tone);
   const displayMessage = message || body;
+
+  const renderIcon = () => {
+    if (React.isValidElement(Icon)) {
+      return Icon;
+    }
+    const Component = Icon as any;
+    return <Component size={40} color={fg} strokeWidth={1.5} />;
+  };
 
   return (
     <View
@@ -54,7 +62,7 @@ export function EmptyState({
           backgroundColor: bg,
         }}
       >
-        <Icon size={40} color={fg} strokeWidth={1.5} />
+        {renderIcon()}
       </View>
       <View style={{ alignItems: "center", gap: spacing.xs }}>
         <Text
