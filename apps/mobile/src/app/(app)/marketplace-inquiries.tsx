@@ -8,9 +8,8 @@ import {
   ScrollView,
   RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Send, ChevronRight } from "lucide-react-native";
+import { Send } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,

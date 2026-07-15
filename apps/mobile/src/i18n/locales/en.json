@@ -12,7 +12,9 @@
     "you": "You",
     "retry": "Retry",
     "errorTitle": "Something went wrong",
-    "errorLoad": "We couldn't load this. Check your connection and try again."
+    "errorLoad": "We couldn't load this. Check your connection and try again.",
+    "error": "Something went wrong",
+    "loading": "Loading…"
   },
   "appLock": {
     "setup": {

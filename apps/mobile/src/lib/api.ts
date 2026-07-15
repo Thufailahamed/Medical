@@ -278,6 +278,11 @@ export async function apiSse(
         .catch(() => ({ error: `HTTP ${res.status}` }));
       const e: any = new Error(err?.error || `HTTP ${res.status}`);
       e.status = res.status;
+      // Surface the API's structured `code` so screens can branch on
+      // specific error classes (already_pending, already_linked,
+      // already_verified, not_verified, …) instead of guessing from
+      // the human-readable message.
+      if (err?.code) e.code = err.code;
       throw e;
     }
     if (!res.body) return;

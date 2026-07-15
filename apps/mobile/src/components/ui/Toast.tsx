@@ -208,16 +208,37 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const show = useCallback<ToastContextType["show"]>(
-    (message, optsOrTone) => {
+  const show = useCallback(
+    (messageOrObj: any, optsOrTone?: any) => {
       const id = ++toastId;
-      const opts: ToastOptions =
-        typeof optsOrTone === "string"
-          ? { tone: optsOrTone }
-          : optsOrTone || {};
-      const tone = opts.tone || "success";
-      const hasAction = !!opts.action;
-      const duration = opts.durationMs ?? (hasAction ? ACTION_DURATION_MS : DEFAULT_DURATION_MS);
+      let message = "";
+      let tone: ToastTone = "success";
+      let action: ToastAction | undefined;
+      let durationMs: number | undefined;
+
+      if (messageOrObj && typeof messageOrObj === "object") {
+        message = messageOrObj.message || messageOrObj.title || "";
+        tone = messageOrObj.tone || messageOrObj.type || "success";
+        action = messageOrObj.action;
+        durationMs = messageOrObj.durationMs;
+      } else {
+        message = String(messageOrObj || "");
+        const opts: ToastOptions =
+          typeof optsOrTone === "string"
+            ? { tone: optsOrTone }
+            : optsOrTone || {};
+        tone = opts.tone || "success";
+        action = opts.action;
+        durationMs = opts.durationMs;
+      }
+
+      // Safeguard: mapping "neutral" tone to "info" since toneMap only supports success, danger, warning, info
+      if ((tone as any) === "neutral") {
+        tone = "info";
+      }
+
+      const hasAction = !!action;
+      const duration = durationMs ?? (hasAction ? ACTION_DURATION_MS : DEFAULT_DURATION_MS);
 
       Haptics.notificationAsync(
         tone === "danger" || tone === "warning"
@@ -227,7 +248,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
       setToasts((prev) => [
         ...prev,
-        { id, message, tone, action: opts.action, durationMs: duration },
+        { id, message, tone, action, durationMs: duration },
       ]);
     },
     []

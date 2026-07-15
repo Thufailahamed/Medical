@@ -37,6 +37,7 @@ import {
   patients,
   hospitalStaff,
   patientLinks,
+  caretakerMarketplaceInquiries,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { accessiblePatientsFor } from "../lib/access";
@@ -241,7 +242,13 @@ realtimeRouter.get("/", async (c) => {
             const id = row[poller.idColumn];
             if (!id || seen.has(id)) continue;
             seen.add(id);
-            cursors[poller.key] = id;
+            // Advance the cursor by the cursor column's value (not the id).
+            // For most pollers idColumn === cursorColumn so this is the
+            // same string; for pollers that emit on status mutation
+            // (marketplace_inquiry) it lets `gt(cursorColumn, cur)` catch
+            // rows whose updatedAt moved forward without a new id.
+            const nextCursor = (row as any)[poller.cursorColumnName];
+            if (nextCursor) cursors[poller.key] = String(nextCursor);
             await stream.writeSSE({
               id,
               event: poller.eventName,
@@ -496,6 +503,51 @@ function buildPollers(ctx: {
         updatedAt: r.updatedAt,
       }),
     },
+    {
+      // Caretaker Marketplace: emit when an inquiry is created,
+      // accepted, declined, or auto-expired. Both the patient who sent
+      // it and the caretaker who received it need the update — `where`
+      // covers either side.
+      //
+      // This is the only poller whose cursor advances on `updatedAt`
+      // rather than `id`. Status changes don't change id; they change
+      // updatedAt. The seen-set is still keyed on id so the same
+      // inquiry isn't re-emitted every tick once its updatedAt settles.
+      key: "marketplace_inquiry",
+      eventName: "marketplace_inquiry",
+      idColumn: "id",
+      cursorColumn: caretakerMarketplaceInquiries.updatedAt,
+      cursorColumnName: "updatedAt",
+      where: () =>
+        sql`${caretakerMarketplaceInquiries.caretakerUserId} = ${userId}
+            OR ${caretakerMarketplaceInquiries.patientUserId} = ${userId}`,
+      select: (where: any) =>
+        ctx.db
+          .select({
+            id: caretakerMarketplaceInquiries.id,
+            marketplaceProfileId: caretakerMarketplaceInquiries.marketplaceProfileId,
+            caretakerUserId: caretakerMarketplaceInquiries.caretakerUserId,
+            patientUserId: caretakerMarketplaceInquiries.patientUserId,
+            status: caretakerMarketplaceInquiries.status,
+            decidedAt: caretakerMarketplaceInquiries.decidedAt,
+            linkId: caretakerMarketplaceInquiries.linkId,
+            createdAt: caretakerMarketplaceInquiries.createdAt,
+            updatedAt: caretakerMarketplaceInquiries.updatedAt,
+          })
+          .from(caretakerMarketplaceInquiries)
+          .where(where),
+      payload: (r: any) => ({
+        id: r.id,
+        marketplaceProfileId: r.marketplaceProfileId,
+        caretakerUserId: r.caretakerUserId,
+        patientUserId: r.patientUserId,
+        status: r.status,
+        decidedAt: r.decidedAt ?? null,
+        linkId: r.linkId ?? null,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      }),
+    },
   ];
 
   return pollers;
@@ -507,6 +559,13 @@ type Poller = {
   skip?: boolean;
   idColumn: string;
   cursorColumn: any;
+  /**
+   * Property name on the row used to advance the cursor. Defaults to
+   * idColumn when omitted, but pollers that emit on mutation (e.g.
+   * marketplace_inquiry on `updatedAt`) MUST set this explicitly so
+   * `gt(cursorColumn, cur)` compares the right values.
+   */
+  cursorColumnName?: string;
   where: () => any;
   select: (where: any) => any;
   payload: (row: any) => Record<string, unknown>;
@@ -532,3 +591,6 @@ function safeParse(s: string): unknown {
 }
 
 export default realtimeRouter;
+// @internal — exported for unit testing the poller factory in isolation
+// without spinning up the full SSE stream loop.
+export { buildPollers, type Poller };

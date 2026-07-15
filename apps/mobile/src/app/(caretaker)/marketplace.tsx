@@ -14,7 +14,6 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { BadgeCheck, ShieldUser } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";

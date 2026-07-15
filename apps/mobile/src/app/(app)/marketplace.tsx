@@ -11,23 +11,20 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  Pressable,
   FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Search, BadgeCheck, Send } from "lucide-react-native";
+import { Search, BadgeCheck } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
   Card,
   Chip,
-  Pill,
   Avatar,
   Button,
   EmptyState,
-  useToast,
 } from "@/components/ui";
 import {
   useMarketplaceSearch,

@@ -662,3 +662,95 @@ describe("Auth gate", () => {
     expect(res.status).toBe(401);
   });
 });
+
+// ─── Realtime contract: status mutations advance updatedAt ──
+//
+// The marketplace_inquiry SSE poller keys its cursor on `updatedAt`
+// (not id) so accept/decline/auto-expire — which mutate existing
+// rows rather than inserting new ones — are emitted on the next tick.
+// This contract test locks that in: every status transition on an
+// existing inquiry MUST advance updatedAt past the prior value.
+
+describe("Realtime contract: updatedAt advances on status mutation", () => {
+  beforeEach(() => {
+    db = new MockD1();
+    seedBaseUsers();
+  });
+
+  it("accept advances updatedAt so the realtime poller re-emits", async () => {
+    const originalUpdatedAt = "2026-07-05T00:00:00Z";
+    db.seed("caretakerMarketplaceInquiries", [
+      {
+        id: "inq-rt-accept",
+        marketplaceProfileId: PROFILE_VERIFIED,
+        caretakerUserId: CARETAKER_VERIFIED,
+        patientUserId: PATIENT,
+        patientMessage: "Real-time contract check on accept path.",
+        status: "pending",
+        createdAt: originalUpdatedAt,
+        updatedAt: originalUpdatedAt,
+      },
+    ]);
+    db.setWhere("users", () => true);
+    db.setWhere(
+      "caretakerMarketplaceInquiries",
+      (r) => r.id === "inq-rt-accept"
+    );
+    db.setWhere("patients", (r) => r.userId === PATIENT);
+    db.setWhere("patientLinks", () => false);
+    db.setWhere(
+      "caretakerMarketplaceProfiles",
+      (r) => r.id === PROFILE_VERIFIED
+    );
+    const app = await buildApp({ role: "caretaker", id: CARETAKER_VERIFIED });
+
+    const res = await app.request(
+      "/caretaker/marketplace/inquiries/inq-rt-accept/accept",
+      { method: "POST" }
+    );
+    expect(res.status).toBe(200);
+
+    const row = (db.tables["caretakerMarketplaceInquiries"].rows as any[]).find(
+      (r) => r.id === "inq-rt-accept"
+    );
+    expect(row.status).toBe("accepted");
+    // The cursor column MUST have moved forward — otherwise the SSE
+    // poller would not re-emit and the patient would never see the
+    // accept in the marketplace_inquiry event.
+    expect(row.updatedAt > originalUpdatedAt).toBe(true);
+  });
+
+  it("decline advances updatedAt so the realtime poller re-emits", async () => {
+    const originalUpdatedAt = "2026-07-05T00:00:00Z";
+    db.seed("caretakerMarketplaceInquiries", [
+      {
+        id: "inq-rt-decline",
+        marketplaceProfileId: PROFILE_VERIFIED,
+        caretakerUserId: CARETAKER_VERIFIED,
+        patientUserId: PATIENT,
+        patientMessage: "Real-time contract check on decline path.",
+        status: "pending",
+        createdAt: originalUpdatedAt,
+        updatedAt: originalUpdatedAt,
+      },
+    ]);
+    db.setWhere("users", () => true);
+    db.setWhere(
+      "caretakerMarketplaceInquiries",
+      (r) => r.id === "inq-rt-decline"
+    );
+    const app = await buildApp({ role: "caretaker", id: CARETAKER_VERIFIED });
+
+    const res = await app.request(
+      "/caretaker/marketplace/inquiries/inq-rt-decline/decline",
+      { method: "POST" }
+    );
+    expect(res.status).toBe(200);
+
+    const row = (db.tables["caretakerMarketplaceInquiries"].rows as any[]).find(
+      (r) => r.id === "inq-rt-decline"
+    );
+    expect(row.status).toBe("declined");
+    expect(row.updatedAt > originalUpdatedAt).toBe(true);
+  });
+});

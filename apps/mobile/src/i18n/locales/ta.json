@@ -11,8 +11,10 @@
     "you": "நீங்கள்",
     "clear": "Clear",
     "retry": "Retry",
-    "errorTitle": "Something went wrong",
-    "errorLoad": "We couldn't load this. Check your connection and try again."
+    "errorTitle": "ஏதோ தவறு நடந்தது",
+    "errorLoad": "இதை ஏற்ற முடியவில்லை. உங்கள் இணைப்பை சோதித்து மீண்டும் முயற்சிக்கவும்.",
+    "error": "ஏதோ தவறு நடந்தது",
+    "loading": "ஏற்றுகிறது…"
   },
   "appLock": {
     "setup": {

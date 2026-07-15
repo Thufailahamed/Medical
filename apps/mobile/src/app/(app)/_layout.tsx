@@ -364,6 +364,18 @@ export default function AppLayout() {
         name="teleconsult/[roomId]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="marketplace"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="marketplace-inquiries"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="marketplace/[caretakerId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

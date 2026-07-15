@@ -62,6 +62,12 @@ const EVENT_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
     ["caretaker", "me", "principals"],
     ["caretaker", "me", "active-principal"],
   ],
+  // Caretaker Marketplace: inquiry lifecycle (created, accepted,
+  // declined, auto-expired). Invalidates all marketplace queries so
+  // both the caretaker's incoming list and the patient's sent list
+  // flip within one poll tick. Accept also creates a patient_link,
+  // so the broader "caretaker" cache (which covers links) refetches.
+  marketplace_inquiry: [["marketplace"], ["caretaker"]],
 };
 
 function invalidateFor(qc: ReturnType<typeof useQueryClient>, n: RealtimeNotification) {

@@ -2,13 +2,8 @@
 // Caretaker Profiles: Marketplace — caretaker detail + inquiry sheet.
 
 import { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Alert,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { View, Text, ScrollView } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   BadgeCheck,
@@ -34,13 +29,10 @@ import {
 import {
   useMarketplaceCaretaker,
   useSendMarketplaceInquiry,
-} from "@/hooks/useCaretakerMarketplace";
-import {
   useMyMarketplaceInquiriesSent,
 } from "@/hooks/useCaretakerMarketplace";
 
 export default function MarketplaceCaretakerDetail() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ caretakerId: string }>();
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();

@@ -11,8 +11,10 @@
     "you": "ඔබ",
     "clear": "Clear",
     "retry": "Retry",
-    "errorTitle": "Something went wrong",
-    "errorLoad": "We couldn't load this. Check your connection and try again."
+    "errorTitle": "යම් වරදක් සිදු විය",
+    "errorLoad": "මෙය පූරණය කිරීමට නොහැකි විය. ඔබේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+    "error": "යම් වරදක් සිදු විය",
+    "loading": "පූරණය වෙමින්…"
   },
   "appLock": {
     "setup": {
