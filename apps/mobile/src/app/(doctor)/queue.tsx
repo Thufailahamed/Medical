@@ -13,11 +13,13 @@ import {
   Hash,
   Sparkles,
   UserPlus,
+  Video,
 } from "lucide-react-native";
 import {
   useDoctorQueue,
   useUpdateAppointmentStatus,
   useUpdateWalkIn,
+  useCreateTeleconsultSession,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -45,6 +47,7 @@ export default function DoctorQueue() {
 
   const { data, isLoading, isError, refetch } = useDoctorQueue();
   const updateStatus = useUpdateAppointmentStatus();
+  const createTeleconsult = useCreateTeleconsultSession();
 
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -221,6 +224,36 @@ export default function DoctorQueue() {
                             fullWidth={false}
                             loading={busyId === q.appointmentId}
                             onPress={() => setStatus(q.appointmentId, "in_progress")}
+                          />
+                        ) : null}
+                        {canStart && q.mode === "video" && q.appointmentId ? (
+                          <Button
+                            title={t("consult.startVideoVisit")}
+                            icon={Video}
+                            variant="primary"
+                            size="sm"
+                            fullWidth={false}
+                            loading={createTeleconsult.isPending && busyId === q.appointmentId}
+                            onPress={async () => {
+                              if (!q.appointmentId) return;
+                              setBusyId(q.appointmentId);
+                              try {
+                                const res = await createTeleconsult.mutateAsync({
+                                  appointmentId: q.appointmentId,
+                                });
+                                router.push({
+                                  pathname: "/(doctor)/teleconsult/[roomId]" as any,
+                                  params: { roomId: res.roomId },
+                                });
+                              } catch (err: any) {
+                                toast.show(
+                                  err?.message || t("consult.startVideoError"),
+                                  "danger"
+                                );
+                              } finally {
+                                setBusyId(null);
+                              }
+                            }}
                           />
                         ) : null}
                         {canComplete ? (

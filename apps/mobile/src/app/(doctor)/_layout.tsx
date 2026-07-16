@@ -19,6 +19,7 @@ import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
+import DoctorWaitingBanner from "@/components/teleconsult/DoctorWaitingBanner";
 
 // Sinhala + Tamil glyphs render ~1.3x wider than Latin at the same font size.
 // Trim fontSize + letterSpacing for those locales so the 5 labels do not
@@ -51,7 +52,9 @@ export default function DoctorLayout() {
   // Premium floating pill — sits above the bottom safe area with a frosted
   // glass background, hairline border, and a top inner highlight.
   return (
-    <Tabs
+    <View style={{ flex: 1 }}>
+      <DoctorWaitingBanner />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -270,6 +273,11 @@ export default function DoctorLayout() {
         name="vital-record"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="teleconsult/[roomId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
+    </View>
   );
 }

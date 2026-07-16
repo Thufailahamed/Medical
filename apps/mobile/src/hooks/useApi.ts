@@ -4032,6 +4032,26 @@ export function useActiveTeleconsultSession() {
   });
 }
 
+// Round 5b (doctor mobile): create a teleconsult session for a given
+// appointment. Doctor-only server-side (POST /teleconsult/sessions is
+// gated by requireRole("doctor")). The returned roomId is the route
+// param for /(doctor)/teleconsult/[roomId]; the wrapper route also
+// resolves roomId → sessionId via /me/active before opening the room.
+export function useCreateTeleconsultSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { appointmentId: string }) =>
+      api<{ id: string; roomId: string; status: string; appointmentId: string }>(
+        "/teleconsult/sessions",
+        { method: "POST", body: JSON.stringify({ appointmentId: vars.appointmentId }) }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["teleconsult", "me", "active"] });
+      qc.invalidateQueries({ queryKey: ["doctor-portal", "queue"] });
+    },
+  });
+}
+
 // ─── Tier 1 records: Patient Health Snapshot ──────────────
 //
 // useHealthSnapshot       — patient/caretaker mobile hub
