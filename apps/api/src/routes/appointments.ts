@@ -1,8 +1,8 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
-import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings } from "@healthcare/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings, teleconsultSessions } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { resolvePatientContext } from "../lib/caretaker";
@@ -542,6 +542,23 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
     .where(eq(appointmentRatings.appointmentId, appointmentId))
     .limit(1);
 
+  // Video consult: embed the live teleconsult session (status in
+  // requested/ringing/active) so the appointment-detail screen can
+  // render the "Join video visit" CTA in one round-trip instead of
+  // composing `useActiveTeleconsultSession` + a `/appointments/me/active`
+  // poll. NULL when no live session (e.g. before doctor opens room,
+  // or after the call ends/fails/times out).
+  const [activeSession] = await db
+    .select()
+    .from(teleconsultSessions)
+    .where(
+      and(
+        eq(teleconsultSessions.appointmentId, appointmentId),
+        inArray(teleconsultSessions.status, ["requested", "ringing", "active"])
+      )
+    )
+    .limit(1);
+
   return c.json({
     appointment: appt,
     records,
@@ -553,6 +570,7 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
           createdAt: rating.createdAt,
         }
       : null,
+    activeSession: activeSession || null,
   });
 });
 

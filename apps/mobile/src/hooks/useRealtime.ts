@@ -39,6 +39,11 @@ const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   hospital: [["hospital"]],
   emergency: [["emergency"]],
   vaccination: [["vaccinations"]],
+  // Video consultation: doctor opened the room → invalidate the
+  // `useActiveTeleconsultSession` query so the patient's "Join video
+  // visit" CTA appears within one SSE tick instead of waiting for the
+  // 5s staleTime to expire.
+  teleconsult: [["teleconsult", "me", "active"]],
   general: [[]],
   hospital_request: [["doctor-messages", "conversations"], ["doctor-portal"]],
 };

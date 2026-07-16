@@ -139,6 +139,12 @@
       "active": "Active",
       "completed": "Done"
     },
+    "modeFilter": {
+      "label": "Filter by mode",
+      "all": "All",
+      "video": "Video",
+      "inPerson": "In-person"
+    },
     "stat": {
       "waiting": "Waiting",
       "inProgress": "In progress",

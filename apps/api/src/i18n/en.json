@@ -25,6 +25,10 @@
       "callEnded": {
         "title": "Video call ended",
         "body": "Your video visit has ended. Records and any prescriptions are saved."
+      },
+      "patientJoined": {
+        "title": "Patient is in the room",
+        "body": "The patient has joined the video room and is waiting."
       }
     }
   },

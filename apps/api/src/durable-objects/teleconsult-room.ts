@@ -33,7 +33,8 @@
  */
 
 import { eq } from "drizzle-orm";
-import { teleconsultSessions, appointments } from "@healthcare/db";
+import { teleconsultSessions, appointments, users } from "@healthcare/db";
+import { LOCALE_TABLES } from "../lib/locale";
 
 const PARTY_MAX = 2;
 const HEARTBEAT_INTERVAL_MS = 25_000;
@@ -203,12 +204,15 @@ export class TeleconsultRoom {
 
     // On the first peer, move status `requested` → `ringing`.
     // On the second peer, move `ringing` → `active` AND flip the
-    // appointment to `in_progress`.
+    // appointment to `in_progress` AND notify the doctor that the
+    // patient is in the room (so the portal queue / SSE listener can
+    // surface it without a manual refresh).
     if (this.peers.size === 1) {
       await this.persistStatus("ringing", "first-peer-connect");
     } else if (this.peers.size === 2) {
       await this.persistStatus("active", "both-peers-connected");
       await this.flipAppointmentInProgress();
+      await this.notifyPatientJoined();
     }
 
     this.armHeartbeat();
@@ -432,6 +436,59 @@ export class TeleconsultRoom {
         .run();
     } catch (err) {
       console.error("flipAppointmentInProgress failed", err);
+    }
+  }
+
+  // ─── Doctor-side "patient joined" notification ─────────────
+  // Fires once when the room transitions from 1 → 2 peers. Inserts a
+  // `notifications` row keyed to the doctor's `userId` so the SSE
+  // channel can deliver it without the doctor polling. Best-effort —
+  // never throws. The doctor's preferred locale is read from the
+  // `users` table; falls back to English when missing.
+  async notifyPatientJoined() {
+    if (!this.doctorUserId || !this.sessionId) return;
+    const db = this.env.DB;
+    if (!db) return;
+
+    let locale: "en" | "si" | "ta" = "en";
+    try {
+      const u = await db
+        .prepare("SELECT preferred_locale FROM users WHERE id = ? LIMIT 1")
+        .bind(this.doctorUserId)
+        .first();
+      const raw = (u as any)?.preferred_locale;
+      if (raw === "si" || raw === "ta") locale = raw;
+    } catch (err) {
+      console.error("notifyPatientJoined: locale lookup failed", err);
+    }
+
+    const table = LOCALE_TABLES[locale] || LOCALE_TABLES.en;
+    const fallback = LOCALE_TABLES.en;
+    const t =
+      table?.notifications?.teleconsult?.patientJoined ??
+      fallback.notifications.teleconsult.patientJoined;
+
+    try {
+      await db
+        .prepare(
+          `INSERT INTO notifications (id, user_id, type, title, body, data, read, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)`
+        )
+        .bind(
+          crypto.randomUUID(),
+          this.doctorUserId,
+          "teleconsult",
+          t.title,
+          t.body,
+          JSON.stringify({
+            sessionId: this.sessionId,
+            appointmentId: this.appointmentId,
+            event: "patient-joined",
+          })
+        )
+        .run();
+    } catch (err) {
+      console.error("notifyPatientJoined: insert failed", err);
     }
   }
 }

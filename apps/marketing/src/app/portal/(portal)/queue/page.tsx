@@ -22,7 +22,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ListOrdered,
@@ -202,12 +202,24 @@ function todayIso(): string {
 export default function QueuePage() {
   const t = useT();
   const qc = useQueryClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const date = useMemo(todayIso, []);
   const [filter, setFilter] = useState<QueueFilter>("active");
+  // Round 6 P2: server-driven mode filter via URL param so deep-links
+  // work (e.g. `?mode=video` from a notification or sidebar link). The
+  // API returns only video-mode appointments when present; "all" or
+  // "in_person" leaves the response mixed.
+  const modeFilter = searchParams.get("mode");
 
   const { data, isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
-    queryKey: qk.doctorQueue(date),
-    queryFn: () => api<QueueResp>(`/doctor-portal/queue?date=${date}`),
+    queryKey: [...qk.doctorQueue(date), modeFilter ?? "all"],
+    queryFn: () =>
+      api<QueueResp>(
+        `/doctor-portal/queue?date=${date}${
+          modeFilter ? `&mode=${encodeURIComponent(modeFilter)}` : ""
+        }`
+      ),
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
     staleTime: 15_000,
@@ -273,8 +285,8 @@ export default function QueuePage() {
   // Round 4 — In-App Video Teleconsultation. Doctor taps the icon
   // button on a row to spin up a Teleconsult session and jump to the
   // video page. The mutation creates a row in `teleconsult_sessions`
-  // and returns the roomId we navigate to.
-  const router = useRouter();
+  // and returns the roomId we navigate to. (router is hoisted to the
+  // page top so the mode-filter chips can also navigate.)
   const startVideoVisit = useMutation({
     mutationFn: (appointmentId: string) =>
       teleconsultApi.createSession(appointmentId),
@@ -384,13 +396,21 @@ export default function QueuePage() {
 
       {/* ─── Filters + list ─────────────────────────────────────────── */}
       <Card padding={false}>
-        <div className="px-3 md:px-4 py-3 border-b border-border/60 bg-surface-2/30">
+        <div className="px-3 md:px-4 py-3 border-b border-border/60 bg-surface-2/30 flex flex-col gap-2.5">
           <FilterPills
             value={filter}
             onChange={setFilter}
             options={filterOptions}
             size="sm"
           />
+          {/* Round 6 P2: mode filter — server-driven via ?mode=. */}
+          <ModeFilterChips value={modeFilter} onChange={(m) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (m) params.set("mode", m);
+            else params.delete("mode");
+            const qs = params.toString();
+            router.replace(qs ? `?${qs}` : "?", { scroll: false });
+          }} t={t} />
         </div>
 
         {isLoading ? (
@@ -437,6 +457,53 @@ export default function QueuePage() {
           />
         )}
       </Card>
+    </div>
+  );
+}
+
+// ─── Mode filter chips (server-driven ?mode=) ─────────────────────────
+// Three segmented chips above the list filter: All / Video / In-person.
+// Each click rewrites the URL — the page re-queries with the new mode
+// and React Query re-keys on `modeFilter` so polling restarts cleanly.
+function ModeFilterChips({
+  value,
+  onChange,
+  t,
+}: {
+  value: string | null;
+  onChange: (next: string | null) => void;
+  t: (k: string) => string;
+}) {
+  const opts: Array<{ key: string | null; label: string }> = [
+    { key: null, label: t("queue.modeFilter.all") },
+    { key: "video", label: t("queue.modeFilter.video") },
+    { key: "in_person", label: t("queue.modeFilter.inPerson") },
+  ];
+  return (
+    <div
+      className="inline-flex rounded-xl border border-border/60 bg-surface-1 p-0.5 self-start"
+      role="group"
+      aria-label={t("queue.modeFilter.label")}
+    >
+      {opts.map((o) => {
+        const active = (o.key ?? null) === (value ?? null);
+        return (
+          <button
+            key={o.key ?? "all"}
+            type="button"
+            onClick={() => onChange(o.key)}
+            aria-pressed={active}
+            className={cn(
+              "px-3 py-1 text-xs font-semibold rounded-lg transition-colors",
+              active
+                ? "bg-brand text-white shadow-sm"
+                : "text-text-soft hover:text-text hover:bg-surface-2"
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

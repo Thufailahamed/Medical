@@ -1077,6 +1077,12 @@
       "active": "Active",
       "completed": "Done"
     },
+    "modeFilter": {
+      "label": "முறையால் வடிகட்டு",
+      "all": "அனைத்தும்",
+      "video": "வீடியோ",
+      "inPerson": "நேரடி"
+    },
     "stat": {
       "waiting": "Waiting",
       "inProgress": "In progress",

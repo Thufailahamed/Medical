@@ -134,6 +134,18 @@ class FakeD1 {
     patient_user_id: "patient-user-1",
   };
   appointmentRow: any = { id: "appt-1", status: "confirmed" };
+  // Doctors' preferred locale (read by notifyPatientJoined). Tests can
+  // override per-test to verify localized notification strings.
+  doctorPreferredLocale: string | null = "en";
+  // Captured notification inserts so tests can assert on the row written.
+  notificationInserts: Array<{
+    id: string;
+    userId: string;
+    type: string;
+    title: string;
+    body: string;
+    data: string | null;
+  }> = [];
 
   prepare(sql: string) {
     const self = this;
@@ -145,6 +157,11 @@ class FakeD1 {
             self.executed.push(capture);
             if (sql.includes("FROM teleconsult_sessions")) {
               return self.sessionRow;
+            }
+            if (sql.includes("FROM users")) {
+              return self.doctorPreferredLocale
+                ? { preferred_locale: self.doctorPreferredLocale }
+                : null;
             }
             return null;
           },
@@ -168,11 +185,27 @@ class FakeD1 {
               });
             } else if (sql.startsWith("UPDATE appointments")) {
               self.appointmentRow.status = "in_progress";
+            } else if (sql.startsWith("INSERT INTO notifications")) {
+              self.notificationInserts.push({
+                id: binds[0],
+                userId: binds[1],
+                type: binds[2],
+                title: binds[3],
+                body: binds[4],
+                data: binds[5] ?? null,
+              });
             }
             return { success: true };
           },
           async all() {
             self.executed.push(capture);
+            if (sql.includes("FROM users")) {
+              return {
+                results: self.doctorPreferredLocale
+                  ? [{ preferred_locale: self.doctorPreferredLocale }]
+                  : [],
+              };
+            }
             return { results: [] };
           },
         };
@@ -396,5 +429,65 @@ describe("TeleconsultRoom — cold start hydration", () => {
     // same. Status updates are no-ops without sessionId.)
     const res = await room.fetch(upgradeReq({ userId: "doc-1", role: "doctor" }));
     expect(res.status).toBe(101);
+  });
+});
+
+// ─── Patient-joined notification (Gap #2) ───────────────
+// Fires when both peers connect (ringing → active). Inserts a
+// notifications row keyed to doctorUserId so the doctor's SSE channel
+// can deliver it without a manual refresh. Notification text follows
+// the doctor's preferred_locale; falls back to English.
+describe("TeleconsultRoom — patient-joined notification", () => {
+  it("writes a notifications row on 2-peer connect (doctor is recipient)", async () => {
+    const { room, db } = makeRoom();
+    db.notificationInserts.length = 0;
+    await room.fetch(upgradeReq({ userId: "doc-1", role: "doctor" }));
+    // After doctor alone is in the room: nothing yet (only 1 peer).
+    expect(db.notificationInserts.length).toBe(0);
+
+    await room.fetch(
+      upgradeReq({ userId: "patient-user-1", role: "patient" })
+    );
+    // Both peers in: notification fired.
+    expect(db.notificationInserts.length).toBe(1);
+    const row = db.notificationInserts[0];
+    expect(row.type).toBe("teleconsult");
+    expect(row.userId).toBe("doc-1"); // doctor's user id, not patient
+    // English title/body when preferred_locale = "en" (default).
+    expect(row.title).toBe("Patient is in the room");
+    expect(row.body).toBe(
+      "The patient has joined the video room and is waiting."
+    );
+    // data is a JSON string with session + appointment id.
+    const data = JSON.parse(row.data!);
+    expect(data.sessionId).toBe("sess-1");
+    expect(data.appointmentId).toBe("appt-1");
+    expect(data.event).toBe("patient-joined");
+  });
+
+  it("does NOT write a notification on single-peer connect (doctor only)", async () => {
+    const { room, db } = makeRoom();
+    db.notificationInserts.length = 0;
+    await room.fetch(upgradeReq({ userId: "doc-1", role: "doctor" }));
+    // Only doctor in room — no patient joined → no notification.
+    expect(db.notificationInserts.length).toBe(0);
+  });
+
+  it("notification title + body follow doctor's preferred_locale", async () => {
+    const { room, db } = makeRoom();
+    db.doctorPreferredLocale = "si";
+    db.notificationInserts.length = 0;
+    await room.fetch(upgradeReq({ userId: "doc-1", role: "doctor" }));
+    await room.fetch(
+      upgradeReq({ userId: "patient-user-1", role: "patient" })
+    );
+    expect(db.notificationInserts.length).toBe(1);
+    // Sinhala locale strings live in src/i18n/si.json. The exact text
+    // is asserted below; if the i18n table moves, this test breaks
+    // loudly so we keep the labels in sync.
+    expect(db.notificationInserts[0].title).toBe("රෝගීයා කාමරයේ සිටී");
+    expect(db.notificationInserts[0].body).toBe(
+      "රෝගීයා වීඩියෝ කාමරයට සම්බන්ධ වී බලා සිටී."
+    );
   });
 });

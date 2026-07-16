@@ -144,9 +144,21 @@ doctorPortalRouter.get("/queue", async (c) => {
   const db = c.get("db");
   const date =
     c.req.query("date") || new Date().toISOString().split("T")[0];
+  // Round 6 P2: ?mode=video narrows the queue to video consultations
+  // only. `mode=in_person` returns the rest. No mode (default) keeps
+  // the existing "show everything" behavior.
+  const mode = c.req.query("mode");
 
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  // Build the WHERE conditionally so unset filters don't add a useless
+  // predicate (and so the SQL plan stays simple for the common case).
+  const dateFilter = and(
+    eq(appointments.doctorId, doctor.id),
+    eq(appointments.date, date),
+    mode ? eq(appointments.mode, mode) : undefined
+  );
 
   const appts = await db
     .select({
@@ -179,9 +191,7 @@ doctorPortalRouter.get("/queue", async (c) => {
     .innerJoin(patients, eq(appointments.patientId, patients.id))
     .innerJoin(users, eq(patients.userId, users.id))
     .leftJoin(hospitals, eq(appointments.hospitalId, hospitals.id))
-    .where(
-      and(eq(appointments.doctorId, doctor.id), eq(appointments.date, date))
-    )
+    .where(dateFilter)
     .orderBy(asc(appointments.queueNumber), asc(appointments.time));
 
   // Walk-ins that arrived today for this doctor

@@ -1077,6 +1077,12 @@
       "active": "Active",
       "completed": "Done"
     },
+    "modeFilter": {
+      "label": "මාතය අනුව පෙරීම",
+      "all": "සියල්ල",
+      "video": "වීඩියෝ",
+      "inPerson": "පෞද්ගලිකව"
+    },
     "stat": {
       "waiting": "Waiting",
       "inProgress": "In progress",

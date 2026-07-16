@@ -17,3 +17,15 @@ SMS_PROVIDER=console
 SMSLENZ_USER_ID=1958
 SMSLENZ_API_KEY=your-smslenz-api-key
 SMS_SENDER_ID=SMSlenzDEMO
+
+# Video consultation — WebRTC ICE servers.
+# Without TURN, ~12% of mobile and corporate networks (symmetric NAT)
+# cannot establish a peer-to-peer media path. For dev we fall back to
+# Google STUN-only, which works on most home networks. In prod set:
+#   wrangler secret put TURN_URLS '["turn:turn.example.com:3478"]'
+#   wrangler secret put TURN_USERNAME "..."
+#   wrangler secret put TURN_CREDENTIAL "..."
+# TURN_URLS is a JSON-encoded array of "turn:host:port" strings.
+TURN_URLS="[]"
+TURN_USERNAME=""
+TURN_CREDENTIAL=""
