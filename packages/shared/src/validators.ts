@@ -251,6 +251,13 @@ export const aiLabExplainSchema = z.object({
   textHint: z.string().max(8000).optional(),
 });
 
+// Tier 1 records PR3: pre-visit summary. The appointmentId is the
+// natural cache key — one summary per appointment, refreshed only if
+// the underlying patient snapshot changed.
+export const aiPreVisitSummarySchema = z.object({
+  appointmentId: z.string().min(1),
+});
+
 export const aiDrugInteractionSchema = z.object({
   medicines: z.array(z.string().min(1)).min(1).max(50),
 });

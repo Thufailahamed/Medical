@@ -93,6 +93,31 @@ function AppointmentDetail({
   const [showReschedule, setShowReschedule] = useState(false);
   const [newDate, setNewDate] = useState(date);
   const [newTime, setNewTime] = useState(row.time || "");
+  const [showPreVisit, setShowPreVisit] = useState(false);
+
+  // Tier 1 records PR3: pre-visit summary. Fetch on demand; the cache
+  // is shared with the cron + email payload so this stays in sync.
+  const preVisit = useQuery({
+    queryKey: ["pre-visit-summary", row.appointmentId],
+    queryFn: () =>
+      api<{
+        summary: string;
+        snapshot: any;
+        generatedAt: string;
+        cached: boolean;
+      }>(`/doctor-portal/appointments/${row.appointmentId}/pre-visit-summary`),
+    enabled: showPreVisit,
+  });
+
+  const sendPreVisit = useMutation({
+    mutationFn: () =>
+      api(`/doctor-portal/appointments/${row.appointmentId}/pre-visit-summary/send`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pre-visit-summary", row.appointmentId] });
+    },
+  });
 
   const isActive = !["cancelled", "completed", "no_show"].includes(row.status);
   const canReschedule = isActive && ["scheduled", "confirmed"].includes(row.status);
@@ -188,6 +213,88 @@ function AppointmentDetail({
           <div className="text-sm text-text mt-1">{row.reason}</div>
         </div>
       )}
+
+      {/* Tier 1 records PR3: pre-visit summary quick-action. Doctor
+          opens the drawer, sees a brief AI briefing (severe allergies,
+          chronic, active meds), can re-trigger the email send, and
+          download the PDF. */}
+      <Card className="border-brand/30 bg-brand-soft/10">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-bold text-text">Pre-visit summary</div>
+            <div className="text-xs text-text-soft mt-0.5">
+              AI briefing for this appointment — allergies, meds, recent diagnosis.
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowPreVisit((s) => !s)}
+          >
+            {showPreVisit ? "Hide" : "View"}
+          </Button>
+        </div>
+        {showPreVisit ? (
+          <div className="mt-3 flex flex-col gap-2">
+            {preVisit.isLoading ? (
+              <div className="text-xs text-text-muted">Loading summary…</div>
+            ) : preVisit.data ? (
+              <>
+                <div className="text-xs text-text-muted">
+                  Generated {new Date(preVisit.data.generatedAt).toLocaleString()}
+                  {preVisit.data.cached ? " · cached" : ""}
+                </div>
+                <div className="text-sm text-text whitespace-pre-wrap">
+                  {preVisit.data.summary}
+                </div>
+                {preVisit.data.snapshot?.redBanner?.length > 0 ? (
+                  <div className="p-2 rounded-md bg-red-50 border border-red-200 text-xs text-red-900">
+                    <strong>Severe allergies:</strong>{" "}
+                    {preVisit.data.snapshot.redBanner
+                      .map((a: any) => a.substance)
+                      .join(", ")}
+                  </div>
+                ) : null}
+                {preVisit.data.snapshot?.chronicConditions?.length > 0 ? (
+                  <div className="text-xs text-text">
+                    <strong>Chronic:</strong>{" "}
+                    {preVisit.data.snapshot.chronicConditions
+                      .map((c: any) => c.title)
+                      .join(", ")}
+                  </div>
+                ) : null}
+                {preVisit.data.snapshot?.activeMedicines?.length > 0 ? (
+                  <div className="text-xs text-text">
+                    <strong>Active meds:</strong>{" "}
+                    {preVisit.data.snapshot.activeMedicines
+                      .map((m: any) => m.name)
+                      .join(", ")}
+                  </div>
+                ) : null}
+                <div className="flex gap-2 mt-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={sendPreVisit.isPending}
+                    onClick={() => sendPreVisit.mutate()}
+                  >
+                    Re-send email
+                  </Button>
+                  {sendPreVisit.isSuccess ? (
+                    <span className="text-xs text-emerald-700 self-center">
+                      Email queued
+                    </span>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <div className="text-xs text-text-muted">
+                No summary yet. Re-send to generate one.
+              </div>
+            )}
+          </div>
+        ) : null}
+      </Card>
 
       {/* Reschedule form */}
       {showReschedule && (

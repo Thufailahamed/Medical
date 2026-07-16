@@ -540,6 +540,13 @@ export const appointments = sqliteTable("appointments", {
   // time the patient sees the rating CTA on the appointment detail.
   summaryEmailSentAt: text("summary_email_sent_at"),
   ratingPromptedAt: text("rating_prompted_at"),
+  // Tier 1 records PR3: pre-visit summary delivery tracking. The cron
+  // (apps/api/src/cron/pre-visit-summary.ts) scans appointments whose
+  // window is ~1h ahead and stamps `preVisitSummarySentAt` after a
+  // successful send. `preVisitSummarySentVia` records the channel so
+  // we can tell 'email' from 'push' later without re-deriving.
+  preVisitSummarySentAt: text("pre_visit_summary_sent_at"),
+  preVisitSummarySentVia: text("pre_visit_summary_sent_via"),
 }, (t) => ({
   doctorDateTimeIdx: index("appointments_doctor_date_time_idx").on(
     t.doctorId,
@@ -1163,6 +1170,7 @@ export const aiCache = sqliteTable("ai_cache", {
       "lab_trend",
       "soap_draft",
       "suggest_record_type",
+      "pre_visit_summary",
     ],
   }).notNull(),
   inputHash: text("input_hash").notNull(),
@@ -1195,6 +1203,7 @@ export const aiCalls = sqliteTable("ai_calls", {
       "lab_trend",
       "soap_draft",
       "suggest_record_type",
+      "pre_visit_summary",
     ],
   }).notNull(),
   userId: text("user_id").references(() => users.id),

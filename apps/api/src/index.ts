@@ -73,6 +73,7 @@ import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
 import { symptomAnomaliesRouter } from "./cron/symptom-anomalies";
 import { postVisitSummaryRouter } from "./cron/post-visit-summary-router";
+import { preVisitSummaryRouter } from "./cron/pre-visit-summary-router";
 import ratingsRouter from "./routes/ratings";
 import familyActiveRouter from "./routes/family-active";
 import adminRouter from "./routes/admin";
@@ -365,6 +366,7 @@ app.route("/", reclassifyRouter);
 app.route("/", vaccinationRemindersRouter);
 app.route("/", symptomAnomaliesRouter);
 app.route("/", postVisitSummaryRouter);
+app.route("/", preVisitSummaryRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {
@@ -400,6 +402,11 @@ export default {
 
     // 1. Dose reminders: run every 5 minutes (every trigger)
     paths.push("/__cron/dose-reminders");
+    // Tier 1 records PR3: pre-visit summary sweeps every 5 minutes too.
+    // The 50–70 minute lookahead window in the cron body is what
+    // guarantees one fire per appointment — tighter than this and we
+    // miss slots, looser and we add work without changing behavior.
+    paths.push("/__cron/pre-visit-summary");
 
     // 2. Hourly tasks (bookings + post-visit summaries): run once an hour (between minute 5 and 10)
     if (utcMin >= 5 && utcMin < 10) {

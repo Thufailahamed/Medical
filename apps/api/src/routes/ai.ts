@@ -27,6 +27,7 @@ import {
   aiLabTrendSchema,
   aiSoapDraftSchema,
   aiSuggestRecordTypeSchema,
+  aiPreVisitSummarySchema,
   RECORD_TYPE_VALUES,
 } from "@healthcare/shared";
 import {
@@ -361,6 +362,127 @@ ai.post("/explain/lab-report", async (c) => {
   await cacheStore(db, "lab_explain", cacheKey, explanation);
   return c.json({ explanation });
 });
+
+// ─── Pre-visit Summary (Tier 1 records PR3) ──────────────
+//
+// POST /ai/explain/pre-visit-summary  { appointmentId }
+// Returns a 200-word AI narrative highlighting safety-critical bits
+// of the patient snapshot — severe allergies, drug-allergy cross-
+// references, chronic conditions, active meds with prescriber names,
+// and the most recent visit diagnosis. Cached per-appointment; the
+// doctor-portal drawer re-uses this cache key so the portal and the
+// email payload never diverge.
+//
+// Why an LLM pass on top of buildSnapshot: the snapshot itself is
+// already structured. We pass the JSON to the LLM as context so it
+// produces a single 200-word paragraph the doctor can read in 30s.
+ai.post(
+  "/explain/pre-visit-summary",
+  authMiddleware,
+  requireRole("doctor", "hospital_admin", "hospital_staff"),
+  async (c) => {
+    const db = c.get("db");
+    const aiBinding = c.env.AI;
+    const userId = c.get("userId");
+    const userRole = c.get("dbUser")?.role || "doctor";
+    const body = await c.req.json().catch(() => ({}));
+    const parsed = aiPreVisitSummarySchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        400
+      );
+    }
+
+    const { appointments, hospitals, doctors, users } = await import("@healthcare/db");
+    const { buildSnapshot } = await import("../lib/snapshot");
+
+    // Lookup appointment + access gate.
+    const [appt] = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, parsed.data.appointmentId))
+      .limit(1);
+    if (!appt) return c.json({ error: "Appointment not found" }, 404);
+
+    const access = await canAccessPatient(db, userId, userRole, appt.patientId);
+    if (!access.allowed) {
+      return c.json({ error: "Access denied", reason: access.reason }, 403);
+    }
+
+    const [doctorRow] = await db
+      .select({
+        name: users.name,
+        hospitalName: hospitals.name,
+      })
+      .from(doctors)
+      .innerJoin(users, eq(users.id, doctors.userId))
+      .leftJoin(hospitals, eq(hospitals.id, doctors.hospitalId))
+      .where(eq(doctors.id, appt.doctorId))
+      .limit(1);
+
+    const cacheKey = { appointmentId: parsed.data.appointmentId };
+    const cached = await cacheGet(db, "pre_visit_summary", cacheKey);
+    if (cached) {
+      return c.json({
+        summary: cached.summary,
+        snapshot: cached.snapshot,
+        generatedAt: cached.generatedAt,
+        cached: true,
+      });
+    }
+
+    const snapshot = await buildSnapshot(db, appt.patientId);
+
+    const recentVisitDx = (snapshot.recentVisits[0]?.diagnosis as string | null) ?? null;
+    const payload = {
+      patientId: appt.patientId,
+      doctorName: doctorRow?.name ?? null,
+      hospitalName: doctorRow?.hospitalName ?? null,
+      visitDate: appt.date,
+      visitTime: appt.time,
+      visitReason: appt.reason ?? null,
+      snapshot,
+      recentVisitDx,
+    };
+
+    const messages: ChatMsg[] = [
+      {
+        role: "system",
+        content:
+          systemPrompt(
+            "Write a 200-word pre-visit briefing for a doctor about to see a patient."
+          ) +
+          " Highlight drug-allergy warnings first, then chronic conditions, then active meds with prescriber names, then the most recent diagnosis. Plain language, no headers — one flowing paragraph. Do not invent data.",
+      },
+      {
+        role: "user",
+        content: `Brief the doctor for this upcoming visit:\n\n${JSON.stringify(payload).slice(0, 6000)}`,
+      },
+    ];
+
+    let summary: string;
+    try {
+      const out = await aiComplete(aiBinding, messages, {
+        maxTokens: 350,
+        temperature: 0.2,
+      });
+      summary = (out || "").trim() || "Pre-visit summary unavailable.";
+    } catch (err) {
+      console.error("[ai/pre-visit-summary] failed", err);
+      summary = "Pre-visit summary unavailable — please review the patient's snapshot manually.";
+    }
+
+    const result = {
+      summary,
+      snapshot,
+      generatedAt: new Date().toISOString(),
+    };
+
+    await cacheStore(db, "pre_visit_summary", cacheKey, result);
+    return c.json({ ...result, cached: false });
+  }
+);
 
 // ─── Drug Interaction Check ──────────────────────────────
 // POST /ai/drug-interaction  { medicines: string[] }
