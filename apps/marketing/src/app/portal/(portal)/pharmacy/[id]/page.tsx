@@ -101,7 +101,10 @@ export default function PharmacyDetailPage({
 
   async function handleDispense() {
     try {
-      await dispenseMutation.mutateAsync({ id: rx!.id });
+      await dispenseMutation.mutateAsync({
+        id: rx!.id,
+        dispenseToken: rx!.dispenseToken,
+      });
       toast.success(t("pharmacy.detail.dispenseSuccess"), `#${rx!.id.slice(0, 8)}`);
     } catch (err: any) {
       toast.error(t("toast.error"), err?.message ?? "Dispense failed");
@@ -154,6 +157,12 @@ export default function PharmacyDetailPage({
                 variant="primary"
                 leftIcon={<CheckCircle2 size={14} />}
                 loading={dispenseMutation.isPending}
+                disabled={!rx.dispenseToken}
+                title={
+                  rx.dispenseToken
+                    ? undefined
+                    : t("pharmacy.actions.missingTokenTitle")
+                }
                 onClick={handleDispense}
               >
                 {t("pharmacy.actions.dispense")}

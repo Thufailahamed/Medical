@@ -463,6 +463,25 @@ export const prescriptions = sqliteTable("prescriptions", {
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
+  // E-Rx one-time-use redemption (migration 0059). Sign route mints a
+  // 32-byte base64url `dispense_token` and embeds it in the signed
+  // PDF's QR URL. Pharmacy dispense atomically consumes it in the same
+  // UPDATE that flips status → dispensed (guard clauses on both
+  // `dispense_token` = input AND `dispense_token_consumed_at` IS NULL),
+  // so a QR photocopy presented at a second pharmacy 409s with
+  // `token_consumed`. See apps/api/src/routes/signature.ts (/sign,
+  // /verify) + apps/api/src/routes/pharmacy.ts (dispense).
+  dispenseToken: text("dispense_token"),
+  dispenseTokenConsumedAt: text("dispense_token_consumed_at"),
+  // Pharmacy operator who consumed the token (FK → users.id). Role
+  // check at the route layer confirms role='pharmacy'.
+  dispensedByUserId: text("dispensed_by_user_id").references(
+    (): any => users.id
+  ),
+  // Denormalised pharmacy display name for the public /verify surface.
+  // Saved at consume time so /verify/<id> doesn't need to join users
+  // + a (non-existent) pharmacies table to render the redemption line.
+  dispensedByPharmacyName: text("dispensed_by_pharmacy_name"),
 }, (t) => ({
   patientDoctorIdx: index("prescriptions_patient_doctor_idx").on(t.patientId, t.doctorId),
   doctorDateIdx: index("prescriptions_doctor_date_idx").on(t.doctorId, t.date),

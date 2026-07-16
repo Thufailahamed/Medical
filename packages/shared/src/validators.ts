@@ -77,6 +77,21 @@ export type PrescriptionCreate = z.infer<typeof prescriptionCreateSchema>;
 export type PrescriptionPatch = z.infer<typeof prescriptionPatchSchema>;
 export type PrescriptionCancelInput = z.infer<typeof prescriptionCancelSchema>;
 
+// ─── E-Rx: single-use dispense token ──────────────────────
+//
+// Migration 0059 binds one signed prescription to one dispense
+// event. The sign route mints this token (base64url-encoded 32
+// random bytes → 43 chars) and embeds it in the signed PDF QR URL
+// as `?t=<token>`. The pharmacy dispense route requires the same
+// value on the `x-dispense-token` header and consumes it
+// atomically. Loose range so we don't lock future token-length
+// changes; the strict check (43 chars) lives in the sign route.
+export const dispenseTokenSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]{20,64}$/);
+
+export type DispenseToken = z.infer<typeof dispenseTokenSchema>;
+
 // ─── V2: Clinical Note ──────────────────────────────────
 export const clinicalNoteSchema = z.object({
   patientId: z.string().min(1),

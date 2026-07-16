@@ -32,9 +32,10 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
-import { applyRxTransition } from "../lib/rxStatus";
+import { applyRxTransition, consumeDispenseTokenAndTransition } from "../lib/rxStatus";
 import { audit } from "../lib/audit";
 import { notify } from "../lib/notifications";
+import { dispenseTokenSchema } from "@healthcare/shared/validators";
 import type { AppEnvironment } from "../types";
 
 const router = new Hono<AppEnvironment>();
@@ -46,6 +47,33 @@ const cancelBodySchema = z
     reason: z.string().min(1).max(500).optional(),
   })
   .strict();
+
+/** Truncate a token for the audit row — never log the full value. */
+function tokenTail(t: string): string {
+  return t.length >= 10 ? `${t.slice(0, 6)}…${t.slice(-4)}` : "***";
+}
+
+/** Resolve a display name for the dispensing pharmacy. Pharmacy users
+ *  don't have a `pharmacies` table — we use the active hospital's
+ *  name. Falls back to a synthetic label so the public /verify surface
+ *  always has something to render. */
+async function resolvePharmacyDisplayName(
+  db: any,
+  hospitalId: string | null
+): Promise<string> {
+  if (!hospitalId) return "Independent pharmacy";
+  try {
+    const [h] = await db
+      .select({ name: hospitals.name })
+      .from(hospitals)
+      .where(eq(hospitals.id, hospitalId))
+      .limit(1);
+    if (h?.name) return h.name;
+  } catch {
+    /* fall through */
+  }
+  return `Pharmacy #${hospitalId.slice(-6)}`;
+}
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -72,6 +100,12 @@ async function loadRxForPharmacy(
       patientId: prescriptions.patientId,
       hospitalId: prescriptions.hospitalId,
       status: prescriptions.status,
+      // Migration 0059: needed by the dispense route for token matching
+      // + diagnostic differentiation (token_missing vs token_mismatch vs
+      // token_consumed). Surfaced on every read so the route never has
+      // to re-query.
+      dispenseToken: prescriptions.dispenseToken,
+      dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
     })
     .from(prescriptions)
     .where(eq(prescriptions.id, id))
@@ -139,6 +173,13 @@ router.get(
         dispensedAt: prescriptions.dispensedAt,
         cancelledAt: prescriptions.cancelledAt,
         cancellationReason: prescriptions.cancellationReason,
+        // Migration 0059: the single-use redemption token (set by
+        // /sign). The pharmacy portal reads this back so its dispense
+        // button can POST it on `x-dispense-token`. NULL on legacy
+        // signed Rx — the portal should surface a clear "re-issue
+        // required" state instead of letting dispense 400 silently.
+        dispenseToken: prescriptions.dispenseToken,
+        dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
         patientName: users.name,
         patientNic: users.nic,
       })
@@ -219,6 +260,11 @@ router.get(
         dispensedAt: prescriptions.dispensedAt,
         cancelledAt: prescriptions.cancelledAt,
         cancellationReason: prescriptions.cancellationReason,
+        // Migration 0059: single-use redemption token + consumed
+        // timestamp. The pharmacy portal's dispense button reads
+        // these to compose the x-dispense-token header.
+        dispenseToken: prescriptions.dispenseToken,
+        dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
         doctorName: users.name,
         doctorSpecialization: doctors.specialization,
         doctorSlmcNo: doctors.slmcRegistrationNo,
@@ -258,9 +304,19 @@ router.get(
 
 // ─── POST /pharmacy/prescriptions/:id/dispense ──────────────────
 //
-// signed → dispensed. Tenant-scoped. The `applyRxTransition` helper
-// guards the status flip atomically — if another worker raced ahead
-// it returns null and we 409.
+// Migration 0059: signed → dispensed is one-time-use. The pharmacist
+// must present the `x-dispense-token` header (read from the QR the
+// patient scanned or typed from the printed PDF). The transition +
+// consume happens in a single conditional UPDATE; if the token has
+// already been redeemed the WHERE clause matches zero rows and we
+// follow up with a SELECT to differentiate the 4xx reason:
+//   - missing header → 400 dispense_token_required
+//   - prescription row gone → 404
+//   - token doesn't match → 404 token_mismatch (no leak)
+//   - token already consumed → 409 token_consumed
+//   - wrong status (cancelled / already dispensed) → 409
+//
+// Tenant scoping unchanged from the pre-0059 version.
 router.post(
   "/prescriptions/:id/dispense",
   authMiddleware,
@@ -270,15 +326,24 @@ router.post(
     const tenant = resolveTenant(c);
     const userId = c.get("userId");
     const id = c.req.param("id");
-    // Phase QR-Code Check-in & Dispensing: when the pharmacist clicked
-    // "Dispense" from the QR-scanned patient view, the portal sends
-    // the originating token tail here so we can audit a parallel
-    // event (`prescription.dispensed_via_qr`) on top of the standard
-    // `prescription.dispensed` row.
-    const viaQrToken = c.req.header("x-via-qr-token") || null;
-    const viaQrTokenTail = viaQrToken
-      ? viaQrToken.slice(0, 6) + "…" + viaQrToken.slice(-4)
-      : null;
+
+    // Migration 0059: require the single-use token. Header is the
+    // canonical path (one tap from the QR-scanned portal); the
+    // shape mirrors what the pharmacy portal already sends for
+    // the (now-deprecated) `x-via-qr-token` logging header.
+    const tokenRaw = c.req.header("x-dispense-token") || "";
+    const parsedToken = dispenseTokenSchema.safeParse(tokenRaw);
+    if (!parsedToken.success) {
+      return c.json(
+        {
+          error: "dispense_token_required",
+          message:
+            "Provide the dispense token (base64url 20-64 chars) on the x-dispense-token header. It comes from the signed PDF's QR URL `?t=...` or the printed token under the signature block.",
+        },
+        400
+      );
+    }
+    const token = parsedToken.data;
 
     const scoped = await loadRxForPharmacy(db, id, tenant);
     if (!scoped) {
@@ -294,23 +359,106 @@ router.post(
         409
       );
     }
+    if (!scoped.dispenseToken) {
+      // Migration 0059: legacy signed Rx (pre-0059) have no token.
+      // Force re-issue to keep the one-time-use guarantee airtight
+      // rather than letting them slip through. Documented in the
+      // migration file header.
+      return c.json(
+        {
+          error: "dispense_token_missing",
+          message:
+            "This prescription was signed before redemption tokens were required and cannot be dispensed via the token-protected flow. Re-issue from the doctor portal.",
+          prescriptionId: id,
+        },
+        400
+      );
+    }
 
-    const updated = await applyRxTransition({
+    const now = new Date().toISOString();
+    const pharmacyName = await resolvePharmacyDisplayName(
+      db,
+      tenant.hospitalId
+    );
+
+    const updated = await consumeDispenseTokenAndTransition({
       db,
       table: prescriptions,
       id,
+      token,
       from: "signed",
       to: "dispensed",
-      patch: { dispensedAt: new Date().toISOString() },
+      patch: {
+        dispensedAt: now,
+        dispenseTokenConsumedAt: now,
+        dispensedByUserId: userId,
+        dispensedByPharmacyName: pharmacyName,
+      },
       actorId: userId,
       action: "prescription.dispensed",
-      details: { actorRole: "pharmacy" },
+      details: { actorRole: "pharmacy", tokenTail: tokenTail(token) },
+      tokenColumns: {
+        dispenseToken: prescriptions.dispenseToken,
+        dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
+      },
     });
 
     if (!updated) {
+      // WHERE failed. Differentiate via a fresh read so the client
+      // gets a useful error (the conditional UPDATE semantics make
+      // this the only way to learn *why* the guard didn't fire).
+      const [fresh] = await db
+        .select({
+          status: prescriptions.status,
+          dispenseToken: prescriptions.dispenseToken,
+          dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
+        })
+        .from(prescriptions)
+        .where(eq(prescriptions.id, id))
+        .limit(1);
+      if (!fresh) {
+        return c.json({ error: "Prescription not found" }, 404);
+      }
+      if (fresh.dispenseTokenConsumedAt) {
+        return c.json(
+          {
+            error: "token_consumed",
+            message:
+              "This prescription has already been dispensed. The QR can only be redeemed once.",
+            prescriptionId: id,
+            dispensedAt: fresh.dispenseTokenConsumedAt,
+          },
+          409
+        );
+      }
+      if (fresh.dispenseToken !== token) {
+        // Don't leak whether the row exists; the caller already
+        // passed the tenant + status checks above, so this is
+        // effectively "wrong token for this Rx".
+        return c.json(
+          {
+            error: "token_mismatch",
+            message:
+              "The dispense token doesn't match this prescription. Re-scan the QR.",
+            prescriptionId: id,
+          },
+          404
+        );
+      }
+      if (fresh.status !== "signed") {
+        return c.json(
+          {
+            error: `Cannot dispense a ${fresh.status} prescription`,
+            status: fresh.status,
+            prescriptionId: id,
+          },
+          409
+        );
+      }
+      // Fallback: shouldn't happen; the rows looked valid.
       return c.json(
         {
-          error: "Prescription is not in 'signed' state",
+          error: "Concurrent modification",
           prescriptionId: id,
         },
         409
@@ -333,26 +481,16 @@ router.post(
       });
     }
 
-    if (viaQrToken) {
-      await audit(db, {
-        userId,
-        action: "prescription.dispensed_via_qr",
-        resource: "prescription",
-        resourceId: id,
-        details: {
-          qrTokenTail: viaQrTokenTail,
-          hospitalId: tenant.hospitalId,
-          patientId: scoped.patientId,
-        },
-      });
-    }
-
     return c.json({
       ok: true,
       prescriptionId: id,
       status: "dispensed",
-      dispensedAt: updated.dispensedAt ?? null,
-      viaQr: Boolean(viaQrToken),
+      dispensedAt: updated.dispensedAt ?? now,
+      dispensedBy: {
+        pharmacyName:
+          updated.dispensedByPharmacyName ?? pharmacyName,
+        userId: updated.dispensedByUserId ?? userId,
+      },
     });
   }
 );

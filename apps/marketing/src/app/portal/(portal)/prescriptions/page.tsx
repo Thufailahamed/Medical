@@ -36,6 +36,11 @@ interface RxRow {
   status: string;
   patient: { id: string; name: string } | null;
   medicineCount: number;
+  // Migration 0059: single-use dispense token. Surfaced for the row
+  // so the dispense action (when called from the doctor list) has the
+  // token to forward to /doctor/prescriptions/:id/dispense. NULL on
+  // legacy signed Rx → RxActions disables the button.
+  dispenseToken: string | null;
 }
 
 interface PatientRow {
@@ -211,7 +216,13 @@ export default function PrescriptionsListPage() {
                 </Link>
 
                 <div className="flex items-center gap-3 shrink-0">
-                  <RxActions id={r.id} status={r.status} hideEdit compact />
+                  <RxActions
+                    id={r.id}
+                    status={r.status}
+                    hideEdit
+                    compact
+                    dispenseToken={r.dispenseToken}
+                  />
                   <Link
                     href={`/portal/prescriptions/${r.id}`}
                     className="portal-btn portal-btn-ghost portal-btn-sm"

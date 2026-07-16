@@ -41,6 +41,13 @@ export interface PrescriptionDetail {
   status: string;
   signedAt: string | null;
   signedPayloadHash: string | null;
+  // Migration 0059: single-use redemption token. The doctor's
+  // detail-page Dispense action uses this on `x-dispense-token`.
+  // NULL on legacy signed Rx → button is disabled.
+  dispenseToken: string | null;
+  dispenseTokenConsumedAt: string | null;
+  dispensedAt: string | null;
+  cancelledAt: string | null;
   doctorName: string;
   doctorSpecialization: string;
   doctorSlmcNo: string | null;
@@ -115,13 +122,29 @@ export function useDoctorRxTemplates() {
 // ─── Mutations ──────────────────────────────────────────
 
 /** Sign a draft prescription. Atomic; the server flips status
- *  draft → signed and writes a signature row. */
+ *  draft → signed, writes a signature row, and mints a single-use
+ *  `dispenseToken` (migration 0059). The token comes back in the
+ *  response — components that want to dispense from the same row
+ *  (e.g. doctor's own /:id/dispense legacy flow) should pass it into
+ *  `useDispensePrescription({ id, dispenseToken })`. */
 export function useSignPrescription() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (vars: { id: string; headers?: Record<string, string> }) => {
       const { id, headers } = vars;
-      return api<{ prescriptionId: string; signedAt: string; payloadHash: string }>(
+      return api<{
+        prescriptionId: string;
+        signedAt: string;
+        payloadHash: string;
+        signatureId?: string;
+        signingKeyId?: string;
+        // Migration 0059: 32-byte base64url single-use redemption
+        // token. Embedded in the signed PDF's QR as `?t=...`. Always
+        // non-null on success for new Rx; legacy Rx signed before
+        // migration 0059 will land here with `dispenseToken: null`
+        // once the doctor's portal re-fetches the row.
+        dispenseToken: string | null;
+      }>(
         `/doctor/prescriptions/${id}/sign`,
         { method: "POST", json: {}, headers }
       );
@@ -150,18 +173,41 @@ export function useCancelPrescription() {
   });
 }
 
-/** Dispense a signed prescription. Returns 409 if it's not in
- *  `signed` state. Currently exposed for completeness; the pharmacy
- *  flow lives in a follow-up. */
+/** Dispense a signed prescription (doctor-side legacy path).
+ *  Returns 409 if it's not in `signed` state. The portal must supply
+ *  the single-use `dispenseToken` (from the row returned by GET
+ *  /doctor/prescriptions/:id, or from the /sign response on the same
+ *  session) — the server now requires `x-dispense-token` to enforce
+ *  the one-time-use guarantee regardless of which side dispenses.
+ *  Missing/empty token → 400 `dispense_token_required` (or
+ *  `dispense_token_missing` for legacy Rx). */
 export function useDispensePrescription() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) =>
-      api<{ ok: true; prescriptionId: string; status: string }>(
-        `/doctor/prescriptions/${id}/dispense`,
-        { method: "POST", json: {} }
-      ),
-    onSuccess: (_res, id) => {
+    mutationFn: async ({
+      id,
+      dispenseToken,
+    }: {
+      id: string;
+      dispenseToken: string | null | undefined;
+    }) => {
+      if (!dispenseToken) {
+        // Surface as a controlled error — the API would reject the
+        // request with 400 too, but the message here is friendlier.
+        throw new Error("Dispense token is required (re-issue if missing).");
+      }
+      return api<{
+        ok: true;
+        prescriptionId: string;
+        status: string;
+        dispensedAt: string;
+      }>(`/doctor/prescriptions/${id}/dispense`, {
+        method: "POST",
+        json: {},
+        headers: { "x-dispense-token": dispenseToken },
+      });
+    },
+    onSuccess: (_res, { id }) => {
       qc.invalidateQueries({ queryKey: ["prescription", id] });
       qc.invalidateQueries({ queryKey: ["doctor", "prescriptions"] });
     },
@@ -170,25 +216,39 @@ export function useDispensePrescription() {
 
 /** Pharmacy-side dispense. POSTs to /pharmacy/prescriptions/:id/dispense.
  *  Used by the pharmacy portal flow (`/portal/pharmacy`).
- *  Phase QR-Code Check-in & Dispensing: if the caller passes the
- *  originating QR token, the API audits a parallel
- *  `prescription.dispensed_via_qr` row. */
+ *  Migration 0059: requires the single-use `dispenseToken` on the
+ *  `x-dispense-token` header. The token comes from the row returned
+ *  by GET /pharmacy/prescriptions (list or detail). Missing token →
+ *  400; wrong token → 404; second call with the same token → 409
+ *  `token_consumed`. */
 export function usePharmacyDispense() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, viaQrToken }: { id: string; viaQrToken?: string | null }) => {
-      const headers: Record<string, string> = {};
-      if (viaQrToken) headers["x-via-qr-token"] = viaQrToken;
+    mutationFn: async ({
+      id,
+      dispenseToken,
+    }: {
+      id: string;
+      dispenseToken: string | null | undefined;
+    }) => {
+      if (!dispenseToken) {
+        throw new Error(
+          "Dispense token missing — the prescription was signed before redemption tokens were required. Re-issue from the doctor portal.",
+        );
+      }
       return api<{
         ok: true;
         prescriptionId: string;
         status: string;
         dispensedAt: string;
-        viaQr?: boolean;
+        dispensedBy: {
+          pharmacyName: string | null;
+          userId: string | null;
+        };
       }>(`/pharmacy/prescriptions/${id}/dispense`, {
         method: "POST",
         json: {},
-        headers,
+        headers: { "x-dispense-token": dispenseToken },
       });
     },
     onSuccess: (_res, { id }) => {

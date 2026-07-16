@@ -7,6 +7,8 @@
  *   - `mode="doctor"` (default): the doctor-side actions.
  *       draft     → "Edit", "Sign"
  *       signed    → "Download PDF", "Cancel"
+ *                    (doctor dispense via the dedicated /:id page
+ *                    only — `useDispensePrescription` is wired there)
  *       cancelled → (read-only — nothing rendered)
  *       dispensed → (read-only — nothing rendered)
  *
@@ -23,6 +25,12 @@
  * Pharmacy "Reject" reuses the same modal UX as the doctor's
  * "Cancel" — modal with a reason textarea and a danger-styled
  * confirm button. The difference is the label + endpoint.
+ *
+ * Migration 0059: the dispense flow requires the row's `dispenseToken`
+ * (single-use redemption). Parents pass it on `dispenseToken`; the
+ * button disables and shows a "re-issue required" toast when it's
+ * missing — which surfaces the legacy-Rx case clearly instead of
+ * letting the API 400 silently.
  */
 
 import { useState } from "react";
@@ -42,7 +50,6 @@ import { useT } from "@/portal/i18n";
 import {
   useSignPrescription,
   useCancelPrescription,
-  useDispensePrescription,
   usePharmacyDispense,
   usePharmacyReject,
   downloadPrescriptionPdf,
@@ -64,12 +71,12 @@ interface Props {
    */
   mode?: "doctor" | "pharmacy";
   /**
-   * Phase QR-Code Check-in & Dispensing: when the dispense originated
-   * from a scanned patient QR, the originating token is forwarded to
-   * the API via the `x-via-qr-token` header so the audit chain captures
-   * `prescription.dispensed_via_qr`. Omit for normal pharmacy flow.
+   * Migration 0059: the single-use redemption token minted at sign
+   * time. Required for the dispense mutation — without it the API
+   * returns 400. NULL on legacy signed Rx (pre-0059) renders the
+   * dispense button disabled with a "re-issue required" copy.
    */
-  viaQrToken?: string | null;
+  dispenseToken?: string | null;
 }
 
 export function RxActions({
@@ -79,12 +86,11 @@ export function RxActions({
   compact,
   onEdit,
   mode = "doctor",
-  viaQrToken = null,
+  dispenseToken = null,
 }: Props) {
   const t = useT();
   const signMutation = useSignPrescription();
   const cancelMutation = useCancelPrescription();
-  const doctorDispenseMutation = useDispensePrescription();
   const pharmacyDispenseMutation = usePharmacyDispense();
   const pharmacyRejectMutation = usePharmacyReject();
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -94,6 +100,7 @@ export function RxActions({
   const isDraft = status === "draft";
   const isSigned = status === "signed";
   const isPharmacy = mode === "pharmacy";
+  const hasToken = Boolean(dispenseToken);
 
   // Pharmacy never shows draft/cancelled/dispensed actions; only
   // signed. Doctors keep the full surface.
@@ -138,7 +145,7 @@ export function RxActions({
     try {
       await pharmacyDispenseMutation.mutateAsync({
         id,
-        viaQrToken: viaQrToken ?? null,
+        dispenseToken,
       });
       toast.success(t("pharmacy.detail.dispenseSuccess"), `#${id.slice(0, 8)}`);
     } catch (err: any) {
@@ -235,6 +242,12 @@ export function RxActions({
             variant="primary"
             leftIcon={<CheckCircle2 size={12} />}
             loading={pharmacyDispenseMutation.isPending}
+            disabled={!hasToken}
+            title={
+              hasToken
+                ? undefined
+                : t("pharmacy.actions.missingTokenTitle")
+            }
             onClick={handlePharmacyDispense}
           >
             {t("pharmacy.actions.dispense")}

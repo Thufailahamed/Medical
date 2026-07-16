@@ -497,7 +497,9 @@
       "reject": "Reject",
       "dispensed": "Prescription dispensed",
       "rejected": "Prescription rejected",
-      "dispenseHint": "Confirm medications match the prescription before dispensing."
+      "dispenseHint": "Confirm medications match the prescription before dispensing.",
+      "missingTokenTitle": "Dispense token missing — re-issue from the doctor portal.",
+      "missingTokenHint": "This prescription was signed before single-use redemption was required. Ask the doctor to re-issue it before dispensing."
     },
     "reject": {
       "confirmTitle": "Reject prescription?",
