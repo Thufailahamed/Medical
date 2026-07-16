@@ -24,9 +24,9 @@ export function TimeSlots({ slots, value, onChange, columns = 4 }: Props) {
 
   return (
     <View style={[styles.grid, { gap: spacing.sm }]}>
-      {slots.map((slot) => (
+      {slots.map((slot, index) => (
         <TimeSlotButton
-          key={slot.value}
+          key={`${slot.value}-${index}`}
           slot={slot}
           selected={value === slot.value}
           onPress={() => onChange(slot.value)}

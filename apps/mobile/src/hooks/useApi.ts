@@ -1656,6 +1656,10 @@ export function useDoctorSearch(opts: {
   // doctors who have opted in to video consultations. Mirrors the
   // `?telemedicine=1` query param on GET /doctor/search.
   telemedicine?: boolean;
+  // Round 7: gate the network call when the patient hasn't narrowed
+  // the list yet (e.g. landing on the "specialty picker" view). Saves
+  // a wasted request when no filter is active.
+  enabled?: boolean;
 }) {
   const params = new URLSearchParams();
   if (opts.query) params.set("query", opts.query);
@@ -1667,13 +1671,17 @@ export function useDoctorSearch(opts: {
     queryKey: ["doctors", "search", params.toString()],
     queryFn: () =>
       api<{ doctors: any[] }>(`/doctor/search?${params.toString()}`),
+    enabled: opts.enabled !== false,
   });
 }
 
 export function useSpecialties() {
   return useQuery({
     queryKey: ["doctors", "specialties"],
-    queryFn: () => api<{ specialties: string[] }>("/doctor/specialties"),
+    queryFn: () =>
+      api<{ specialties: Array<{ name: string; count: number }> }>(
+        "/doctor/specialties"
+      ),
     staleTime: 5 * 60 * 1000,
   });
 }

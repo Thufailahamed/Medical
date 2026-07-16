@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -173,7 +173,15 @@ export default function RegisterScreen() {
   const { data: hospitalsData, isLoading: hospitalsLoading } = useHospitals(
     role === "doctor" ? debouncedHospitalQuery : ""
   );
-  const specialties: string[] = specialtiesData?.specialties || [];
+  const specialties = useMemo<string[]>(() => {
+    const raw = specialtiesData?.specialties || [];
+    return raw.map((s: any) => {
+      if (typeof s === "object" && s !== null) {
+        return s.name || "";
+      }
+      return String(s || "");
+    });
+  }, [specialtiesData]);
   const hospitals: any[] = hospitalsData?.hospitals || [];
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);

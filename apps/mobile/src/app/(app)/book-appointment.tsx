@@ -22,12 +22,20 @@ import {
   AlertCircle,
   Video,
   User,
+  Info,
+  Heart,
+  Brain,
+  Baby,
+  Bone,
+  Eye,
+  Activity,
 } from "lucide-react-native";
 import {
   useBookAppointment,
   useDoctorSearch,
   useSpecialties,
   useDoctorAvailability,
+  useDoctor,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -53,6 +61,19 @@ import {
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { runPayHereCheckout } from "@/lib/payhere";
+
+function getSpecialtyIcon(name: string) {
+  const norm = name.trim().toLowerCase();
+  if (norm.includes("cardio")) return Heart;
+  if (norm.includes("neuro") || norm.includes("psych") || norm.includes("mental")) return Brain;
+  if (norm.includes("pediatr") || norm.includes("child") || norm.includes("baby")) return Baby;
+  if (norm.includes("ortho") || norm.includes("bone") || norm.includes("joint")) return Bone;
+  if (norm.includes("ophthalm") || norm.includes("eye") || norm.includes("vision")) return Eye;
+  if (norm.includes("derm") || norm.includes("skin")) return Sparkles;
+  if (norm.includes("emerg") || norm.includes("urgent")) return AlertCircle;
+  if (norm.includes("general") || norm.includes("practice") || norm.includes("physician") || norm.includes("family")) return Stethoscope;
+  return Activity;
+}
 
 const TIME_SLOTS = [
   "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
@@ -98,19 +119,67 @@ export default function BookAppointmentScreen() {
   // the `?telemedicine=1` server-side filter and is read by the
   // useDoctorSearch hook.
   const [telemedicineOnly, setTelemedicineOnly] = useState(false);
+  // Doctor Booking (Round 7): step 1 view mode. `specialties` is the
+  // default landing — patients who don't know which doctor they want
+  // see a category grid first. Tapping a specialty drills into `doctors`.
+  // Search input narrows the current view (specialty names in the grid,
+  // doctor names in the filtered list) without losing the patient's place.
+  type Step1View = "specialties" | "doctors";
+  const [step1View, setStep1View] = useState<Step1View>("specialties");
   const [policyOpen, setPolicyOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
 
   const { data: specialtiesData } = useSpecialties();
+  // Round 7: skip the doctor search network call when the patient is
+  // staring at the specialty picker and hasn't typed anything or picked
+  // a category yet. The query becomes enabled once any narrowing input
+  // is present — query text, selected specialty, or telemedicine toggle.
+  const doctorSearchEnabled =
+    !!debouncedQuery.trim() || !!specialtyFilter || !!telemedicineOnly;
   const { data: doctorsData, isLoading: doctorsLoading, isError, refetch } = useDoctorSearch({
     query: debouncedQuery || undefined,
     specialization: specialtyFilter || undefined,
     telemedicine: telemedicineOnly || undefined,
+    enabled: doctorSearchEnabled,
   });
 
   const doctors: any[] = doctorsData?.doctors || [];
-  const specialties: string[] = specialtiesData?.specialties || [];
+  const specialties = useMemo<Array<{ name: string; count: number }>>(() => {
+    const raw = specialtiesData?.specialties || [];
+    return raw.map((s: any) => {
+      if (typeof s === "string") {
+        return { name: s, count: 0 };
+      }
+      return {
+        name: s?.name || "",
+        count: Number(s?.count) || 0,
+      };
+    });
+  }, [specialtiesData]);
+
+  // Filter specialty cards by current search query (case-insensitive).
+  // Empty query shows the full grid.
+  const filteredSpecialties = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return specialties;
+    return specialties.filter((s) => s.name.toLowerCase().includes(q));
+  }, [specialties, debouncedQuery]);
+
+  // Filter doctor rows in the doctors view by the typed query. The API
+  // already filters by `specialization` server-side; we narrow further
+  // client-side so the UI is responsive within the same debounce window.
+  // Server-side filter still wins for big lists — client-side only adds
+  // a small refinement.
+  const filteredDoctors = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return doctors;
+    return doctors.filter((d) => {
+      const name = (d.name || "").toLowerCase();
+      const spec = (d.specialization || "").toLowerCase();
+      return name.includes(q) || spec.includes(q);
+    });
+  }, [doctors, debouncedQuery]);
 
   const schema = useMemo(() => buildSchema(t), [t]);
 
@@ -128,19 +197,28 @@ export default function BookAppointmentScreen() {
   });
 
   const values = watch();
-  const selectedDoctor = doctors.find((d) => d.doctorId === values.doctorId);
+  // Resolve the selected doctor from the current search list first (instant,
+  // no refetch). If the patient picked a doctor and then changed filters
+  // (e.g. flipped telemedicine off), the doctor won't be in `doctors` —
+  // fall back to a dedicated detail query so the summary card stays
+  // populated across the booking flow.
+  const listDoctor = doctors.find((d) => d.doctorId === values.doctorId);
+  const { data: detailData } = useDoctor(values.doctorId);
+  const selectedDoctor = listDoctor || detailData?.doctor;
 
   // Doctor Booking (Round 6): when the doctor detail screen pushes back
   // with prefillDoctorId, seed the form + advance to step 2 so the
   // patient lands on the date picker. We use setValue (not reset)
   // because react-hook-form's reset would clobber user input on the
-  // back-navigation re-mount.
+  // back-navigation re-mount. If the doctor lacks a hospitalId in the
+  // payload, leave the form's hospitalId empty — the API falls back to
+  // the doctor's hospitalId column at booking time.
   useEffect(() => {
     if (params.prefillDoctorId) {
       setValue("doctorId", params.prefillDoctorId, { shouldValidate: true });
-      if (params.prefillHospitalId) {
-        setValue("hospitalId", params.prefillHospitalId, { shouldValidate: true });
-      }
+      setValue("hospitalId", params.prefillHospitalId || "", {
+        shouldValidate: true,
+      });
       setStep(2);
       // Clear the param so a hot reload / re-mount doesn't loop back
       // to step 2 unexpectedly.
@@ -162,6 +240,15 @@ export default function BookAppointmentScreen() {
       setValue("mode", "in_person", { shouldValidate: false });
     }
   }, [values.mode, selectedDoctor, setValue]);
+
+  // Doctor Booking: automatically switch step 1 view when search query is entered
+  useEffect(() => {
+    if (query.trim().length > 0) {
+      setStep1View("doctors");
+    } else if (!specialtyFilter) {
+      setStep1View("specialties");
+    }
+  }, [query, specialtyFilter]);
 
   const dateStr = values.date ? values.date.toISOString().slice(0, 10) : "";
   const { data: availabilityData } = useDoctorAvailability(
@@ -277,10 +364,25 @@ export default function BookAppointmentScreen() {
           <View style={{ gap: spacing.md }}>
             <View style={{ gap: spacing.xs }}>
               <Text style={[typography.title.md, { color: colors.text }]}>
-                {t("bookAppointment.step1Title")}
+                {step1View === "doctors" && specialtyFilter
+                  ? t("bookAppointment.step1DoctorsTitle", {
+                      specialty: specialtyFilter,
+                    })
+                  : t(
+                      "bookAppointment.step1SpecialtiesTitle",
+                      "Choose a specialty"
+                    )}
               </Text>
               <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                {t("bookAppointment.step1Subtitle")}
+                {step1View === "doctors"
+                  ? t(
+                      "bookAppointment.step1DoctorsSubtitle",
+                      "Tap a doctor to pick a time slot"
+                    )
+                  : t(
+                      "bookAppointment.step1SpecialtiesSubtitle",
+                      "Browse doctors by what they treat. Tap a category to see who is available."
+                    )}
               </Text>
             </View>
 
@@ -293,178 +395,217 @@ export default function BookAppointmentScreen() {
               autoCapitalize="none"
             />
 
-            {/* Specialty chips + telemedicine toggle */}
-            {specialties.length > 0 ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: spacing.xs,
-                }}
-              >
-                <Pill
-                  label={t("bookAppointment.specialtyAll")}
-                  tone={specialtyFilter === null ? "primary" : "neutral"}
-                  onPress={() => setSpecialtyFilter(null)}
+            {/* SPECIALTIES GRID — default step 1 view */}
+            {step1View === "specialties" ? (
+              filteredSpecialties.length === 0 ? (
+                <EmptyState
+                  icon={Stethoscope}
+                  title={t("bookAppointment.emptyTitle")}
+                  message={t("bookAppointment.emptyBodyEmpty")}
+                  tone="neutral"
                 />
-                {/* Doctor Booking (Round 6): "Online consultation" filter
-                    chip. Toggling adds telemedicine=1 to the search
-                    query, narrowing the list to doctors who offer video.
-                    Independent from the specialty filter so a patient can
-                    combine "Cardiology" + "Online only". */}
-                <Pill
-                  label={t("bookAppointment.telemedicineToggle")}
-                  tone={telemedicineOnly ? "primary" : "neutral"}
-                  onPress={() => setTelemedicineOnly((v) => !v)}
-                  icon={Video}
-                />
-                {specialties.map((s) => (
-                  <Pill
-                    key={s}
-                    label={s}
-                    tone={specialtyFilter === s ? "primary" : "neutral"}
-                    onPress={() =>
-                      setSpecialtyFilter(specialtyFilter === s ? null : s)
-                    }
-                  />
-                ))}
-              </View>
+              ) : (
+                <View
+                  style={{
+                    flexDirection: "column",
+                    gap: spacing.sm,
+                  }}
+                >
+                  {filteredSpecialties.map((s, i) => (
+                    <Pressable
+                      key={`${s.name}-${i}`}
+                      onPress={() => {
+                        setSpecialtyFilter(s.name);
+                        setStep1View("doctors");
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(
+                        "bookAppointment.specialtyA11y",
+                        {
+                          specialty: s.name,
+                          count: s.count,
+                        }
+                      )}
+                      testID={`specialty-${s.name}`}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        padding: spacing.md,
+                        borderRadius: 16,
+                        backgroundColor: colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        gap: spacing.md,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 12,
+                          backgroundColor: colors.primarySoft,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {(() => {
+                          const IconComponent = getSpecialtyIcon(s.name);
+                          return (
+                            <IconComponent
+                              size={22}
+                              color={colors.primary}
+                              strokeWidth={2.2}
+                            />
+                          );
+                        })()}
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text
+                          style={[
+                            typography.title.sm,
+                            { color: colors.text, fontWeight: "700" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {s.name}
+                        </Text>
+                        <Text
+                          style={[
+                            typography.caption,
+                            { color: colors.textMuted },
+                          ]}
+                        >
+                          {s.count > 0
+                            ? t("bookAppointment.specialtyCount", {
+                                count: s.count,
+                              })
+                            : t("bookAppointment.tapToChoose", "Tap to browse")}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: colors.surfaceMuted,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <ChevronRight
+                          size={16}
+                          color={colors.textMuted}
+                          strokeWidth={2.5}
+                        />
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              )
             ) : null}
 
-            {doctorsLoading ? (
-              <View style={{ gap: spacing.sm }}>
-                <Skeleton height={84} radius={16} />
-                <Skeleton height={84} radius={16} />
-                <Skeleton height={84} radius={16} />
-              </View>
-            ) : isError ? (
-              <ErrorState
-                title={t("recordDetail.errorTitle", "Couldn't load doctors")}
-                message={t("recordDetail.errorBody", "Check your connection and try again.")}
-                actionLabel={t("common.retry")}
-                onAction={() => refetch()}
-              />
-            ) : doctors.length === 0 ? (
-              <EmptyState
-                icon={Stethoscope}
-                title={t("bookAppointment.emptyTitle")}
-                message={
-                  query || specialtyFilter
-                    ? t("bookAppointment.emptyBodyFiltered")
-                    : t("bookAppointment.emptyBodyEmpty")
-                }
-                tone="neutral"
-              />
-            ) : (
-              <View style={{ gap: spacing.sm }}>
-                {doctors.map((d) => {
-                  const selected = values.doctorId === d.doctorId;
-                  const ratingStr = d.rating
-                    ? t("bookAppointment.rating", { rating: d.rating.toFixed(1) })
-                    : "";
-                  const feeStr =
-                    d.consultationFee != null
-                      ? t("bookAppointment.lkrFee", {
-                          fee: d.consultationFee,
-                        })
-                      : "";
-                  const expStr = t("bookAppointment.experience", {
-                    years: d.experience || 0,
-                  });
-                  const context =
-                    ratingStr && feeStr
-                      ? t("bookAppointment.contextRich", {
-                          rating: d.rating.toFixed(1),
-                          fee: d.consultationFee,
-                          years: d.experience || 0,
-                        })
-                      : feeStr
-                      ? t("bookAppointment.contextFee", {
-                          fee: d.consultationFee,
-                          years: d.experience || 0,
-                        })
-                      : t("bookAppointment.tapToChoose");
-                  return (
-                    <NextActionCard
-                      key={d.doctorId}
-                      subject={d.name || t("bookAppointment.doctorFallback")}
-                      verb={d.specialization || ""}
-                      context={context}
-                      icon={Stethoscope}
-                      iconTone="primary"
-                      meta={
-                        d.slmcVerifiedAt || d.responseTime || d.telemedicineEnabled ? (
-                          <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-                            {d.slmcVerifiedAt ? (
-                              <VerifiedBadge
-                                verified={!!d.slmcVerifiedAt}
-                                regNo={d.slmcRegistrationNo}
-                              />
-                            ) : null}
-                            {d.telemedicineEnabled ? (
-                              <Pill tone="success" icon={Video} testID="card-online">
-                                {t("bookAppointment.telemedicineAvailable")}
-                              </Pill>
-                            ) : null}
-                            {d.responseTime === "fast" ? (
-                              <Pill tone="success" testID="rt-fast">
-                                {t("bookAppointment.responseFast")}
-                              </Pill>
-                            ) : null}
-                            {d.responseTime === "quick" ? (
-                              <Pill tone="info" testID="rt-quick">
-                                {t("bookAppointment.responseQuick")}
-                              </Pill>
-                            ) : null}
-                            {d.responseTime === "normal" ? (
-                              <Pill tone="muted" testID="rt-normal">
-                                {t("bookAppointment.responseNormal")}
-                              </Pill>
-                            ) : null}
-                          </View>
-                        ) : undefined
-                      }
-                      trailing={
-                        selected ? (
-                          <View
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 999,
-                              alignItems: "center",
-                              justifyContent: "center",
-                              backgroundColor: colors.primary,
-                            }}
-                          >
-                            <Check
-                              size={18}
-                              color={colors.onPrimary}
-                              strokeWidth={3}
-                            />
-                          </View>
-                        ) : undefined
-                      }
-                      onPress={() => {
-                        // Doctor Booking (Round 6): tap pushes to the
-                        // doctor detail screen so the patient can read
-                        // bio + SLMC + telemedicine availability before
-                        // committing. The detail screen's "Choose this
-                        // doctor" CTA pops back here with prefill params
-                        // and advances the stepper.
-                        router.push({
-                          pathname: "/(app)/doctor/[id]",
-                          params: { id: d.doctorId },
-                        });
-                      }}
+            {/* DOCTORS VIEW — drilled into from the specialties grid */}
+            {step1View === "doctors" ? (
+              <View style={{ gap: spacing.md }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: spacing.xs,
+                    alignItems: "center",
+                  }}
+                >
+                  <Pill
+                    label={t(
+                      "bookAppointment.changeSpecialty",
+                      "Change specialty"
+                    )}
+                    tone="neutral"
+                    icon={ChevronLeft}
+                    onPress={() => {
+                      setSpecialtyFilter(null);
+                      setStep1View("specialties");
+                    }}
+                    testID="change-specialty"
+                  />
+                  {specialtyFilter ? (
+                    <Pill
+                      label={specialtyFilter}
+                      tone="primary"
+                      testID="active-specialty"
                     />
-                  );
-                })}
+                  ) : null}
+                  <Pill
+                    label={t("bookAppointment.telemedicineToggle")}
+                    tone={telemedicineOnly ? "primary" : "neutral"}
+                    onPress={() => setTelemedicineOnly((v) => !v)}
+                    icon={Video}
+                    testID="telemedicine-toggle"
+                  />
+                </View>
+
+                {doctorsLoading ? (
+                  <View style={{ gap: spacing.sm }}>
+                    <Skeleton height={84} radius={16} />
+                    <Skeleton height={84} radius={16} />
+                    <Skeleton height={84} radius={16} />
+                  </View>
+                ) : isError ? (
+                  <ErrorState
+                    title={t(
+                      "recordDetail.errorTitle",
+                      "Couldn't load doctors"
+                    )}
+                    message={t(
+                      "recordDetail.errorBody",
+                      "Check your connection and try again."
+                    )}
+                    actionLabel={t("common.retry")}
+                    onAction={() => refetch()}
+                  />
+                ) : filteredDoctors.length === 0 ? (
+                  <EmptyState
+                    icon={Stethoscope}
+                    title={t("bookAppointment.emptyTitle")}
+                    message={t("bookAppointment.emptyBodyFiltered")}
+                    tone="neutral"
+                  />
+                ) : (
+                  <View style={{ gap: spacing.sm }}>
+                    {filteredDoctors.map((d, i) => (
+                      <DoctorRow
+                        key={`${d.doctorId}-${i}`}
+                        doctor={d}
+                        selected={values.doctorId === d.doctorId}
+                        t={t}
+                        colors={colors}
+                        typography={typography}
+                        spacing={spacing}
+                        onPick={() => {
+                          setValue("doctorId", d.doctorId, {
+                            shouldValidate: true,
+                          });
+                          setValue("hospitalId", d.hospitalId || "", {
+                            shouldValidate: true,
+                          });
+                          setStep(2);
+                        }}
+                      />
+                    ))}
+                  </View>
+                )}
+
+                {errors.doctorId ? (
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.danger },
+                    ]}
+                  >
+                    {errors.doctorId.message}
+                  </Text>
+                ) : null}
               </View>
-            )}
-            {errors.doctorId ? (
-              <Text style={[typography.caption, { color: colors.danger }]}>
-                {errors.doctorId.message}
-              </Text>
             ) : null}
           </View>
         ) : null}
@@ -503,6 +644,35 @@ export default function BookAppointmentScreen() {
                       {selectedDoctor.specialization}
                     </Text>
                   </View>
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(app)/doctor/[id]",
+                        params: { id: values.doctorId },
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={t(
+                      "bookAppointment.viewDetailsA11y",
+                      "View full doctor profile"
+                    )}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: spacing.xs,
+                      borderRadius: 999,
+                      backgroundColor: colors.surface,
+                    }}
+                  >
+                    <Info size={14} color={colors.primary} strokeWidth={2.2} />
+                    <Text
+                      style={[typography.caption, { color: colors.primary }]}
+                    >
+                      {t("bookAppointment.viewDetails", "View details")}
+                    </Text>
+                  </Pressable>
                 </View>
               </Card>
             ) : null}
@@ -534,9 +704,9 @@ export default function BookAppointmentScreen() {
                   flexWrap: "wrap",
                 }}
               >
-                {PERIOD_VALUES.map((p) => (
+                {PERIOD_VALUES.map((p, i) => (
                   <FilterPill
-                    key={p}
+                    key={`${p}-${i}`}
                     label={t(`bookAppointment.periods.${p}`)}
                     active={period === p}
                     onPress={() => setPeriod(p)}
@@ -987,5 +1157,110 @@ function ModeOptionCard({
         </View>
       ) : null}
     </Pressable>
+  );
+}
+
+// Doctor row used in step 1's "doctors" and "search" views. Extracted
+// from the main component so the new 3-view structure doesn't duplicate
+// the NextActionCard wiring. Each row quick-selects on tap and advances
+// the stepper to step 2; full profile review lives on step 2's summary
+// card or the dedicated /doctor/[id] screen.
+function DoctorRow({
+  doctor: d,
+  selected,
+  t,
+  colors,
+  typography,
+  spacing,
+  onPick,
+}: {
+  doctor: any;
+  selected: boolean;
+  t: (k: string, opts?: any) => string;
+  colors: any;
+  typography: any;
+  spacing: any;
+  onPick: () => void;
+}) {
+  const ratingStr = d.rating
+    ? t("bookAppointment.rating", { rating: d.rating.toFixed(1) })
+    : "";
+  const feeStr =
+    d.consultationFee != null
+      ? t("bookAppointment.lkrFee", { fee: d.consultationFee })
+      : "";
+  const context =
+    ratingStr && feeStr
+      ? t("bookAppointment.contextRich", {
+          rating: d.rating.toFixed(1),
+          fee: d.consultationFee,
+          years: d.experience || 0,
+        })
+      : feeStr
+      ? t("bookAppointment.contextFee", {
+          fee: d.consultationFee,
+          years: d.experience || 0,
+        })
+      : t("bookAppointment.tapToChoose");
+
+  return (
+    <NextActionCard
+      subject={d.name || t("bookAppointment.doctorFallback")}
+      verb={d.specialization || ""}
+      context={context}
+      icon={getSpecialtyIcon(d.specialization || "")}
+      iconTone="primary"
+      meta={
+        d.slmcVerifiedAt || d.responseTime || d.telemedicineEnabled ? (
+          <View
+            style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}
+          >
+            {d.slmcVerifiedAt ? (
+              <VerifiedBadge
+                verified={!!d.slmcVerifiedAt}
+                regNo={d.slmcRegistrationNo}
+              />
+            ) : null}
+            {d.telemedicineEnabled ? (
+              <Pill tone="success" icon={Video} testID="card-online">
+                {t("bookAppointment.telemedicineAvailable")}
+              </Pill>
+            ) : null}
+            {d.responseTime === "fast" ? (
+              <Pill tone="success" testID="rt-fast">
+                {t("bookAppointment.responseFast")}
+              </Pill>
+            ) : null}
+            {d.responseTime === "quick" ? (
+              <Pill tone="info" testID="rt-quick">
+                {t("bookAppointment.responseQuick")}
+              </Pill>
+            ) : null}
+            {d.responseTime === "normal" ? (
+              <Pill tone="muted" testID="rt-normal">
+                {t("bookAppointment.responseNormal")}
+              </Pill>
+            ) : null}
+          </View>
+        ) : undefined
+      }
+      trailing={
+        selected ? (
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 999,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.primary,
+            }}
+          >
+            <Check size={18} color={colors.onPrimary} strokeWidth={3} />
+          </View>
+        ) : undefined
+      }
+      onPress={onPick}
+    />
   );
 }

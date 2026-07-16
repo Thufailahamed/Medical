@@ -1098,15 +1098,29 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
 });
 
 // ─── List all distinct specializations ───────────────────
+// Round 6 (patient booking flow): returns each specialization with the
+// count of doctors affiliated so the mobile "specialty picker" view can
+// render e.g. "Neurology · 12 doctors". Counts ignore telemedicine /
+// hospital filters — patients picking a category don't want a count
+// that's already narrowed by an unrelated toggle.
 doctorRouter.get("/specialties", authMiddleware, async (c) => {
   const db = c.get("db");
   const rows = await db
-    .selectDistinct({ specialization: doctors.specialization })
-    .from(doctors);
+    .select({
+      specialization: doctors.specialization,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(doctors)
+    .groupBy(doctors.specialization);
+
   const specialties = rows
-    .map((r: any) => r.specialization)
-    .filter((s: string | null | undefined): s is string => !!s && s.trim().length > 0)
-    .sort((a, b) => a.localeCompare(b));
+    .map((r: any) => ({
+      name: r.specialization as string | null | undefined,
+      count: Number(r.count) || 0,
+    }))
+    .filter((r) => !!r.name && r.name.trim().length > 0)
+    .map((r) => ({ name: r.name as string, count: r.count }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   return c.json({ specialties });
 });
 

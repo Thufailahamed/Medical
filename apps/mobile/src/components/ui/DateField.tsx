@@ -105,15 +105,35 @@ export function DateField({
         </Text>
       </Pressable>
       {show ? (
-        <DateTimePicker
-          value={value ?? new Date()}
-          mode={mode}
-          onChange={handleChange}
-          minimumDate={minimumDate}
-          maximumDate={maximumDate}
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          themeVariant={undefined}
-        />
+        <View style={Platform.OS === "ios" ? styles.iosWrapper : null}>
+          {Platform.OS === "ios" && (
+            <View style={[styles.iosHeader, { borderBottomColor: colors.border }]}>
+              <Pressable
+                onPress={() => setShow(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Done"
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.7 : 1,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.xs,
+                })}
+              >
+                <Text style={[typography.title.sm, { color: colors.primary, fontWeight: "700" }]}>
+                  Done
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          <DateTimePicker
+            value={value ?? new Date()}
+            mode={mode}
+            onChange={handleChange}
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            themeVariant={undefined}
+          />
+        </View>
       ) : null}
       {error ? (
         <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text>
@@ -124,4 +144,20 @@ export function DateField({
   );
 }
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  iosWrapper: {
+    backgroundColor: "#F9F9FB",
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E6E4EA",
+    marginTop: 8,
+  },
+  iosHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+});
