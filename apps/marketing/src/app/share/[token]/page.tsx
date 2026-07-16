@@ -8,7 +8,14 @@
 // The backend returns 404 for unknown / non-record-share tokens and
 // 410 for expired / revoked links — we surface those verbatim.
 
-import { FileText } from "lucide-react";
+import {
+  FileText,
+  Stethoscope,
+  Pill as PillIcon,
+  ShieldCheck,
+  Download,
+  ScanLine,
+} from "lucide-react";
 
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
@@ -18,9 +25,6 @@ interface ShareBundle {
   label: string;
   expiresAt: string;
   generatedAt: string;
-  // Tier 1 records: `kind` discriminator. "record_bundle" → share-pack;
-  // omitted/legacy → "record_share". Server returns the literal kind
-  // string so we can branch the renderer.
   kind?: "record_share" | "prescription_share" | "record_bundle" | string;
   patient: {
     name?: string;
@@ -57,6 +61,25 @@ interface ShareBundle {
     doctorName: string | null;
     status: string;
   }>;
+  prescription?: {
+    id: string;
+    diagnosis: string | null;
+    notes: string | null;
+    date: string;
+    signedAt: string | null;
+    status: string;
+    signedPayloadHash: string | null;
+  };
+  doctor?: {
+    doctorId: string;
+    doctorUserId: string;
+    doctorName: string;
+    doctorSpecialization: string | null;
+    doctorSlmcNo: string | null;
+    doctorSlmcVerifiedAt: string | null;
+  };
+  pdfUrl?: string;
+  verifyUrl?: string;
 }
 
 async function fetchBundle(token: string) {
@@ -128,6 +151,149 @@ export default async function ShareViewerPage({
   // (no allergies/meds/appointments). Render a focused list with the
   // pack label prominently shown.
   const isPack = bundle.kind === "record_bundle";
+
+  if (bundle.kind === "prescription_share") {
+    const rx = bundle.prescription;
+    const doc = bundle.doctor;
+    const pat = bundle.patient;
+    
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
+    const pdfUrl = bundle.pdfUrl 
+      ? (bundle.pdfUrl.startsWith("http") ? bundle.pdfUrl : `${apiBase}${bundle.pdfUrl}`) 
+      : `/share/${token}/prescription.pdf`;
+    
+    return (
+      <main className="mx-auto max-w-2xl p-6 md:p-8 space-y-6">
+        <header className="space-y-2">
+          <p className="text-xs uppercase tracking-wider text-text-muted">
+            Shared Doctor Prescription
+          </p>
+          <h1 className="text-2xl font-bold text-text">
+            {pat?.name || "Patient"}
+          </h1>
+          <p className="text-xs text-text-muted">
+            Link expires on {expiresOn}
+          </p>
+        </header>
+
+        {/* Doctor and Clinic Card */}
+        <Card>
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-brand-soft rounded-2xl text-brand">
+              <Stethoscope size={22} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-text-soft">Prescribing Doctor</p>
+              <h2 className="text-lg font-bold text-text mt-0.5">{doc?.doctorName || "Doctor"}</h2>
+              <p className="text-sm text-text-soft">
+                {doc?.doctorSpecialization || "Medical Practitioner"}
+                {doc?.doctorSlmcNo ? ` · SLMC ${doc?.doctorSlmcNo}` : ""}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Diagnosis & Notes */}
+        {(rx?.diagnosis || rx?.notes) && (
+          <Card>
+            <h2 className="text-sm font-semibold text-text mb-2">Clinical Details</h2>
+            {rx?.diagnosis && (
+              <div className="mb-3">
+                <span className="text-[11px] uppercase tracking-wider text-text-muted font-bold block">Diagnosis</span>
+                <p className="text-sm text-text mt-0.5">{rx.diagnosis}</p>
+              </div>
+            )}
+            {rx?.notes && (
+              <div>
+                <span className="text-[11px] uppercase tracking-wider text-text-muted font-bold block">Notes</span>
+                <p className="text-sm text-text-soft mt-0.5">{rx.notes}</p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Medicines List */}
+        <Card padding={false}>
+          <div className="px-4 py-3 border-b border-border/50">
+            <h2 className="text-sm font-semibold text-text">
+              Prescribed Medicines
+              <span className="text-text-muted text-xs ml-2">
+                ({bundle.medicines?.length ?? 0})
+              </span>
+            </h2>
+          </div>
+          {!bundle.medicines || bundle.medicines.length === 0 ? (
+            <Empty
+              icon={<PillIcon size={20} />}
+              title="No medicines prescribed"
+              description="This prescription has no active medicine entries."
+            />
+          ) : (
+            <ul className="divide-y divide-border/50">
+              {bundle.medicines.map((m) => (
+                <li key={m.id} className="px-4 py-3 flex items-start gap-3">
+                  <div className="p-1.5 bg-primary/10 rounded-lg text-primary mt-0.5">
+                    <PillIcon size={14} className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-text">{m.name}</h3>
+                    <p className="text-xs text-text-soft mt-0.5">
+                      {[m.dosage, m.frequency, (m as any).timing].filter(Boolean).join(" · ") || "—"}
+                    </p>
+                    {(m as any).instructions && (
+                      <p className="text-[11px] text-text-muted mt-1">{(m as any).instructions}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        {/* Security / Signature Card */}
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-success-soft rounded-xl text-success">
+              <ShieldCheck size={20} className="text-success" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-text">Cryptographically Signed</h3>
+              <p className="text-xs text-text-soft mt-0.5">
+                Verifiably signed by doctor on {rx?.signedAt ? new Date(rx.signedAt).toLocaleDateString() : rx?.date}
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-4 flex flex-col sm:flex-row gap-2">
+            <a
+              href={pdfUrl}
+              download={`prescription-${rx?.id.slice(0, 8)}.pdf`}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold shadow-sm hover:bg-primary/90 transition-colors"
+            >
+              <Download size={14} />
+              Download Signed PDF
+            </a>
+            
+            {bundle.verifyUrl && (
+              <a
+                href={bundle.verifyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 px-4 py-2 border border-border bg-surface text-text rounded-xl text-sm font-semibold hover:bg-surface-2 transition-colors"
+              >
+                <ScanLine size={14} />
+                Verify Digital Signature
+              </a>
+            )}
+          </div>
+        </Card>
+
+        <footer className="text-xs text-text-muted text-center pt-4">
+          This prescription was signed electronically by {doc?.doctorName}. It is legally valid and binding under the Electronic Transactions Act.
+        </footer>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-2xl p-6 md:p-8 space-y-6">

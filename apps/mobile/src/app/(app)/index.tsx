@@ -59,10 +59,12 @@ import {
   useTodayDoses,
   useVitalsDerived,
   useVitalsSparkline,
+  useHealthSnapshot,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
 import { Sparkline } from "@/components/vitals";
+import { HealthSnapshotCard } from "@/components/records";
 import { VITAL_REGISTRY, type VitalType } from "@healthcare/shared/vitals";
 import {
   Screen,
@@ -120,6 +122,7 @@ export default function HomeScreen() {
   const { data: vaccineDue } = useVaccinationsDue();
   const { data: wellnessData, refetch: refetchWellness } = useWellness();
   const { data: todayDoses, refetch: refetchDoses } = useTodayDoses();
+  const { data: snapshotData, isLoading: snapshotLoading, refetch: refetchSnapshot } = useHealthSnapshot();
 
   const [fabOpen, setFabOpen] = useState(false);
 
@@ -131,7 +134,8 @@ export default function HomeScreen() {
       refetchUnread();
       refetchWellness();
       refetchDoses();
-    }, [refetchProfile, refetchMeds, refetchAppts, refetchUnread, refetchWellness, refetchDoses])
+      refetchSnapshot();
+    }, [refetchProfile, refetchMeds, refetchAppts, refetchUnread, refetchWellness, refetchDoses, refetchSnapshot])
   );
 
   useEffect(() => {
@@ -1179,6 +1183,15 @@ export default function HomeScreen() {
                   ))}
             </View>
           ) : null}
+
+          {/* Health Snapshot (Active Medicines & Vitals Trends) */}
+          <HealthSnapshotCard
+            snapshot={snapshotData as any}
+            loading={snapshotLoading}
+            onJumpToTrends={() => router.push("/(app)/records/trends")}
+            onJumpToAllergies={() => router.push("/(app)/records")}
+            onJumpToMeds={() => router.push("/(app)/vitals")}
+          />
 
           <View style={{ height: spacing.lg }} />
         </View>

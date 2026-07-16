@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import { View, Text, LayoutRectangle } from "react-native";
 import Svg, { Rect, Line, Path, Circle, Text as SvgText } from "react-native-svg";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -7,6 +7,7 @@ import Animated, {
   useAnimatedStyle,
   useDerivedValue,
   runOnJS,
+  useAnimatedReaction,
 } from "react-native-reanimated";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -154,6 +155,15 @@ export function VitalsChart({
     const idx = Math.round(relX * (points.length - 1));
     return Math.max(0, Math.min(points.length - 1, idx));
   });
+
+  const [activeIdx, setActiveIdx] = useState<number>(-1);
+
+  useAnimatedReaction(
+    () => nearestIdx.value,
+    (curr) => {
+      runOnJS(setActiveIdx)(curr);
+    }
+  );
 
   // Animated crosshair line style
   const crosshairStyle = useAnimatedStyle(() => {
@@ -466,7 +476,7 @@ export function VitalsChart({
           {/* Tooltip bubble */}
           <AnimatedTooltip
             tooltipStyle={tooltipStyle}
-            nearestIdx={nearestIdx}
+            activeIdx={activeIdx}
             points={points}
             isBP={isBP}
             showSecondary={showSecondary}
@@ -483,12 +493,11 @@ export function VitalsChart({
 }
 
 /**
- * Tooltip component that reads the nearest point data from reanimated
- * derived values and renders a styled bubble.
+ * Tooltip component that reads the nearest point data and renders a styled bubble.
  */
 function AnimatedTooltip({
   tooltipStyle,
-  nearestIdx,
+  activeIdx,
   points,
   isBP,
   showSecondary,
@@ -499,7 +508,7 @@ function AnimatedTooltip({
   t,
 }: {
   tooltipStyle: any;
-  nearestIdx: Animated.SharedValue<number>;
+  activeIdx: number;
   points: VitalsPoint[];
   isBP: boolean;
   showSecondary: boolean;
@@ -509,12 +518,7 @@ function AnimatedTooltip({
   radius: any;
   t: (key: string) => string;
 }) {
-  // We need to read the value outside of worklet for rendering.
-  // useAnimatedProps doesn't work for View children, so we use
-  // a JS-driven approach: the tooltip content is rendered from
-  // the current nearestIdx value, which updates on every frame.
-  const idx = nearestIdx.value;
-  const p = idx >= 0 && idx < points.length ? points[idx] : null;
+  const p = activeIdx >= 0 && activeIdx < points.length ? points[activeIdx] : null;
 
   if (!p) return null;
 

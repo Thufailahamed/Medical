@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text } from "react-native";
 import Svg, { Rect, Line, Path, Circle, Text as SvgText } from "react-native-svg";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -6,6 +6,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useDerivedValue,
+  runOnJS,
+  useAnimatedReaction,
 } from "react-native-reanimated";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -158,6 +160,15 @@ export function GlucoseChart({ points, stats, width, height = 240 }: Props) {
     return Math.max(0, Math.min(points.length - 1, idx));
   });
 
+  const [activeIdx, setActiveIdx] = useState<number>(-1);
+
+  useAnimatedReaction(
+    () => nearestIdx.value,
+    (curr) => {
+      runOnJS(setActiveIdx)(curr);
+    }
+  );
+
   const crosshairStyle = useAnimatedStyle(() => {
     if (isActive.value === 0 || nearestIdx.value < 0) return { opacity: 0 };
     const idx = nearestIdx.value;
@@ -166,6 +177,43 @@ export function GlucoseChart({ points, stats, width, height = 240 }: Props) {
         ? padding.left + (idx / (points.length - 1)) * innerW
         : padding.left + innerW / 2;
     return { opacity: isActive.value, transform: [{ translateX: xPos }] };
+  });
+
+  const tooltipStyle = useAnimatedStyle(() => {
+    if (isActive.value === 0 || nearestIdx.value < 0) {
+      return { opacity: 0 };
+    }
+    const idx = nearestIdx.value;
+    const xPos =
+      points.length > 1
+        ? padding.left + (idx / (points.length - 1)) * innerW
+        : padding.left + innerW / 2;
+    // Flip tooltip to left side if near right edge
+    const tooltipW = 140;
+    const offsetX = xPos > width - tooltipW - 20 ? xPos - tooltipW - 8 : xPos + 8;
+    return {
+      opacity: isActive.value,
+      transform: [{ translateX: offsetX }, { translateY: padding.top + 4 }],
+    };
+  });
+
+  const pointHighlightStyle = useAnimatedStyle(() => {
+    if (isActive.value === 0 || nearestIdx.value < 0) {
+      return { opacity: 0 };
+    }
+    const idx = nearestIdx.value;
+    if (idx < 0 || idx >= points.length) return { opacity: 0 };
+    const p = points[idx];
+    if (!p || !Number.isFinite(p.value)) return { opacity: 0 };
+    const xPos =
+      points.length > 1
+        ? padding.left + (idx / (points.length - 1)) * innerW
+        : padding.left + innerW / 2;
+    const yPos = yScale(p.value);
+    return {
+      opacity: isActive.value,
+      transform: [{ translateX: xPos - 6 }, { translateY: yPos - 6 }],
+    };
   });
 
   if (points.length === 0) {
@@ -381,6 +429,33 @@ export function GlucoseChart({ points, stats, width, height = 240 }: Props) {
               crosshairStyle,
             ]}
           />
+
+          {/* Highlighted point */}
+          <Animated.View
+            style={[
+              {
+                position: "absolute",
+                width: 12,
+                height: 12,
+                borderRadius: 6,
+                backgroundColor: colors.primary,
+                borderWidth: 2,
+                borderColor: colors.surface,
+              },
+              pointHighlightStyle,
+            ]}
+          />
+
+          {/* Tooltip bubble */}
+          <AnimatedTooltip
+            tooltipStyle={tooltipStyle}
+            activeIdx={activeIdx}
+            points={points}
+            colors={colors}
+            typography={typography}
+            spacing={spacing}
+            radius={radius}
+          />
         </View>
       </GestureDetector>
 
@@ -411,5 +486,82 @@ export function GlucoseChart({ points, stats, width, height = 240 }: Props) {
         ))}
       </View>
     </View>
+  );
+}
+
+function AnimatedTooltip({
+  tooltipStyle,
+  activeIdx,
+  points,
+  colors,
+  typography,
+  spacing,
+  radius,
+}: {
+  tooltipStyle: any;
+  activeIdx: number;
+  points: VitalsPoint[];
+  colors: any;
+  typography: any;
+  spacing: any;
+  radius: any;
+}) {
+  const p = activeIdx >= 0 && activeIdx < points.length ? points[activeIdx] : null;
+
+  if (!p) return null;
+
+  const d = new Date(p.t);
+  const dateStr = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  const val = Number.isFinite(p.value) ? Math.round(p.value) : "—";
+  const ctx = (p as any).context || null;
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          width: 140,
+          backgroundColor: colors.surface,
+          borderRadius: radius.md,
+          padding: spacing.sm,
+          borderWidth: 1,
+          borderColor: colors.border,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+        tooltipStyle,
+      ]}
+    >
+      <Text
+        style={[
+          typography.caption,
+          { color: colors.textMuted, fontWeight: "600", marginBottom: 2 },
+        ]}
+      >
+        {dateStr}
+      </Text>
+      <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+        {val}
+        <Text style={{ fontSize: 10, fontWeight: "400", color: colors.textMuted }}> mg/dL</Text>
+      </Text>
+      {ctx && CONTEXT_LABELS[ctx] ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: CONTEXT_COLORS[ctx] || CONTEXT_COLORS.random,
+            }}
+          />
+          <Text style={[typography.caption, { color: colors.textMuted, fontSize: 10 }]}>
+            {CONTEXT_LABELS[ctx]}
+          </Text>
+        </View>
+      ) : null}
+    </Animated.View>
   );
 }

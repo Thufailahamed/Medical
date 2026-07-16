@@ -333,6 +333,10 @@ export default function AppLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
+        name="records/trends"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
         name="inbox/[id]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />

@@ -664,6 +664,7 @@ export default function RecordsV2() {
   return (
     <Screen padded={false} tabBarOffset={false} bottomInset={false} edges={["top"]}>
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -755,21 +756,6 @@ export default function RecordsV2() {
           </View>
         </View>
 
-        {/* ─── Tier 1: Patient Health Snapshot (above hero, full-width) ─── */}
-        {tab !== "sharing" && (
-          <HealthSnapshotCard
-            snapshot={snapshot as any}
-            loading={snapshotLoading}
-            onJumpToTrends={() => router.push("/(app)/records/trends")}
-            onJumpToAllergies={() => {
-              // Snap tab to All + filter to allergy-tagged records. The
-              // hub already filters via selectedKinds — we just route
-              // back to the same screen and let the user pick.
-              setTab("all");
-            }}
-            onJumpToMeds={() => router.push("/(app)/vitals")}
-          />
-        )}
 
         {/* ─── Premium hero (gradient + glass mini-stats) ──────────────── */}
         {isInitialLoading ? (
