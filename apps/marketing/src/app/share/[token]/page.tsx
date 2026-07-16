@@ -18,8 +18,12 @@ interface ShareBundle {
   label: string;
   expiresAt: string;
   generatedAt: string;
+  // Tier 1 records: `kind` discriminator. "record_bundle" → share-pack;
+  // omitted/legacy → "record_share". Server returns the literal kind
+  // string so we can branch the renderer.
+  kind?: "record_share" | "prescription_share" | "record_bundle" | string;
   patient: {
-    name: string;
+    name?: string;
     dob: string | null;
     bloodGroup: string | null;
     sex: string | null;
@@ -40,11 +44,12 @@ interface ShareBundle {
   records: Array<{
     id: string;
     title: string;
-    recordType: string;
+    recordType?: string;
     kind: string | null;
     date: string | null;
     diagnosis: string | null;
     summary: string | null;
+    tags?: string[] | null;
   }>;
   appointments: Array<{
     id: string;
@@ -117,18 +122,25 @@ export default async function ShareViewerPage({
   const bundle = body as ShareBundle;
   const expiresOn = new Date(bundle.expiresAt).toLocaleString();
   const recordCount = bundle.records.length;
-  const medCount = bundle.medicines.length;
-  const allergyCount = bundle.allergies.length;
+  const medCount = bundle.medicines?.length ?? 0;
+  const allergyCount = bundle.allergies?.length ?? 0;
+  // Tier 1 records: share-pack. The bundle has only the picked records
+  // (no allergies/meds/appointments). Render a focused list with the
+  // pack label prominently shown.
+  const isPack = bundle.kind === "record_bundle";
 
   return (
     <main className="mx-auto max-w-2xl p-6 md:p-8 space-y-6">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wider text-text-muted">
-          Shared health record
+          {isPack ? "Shared record pack" : "Shared health record"}
         </p>
         <h1 className="text-2xl font-bold text-text">
           {bundle.patient?.name || "Patient"}
         </h1>
+        {isPack && bundle.label && (
+          <p className="text-sm text-text-soft">Pack: {bundle.label}</p>
+        )}
         {bundle.familyMember ? (
           <p className="text-sm text-text-soft">
             Records for family member: {bundle.familyMember.name}
@@ -143,7 +155,13 @@ export default async function ShareViewerPage({
         </p>
       </header>
 
-      {bundle.patient ? (
+      {/* Tier 1 records: for record_bundle skip the legacy profile /
+          allergies / medicines sections — those are not part of the
+          pack payload. The records list below carries the entire
+          bundle. */}
+      {isPack ? null : (
+        <>
+          {bundle.patient ? (
         <Card>
           <h2 className="text-sm font-semibold text-text">Profile</h2>
           <dl className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
@@ -194,11 +212,13 @@ export default async function ShareViewerPage({
           </ul>
         </Card>
       ) : null}
+        </>
+      )}
 
       <Card padding={false}>
         <div className="px-4 py-3 border-b border-border/50">
           <h2 className="text-sm font-semibold text-text">
-            Recent records
+            {isPack ? "Picked records" : "Recent records"}
             <span className="text-text-muted text-xs ml-2">
               ({recordCount})
             </span>
@@ -207,8 +227,16 @@ export default async function ShareViewerPage({
         {recordCount === 0 ? (
           <Empty
             icon={<FileText size={20} />}
-            title="No records in the last 6 months"
-            description="Ask the patient to share a longer window if you need older entries."
+            title={
+              isPack
+                ? "No records in this pack"
+                : "No records in the last 6 months"
+            }
+            description={
+              isPack
+                ? "The patient shared an empty pack."
+                : "Ask the patient to share a longer window if you need older entries."
+            }
           />
         ) : (
           <ul className="divide-y divide-border/50">

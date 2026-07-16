@@ -94,3 +94,7 @@ export async function patchJson(app: Hono<AppEnvironment>, path: string, body: a
 export async function getJson(app: Hono<AppEnvironment>, path: string) {
   return app.request(path, { method: "GET" });
 }
+
+export async function deleteJson(app: Hono<AppEnvironment>, path: string) {
+  return app.request(path, { method: "DELETE" });
+}

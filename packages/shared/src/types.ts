@@ -306,7 +306,9 @@ export interface CareTeamPatientForDoctor {
 export type ShareLinkKind =
   | "record_share"
   | "care_team_invite"
-  | "family_invite";
+  | "family_invite"
+  | "prescription_share"
+  | "record_bundle";
 
 export interface CareTeamInvitePayload {
   token: string;

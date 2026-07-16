@@ -15,6 +15,7 @@ import { Card } from "@/portal/components/ui/Card";
 import { Skeleton } from "@/portal/components/ui/Empty";
 import { AiExplainLabDrawer } from "@/portal/components/ai/AiExplainLabDrawer";
 import { RecordUploader } from "@/portal/components/upload/RecordUploader";
+import { SnapshotPanel } from "@/portal/components/records/SnapshotPanel";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
 import {
@@ -103,6 +104,9 @@ export default function PatientRecordsTab({
         subtitle={t("chart.recordsSubtitle", { count: total })}
         icon={<FileText size={18} className="text-sky-600" />}
       />
+
+      {/* Tier 1 records: doctor-side patient snapshot panel. */}
+      <SnapshotPanel patientId={id} compact />
 
       <RecordUploader patientId={id} />
 

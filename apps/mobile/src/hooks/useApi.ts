@@ -4031,3 +4031,81 @@ export function useActiveTeleconsultSession() {
     staleTime: 5_000,
   });
 }
+
+// ─── Tier 1 records: Patient Health Snapshot ──────────────
+//
+// useHealthSnapshot       — patient/caretaker mobile hub
+// usePatientSnapshot      — doctor-side mobile + portal
+// Both return the same shape (apps/api/src/lib/snapshot.ts) so cards
+// render identically across surfaces.
+export interface HealthSnapshot {
+  redBanner: {
+    id: string;
+    substance: string;
+    severity: "mild" | "moderate" | "severe" | "critical";
+    reaction: string | null;
+  }[];
+  drugAllergyWarnings: { medicine: string; allergen: string; severity: string }[];
+  chronicConditions: { id: string; title: string; since: string | null; diagnosis: string | null }[];
+  activeMedicines: {
+    id: string;
+    name: string;
+    dosage: string | null;
+    frequency: string | null;
+    startedAt: string | null;
+    prescriberName: string | null;
+  }[];
+  recentVitals: {
+    bp: any[];
+    hr: any[];
+    glucose: any[];
+    weight: any[];
+    spo2: any[];
+    temp: any[];
+  };
+  upcomingFollowUps: { id: string; title: string; date: string | null; doctorName: string | null }[];
+  recentVisits: { id: string; title: string; date: string | null; hospitalName: string | null; diagnosis: string | null }[];
+  fetchedAt: string;
+}
+
+export function useHealthSnapshot() {
+  return useQuery({
+    queryKey: ["health-snapshot", "me"],
+    queryFn: () => api<HealthSnapshot>("/medical-records/me/snapshot"),
+    // Snapshot is recomputed server-side each call (cheap; reuses
+    // /me/canonical's 9 parallel fetches). 60s staleTime keeps the
+    // card from flickering on tab focus.
+    staleTime: 60_000,
+  });
+}
+
+export function usePatientSnapshot(patientId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["health-snapshot", "patient", patientId],
+    enabled: !!patientId,
+    queryFn: () => api<HealthSnapshot>(`/doctor-portal/patients/${patientId}/snapshot`),
+    staleTime: 60_000,
+  });
+}
+
+// ─── Tier 1 records: Share Pack ──────────────────────────────
+//
+// Extends useCreateShareLink with the recordIds field used by the
+// record_bundle kind (apps/api/src/routes/share.ts + 0057 migration).
+export function useCreateSharePack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      label?: string;
+      expiresInHours?: number;
+      recordIds: string[]; // 1..50, validated server-side
+    }) =>
+      api<{ link: ShareLink; token: string; url: string; expiresAt: string }>(
+        "/share/links",
+        { method: "POST", body: payload }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["share", "links"] });
+    },
+  });
+}

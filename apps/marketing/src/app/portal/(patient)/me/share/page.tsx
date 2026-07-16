@@ -38,6 +38,19 @@ export default function PatientSharePage() {
   const [hours, setHours] = useState("24");
   const [label, setLabel] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  // Tier 1 records: share-pack state (multi-record bundle).
+  const [packLabel, setPackLabel] = useState("");
+  const [packHours, setPackHours] = useState("168");
+  const [packSelected, setPackSelected] = useState<string[]>([]);
+
+  const records = useQuery({
+    queryKey: ["patient", "me", "records", "for-pack", { limit: 100 }],
+    queryFn: () =>
+      api<{ records: { id: string; title: string; kind: string | null; recordType: string; date: string | null }[] }>(
+        "/medical-records/me?limit=100"
+      ),
+  });
+  const packRecords = records.data?.records ?? [];
 
   const EXPIRY_OPTIONS = [
     { value: "1", label: t("patientPortal.share.expiry1h") },
@@ -77,6 +90,32 @@ export default function PatientSharePage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["share", "links"] });
       toast.success(t("patientPortal.share.revoked"));
+    },
+  });
+
+  // Tier 1 records: share-pack mutation. POST /share/links with
+  // `recordIds: [...]` triggers server to set kind="record_bundle".
+  const createPack = useMutation({
+    mutationFn: () =>
+      api<{ link: ShareLink; url: string; expiresAt: string }>("/share/links", {
+        method: "POST",
+        json: {
+          expiresInHours: Number(packHours),
+          label: packLabel.trim() || undefined,
+          recordIds: packSelected,
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["share", "links"] });
+      setPackSelected([]);
+      setPackLabel("");
+      toast.success(t("patientPortal.share.packCreated", "Pack created"));
+    },
+    onError: (err: any) => {
+      toast.error(
+        t("patientPortal.share.createFailed", "Failed to create share"),
+        err?.message
+      );
     },
   });
 
@@ -129,6 +168,93 @@ export default function PatientSharePage() {
             {t("patientPortal.share.create")}
           </Button>
         </div>
+      </Card>
+
+      {/* Tier 1 records: share-pack form. Multi-select records, set
+          expiry, mint a single link that bundles all picked records. */}
+      <Card>
+        <h2 className="text-sm font-semibold text-text mb-3">
+          {t("patientPortal.share.packTitle", "Share pack")}
+        </h2>
+        <p className="text-xs text-text-soft mb-3">
+          {t(
+            "patientPortal.share.packSubtitle",
+            "Bundle specific records into one link for a visit."
+          )}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px_auto] gap-2 items-end mb-3">
+          <Input
+            value={packLabel}
+            onChange={(e) => setPackLabel(e.target.value)}
+            placeholder={t(
+              "patientPortal.share.packLabelPlaceholder",
+              "e.g. Pre-cardiology visit"
+            )}
+          />
+          <Select
+            value={packHours}
+            onChange={(e) => setPackHours(e.target.value)}
+          >
+            {EXPIRY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <Button
+            variant="primary"
+            leftIcon={<Plus size={14} />}
+            onClick={() => createPack.mutate()}
+            loading={createPack.isPending}
+            disabled={packSelected.length === 0}
+          >
+            {t("patientPortal.share.createPack", "Create pack")} ({packSelected.length})
+          </Button>
+        </div>
+        <div className="max-h-72 overflow-y-auto border border-border rounded-md divide-y divide-border/50">
+          {records.isLoading ? (
+            <div className="p-3 text-xs text-text-muted">Loading records…</div>
+          ) : packRecords.length === 0 ? (
+            <div className="p-3 text-xs text-text-muted">No records to pack.</div>
+          ) : (
+            packRecords.map((r) => {
+              const checked = packSelected.includes(r.id);
+              return (
+                <label
+                  key={r.id}
+                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-surface-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => {
+                      setPackSelected((prev) =>
+                        e.target.checked
+                          ? prev.length < 50
+                            ? [...prev, r.id]
+                            : prev
+                          : prev.filter((x) => x !== r.id)
+                      );
+                    }}
+                  />
+                  <span className="flex-1 truncate">{r.title}</span>
+                  <span className="text-xs text-text-muted">
+                    {(r.kind || r.recordType).replace(/_/g, " ")}
+                    {r.date ? ` · ${new Date(r.date).toLocaleDateString()}` : ""}
+                  </span>
+                </label>
+              );
+            })
+          )}
+        </div>
+        {packSelected.length >= 50 && (
+          <p className="text-xs text-amber-700 mt-2">
+            {t(
+              "patientPortal.share.packLimitReached",
+              "Pack limit reached (50 records max)."
+            )}
+          </p>
+        )}
       </Card>
 
       <h2 className="text-sm font-semibold text-text">

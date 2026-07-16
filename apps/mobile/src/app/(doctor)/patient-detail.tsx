@@ -30,6 +30,7 @@ import {
 import {
   usePatientSummary,
   usePatientOverview,
+  usePatientSnapshot,
   type VitalsPoint,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -48,6 +49,7 @@ import {
   Button,
 } from "@/components/ui";
 import { LatestStatusCard, AlertsCard } from "@/components/vitals";
+import { HealthSnapshotCard } from "@/components/records";
 
 type Tab = "summary" | "records" | "meds" | "labs" | "vitals";
 
@@ -61,6 +63,8 @@ export default function DoctorPatientDetail() {
 
   const { data, isLoading, isError, refetch } = usePatientSummary(id || null);
   const { data: overview, isLoading: overviewLoading } = usePatientOverview(id || null);
+  // Tier 1 records: Patient Health Snapshot (doctor view).
+  const { data: snapshot, isLoading: snapshotLoading } = usePatientSnapshot(id || null);
 
   if (!id) {
     return (
@@ -328,6 +332,16 @@ export default function DoctorPatientDetail() {
 
         {tab === "summary" && (
           <View style={{ gap: spacing.md }}>
+            {/* ─── 0. Tier 1 records: snapshot at-a-glance ─── */}
+            {snapshot && (snapshot.redBanner.length > 0 || (snapshot.drugAllergyWarnings?.length ?? 0) > 0 || snapshot.chronicConditions.length > 0 || snapshot.activeMedicines.length > 0 || Object.values(snapshot.recentVitals).some((a: any) => a?.length > 0)) && (
+              <HealthSnapshotCard
+                snapshot={snapshot as any}
+                loading={snapshotLoading}
+                compact
+                onJumpToTrends={() => router.push(`/(doctor)/patient-detail/vitals?id=${id}`)}
+                onJumpToAllergies={() => setTab("summary")}
+              />
+            )}
             {/* ─── 1. Active medicines ─── */}
             <OverviewSection
               title={t("overview.section.activeMeds")}

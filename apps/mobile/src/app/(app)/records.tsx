@@ -70,6 +70,7 @@ import {
   useConsentsMine,
   useAuditLog,
   useRevokeConsent,
+  useHealthSnapshot,
 } from "@/hooks/useApi";
 import { useLocaleStore } from "@/stores/locale";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -91,6 +92,8 @@ import {
   AuditFeed,
   ShareConsentSheet,
   DsarRequestSheet,
+  HealthSnapshotCard,
+  SharePackSheet,
   kindIcon,
   kindTone,
   fmtCount,
@@ -394,6 +397,11 @@ export default function RecordsV2() {
   const [timeFilter, setTimeFilter] = useState<"all" | "year" | "30days">("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [folderDropdownOpen, setFolderDropdownOpen] = useState(false);
+  // Tier 1 records: multi-select mode for share-pack. Long-press a
+  // record to enter; top action bar shows "Share (N)" + cancel.
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [packOpen, setPackOpen] = useState(false);
 
   // ─── Data (1:1 with previous version) ──────────────────────────────────
   const { data: profileData, isLoading: profileLoading } = usePatientProfile();
@@ -404,6 +412,10 @@ export default function RecordsV2() {
   const { data: timeline } = useUnifiedTimeline();
   const { data: consentsMine } = useConsentsMine();
   const { data: auditData } = useAuditLog();
+  // Tier 1 records: Patient Health Snapshot. Cheap derivation on
+  // the server, cached 60s on the client so the card does not flicker
+  // on tab focus.
+  const { data: snapshot, isLoading: snapshotLoading } = useHealthSnapshot();
   const revokeConsent = useRevokeConsent();
 
   const patient = profileData?.patient?.patients;
@@ -742,6 +754,22 @@ export default function RecordsV2() {
             </Pressable>
           </View>
         </View>
+
+        {/* ─── Tier 1: Patient Health Snapshot (above hero, full-width) ─── */}
+        {tab !== "sharing" && (
+          <HealthSnapshotCard
+            snapshot={snapshot as any}
+            loading={snapshotLoading}
+            onJumpToTrends={() => router.push("/(app)/records/trends")}
+            onJumpToAllergies={() => {
+              // Snap tab to All + filter to allergy-tagged records. The
+              // hub already filters via selectedKinds — we just route
+              // back to the same screen and let the user pick.
+              setTab("all");
+            }}
+            onJumpToMeds={() => router.push("/(app)/vitals")}
+          />
+        )}
 
         {/* ─── Premium hero (gradient + glass mini-stats) ──────────────── */}
         {isInitialLoading ? (
@@ -1304,7 +1332,21 @@ export default function RecordsV2() {
                       {/* Cards list */}
                       <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
                         {group.data.map((item) => (
-                          <RecordCard key={item.id} item={item} locale={locale} />
+                          <RecordCard
+                            key={item.id}
+                            item={item}
+                            locale={locale}
+                            selectionMode={selectionMode}
+                            selectedIds={selectedIds}
+                            onToggleSelected={(id) => {
+                              setSelectedIds((prev) =>
+                                prev.includes(id)
+                                  ? prev.filter((x) => x !== id)
+                                  : [...prev, id]
+                              );
+                            }}
+                            onEnterSelectionMode={() => setSelectionMode(true)}
+                          />
                         ))}
                       </View>
                     </View>
@@ -1352,6 +1394,56 @@ export default function RecordsV2() {
       {/* ─── Sheets (1:1) ───────────────────────────────────────────── */}
       <ShareConsentSheet open={shareOpen} onClose={() => setShareOpen(false)} />
       <DsarRequestSheet open={dsarOpen} onClose={() => setDsarOpen(false)} />
+      {/* Tier 1 records: share-pack sheet (multi-record bundle). */}
+      <SharePackSheet
+        open={packOpen}
+        onClose={() => {
+          setPackOpen(false);
+          setSelectionMode(false);
+          setSelectedIds([]);
+        }}
+        defaultRecordIds={selectedIds}
+      />
+
+      {/* Tier 1 records: selection action bar. Shown only when
+          selectionMode is on; replaces the regular FAB row so the
+          "Share (N)" CTA is unmissable. */}
+      {selectionMode && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            backgroundColor: colors.primary,
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            gap: 12,
+          }}
+        >
+          <Pressable onPress={() => { setSelectionMode(false); setSelectedIds([]); }}>
+            <AppText variant="body.sm" weight="700" style={{ color: "#fff" }}>
+              Cancel
+            </AppText>
+          </Pressable>
+          <AppText variant="body.sm" weight="700" style={{ color: "#fff" }}>
+            {selectedIds.length} selected
+          </AppText>
+          <Pressable
+            onPress={() => setPackOpen(true)}
+            disabled={selectedIds.length === 0}
+          >
+            <AppText
+              variant="body.sm"
+              weight="700"
+              style={{
+                color: selectedIds.length > 0 ? "#fff" : "rgba(255,255,255,0.5)",
+              }}
+            >
+              Share pack →
+            </AppText>
+          </Pressable>
+        </View>
+      )}
     </Screen>
   );
 }
@@ -1942,9 +2034,17 @@ function PremiumSearchBar({
 function RecordCard({
   item,
   locale,
+  selectionMode,
+  selectedIds,
+  onToggleSelected,
+  onEnterSelectionMode,
 }: {
   item: any;
   locale: string;
+  selectionMode?: boolean;
+  selectedIds?: string[];
+  onToggleSelected?: (id: string) => void;
+  onEnterSelectionMode?: () => void;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -2007,7 +2107,19 @@ function RecordCard({
 
   return (
     <Pressable
-      onPress={() => router.push(`/record-detail?id=${item.id}`)}
+      onPress={() => {
+        // Tier 1 records: share-pack. Long-press enters selection mode;
+        // subsequent taps toggle membership instead of opening detail.
+        if (selectionMode) {
+          onToggleSelected?.(item.id);
+        } else {
+          router.push(`/record-detail?id=${item.id}`);
+        }
+      }}
+      onLongPress={() => {
+        if (!selectionMode) onEnterSelectionMode?.();
+        onToggleSelected?.(item.id);
+      }}
       accessibilityRole="button"
       accessibilityLabel={titleText}
       style={({ pressed }) => ({

@@ -49,6 +49,7 @@ import {
 } from "@healthcare/shared";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
+import { buildSnapshot } from "../lib/snapshot";
 import { recordRevenueEvent } from "../lib/revenue";
 import { sendVisitSummaryEmail } from "../lib/post-visit-summary";
 import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT } from "../lib/booking";
@@ -373,6 +374,28 @@ doctorPortalRouter.get("/patients/:id/summary", async (c) => {
     },
     pastAppointments: pastAppts,
   });
+});
+
+// ─── Patient Health Snapshot (doctor view) ────────────────────
+//
+// GET /doctor-portal/patients/:id/snapshot
+//
+// Tier 1 records: same shape as GET /medical-records/me/snapshot but
+// accessed by a doctor with a relationship to the patient. Reuses
+// buildSnapshot() so the patient + doctor render the same data.
+doctorPortalRouter.get("/patients/:id/snapshot", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const patientId = c.req.param("id");
+  if (!patientId) return c.json({ error: "Missing id" }, 400);
+
+  const access = await canAccessPatient(db, userId, "doctor", patientId);
+  if (!access.allowed) {
+    return c.json({ error: "Access denied", reason: access.reason }, 403);
+  }
+
+  const snapshot = await buildSnapshot(db, patientId);
+  return c.json(snapshot);
 });
 
 // ─── Patient overview (comprehensive doctor view) ──────────
@@ -3080,6 +3103,50 @@ doctorPortalRouter.post("/share/links", async (c) => {
   const label = (parsed.data.label ?? "Doctor chart share").toString().slice(0, 100);
   const scopeKind = parsed.data.scope ?? "all";
 
+  // Tier 1 records: share-pack. Doctors can also mint bundles for
+  // patients they treat — same ownership gate as the patient-side flow
+  // but driven from a record selection in the portal UI. Mirror the
+  // priority logic in apps/api/src/routes/share.ts (prescriptionId
+  // wins over recordIds when both are present).
+  let kind: string = "record_share";
+  let prescriptionId: string | null = null;
+  let recordIdsJson: string | null = null;
+  if (parsed.data.prescriptionId) {
+    const [rx] = await db
+      .select({ id: prescriptions.id, patientId: prescriptions.patientId })
+      .from(prescriptions)
+      .where(eq(prescriptions.id, parsed.data.prescriptionId))
+      .limit(1);
+    if (!rx) return c.json({ error: "Prescription not found" }, 404);
+    if (rx.patientId !== parsed.data.patientId) {
+      return c.json({ error: "Not your prescription" }, 403);
+    }
+    kind = "prescription_share";
+    prescriptionId = rx.id;
+  } else if (parsed.data.recordIds?.length) {
+    const owned = await db
+      .select({ id: medicalRecords.id })
+      .from(medicalRecords)
+      .where(
+        and(
+          inArray(medicalRecords.id, parsed.data.recordIds),
+          eq(medicalRecords.patientId, parsed.data.patientId)
+        )
+      );
+    if (owned.length !== parsed.data.recordIds.length) {
+      return c.json(
+        {
+          error: "One or more recordIds do not belong to this patient",
+          expected: parsed.data.recordIds.length,
+          owned: owned.length,
+        },
+        400,
+      );
+    }
+    kind = "record_bundle";
+    recordIdsJson = JSON.stringify(parsed.data.recordIds);
+  }
+
   const token = Array.from(new Uint8Array(24))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -3097,7 +3164,9 @@ doctorPortalRouter.post("/share/links", async (c) => {
       expiresAt,
       revoked: false,
       createdBy: userId,
-      kind: "record_share",
+      kind,
+      prescriptionId,
+      recordIds: recordIdsJson,
       familyMemberId: null,
     } as any)
     .returning();
