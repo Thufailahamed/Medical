@@ -5,6 +5,7 @@ export { ShareConsentSheet } from "./ShareConsentSheet";
 export { HealthSnapshotCard } from "./HealthSnapshotCard";
 export { SharePackSheet } from "./SharePackSheet";
 export { MedicineAdherenceStrip } from "./MedicineAdherenceStrip";
+export { ShareModeSheet } from "./ShareModeSheet";
 export { EncryptionPassphrasePrompt } from "./EncryptionPassphrasePrompt";
 export { AuditFeed } from "./AuditFeed";
 export { DsarRequestSheet } from "./DsarRequestSheet";

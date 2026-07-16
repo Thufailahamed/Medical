@@ -90,7 +90,7 @@ import {
   RecordFilters,
   RecordTimeline,
   AuditFeed,
-  ShareConsentSheet,
+  ShareModeSheet,
   DsarRequestSheet,
   HealthSnapshotCard,
   SharePackSheet,
@@ -1392,7 +1392,11 @@ export default function RecordsV2() {
 
 
       {/* ─── Sheets (1:1) ───────────────────────────────────────────── */}
-      <ShareConsentSheet open={shareOpen} onClose={() => setShareOpen(false)} />
+      <ShareModeSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        recordIds={selectionMode ? selectedIds : undefined}
+      />
       <DsarRequestSheet open={dsarOpen} onClose={() => setDsarOpen(false)} />
       {/* Tier 1 records: share-pack sheet (multi-record bundle). */}
       <SharePackSheet
