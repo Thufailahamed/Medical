@@ -18,7 +18,8 @@ export type AiKind =
   | "clinical_note_summary"
   | "soap_draft"
   | "suggest_record_type"
-  | "vaccination_card_ocr";
+  | "vaccination_card_ocr"
+  | "pre_visit_summary";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const VISION_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";

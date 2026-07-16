@@ -26,11 +26,14 @@ import {
   ChevronRight,
   Heart,
   Plus,
+  ClipboardList,
 } from "lucide-react-native";
 import {
   usePatientSummary,
   usePatientOverview,
   usePatientSnapshot,
+  usePreVisitSummary,
+  useUpcomingAppointmentsForPatient,
   type VitalsPoint,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -65,6 +68,12 @@ export default function DoctorPatientDetail() {
   const { data: overview, isLoading: overviewLoading } = usePatientOverview(id || null);
   // Tier 1 records: Patient Health Snapshot (doctor view).
   const { data: snapshot, isLoading: snapshotLoading } = usePatientSnapshot(id || null);
+  // Tier 1 records PR3: pre-visit summary. Pulls the next upcoming
+  // confirmed appointment for this patient and lazily fetches the AI
+  // briefing. Hooks are no-ops until the patient has a confirmed slot.
+  const { data: upcoming } = useUpcomingAppointmentsForPatient(id || null);
+  const nextAppt = upcoming?.items?.[0];
+  const { data: preVisit } = usePreVisitSummary(nextAppt?.appointmentId ?? null);
 
   if (!id) {
     return (
@@ -332,6 +341,32 @@ export default function DoctorPatientDetail() {
 
         {tab === "summary" && (
           <View style={{ gap: spacing.md }}>
+            {/* ─── -1. Tier 1 records PR3: pre-visit summary for the
+                next confirmed appointment, if any. ─── */}
+            {preVisit?.summary ? (
+              <OverviewSection
+                title={
+                  nextAppt
+                    ? `Pre-visit — ${nextAppt.date} ${nextAppt.time}`
+                    : "Pre-visit summary"
+                }
+                icon={<ClipboardList size={14} color={colors.brand} />}
+              >
+                <Text style={{ fontSize: 13, color: colors.text, lineHeight: 18 }}>
+                  {preVisit.summary}
+                </Text>
+                {preVisit.snapshot?.redBanner?.length > 0 ? (
+                  <View style={{ padding: 8, borderRadius: 8, borderWidth: 1, backgroundColor: "#fee2e2", borderColor: "#fca5a5", marginTop: spacing.xs }}>
+                    <Text style={{ fontSize: 12, color: "#991b1b", fontWeight: "600" }}>
+                      Severe allergies: {preVisit.snapshot.redBanner
+                        .map((a: any) => a.substance)
+                        .join(", ")}
+                    </Text>
+                  </View>
+                ) : null}
+              </OverviewSection>
+            ) : null}
+
             {/* ─── 0. Tier 1 records: snapshot at-a-glance ─── */}
             {snapshot && (snapshot.redBanner.length > 0 || (snapshot.drugAllergyWarnings?.length ?? 0) > 0 || snapshot.chronicConditions.length > 0 || snapshot.activeMedicines.length > 0 || Object.values(snapshot.recentVitals).some((a: any) => a?.length > 0)) && (
               <HealthSnapshotCard

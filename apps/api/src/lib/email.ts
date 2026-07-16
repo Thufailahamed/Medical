@@ -187,3 +187,67 @@ export function formatVisitSummaryEmail(args: {
   `;
   return { subject, text, html };
 }
+
+/**
+ * Tier 1 records PR3: Doctor pre-visit summary email. Sent to the
+ * doctor ~1h before the visit lands. Surfaces the safety-critical bits
+ * (severe allergies, drug-allergy cross-references, chronic conditions,
+ * active meds with prescriber names, the most recent diagnosis) so the
+ * doctor can walk into the appointment already briefed.
+ *
+ * Body is deliberately short — this is a quick-reference, not a chart.
+ * Deep link into the full PDF lives in `summaryUrl`.
+ */
+export function formatPreVisitSummaryEmail(args: {
+  patientName: string;
+  doctorName: string;
+  hospitalName?: string | null;
+  visitDate: string;
+  visitTime: string;
+  allergiesTop: string[];
+  activeMedsCount: number;
+  activeMedsNames: string[];
+  chronicConditions: string[];
+  recentDiagnosis?: string | null;
+  summaryShort: string;
+  summaryUrl: string;
+}) {
+  const subject = `Pre-visit summary — ${args.patientName} (${args.visitDate})`;
+  const allergyLine =
+    args.allergiesTop.length > 0
+      ? `Severe allergies: ${args.allergiesTop.join(", ")}\n`
+      : "";
+  const chronicLine =
+    args.chronicConditions.length > 0
+      ? `Chronic conditions: ${args.chronicConditions.join(", ")}\n`
+      : "";
+  const medsLine =
+    args.activeMedsCount > 0
+      ? `Active medicines (${args.activeMedsCount}): ${args.activeMedsNames
+          .slice(0, 8)
+          .join(", ")}${args.activeMedsNames.length > 8 ? "…" : ""}\n`
+      : "No active medicines recorded.\n";
+  const dxLine = args.recentDiagnosis
+    ? `Recent diagnosis: ${args.recentDiagnosis}\n`
+    : "";
+  const where = args.hospitalName ? ` at ${args.hospitalName}` : "";
+  const text =
+    `Hi ${args.doctorName},\n\n` +
+    `Your visit with ${args.patientName}${where} is scheduled for ${args.visitDate} at ${args.visitTime}.\n\n` +
+    `${allergyLine}${chronicLine}${medsLine}${dxLine}\n` +
+    `Quick AI summary:\n${args.summaryShort}\n\n` +
+    `Full pre-visit summary:\n${args.summaryUrl}\n\n` +
+    `— HealthHub`;
+  const html = `
+    <p>Hi ${args.doctorName},</p>
+    <p>Your visit with <strong>${args.patientName}</strong>${where} is scheduled for <strong>${args.visitDate} at ${args.visitTime}</strong>.</p>
+    ${allergyLine ? `<p><strong style="color:#b91c1c">Severe allergies:</strong> ${args.allergiesTop.join(", ")}</p>` : ""}
+    ${chronicLine ? `<p><strong>Chronic conditions:</strong> ${args.chronicConditions.join(", ")}</p>` : ""}
+    <p><strong>Active medicines (${args.activeMedsCount}):</strong> ${args.activeMedsNames.slice(0, 8).join(", ")}${args.activeMedsNames.length > 8 ? "…" : ""}</p>
+    ${dxLine ? `<p><strong>Recent diagnosis:</strong> ${args.recentDiagnosis}</p>` : ""}
+    <h3 style="margin-top:16px">Quick AI summary</h3>
+    <p style="white-space:pre-wrap">${args.summaryShort}</p>
+    <p style="margin-top:16px"><a href="${args.summaryUrl}" style="display:inline-block;padding:12px 20px;background:#1a73e8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">View full summary</a></p>
+  `;
+  return { subject, text, html };
+}

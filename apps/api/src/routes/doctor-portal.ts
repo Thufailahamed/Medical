@@ -52,6 +52,8 @@ import { audit } from "../lib/audit";
 import { buildSnapshot } from "../lib/snapshot";
 import { recordRevenueEvent } from "../lib/revenue";
 import { sendVisitSummaryEmail } from "../lib/post-visit-summary";
+import { sendPreVisitSummaryEmail } from "../lib/pre-visit-summary";
+import { cacheGet, cacheStore, aiComplete } from "../lib/ai";
 import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT } from "../lib/booking";
 import { createShareLinkSchema } from "../lib/validators";
 import { canAccessPatient } from "../lib/access";
@@ -2122,6 +2124,30 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
     );
   }
 
+  // Tier 1 records PR3: inline pre-visit summary trigger when the
+  // doctor confirms a slot. Mirrors the post-visit fire-and-forget
+  // pattern above — the cron is the safety net, the inline trigger
+  // gets the email out the door faster (sometimes minutes faster)
+  // for confirmed-in-the-moment visits. `sendPreVisitSummaryEmail`
+  // is idempotent via the sent_at stamp.
+  // Tier 1 records PR3: inline pre-visit summary trigger when the
+  // doctor confirms a slot. Mirrors the post-visit fire-and-forget
+  // pattern above — the cron is the safety net, the inline trigger
+  // gets the email out the door faster (sometimes minutes faster)
+  // for confirmed-in-the-moment visits. `sendPreVisitSummaryEmail`
+  // is idempotent via the sent_at stamp.
+  if (
+    parsed.data.status === "confirmed" &&
+    own.status !== "confirmed"
+  ) {
+    c.executionCtx?.waitUntil(
+      sendPreVisitSummaryEmail(c.env, db, id).catch((err: any) => {
+        // eslint-disable-next-line no-console
+        console.error("[pre-visit-summary] inline trigger failed", err);
+      })
+    );
+  }
+
   return c.json({ appointment: row?.appointments || row });
 });
 
@@ -2664,6 +2690,125 @@ doctorPortalRouter.post("/visit-summary", async (c) => {
     201
   );
 });
+
+// ─── Pre-visit Summary (Tier 1 records PR3) ────────────────
+//
+// GET /doctor-portal/appointments/:id/pre-visit-summary
+//   Returns { summary, snapshot, generatedAt, cached }.
+//   Same shape as POST /ai/explain/pre-visit-summary but routes
+//   through doctor-portal so RBAC + URL shape matches the rest of
+//   the doctor UI. Internally just calls the AI route handler shape
+//   (cacheGet → buildSnapshot → aiComplete → cacheStore) so the
+//   portal and email always agree.
+//
+// Re-uses the canAccessPatient gate on the appointment's patient.
+doctorPortalRouter.get(
+  "/appointments/:id/pre-visit-summary",
+  async (c) => {
+    const db = c.get("db");
+    const userId = c.get("userId");
+    const userRole = c.get("dbUser")?.role || "doctor";
+    const id = c.req.param("id");
+
+    const [appt] = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, id))
+      .limit(1);
+    if (!appt) return c.json({ error: "Appointment not found" }, 404);
+
+    const access = await canAccessPatient(db, userId, userRole, appt.patientId);
+    if (!access.allowed) {
+      return c.json({ error: "Access denied", reason: access.reason }, 403);
+    }
+
+    // Try the AI cache first — the cron + email path stores here too.
+    const cacheKey = { appointmentId: id };
+    const cached = await cacheGet(db, "pre_visit_summary", cacheKey);
+    if (cached) {
+      return c.json({
+        summary: cached.summary,
+        snapshot: cached.snapshot,
+        generatedAt: cached.generatedAt,
+        cached: true,
+      });
+    }
+
+    const snapshot = await buildSnapshot(db, appt.patientId);
+    let summary = "Pre-visit summary unavailable.";
+    if (c.env.AI) {
+      try {
+        const messages: any[] = [
+          {
+            role: "system",
+            content:
+              "Write a 200-word pre-visit briefing for a doctor. Highlight drug-allergy warnings, chronic conditions, active meds with prescriber names, and the most recent diagnosis. Plain language, no headers. Do not invent data.",
+          },
+          {
+            role: "user",
+            content: `Brief this upcoming visit:\n${JSON.stringify({
+              patientId: appt.patientId,
+              visitDate: appt.date,
+              visitTime: appt.time,
+              reason: appt.reason,
+              snapshot,
+            }).slice(0, 6000)}`,
+          },
+        ];
+        const out = await aiComplete(c.env.AI, messages, {
+          maxTokens: 350,
+          temperature: 0.2,
+        });
+        if (out) summary = out.trim();
+      } catch (err) {
+        console.error("[doctor-portal/pre-visit-summary] ai failed", err);
+      }
+    }
+    const result = {
+      summary,
+      snapshot,
+      generatedAt: new Date().toISOString(),
+    };
+    await cacheStore(db, "pre_visit_summary", cacheKey, result);
+    return c.json({ ...result, cached: false });
+  }
+);
+
+// Manual re-send trigger — useful when the doctor wants the email
+// NOW (e.g. they confirmed late and missed the cron window).
+// POST /doctor-portal/appointments/:id/pre-visit-summary/send
+doctorPortalRouter.post(
+  "/appointments/:id/pre-visit-summary/send",
+  async (c) => {
+    const db = c.get("db");
+    const userId = c.get("userId");
+    const userRole = c.get("dbUser")?.role || "doctor";
+    const id = c.req.param("id");
+
+    const [appt] = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, id))
+      .limit(1);
+    if (!appt) return c.json({ error: "Appointment not found" }, 404);
+
+    const access = await canAccessPatient(db, userId, userRole, appt.patientId);
+    if (!access.allowed) {
+      return c.json({ error: "Access denied", reason: access.reason }, 403);
+    }
+
+    // Reset the stamp first so sendPreVisitSummaryEmail is allowed to
+    // send again — doctors sometimes confirm late and want the email
+    // out the door NOW, not 50 minutes from now.
+    await db
+      .update(appointments)
+      .set({ preVisitSummarySentAt: null, preVisitSummarySentVia: null } as any)
+      .where(eq(appointments.id, id));
+
+    const result = await sendPreVisitSummaryEmail(c.env, db, id);
+    return c.json(result, result.sent ? 200 : 400);
+  }
+);
 
 // ─── Search patients (hospital-scoped) ──────────────────
 // GET /doctor-portal/search-patients?q=...

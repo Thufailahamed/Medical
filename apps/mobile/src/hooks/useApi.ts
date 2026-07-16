@@ -4109,3 +4109,37 @@ export function useCreateSharePack() {
     },
   });
 }
+
+// Tier 1 records PR3: pre-visit summary. Doctor-side mobile hook.
+// Fetches the AI briefing (cached or fresh) for a single appointment.
+// Disabled until `appointmentId` is provided so the query never fires
+// on the patient-detail page when no appointment is in scope.
+export function usePreVisitSummary(appointmentId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["pre-visit-summary", appointmentId],
+    queryFn: () =>
+      api<{
+        summary: string;
+        snapshot: any;
+        generatedAt: string;
+        cached: boolean;
+      }>(`/doctor-portal/appointments/${appointmentId}/pre-visit-summary`),
+    enabled: Boolean(appointmentId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Tier 1 records PR3: list upcoming appointments for a given patient.
+// Doctor uses this on patient-detail Summary tab to surface the next
+// visit's pre-visit summary inline.
+export function useUpcomingAppointmentsForPatient(patientId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["upcoming-appointments-for-patient", patientId],
+    queryFn: () =>
+      api<{ items: Array<{ appointmentId: string; date: string; time: string; reason: string | null }> }>(
+        `/doctor-portal/appointments?patientId=${encodeURIComponent(patientId!)}&status=confirmed&upcoming=1`
+      ),
+    enabled: Boolean(patientId),
+    staleTime: 60 * 1000,
+  });
+}
