@@ -10,9 +10,9 @@ import { topSeverity } from "../lib/safety-engine";
 import { runSafetyCheck } from "../lib/safety-runner";
 import { accessiblePatientsFor } from "../lib/access";
 import { upsertActiveCareTeam, withStatusGuard } from "../lib/status-guard";
-import { assertRxTransition } from "../lib/rxStatus";
+import { assertRxTransition, consumeDispenseTokenAndTransition } from "../lib/rxStatus";
 import { renderPrescriptionPdf } from "../lib/prescription-pdf";
-import { prescriptionPatchSchema, prescriptionCancelSchema } from "@healthcare/shared/validators";
+import { prescriptionPatchSchema, prescriptionCancelSchema, dispenseTokenSchema } from "@healthcare/shared/validators";
 import {
   computeFirstResponseMinutes,
   computeFirstResponseMinutesBatch,
@@ -657,7 +657,7 @@ doctorRouter.post(
   }
 );
 
-// ─── Dispense prescription (Phase E-Rx 8) ────────────────
+// ─── Dispense prescription (Phase E-Rx 8 + 0059) ────────────────
 //
 // POST /doctor/prescriptions/:id/dispense
 //   role=doctor. In production this would be `requireRole("pharmacy")`
@@ -665,6 +665,11 @@ doctorRouter.post(
 //   so doctor-only is the conservative default — the schema enum
 //   already supports it. Allowed source: ["signed"] only.
 //
+//   Migration 0059: gated on the same single-use token as the
+//   pharmacy dispense route, so doctors can't bypass the
+//   one-time-use guarantee from their portal. The doctor already
+//   has the token (returned from /sign and visible in the row),
+//   so this is one header line in the doctor's dispense UI.
 //   Body: empty. Audit row `prescription.dispensed` carries the
 //   timestamp; the existing signature row remains valid so the
 //   verify endpoint keeps working post-dispense.
@@ -677,6 +682,21 @@ doctorRouter.post(
     const db = c.get("db");
     const id = c.req.param("id");
 
+    // Migration 0059: require the single-use token.
+    const tokenRaw = c.req.header("x-dispense-token") || "";
+    const parsedToken = dispenseTokenSchema.safeParse(tokenRaw);
+    if (!parsedToken.success) {
+      return c.json(
+        {
+          error: "dispense_token_required",
+          message:
+            "Provide the dispense token (from the QR /verify URL or printed PDF) on the x-dispense-token header.",
+        },
+        400
+      );
+    }
+    const token = parsedToken.data;
+
     const [doctor] = await db
       .select()
       .from(doctors)
@@ -685,7 +705,13 @@ doctorRouter.post(
     if (!doctor) return c.json({ error: "Doctor not found" }, 404);
 
     const [existing] = await db
-      .select()
+      .select({
+        id: prescriptions.id,
+        doctorId: prescriptions.doctorId,
+        status: prescriptions.status,
+        dispenseToken: prescriptions.dispenseToken,
+        dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
+      })
       .from(prescriptions)
       .where(eq(prescriptions.id, id))
       .limit(1);
@@ -693,12 +719,80 @@ doctorRouter.post(
     if (existing.doctorId !== doctor.id) {
       return c.json({ error: "Not your prescription" }, 403);
     }
+    if (!existing.dispenseToken) {
+      return c.json(
+        {
+          error: "dispense_token_missing",
+          message:
+            "This prescription was signed before redemption tokens were required. Re-issue from the doctor portal.",
+          prescriptionId: id,
+        },
+        400
+      );
+    }
 
-    const guard = await withStatusGuard(db, prescriptions, id, ["signed"], {
-      status: "dispensed",
-      dispensedAt: new Date().toISOString(),
+    const now = new Date().toISOString();
+    const updated = await consumeDispenseTokenAndTransition({
+      db,
+      table: prescriptions,
+      id,
+      token,
+      from: "signed",
+      to: "dispensed",
+      patch: {
+        dispensedAt: now,
+        dispenseTokenConsumedAt: now,
+        // Doctor-side dispense (legacy path) doesn't have a pharmacy
+        // operator; capture the doctor as the consumer so the public
+        // /verify surface still has a name to render.
+        dispensedByUserId: userId,
+        dispensedByPharmacyName: `Doctor dispense (${doctor.specialization ?? "physician"})`,
+      },
+      actorId: userId,
+      action: "prescription.dispensed",
+      details: {
+        actorRole: "doctor",
+        tokenTail:
+          token.length >= 10 ? `${token.slice(0, 6)}…${token.slice(-4)}` : "***",
+      },
+      tokenColumns: {
+        dispenseToken: prescriptions.dispenseToken,
+        dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
+      },
     });
-    if (!guard.changed) {
+
+    if (!updated) {
+      const [fresh] = await db
+        .select({
+          status: prescriptions.status,
+          dispenseToken: prescriptions.dispenseToken,
+          dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
+        })
+        .from(prescriptions)
+        .where(eq(prescriptions.id, id))
+        .limit(1);
+      if (fresh?.dispenseTokenConsumedAt) {
+        return c.json(
+          {
+            error: "token_consumed",
+            message:
+              "This prescription has already been dispensed.",
+            prescriptionId: id,
+            dispensedAt: fresh.dispenseTokenConsumedAt,
+          },
+          409
+        );
+      }
+      if (fresh && fresh.dispenseToken !== token) {
+        return c.json(
+          {
+            error: "token_mismatch",
+            message: "The dispense token doesn't match this prescription.",
+            prescriptionId: id,
+          },
+          404
+        );
+      }
       return c.json(
         {
           error: "Prescription is not in 'signed' state",
@@ -714,13 +808,17 @@ doctorRouter.post(
       action: "prescription.dispensed",
       resource: "prescription",
       resourceId: id,
-      details: { dispensedAt: guard.row?.dispensedAt },
+      details: {
+        dispensedAt: updated.dispensedAt,
+        actorRole: "doctor",
+      },
     });
 
     return c.json({
       prescriptionId: id,
       status: "dispensed",
       ok: true,
+      dispensedAt: updated.dispensedAt ?? now,
     });
   }
 );
@@ -775,6 +873,14 @@ doctorRouter.get("/prescriptions", authMiddleware, requireRole("doctor"), async 
       createdAt: prescriptions.createdAt,
       status: prescriptions.status,
       signedAt: prescriptions.signedAt,
+      dispensedAt: prescriptions.dispensedAt,
+      cancelledAt: prescriptions.cancelledAt,
+      // Migration 0059: the doctor's portal needs the redemption token
+      // for the legacy /doctor/prescriptions/:id/dispense endpoint. NULL
+      // on legacy signed Rx (pre-0059) — those cannot be dispensed
+      // through the token-enforced path.
+      dispenseToken: prescriptions.dispenseToken,
+      dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
       patientName: users.name,
     })
     .from(prescriptions)
@@ -842,6 +948,13 @@ doctorRouter.get(
         status: prescriptions.status,
         signedAt: prescriptions.signedAt,
         signedPayloadHash: prescriptions.signedPayloadHash,
+        dispensedAt: prescriptions.dispensedAt,
+        cancelledAt: prescriptions.cancelledAt,
+        // Migration 0059: single-use redemption token. The doctor's
+        // portal reads this so the legacy /:id/dispense button can
+        // POST it as `x-dispense-token`.
+        dispenseToken: prescriptions.dispenseToken,
+        dispenseTokenConsumedAt: prescriptions.dispenseTokenConsumedAt,
         doctorUserId: doctors.userId,
         doctorName: users.name,
         doctorSpecialization: doctors.specialization,

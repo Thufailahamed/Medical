@@ -161,7 +161,10 @@ export function RxDetail({
 
   async function handleDispense() {
     try {
-      await dispenseMutation.mutateAsync(rx!.id);
+      await dispenseMutation.mutateAsync({
+        id: rx!.id,
+        dispenseToken: rx!.dispenseToken,
+      });
       toast.success(t("rx.detail.dispensedToast"), `#${rx!.id.slice(0, 8)}`);
     } catch (err: any) {
       toast.error(t("toast.error"), err?.message ?? "Dispense failed");
@@ -275,7 +278,12 @@ export function RxDetail({
                 <button
                   type="button"
                   className="portal-hero-action"
-                  disabled={dispenseMutation.isPending}
+                  disabled={dispenseMutation.isPending || !rx.dispenseToken}
+                  title={
+                    rx.dispenseToken
+                      ? undefined
+                      : t("pharmacy.actions.missingTokenTitle")
+                  }
                   onClick={handleDispense}
                 >
                   <CheckCircle size={12} />

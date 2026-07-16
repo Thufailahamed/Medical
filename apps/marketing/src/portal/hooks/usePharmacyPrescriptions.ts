@@ -28,6 +28,12 @@ export interface PharmacyRxRow {
   dispensedAt: string | null;
   cancelledAt: string | null;
   cancellationReason: string | null;
+  // Migration 0059: single-use redemption token (mint by /sign, set
+  // on the row). NULL on legacy signed Rx (pre-0059) — the portal
+  // surfaces this as "re-issue required" instead of letting dispense
+  // 400 silently. The dispense hook sends this on `x-dispense-token`.
+  dispenseToken: string | null;
+  dispenseTokenConsumedAt: string | null;
   patient: { id: string; name: string; nic: string | null };
   medicineCount: number;
 }
@@ -81,6 +87,10 @@ export interface PharmacyRxDetail {
   dispensedAt: string | null;
   cancelledAt: string | null;
   cancellationReason: string | null;
+  // Migration 0059: single-use redemption token. The dispense
+  // button reads this and posts it on `x-dispense-token`.
+  dispenseToken: string | null;
+  dispenseTokenConsumedAt: string | null;
   doctorName: string;
   doctorSpecialization: string | null;
   doctorSlmcNo: string | null;

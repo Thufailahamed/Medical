@@ -72,6 +72,12 @@ export async function renderPrescriptionPdf(
       status: prescriptions.status,
       signedAt: prescriptions.signedAt,
       signedPayloadHash: prescriptions.signedPayloadHash,
+      // Migration 0059: one-time-use redemption token. Embedded in
+      // the QR as `?t=...` so the pharmacy scanner can extract it
+      // and call /pharmacy/prescriptions/<id>/dispense. NULL only
+      // on legacy signed Rx (pre-0059); those still verify by id
+      // but their QR lacks the binding.
+      dispenseToken: prescriptions.dispenseToken,
       doctorName: users.name,
       doctorSpecialization: doctors.specialization,
       doctorSlmcNo: doctors.slmcRegistrationNo,
@@ -326,7 +332,15 @@ export async function renderPrescriptionPdf(
   }
 
   const sigY = Math.max(margin + 110, y + 20);
-  const verifyUrl = `${publicUrl.replace(/\/+$/, "")}/verify/${id}`;
+  // Migration 0059: bind the QR to a single-use redemption token.
+  // Older signed Rx (pre-0059) carry NULL dispense_token — their
+  // QR still verifies by id via `/verify/<id>`, just without the
+  // `t=` binding. This keeps the public verify by id working
+  // forever for legacy paper, while new PDFs get full one-time
+  // semantics.
+  const verifyUrl = row.dispenseToken
+    ? `${publicUrl.replace(/\/+$/, "")}/verify/${id}?t=${encodeURIComponent(row.dispenseToken)}`
+    : `${publicUrl.replace(/\/+$/, "")}/verify/${id}`;
 
   const qrServer = await import("qrcode/lib/server.js");
   const qrPngBytes: Buffer = await new Promise((resolve, reject) => {
@@ -402,11 +416,26 @@ export async function renderPrescriptionPdf(
       color: rgb(0.25, 0.25, 0.32),
     });
   }
+  // Migration 0059: print a visible truncated token below the hash
+  // so a paper copy at a pharmacy counter still shows the binding
+  // — the operator can read off `Dispense token: xxxx…yyyy` and
+  // type it. The QR is the primary path; this is the fallback for
+  // phones that can't scan.
+  if (row.dispenseToken) {
+    const tShort = `${row.dispenseToken.slice(0, 8)}…${row.dispenseToken.slice(-4)}`;
+    page.drawText(`Dispense token: ${tShort}`, {
+      x: sigBlockX,
+      y: sigY - 64,
+      size: 9,
+      font,
+      color: rgb(0.25, 0.25, 0.32),
+    });
+  }
   const urlSize = 8;
   const urlTrunc = truncate(verifyUrl, sigBlockW, font, urlSize);
   page.drawText(urlTrunc, {
     x: sigBlockX,
-    y: sigY - 64,
+    y: sigY - 76,
     size: urlSize,
     font,
     color: rgb(0.35, 0.35, 0.42),

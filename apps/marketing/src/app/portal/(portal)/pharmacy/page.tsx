@@ -188,7 +188,7 @@ export default function PharmacyListPage() {
                   hideEdit
                   compact
                   mode="pharmacy"
-                  viaQrToken={viaQ}
+                  dispenseToken={r.dispenseToken}
                 />
               </li>
             ))}

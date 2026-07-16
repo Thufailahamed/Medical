@@ -2,11 +2,13 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Calendar,
+  CheckCircle2,
   Hash,
   Pill,
   ShieldCheck,
   ShieldX,
   Stethoscope,
+  XCircle,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
@@ -29,10 +31,29 @@ type VerifyResponse = {
     timing?: string | null;
   }>;
   date?: string;
+  // Migration 0059: redemption state surfaced by /verify when the
+  // row has been dispensed (or was signed without a token). status
+  // is always returned once the row exists; dispenseTokenConsumed /
+  // tokenMatches only surface when the caller sent ?t=<token>.
+  status?: "signed" | "dispensed" | "cancelled" | "draft";
+  dispenseTokenConsumed?: boolean;
+  tokenMatches?: boolean | null;
+  dispensedAt?: string | null;
+  dispensedBy?: {
+    pharmacyName: string | null;
+    userName: string | null;
+  } | null;
+  cancelledAt?: string | null;
 };
 
-async function verifyPrescription(id: string): Promise<VerifyResponse> {
-  const res = await fetch(`${API_URL}/verify/${id}`, {
+async function verifyPrescription(
+  id: string,
+  token: string | null
+): Promise<VerifyResponse> {
+  const url = token
+    ? `${API_URL}/verify/${id}?t=${encodeURIComponent(token)}`
+    : `${API_URL}/verify/${id}`;
+  const res = await fetch(url, {
     next: { revalidate: 300 },
   });
   if (res.status === 404) {
@@ -44,7 +65,7 @@ async function verifyPrescription(id: string): Promise<VerifyResponse> {
   return res.json();
 }
 
-function formatDate(value?: string) {
+function formatDate(value?: string | null) {
   if (!value) return "Not available";
   try {
     return new Intl.DateTimeFormat("en", {
@@ -66,12 +87,28 @@ const reasonLabels: Record<string, string> = {
 
 export default async function PublicVerifyPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string }>;
 }) {
   const { id } = await params;
-  const data = await verifyPrescription(id);
+  const { t: tokenParam } = await searchParams;
+  // Migration 0059: when the QR URL carries ?t=<token>, forward it to
+  // /verify so the response tells us if THIS particular token has
+  // been redeemed. Falls back to id-only verify (public by id) when
+  // no token was provided.
+  const data = await verifyPrescription(id, tokenParam ?? null);
   const reason = data.reason ? reasonLabels[data.reason] ?? data.reason : null;
+
+  // Redemption-state UI banner. Only render when the row has a
+  // signed signature AND a known state (skip the "not found" /
+  // "no signature" rows so we don't pile a third card on top of the
+  // existing failure banner).
+  const showRedemption =
+    data.valid && (data.status === "signed" || data.status === "dispensed" || data.status === "cancelled");
+  const isDispensed = data.status === "dispensed";
+  const isCancelled = data.status === "cancelled";
 
   return (
     <main className="min-h-screen bg-surface text-text">
@@ -129,6 +166,83 @@ export default async function PublicVerifyPage({
             </div>
           </div>
         </section>
+
+        {showRedemption ? (
+          <section
+            className={
+              isCancelled
+                ? "rounded-2xl border border-border bg-warn-soft/30 p-5"
+                : isDispensed
+                  ? "rounded-2xl border border-border bg-surface-2 p-5"
+                  : "rounded-2xl border border-border bg-surface-2 p-5"
+            }
+          >
+            <h2 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-text-muted">
+              {isCancelled ? (
+                <>
+                  <XCircle size={15} />
+                  Cancelled
+                </>
+              ) : isDispensed ? (
+                <>
+                  <CheckCircle2 size={15} />
+                  Already dispensed
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={15} />
+                  Not yet dispensed
+                </>
+              )}
+            </h2>
+
+            {isCancelled ? (
+              <p className="mt-3 text-sm text-text">
+                This prescription was cancelled
+                {data.cancelledAt ? ` on ${formatDate(data.cancelledAt)}` : ""}
+                {" "}and cannot be dispensed.
+              </p>
+            ) : isDispensed ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <Info
+                  label="Dispensed at"
+                  value={formatDate(data.dispensedAt)}
+                />
+                <Info
+                  label="Dispensed by"
+                  value={
+                    data.dispensedBy
+                      ? [
+                          data.dispensedBy.pharmacyName,
+                          data.dispensedBy.userName,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : "Not recorded"
+                  }
+                />
+                {tokenParam ? (
+                  <Info
+                    label="Token"
+                    value={
+                      data.dispenseTokenConsumed
+                        ? "Already redeemed (this QR has been used)"
+                        : data.tokenMatches === false
+                          ? "Token does not match this prescription"
+                          : "Token valid"
+                    }
+                    mono
+                  />
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-text">
+                This prescription is signed and ready to be presented at a
+                pharmacy. Each QR code can only be redeemed once.
+              </p>
+            )}
+          </section>
+        ) : null}
 
         {data.doctor ? (
           <section className="rounded-2xl border border-border bg-surface-2 p-5">

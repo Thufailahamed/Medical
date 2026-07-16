@@ -180,6 +180,11 @@ router.post(
     // somehow lost the race, the second signature insert will fail
     // with a unique-constraint violation and the route returns 409.
     const signedAt = new Date().toISOString();
+    // Migration 0059: bind this Rx to one dispense event. Minted inside
+    // the same tx as the signature INSERT so the row never exists in a
+    // `signed` state with a missing token. Atomic with withStatusGuard's
+    // patch — retry-on-409 cycles all mint a fresh value.
+    const dispenseToken = mintDispenseToken();
 
     let sig: any;
     let statusFlipped = false;
@@ -208,6 +213,7 @@ router.post(
             signedAt,
             signedPayloadHash: payloadHash,
             signatureId: s?.id ?? null,
+            dispenseToken,
           }
         );
         return { sig: s, flipped: guard.changed };
@@ -244,6 +250,7 @@ router.post(
         keyId: signingKeyId,
         payloadHash,
         signatureId: sig?.id,
+        dispenseTokenTail: tokenTail(dispenseToken),
       },
     });
 
@@ -273,6 +280,10 @@ router.post(
       payloadHash,
       signatureId: sig?.id,
       signingKeyId,
+      // Migration 0059: one-time-use redemption token. Embed in the
+      // signed PDF's QR (`?t=...`) and hand to the pharmacy operator
+      // who scans it. The dispense route consumes this exact string.
+      dispenseToken,
     });
   }
 );
@@ -288,6 +299,30 @@ function medRowsForSigning(rows: any[]) {
     endDate: r.endDate ?? null,
     masterMedicineId: r.masterMedicineId ?? null,
   }));
+}
+
+// ─── helpers: one-time-use redemption token (migration 0059) ────
+//
+// 32 random bytes → base64url (43 chars). Lives on the prescription
+// row, embedded in the QR URL the PDF renders, and consumed by the
+// pharmacy/doctor dispense route. The string format intentionally
+// stays out of the signed payload — the token is a redemption
+// control, not a content attestation; signing it would couple key
+// rotation to token rotation for no benefit.
+function b64urlencode(bytes: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function mintDispenseToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return b64urlencode(bytes); // → 43 chars
+}
+
+function tokenTail(t: string): string {
+  return t.length >= 10 ? `${t.slice(0, 6)}…${t.slice(-4)}` : "***";
 }
 
 // ─── GET /verify/:prescriptionId (PUBLIC) ─────────────────────
@@ -364,11 +399,41 @@ router.get("/verify/:prescriptionId", async (c) => {
     .where(eq(doctors.id, snap.rx.doctorId))
     .limit(1);
 
+  // Migration 0059: redemption state. Only join users when the row
+  // has actually been dispensed — keeps the by-id verify path
+  // (99% of calls) to a single round-trip.
+  const tx = c.req.query("t") || null;
+  let dispensedBy: { pharmacyName: string | null; userName: string | null } | null = null;
+  if (snap.rx.status === "dispensed" && snap.rx.dispensedByUserId) {
+    const [op] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, snap.rx.dispensedByUserId))
+      .limit(1);
+    dispensedBy = {
+      pharmacyName: snap.rx.dispensedByPharmacyName ?? null,
+      userName: op?.name ?? null,
+    };
+  }
+
   return c.json(
     {
       valid: ok,
       reason: ok ? undefined : "payload_mismatch",
       prescriptionId,
+      // E-Rx Phase 8: lifecycle. `'draft'` shouldn't reach this branch
+      // because there's no signature row, but include defensively.
+      status: snap.rx.status,
+      dispenseTokenConsumed: !!snap.rx.dispenseTokenConsumedAt,
+      // Informational echo of the supplied token (if any). The verify
+      // surface never *authenticates* the token — anyone with the URL
+      // sees the same shape — but echoing `t` lets the marketing-side
+      // render a "this token you scanned matches the prescription"
+      // affirmation without exposing full equality tables.
+      tokenMatches: tx ? tx === snap.rx.dispenseToken : null,
+      dispensedAt: snap.rx.dispensedAt ?? null,
+      cancelledAt: snap.rx.cancelledAt ?? null,
+      dispensedBy,
       signedAt: sig.signedAt,
       payloadHash: sig.payloadHash,
       signatureB64: sig.signatureB64,
