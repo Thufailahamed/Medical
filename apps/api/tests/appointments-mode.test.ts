@@ -38,7 +38,16 @@ beforeEach(async () => {
     { id: "user-doctor-mode", role: "doctor", name: "Doc", email: "d@test.local" },
   ]);
   db.seed("patients", [{ id: PATIENT_ID, userId: PATIENT_USER }]);
-  db.seed("doctors", [{ id: DOCTOR_ID, userId: "user-doctor-mode" }]);
+  // Round 6: doctor must be opted in to telemedicine for `mode: "video"`
+  // bookings to succeed; the new gate in appointments.ts rejects with
+  // 409 `reason: telemedicine_unavailable` otherwise.
+  db.seed("doctors", [
+    {
+      id: DOCTOR_ID,
+      userId: "user-doctor-mode",
+      telemedicineEnabled: true,
+    },
+  ]);
   db.seed("hospitals", [{ id: HOSPITAL_ID, name: "Test Hospital" }]);
   // Reasonable defaults so the slot-collision guard doesn't trigger.
   db.seed("appointments", []);
@@ -47,8 +56,9 @@ beforeEach(async () => {
 });
 
 describe("POST /appointments — mode handling", () => {
-  it("persists mode=video when supplied", async () => {
+  it("persists mode=video when supplied (doctor has telemedicineEnabled)", async () => {
     db.setWhere("patients", (r) => r.userId === PATIENT_USER);
+    db.setWhere("doctors", (r) => r.id === DOCTOR_ID);
 
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,
@@ -68,6 +78,7 @@ describe("POST /appointments — mode handling", () => {
 
   it("defaults to in_person when mode is omitted", async () => {
     db.setWhere("patients", (r) => r.userId === PATIENT_USER);
+    db.setWhere("doctors", (r) => r.id === DOCTOR_ID);
 
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,

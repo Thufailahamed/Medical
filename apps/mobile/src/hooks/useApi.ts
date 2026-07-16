@@ -1652,11 +1652,16 @@ export function useDoctorSearch(opts: {
   query?: string;
   specialization?: string;
   hospitalId?: string;
+  // Doctor Booking (Round 6): when true, restrict the result set to
+  // doctors who have opted in to video consultations. Mirrors the
+  // `?telemedicine=1` query param on GET /doctor/search.
+  telemedicine?: boolean;
 }) {
   const params = new URLSearchParams();
   if (opts.query) params.set("query", opts.query);
   if (opts.specialization) params.set("specialization", opts.specialization);
   if (opts.hospitalId) params.set("hospitalId", opts.hospitalId);
+  if (opts.telemedicine) params.set("telemedicine", "1");
 
   return useQuery({
     queryKey: ["doctors", "search", params.toString()],

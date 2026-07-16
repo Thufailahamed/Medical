@@ -1965,7 +1965,31 @@
     },
     "responseFast": "Replies in <1h",
     "responseQuick": "Replies in <6h",
-    "responseNormal": "Replies within a day"
+    "responseNormal": "Replies within a day",
+    "telemedicineToggle": "Online consultation",
+    "videoUnavailable": "This doctor doesn't offer video consultations. You'll visit in person.",
+    "videoUnavailableTitle": "Video not available",
+    "videoUnavailableBody": "Choose in-person below.",
+    "telemedicineOnly": "Online only",
+    "telemedicineAvailable": "Video available"
+  },
+  "doctorDetail": {
+    "title": "Doctor profile",
+    "onlineAvailable": "Online consultation available",
+    "onlineUnavailable": "In-person only",
+    "chooseCta": "Choose this doctor",
+    "fee": "Consultation fee",
+    "experience": "Experience",
+    "hospital": "Hospital",
+    "qualifications": "Qualifications",
+    "specialization": "Specialization",
+    "verified": "SLMC verified",
+    "regNo": "SLMC {{regNo}}",
+    "loading": "Loading doctor…",
+    "notFound": "Doctor not found",
+    "ratingCount": "{{count}} ratings",
+    "feeLkr": "LKR {{amount}}",
+    "experienceYears": "{{years}} years"
   },
   "cancellationPolicy": {
     "title": "Cancellation policy",

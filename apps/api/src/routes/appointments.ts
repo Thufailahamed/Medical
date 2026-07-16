@@ -90,6 +90,20 @@ appointmentsRouter.post("/", authMiddleware, async (c) => {
     .limit(1);
   if (!doctor) return c.json({ error: "Doctor not found" }, 404);
 
+  // Doctor Booking (Round 6): gate video-mode bookings on the doctor's
+  // telemedicine opt-in flag. Patients can still request video in the
+  // mobile UI, but the server is the source of truth — a doctor who
+  // hasn't enabled video gets no `mode=video` bookings.
+  if (data.mode === "video" && !(doctor as any).telemedicineEnabled) {
+    return c.json(
+      {
+        error: "This doctor does not offer video consultations",
+        reason: "telemedicine_unavailable",
+      },
+      409
+    );
+  }
+
   const doctorHospitalId = (doctor as any).hospitalId;
   if (doctorHospitalId && doctorHospitalId !== data.hospitalId) {
     return c.json(

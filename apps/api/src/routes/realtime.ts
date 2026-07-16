@@ -35,9 +35,11 @@ import {
   chatSessions,
   walkIns,
   patients,
+  doctors,
   hospitalStaff,
   patientLinks,
   caretakerMarketplaceInquiries,
+  appointments,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { accessiblePatientsFor } from "../lib/access";
@@ -160,6 +162,21 @@ realtimeRouter.get("/", async (c) => {
     scopedPatientIds = rows.map((r: any) => r.pid).filter(Boolean);
   }
 
+  // Doctor Booking: doctors also need a `doctorId` dimension so the
+  // appointments poller can emit updates on slots they OWN — not just
+  // appointments for any accessible patient (those rows may be booked
+  // with a different doctor). Resolved once at connection time so each
+  // 2 s tick doesn't repeat the lookup.
+  let scopedDoctorId: string | null = null;
+  if (role === "doctor") {
+    const [d] = await db
+      .select({ id: doctors.id })
+      .from(doctors)
+      .where(eq(doctors.userId, userId))
+      .limit(1);
+    if (d) scopedDoctorId = d.id;
+  }
+
   let closed = false;
   const seenSets: Record<string, Set<string>> = {};
   const cursors: Record<string, string> = {};
@@ -168,6 +185,7 @@ realtimeRouter.get("/", async (c) => {
     role,
     userId,
     scopedPatientIds,
+    scopedDoctorId,
     db,
   });
 
@@ -239,18 +257,25 @@ realtimeRouter.get("/", async (c) => {
           rows.reverse();
           for (const row of rows) {
             if (closed) break;
-            const id = row[poller.idColumn];
-            if (!id || seen.has(id)) continue;
-            seen.add(id);
+            // Status-driven pollers (appointments) override the dedup key
+            // to include the cursor value so a row's status mutation is
+            // emitted again instead of being skipped by the seen-set.
+            const dedupKey = poller.seenKey
+              ? poller.seenKey(row)
+              : row[poller.idColumn];
+            const sseId = row[poller.idColumn];
+            if (!dedupKey || seen.has(dedupKey)) continue;
+            seen.add(dedupKey);
             // Advance the cursor by the cursor column's value (not the id).
             // For most pollers idColumn === cursorColumn so this is the
             // same string; for pollers that emit on status mutation
-            // (marketplace_inquiry) it lets `gt(cursorColumn, cur)` catch
-            // rows whose updatedAt moved forward without a new id.
+            // (marketplace_inquiry, appointment) it lets
+            // `gt(cursorColumn, cur)` catch rows whose updatedAt moved
+            // forward without a new id.
             const nextCursor = (row as any)[poller.cursorColumnName];
             if (nextCursor) cursors[poller.key] = String(nextCursor);
             await stream.writeSSE({
-              id,
+              id: sseId,
               event: poller.eventName,
               data: JSON.stringify(poller.payload(row)),
             });
@@ -296,9 +321,10 @@ function buildPollers(ctx: {
   role: string;
   userId: string;
   scopedPatientIds: string[];
+  scopedDoctorId?: string | null;
   db: any;
 }): Poller[] {
-  const { userId, scopedPatientIds } = ctx;
+  const { userId, scopedPatientIds, scopedDoctorId } = ctx;
   const hasScope = scopedPatientIds.length > 0;
   const inScope = (col: any) => inArray(col, scopedPatientIds);
 
@@ -548,6 +574,71 @@ function buildPollers(ctx: {
         updatedAt: r.updatedAt,
       }),
     },
+    {
+      // Doctor Booking: emit on every appointment mutation so the
+      // patient + doctor SSE consumers refresh queue / status / mode /
+      // payment without polling. Cursor advances on `updatedAt`
+      // (status flips + queue compactor + payment status updates all
+      // bump updatedAt without changing id). `seenKey` extends the
+      // seen-set with the updatedAt value so a row whose status flips
+      // re-emits instead of being skipped by id-keyed dedup.
+      //
+      // Patient scope: appointments whose patientId matches the
+      // caller's patient row.
+      // Doctor scope: appointments whose doctorId matches the
+      // caller's doctor row (NOT patient-scope — a doctor needs to see
+      // their own slot regardless of patient access).
+      // Caretaker scope: same as patient — handled by the patient-id
+      // scoping resolved upstream in the SSE handler.
+      key: "appointment",
+      eventName: "appointment",
+      skip:
+        ctx.role === "doctor"
+          ? !scopedDoctorId
+          : ctx.role === "patient" || ctx.role === "caretaker"
+            ? !hasScope
+            : true,
+      idColumn: "id",
+      cursorColumn: appointments.updatedAt,
+      cursorColumnName: "updatedAt",
+      seenKey: (r: any) => `${r.id}:${r.updatedAt ?? ""}`,
+      where: () => {
+        if (ctx.role === "doctor" && scopedDoctorId) {
+          return eq(appointments.doctorId, scopedDoctorId);
+        }
+        return inScope(appointments.patientId);
+      },
+      select: (where: any) =>
+        ctx.db
+          .select({
+            id: appointments.id,
+            doctorId: appointments.doctorId,
+            patientId: appointments.patientId,
+            hospitalId: appointments.hospitalId,
+            date: appointments.date,
+            time: appointments.time,
+            status: appointments.status,
+            mode: appointments.mode,
+            queueNumber: appointments.queueNumber,
+            paymentStatus: appointments.paymentStatus,
+            updatedAt: appointments.updatedAt,
+          })
+          .from(appointments)
+          .where(where),
+      payload: (r: any) => ({
+        id: r.id,
+        doctorId: r.doctorId,
+        patientId: r.patientId,
+        hospitalId: r.hospitalId,
+        date: r.date,
+        time: r.time,
+        status: r.status,
+        mode: r.mode,
+        queueNumber: r.queueNumber,
+        paymentStatus: r.paymentStatus,
+        updatedAt: r.updatedAt,
+      }),
+    },
   ];
 
   return pollers;
@@ -566,6 +657,14 @@ type Poller = {
    * `gt(cursorColumn, cur)` compares the right values.
    */
   cursorColumnName?: string;
+  /**
+   * Override the seen-set key. Defaults to `idColumn` so the same row
+   * is never re-emitted. Status-driven pollers (appointment) MUST set
+   * this to include the cursor value (e.g. `${id}:${updatedAt}`) so a
+   * row whose status flips re-emits instead of being skipped by
+   * id-keyed dedup.
+   */
+  seenKey?: (row: any) => string;
   where: () => any;
   select: (where: any) => any;
   payload: (row: any) => Record<string, unknown>;

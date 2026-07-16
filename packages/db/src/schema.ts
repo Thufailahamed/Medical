@@ -230,6 +230,14 @@ export const doctors = sqliteTable(
     consultationFee: real("consultation_fee"),
     availableSlots: text("available_slots"), // JSON array
     rating: real("rating"),
+    // Doctor Booking (Round 6): opt-in flag for video consultations.
+    // When 0, `POST /appointments` rejects `mode=video` with 409
+    // `reason: telemedicine_unavailable` and the mobile mode chooser
+    // hides the video card. Default 0 so existing doctors stay
+    // in-person-only until an admin or seed script opts them in.
+    telemedicineEnabled: integer("telemedicine_enabled", { mode: "boolean" })
+      .notNull()
+      .default(false),
     // Phase 3.1: SLMC compliance. `slmc_registration_no` is the official
     // Sri Lanka Medical Council number; `slmc_verified_at` is set by our
     // manual review pass (NULL until verified). No external API exists
@@ -515,6 +523,14 @@ export const appointments = sqliteTable("appointments", {
     .notNull()
     .default("in_person"),
   createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  // Round 6: bumped by the `appointments_set_updated_at` SQLite
+  // trigger on every UPDATE. Drives the SSE appointment poller's
+  // cursor (see apps/api/src/routes/realtime.ts). Without this, the
+  // poller couldn't catch status flips / queue compactor / payment
+  // confirmations because `created_at` only changes on insert.
+  updatedAt: text("updated_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   // Round 3 P1: post-visit summary email + 1-tap rating. `summaryEmailSentAt`

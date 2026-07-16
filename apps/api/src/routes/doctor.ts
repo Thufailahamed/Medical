@@ -1032,6 +1032,11 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
   const query = (c.req.query("query") || "").trim();
   const specialization = (c.req.query("specialization") || "").trim();
   const hospitalId = (c.req.query("hospitalId") || "").trim();
+  // Doctor Booking (Round 6): telemedicine filter. When `telemedicine=1`
+  // the result set is restricted to doctors who have opted in to video
+  // consultations — surfaced in the mobile booking screen as a toggle
+  // chip next to the specialty chips.
+  const telemedicine = (c.req.query("telemedicine") || "").trim() === "1";
 
   const conditions: any[] = [];
   if (query) {
@@ -1043,6 +1048,9 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
   }
   if (hospitalId) {
     conditions.push(eq(doctors.hospitalId, hospitalId));
+  }
+  if (telemedicine) {
+    conditions.push(eq(doctors.telemedicineEnabled, true));
   }
 
   const baseQuery = db
@@ -1060,6 +1068,10 @@ doctorRouter.get("/search", authMiddleware, async (c) => {
       hospitalName: hospitals.name,
       slmcRegistrationNo: doctors.slmcRegistrationNo,
       slmcVerifiedAt: doctors.slmcVerifiedAt,
+      // Doctor Booking (Round 6): telemedicine flag on every search
+      // row so the mobile doctor list can render an "Online" pill on
+      // each card without a second roundtrip.
+      telemedicineEnabled: doctors.telemedicineEnabled,
     })
     .from(doctors)
     .innerJoin(users, eq(doctors.userId, users.id))
@@ -1122,6 +1134,10 @@ doctorRouter.get("/:id", authMiddleware, async (c) => {
       hospitalId: doctors.hospitalId,
       hospitalName: hospitals.name,
       hospitalAddress: hospitals.address,
+      // Doctor Booking (Round 6): detail screen surfaces the video
+      // capability so the patient can decide whether to continue in
+      // the booking flow vs. pick another doctor.
+      telemedicineEnabled: doctors.telemedicineEnabled,
     })
     .from(doctors)
     .innerJoin(users, eq(doctors.userId, users.id))

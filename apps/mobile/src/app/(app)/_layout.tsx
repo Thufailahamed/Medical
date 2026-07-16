@@ -376,6 +376,10 @@ export default function AppLayout() {
         name="marketplace/[caretakerId]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="doctor/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

@@ -1,8 +1,8 @@
 // @ts-nocheck
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { View, Text, Pressable } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -78,6 +78,13 @@ function buildSchema(t: (k: string) => string) {
 
 export default function BookAppointmentScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    // Set when the user navigates here from the doctor detail screen
+    // via "Choose this doctor" — pre-fills doctorId + hospitalId and
+    // advances straight to step 2 (date + time).
+    prefillDoctorId?: string;
+    prefillHospitalId?: string;
+  }>();
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
   const bookAppointment = useBookAppointment();
@@ -87,6 +94,10 @@ export default function BookAppointmentScreen() {
   const [step, setStep] = useState(1);
   const [query, setQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState<string | null>(null);
+  // Doctor Booking (Round 6): telemedicine filter chip state. Mirrors
+  // the `?telemedicine=1` server-side filter and is read by the
+  // useDoctorSearch hook.
+  const [telemedicineOnly, setTelemedicineOnly] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
@@ -95,6 +106,7 @@ export default function BookAppointmentScreen() {
   const { data: doctorsData, isLoading: doctorsLoading, isError, refetch } = useDoctorSearch({
     query: debouncedQuery || undefined,
     specialization: specialtyFilter || undefined,
+    telemedicine: telemedicineOnly || undefined,
   });
 
   const doctors: any[] = doctorsData?.doctors || [];
@@ -117,6 +129,39 @@ export default function BookAppointmentScreen() {
 
   const values = watch();
   const selectedDoctor = doctors.find((d) => d.doctorId === values.doctorId);
+
+  // Doctor Booking (Round 6): when the doctor detail screen pushes back
+  // with prefillDoctorId, seed the form + advance to step 2 so the
+  // patient lands on the date picker. We use setValue (not reset)
+  // because react-hook-form's reset would clobber user input on the
+  // back-navigation re-mount.
+  useEffect(() => {
+    if (params.prefillDoctorId) {
+      setValue("doctorId", params.prefillDoctorId, { shouldValidate: true });
+      if (params.prefillHospitalId) {
+        setValue("hospitalId", params.prefillHospitalId, { shouldValidate: true });
+      }
+      setStep(2);
+      // Clear the param so a hot reload / re-mount doesn't loop back
+      // to step 2 unexpectedly.
+      router.setParams({ prefillDoctorId: undefined, prefillHospitalId: undefined });
+    }
+  }, [params.prefillDoctorId, params.prefillHospitalId, router, setValue]);
+
+  // Doctor Booking (Round 6): if the selected doctor doesn't offer
+  // video (e.g. the patient flipped the telemedicine filter off and
+  // re-picked, or the server returned a row with telemedicineEnabled
+  // changed), force the mode back to in_person so the booking can't
+  // slip through with a stale "video" selection.
+  useEffect(() => {
+    if (
+      values.mode === "video" &&
+      selectedDoctor &&
+      !selectedDoctor.telemedicineEnabled
+    ) {
+      setValue("mode", "in_person", { shouldValidate: false });
+    }
+  }, [values.mode, selectedDoctor, setValue]);
 
   const dateStr = values.date ? values.date.toISOString().slice(0, 10) : "";
   const { data: availabilityData } = useDoctorAvailability(
@@ -248,7 +293,7 @@ export default function BookAppointmentScreen() {
               autoCapitalize="none"
             />
 
-            {/* Specialty chips */}
+            {/* Specialty chips + telemedicine toggle */}
             {specialties.length > 0 ? (
               <View
                 style={{
@@ -261,6 +306,17 @@ export default function BookAppointmentScreen() {
                   label={t("bookAppointment.specialtyAll")}
                   tone={specialtyFilter === null ? "primary" : "neutral"}
                   onPress={() => setSpecialtyFilter(null)}
+                />
+                {/* Doctor Booking (Round 6): "Online consultation" filter
+                    chip. Toggling adds telemedicine=1 to the search
+                    query, narrowing the list to doctors who offer video.
+                    Independent from the specialty filter so a patient can
+                    combine "Cardiology" + "Online only". */}
+                <Pill
+                  label={t("bookAppointment.telemedicineToggle")}
+                  tone={telemedicineOnly ? "primary" : "neutral"}
+                  onPress={() => setTelemedicineOnly((v) => !v)}
+                  icon={Video}
                 />
                 {specialties.map((s) => (
                   <Pill
@@ -337,13 +393,18 @@ export default function BookAppointmentScreen() {
                       icon={Stethoscope}
                       iconTone="primary"
                       meta={
-                        d.slmcVerifiedAt || d.responseTime ? (
-                          <View style={{ flexDirection: "row", gap: 6 }}>
+                        d.slmcVerifiedAt || d.responseTime || d.telemedicineEnabled ? (
+                          <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
                             {d.slmcVerifiedAt ? (
                               <VerifiedBadge
                                 verified={!!d.slmcVerifiedAt}
                                 regNo={d.slmcRegistrationNo}
                               />
+                            ) : null}
+                            {d.telemedicineEnabled ? (
+                              <Pill tone="success" icon={Video} testID="card-online">
+                                {t("bookAppointment.telemedicineAvailable")}
+                              </Pill>
                             ) : null}
                             {d.responseTime === "fast" ? (
                               <Pill tone="success" testID="rt-fast">
@@ -384,11 +445,15 @@ export default function BookAppointmentScreen() {
                         ) : undefined
                       }
                       onPress={() => {
-                        setValue("doctorId", d.doctorId, {
-                          shouldValidate: true,
-                        });
-                        setValue("hospitalId", d.hospitalId || "dev-hospital-001", {
-                          shouldValidate: true,
+                        // Doctor Booking (Round 6): tap pushes to the
+                        // doctor detail screen so the patient can read
+                        // bio + SLMC + telemedicine availability before
+                        // committing. The detail screen's "Choose this
+                        // doctor" CTA pops back here with prefill params
+                        // and advances the stepper.
+                        router.push({
+                          pathname: "/(app)/doctor/[id]",
+                          params: { id: d.doctorId },
                         });
                       }}
                     />
@@ -587,13 +652,70 @@ export default function BookAppointmentScreen() {
                 name="mode"
                 render={({ field: { value, onChange } }) => (
                   <>
-                    <ModeOptionCard
-                      active={value === "video"}
-                      onPress={() => onChange("video")}
-                      icon={Video}
-                      label={t("bookAppointment.modeVideoLabel")}
-                      body={t("bookAppointment.modeVideoBody")}
-                    />
+                    {/* Doctor Booking (Round 6): video card is hidden
+                        when the selected doctor hasn't opted in to
+                        telemedicine. The useEffect above also forces
+                        `mode` back to "in_person" if the doctor changes
+                        under us — this is the user-visible part of that
+                        contract. */}
+                    {selectedDoctor?.telemedicineEnabled ? (
+                      <ModeOptionCard
+                        active={value === "video"}
+                        onPress={() => onChange("video")}
+                        icon={Video}
+                        label={t("bookAppointment.modeVideoLabel")}
+                        body={t("bookAppointment.modeVideoBody")}
+                      />
+                    ) : (
+                      <View
+                        testID="video-unavailable"
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: spacing.md,
+                          padding: spacing.md,
+                          borderRadius: 16,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.surface,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 14,
+                            backgroundColor: colors.surface,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Video
+                            size={20}
+                            color={colors.textSubtle}
+                            strokeWidth={2.2}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              typography.title.sm,
+                              { color: colors.text, fontWeight: "700" },
+                            ]}
+                          >
+                            {t("bookAppointment.videoUnavailableTitle")}
+                          </Text>
+                          <Text
+                            style={[
+                              typography.body.sm,
+                              { color: colors.textMuted, marginTop: 2 },
+                            ]}
+                          >
+                            {t("bookAppointment.videoUnavailableBody")}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                     <ModeOptionCard
                       active={value === "in_person"}
                       onPress={() => onChange("in_person")}
