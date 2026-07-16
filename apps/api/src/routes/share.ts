@@ -6,7 +6,7 @@
 // GET  /share/links/:id              fetch summary (no auth)
 
 import { Hono } from "hono";
-import { eq, and, or, isNull, desc, gt } from "drizzle-orm";
+import { eq, and, or, isNull, desc, gt, inArray } from "drizzle-orm";
 import {
   shareLinks,
   shareLinkViews,
@@ -124,8 +124,14 @@ shareRouter.post("/links", authMiddleware, requireRole("patient"), async (c) => 
   // belongs to this patient's record set. The prescriptionId is stored
   // as a sibling column so a single share_links row cleanly carries
   // either an FM-scoped OR a prescription-scoped payload — never both.
+  //
+  // Tier 1: share-pack takes precedence over prescription-share when
+  // both are accidentally supplied. The validator permits both because
+  // some clients will use the same shape for either flow; here we
+  // resolve priority explicitly so the resulting link is unambiguous.
   let kind: string = "record_share";
   let prescriptionId: string | null = null;
+  let recordIdsJson: string | null = null;
   if (data.prescriptionId) {
     const [rx] = await db
       .select({ id: prescriptions.id, patientId: prescriptions.patientId })
@@ -140,6 +146,31 @@ shareRouter.post("/links", authMiddleware, requireRole("patient"), async (c) => 
     }
     kind = "prescription_share";
     prescriptionId = rx.id;
+  } else if (data.recordIds?.length) {
+    // Tier 1 records: share-pack. Reject any id the patient doesn't own
+    // rather than silently filtering — a single bad id usually means a
+    // stale client and the right move is a 400 so the caller knows.
+    const owned = await db
+      .select({ id: medicalRecords.id })
+      .from(medicalRecords)
+      .where(
+        and(
+          inArray(medicalRecords.id, data.recordIds),
+          eq(medicalRecords.patientId, patient.id)
+        )
+      );
+    if (owned.length !== data.recordIds.length) {
+      return c.json(
+        {
+          error: "One or more recordIds do not belong to this patient",
+          expected: data.recordIds.length,
+          owned: owned.length,
+        },
+        400
+      );
+    }
+    kind = "record_bundle";
+    recordIdsJson = JSON.stringify(data.recordIds);
   }
 
   const token = generateToken();
@@ -162,6 +193,7 @@ shareRouter.post("/links", authMiddleware, requireRole("patient"), async (c) => 
       familyMemberId: data.familyMemberId ?? null,
       kind,
       prescriptionId,
+      recordIds: recordIdsJson,
     } as any)
     .returning();
 
@@ -239,7 +271,12 @@ shareRouter.get("/:token", async (c) => {
   // route. Don't let the record-share bundle handler accidentally expose
   // them — treat as 404 to avoid leaking that the token exists.
   const kind = (link as any).kind as string | undefined;
-  if (kind && kind !== "record_share" && kind !== "prescription_share") {
+  if (
+    kind &&
+    kind !== "record_share" &&
+    kind !== "prescription_share" &&
+    kind !== "record_bundle"
+  ) {
     return c.json({ error: "Invalid link" }, 404);
   }
   if (link.revoked) return c.json({ error: "Link has been revoked" }, 410);
@@ -318,6 +355,92 @@ shareRouter.get("/:token", async (c) => {
       patient: pat ?? null,
       verifyUrl: `${publicUrl}/verify/${rx.id}`,
       pdfUrl: `/share/${token}/prescription.pdf`,
+    });
+  }
+
+  // Tier 1 records: share-pack bundle. Returns the explicit set of
+  // medical_records the patient picked at mint time. No allergies,
+  // medicines, or appointments — just the chosen records — so the
+  // recipient sees exactly the dossier the patient intended to share.
+  if (kind === "record_bundle") {
+    let ids: string[] = [];
+    try {
+      const raw = (link as any).recordIds as string | null | undefined;
+      ids = raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      ids = [];
+    }
+    if (!ids.length) {
+      return c.json({ error: "Share link has no records" }, 410);
+    }
+
+    // Audit every public GET (HIPAA §164.312(b)). One row per request,
+    // mirroring the prescription_share + record_share branches.
+    const ip =
+      c.req.header("cf-connecting-ip") ||
+      c.req.header("x-forwarded-for") ||
+      null;
+    const ua = c.req.header("user-agent") || null;
+    await db
+      .insert(shareLinkViews)
+      .values({ linkId: link.id, ip, userAgent: ua } as any);
+
+    // Fetch the exact records the patient packed — preserve mint order
+    // (Zod enforces array order; recipients expect it). Drizzle returns
+    // by primary key without ORDER BY, so we map back to `ids` order.
+    const recsById = new Map<string, any>();
+    const recRows = await db
+      .select()
+      .from(medicalRecords)
+      .where(
+        and(
+          inArray(medicalRecords.id, ids),
+          eq(medicalRecords.patientId, link.patientId)
+        )
+      );
+    for (const r of recRows) recsById.set(r.id, r);
+    const records = ids
+      .map((id) => recsById.get(id))
+      .filter((r): r is NonNullable<typeof r> => Boolean(r));
+
+    const [patient] = await db
+      .select({
+        id: patients.id,
+        name: users.name,
+        dob: patients.dateOfBirth,
+        bloodGroup: patients.bloodGroup,
+        gender: patients.gender,
+      })
+      .from(patients)
+      .innerJoin(users, eq(users.id, patients.userId))
+      .where(eq(patients.id, link.patientId))
+      .limit(1);
+
+    const publicUrl = c.env.PUBLIC_URL || "https://app.healthhub.app";
+    return c.json({
+      label: link.label,
+      expiresAt: link.expiresAt,
+      generatedAt: new Date().toISOString(),
+      kind: "record_bundle",
+      patient: patient
+        ? {
+            id: patient.id,
+            name: patient.name,
+            dob: patient.dob,
+            bloodGroup: patient.bloodGroup,
+            gender: patient.gender,
+          }
+        : null,
+      records: records.map((r: any) => ({
+        id: r.id,
+        kind: r.kind,
+        title: r.title,
+        date: r.recordDate || r.date,
+        diagnosis: r.diagnosis,
+        summary: r.summary,
+        tags: r.tags,
+      })),
+      verifyUrl: `${publicUrl}/share/${token}`,
     });
   }
 

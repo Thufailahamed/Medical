@@ -1345,6 +1345,11 @@ export const shareLinks = sqliteTable(
     // the link exposes; the public GET /share/:token +
     // /share/:token/prescription.pdf routes render the signed PDF.
     prescriptionId: text("prescription_id"),
+    // Tier 1 records: share-pack. When `kind` is "record_bundle" this
+    // column carries the JSON array of medical_records.id that the
+    // public GET /share/:token route exposes (max 50 — Zod-enforced).
+    // NULL for legacy kinds. Schema-0057.
+    recordIds: text("record_ids"),
   },
   (t) => ({
     familyMemberIdx: index("idx_share_links_family_member").on(

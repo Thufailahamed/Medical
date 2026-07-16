@@ -55,6 +55,7 @@ import { recordUploadEnvelopeSchema, type RecordKind } from "@healthcare/shared/
 import { listByKind, findByHash } from "../lib/records-v3-source";
 import { renderPrescriptionPdf } from "../lib/prescription-pdf";
 import { resolvePatientContext } from "../lib/caretaker";
+import { buildSnapshot } from "../lib/snapshot";
 import type { AppEnvironment } from "../types";
 
 const medicalRecordsRouter = new Hono<AppEnvironment>();
@@ -1229,6 +1230,23 @@ medicalRecordsRouter.get("/me/canonical", authMiddleware, requireRole("patient",
     medicines: medRows,
     vaccinations: vaccRows,
   });
+});
+
+// ─── Tier 1 records: Patient Health Snapshot ───────────────────
+//
+// GET /me/snapshot — derived from the same 9 table fetches that
+// /me/canonical already performs. Returns red-banner allergies, drug
+// × allergy warnings, chronic conditions (records tagged "chronic" or
+// matching the keyword list), active medicines (with prescriber name),
+// last 3 entries per vital bucket, upcoming follow-ups, recent visits.
+// Same shape consumed by the doctor-portal mirror endpoint.
+medicalRecordsRouter.get("/me/snapshot", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
+  const db = c.get("db");
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ error: "patient_not_found" }, 404);
+
+  const snapshot = await buildSnapshot(db, patient.id);
+  return c.json(snapshot);
 });
 
 // ─── Phase v3: POST /medical-records/ — envelope write ────────────

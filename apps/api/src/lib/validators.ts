@@ -412,6 +412,12 @@ export const createShareLinkSchema = z.object({
   // routes surface the signed PDF + verification URL. Server enforces
   // that the prescription belongs to the caller's principal patient.
   prescriptionId: z.string().min(1).max(64).optional(),
+  // Tier 1 records: share-pack. When present, the share link is scoped to
+  // a hand-picked set of medical_records (kind="record_bundle") and the
+  // public GET /share/:token route returns those records instead of the
+  // legacy "last 6 months" bundle. Server enforces ownership + the 50-row
+  // cap so a patient can't accidentally mint an unbounded pack.
+  recordIds: z.array(z.string().uuid()).min(1).max(50).optional(),
 });
 
 export const appointmentSchema = z.object({

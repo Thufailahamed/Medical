@@ -11,6 +11,7 @@ import { Skeleton } from "@/portal/components/ui/Empty";
 import { Input } from "@/portal/components/ui/Form";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
+import { SnapshotPanel } from "@/portal/components/records/SnapshotPanel";
 
 interface MedicalRecord {
   id: string;
@@ -66,6 +67,9 @@ export default function PatientRecordsPage() {
           })}
         </p>
       </header>
+
+      {/* Tier 1 records: Patient Health Snapshot (above list, full-width). */}
+      <SnapshotPanel />
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
