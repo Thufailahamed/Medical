@@ -20,6 +20,7 @@ import {
   Dimensions,
   ActionSheetIOS,
   Platform,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -42,6 +43,8 @@ import {
   ChevronRight,
   TrendingDown,
   ArrowUpRight,
+  X,
+  Scale,
 } from "lucide-react-native";
 
 import { useInsuranceMarketplaceCatalog } from "@/hooks/useApi";
@@ -274,10 +277,16 @@ function PlanRichCard({
   plan,
   providerName,
   onPress,
+  onLongPress,
+  comparing,
+  compareSelected,
 }: {
   plan: any;
   providerName: string;
   onPress: () => void;
+  onLongPress?: () => void;
+  comparing?: boolean;
+  compareSelected?: boolean;
 }) {
   const { colors, spacing, radius } = useTheme();
   const hasDiscount = plan.annualDiscountPct > 0;
@@ -285,12 +294,19 @@ function PlanRichCard({
   const PlanIcon = meta.icon;
 
   return (
-    <Pressable onPress={onPress} haptic="light">
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      haptic="light"
+    >
       <Card
         style={{
           padding: spacing.md,
           gap: spacing.sm,
           borderRadius: radius.xl,
+          borderWidth: compareSelected ? 2 : 0,
+          borderColor: compareSelected ? colors.primary : "transparent",
         }}
       >
         {/* Provider row */}
@@ -303,6 +319,32 @@ function PlanRichCard({
         >
           <ProviderAvatar name={providerName} size={36} />
           <View style={{ flex: 1 }}>
+            {comparing ? null : (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -6,
+                  right: -6,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: compareSelected
+                    ? colors.primary
+                    : "transparent",
+                  borderWidth: compareSelected ? 0 : 1.5,
+                  borderColor: colors.border,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 2,
+                }}
+              >
+                {compareSelected ? (
+                  <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>
+                    ✓
+                  </Text>
+                ) : null}
+              </View>
+            )}
             <Text
               style={{
                 fontSize: 12,
@@ -600,6 +642,10 @@ export default function Marketplace() {
   const [planType, setPlanType] = useState<string | undefined>(undefined);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"rating" | "premium" | "premium-desc">("rating");
+  // Compare tray: long-press a plan card to add it; up to 3 plans.
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [comparing, setComparing] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const debouncedQ = useDebounce(q, 250);
 
   const { data, isLoading, refetch, isRefetching } = useInsuranceMarketplaceCatalog({
@@ -634,6 +680,42 @@ export default function Marketplace() {
 
   const totalProviders = providers.length;
   const totalPlans = plans.length;
+
+  // ─── Compare handlers ──────────────────────────────────
+  // Long-press toggles a plan into the comparison tray (max 3).
+  const toggleCompare = useCallback((planId: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(planId)) return prev.filter((id) => id !== planId);
+      if (prev.length >= 3) return prev; // cap at 3
+      return [...prev, planId];
+    });
+    setComparing(true);
+  }, []);
+
+  const clearCompare = useCallback(() => {
+    setCompareIds([]);
+    setComparing(false);
+  }, []);
+
+  const comparePlans = useMemo(
+    () => compareIds.map((id) => plans.find((p: any) => p.id === id)).filter(Boolean),
+    [compareIds, plans],
+  );
+
+  // Pick the cheapest plan among the comparison set to badge it.
+  const cheapestId = useMemo(() => {
+    if (comparePlans.length < 2) return null;
+    let min = Infinity;
+    let id: string | null = null;
+    for (const p of comparePlans) {
+      const v = (p as any).monthlyPremiumLkr;
+      if (typeof v === "number" && v < min) {
+        min = v;
+        id = (p as any).id;
+      }
+    }
+    return id;
+  }, [comparePlans]);
 
   const handleSortPress = useCallback(() => {
     if (Platform.OS === "ios") {
@@ -960,6 +1042,9 @@ export default function Marketplace() {
               plan={plan}
               providerName={providerById[plan.providerId]?.name ?? "Insurer"}
               onPress={() => router.push(`/insurance/plans/${plan.id}`)}
+              onLongPress={() => toggleCompare(plan.id)}
+              comparing={comparing}
+              compareSelected={compareIds.includes(plan.id)}
             />
           ))}
           {isRefetching ? (
@@ -999,6 +1084,424 @@ export default function Marketplace() {
           <View style={{ height: spacing.xxxl }} />
         </View>
       ) : null}
+
+      {/* ─── Compare tray (visible while picking) ─── */}
+      {compareIds.length > 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 12,
+            right: 12,
+            bottom: 18,
+            backgroundColor: colors.surface,
+            borderRadius: radius.xl,
+            padding: 12,
+            gap: 10,
+            borderWidth: 1,
+            borderColor: colors.primary,
+            ...shadow.lg,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Scale size={16} color={colors.primary} strokeWidth={2.4} />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "700",
+                color: colors.text,
+                flex: 1,
+              }}
+            >
+              {t(
+                "insurance.compare.title",
+                "Compare {{count}} plan",
+                { count: compareIds.length },
+              )}
+            </Text>
+            <Pressable onPress={clearCompare} hitSlop={8} haptic="light">
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  fontWeight: "600",
+                }}
+              >
+                {t("common.clear", "Clear")}
+              </Text>
+            </Pressable>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 6,
+              flexWrap: "wrap",
+            }}
+          >
+            {compareIds.map((id) => {
+              const p: any = plans.find((x: any) => x.id === id);
+              const name = p?.name ?? id.slice(0, 6);
+              return (
+                <View
+                  key={id}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    borderRadius: 999,
+                    backgroundColor: colors.surfaceMuted ?? colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "600",
+                      color: colors.text,
+                      maxWidth: 140,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {name}
+                  </Text>
+                  <Pressable
+                    onPress={() => toggleCompare(id)}
+                    hitSlop={6}
+                  >
+                    <X size={12} color={colors.textMuted} strokeWidth={2.4} />
+                  </Pressable>
+                </View>
+              );
+            })}
+            {compareIds.length < 3 ? (
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: colors.textMuted,
+                  fontWeight: "600",
+                  alignSelf: "center",
+                }}
+              >
+                {t(
+                  "insurance.compare.addMore",
+                  "Long-press another plan to add ({{rem}} left)",
+                  { rem: 3 - compareIds.length },
+                )}
+              </Text>
+            ) : null}
+          </View>
+          <Pressable
+            disabled={compareIds.length < 2}
+            onPress={() => {
+              // Modal is rendered below — opening handled via state
+              setDrawerOpen(true);
+            }}
+            style={{
+              backgroundColor:
+                compareIds.length >= 2 ? colors.primary : colors.surfaceMuted,
+              paddingVertical: 12,
+              borderRadius: radius.lg,
+              alignItems: "center",
+            }}
+            haptic={compareIds.length >= 2 ? "medium" : undefined}
+          >
+            <Text
+              style={{
+                color: compareIds.length >= 2 ? "#fff" : colors.textMuted,
+                fontWeight: "700",
+                fontSize: 14,
+              }}
+            >
+              {t("insurance.compare.cta", "Compare side-by-side")}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/* ─── Comparison modal ─── */}
+      <Modal
+        visible={drawerOpen && comparePlans.length >= 2}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setDrawerOpen(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(15,23,42,0.55)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingTop: 14,
+              paddingHorizontal: spacing.lg,
+              paddingBottom: spacing.xl,
+              maxHeight: "85%",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: spacing.md,
+              }}
+            >
+              <Scale size={18} color={colors.primary} strokeWidth={2.4} />
+              <Text
+                style={{
+                  fontSize: 17,
+                  fontWeight: "700",
+                  color: colors.text,
+                  flex: 1,
+                  marginLeft: 8,
+                }}
+              >
+                {t("insurance.compare.heading", "Side-by-side")}
+              </Text>
+              <Pressable onPress={() => setDrawerOpen(false)} hitSlop={8}>
+                <X size={20} color={colors.textMuted} strokeWidth={2.4} />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Header row */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10 }}
+              >
+                {comparePlans.map((p: any) => {
+                  const provName =
+                    providerById[p.providerId]?.name ?? "Insurer";
+                  const isCheapest = p.id === cheapestId;
+                  return (
+                    <View
+                      key={p.id}
+                      style={{
+                        width: 200,
+                        padding: 12,
+                        borderRadius: radius.lg,
+                        borderWidth: 1.5,
+                        borderColor: isCheapest
+                          ? colors.success
+                          : colors.border,
+                        backgroundColor: colors.surface,
+                        gap: 8,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <ProviderAvatar name={provName} size={28} />
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: colors.textMuted,
+                            fontWeight: "600",
+                            flex: 1,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {provName}
+                        </Text>
+                        {isCheapest ? (
+                          <Pill tone="success">Best price</Pill>
+                        ) : null}
+                      </View>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "700",
+                          color: colors.text,
+                        }}
+                        numberOfLines={2}
+                      >
+                        {p.name}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                        {p.planType.replace(/_/g, " ")}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+
+              <View style={{ height: spacing.md }} />
+
+              {/* Comparison rows */}
+              {[
+                {
+                  label: t("insurance.compare.premium", "Monthly premium"),
+                  fmt: (p: any) =>
+                    `LKR ${p.monthlyPremiumLkr.toLocaleString()}`,
+                  bestOf: "min",
+                },
+                {
+                  label: t("insurance.compare.annual", "Annual premium"),
+                  fmt: (p: any) =>
+                    `LKR ${p.annualPremiumLkr.toLocaleString()}`,
+                  bestOf: "min",
+                },
+                {
+                  label: t("insurance.compare.coverage", "Coverage up to"),
+                  fmt: (p: any) =>
+                    `LKR ${p.coverageSummaryLkr.toLocaleString()}`,
+                  bestOf: "max",
+                },
+                {
+                  label: t("insurance.compare.copay", "Co-pay %"),
+                  fmt: (p: any) => `${p.copayPct}%`,
+                  bestOf: "min",
+                },
+                {
+                  label: t("insurance.compare.hospitals", "Network hospitals"),
+                  fmt: (p: any) => `${p.networkHospitalCount}+`,
+                  bestOf: "max",
+                },
+                {
+                  label: t(
+                    "insurance.compare.annualDiscount",
+                    "Annual discount",
+                  ),
+                  fmt: (p: any) =>
+                    p.annualDiscountPct > 0
+                      ? `${p.annualDiscountPct.toFixed(0)}%`
+                      : "—",
+                  bestOf: "max",
+                },
+              ].map((row, ri) => {
+                // Extract numeric for highlighting the best-value column.
+                const numericVals = comparePlans.map((p: any) => {
+                  const txt = row.fmt(p).replace(/[^0-9.]/g, "");
+                  return Number(txt) || 0;
+                });
+                const bestVal =
+                  row.bestOf === "min"
+                    ? Math.min(...numericVals)
+                    : Math.max(...numericVals);
+                return (
+                  <View
+                    key={ri}
+                    style={{
+                      paddingVertical: 10,
+                      borderTopWidth: ri === 0 ? 1 : 0,
+                      borderBottomWidth: 1,
+                      borderColor: colors.border,
+                      gap: 6,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: colors.textMuted,
+                      }}
+                    >
+                      {row.label}
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 10 }}
+                    >
+                      {comparePlans.map((p: any) => {
+                        const txt = row.fmt(p);
+                        const num = numericVals[comparePlans.indexOf(p)];
+                        const isBest =
+                          comparePlans.length >= 2 && num === bestVal;
+                        return (
+                          <View
+                            key={p.id}
+                            style={{
+                              width: 200,
+                              paddingVertical: 8,
+                              paddingHorizontal: 10,
+                              borderRadius: radius.md,
+                              backgroundColor: isBest
+                                ? (colors.successSoft ?? "#ECFDF5")
+                                : colors.surface,
+                              borderWidth: 1,
+                              borderColor: isBest
+                                ? colors.success
+                                : colors.border,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                fontWeight: isBest ? "700" : "600",
+                                color: isBest
+                                  ? colors.success
+                                  : colors.text,
+                              }}
+                            >
+                              {txt}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                );
+              })}
+
+              <View style={{ height: spacing.md }} />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 8,
+                }}
+              >
+                {comparePlans.map((p: any) => (
+                  <Pressable
+                    key={p.id}
+                    onPress={() => {
+                      setDrawerOpen(false);
+                      router.push(`/insurance/plans/${p.id}`);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: radius.lg,
+                      borderWidth: 1,
+                      borderColor: colors.primary,
+                      alignItems: "center",
+                    }}
+                    haptic="light"
+                  >
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 13,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {t("insurance.compare.viewPlan", "View")}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }

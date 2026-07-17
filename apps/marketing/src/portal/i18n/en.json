@@ -1064,6 +1064,18 @@
       "expiry24h": "24 hours",
       "expiry1w": "1 week",
       "expiry30d": "30 days"
+    },
+    "insurance": {
+      "title": "Insurance",
+      "tagline": "Browse plans, file claims, check coverage — all in one place.",
+      "viewAll": "View all insurance",
+      "noActive": "No active policies",
+      "noActiveBody": "Browse the marketplace to get coverage in minutes.",
+      "browse": "Browse plans",
+      "submitClaim": "Submit a claim",
+      "activePolicies": "Active policies",
+      "pendingClaims": "Pending claims",
+      "nextPremiumDue": "Next premium due {{date}}"
     }
   },
   "visitSummary": {

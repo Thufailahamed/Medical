@@ -13,6 +13,7 @@ import {
   Heart,
   Bell,
   ScanLine,
+  ShieldCheck,
 } from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
@@ -120,6 +121,13 @@ export default function PatientLayout({
               active={pathname?.startsWith("/portal/me/audit")}
             >
               Audit
+            </NavLink>
+            <NavLink
+              href="/portal/me/insurance"
+              icon={<ShieldCheck size={14} />}
+              active={pathname?.startsWith("/portal/me/insurance")}
+            >
+              Insurance
             </NavLink>
           </nav>
           <div className="flex-1" />

@@ -10,6 +10,7 @@ import {
   Activity,
   Upload,
   ScanLine,
+  ShieldCheck,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
@@ -95,6 +96,12 @@ export default function PatientHome() {
           icon={<ScrollText size={16} />}
           title={t("patientPortal.home.audit")}
           body={t("patientPortal.home.auditBody")}
+        />
+        <ActionCard
+          href="/portal/me/insurance"
+          icon={<ShieldCheck size={16} />}
+          title={t("patientPortal.insurance.title")}
+          body={t("patientPortal.insurance.tagline")}
         />
       </div>
     </div>

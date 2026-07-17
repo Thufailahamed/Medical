@@ -4175,6 +4175,21 @@
       "premium": "Lowest premium",
       "premiumDesc": "Highest premium"
     },
+    "compare": {
+      "title": "Compare {{count}} plan",
+      "title_other": "Compare {{count}} plans",
+      "addMore": "Long-press another plan to add ({{rem}} left)",
+      "cta": "Compare side-by-side",
+      "heading": "Side-by-side comparison",
+      "premium": "Monthly premium",
+      "annual": "Annual premium",
+      "coverage": "Coverage up to",
+      "copay": "Co-pay %",
+      "hospitals": "Network hospitals",
+      "annualDiscount": "Annual discount",
+      "bestPrice": "Best price",
+      "viewPlan": "View"
+    },
     "provider": {
       "label": "Provider",
       "notFound": "Provider not found",
@@ -4342,6 +4357,14 @@
       "renewNow": "Renew now",
       "submitClaim": "Submit a claim",
       "cancelPolicy": "Cancel policy",
+      "cancelTitle": "Cancel this policy?",
+      "cancelConfirm": "Your coverage will end and this cannot be undone.",
+      "cancelConfirmYes": "Yes, cancel",
+      "dueSoon": "Premium due soon",
+      "overdue": "Payment overdue",
+      "payNow": "Pay now",
+      "lastPaid": "Last paid",
+      "statusNote": "Coverage is not active. Renew to restore benefits.",
       "noClaims": "No claims on this policy yet",
       "quickActions": "Quick actions"
     },
