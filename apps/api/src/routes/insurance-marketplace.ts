@@ -348,14 +348,26 @@ marketplaceRouter.get("/plans/:id", async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
   const [row] = await db
-    .select()
+    .select({
+      plan: insurancePlans,
+      providerName: insuranceProviders.name,
+    })
     .from(insurancePlans)
+    .innerJoin(
+      insuranceProviders,
+      eq(insurancePlans.providerId, insuranceProviders.id),
+    )
     .where(
       and(eq(insurancePlans.id, id), eq(insurancePlans.isPublished, true)),
     )
     .limit(1);
   if (!row) return c.json({ error: "Not found" }, 404);
-  return c.json({ plan: shapePlan(row) });
+  return c.json({
+    plan: {
+      ...shapePlan(row.plan),
+      providerName: row.providerName,
+    },
+  });
 });
 
 // ─── QUOTE ──────────────────────────────────────────────

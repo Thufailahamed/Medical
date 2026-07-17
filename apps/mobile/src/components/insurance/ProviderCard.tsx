@@ -53,13 +53,13 @@ export function InsuranceProviderCard(props: InsuranceProviderCardProps) {
         </View>
 
         <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-          <Pill tone="primary" icon={<Star size={12} />}>
+          <Pill tone="primary" icon={Star}>
             {t("insurance.provider.rating", {
               avg: props.ratingAvg.toFixed(1),
               count: props.ratingCount,
             })}
           </Pill>
-          <Pill tone="accent" icon={<ShieldCheck size={12} />}>
+          <Pill tone="accent" icon={ShieldCheck}>
             {t("insurance.provider.planCount", { count: props.planCount })}
           </Pill>
           {typeof props.claimSettlementRatioPct === "number" ? (

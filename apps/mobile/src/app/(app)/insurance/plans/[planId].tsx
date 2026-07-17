@@ -59,7 +59,7 @@ export default function PlanDetail() {
       },
       {
         icon: <ShieldCheck size={16} color={colors.primary} />,
-        label: t("insurance.plan.deductible", {
+        label: t("insurance.plan.deductibleLabel", {
           amount: plan.deductibleLkr.toLocaleString(),
         }),
       },

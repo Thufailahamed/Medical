@@ -45,14 +45,14 @@ export default function Enroll() {
   const plan = planData?.plan;
 
   const onSubmit = async () => {
-    if (!agreedTnc || !plan) return;
+    if (!agreedTnc || !plan || !nomineeName.trim() || !nomineeRelation.trim()) return;
     const created = await createMut.mutateAsync({
       planId: plan.id,
       billingCycle: quote.billingCycle,
-      nomineeName: nomineeName || undefined,
-      nomineeRelation: nomineeRelation || undefined,
+      nomineeName: nomineeName.trim(),
+      nomineeRelation: nomineeRelation.trim(),
       nomineeDob: nomineeDob || undefined,
-      kycNic: nic || undefined,
+      acceptTerms: true,
       dependents: quote.members,
     });
     setDraft(created.enrollment.id);
@@ -208,7 +208,13 @@ export default function Enroll() {
 
         <Button
           label={t("insurance.enroll.proceed")}
-          disabled={!agreedTnc || createMut.isPending || payMut.isPending}
+          disabled={
+            !agreedTnc ||
+            !nomineeName.trim() ||
+            !nomineeRelation.trim() ||
+            createMut.isPending ||
+            payMut.isPending
+          }
           loading={createMut.isPending || payMut.isPending}
           onPress={onSubmit}
         />

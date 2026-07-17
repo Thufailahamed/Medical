@@ -106,6 +106,7 @@ export default function InsuranceHome() {
         subtitle={t("insurance.tabSubtitle", "Manage your active policies, file claims, or search plans.")}
         kicker={t("insurance.homeKicker")}
         icon={<Shield size={20} color={colors.primary} />}
+        onBack={() => router.replace("/(app)")}
       />
 
       {/* ─── Hero: tappable marketplace CTA ─── */}

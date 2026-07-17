@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Pressable } from "./Pressable";
@@ -35,11 +35,18 @@ export function ScreenHeader({
 }: Props) {
   const { colors, spacing, typography } = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleBack = () => {
-    if (typeof onBack === "function") onBack();
-    else if (typeof back === "function") back();
-    else router.back();
+    if (typeof onBack === "function") {
+      onBack();
+    } else if (typeof back === "function") {
+      back();
+    } else if (pathname && pathname.includes("/insurance")) {
+      router.replace("/(app)");
+    } else {
+      router.back();
+    }
   };
 
   const showBack = back !== false && (!!back || !!onBack || router.canGoBack());

@@ -19,7 +19,7 @@ type Props = {
   label?: string;
   children?: React.ReactNode;
   tone?: PillTone;
-  icon?: LucideIcon;
+  icon?: any;
   size?: "sm" | "md";
   outlined?: boolean;
   onPress?: () => void;
@@ -49,6 +49,15 @@ export function Pill({ label, children, tone = "neutral", icon: Icon, size = "md
     alignSelf: "flex-start",
   };
 
+  const renderIcon = () => {
+    if (!Icon) return null;
+    if (React.isValidElement(Icon)) {
+      return Icon;
+    }
+    const IconCmp = Icon;
+    return <IconCmp size={iconSize} color={fg} strokeWidth={3} />;
+  };
+
   const renderContent = () => {
     if (children) {
       if (React.isValidElement(children)) {
@@ -69,7 +78,7 @@ export function Pill({ label, children, tone = "neutral", icon: Icon, size = "md
 
   const inner = (
     <>
-      {Icon ? <Icon size={iconSize} color={fg} strokeWidth={3} /> : null}
+      {renderIcon()}
       {renderContent()}
     </>
   );
