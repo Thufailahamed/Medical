@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   useWindowDimensions,
+  Platform,
   type ViewStyle,
   type StyleProp,
 } from "react-native";
@@ -89,6 +90,8 @@ export function Hero({
     ],
   }));
 
+  const compact = resolvedHeight < 200;
+
   return (
     <View
       style={[
@@ -121,15 +124,25 @@ export function Hero({
             left: -60,
             backgroundColor: colors.glassOnPrimary,
             borderRadius: 9999,
+            overflow: "hidden",
           },
           orbStyle,
         ]}
       >
-        <BlurView
-          intensity={60}
-          tint="light"
-          style={StyleSheet.absoluteFill}
-        />
+        {Platform.OS === "ios" ? (
+          <BlurView
+            intensity={60}
+            tint="light"
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "rgba(255,255,255,0.25)" },
+            ]}
+          />
+        )}
       </Animated.View>
 
       <Animated.View
@@ -142,15 +155,25 @@ export function Hero({
             right: -30,
             backgroundColor: colors.glassOnPrimary,
             borderRadius: 9999,
+            overflow: "hidden",
           },
           orbStyle2,
         ]}
       >
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={StyleSheet.absoluteFill}
-        />
+        {Platform.OS === "ios" ? (
+          <BlurView
+            intensity={80}
+            tint="light"
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "rgba(255,255,255,0.3)" },
+            ]}
+          />
+        )}
       </Animated.View>
 
       {/* content */}
@@ -159,8 +182,8 @@ export function Hero({
           styles.content,
           {
             paddingHorizontal: spacing.xl,
-            paddingTop: spacing.xxxl,
-            paddingBottom: spacing.lg,
+            paddingTop: compact ? spacing.lg : spacing.xxxl,
+            paddingBottom: compact ? spacing.md : spacing.lg,
           },
         ]}
       >
@@ -225,10 +248,10 @@ export function Hero({
         {title ? (
           <Text
             style={[
-              numeral ? typography.title.lg : typography.display.md,
+              (numeral || compact) ? typography.title.lg : typography.display.md,
               {
                 color: colors.onPrimary,
-                marginTop: numeral ? 0 : spacing.xs,
+                marginTop: (numeral || compact) ? 0 : spacing.xs,
               },
             ]}
             numberOfLines={2}
@@ -240,13 +263,13 @@ export function Hero({
         {subtitle ? (
           <Text
             style={[
-              typography.body.md,
+              compact ? typography.body.sm : typography.body.md,
               {
                 color: colors.glassOnPrimarySoft,
                 marginTop: 2,
               },
             ]}
-            numberOfLines={2}
+            numberOfLines={compact ? 1 : 2}
           >
             {subtitle}
           </Text>
@@ -254,7 +277,7 @@ export function Hero({
 
         {children}
 
-        {status && status.length > 0 ? (
+        {Array.isArray(status) && status.length > 0 ? (
           <View style={[styles.statusRow, { marginTop: spacing.md, gap: spacing.sm }]}>
             {status.map((s, i) => (
               <HeroStatusChip key={i} status={s} />

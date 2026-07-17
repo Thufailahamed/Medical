@@ -413,6 +413,60 @@ export default function AppLayout() {
         name="rate-test/[bookingId]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+
+      {/* Hidden Insurance Module Routes */}
+      <Tabs.Screen
+        name="insurance/index"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/marketplace"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/marketplace/[providerId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/coverage-check"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/quote"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/claims/index"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/claims/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/claims/new"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/ecard/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/enroll/[planId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/payment/[enrollmentId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/plans/[planId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/policy/[id]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

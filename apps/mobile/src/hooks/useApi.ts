@@ -20,6 +20,19 @@ async function getAuthToken(): Promise<string | null> {
 }
 import type { Patient, MedicalRecord, Appointment } from "@healthcare/shared";
 import type {
+  InsuranceProvider,
+  InsurancePlan,
+  InsuranceEnrollment,
+  InsuranceEcard,
+  InsuranceClaim,
+} from "@healthcare/shared";
+import type {
+  InsuranceQuoteRequest,
+  InsuranceEnrollRequest,
+  InsuranceClaimCreateInput,
+  InsuranceCoverageCheckInput,
+} from "@healthcare/shared/validators";
+import type {
   VitalType,
   Classification,
   DerivedBlock,
@@ -4448,5 +4461,292 @@ export function useRescheduleTestBooking() {
       queryClient.invalidateQueries({ queryKey: ["my-test-bookings"] });
       queryClient.invalidateQueries({ queryKey: ["test-booking-detail"] });
     },
+  });
+}
+
+// ─── Health Insurance Marketplace ─────────────────────
+//
+// Catalog (public), quote, enroll, pay, policies, claims, coverage-check.
+// Mirrors the endpoints registered in `apps/api/src/routes/insurance-marketplace.ts`.
+
+interface InsuranceCatalogResponse {
+  providers: InsuranceProvider[];
+  plans: InsurancePlan[];
+  totalPlans: number;
+}
+interface InsuranceProviderResponse {
+  provider: InsuranceProvider;
+  plans: InsurancePlan[];
+}
+interface InsurancePlanResponse {
+  plan: InsurancePlan;
+}
+interface InsuranceQuoteResponse {
+  planId: string | null;
+  planName: string | null;
+  billingCycle: "monthly" | "annual";
+  basePremiumLkr: number;
+  adjustedPremiumLkr: number;
+  notes: string[];
+  riders: { id: string; name: string; priceLkr: number }[];
+}
+interface InsuranceEnrollmentsResponse {
+  enrollments: InsuranceEnrollment[];
+}
+interface InsuranceEnrollmentResponse {
+  enrollment: InsuranceEnrollment;
+  invoiceId?: string;
+}
+interface InsuranceEcardResponse {
+  ecard: InsuranceEcard;
+  policyNumber: string | null;
+  providerName: string | null;
+}
+interface InsurancePayResponse {
+  orderId: string;
+  invoiceId: string;
+  amount: number;
+  currency: string;
+  hash: string;
+  checkoutUrl: string;
+  sandbox: boolean;
+  fields: Record<string, string>;
+}
+interface InsuranceClaimsResponse {
+  claims: InsuranceClaim[];
+}
+interface InsuranceClaimResponse {
+  claim: InsuranceClaim;
+}
+interface InsuranceCoverageCheckResponse {
+  enrolled: boolean;
+  planName: string | null;
+  coverageType: string | null;
+  covered: boolean;
+  copayPct: number;
+  estimatedOutOfPocketLkr: number;
+  deductibleLkr: number;
+  notes: string[];
+}
+
+// Public catalog (no auth header required server-side, but TanStack handles
+// shared caching equally).
+export function useInsuranceMarketplaceCatalog(params?: {
+  planType?: string;
+  q?: string;
+  sort?: "rating" | "premium" | "premium-desc";
+}) {
+  const qs = new URLSearchParams();
+  if (params?.planType) qs.set("plan_type", params.planType);
+  if (params?.q) qs.set("q", params.q);
+  if (params?.sort) qs.set("sort", params.sort);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return useQuery({
+    queryKey: ["insurance-marketplace", "catalog", params],
+    queryFn: () =>
+      api<InsuranceCatalogResponse>(
+        `/insurance-marketplace/catalog${suffix}`,
+      ),
+  });
+}
+
+export function useInsuranceProvider(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["insurance-marketplace", "provider", slug],
+    queryFn: () =>
+      api<InsuranceProviderResponse>(
+        `/insurance-marketplace/providers/${slug}`,
+      ),
+    enabled: !!slug,
+  });
+}
+
+export function useInsurancePlan(planId: string | undefined) {
+  return useQuery({
+    queryKey: ["insurance-marketplace", "plan", planId],
+    queryFn: () =>
+      api<InsurancePlanResponse>(`/insurance-marketplace/plans/${planId}`),
+    enabled: !!planId,
+  });
+}
+
+export function useInsuranceQuote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: InsuranceQuoteRequest) =>
+      api<InsuranceQuoteResponse>("/insurance-marketplace/quote", {
+        method: "POST",
+        body: data,
+      }),
+  });
+}
+
+export function useCreateInsuranceEnrollment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: InsuranceEnrollRequest) =>
+      api<InsuranceEnrollmentResponse>("/insurance-marketplace/enrollments", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-insurance"] });
+    },
+  });
+}
+
+export function usePayInsurancePremium() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (enrollmentId: string) =>
+      api<InsurancePayResponse>(
+        `/insurance-marketplace/enrollments/${enrollmentId}/pay`,
+        { method: "POST", body: {} },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-insurance"] });
+    },
+  });
+}
+
+export function useMyInsuranceEnrollments() {
+  return useQuery({
+    queryKey: ["my-insurance"],
+    queryFn: () =>
+      api<InsuranceEnrollmentsResponse>(
+        "/insurance-marketplace/enrollments/me",
+      ),
+  });
+}
+
+export function useInsuranceEnrollment(id: string | undefined) {
+  return useQuery({
+    queryKey: ["insurance-enrollment", id],
+    queryFn: () =>
+      api<InsuranceEnrollmentResponse>(
+        `/insurance-marketplace/enrollments/${id}`,
+      ),
+    enabled: !!id,
+  });
+}
+
+export function useCancelInsuranceEnrollment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api(`/insurance-marketplace/enrollments/${id}`, {
+        method: "DELETE",
+        body: { reason },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-insurance"] });
+    },
+  });
+}
+
+export function useRenewInsuranceEnrollment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api(`/insurance-marketplace/enrollments/${id}/renew`, {
+        method: "POST",
+        body: {},
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-insurance"] });
+    },
+  });
+}
+
+export function useInsuranceEcard(enrollmentId: string | undefined) {
+  return useQuery({
+    queryKey: ["insurance-ecard", enrollmentId],
+    queryFn: () =>
+      api<InsuranceEcardResponse>(
+        `/insurance-marketplace/enrollments/${enrollmentId}/ecard`,
+      ),
+    enabled: !!enrollmentId,
+  });
+}
+
+export function useMyInsuranceClaims() {
+  return useQuery({
+    queryKey: ["my-insurance-claims"],
+    queryFn: () =>
+      api<InsuranceClaimsResponse>(
+        "/insurance-marketplace/claims/me",
+      ),
+  });
+}
+
+export function useInsuranceClaim(id: string | undefined) {
+  return useQuery({
+    queryKey: ["insurance-claim", id],
+    queryFn: () =>
+      api<InsuranceClaimResponse>(
+        `/insurance-marketplace/claims/${id}`,
+      ),
+    enabled: !!id,
+  });
+}
+
+export function useCreateInsuranceClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: InsuranceClaimCreateInput) =>
+      api<InsuranceClaimResponse>("/insurance-marketplace/claims", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-insurance-claims"] });
+    },
+  });
+}
+
+export function useSubmitInsuranceClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<InsuranceClaimResponse>(
+        `/insurance-marketplace/claims/${id}/submit`,
+        { method: "POST", body: {} },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["insurance-claim"] });
+      queryClient.invalidateQueries({ queryKey: ["my-insurance-claims"] });
+    },
+  });
+}
+
+export function useSendInsuranceClaimMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+      attachmentFileKey,
+    }: {
+      id: string;
+      body: string;
+      attachmentFileKey?: string;
+    }) =>
+      api(`/insurance-marketplace/claims/${id}/messages`, {
+        method: "POST",
+        body: { body, attachmentFileKey },
+      }),
+    onSuccess: (_data: unknown, vars: { id: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["insurance-claim", vars.id] });
+    },
+  });
+}
+
+export function useCoverageCheck() {
+  return useMutation({
+    mutationFn: (data: InsuranceCoverageCheckInput) =>
+      api<InsuranceCoverageCheckResponse>(
+        "/insurance-marketplace/coverage-check",
+        { method: "POST", body: data },
+      ),
   });
 }

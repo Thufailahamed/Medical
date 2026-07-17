@@ -184,6 +184,17 @@ export const adminQk = {
   audit: (params: Record<string, unknown>) => ["admin", "audit", params] as const,
   payouts: (status?: string) => ["admin", "payouts", status ?? "all"] as const,
   insuranceClaims: (status?: string) => ["admin", "insurance-claims", status ?? "all"] as const,
+  insuranceProviders: (params: Record<string, unknown>) =>
+    ["admin", "insurance-providers", params] as const,
+  insuranceProvider: (id: string) =>
+    ["admin", "insurance-providers", id] as const,
+  insurancePlans: (params: Record<string, unknown>) =>
+    ["admin", "insurance-plans", params] as const,
+  insurancePlan: (id: string) => ["admin", "insurance-plans", id] as const,
+  insuranceEnrollments: (status?: string) =>
+    ["admin", "insurance-enrollments", status ?? "all"] as const,
+  insuranceMarketplaceClaims: (status?: string) =>
+    ["admin", "insurance-mkt-claims", status ?? "all"] as const,
   dsar: (status?: string) => ["admin", "dsar", status ?? "all"] as const,
   medicinesMaster: (params: Record<string, unknown>) => ["admin", "medicines-master", params] as const,
   settings: () => ["admin", "settings"] as const,

@@ -119,13 +119,14 @@ export function Chip({
 // ---- ChipGroup ----
 
 type ChipGroupProps = {
-  options: { label: string; value: string; icon?: LucideIcon; tone?: ChipTone }[];
-  value: string | string[];
-  onChange: (v: any) => void;
+  options?: { label: string; value: string; icon?: LucideIcon; tone?: ChipTone }[];
+  value?: string | string[];
+  onChange?: (v: any) => void;
   multiple?: boolean;
   scrollable?: boolean;
   size?: "sm" | "md";
   style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
 };
 
 export function ChipGroup({
@@ -136,9 +137,9 @@ export function ChipGroup({
   scrollable = false,
   size = "md",
   style,
+  children,
 }: ChipGroupProps) {
   const { spacing } = useTheme();
-  const selectedSet = new Set(Array.isArray(value) ? value : [value]);
 
   const Row = (
     <View
@@ -147,30 +148,33 @@ export function ChipGroup({
         style,
       ]}
     >
-      {options.map((opt) => {
-        const isSelected = selectedSet.has(opt.value);
-        const handle = () => {
-          if (multiple) {
-            const next = new Set(selectedSet);
-            if (next.has(opt.value)) next.delete(opt.value);
-            else next.add(opt.value);
-            onChange(Array.from(next));
-          } else {
-            onChange(opt.value);
-          }
-        };
-        return (
-          <Chip
-            key={opt.value}
-            label={opt.label}
-            selected={isSelected}
-            onPress={handle}
-            tone={opt.tone}
-            icon={opt.icon}
-            size={size}
-          />
-        );
-      })}
+      {options
+        ? options.map((opt) => {
+            const selectedSet = new Set(Array.isArray(value) ? value : [value]);
+            const isSelected = selectedSet.has(opt.value);
+            const handle = () => {
+              if (multiple) {
+                const next = new Set(selectedSet);
+                if (next.has(opt.value)) next.delete(opt.value);
+                else next.add(opt.value);
+                onChange?.(Array.from(next));
+              } else {
+                onChange?.(opt.value);
+              }
+            };
+            return (
+              <Chip
+                key={opt.value}
+                label={opt.label}
+                selected={isSelected}
+                onPress={handle}
+                tone={opt.tone}
+                icon={opt.icon}
+                size={size}
+              />
+            );
+          })
+        : children}
     </View>
   );
 

@@ -73,6 +73,15 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     ],
   },
   {
+    labelKey: "admin.nav.marketplace",
+    items: [
+      { href: "/admin/insurance-mkt/providers", labelKey: "admin.nav.insuranceProviders", icon: Building2, roles: ["super_admin"] },
+      { href: "/admin/insurance-mkt/plans", labelKey: "admin.nav.insurancePlans", icon: BookOpen, roles: ["super_admin"] },
+      { href: "/admin/insurance-mkt/enrollments", labelKey: "admin.nav.insuranceEnrollments", icon: UserCheck, roles: ["super_admin"] },
+      { href: "/admin/insurance-mkt/claims", labelKey: "admin.nav.insuranceMktClaims", icon: Receipt, roles: ["super_admin"] },
+    ],
+  },
+  {
     labelKey: "admin.nav.operations",
     items: [
       { href: "/admin/payouts", labelKey: "admin.nav.payouts", icon: Wallet, roles: ["super_admin"] },

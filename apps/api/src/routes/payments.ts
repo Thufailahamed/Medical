@@ -25,6 +25,10 @@ import {
   isSandbox,
   type PayHereStatus,
 } from "../lib/payhere";
+import {
+  handleInsurancePremiumPaid,
+  handleInsurancePremiumFailed,
+} from "./insurance-marketplace";
 import type { AppEnvironment } from "../types";
 
 const paymentsRouter = new Hono<AppEnvironment>();
@@ -246,7 +250,39 @@ paymentsRouter.post("/notify", async (c) => {
     .from(appointmentPayments)
     .where(eq(appointmentPayments.payhereOrderId, order_id))
     .limit(1);
+
+  // Dispatch insurance premium payments to their own handler. The order_id
+  // prefix INS- (set by insurance-marketplace/enrollments/:id/pay) marks
+  // a PayHere order routed here for activation. The handler flips the
+  // premium_invoice, mints the policy_number, generates an E-card, and
+  // notifies the patient.
   if (!row) {
+    if (order_id.startsWith("INS-")) {
+      const mapped = mapStatusCode(status_code);
+      try {
+        if (mapped === "paid") {
+          await handleInsurancePremiumPaid(
+            env,
+            order_id,
+            payhere_payment_id,
+            method,
+          );
+        } else if (mapped === "failed" || mapped === "cancelled") {
+          await handleInsurancePremiumFailed(
+            env,
+            order_id,
+            String(mapped),
+          );
+        }
+      } catch (err) {
+        logger.error("payments.notify", "insurance dispatch failed", {
+          orderId: order_id,
+          err: String(err),
+        });
+        // Still ack so PayHere stops retrying.
+      }
+      return c.text("ok", 200);
+    }
     logger.warn("payments.notify", "notify for unknown order", { orderId: order_id });
     return c.text("ok", 200); // ack so PayHere stops retrying
   }

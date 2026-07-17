@@ -524,3 +524,187 @@ export const paymentSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 export type PaymentInput = z.infer<typeof paymentSchema>;
+
+// ─── Health Insurance Marketplace ────────────────────────
+//
+// Public catalog (providers + plans), patient quote/enroll, claims,
+// admin provider/plan CRUD. All enum strings must mirror the SQLite
+// CHECK constraints in `apps/api/migrations/0069_insurance_marketplace.sql`.
+
+export const insuranceBillingCycleEnum = z.enum(["monthly", "annual"]);
+export const insurancePlanTypeEnum = z.enum([
+  "individual",
+  "family_floater",
+  "senior",
+  "critical_illness",
+  "cancer",
+  "dental",
+  "maternity",
+]);
+export const insuranceEnrollmentStatusEnum = z.enum([
+  "quote_pending",
+  "payment_pending",
+  "active",
+  "grace",
+  "lapsed",
+  "cancelled",
+  "expired",
+]);
+export const insuranceClaimStatusEnum = z.enum([
+  "draft",
+  "submitted",
+  "under_review",
+  "more_info_needed",
+  "approved",
+  "rejected",
+  "paid",
+]);
+export const insuranceTreatmentTypeEnum = z.enum([
+  "hospitalization",
+  "day_care",
+  "opd",
+  "dental",
+  "diagnostic",
+  "maternity",
+]);
+export const insuranceClaimDocKindEnum = z.enum([
+  "bill",
+  "discharge_summary",
+  "prescription",
+  "lab_report",
+  "id_proof",
+  "other",
+]);
+
+export const insuranceDependentSchema = z.object({
+  name: z.string().min(1).max(120),
+  relation: z.string().min(1).max(40),
+  dob: z.string().optional(),
+  gender: z.enum(["male", "female", "other"]).optional(),
+  nic: z.string().max(20).optional(),
+});
+export type InsuranceDependentInput = z.infer<typeof insuranceDependentSchema>;
+
+export const insuranceQuoteRequestSchema = z.object({
+  planId: z.string().optional(),
+  billingCycle: insuranceBillingCycleEnum.default("annual"),
+  memberAge: z.number().int().min(0).max(120).optional(),
+  memberGender: z.enum(["male", "female", "other"]).optional(),
+  members: z.array(insuranceDependentSchema).max(10).optional(),
+  preExisting: z.array(z.string().max(80)).max(20).optional(),
+});
+export type InsuranceQuoteRequest = z.infer<typeof insuranceQuoteRequestSchema>;
+
+export const insuranceEnrollRequestSchema = z.object({
+  planId: z.string(),
+  billingCycle: insuranceBillingCycleEnum.default("annual"),
+  nomineeName: z.string().min(1).max(120),
+  nomineeRelation: z.string().min(1).max(40),
+  nomineeDob: z.string().optional(),
+  dependents: z.array(insuranceDependentSchema).max(10).optional(),
+  acceptTerms: z.literal(true),
+});
+export type InsuranceEnrollRequest = z.infer<typeof insuranceEnrollRequestSchema>;
+
+export const insuranceClaimCreateSchema = z.object({
+  enrollmentId: z.string(),
+  treatmentType: insuranceTreatmentTypeEnum,
+  incurringFacility: z.string().max(200).optional(),
+  admissionDate: z.string().optional(),
+  dischargeDate: z.string().optional(),
+  diagnosis: z.string().max(2000).optional(),
+  amountRequestedLkr: z.number().positive(),
+  patientRemarks: z.string().max(2000).optional(),
+  documents: z
+    .array(
+      z.object({
+        kind: insuranceClaimDocKindEnum,
+        fileKey: z.string().min(1),
+        fileName: z.string().max(200).optional(),
+        contentType: z.string().max(80).optional(),
+      }),
+    )
+    .min(1)
+    .max(10),
+});
+export type InsuranceClaimCreateInput = z.infer<typeof insuranceClaimCreateSchema>;
+
+export const insuranceClaimDecisionSchema = z.object({
+  decision: z.enum(["approve", "reject", "more_info"]),
+  amountApprovedLkr: z.number().nonnegative().optional(),
+  insurerRemarks: z.string().max(2000).optional(),
+});
+export type InsuranceClaimDecisionInput = z.infer<typeof insuranceClaimDecisionSchema>;
+
+export const insuranceClaimMessageSchema = z.object({
+  body: z.string().min(1).max(2000),
+  attachmentFileKey: z.string().optional(),
+});
+export type InsuranceClaimMessageInput = z.infer<typeof insuranceClaimMessageSchema>;
+
+export const insuranceCoverageCheckSchema = z.object({
+  enrollmentId: z.string(),
+  treatmentType: insuranceTreatmentTypeEnum,
+  estimatedAmountLkr: z.number().positive(),
+  hospitalName: z.string().max(200).optional(),
+});
+export type InsuranceCoverageCheckInput = z.infer<typeof insuranceCoverageCheckSchema>;
+
+export const insuranceProviderCreateSchema = z.object({
+  operatorOrgId: z.string(),
+  name: z.string().min(1).max(160),
+  slug: z
+    .string()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z0-9-]+$/, "lowercase letters, digits, hyphens only"),
+  logoUrl: z.string().url().optional(),
+  tagline: z.string().max(200).optional(),
+  description: z.string().max(4000).optional(),
+  regulatorLicense: z.string().max(80).optional(),
+  claimSettlementRatioPct: z.number().min(0).max(100).optional(),
+  cashlessHospitalCount: z.number().int().nonnegative().optional(),
+  websiteUrl: z.string().url().optional(),
+  supportPhone: z.string().max(40).optional(),
+  isPublished: z.boolean().default(false),
+});
+export type InsuranceProviderCreateInput = z.infer<
+  typeof insuranceProviderCreateSchema
+>;
+
+export const insuranceProviderUpdateSchema =
+  insuranceProviderCreateSchema.partial();
+export type InsuranceProviderUpdateInput = z.infer<
+  typeof insuranceProviderUpdateSchema
+>;
+
+export const insurancePlanCreateSchema = z.object({
+  providerId: z.string(),
+  slug: z
+    .string()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z0-9-]+$/),
+  name: z.string().min(1).max(160),
+  planType: insurancePlanTypeEnum,
+  coverageSummaryLkr: z.number().positive(),
+  coverageDetailsJson: z.string().optional(),
+  monthlyPremiumLkr: z.number().positive(),
+  annualPremiumLkr: z.number().positive(),
+  annualDiscountPct: z.number().min(0).max(100).default(10),
+  deductibleLkr: z.number().nonnegative().default(0),
+  copayPct: z.number().min(0).max(100).default(10),
+  coPaymentCapLkr: z.number().nonnegative().default(0),
+  waitingPeriodDays: z.number().int().nonnegative().default(30),
+  preExistingWaitingDays: z.number().int().nonnegative().default(365),
+  networkHospitalCount: z.number().int().nonnegative().default(0),
+  keyFeaturesJson: z.string().optional(),
+  exclusionsJson: z.string().optional(),
+  termMonths: z.number().int().positive().default(12),
+  isPublished: z.boolean().default(false),
+  isFeatured: z.boolean().default(false),
+});
+export type InsurancePlanCreateInput = z.infer<typeof insurancePlanCreateSchema>;
+
+export const insurancePlanUpdateSchema = insurancePlanCreateSchema.partial();
+export type InsurancePlanUpdateInput = z.infer<typeof insurancePlanUpdateSchema>;

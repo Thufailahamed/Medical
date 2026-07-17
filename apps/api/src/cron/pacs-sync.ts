@@ -32,9 +32,11 @@ import {
 } from "@healthcare/db";
 import { audit } from "../lib/audit";
 import {
-  decryptPacsCredential,
   type EncryptedPayloadRow,
 } from "../lib/envelope-crypto";
+import {
+  decryptPacsCredential,
+} from "../lib/pacs-credentials";
 import {
   PacsClient,
   PacsAuthError,

@@ -3,6 +3,7 @@
 // Backed by expo-secure-store. Read first, network second.
 
 import * as SecureStore from "expo-secure-store";
+import * as FileSystem from "expo-file-system";
 
 const KEYS = {
   emergencyProfile: "v3.emergency.profile",
@@ -76,5 +77,45 @@ export async function clearAll() {
       SecureStore.deleteItemAsync(KEYS.lastMeds),
       SecureStore.deleteItemAsync(KEYS.lastAllergies),
     ]);
+    
+    // Also clear the general API cache files
+    const dir = FileSystem.documentDirectory;
+    if (dir) {
+      const files = await FileSystem.readDirectoryAsync(dir);
+      const cacheFiles = files.filter(f => f.startsWith("api_cache_") && f.endsWith(".json"));
+      await Promise.all(cacheFiles.map(f => FileSystem.deleteAsync(`${dir}${f}`, { idempotent: true })));
+    }
   } catch {}
+}
+
+function getCacheFileUri(endpoint: string): string {
+  // Normalize and sanitize endpoint to create a safe local filename
+  const cleanEndpoint = endpoint.split("?")[0]; // ignore query string for simple caching key
+  const safeName = cleanEndpoint.replace(/^\//, "").replace(/[^a-zA-Z0-9]/g, "_");
+  return `${FileSystem.documentDirectory}api_cache_${safeName}.json`;
+}
+
+export async function writeApiCache(endpoint: string, data: any): Promise<void> {
+  try {
+    const fileUri = getCacheFileUri(endpoint);
+    await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(data), {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+  } catch (err) {
+    // Fail silently - cache is best effort
+  }
+}
+
+export async function readApiCache<T>(endpoint: string): Promise<T | null> {
+  try {
+    const fileUri = getCacheFileUri(endpoint);
+    const info = await FileSystem.getInfoAsync(fileUri);
+    if (!info.exists) return null;
+    const content = await FileSystem.readAsStringAsync(fileUri, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+    return JSON.parse(content) as T;
+  } catch (err) {
+    return null;
+  }
 }

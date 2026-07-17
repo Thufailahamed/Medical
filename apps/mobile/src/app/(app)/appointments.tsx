@@ -56,15 +56,15 @@ function monthName(_t: (k: string) => string, m: number) {
 
 function groupKey(t: (k: string) => string, a: any) {
   if (!a?.date) return t("appointments.groups.later");
+  const now = new Date();
+  const localTodayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  
+  if (a.date === localTodayIso) return t("appointments.groups.today");
+  
   const d = new Date(a.date);
   if (isNaN(d.getTime())) return t("appointments.groups.later");
-  const now = new Date();
-  const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
-  if (sameDay) return t("appointments.groups.today");
-  if (d < now) {
+
+  if (a.date < localTodayIso) {
     // Past appointments get grouped by year + month for scannability.
     return t("appointments.groups.pastMonth", {
       month: d.toLocaleString("en", { month: "short" }),
@@ -133,15 +133,14 @@ export default function AppointmentsScreen() {
   const all: any[] = data?.appointments || [];
 
   const now = new Date();
-  const todayStart = new Date(now.toDateString());
+  const localTodayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   // Past + filter helper — used by the pinned section + the timeline.
   const matchesDateFilter = (a: any) => {
     if (filter === "all") return true;
-    const d = a.date ? new Date(a.date) : null;
-    if (!d || isNaN(d.getTime())) return filter === "upcoming";
-    if (filter === "upcoming") return d >= todayStart;
-    return d < todayStart;
+    if (!a.date) return filter === "upcoming";
+    if (filter === "upcoming") return a.date >= localTodayIso;
+    return a.date < localTodayIso;
   };
   const matchesModeFilter = (a: any) => {
     if (modeFilter === "all") return true;
@@ -163,11 +162,10 @@ export default function AppointmentsScreen() {
       .filter((a) => {
         if (a.mode !== "video") return false;
         if (!a.date) return false;
-        const d = new Date(a.date);
-        if (isNaN(d.getTime()) || d < todayStart) return false;
+        if (a.date < localTodayIso) return false;
         return ["scheduled", "confirmed", "pending"].includes(a.status);
       })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a, b) => a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""))
       .slice(0, 3);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [all]);
@@ -179,8 +177,7 @@ export default function AppointmentsScreen() {
 
   const upcomingCount = all.filter((a) => {
     if (!a.date) return false;
-    const d = new Date(a.date);
-    return !isNaN(d.getTime()) && d >= todayStart;
+    return a.date >= localTodayIso;
   }).length;
   const upcomingPct = all.length
     ? Math.round((upcomingCount / all.length) * 100)
@@ -190,6 +187,8 @@ export default function AppointmentsScreen() {
     <Screen scroll bottomInset={false}>
       <ScreenHeader
         title={t("appointments.title")}
+        back={router.canGoBack()}
+        onBack={() => router.back()}
         subtitle={t("appointments.subtitle", {
           total: all.length,
           pct: upcomingPct,
@@ -339,241 +338,249 @@ export default function AppointmentsScreen() {
               const { day, month } = dateParts(t, item.date);
               return (
                 <Card padded={false}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: spacing.md,
-                      padding: spacing.lg,
-                    }}
-                  >
+                  <View style={{ padding: spacing.lg }}>
                     <View
                       style={{
-                        width: 60,
-                        height: 68,
-                        borderRadius: radius.lg,
-                        backgroundColor: colors.primarySoft,
+                        flexDirection: "row",
                         alignItems: "center",
-                        justifyContent: "center",
+                        gap: spacing.md,
                       }}
                     >
-                      <Text
-                        style={[
-                          typography.title.md,
-                          {
-                            color: colors.primary,
-                            fontSize: 22,
-                            lineHeight: 24,
-                          },
-                        ]}
-                      >
-                        {day}
-                      </Text>
-                      <Text
-                        style={[
-                          typography.overline,
-                          { color: colors.primary, marginTop: 2 },
-                        ]}
-                      >
-                        {month}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() =>
-                        router.push({
-                          pathname: "/(app)/appointment-detail",
-                          params: { id: item.id },
-                        })
-                      }
-                      style={{ flex: 1, gap: 6, minWidth: 0 }}
-                    >
-                      <Text
-                        style={[typography.title.sm, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {item.reason ||
-                          item.specialty ||
-                          t("appointments.fallbackTitle")}
-                      </Text>
                       <View
                         style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: spacing.sm,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        {item.time ? (
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                          >
-                            <Clock
-                              size={13}
-                              color={colors.textMuted}
-                              strokeWidth={2.25}
-                            />
-                            <Text
-                              style={[
-                                typography.body.sm,
-                                { color: colors.textMuted },
-                              ]}
-                            >
-                              {item.time}
-                            </Text>
-                          </View>
-                        ) : null}
-                        {item.status ? (
-                          <Pill
-                            label={item.status.replace("_", " ")}
-                            tone={tone}
-                            size="sm"
-                          />
-                        ) : null}
-                        {item.mode === "video" ? (
-                          <Pill
-                            icon={Video}
-                            label={t("appointments.mode.video")}
-                            tone="primary"
-                            size="sm"
-                          />
-                        ) : item.mode === "in_person" ? (
-                          <Pill
-                            label={t("appointments.mode.inPerson")}
-                            tone="neutral"
-                            size="sm"
-                          />
-                        ) : null}
-                        {item.recordCount ? (
-                          <Pill
-                            icon={FileText}
-                            label={t("appointments.note", {
-                              count: item.recordCount,
-                            })}
-                            tone="info"
-                            size="sm"
-                          />
-                        ) : null}
-                      </View>
-                    </Pressable>
-                    {(item.status === "scheduled" ||
-                      item.status === "confirmed" ||
-                      item.status === "pending") ? (
-                      <Pressable
-                        onPress={() => openCancelSheet(item)}
-                        accessibilityRole="button"
-                        accessibilityLabel={t(
-                          "appointments.a11y.cancelAppointment"
-                        )}
-                        hitSlop={6}
-                        disabled={cancellingId === item.id}
-                        style={({ pressed }) => ({
-                          width: 36,
-                          height: 36,
-                          borderRadius: 18,
+                          width: 60,
+                          height: 68,
+                          borderRadius: radius.lg,
+                          backgroundColor: colors.primarySoft,
                           alignItems: "center",
                           justifyContent: "center",
-                          backgroundColor: pressed
-                            ? colors.danger
-                            : colors.dangerSoft,
-                          opacity: cancellingId === item.id ? 0.6 : 1,
-                          marginRight: spacing.sm,
-                        })}
+                        }}
                       >
-                        {cancellingId === item.id ? (
-                          <Loader
-                            size={16}
-                            color={colors.danger}
-                            strokeWidth={2.25}
-                          />
-                        ) : (
-                          <X
-                            size={16}
-                            color={colors.danger}
-                            strokeWidth={2.5}
-                          />
-                        )}
-                      </Pressable>
-                    ) : null}
-                    {activeSession?.session?.appointmentId === item.id &&
-                    activeSession.session.roomId ? (
+                        <Text
+                          style={[
+                            typography.title.md,
+                            {
+                              color: colors.primary,
+                              fontSize: 22,
+                              lineHeight: 24,
+                            },
+                          ]}
+                        >
+                          {day}
+                        </Text>
+                        <Text
+                          style={[
+                            typography.overline,
+                            { color: colors.primary, marginTop: 2 },
+                          ]}
+                        >
+                          {month}
+                        </Text>
+                      </View>
                       <Pressable
                         onPress={() =>
                           router.push({
-                            pathname: "/(app)/teleconsult/[roomId]",
-                            params: { roomId: activeSession.session!.roomId },
+                            pathname: "/(app)/appointment-detail",
+                            params: { id: item.id },
                           })
                         }
-                        accessibilityRole="button"
-                        accessibilityLabel={t("consult.joinVideoVisit")}
-                        hitSlop={6}
-                        style={({ pressed }) => ({
-                          height: 36,
-                          paddingHorizontal: spacing.md,
-                          borderRadius: 18,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 6,
-                          backgroundColor: pressed
-                            ? colors.primary
-                            : colors.primarySoft,
-                        })}
+                        style={{ flex: 1, gap: 6, minWidth: 0 }}
                       >
-                        <Video size={15} color={colors.primary} strokeWidth={2.5} />
                         <Text
-                          style={[
-                            typography.label.sm,
-                            { color: colors.primary, fontWeight: "700" },
-                          ]}
+                          style={[typography.title.sm, { color: colors.text }]}
+                          numberOfLines={1}
                         >
-                          {t("consult.joinVideoVisit")}
+                          {item.reason ||
+                            item.specialty ||
+                            t("appointments.fallbackTitle")}
                         </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: spacing.sm,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {item.time ? (
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <Clock
+                                size={13}
+                                color={colors.textMuted}
+                                strokeWidth={2.25}
+                              />
+                              <Text
+                                style={[
+                                  typography.body.sm,
+                                  { color: colors.textMuted },
+                                ]}
+                              >
+                                {item.time}
+                              </Text>
+                            </View>
+                          ) : null}
+                          {item.status ? (
+                            <Pill
+                              label={item.status.replace("_", " ")}
+                              tone={tone}
+                              size="sm"
+                            />
+                          ) : null}
+                          {item.mode === "video" ? (
+                            <Pill
+                              icon={Video}
+                              label={t("appointments.mode.video")}
+                              tone="primary"
+                              size="sm"
+                            />
+                          ) : item.mode === "in_person" ? (
+                            <Pill
+                              label={t("appointments.mode.inPerson")}
+                              tone="neutral"
+                              size="sm"
+                            />
+                          ) : null}
+                          {item.recordCount ? (
+                            <Pill
+                              icon={FileText}
+                              label={t("appointments.note", {
+                                count: item.recordCount,
+                              })}
+                              tone="info"
+                              size="sm"
+                            />
+                          ) : null}
+                        </View>
                       </Pressable>
+                      {(item.status === "scheduled" ||
+                        item.status === "confirmed" ||
+                        item.status === "pending") ? (
+                        <Pressable
+                          onPress={() => openCancelSheet(item)}
+                          accessibilityRole="button"
+                          accessibilityLabel={t(
+                            "appointments.a11y.cancelAppointment"
+                          )}
+                          hitSlop={6}
+                          disabled={cancellingId === item.id}
+                          style={({ pressed }) => ({
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: pressed
+                              ? colors.danger
+                              : colors.dangerSoft,
+                            opacity: cancellingId === item.id ? 0.6 : 1,
+                          })}
+                        >
+                          {cancellingId === item.id ? (
+                            <Loader
+                              size={16}
+                              color={colors.danger}
+                              strokeWidth={2.25}
+                            />
+                          ) : (
+                            <X
+                              size={16}
+                              color={colors.danger}
+                              strokeWidth={2.5}
+                            />
+                          )}
+                        </Pressable>
+                      ) : null}
+                    </View>
+
+                    {/* Join video visit button (rendered on a new row under details to prevent squeeze) */}
+                    {activeSession?.session?.appointmentId === item.id &&
+                    activeSession.session.roomId &&
+                    (item.status === "scheduled" ||
+                      item.status === "confirmed" ||
+                      item.status === "pending" ||
+                      item.status === "in_progress") ? (
+                      <View style={{ marginTop: spacing.md, paddingLeft: 76 }}>
+                        <Pressable
+                          onPress={() =>
+                            router.push({
+                              pathname: "/(app)/teleconsult/[roomId]",
+                              params: { roomId: activeSession.session!.roomId },
+                            })
+                          }
+                          accessibilityRole="button"
+                          accessibilityLabel={t("consult.joinVideoVisit")}
+                          hitSlop={6}
+                          style={({ pressed }) => ({
+                            height: 38,
+                            borderRadius: 12,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            backgroundColor: pressed
+                              ? colors.primary
+                              : colors.primarySoft,
+                          })}
+                        >
+                          <Video size={16} color={colors.primary} strokeWidth={2.5} />
+                          <Text
+                            style={[
+                              typography.label.md,
+                              { color: colors.primary, fontWeight: "700" },
+                            ]}
+                          >
+                            {t("consult.joinVideoVisit")}
+                          </Text>
+                        </Pressable>
+                      </View>
                     ) : null}
-                    {/* Round 5: video-mode appointments get a join CTA
-                        *before* the doctor opens a room — taps navigate
-                        to the waiting screen, which polls /me/active and
-                        shows the doctor when they start. */}
+
+                    {/* Round 5 waiting CTA — also rendered below */}
                     {item.mode === "video" &&
                     (item.status === "scheduled" ||
                       item.status === "confirmed" ||
                       item.status === "pending") &&
                     activeSession?.session?.appointmentId !== item.id ? (
-                      <Pressable
-                        onPress={() =>
-                          router.push({
-                            pathname: "/(app)/teleconsult/[roomId]" as any,
-                            params: { roomId: "__pending__" },
-                          })
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={t("appointments.joinVideo")}
-                        hitSlop={6}
-                        style={({ pressed }) => ({
-                          height: 36,
-                          paddingHorizontal: spacing.md,
-                          borderRadius: 18,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 6,
-                          backgroundColor: pressed
-                            ? colors.primary
-                            : colors.primarySoft,
-                        })}
-                      >
-                        <Video size={15} color={colors.primary} strokeWidth={2.5} />
-                        <Text
-                          style={[
-                            typography.label.sm,
-                            { color: colors.primary, fontWeight: "700" },
-                          ]}
+                      <View style={{ marginTop: spacing.md, paddingLeft: 76 }}>
+                        <Pressable
+                          onPress={() =>
+                            router.push({
+                              pathname: "/(app)/teleconsult/[roomId]" as any,
+                              params: { roomId: "__pending__" },
+                            })
+                          }
+                          accessibilityRole="button"
+                          accessibilityLabel={t("appointments.joinVideo")}
+                          hitSlop={6}
+                          style={({ pressed }) => ({
+                            height: 38,
+                            borderRadius: 12,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            backgroundColor: pressed
+                              ? colors.primary
+                              : colors.primarySoft,
+                          })}
                         >
-                          {t("appointments.joinVideo")}
-                        </Text>
-                      </Pressable>
+                          <Video size={16} color={colors.primary} strokeWidth={2.5} />
+                          <Text
+                            style={[
+                              typography.label.md,
+                              { color: colors.primary, fontWeight: "700" },
+                            ]}
+                          >
+                            {t("appointments.joinVideo")}
+                          </Text>
+                        </Pressable>
+                      </View>
                     ) : null}
                   </View>
                 </Card>

@@ -3564,6 +3564,372 @@ export const ambulanceDispatches = sqliteTable("ambulance_dispatches", {
     .notNull(),
 });
 
+// ─── Phase INS-MKT: Health Insurance Marketplace ──────────
+//
+// Catalog of providers + plans; patient enrollments (active policy);
+// reimbursement claims with documents + reviewer thread. Reuses
+// `operator_orgs` (kind='insurance') for the company entity so the
+// existing operator-side admin surface and `users.role='insurance'`
+// remain the source of truth for who works at which insurer.
+export const insuranceProviders = sqliteTable("insurance_providers", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  operatorOrgId: text("operator_org_id")
+    .notNull()
+    .references(() => operatorOrgs.id),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  logoUrl: text("logo_url"),
+  tagline: text("tagline"),
+  description: text("description"),
+  regulatorLicense: text("regulator_license"),
+  claimSettlementRatioPct: real("claim_settlement_ratio_pct"),
+  cashlessHospitalCount: integer("cashless_hospital_count"),
+  websiteUrl: text("website_url"),
+  supportPhone: text("support_phone"),
+  ratingAvg: real("rating_avg").default(0),
+  ratingCount: integer("rating_count").default(0),
+  isPublished: integer("is_published", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+},
+(t) => ({
+  publishedIdx: index("insurance_providers_published_idx").on(
+    t.isPublished,
+    t.ratingAvg,
+  ),
+}));
+
+export const insurancePlans = sqliteTable("insurance_plans", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  providerId: text("provider_id")
+    .notNull()
+    .references(() => insuranceProviders.id),
+  slug: text("slug").notNull(),
+  name: text("name").notNull(),
+  planType: text("plan_type", {
+    enum: [
+      "individual",
+      "family_floater",
+      "senior",
+      "critical_illness",
+      "cancer",
+      "dental",
+      "maternity",
+    ],
+  }).notNull(),
+  coverageSummaryLkr: real("coverage_summary_lkr").notNull(),
+  coverageDetailsJson: text("coverage_details_json"),
+  monthlyPremiumLkr: real("monthly_premium_lkr").notNull(),
+  annualPremiumLkr: real("annual_premium_lkr").notNull(),
+  annualDiscountPct: real("annual_discount_pct").default(0),
+  deductibleLkr: real("deductible_lkr").default(0),
+  copayPct: real("copay_pct").default(0),
+  coPaymentCapLkr: real("co_payment_cap_lkr").default(0),
+  waitingPeriodDays: integer("waiting_period_days").default(30),
+  preExistingWaitingDays: integer("pre_existing_waiting_days").default(365),
+  networkHospitalCount: integer("network_hospital_count").default(0),
+  keyFeaturesJson: text("key_features_json"),
+  exclusionsJson: text("exclusions_json"),
+  termMonths: integer("term_months").notNull().default(12),
+  isPublished: integer("is_published", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  isFeatured: integer("is_featured", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+},
+(t) => ({
+  providerSlugUnique: uniqueIndex("insurance_plans_provider_slug_unique").on(
+    t.providerId,
+    t.slug,
+  ),
+  publishedIdx: index("insurance_plans_published_idx").on(
+    t.providerId,
+    t.isPublished,
+  ),
+  typeIdx: index("insurance_plans_type_idx").on(t.planType, t.isPublished),
+}));
+
+export const insuranceEnrollments = sqliteTable("insurance_enrollments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  planId: text("plan_id")
+    .notNull()
+    .references(() => insurancePlans.id),
+  providerId: text("provider_id")
+    .notNull()
+    .references(() => insuranceProviders.id),
+  policyNumber: text("policy_number").unique(),
+  status: text("status", {
+    enum: [
+      "quote_pending",
+      "payment_pending",
+      "active",
+      "grace",
+      "lapsed",
+      "cancelled",
+      "expired",
+    ],
+  })
+    .notNull()
+    .default("payment_pending"),
+  billingCycle: text("billing_cycle", {
+    enum: ["monthly", "annual"],
+  }).notNull(),
+  premiumAmountLkr: real("premium_amount_lkr").notNull(),
+  coverageAmountLkr: real("coverage_amount_lkr").notNull(),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  nextPremiumDueAt: text("next_premium_due_at"),
+  lastPremiumPaidAt: text("last_premium_paid_at"),
+  kycStatus: text("kyc_status", {
+    enum: ["pending", "verified", "rejected"],
+  })
+    .notNull()
+    .default("pending"),
+  nomineeName: text("nominee_name"),
+  nomineeRelation: text("nominee_relation"),
+  nomineeDob: text("nominee_dob"),
+  dependentsJson: text("dependents_json"),
+  paymentId: text("payment_id"),
+  cancelledAt: text("cancelled_at"),
+  cancelledReason: text("cancelled_reason"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+},
+(t) => ({
+  userStatusIdx: index("insurance_enrollments_user_status_idx").on(
+    t.userId,
+    t.status,
+  ),
+  providerStatusIdx: index("insurance_enrollments_provider_status_idx").on(
+    t.providerId,
+    t.status,
+  ),
+  nextDueIdx: index("insurance_enrollments_next_due_idx").on(
+    t.nextPremiumDueAt,
+    t.status,
+  ),
+}));
+
+export const insuranceDependentMembers = sqliteTable(
+  "insurance_dependent_members",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    enrollmentId: text("enrollment_id")
+      .notNull()
+      .references(() => insuranceEnrollments.id),
+    name: text("name").notNull(),
+    relation: text("relation").notNull(),
+    dob: text("dob"),
+    gender: text("gender"),
+    nicHash: text("nic_hash"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    enrollmentIdx: index("insurance_dependents_enrollment_idx").on(
+      t.enrollmentId,
+    ),
+  }),
+);
+
+export const insurancePremiumInvoices = sqliteTable(
+  "insurance_premium_invoices",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    enrollmentId: text("enrollment_id")
+      .notNull()
+      .references(() => insuranceEnrollments.id),
+    cycle: text("cycle", { enum: ["monthly", "annual"] }).notNull(),
+    amountLkr: real("amount_lkr").notNull(),
+    dueAt: text("due_at").notNull(),
+    paidAt: text("paid_at"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    paymentId: text("payment_id"),
+    status: text("status", {
+      enum: ["open", "paid", "failed", "expired"],
+    })
+      .notNull()
+      .default("open"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    enrollmentStatusIdx: index("insurance_invoices_enrollment_status_idx").on(
+      t.enrollmentId,
+      t.status,
+    ),
+    dueStatusIdx: index("insurance_invoices_due_status_idx").on(
+      t.dueAt,
+      t.status,
+    ),
+  }),
+);
+
+export const insuranceEcards = sqliteTable("insurance_ecards", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  enrollmentId: text("enrollment_id")
+    .notNull()
+    .unique()
+    .references(() => insuranceEnrollments.id),
+  cardNumber: text("card_number").notNull().unique(),
+  qrToken: text("qr_token").notNull().unique(),
+  issuedAt: text("issued_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  validUntil: text("valid_until").notNull(),
+},
+(t) => ({
+  tokenIdx: index("insurance_ecards_token_idx").on(t.qrToken),
+}));
+
+export const insuranceMarketplaceClaims = sqliteTable(
+  "insurance_marketplace_claims",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    enrollmentId: text("enrollment_id")
+      .notNull()
+      .references(() => insuranceEnrollments.id),
+    userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  providerId: text("provider_id")
+    .notNull()
+    .references(() => insuranceProviders.id),
+  incurringFacility: text("incurring_facility"),
+  treatmentType: text("treatment_type", {
+    enum: [
+      "hospitalization",
+      "day_care",
+      "opd",
+      "dental",
+      "diagnostic",
+      "maternity",
+    ],
+  }).notNull(),
+  admissionDate: text("admission_date"),
+  dischargeDate: text("discharge_date"),
+  diagnosis: text("diagnosis"),
+  amountRequestedLkr: real("amount_requested_lkr").notNull(),
+  amountApprovedLkr: real("amount_approved_lkr"),
+  status: text("status", {
+    enum: [
+      "draft",
+      "submitted",
+      "under_review",
+      "more_info_needed",
+      "approved",
+      "rejected",
+      "paid",
+    ],
+  })
+    .notNull()
+    .default("draft"),
+  insurerRemarks: text("insurer_remarks"),
+  patientRemarks: text("patient_remarks"),
+  reviewedByUserId: text("reviewed_by_user_id").references(() => users.id),
+  reviewedAt: text("reviewed_at"),
+  paidAt: text("paid_at"),
+  transactionRef: text("transaction_ref"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+},
+(t) => ({
+  enrollmentStatusIdx: index("insurance_mkt_claims_enrollment_status_idx").on(
+    t.enrollmentId,
+    t.status,
+  ),
+  userIdx: index("insurance_mkt_claims_user_idx").on(t.userId, t.status),
+  providerStatusIdx: index("insurance_mkt_claims_provider_status_idx").on(
+    t.providerId,
+    t.status,
+  ),
+}));
+
+export const insuranceMarketplaceClaimDocs = sqliteTable(
+  "insurance_marketplace_claim_docs",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    claimId: text("claim_id")
+      .notNull()
+      .references(() => insuranceMarketplaceClaims.id),
+    kind: text("kind", {
+      enum: [
+        "bill",
+        "discharge_summary",
+        "prescription",
+        "lab_report",
+        "id_proof",
+        "other",
+      ],
+    }).notNull(),
+    fileKey: text("file_key").notNull(),
+    fileName: text("file_name"),
+    contentType: text("content_type"),
+    uploadedAt: text("uploaded_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    claimIdx: index("insurance_mkt_claim_docs_claim_idx").on(t.claimId),
+  }),
+);
+
+export const insuranceMarketplaceClaimMessages = sqliteTable(
+  "insurance_marketplace_claim_messages",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    claimId: text("claim_id")
+      .notNull()
+      .references(() => insuranceMarketplaceClaims.id),
+    senderUserId: text("sender_user_id")
+      .notNull()
+      .references(() => users.id),
+    senderRole: text("sender_role", {
+      enum: ["patient", "operator"],
+    }).notNull(),
+    body: text("body").notNull(),
+    attachmentFileKey: text("attachment_file_key"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    claimIdx: index("insurance_mkt_claim_messages_claim_idx").on(
+      t.claimId,
+      t.createdAt,
+    ),
+  }),
+);
+
 // ─── Caretaker Profiles: Patient Links ────────────────────
 //
 // M:N join between a caretaker user (role='caretaker') and a principal

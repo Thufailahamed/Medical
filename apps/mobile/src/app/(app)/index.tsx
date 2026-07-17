@@ -44,6 +44,7 @@ import {
   FileText,
   Heart,
   Scale,
+  Shield,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
@@ -841,6 +842,20 @@ export default function HomeScreen() {
                 label={t("home.testBookings", "My Test Bookings")}
                 tone="neutral"
                 onPress={() => router.push("/(app)/test-bookings")}
+              />
+            </View>
+            <View style={{ flexDirection: "row", gap: spacing.md }}>
+              <QuickTile
+                icon={Shield}
+                label={t("home.insurance", "Insurance")}
+                tone="primary"
+                onPress={() => router.push("/(app)/insurance")}
+              />
+              <QuickTile
+                icon={FileText}
+                label={t("home.healthSummary", "Health Summary")}
+                tone="info"
+                onPress={() => router.push("/(app)/health-summary")}
               />
             </View>
           </View>

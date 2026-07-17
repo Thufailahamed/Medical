@@ -8,11 +8,13 @@ import { Pressable } from "./Pressable";
 type Props = {
   title?: string;
   subtitle?: string;
+  kicker?: string;
   greeting?: string;
   back?: boolean | (() => void);
   onBack?: () => void;
   right?: React.ReactNode;
   left?: React.ReactNode;
+  icon?: React.ReactNode;
   variant?: "default" | "compact" | "hero";
   style?: StyleProp<ViewStyle>;
   onPressTitle?: () => void;
@@ -21,11 +23,13 @@ type Props = {
 export function ScreenHeader({
   title,
   subtitle,
+  kicker,
   greeting,
   back,
   onBack,
   right,
   left,
+  icon,
   variant = "default",
   style,
 }: Props) {
@@ -38,8 +42,9 @@ export function ScreenHeader({
     else router.back();
   };
 
-  const showBack = !!back || !!onBack;
-  const showLeft = !!left;
+  const showBack = back !== false && (!!back || !!onBack || router.canGoBack());
+  const showLeft = !!left || !!icon;
+  const leftContent = left ?? icon;
 
   const variantSpacing =
     variant === "hero"
@@ -79,12 +84,29 @@ export function ScreenHeader({
           <ArrowLeft size={20} color={colors.text} strokeWidth={2.25} />
         </Pressable>
       ) : showLeft ? (
-        <View style={[styles.iconButton, { backgroundColor: "transparent" }]}>{left}</View>
+        <View style={[styles.iconButton, { backgroundColor: "transparent" }]}>{leftContent}</View>
       ) : (
         <View style={styles.iconButton} />
       )}
 
       <View style={styles.center}>
+        {kicker ? (
+          <Text
+            style={[
+              typography.body.sm,
+              {
+                color: colors.primary,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                fontSize: 11,
+                marginBottom: 2,
+              },
+            ]}
+          >
+            {kicker}
+          </Text>
+        ) : null}
         {greeting ? (
           <Text
             style={[
@@ -101,7 +123,7 @@ export function ScreenHeader({
               variant === "hero" ? typography.display.md : typography.title.lg,
               { color: colors.text },
             ]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {title}
           </Text>
@@ -112,7 +134,7 @@ export function ScreenHeader({
               typography.body.sm,
               { color: colors.textMuted, marginTop: 2 },
             ]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {subtitle}
           </Text>

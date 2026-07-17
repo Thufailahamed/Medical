@@ -709,3 +709,210 @@ export interface ResolveScanResult {
   expiresAt: string;
   remainingScans: number;
 }
+
+// ─── Health Insurance Marketplace types ──────────────────
+// Mirror the SQLite CHECK enums in 0069_insurance_marketplace.sql.
+
+export type InsuranceBillingCycle = "monthly" | "annual";
+export type InsurancePlanType =
+  | "individual"
+  | "family_floater"
+  | "senior"
+  | "critical_illness"
+  | "cancer"
+  | "dental"
+  | "maternity";
+export type InsuranceEnrollmentStatus =
+  | "quote_pending"
+  | "payment_pending"
+  | "active"
+  | "grace"
+  | "lapsed"
+  | "cancelled"
+  | "expired";
+export type InsuranceClaimStatus =
+  | "draft"
+  | "submitted"
+  | "under_review"
+  | "more_info_needed"
+  | "approved"
+  | "rejected"
+  | "paid";
+export type InsuranceTreatmentType =
+  | "hospitalization"
+  | "day_care"
+  | "opd"
+  | "dental"
+  | "diagnostic"
+  | "maternity";
+export type InsuranceClaimDocKind =
+  | "bill"
+  | "discharge_summary"
+  | "prescription"
+  | "lab_report"
+  | "id_proof"
+  | "other";
+
+export interface InsuranceProvider {
+  id: string;
+  operatorOrgId: string;
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  tagline: string | null;
+  description: string | null;
+  regulatorLicense: string | null;
+  claimSettlementRatioPct: number | null;
+  cashlessHospitalCount: number | null;
+  websiteUrl: string | null;
+  supportPhone: string | null;
+  ratingAvg: number;
+  ratingCount: number;
+  isPublished: boolean;
+  planCount?: number;
+}
+
+export interface InsurancePlan {
+  id: string;
+  providerId: string;
+  slug: string;
+  name: string;
+  planType: InsurancePlanType;
+  coverageSummaryLkr: number;
+  coverageDetails: Record<string, unknown> | null;
+  monthlyPremiumLkr: number;
+  annualPremiumLkr: number;
+  annualDiscountPct: number;
+  deductibleLkr: number;
+  copayPct: number;
+  coPaymentCapLkr: number;
+  waitingPeriodDays: number;
+  preExistingWaitingDays: number;
+  networkHospitalCount: number;
+  keyFeatures: string[] | null;
+  exclusions: string[] | null;
+  termMonths: number;
+  isPublished: boolean;
+  isFeatured: boolean;
+}
+
+export interface InsuranceDependentMember {
+  id: string;
+  enrollmentId: string;
+  name: string;
+  relation: string;
+  dob: string | null;
+  gender: string | null;
+}
+
+export interface InsuranceEnrollment {
+  id: string;
+  userId: string;
+  planId: string;
+  providerId: string;
+  policyNumber: string | null;
+  status: InsuranceEnrollmentStatus;
+  billingCycle: InsuranceBillingCycle;
+  premiumAmountLkr: number;
+  coverageAmountLkr: number;
+  startDate: string | null;
+  endDate: string | null;
+  nextPremiumDueAt: string | null;
+  lastPremiumPaidAt: string | null;
+  kycStatus: "pending" | "verified" | "rejected";
+  nomineeName: string | null;
+  nomineeRelation: string | null;
+  nomineeDob: string | null;
+  dependents: InsuranceDependentMember[];
+  paymentId: string | null;
+  cancelledAt: string | null;
+  cancelledReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InsurancePremiumInvoice {
+  id: string;
+  enrollmentId: string;
+  cycle: InsuranceBillingCycle;
+  amountLkr: number;
+  dueAt: string;
+  paidAt: string | null;
+  attemptCount: number;
+  paymentId: string | null;
+  status: "open" | "paid" | "failed" | "expired";
+}
+
+export interface InsuranceEcard {
+  id: string;
+  enrollmentId: string;
+  cardNumber: string;
+  qrToken: string;
+  issuedAt: string;
+  validUntil: string;
+}
+
+export interface InsuranceClaimDocument {
+  id: string;
+  claimId: string;
+  kind: InsuranceClaimDocKind;
+  fileKey: string;
+  fileName: string | null;
+  contentType: string | null;
+  uploadedAt: string;
+}
+
+export interface InsuranceClaimMessage {
+  id: string;
+  claimId: string;
+  senderUserId: string;
+  senderRole: "patient" | "operator";
+  body: string;
+  attachmentFileKey: string | null;
+  createdAt: string;
+}
+
+export interface InsuranceClaim {
+  id: string;
+  enrollmentId: string;
+  userId: string;
+  providerId: string;
+  incurringFacility: string | null;
+  treatmentType: InsuranceTreatmentType;
+  admissionDate: string | null;
+  dischargeDate: string | null;
+  diagnosis: string | null;
+  amountRequestedLkr: number;
+  amountApprovedLkr: number | null;
+  status: InsuranceClaimStatus;
+  insurerRemarks: string | null;
+  patientRemarks: string | null;
+  reviewedByUserId: string | null;
+  reviewedAt: string | null;
+  paidAt: string | null;
+  transactionRef: string | null;
+  documents: InsuranceClaimDocument[];
+  messages: InsuranceClaimMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InsuranceQuoteResult {
+  planId: string | null;
+  billingCycle: InsuranceBillingCycle;
+  basePremiumLkr: number;
+  adjustedPremiumLkr: number;
+  notes: string[];
+  riders: { id: string; name: string; priceLkr: number }[];
+}
+
+export interface InsuranceCoverageCheckResult {
+  enrolled: boolean;
+  planName: string | null;
+  coverageType: InsuranceTreatmentType | null;
+  covered: boolean;
+  copayPct: number;
+  estimatedOutOfPocketLkr: number;
+  deductibleLkr: number;
+  notes: string[];
+}

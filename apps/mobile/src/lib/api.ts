@@ -5,6 +5,7 @@ import { useActiveFamilyMemberStore } from "@/stores/activeFamilyMember";
 import { useActivePrincipalStore } from "@/stores/activePrincipal";
 import { useActiveTenantStore } from "@/stores/tenant-store";
 import { intlLocale } from "./format";
+import { readApiCache, writeApiCache } from "./offline-cache";
 
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
 const FALLBACK_API_URL = "http://localhost:8787";
@@ -165,6 +166,27 @@ export async function api<T = any>(
       token = null;
     }
   }
+
+  const method = (options.method || "GET").toUpperCase();
+  const responseType = options.responseType || "json";
+
+  if (method === "GET" && responseType === "json") {
+    try {
+      const result = await runRequest<T>(endpoint, options, token);
+      writeApiCache(endpoint, result).catch(() => {});
+      return result;
+    } catch (err: any) {
+      if (err && (err.status === 401 || err.status === 403 || err.status === 404)) {
+        throw err;
+      }
+      const cached = await readApiCache<T>(endpoint);
+      if (cached !== null) {
+        return cached;
+      }
+      throw err;
+    }
+  }
+
   return runRequest<T>(endpoint, options, token);
 }
 

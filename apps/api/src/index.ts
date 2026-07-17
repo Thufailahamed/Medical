@@ -71,6 +71,9 @@ import { doseRemindersRouter } from "./cron/dose-reminders";
 import { refillRemindersRouter } from "./cron/refill-reminders";
 import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
+import { insurancePremiumRemindersRouter } from "./cron/insurance-premium-reminders";
+import { insuranceBillingRouter } from "./cron/insurance-billing";
+import { insuranceGraceExpiryRouter } from "./cron/insurance-grace-expiry";
 import { symptomAnomaliesRouter } from "./cron/symptom-anomalies";
 import { postVisitSummaryRouter } from "./cron/post-visit-summary-router";
 import { preVisitSummaryRouter } from "./cron/pre-visit-summary-router";
@@ -114,6 +117,11 @@ import imagingUploadRouter from "./routes/imaging-upload";
 import diagnosticTestsRouter from "./routes/diagnostic-tests";
 import labPartnerPortalRouter from "./routes/lab-partner-portal";
 import adminPacsRouter from "./routes/admin-pacs";
+// Phase INS-MKT: health insurance marketplace — public catalog + patient
+// enroll/pay/claims, operator back-office, and super_admin CRUD.
+import insuranceMarketplaceRouter from "./routes/insurance-marketplace";
+import insuranceOperatorRouter from "./routes/insurance-operator";
+import adminInsuranceRouter from "./routes/admin-insurance";
 import { pacsSyncRouter } from "./cron/pacs-sync";
 import { TeleconsultRoom } from "./durable-objects/teleconsult-room";
 import type { AppEnvironment } from "./types";
@@ -245,6 +253,9 @@ app.route("/payments", paymentsRouter);
 // Mobile posts the mfaToken + TOTP to /mfa/challenge to mint a session.
 app.route("/mfa", mfaRouter);
 app.route("/insurance", insuranceRouter);
+app.route("/insurance-marketplace", insuranceMarketplaceRouter);
+app.route("/insurance-operator", insuranceOperatorRouter);
+app.route("/admin", adminInsuranceRouter);
 app.route("/labs", labsRouter);
 app.route("/wellness", wellnessRouter);
 app.route("/doctor-portal", doctorPortalRouter);
@@ -377,7 +388,13 @@ app.route("/admin/caretaker-verifications", adminCaretakerVerificationsRouter);
 //   POST /__cron/vaccination-reminders    with x-cron-secret header.
 //   POST /__cron/symptom-anomalies        with x-cron-secret header.
 //   POST /__cron/post-visit-summary       with x-cron-secret header.
+//   POST /__cron/insurance-premium-reminders  with x-cron-secret header.
+//   POST /__cron/insurance-billing            with x-cron-secret header.
+//   POST /__cron/insurance-grace-expiry       with x-cron-secret header.
 app.route("/", bookingRemindersRouter);
+app.route("/", insurancePremiumRemindersRouter);
+app.route("/", insuranceBillingRouter);
+app.route("/", insuranceGraceExpiryRouter);
 app.route("/", doseRemindersRouter);
 app.route("/", refillRemindersRouter);
 app.route("/", reclassifyRouter);
@@ -445,6 +462,17 @@ export default {
       // for clusters of moderate/severe symptoms and fires a
       // notification + audit row. Cheap (one SELECT, tiny JS work).
       paths.push("/__cron/symptom-anomalies");
+    }
+
+    // 5. Insurance marketplace crons: daily around 09:00–09:30 UTC.
+    if (utcHour === 9 && utcMin >= 5 && utcMin < 10) {
+      paths.push("/__cron/insurance-premium-reminders");
+    }
+    if (utcHour === 9 && utcMin >= 15 && utcMin < 20) {
+      paths.push("/__cron/insurance-billing");
+    }
+    if (utcHour === 9 && utcMin >= 30 && utcMin < 35) {
+      paths.push("/__cron/insurance-grace-expiry");
     }
 
     for (const path of paths) {

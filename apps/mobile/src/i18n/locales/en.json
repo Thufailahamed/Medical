@@ -1058,21 +1058,66 @@
       "message": "Log your first reading to start tracking trends."
     },
     "type": {
-      "blood_pressure": { "label": "Blood pressure", "unit": "mmHg" },
-      "blood_sugar":    { "label": "Blood sugar",    "unit": "mg/dL" },
-      "weight":         { "label": "Weight",         "unit": "kg" },
-      "height":         { "label": "Height",         "unit": "cm" },
-      "heart_rate":     { "label": "Heart rate",     "unit": "bpm" },
-      "temperature":    { "label": "Temperature",    "unit": "°C" },
-      "spo2":           { "label": "SpO₂",           "unit": "%" },
-      "cholesterol":    { "label": "Cholesterol",    "unit": "mg/dL" },
-      "respiratory_rate":   { "label": "Respiratory rate",   "unit": "br/min" },
-      "hrv_rmssd":          { "label": "HRV (RMSSD)",        "unit": "ms" },
-      "body_fat_pct":       { "label": "Body fat",           "unit": "%" },
-      "waist_circumference":{ "label": "Waist",              "unit": "cm" },
-      "hip_circumference":  { "label": "Hip",                "unit": "cm" },
-      "pain_scale":         { "label": "Pain",               "unit": "/10" },
-      "peak_flow":          { "label": "Peak flow",          "unit": "L/min" }
+      "blood_pressure": {
+        "label": "Blood pressure",
+        "unit": "mmHg"
+      },
+      "blood_sugar": {
+        "label": "Blood sugar",
+        "unit": "mg/dL"
+      },
+      "weight": {
+        "label": "Weight",
+        "unit": "kg"
+      },
+      "height": {
+        "label": "Height",
+        "unit": "cm"
+      },
+      "heart_rate": {
+        "label": "Heart rate",
+        "unit": "bpm"
+      },
+      "temperature": {
+        "label": "Temperature",
+        "unit": "°C"
+      },
+      "spo2": {
+        "label": "SpO₂",
+        "unit": "%"
+      },
+      "cholesterol": {
+        "label": "Cholesterol",
+        "unit": "mg/dL"
+      },
+      "respiratory_rate": {
+        "label": "Respiratory rate",
+        "unit": "br/min"
+      },
+      "hrv_rmssd": {
+        "label": "HRV (RMSSD)",
+        "unit": "ms"
+      },
+      "body_fat_pct": {
+        "label": "Body fat",
+        "unit": "%"
+      },
+      "waist_circumference": {
+        "label": "Waist",
+        "unit": "cm"
+      },
+      "hip_circumference": {
+        "label": "Hip",
+        "unit": "cm"
+      },
+      "pain_scale": {
+        "label": "Pain",
+        "unit": "/10"
+      },
+      "peak_flow": {
+        "label": "Peak flow",
+        "unit": "L/min"
+      }
     },
     "range": {
       "7": "7d",
@@ -1602,12 +1647,12 @@
       "removed": "Filter removed"
     },
     "hero": {
-      "eyebrow": "YOUR LIBRARY",
-      "title": "Records",
-      "add": "Add record",
-      "total": "Total",
-      "shared": "Shared",
-      "folders": "Smart folders"
+      "totalLabel": "TOTAL",
+      "encrypted": "End-to-end encrypted",
+      "recent": "{{count}} this month",
+      "noRecent": "Nothing new this month",
+      "secure": "Private by design",
+      "lastLabel": "LAST RECORD"
     },
     "toast": {
       "loadedFilter": "Loaded \"{{name}}\"",
@@ -1640,14 +1685,6 @@
     },
     "aiGuess": {
       "pill": "AI GUESS"
-    },
-    "hero": {
-      "totalLabel": "TOTAL",
-      "encrypted": "End-to-end encrypted",
-      "recent": "{{count}} this month",
-      "noRecent": "Nothing new this month",
-      "secure": "Private by design",
-      "lastLabel": "LAST RECORD"
     },
     "actions": {
       "share": "Share",
@@ -3171,26 +3208,7 @@
     "statusReserved": "Reserved"
   },
   "hospitalPatientDetail": {
-    "fallbackTitle": "Patient",
-    "loadingTitle": "Patient",
-    "notFoundTitle": "Patient not found",
-    "notFoundBody": "We couldn't load this patient. Go back and try again.",
-    "goBack": "Go back",
-    "notAdmittedTitle": "Not admitted",
-    "notAdmittedBody": "This patient is not currently admitted to your hospital.",
-    "dischargeAlertTitle": "Discharge patient?",
-    "dischargeAlertBody": "Move the bed to cleaning status.",
-    "cancel": "Cancel",
-    "discharge": "Discharge",
-    "dischargedToast": "Patient discharged",
-    "dischargeError": "Discharge failed",
-    "admittedAt": "Admitted {{datetime}}",
-    "recentVitals": "Recent vitals",
-    "noVitals": "No vitals recorded",
-    "abnormalCount_one": "{{count}} out of range",
-    "abnormalCount_other": "{{count}} out of range",
-    "records": "Records",
-    "noRecords": "No records yet"
+    "recordsTab": "Records (unified)"
   },
   "nav": {
     "tabs": {
@@ -3201,6 +3219,7 @@
       "emergency": "Emergency",
       "messages": "Messages",
       "appointments": "Appointments",
+      "insurance": "Insurance",
       "profile": "Profile",
       "healthId": "Health ID",
       "doctorHome": "Home",
@@ -3540,17 +3559,17 @@
       "timeline": "Timeline",
       "sharing": "Sharing"
     },
-  "hero": {
-    "eyebrow": "Health records",
-    "encrypted": "Encrypted & synced",
-    "lastActivity": "Last add {{when}}",
-    "loading": "Loading your library…",
-    "noProfile": "Patient",
-    "bloodGroup": "Blood group {{value}}",
-    "ageYears": "{{n}} yrs",
-    "total": "records",
-    "noActivity": "no activity yet"
-  },
+    "hero": {
+      "eyebrow": "Health records",
+      "encrypted": "Encrypted & synced",
+      "lastActivity": "Last add {{when}}",
+      "loading": "Loading your library…",
+      "noProfile": "Patient",
+      "bloodGroup": "Blood group {{value}}",
+      "ageYears": "{{n}} yrs",
+      "total": "records",
+      "noActivity": "no activity yet"
+    },
     "quickActions": {
       "share": "Share",
       "export": "Export",
@@ -3563,17 +3582,17 @@
       "locked": "Locked",
       "shared": "Shared"
     },
-  "smartFolders": {
-    "title": "Smart folders",
-    "allergies": "Allergies",
-    "vaccinations": "Vaccinations",
-    "labReports": "Lab reports",
-    "prescriptions": "Prescriptions",
-    "imaging": "Imaging",
-    "recent30": "Last 30 days",
-    "seeAll": "See all",
-    "recordsLabel": "records"
-  },
+    "smartFolders": {
+      "title": "Smart folders",
+      "allergies": "Allergies",
+      "vaccinations": "Vaccinations",
+      "labReports": "Lab reports",
+      "prescriptions": "Prescriptions",
+      "imaging": "Imaging",
+      "recent30": "Last 30 days",
+      "seeAll": "See all",
+      "recordsLabel": "records"
+    },
     "search": {
       "placeholder": "Search records, doctors, OCR…"
     },
@@ -3609,14 +3628,14 @@
       "revoked": "Consent revoked",
       "revokeFailed": "Could not revoke"
     },
-  "activeFilterLabel": "Active filter",
-  "row": {
-    "diagnosis": "Diagnosis",
-    "files_one": "{{count}} file",
-    "files_other": "{{count}} files",
-    "tagsLabel": "Tags",
-    "fallbackTitle": "Untitled"
-  }
+    "activeFilterLabel": "Active filter",
+    "row": {
+      "diagnosis": "Diagnosis",
+      "files_one": "{{count}} file",
+      "files_other": "{{count}} files",
+      "tagsLabel": "Tags",
+      "fallbackTitle": "Untitled"
+    }
   },
   "consent": {
     "purpose": {
@@ -3641,7 +3660,6 @@
     "title": "Emergency QR",
     "subtitle": "Time-boxed. Each scan is logged."
   },
-
   "overview": {
     "title": "Patient overview",
     "subtitle": "Everything you need at a glance",
@@ -3714,9 +3732,6 @@
       "processing": "Processing",
       "pending": "Pending"
     }
-  },
-  "hospitalPatientDetail": {
-    "recordsTab": "Records (unified)"
   },
   "caretaker": {
     "title": "Caretakers",
@@ -4108,5 +4123,421 @@
     "pendingDesc": "Your test is still being processed. You'll be notified when results are ready.",
     "notFound": "Results not found",
     "notFoundDesc": "This booking may not have results yet."
+  },
+  "insurance": {
+    "tab": "Insurance",
+    "homeKicker": "Health Insurance",
+    "homeTitle": "Protect your family for less than your monthly coffee",
+    "homeSubtitle": "Browse plans, compare premiums, buy in 3 minutes.",
+    "myPolicies": "My Policies",
+    "noPolicies": "You don't have any policies yet.",
+    "browseMarketplace": "Browse plans",
+    "buyAnother": "Add another policy",
+    "coverageCheck": "Check coverage",
+    "submitClaim": "Submit a claim",
+    "myClaims": "My claims",
+    "search": "Search plans",
+    "filterAll": "All",
+    "filterByType": "Plan type",
+    "planTypes": {
+      "individual": "Individual",
+      "family_floater": "Family Floater",
+      "senior": "Senior",
+      "critical_illness": "Critical Illness",
+      "cancer": "Cancer Care",
+      "dental": "Dental",
+      "maternity": "Maternity"
+    },
+    "sort": {
+      "label": "Sort",
+      "rating": "Top rated",
+      "premium": "Lowest premium",
+      "premiumDesc": "Highest premium"
+    },
+    "provider": {
+      "planCount_one": "{{count}} plan",
+      "planCount_other": "{{count}} plans",
+      "claimRatio": "Claim settlement {{pct}}%",
+      "cashless": "{{count}} cashless hospitals",
+      "rating": "Rating {{avg}} ({{count}})",
+      "visitMarketplace": "View plans",
+      "about": "About",
+      "features": "Key features",
+      "noPlans": "No published plans yet",
+      "planCount": "{{count}}"
+    },
+    "plan": {
+      "monthly": "LKR {{amount}}/mo",
+      "annual": "LKR {{amount}}/yr",
+      "save": "Save {{pct}}% on annual",
+      "coverageLabel": "Coverage up to LKR {{amount}}",
+      "viewDetails": "View details",
+      "type": "Plan type",
+      "deductible": "Deductible",
+      "copay": "Co-pay",
+      "waitingPeriod": "Waiting period",
+      "preExistingWait": "Pre-existing waiting",
+      "networks": "Network hospitals",
+      "exclusions": "Exclusions",
+      "keyFeatures": "Key features",
+      "enrollNow": "Enroll in this plan",
+      "quoteFirst": "Get personalized quote",
+      "termMonths": "Term: {{months}} months",
+      "available": "{{count}} available"
+    },
+    "quote": {
+      "title": "Personalized Quote",
+      "step1": "Who is being covered?",
+      "step2": "Tell us about any pre-existing conditions",
+      "step3": "Choose billing cycle",
+      "next": "Next",
+      "back": "Back",
+      "seePremium": "See premium",
+      "ageLabel": "Age",
+      "genderLabel": "Gender",
+      "membersLabel": "Family members",
+      "addMember": "Add member",
+      "preExistingLabel": "Pre-existing conditions",
+      "billingCycleLabel": "Billing",
+      "monthly": "Pay monthly",
+      "annual": "Pay annually (save {{pct}}%)",
+      "yourPremium": "Your premium",
+      "perMonth": "/month",
+      "perYear": "/year",
+      "basePremium": "Base premium",
+      "adjustments": "Adjustments",
+      "enrollWithThisQuote": "Enroll with this quote"
+    },
+    "enroll": {
+      "title": "Enroll in this plan",
+      "stepKyc": "Verify identity",
+      "stepNominee": "Nominee details",
+      "stepFamily": "Family members",
+      "stepReview": "Review & accept",
+      "name": "Full name",
+      "dob": "Date of birth",
+      "gender": "Gender",
+      "nomineeName": "Nominee name",
+      "nomineeRelation": "Relation to policyholder",
+      "nomineeDob": "Nominee date of birth",
+      "dependents": "Covered members",
+      "addDependent": "Add member",
+      "removeMember": "Remove",
+      "policyholder": "Policyholder (you)",
+      "review": "Review",
+      "terms": "I agree to the insurer's terms, disclosure of pre-existing conditions is true, and I authorize monthly/annual premium debit via PayHere.",
+      "submit": "Submit & pay premium",
+      "kycVerified": "Identity verified (NIC + DOB on file)"
+    },
+    "payment": {
+      "title": "Pay premium",
+      "redirect": "Opening PayHere secure checkout…",
+      "orderLabel": "Order",
+      "amountLabel": "Amount due",
+      "completeOnReturn": "After paying, tap 'I've paid' to refresh your policy.",
+      "iHavePaid": "I've paid — verify"
+    },
+    "policy": {
+      "details": "Policy details",
+      "policyNumber": "Policy number",
+      "provider": "Insurer",
+      "coverage": "Total coverage",
+      "premium": "Premium",
+      "nextPremium": "Next premium due",
+      "expires": "Expires",
+      "grace": "Grace period — pay soon to keep coverage",
+      "lapsed": "Policy has lapsed",
+      "viewEcard": "View E-card",
+      "renewNow": "Renew now",
+      "submitClaim": "Submit a claim",
+      "cancelPolicy": "Cancel policy",
+      "dependents": "Family members on policy",
+      "noClaims": "No claims on this policy yet",
+      "quickActions": "Quick actions"
+    },
+    "ecard": {
+      "title": "Digital E-Card",
+      "subtitle": "Show this card at network hospitals for cashless treatment",
+      "validUntil": "Valid until {{date}}",
+      "policyNumber": "Policy",
+      "share": "Share E-card",
+      "notActive": "E-card only available when policy is active"
+    },
+    "claim": {
+      "title": "Submit a claim",
+      "subtitle": "Reimbursement claims. Upload your final hospital bill and discharge summary.",
+      "enrollment": "Choose policy",
+      "treatmentType": "Treatment type",
+      "facility": "Hospital / facility",
+      "admission": "Admission date",
+      "discharge": "Discharge date",
+      "diagnosis": "Diagnosis",
+      "amount": "Amount requested (LKR)",
+      "remarks": "Notes for the reviewer",
+      "documents": "Documents",
+      "addDocument": "Add document",
+      "documentKind": "Document type",
+      "uploadFile": "Choose file",
+      "submitDraft": "Save draft",
+      "submitFinal": "Submit for review",
+      "submitted": "Submitted",
+      "status": {
+        "draft": "Draft",
+        "submitted": "Awaiting review",
+        "under_review": "Under review",
+        "more_info_needed": "More info needed",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "paid": "Paid out"
+      },
+      "messages": "Conversation with reviewer",
+      "sendMessage": "Send",
+      "addReply": "Add a reply"
+    },
+    "coverage": {
+      "title": "Check coverage",
+      "intro": "Estimate your out-of-pocket cost before treatment.",
+      "covered": "Covered",
+      "notCovered": "Not covered",
+      "amount": "Estimated bill",
+      "estimatedOop": "Estimated out-of-pocket",
+      "deductible": "Deductible",
+      "copay": "Co-pay",
+      "noPolicy": "You need an active policy to use this tool."
+    },
+    "status": {
+      "payment_pending": "Payment pending",
+      "active": "Active",
+      "grace": "In grace period",
+      "lapsed": "Lapsed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "insurance": {
+      "tab": "Insurance",
+      "homeKicker": "Health Insurance",
+      "homeTitle": "Protect your family for less than your monthly coffee",
+      "homeSubtitle": "Browse plans, compare premiums, buy in 3 minutes.",
+      "myPolicies": "My Policies",
+      "noPolicies": "You don't have any policies yet.",
+      "browseMarketplace": "Browse plans",
+      "coverageCheck": "Check coverage",
+      "submitClaim": "Submit a claim",
+      "myClaims": "My claims",
+      "search": "Search plans",
+      "filterAll": "All",
+      "renew": "Renew",
+      "ecard": {
+        "view": "View E-card",
+        "title": "Digital E-Card",
+        "kicker": "E-Card",
+        "notFound": "E-card not available yet",
+        "healthCard": "Health Card",
+        "holder": "Holder",
+        "validUntil": "Valid until",
+        "valid": "Valid",
+        "expired": "Expired",
+        "scan": "Scan at network hospital",
+        "share": "Share E-card"
+      },
+      "payment": {
+        "title": "Pay premium",
+        "kicker": "Payment",
+        "amount": "LKR {{amount}} due",
+        "billingCycle": "Billed {{cycle}}",
+        "waiting": "Waiting for payment confirmation…",
+        "active": "Active",
+        "failed": "Payment failed",
+        "openCheckout": "Open PayHere checkout",
+        "cancel": "Cancel",
+        "viewPolicy": "View policy"
+      },
+      "plan": {
+        "available_one": "{{count}} plan available",
+        "available_other": "{{count}} plans available",
+        "coverage": "Coverage",
+        "details": "Plan details",
+        "features": "Key features",
+        "exclusions": "Exclusions",
+        "getQuote": "Get personalized quote",
+        "notFound": "Plan not found",
+        "viewDetails": "Available plans",
+        "copay": "Co-pay",
+        "copayPct": "Co-pay {{pct}}%",
+        "deductible": "Deductible LKR {{amount}}",
+        "waiting": "Waiting period {{days}} days",
+        "networks_one": "{{count}} network hospital",
+        "networks_other": "{{count}} network hospitals"
+      },
+      "provider": {
+        "label": "Provider",
+        "notFound": "Provider not found",
+        "noPlans": "No plans published yet",
+        "features": "Providers",
+        "planCount_one": "{{count}} plan",
+        "planCount_other": "{{count}} plans",
+        "website": "Website"
+      },
+      "quote": {
+        "title": "Personalized Quote",
+        "kicker": "Quote",
+        "aboutYou": "Tell us about the primary insured",
+        "age": "Age",
+        "gender": "Gender",
+        "next": "Next",
+        "members": "Family members",
+        "membersHelp": "Add spouse, children, or parents covered by the same policy.",
+        "name": "Name",
+        "preExisting": "Pre-existing conditions",
+        "preExistingHelp": "Honest disclosure keeps claims clean.",
+        "estimate": "Estimated premium",
+        "calculating": "Calculating…",
+        "unavailable": "Quote unavailable for this combination.",
+        "continue": "Continue to enrollment",
+        "reset": "Start over",
+        "noPlan": "Pick a plan from the marketplace first.",
+        "coverage": "Coverage up to LKR {{amount}}",
+        "loading": "Loading applied {{pct}}%",
+        "male": "Male",
+        "female": "Female",
+        "other": "Other",
+        "conditions": {
+          "diabetes": "Diabetes",
+          "hypertension": "Hypertension",
+          "asthma": "Asthma",
+          "heart_disease": "Heart disease",
+          "cancer_history": "Cancer history",
+          "kidney_disease": "Kidney disease"
+        }
+      },
+      "enroll": {
+        "title": "Enroll in this plan",
+        "kicker": "Enrollment",
+        "kyc": "KYC verification",
+        "nic": "National ID (NIC)",
+        "kycHelp": "We match this against {{name}} on your profile.",
+        "nominee": "Nominee",
+        "nomineeName": "Nominee name",
+        "nomineePlaceholder": "Spouse / parent / child",
+        "nomineeRelation": "Relation",
+        "nomineeDob": "Nominee DOB (YYYY-MM-DD)",
+        "dependents": "Covered members",
+        "noDependents": "No dependents added.",
+        "agreeTnc": "I agree to the insurer's terms and authorize premium debit via PayHere.",
+        "proceed": "Proceed to payment",
+        "premium": "LKR {{amount}} / {{cycle}}"
+      },
+      "policy": {
+        "kicker": "Policy",
+        "summary": "Summary",
+        "policyNumber": "Policy",
+        "premium": "Premium",
+        "coverage": "Coverage",
+        "nextPremium": "Next premium",
+        "actions": "Quick actions",
+        "coverageDetails": "Coverage details",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "dependents": "Family members on policy",
+        "notFound": "Policy not found"
+      },
+      "claim": {
+        "kicker": "Claims",
+        "new": "Submit a claim",
+        "list": "My claims",
+        "detail": "Claim detail",
+        "recent": "Recent claims",
+        "empty": "No claims yet.",
+        "policy": "Choose policy",
+        "noActivePolicy": "You need an active policy to file a claim.",
+        "treatment": "Treatment",
+        "treatmentType": "Treatment type",
+        "facility": "Hospital / facility",
+        "facilityPlaceholder": "e.g. Asiri Central Hospital",
+        "admissionDate": "Admission date",
+        "dischargeDate": "Discharge date",
+        "diagnosis": "Diagnosis",
+        "diagnosisPlaceholder": "Brief description of condition",
+        "amount": "Amount requested",
+        "approved": "Approved: LKR {{amount}}",
+        "remarks": "Notes for reviewer",
+        "documents": "Documents",
+        "uploadDoc": "Add document",
+        "submit": "Submit for review",
+        "send": "Send",
+        "messages": "Conversation",
+        "messagePlaceholder": "Write a reply…",
+        "noMessages": "No messages yet.",
+        "notFound": "Claim not found",
+        "treatments": {
+          "hospitalization": "Hospitalization",
+          "day_care": "Day care",
+          "opd": "OPD",
+          "dental": "Dental",
+          "diagnostic": "Diagnostic",
+          "maternity": "Maternity"
+        },
+        "statuses": {
+          "draft": "Draft",
+          "submitted": "Awaiting review",
+          "under_review": "Under review",
+          "more_info_needed": "More info needed",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "paid": "Paid out"
+        },
+        "docKinds": {
+          "bill": "Hospital bill",
+          "discharge_summary": "Discharge summary",
+          "prescription": "Prescription",
+          "lab_report": "Lab report",
+          "id_proof": "ID proof",
+          "other": "Other"
+        }
+      },
+      "coverage": {
+        "title": "Coverage check",
+        "subtitle": "Estimate out-of-pocket before treatment.",
+        "kicker": "Coverage",
+        "planned": "Planned treatment",
+        "procedure": "Procedure",
+        "hospital": "Hospital",
+        "hospitalPlaceholder": "Optional — for network hospital lookup",
+        "estimatedAmount": "Estimated bill (LKR)",
+        "check": "Check coverage",
+        "coveredTitle": "Covered",
+        "notCoveredTitle": "Not covered",
+        "eligible": "Eligible",
+        "outOfPocket": "Estimated out-of-pocket",
+        "requiresPreAuth": "Pre-authorization required",
+        "procedures": {
+          "consultation": "Consultation",
+          "lab_test": "Lab test",
+          "diagnostic_imaging": "Diagnostic imaging",
+          "minor_surgery": "Minor surgery",
+          "major_surgery": "Major surgery",
+          "dental": "Dental",
+          "maternity": "Maternity"
+        }
+      },
+      "planTypes": {
+        "individual": "Individual",
+        "family_floater": "Family Floater",
+        "senior": "Senior",
+        "critical_illness": "Critical Illness",
+        "cancer": "Cancer Care",
+        "dental": "Dental",
+        "maternity": "Maternity"
+      },
+      "status": {
+        "payment_pending": "Payment pending",
+        "active": "Active",
+        "grace": "In grace period",
+        "lapsed": "Lapsed",
+        "cancelled": "Cancelled",
+        "expired": "Expired",
+        "quote_pending": "Quote pending"
+      }
+    }
   }
 }
