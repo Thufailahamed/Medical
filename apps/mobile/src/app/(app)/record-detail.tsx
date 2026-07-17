@@ -61,6 +61,7 @@ import {
 import { metaFor, type RecordType } from "@/lib/recordImportance";
 import { FamilyPickerSheet } from "@/components/FamilyPickerSheet";
 import { TagPickerSheet } from "@/components/TagPickerSheet";
+import { DicomPreviewCard } from "@/components/records/DicomPreviewCard";
 
 type BottomSheetAction =
   | "edit"
@@ -872,6 +873,35 @@ export default function RecordDetailScreen() {
             )}
           </Card>
         </View>
+
+        {/* DICOM metadata preview — only surfaces when the record
+            carries extracted study/series/modality data (e.g. when the
+            list endpoint joined document_dicom_metadata). */}
+        {recordKind === "imaging" ? (
+          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+            <DicomPreviewCard
+              metadata={(() => {
+                const first: any = attachments.find(
+                  (a: any) => a?.dicomMetadata || a?.metadata?.dicom
+                );
+                const m =
+                  first?.dicomMetadata ||
+                  first?.metadata?.dicom ||
+                  (record as any)?.dicomMetadata ||
+                  null;
+                if (!m) return null;
+                return {
+                  modality: m.modality ?? m.Modality ?? null,
+                  bodyPart:
+                    m.bodyPart ?? m.BodyPartExamined ?? null,
+                  studyDate:
+                    m.studyDate ?? m.StudyDate ?? m.study_date ?? null,
+                  manufacturer: m.manufacturer ?? m.Manufacturer ?? null,
+                };
+              })()}
+            />
+          </View>
+        ) : null}
 
         {/* Attachments */}
         {attachments.length ? (

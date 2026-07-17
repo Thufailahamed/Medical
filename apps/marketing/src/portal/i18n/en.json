@@ -406,6 +406,73 @@
       "error": "Could not verify. Try again later."
     }
   },
+  "imaging": {
+    "title": "Imaging",
+    "openViewer": "View imaging",
+    "viewerTitle": "Imaging study",
+    "studySummary": "{{count}} instance(s) across {{series}} series",
+    "backToRecords": "Back to records",
+    "loading": "Loading DICOM…",
+    "prevFrame": "Previous image",
+    "nextFrame": "Next image",
+    "download": "Download DICOM",
+    "downloadOriginal": "Download original file",
+    "noInstances": "No instances found for this study",
+    "noFrames": "No frames in this study",
+    "width": "WW",
+    "level": "WL",
+    "windowing": "Windowing",
+    "presets": {
+      "soft": "Soft tissue",
+      "lung": "Lung",
+      "bone": "Bone",
+      "brain": "Brain",
+      "default": "Default"
+    },
+    "modality": {
+      "CT": "CT",
+      "MR": "MRI",
+      "XR": "X-ray",
+      "US": "Ultrasound",
+      "PT": "PET",
+      "NM": "Nuclear",
+      "MG": "Mammography",
+      "DX": "Digital X-ray"
+    },
+    "error": {
+      "parseFailed": "Could not decode DICOM image",
+      "notFound": "Study not found",
+      "notDicom": "Not a DICOM file"
+    },
+    "hub": {
+      "title": "Imaging studies",
+      "subtitle": "DICOM studies available for this patient",
+      "noPatient": "Open a patient to view their imaging studies",
+      "empty": "No imaging studies uploaded yet",
+      "seriesCount": "{{series}} series · {{instances}} instances"
+    },
+    "patientHub": {
+      "title": "My imaging",
+      "subtitle": "All DICOM studies on your record",
+      "empty": "You don't have any imaging studies yet"
+    },
+    "tabTitle": "Imaging",
+    "emptyTitle": "No imaging studies for this patient yet",
+    "searchPlaceholder": "Search by Study UID, modality or body part",
+    "bodyPart": "Body part",
+    "dateRange": {
+      "all": "All time",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "1y": "Last year"
+    },
+    "scopeToggle": {
+      "patients": "Patients",
+      "studies": "Imaging studies"
+    },
+    "studyNotFound": "This study couldn't be loaded"
+  },
   "ai": {
     "summary": {
       "title": "AI summary",
@@ -944,6 +1011,8 @@
       "addRecordBody": "Upload a lab report, image, or document.",
       "share": "Share with a doctor",
       "shareBody": "Generate a time-limited link to your records.",
+      "imaging": "My imaging",
+      "imagingBody": "View MRI, CT, X-ray and other studies.",
       "audit": "View access log",
       "auditBody": "See who has looked at your records recently."
     },

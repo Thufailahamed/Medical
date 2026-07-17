@@ -76,6 +76,16 @@ export function Topbar() {
     e.preventDefault();
     const q = search.trim();
     if (!q) return;
+    // Auto-route to the imaging hub when the query looks like a DICOM
+    // Study/Series/SOP Instance UID (e.g. "1.2.840.0.113669.2") or a
+    // recognised modality code. Body-part keywords fall through to the
+    // patient search since they're too ambiguous on their own.
+    const isDicomUid = /^\d+(\.\d+){1,}$/.test(q);
+    const isModalityCode = /^(CT|MR|MRI|XR|XRAY|US|PET|PT|CR|DX|MG)$/i.test(q);
+    if (isDicomUid || isModalityCode) {
+      router.push(`/portal/imaging?q=${encodeURIComponent(q)}`);
+      return;
+    }
     router.push(`/portal/patients?q=${encodeURIComponent(q)}`);
   }
 
@@ -136,7 +146,7 @@ export function Topbar() {
           <input
             ref={searchRef}
             type="search"
-            placeholder="Search patients, NIC, phone…"
+            placeholder="Search patients, NIC, phone or DICOM UID…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}

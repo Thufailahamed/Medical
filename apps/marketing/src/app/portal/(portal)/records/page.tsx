@@ -9,10 +9,12 @@ import {
   Calendar,
   ChevronRight,
   Tag,
+  ScanLine,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
+import { Button } from "@/portal/components/ui/Button";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { PageHeader, SectionHeader } from "@/portal/components/ui/PageHeader";
@@ -172,6 +174,18 @@ export default function RecordsPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {typeOf(record) === "imaging" && record.patient?.id ? (
+                      <Link
+                        href={`/portal/imaging?patientId=${record.patient.id}`}
+                        aria-label={t("imaging.openViewer")}
+                        title={t("imaging.openViewer")}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button variant="ghost" size="icon">
+                          <ScanLine size={14} />
+                        </Button>
+                      </Link>
+                    ) : null}
                     {record.date && (
                       <div className="flex items-center gap-1">
                         <Calendar size={11} className="text-text-muted" />

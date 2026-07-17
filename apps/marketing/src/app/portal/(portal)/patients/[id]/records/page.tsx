@@ -5,8 +5,9 @@
 // `/portal/records` (the global doctor records page).
 
 import { use, useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Search, Sparkles } from "lucide-react";
+import { FileText, Search, Sparkles, ScanLine } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
@@ -206,6 +207,17 @@ export default function PatientRecordsTab({
                           >
                             <Sparkles size={14} />
                           </Button>
+                        ) : null}
+                        {recordKind === "imaging" ? (
+                          <Link
+                            href={`/portal/imaging?patientId=${id}`}
+                            aria-label={t("imaging.openViewer")}
+                            title={t("imaging.openViewer")}
+                          >
+                            <Button variant="ghost" size="icon">
+                              <ScanLine size={14} />
+                            </Button>
+                          </Link>
                         ) : null}
                         <Pill tone="neutral">
                           {t(`recordTypes.${recordKind}`) || recordKind}

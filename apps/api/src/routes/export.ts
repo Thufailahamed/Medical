@@ -4,12 +4,13 @@
 // insurance + emergency history.
 
 import { Hono } from "hono";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import {
   users,
   patients,
   medicalRecords,
   files,
+  documentDicomMetadata,
   medicines,
   vitals,
   symptoms,
@@ -378,6 +379,97 @@ exportRouter.get("/me", authMiddleware, async (c) => {
         },
       });
     }
+
+    // Phase IMG-1: FHIR R4 ImagingStudy resources per distinct
+    // StudyInstanceUID. We group by study, accumulate series + instances
+    // with modality codes, and emit one entry per study. Skipped entirely
+    // when the patient has no DICOM in the vault.
+    {
+      const dicomInstances = await db
+        .select({
+          file: files,
+          record: medicalRecords,
+          meta: documentDicomMetadata,
+        })
+        .from(documentDicomMetadata)
+        .innerJoin(files, eq(files.id, documentDicomMetadata.fileId))
+        .innerJoin(medicalRecords, eq(medicalRecords.id, files.recordId))
+        .where(
+          p?.id ? eq(medicalRecords.patientId, p.id) : sql`1=0`
+        );
+
+      const studyMap = new Map<string, any>();
+      for (const inst of dicomInstances) {
+        const studyUid = inst.meta.studyInstanceUid || "unknown";
+        if (!studyMap.has(studyUid)) {
+          studyMap.set(studyUid, {
+            resourceType: "ImagingStudy",
+            id: studyUid,
+            meta: {
+              profile: [
+                "http://hl7.org/fhir/StructureDefinition/ImagingStudy",
+              ],
+            },
+            status: "available",
+            subject: { reference: `Patient/${p?.id}` },
+            identifier: [{ system: "urn:dicom:uid", value: studyUid }],
+            started: inst.meta.studyDate
+              ? `${inst.meta.studyDate.slice(0, 4)}-${inst.meta.studyDate.slice(
+                  4,
+                  6
+                )}-${inst.meta.studyDate.slice(6, 8)}`
+              : undefined,
+            modality: [] as Array<{ system: string; code: string }>,
+            numberOfSeries: 0,
+            numberOfInstances: 0,
+            series: [] as any[],
+          });
+        }
+        const study = studyMap.get(studyUid);
+        const sUid = inst.meta.seriesInstanceUid || "unknown";
+        let series = study.series.find((s: any) => s.uid === sUid);
+        if (!series) {
+          series = {
+            uid: sUid,
+            modality: inst.meta.modality || "unknown",
+            bodySite: inst.meta.bodyPart
+              ? {
+                  coding: [
+                    {
+                      system: "http://snomed.info/sct",
+                      display: inst.meta.bodyPart,
+                    },
+                  ],
+                }
+              : undefined,
+            instance: [] as any[],
+          };
+          study.series.push(series);
+        }
+        series.instance.push({
+          uid: inst.meta.sopInstanceUid || `file-${inst.file.id}`,
+          sopClass: inst.meta.sopClassUid
+            ? { system: "urn:ietf:rfc:3986", code: inst.meta.sopClassUid }
+            : undefined,
+        });
+        study.numberOfInstances += 1;
+      }
+      for (const study of studyMap.values()) {
+        const seen = new Set<string>();
+        for (const s of study.series) {
+          if (s.modality && !seen.has(s.modality)) {
+            seen.add(s.modality);
+            study.modality.push({
+              system: "http://dicom.nema.org/resources/ontology/DCM",
+              code: s.modality,
+            });
+          }
+        }
+        study.numberOfSeries = study.series.length;
+        entries.push({ resource: study });
+      }
+    }
+
     const filename = `healthhub-export-${new Date().toISOString().slice(0, 10)}.json`;
     c.header("Content-Type", "application/fhir+json; charset=utf-8");
     c.header("Content-Disposition", `attachment; filename="${filename}"`);

@@ -23,6 +23,7 @@ const TABS = [
   { key: "clinical-notes", path: "/clinical-notes" },
   { key: "follow-ups", path: "/follow-ups" },
   { key: "visits", path: "/visits" },
+  { key: "imaging", path: "/imaging" },
   { key: "messages", path: "/messages" },
   { key: "share", path: "/share" },
 ] as const;

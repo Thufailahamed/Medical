@@ -20,6 +20,7 @@ import {
   FileText,
   CalendarPlus,
   Phone,
+  ScanLine,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -149,6 +150,26 @@ export default function DashboardPage() {
     queryFn: () => api<EarningsSummary>("/doctor-earnings/summary"),
   });
 
+  // Imaging tile — pulls the latest 200 imaging records and counts
+  // those dated within the last 7 days. Filters client-side because
+  // /doctor-portal/records doesn't accept a `from` date param; for the
+  // 7-day stat we cap at 200 which is generous for the typical panel.
+  const { data: imaging } = useQuery({
+    queryKey: [...qk.prescriptions({ scope: "imaging-tile" }), "7d"] as const,
+    queryFn: () =>
+      api<{ records: Array<{ date: string | null; createdAt: string }>; total: number }>(
+        "/doctor-portal/records?type=imaging&limit=200"
+      ),
+  });
+  const recentImagingCount = (() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const rows = imaging?.records ?? [];
+    return rows.filter((r) => {
+      const stamp = r.date ? Date.parse(r.date) : r.createdAt ? Date.parse(r.createdAt) : 0;
+      return stamp >= cutoff;
+    }).length;
+  })();
+
   const today = dash?.todaysAppointments ?? [];
   const waiting = walkins?.walkIns ?? [];
   const recent = (msgs?.conversations ?? []).slice(0, 5);
@@ -265,7 +286,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Stat Cards ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard
           icon={<Calendar size={18} />}
           label={t("dashboard.statAppointments")}
@@ -307,6 +328,16 @@ export default function DashboardPage() {
           gradient="from-emerald-500 to-teal-600"
           lightBg="bg-emerald-50/80"
           accentColor="text-emerald-600"
+        />
+        <StatCard
+          icon={<ScanLine size={18} />}
+          label="Imaging"
+          value={String(recentImagingCount)}
+          sublabel="new studies (7d)"
+          href="/portal/imaging"
+          gradient="from-rose-500 to-pink-600"
+          lightBg="bg-rose-50/80"
+          accentColor="text-rose-600"
         />
       </div>
 

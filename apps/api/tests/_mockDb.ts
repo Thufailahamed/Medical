@@ -303,6 +303,12 @@ class SelectBuilder {
     const state = (this.db as any)._tables?.[this.q.table] ?? this.db.tables[this.q.table];
     if (!state) return [];
     let rows: any[] = state.rows.map((r) => ({ ...r }));
+    // Stash the FROM row under `_<tableName>` so spec aliases that
+    // reference the FROM table (e.g. `select({ meta: documentDicomMetadata })`)
+    // can produce a nested object.
+    if (rows.length) {
+      rows = rows.map((r) => ({ ...r, [`_${this.q.table}`]: r }));
+    }
     if (this.q.predicate) rows = rows.filter(this.q.predicate);
     if (this.q.orderBy) {
       const { field, desc } = this.q.orderBy;
@@ -378,6 +384,57 @@ function mergeJoinData(
   return out;
 }
 
+// Lazily-built registry mapping column objects from @healthcare/db to
+// (camelCase table name, camelCase row key). Drizzle 0.33+ exposes the
+// table as a plain string on `col.table`, so the only way to find the
+// camelCase row key is to scan the table exports and match by column
+// identity. Built once on first request and cached by WeakMap on the
+// db module object.
+type ColumnRegistryEntry = { tableName: string; rowKey: string };
+const _columnIdentityRegistry = new WeakMap<object, Map<object, ColumnRegistryEntry>>();
+
+function getColumnRegistry(): Map<object, ColumnRegistryEntry> {
+  // The first symbol-keyed object we encounter at runtime will be the
+  // schema module. We cache per-module so tests can swap modules
+  // without cross-test pollution.
+  let dbModule: any;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    dbModule = require("@healthcare/db");
+  } catch {
+    return new Map();
+  }
+  const cached = _columnIdentityRegistry.get(dbModule);
+  if (cached) return cached;
+  const map = new Map<object, ColumnRegistryEntry>();
+  for (const value of Object.values(dbModule)) {
+    if (!value || typeof value !== "object") continue;
+    const syms = Object.getOwnPropertySymbols(value);
+    const nameSym = syms.find((s) => String(s).includes("drizzle:Name"));
+    const colsSym = syms.find((s) => String(s).includes("drizzle:Columns"));
+    if (!nameSym || !colsSym) continue;
+    const tableName = toCamel(String(value[nameSym]));
+    const colsMap = value[colsSym] as Record<string, any>;
+    for (const [key, col] of Object.entries(colsMap)) {
+      if (col && typeof col === "object") map.set(col, { tableName, rowKey: key });
+    }
+  }
+  _columnIdentityRegistry.set(dbModule, map);
+  return map;
+}
+
+function resolveColumnMeta(col: any): ColumnRegistryEntry | null {
+  if (!col || typeof col !== "object") return null;
+  const registry = getColumnRegistry();
+  return registry.get(col) ?? null;
+}
+
+// Resolve a Drizzle column reference to its camelCase row key. Used by
+// the where-clause parser; the table comes from the same registry.
+function resolveColumnKeyFromColumn(col: any): string | null {
+  return resolveColumnMeta(col)?.rowKey ?? null;
+}
+
 // Parse a Drizzle `eq(colA, colB)` expression where both sides are
 // columns. Returns {leftTable, leftKey, rightTable, rightKey} or null.
 function parseEqCols(eqExpr: any): {
@@ -388,86 +445,62 @@ function parseEqCols(eqExpr: any): {
 } | null {
   const chunks = eqExpr?.queryChunks;
   if (!Array.isArray(chunks) || chunks.length < 5) return null;
-  // eq shape: [StringChunk, Column, StringChunk, Param, StringChunk]
-  // But for col-vs-col eq: [StringChunk, Column, StringChunk, Column, StringChunk]
   const colA = chunks[1];
   const colB = chunks[3];
   if (!colA || !colB) return null;
-  // Determine the camelCase row key for each column via its table.
-  const keyA = resolveColumnKeyFromColumn(colA);
-  const keyB = resolveColumnKeyFromColumn(colB);
-  const tableA = colA?.table
-    ? Object.getOwnPropertySymbols(colA.table).find((s) =>
-        String(s).includes("drizzle:Name")
-      )
-      ? colA.table[
-          Object.getOwnPropertySymbols(colA.table).find((s) =>
-            String(s).includes("drizzle:Name")
-          )!
-        ]
-      : null
-    : null;
-  const tableB = colB?.table
-    ? Object.getOwnPropertySymbols(colB.table).find((s) =>
-        String(s).includes("drizzle:Name")
-      )
-      ? colB.table[
-          Object.getOwnPropertySymbols(colB.table).find((s) =>
-            String(s).includes("drizzle:Name")
-          )!
-        ]
-      : null
-    : null;
-  if (!keyA || !keyB || !tableA || !tableB) return null;
+  const metaA = resolveColumnMeta(colA);
+  const metaB = resolveColumnMeta(colB);
+  if (!metaA || !metaB) return null;
   return {
-    leftTable: tableA,
-    leftKey: keyA,
-    rightTable: tableB,
-    rightKey: keyB,
+    leftTable: metaA.tableName,
+    leftKey: metaA.rowKey,
+    rightTable: metaB.tableName,
+    rightKey: metaB.rowKey,
   };
-}
-
-function resolveColumnKeyFromColumn(col: any): string | null {
-  const colTable = col?.table;
-  if (!colTable) return null;
-  const colSym = Object.getOwnPropertySymbols(colTable).find((s) =>
-    String(s).includes("drizzle:Columns")
-  );
-  if (!colSym) return null;
-  const colsMap = colTable[colSym] as Record<string, any>;
-  for (const [key, c] of Object.entries(colsMap)) {
-    if (c === col) return key;
-  }
-  return null;
 }
 
 // Apply the Drizzle select projection spec to a row. The spec is
 // `{alias: columnRef}` where columnRef has `.name` (snake_case). We
 // map columnRef → camelCase row key (same resolveColumnKey lookup
 // the predicate parser uses) and emit `{alias: row[key]}`.
+//
+// Also handles `{alias: tableRef}` where the alias should resolve to
+// the joined sub-row stashed under `_<tableName>` by mergeJoinData.
+// This is the shape Drizzle emits for `select({ file: files, ... })`.
 function applySelectSpec(spec: any, row: any): any {
   if (!spec || typeof spec !== "object") return row;
   const out: any = {};
   for (const [alias, val] of Object.entries(spec)) {
+    // Table ref: `select({ file: files })` produces a nested object
+    // matching the joined row. Detect via presence of `drizzle:Name`
+    // symbol (which is on tables). Column refs also carry the symbol
+    // through their `.table` field but we look for the symbol on the
+    // value itself first.
+    if (val && typeof val === "object") {
+      const ownSyms = Object.getOwnPropertySymbols(val);
+      const nameSym = ownSyms.find((s) => String(s).includes("drizzle:Name"));
+      const colsSym = ownSyms.find((s) => String(s).includes("drizzle:Columns"));
+      if (nameSym && colsSym) {
+        const tableName = toCamel(String(val[nameSym]));
+        const nested = row[`_${tableName}`];
+        if (nested) {
+          out[alias] = { ...nested };
+          continue;
+        }
+        // No joined sub-row: leave null so the test can detect it.
+        out[alias] = null;
+        continue;
+      }
+    }
     // Column ref: SQLiteText / SQLiteInteger etc. have `.name` and
     // `.table`. Resolve to the row's camelCase key.
     if (val && typeof val === "object" && val.name && val.table) {
-      // Find camelCase key from the table's column map.
-      const colSym = Object.getOwnPropertySymbols(val.table).find((s) =>
-        String(s).includes("drizzle:Columns")
-      );
-      const colsMap = colSym ? val.table[colSym] : null;
-      let key: string | null = null;
-      if (colsMap) {
-        for (const [k, c] of Object.entries(colsMap)) {
-          if (c === val) {
-            key = k;
-            break;
-          }
-        }
+      const meta = resolveColumnMeta(val);
+      if (meta) {
+        out[alias] = row[meta.rowKey];
+        continue;
       }
-      if (!key) key = val.name;
-      out[alias] = row[key];
+      out[alias] = row[val.name];
     } else if (typeof val === "string") {
       // Aggregate / literal. Pass through raw if defined.
       out[alias] = val;

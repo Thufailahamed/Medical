@@ -120,5 +120,13 @@
       "body": "You're already registered on HealthHub.\n\nOpen the app and sign in with your NIC + date of birth."
     },
     "fallback": "Sorry, I didn't understand that. Type *start* to begin again."
+  },
+  "imaging": {
+    "patientIdRequired": "patientId is required",
+    "fileIdRequired": "fileId is required",
+    "recordIdRequired": "recordId is required for large instance upload",
+    "presignFailed": "Could not mint a presigned upload URL. Try again.",
+    "studyNotFound": "No imaging study matches that UID",
+    "parseFailed": "DICOM header could not be parsed; file stored without structured metadata"
   }
 }

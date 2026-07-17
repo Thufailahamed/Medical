@@ -7,6 +7,7 @@ import {
   medicalRecords,
   patients,
   fileDownloadTokens,
+  documentDicomMetadata,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -17,7 +18,54 @@ import {
   checkAndStoreEmbedding,
   recordText,
 } from "../lib/ai/dedupe";
+import { parseDicomHeader } from "../lib/dicom-parse";
 import type { AppEnvironment } from "../types";
+
+/**
+ * Best-effort DICOM header extraction. Called after we've confirmed the
+ * file is application/dicom and inserted the `files` row. Populates
+ * `document_dicom_metadata` keyed off the file id (which is also the table
+ * PK). Never throws — a parse failure just leaves the row empty.
+ */
+async function tryUpsertDicomMetadata(
+  db: any,
+  arrayBuffer: ArrayBuffer,
+  fileId: string
+): Promise<void> {
+  try {
+    const head = new Uint8Array(arrayBuffer, 0, Math.min(arrayBuffer.byteLength, 16 * 1024));
+    const summary = parseDicomHeader(head);
+    if (!summary) return;
+    await db
+      .insert(documentDicomMetadata)
+      .values({
+        fileId,
+        studyInstanceUid: summary.studyInstanceUid,
+        seriesInstanceUid: summary.seriesInstanceUid,
+        sopInstanceUid: summary.sopInstanceUid,
+        modality: summary.modality,
+        bodyPart: summary.bodyPart,
+        studyDate: summary.studyDate,
+        manufacturer: summary.manufacturer,
+        metadataJson: summary.metadataJson,
+      })
+      .onConflictDoUpdate({
+        target: documentDicomMetadata.fileId,
+        set: {
+          studyInstanceUid: summary.studyInstanceUid,
+          seriesInstanceUid: summary.seriesInstanceUid,
+          sopInstanceUid: summary.sopInstanceUid,
+          modality: summary.modality,
+          bodyPart: summary.bodyPart,
+          studyDate: summary.studyDate,
+          manufacturer: summary.manufacturer,
+          metadataJson: summary.metadataJson,
+        },
+      });
+  } catch (err) {
+    console.error("[files.dicom] metadata upsert failed:", err);
+  }
+}
 
 const filesRouter = new Hono<AppEnvironment>();
 
@@ -212,6 +260,11 @@ filesRouter.post("/upload", authMiddleware, async (c) => {
       })
       .returning();
 
+    // Phase IMG-1: populate DICOM metadata if this was a .dcm upload.
+    if (fileType === "dicom" && fileRecord?.id) {
+      await tryUpsertDicomMetadata(db, arrayBuffer, fileRecord.id);
+    }
+
     return c.json({ file: fileRecord }, 201);
   }
 
@@ -316,6 +369,11 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
       })
       .returning();
     fileRecord = insertedFile;
+
+    // Phase IMG-1: populate DICOM metadata if this was a .dcm upload.
+    if (fileType === "dicom" && insertedFile?.id) {
+      await tryUpsertDicomMetadata(db, arrayBuffer, insertedFile.id);
+    }
 
     // V3: auto-OCR for prescriptions / PDFs / images.
     // Fire-and-forget using ctx.waitUntil so the response isn't blocked.

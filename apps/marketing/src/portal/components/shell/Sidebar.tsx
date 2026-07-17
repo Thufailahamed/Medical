@@ -25,6 +25,7 @@ import {
   ClipboardList,
   HeartHandshake,
   Clock3,
+  ScanLine,
   Building2,
   Building,
   Link as LinkIcon,
@@ -88,6 +89,7 @@ const NAV_GROUPS: Array<{
       { href: "/portal/clinical-notes", label: "Clinical Notes",  icon: FileText },
       { href: "/portal/follow-ups",     label: "Follow-ups",      icon: CalendarClock },
       { href: "/portal/records",        label: "Records",         icon: FolderOpen },
+      { href: "/portal/imaging",        label: "Imaging",         icon: ScanLine },
     ],
   },
   {

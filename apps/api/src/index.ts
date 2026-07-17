@@ -106,6 +106,11 @@ import dischargeHandoffsRouter from "./routes/discharge-handoffs";
 import realtimeRouter from "./routes/realtime";
 import healthIdRouter, { scanRouter } from "./routes/health-id";
 import teleconsultRouter from "./routes/teleconsult";
+// Phase IMG-1: DICOM imaging study surface (FHIR ImagingStudy +
+// Cornerstone3D viewer). Read endpoints at /imaging/*, presigned
+// upload at /imaging/presign-upload + /imaging/complete-upload.
+import imagingRouter from "./routes/imaging";
+import imagingUploadRouter from "./routes/imaging-upload";
 import { TeleconsultRoom } from "./durable-objects/teleconsult-room";
 import type { AppEnvironment } from "./types";
 
@@ -320,6 +325,9 @@ app.route("/portal/scan", scanRouter);
 // under /teleconsult/*; signaling itself lives in the TeleconsultRoom
 // Durable Object (see durable-objects/teleconsult-room.ts).
 app.route("/teleconsult", teleconsultRouter);
+// Phase IMG-1: DICOM imaging study endpoints + presigned uploads.
+app.route("/imaging", imagingRouter);
+app.route("/imaging", imagingUploadRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);

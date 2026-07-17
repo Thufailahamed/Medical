@@ -26,5 +26,8 @@
     "turbo": "^2.0.0",
     "typescript": "^5.5.0"
   },
-  "packageManager": "bun@1.1.0"
+  "packageManager": "bun@1.1.0",
+  "dependencies": {
+    "dicom-parser": "^1.8.21"
+  }
 }

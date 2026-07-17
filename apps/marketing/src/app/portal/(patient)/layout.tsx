@@ -12,6 +12,7 @@ import {
   LogOut,
   Heart,
   Bell,
+  ScanLine,
 } from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
@@ -98,6 +99,13 @@ export default function PatientLayout({
               active={pathname?.startsWith("/portal/me/records")}
             >
               Records
+            </NavLink>
+            <NavLink
+              href="/portal/me/imaging"
+              icon={<ScanLine size={14} />}
+              active={pathname?.startsWith("/portal/me/imaging")}
+            >
+              Imaging
             </NavLink>
             <NavLink
               href="/portal/me/share"

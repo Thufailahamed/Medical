@@ -1105,6 +1105,73 @@
       "tryAgain": "Please try again."
     }
   },
+  "imaging": {
+    "title": "රූප විමසුම",
+    "openViewer": "රූප බලන්න",
+    "viewerTitle": "රූප විමසුම් අධ්‍යයනය",
+    "studySummary": "අධ්‍යයන {{series}} ක පෙළක් තුළ උදාරූප {{count}} ක්",
+    "backToRecords": "වාර්තා වෙත ආපසු",
+    "loading": "DICOM පූරණය වෙමින්…",
+    "prevFrame": "පෙර රූපය",
+    "nextFrame": "ඊළඟ රූපය",
+    "download": "DICOM බාගන්න",
+    "downloadOriginal": "මුල් ගොනුව බාගන්න",
+    "noInstances": "මෙම අධ්‍යයනය සඳහා උදාරූප නොමැත",
+    "noFrames": "මෙම අධ්‍යයනයේ රූප නොමැත",
+    "width": "WW",
+    "level": "WL",
+    "windowing": "ජනේල සැකසුම",
+    "presets": {
+      "soft": "මෘදු පටක",
+      "lung": "පෙනහළු",
+      "bone": "ඇට පටක",
+      "brain": "මොළය",
+      "default": "පෙරනිමි"
+    },
+    "modality": {
+      "CT": "CT",
+      "MR": "MRI",
+      "XR": "X-ray",
+      "US": "Ultraසවික්ෂන්",
+      "PT": "PET",
+      "NM": "Nuclear",
+      "MG": "Mammography",
+      "DX": "Digital X-ray"
+    },
+    "error": {
+      "parseFailed": "DICOM රූපය විකේතනය කළ නොහැක",
+      "notFound": "අධ්‍යයනය හමු නොවීය",
+      "notDicom": "DICOM ගොනුවක් නොවේ"
+    },
+    "hub": {
+      "title": "රූප විමසුම් අධ්‍යයන",
+      "subtitle": "මෙම රෝගියාට ලබා ගත හැකි DICOM අධ්‍යයන",
+      "noPatient": "රූප විමසුම් බැලීමට රෝගියෙකු විවෘත කරන්න",
+      "empty": "තවම රූප විමසුම් අධ්‍යයන උඩුගත කර නැත",
+      "seriesCount": "අධ්‍යයන {{series}} · උදාරූප {{instances}}"
+    },
+    "patientHub": {
+      "title": "මගේ රූප විමසුම්",
+      "subtitle": "ඔබගේ වාර්තාවේ සියලුම DICOM අධ්‍යයන",
+      "empty": "ඔබට තවම රූප විමසුම් අධ්‍යයන නැත"
+    },
+    "tabTitle": "රූප විමසුම්",
+    "emptyTitle": "මෙම රෝගියාට රූප විමසුම් අධ්‍යයන නැත",
+    "searchPlaceholder": "Study UID, මාධ්‍යය හෝ ශරීර කොටස අනුව සොයන්න",
+    "bodyPart": "ශරීර කොටස",
+    "dateRange": {
+      "all": "සියලු කාලය",
+      "7d": "පසුගිය දින 7",
+      "30d": "පසුගිය දින 30",
+      "90d": "පසුගිය දින 90",
+      "1y": "පසුගිය වසර"
+    },
+    "scopeToggle": {
+      "patients": "රෝගීන්",
+      "studies": "රූප විමසුම් අධ්‍යයන"
+    },
+    "studyNotFound": "මෙම අධ්‍යයනය පූරණය කළ නොහැක"
+  },
   "ai": {
     "summary": {
       "title": "AI summary",
@@ -1291,7 +1358,9 @@
       "share": "වෛද්‍යවරයෙකු සමඟ බෙදාගන්න",
       "shareBody": "ඔබේ වාර්තා සඳහා කාල-සීමිත සබැඳියක් සාදන්න.",
       "audit": "ප්‍රවේශ සටහන බලන්න",
-      "auditBody": "මෑතකදී ඔබේ වාර්තා බැලූ අය බලන්න."
+      "auditBody": "මෑතකදී ඔබේ වාර්තා බැලූ අය බලන්න.",
+      "imaging": "මගේ රූප විමසුම්",
+      "imagingBody": "MRI, CT, X-ray සහ වෙනත් අධ්‍යයන බලන්න."
     },
     "records": {
       "title": "මගේ වාර්තා",

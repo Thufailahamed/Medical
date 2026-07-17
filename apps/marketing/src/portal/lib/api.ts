@@ -271,6 +271,12 @@ export const qk = {
   // status polling needed; the WebSocket push drives UI.
   teleconsultSession: (id: string) => ["teleconsult", "session", id] as const,
   teleconsultActive: ["teleconsult", "session", "me", "active"] as const,
+  // Imaging — study listing + study detail. All callers share these
+  // keys so a single mutation invalidates every consumer at once.
+  imagingStudies: (params: Record<string, unknown>) =>
+    ["imaging", "studies", JSON.stringify(params)] as const,
+  imagingStudy: (studyUid: string) =>
+    ["imaging", "study", studyUid] as const,
 };
 
 /**

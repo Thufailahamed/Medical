@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Activity,
   Upload,
+  ScanLine,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
@@ -76,6 +77,12 @@ export default function PatientHome() {
           icon={<Upload size={16} />}
           title={t("patientPortal.home.addRecord")}
           body={t("patientPortal.home.addRecordBody")}
+        />
+        <ActionCard
+          href="/portal/me/imaging"
+          icon={<ScanLine size={16} />}
+          title={t("patientPortal.home.imaging")}
+          body={t("patientPortal.home.imagingBody")}
         />
         <ActionCard
           href="/portal/me/share"
