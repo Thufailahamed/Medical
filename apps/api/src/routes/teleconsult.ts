@@ -177,14 +177,53 @@ teleconsultRouter.post("/sessions", requireRole("doctor"), async (c) => {
   }
 
   const roomId = shortRoomId();
+  let wherebyRoomUrl: string | null = null;
+  let wherebyHostRoomUrl: string | null = null;
+
+  if (c.env.WHEREBY_API_KEY) {
+    try {
+      const res = await fetch("https://api.whereby.dev/v1/meetings", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${c.env.WHEREBY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          endDate: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours duration
+          isLocked: true,
+          roomMode: "normal",
+          fields: ["hostRoomUrl"],
+        }),
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        wherebyRoomUrl = data.roomUrl;
+        wherebyHostRoomUrl = data.hostRoomUrl;
+      } else {
+        console.error(`Failed to create Whereby meeting: ${res.status} ${await res.text()}`);
+      }
+    } catch (err) {
+      console.error("Error creating Whereby meeting:", err);
+    }
+  }
+
+  // Fallback in dev mode if WHEREBY_API_KEY is not defined
+  if (!wherebyRoomUrl) {
+    const sub = "medsync-lk";
+    wherebyRoomUrl = `https://${sub}.whereby.com/${roomId}`;
+    wherebyHostRoomUrl = `https://${sub}.whereby.com/${roomId}?roomKey=dev-host-key`;
+  }
+
   const [created] = await db
     .insert(teleconsultSessions)
     .values({
       appointmentId,
-      doctorId: doctor.id,
+      doctorId: userId,
       patientUserId: patient.userId,
       status: "requested",
       roomId,
+      wherebyRoomUrl,
+      wherebyHostRoomUrl,
     })
     .returning();
 
@@ -194,7 +233,7 @@ teleconsultRouter.post("/sessions", requireRole("doctor"), async (c) => {
     action: "teleconsult.session.create",
     resource: "teleconsult_session",
     resourceId: created.id,
-    details: { roomId, appointmentId, doctorId: doctor.id },
+    details: { roomId, appointmentId, doctorId: doctor.id, wherebyRoomUrl },
     ip: c.req.header("cf-connecting-ip"),
   });
 
@@ -222,6 +261,8 @@ teleconsultRouter.post("/sessions", requireRole("doctor"), async (c) => {
     roomId: created.roomId,
     status: created.status,
     appointmentId: created.appointmentId,
+    wherebyRoomUrl: created.wherebyRoomUrl,
+    wherebyHostRoomUrl: created.wherebyHostRoomUrl,
   });
 });
 
@@ -237,13 +278,7 @@ teleconsultRouter.get("/sessions/me/active", async (c) => {
 
   let filter;
   if (dbUser.role === "doctor") {
-    const [doctor] = await db
-      .select({ id: doctors.id })
-      .from(doctors)
-      .where(eq(doctors.userId, userId))
-      .limit(1);
-    if (!doctor) return c.json({ session: null });
-    filter = eq(teleconsultSessions.doctorId, doctor.id);
+    filter = eq(teleconsultSessions.doctorId, userId);
   } else if (dbUser.role === "patient" || dbUser.role === "caretaker") {
     filter = eq(teleconsultSessions.patientUserId, userId);
   } else {
@@ -270,6 +305,9 @@ teleconsultRouter.get("/sessions/me/active", async (c) => {
           status: row.status,
           appointmentId: row.appointmentId,
           createdAt: row.createdAt,
+          wherebyRoomUrl: row.wherebyRoomUrl,
+          wherebyHostRoomUrl: row.wherebyHostRoomUrl,
+          wherebyUrl: dbUser.role === "doctor" ? row.wherebyHostRoomUrl : row.wherebyRoomUrl,
         }
       : null,
   });
@@ -301,8 +339,14 @@ teleconsultRouter.get("/sessions/:id", async (c) => {
     .where(eq(appointments.id, row.appointmentId))
     .limit(1);
 
+  const wherebyUrl = participant.role === "doctor" ? row.wherebyHostRoomUrl : row.wherebyRoomUrl;
+
   return c.json({
-    session: { ...row, patientId: appt?.patientId ?? null },
+    session: {
+      ...row,
+      patientId: appt?.patientId ?? null,
+      wherebyUrl,
+    },
     iceServers: buildIceServers(c.env),
     partyMax: PARTY_MAX,
     you: participant,

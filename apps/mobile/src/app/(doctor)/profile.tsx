@@ -32,6 +32,7 @@ import {
   Bell,
   Stethoscope,
   LogOut,
+  Users,
 } from "lucide-react-native";
 import {
   useDoctorMe,
@@ -724,6 +725,63 @@ export default function DoctorProfileScreen() {
                     ]}
                   >
                     Manage clinics and hospitals
+                  </Text>
+                </View>
+                <ChevronRight
+                  size={18}
+                  color={colors.textSubtle}
+                  strokeWidth={2.2}
+                />
+              </View>
+            </Card>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/(doctor)/relationships" as any)}
+            accessibilityLabel={t("doctorProfile.relationshipsA11y")}
+          >
+            <Card padded={false}>
+              <View
+                style={{
+                  padding: spacing.lg,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.md,
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    backgroundColor: "rgba(99, 102, 241, 0.14)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Users
+                    size={20}
+                    color="#6366F1"
+                    strokeWidth={2.25}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      typography.title.sm,
+                      { color: colors.text, fontWeight: "700" },
+                    ]}
+                  >
+                    {t("doctorProfile.relationshipsTitle")}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.body.sm,
+                      { color: colors.textMuted, marginTop: 2 },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {t("doctorProfile.relationshipsSubtitle")}
                   </Text>
                 </View>
                 <ChevronRight

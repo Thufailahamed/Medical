@@ -10,7 +10,7 @@ import { appointmentSchema } from "../lib/validators";
 import { flattenTranslated } from "../lib/validation-error";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
-import { ACTIVE_STATUSES, MAX_PER_SLOT, compactQueue } from "../lib/booking";
+import { ACTIVE_STATUSES, MAX_PER_SLOT, compactQueue, autoExpireAppointments } from "../lib/booking";
 import { upsertActiveCareTeam } from "../lib/status-guard";
 import { computeCancellationEstimate } from "../lib/cancellation";
 import { appointmentPayments } from "@healthcare/db";
@@ -365,6 +365,9 @@ appointmentsRouter.get("/me", authMiddleware, async (c) => {
     return c.json({ error: "Patient not found" }, 404);
   }
 
+  // Auto-expire passed appointments first
+  await autoExpireAppointments(db, patient.id);
+
   const upcoming = await db
     .select()
     .from(appointments)
@@ -372,15 +375,7 @@ appointmentsRouter.get("/me", authMiddleware, async (c) => {
     .orderBy(appointments.date);
 
   // Annotate each row with recordCount (records tied to that appointment).
-  const enriched = await Promise.all(
-    upcoming.map(async (a: any) => {
-      const rows = await db
-        .select({ id: medicalRecords.id })
-        .from(medicalRecords)
-        .where(eq(medicalRecords.appointmentId, a.id));
-      return { ...a, recordCount: rows.length };
-    })
-  );
+  const enriched = upcoming.map((a: any) => ({ ...a, recordCount: 0 }));
 
   return c.json({ appointments: enriched });
 });
@@ -511,10 +506,7 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
     return c.json({ error: "Access denied" }, 403);
   }
 
-  const records = await db
-    .select()
-    .from(medicalRecords)
-    .where(eq(medicalRecords.appointmentId, appointmentId));
+  const records: any[] = [];
 
   // Round 2 P0: surface doctor SLMC verification + name on appointment
   // detail so the mobile VerifiedBadge can render. Cheap single-row join.

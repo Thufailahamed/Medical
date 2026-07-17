@@ -57,6 +57,7 @@ export interface AppEnvironment {
     TURN_URLS?: string;
     TURN_USERNAME?: string;
     TURN_CREDENTIAL?: string;
+    WHEREBY_API_KEY?: string;
   };
   Variables: {
     user: User;

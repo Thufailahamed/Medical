@@ -320,6 +320,14 @@
         "label": "Activity log",
         "subtitle": "Who accessed your records"
       },
+      "healthId": {
+        "label": "Health ID & QR",
+        "subtitle": "Show at reception or pharmacy"
+      },
+      "tenants": {
+        "label": "Hospitals & clinics",
+        "subtitle": "Where you receive care"
+      },
       "share": {
         "label": "Share with doctor",
         "subtitle": "Create secure share links for your records"
@@ -1828,6 +1836,12 @@
       "upcoming": "Upcoming",
       "past": "Past"
     },
+    "modeFilter": {
+      "all": "All types",
+      "video": "Online · Video",
+      "inPerson": "Offline · In-person"
+    },
+    "upcomingVideo": "Upcoming video consultations",
     "cancelConfirmTitle": "Cancel appointment?",
     "cancelConfirmBody": "Your visit on {{date}} at {{time}} will be cancelled.",
     "cancelKeep": "Keep it",
@@ -1856,7 +1870,8 @@
       "today": "Today",
       "week": "This Week",
       "later": "Later",
-      "past": "Past"
+      "past": "Past",
+      "pastMonth": "{{month}} {{year}}"
     }
   },
   "appointmentDetail": {
@@ -2512,7 +2527,10 @@
     "myRxTitle": "My prescriptions",
     "myRxSubtitle_one": "{{count}} on file",
     "myRxSubtitle_other": "{{count}} on file",
-    "myRxA11y": "Open my prescriptions"
+    "myRxA11y": "Open my prescriptions",
+    "relationshipsTitle": "My relationships",
+    "relationshipsSubtitle": "Patients grouped by hospital & clinic",
+    "relationshipsA11y": "Open my relationships"
   },
   "doctorQueue": {
     "title": "Today's queue",

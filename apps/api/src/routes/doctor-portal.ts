@@ -54,7 +54,7 @@ import { recordRevenueEvent } from "../lib/revenue";
 import { sendVisitSummaryEmail } from "../lib/post-visit-summary";
 import { sendPreVisitSummaryEmail } from "../lib/pre-visit-summary";
 import { cacheGet, cacheStore, aiComplete } from "../lib/ai";
-import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT } from "../lib/booking";
+import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT, autoExpireAppointments } from "../lib/booking";
 import { createShareLinkSchema } from "../lib/validators";
 import { canAccessPatient } from "../lib/access";
 import {
@@ -154,6 +154,9 @@ doctorPortalRouter.get("/queue", async (c) => {
 
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  // Auto-expire passed appointments first
+  await autoExpireAppointments(db, undefined, doctor.id);
 
   // Build the WHERE conditionally so unset filters don't add a useless
   // predicate (and so the SQL plan stays simple for the common case).

@@ -1,8 +1,8 @@
 // @ts-nocheck
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -78,7 +78,7 @@ function getSpecialtyIcon(name: string) {
 const TIME_SLOTS = [
   "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
   "13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30",
-  "17:30","18:00","18:30","19:00",
+  "17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00","21:30",
 ];
 
 const PERIOD_VALUES = ["morning", "afternoon", "evening"] as const;
@@ -187,6 +187,7 @@ export default function BookAppointmentScreen() {
     control,
     handleSubmit,
     setValue,
+    reset,
     watch,
     getValues,
     formState: { errors },
@@ -197,6 +198,21 @@ export default function BookAppointmentScreen() {
   });
 
   const values = watch();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!params.prefillDoctorId) {
+        reset({
+          hospitalId: "",
+          doctorId: "",
+          time: "",
+          reason: "",
+          mode: "in_person",
+        });
+        setStep(1);
+      }
+    }, [params.prefillDoctorId, reset])
+  );
   // Resolve the selected doctor from the current search list first (instant,
   // no refetch). If the patient picked a doctor and then changed filters
   // (e.g. flipped telemedicine off), the doctor won't be in `doctors` —
@@ -250,7 +266,12 @@ export default function BookAppointmentScreen() {
     }
   }, [query, specialtyFilter]);
 
-  const dateStr = values.date ? values.date.toISOString().slice(0, 10) : "";
+  const dateStr = values.date ? (() => {
+    const y = values.date.getFullYear();
+    const m = String(values.date.getMonth() + 1).padStart(2, "0");
+    const d = String(values.date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  })() : "";
   const { data: availabilityData } = useDoctorAvailability(
     values.doctorId,
     dateStr
@@ -258,10 +279,11 @@ export default function BookAppointmentScreen() {
 
   const slots = useMemo(() => {
     const fromApi = availabilityData?.slots || [];
-    if (fromApi.length > 0) {
-      return fromApi.map((s) => s.time);
-    }
-    return TIME_SLOTS.filter((t) => {
+    const sourceSlots = fromApi.length > 0
+      ? fromApi.filter((s) => s.available).map((s) => s.time)
+      : TIME_SLOTS;
+
+    return sourceSlots.filter((t) => {
       const h = parseInt(t.split(":")[0], 10);
       if (period === "morning") return h < 12;
       if (period === "afternoon") return h >= 12 && h < 17;
@@ -281,7 +303,12 @@ export default function BookAppointmentScreen() {
       const booked = await bookAppointment.mutateAsync({
         hospitalId: data.hospitalId,
         doctorId: data.doctorId,
-        date: data.date.toISOString().slice(0, 10),
+        date: (() => {
+          const y = data.date.getFullYear();
+          const m = String(data.date.getMonth() + 1).padStart(2, "0");
+          const d = String(data.date.getDate()).padStart(2, "0");
+          return `${y}-${m}-${d}`;
+        })(),
         time: data.time,
         reason: data.reason || undefined,
         mode: data.mode,

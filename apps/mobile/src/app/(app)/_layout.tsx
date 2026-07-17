@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { Home, ClipboardList, Pill, Siren, UserRound, MessageCircle, ScanLine } from "lucide-react-native";
+import { Home, ClipboardList, Pill, Siren, UserRound, MessageCircle, ScanLine, CalendarCheck } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount, usePatientConversations } from "@/hooks/useApi";
 import { useRealtime } from "@/hooks/useRealtime";
@@ -116,18 +116,21 @@ export default function AppLayout() {
       <Tabs.Screen
         name="health-id"
         options={{
-          title: t("nav.tabs.healthId"),
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          title: t("nav.tabs.appointments"),
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon={ScanLine} focused={focused} />
+            <TabIcon icon={CalendarCheck} focused={focused} />
           ),
         }}
       />
 
       {/* Hidden sub-pages — pushed, not tabs */}
-      <Tabs.Screen
-        name="appointments"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
       <Tabs.Screen
         name="book-appointment"
         options={{ href: null, tabBarStyle: { display: "none" } }}
@@ -318,18 +321,6 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="hospital/doctors"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
-        name="records/[id]/files"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
-        name="records/[id]/history"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
-        name="records/[id]/share"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen

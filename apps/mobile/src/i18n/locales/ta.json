@@ -325,6 +325,14 @@
         "label": "Activity log",
         "subtitle": "Who accessed your records"
       },
+      "healthId": {
+        "label": "சுகாதார அடையாள அட்டை & QR",
+        "subtitle": "வரவேற்பு அல்லது மருந்தகத்தில் காட்டவும்"
+      },
+      "tenants": {
+        "label": "மருத்துவமனைகள் & சிகிச்சையகங்கள்",
+        "subtitle": "நீங்கள் சிகிச்சை பெறும் இடங்கள்"
+      },
       "share": {
         "label": "Share with doctor",
         "subtitle": "Create secure share links for your records"
@@ -1767,6 +1775,12 @@
       "upcoming": "Upcoming",
       "past": "Past"
     },
+    "modeFilter": {
+      "all": "அனைத்து வகைகள்",
+      "video": "ஆன்லைன் · வீடியோ",
+      "inPerson": "நேரடி · நேரில்"
+    },
+    "upcomingVideo": "வரவிருக்கும் வீடியோ ஆலோசனைகள்",
     "cancelConfirmTitle": "Cancel appointment?",
     "cancelConfirmBody": "Your visit on {{date}} at {{time}} will be cancelled.",
     "cancelKeep": "Keep it",
@@ -1788,7 +1802,8 @@
       "today": "Today",
       "week": "This Week",
       "later": "Later",
-      "past": "Past"
+      "past": "Past",
+      "pastMonth": "{{month}} {{year}}"
     }
   },
   "healthSummary": {
@@ -3041,7 +3056,10 @@
     "myRxTitle": "My prescriptions",
     "myRxSubtitle_one": "{{count}} on file",
     "myRxSubtitle_other": "{{count}} on file",
-    "myRxA11y": "Open my prescriptions"
+    "myRxA11y": "Open my prescriptions",
+    "relationshipsTitle": "எனது உறவுகள்",
+    "relationshipsSubtitle": "மருத்துவமனை & சிகிச்சையக வாரியாக நோயாளிகள்",
+    "relationshipsA11y": "எனது உறவுகளைத் திறக்கவும்"
   },
   "doctorQueue": {
     "title": "Today's queue",

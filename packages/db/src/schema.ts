@@ -657,6 +657,8 @@ export const teleconsultSessions = sqliteTable(
     signalingMsgCount: integer("signaling_msg_count").notNull().default(0),
     iceRestartCount: integer("ice_restart_count").notNull().default(0),
     lastError: text("last_error"),
+    wherebyRoomUrl: text("whereby_room_url"),
+    wherebyHostRoomUrl: text("whereby_host_room_url"),
   },
   (t) => ({
     apptIdx: index("teleconsult_sessions_appt_idx").on(t.appointmentId, t.createdAt),

@@ -578,6 +578,7 @@ function QueueRow({
   onStartVideoVisit: (appointmentId: string) => void;
 }) {
   const t = useT();
+  const router = useRouter();
 
   const isWalkIn = item.kind === "walkin";
   const id = item.appointmentId ?? item.walkInId ?? "";
@@ -777,13 +778,17 @@ function QueueRow({
               <Video size={11} />
             </button>
           ) : null}
-          <Link
-            href={`/portal/patients/${item.patientId}/overview`}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/portal/patients/${item.patientId}/overview`);
+            }}
             className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-semibold text-text-soft hover:text-text hover:bg-surface-2 transition-colors"
             title={t("queue.action.openChart")}
           >
             <ExternalLink size={11} />
-          </Link>
+          </button>
         </div>
       }
       href={`/portal/patients/${item.patientId}/overview`}

@@ -325,6 +325,14 @@
         "label": "Activity log",
         "subtitle": "Who accessed your records"
       },
+      "healthId": {
+        "label": "සෞඛ්‍ය හැඳුනුම්පත සහ QR",
+        "subtitle": "පිළිගැනීමේ මුළු හෝ ඖෂධාගාරයේ පෙන්වන්න"
+      },
+      "tenants": {
+        "label": "රෝහල් සහ සායන",
+        "subtitle": "ඔබට ප්‍රතිකාර ලැබෙන ස්ථාන"
+      },
       "share": {
         "label": "Share with doctor",
         "subtitle": "Create secure share links for your records"
@@ -1767,6 +1775,12 @@
       "upcoming": "Upcoming",
       "past": "Past"
     },
+    "modeFilter": {
+      "all": "සියලු වර්ග",
+      "video": "සබන්ද · වීඩියෝ",
+      "inPerson": "නේත · කෙලින්ම"
+    },
+    "upcomingVideo": "ඉදිරි වීඩියෝ පරීක්ෂා",
     "cancelConfirmTitle": "Cancel appointment?",
     "cancelConfirmBody": "Your visit on {{date}} at {{time}} will be cancelled.",
     "cancelKeep": "Keep it",
@@ -1788,7 +1802,8 @@
       "today": "Today",
       "week": "This Week",
       "later": "Later",
-      "past": "Past"
+      "past": "Past",
+      "pastMonth": "{{month}} {{year}}"
     }
   },
   "healthSummary": {
@@ -3041,7 +3056,10 @@
     "myRxTitle": "My prescriptions",
     "myRxSubtitle_one": "{{count}} on file",
     "myRxSubtitle_other": "{{count}} on file",
-    "myRxA11y": "Open my prescriptions"
+    "myRxA11y": "Open my prescriptions",
+    "relationshipsTitle": "මගේ සම්බන්ධතා",
+    "relationshipsSubtitle": "රෝහල් සහ සායන අනුව සමූහගත කළ රෝගීන්",
+    "relationshipsA11y": "මගේ සම්බන්ධතා විවෘත කරන්න"
   },
   "doctorQueue": {
     "title": "Today's queue",

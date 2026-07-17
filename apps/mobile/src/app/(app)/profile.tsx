@@ -37,6 +37,7 @@ import {
   Lock,
   Pill as PillIcon,
   ScrollText,
+  QrCode,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -362,6 +363,20 @@ export default function ProfileScreen() {
       icon: ShieldCheck,
       tone: "warning" as const,
       onPress: () => router.push("/(app)/activity" as any),
+    },
+    {
+      labelKey: "profile.item.healthId.label",
+      subtitle: t("profile.item.healthId.subtitle"),
+      icon: QrCode,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/health-id" as any),
+    },
+    {
+      labelKey: "profile.item.tenants.label",
+      subtitle: t("profile.item.tenants.subtitle"),
+      icon: Building2,
+      tone: "info" as const,
+      onPress: () => router.push("/(app)/tenants" as any),
     },
     {
       labelKey: "profile.item.share.label",

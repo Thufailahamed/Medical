@@ -228,7 +228,7 @@ function AppointmentDetail({
           </div>
           <Button
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={() => setShowPreVisit((s) => !s)}
           >
             {showPreVisit ? "Hide" : "View"}
@@ -347,6 +347,7 @@ function AppointmentDetail({
 
 export default function AppointmentsPage() {
   const t = useT();
+  const router = useRouter();
   const qc = useQueryClient();
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedRow, setSelectedRow] = useState<QueueRow | null>(null);
@@ -370,6 +371,16 @@ export default function AppointmentsPage() {
   });
 
   const rows = data?.queue ?? [];
+
+  const startVideoVisit = useMutation({
+    mutationFn: (appointmentId: string) =>
+      teleconsultApi.createSession(appointmentId),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: qk.teleconsultActive });
+      router.push(`/portal/teleconsult/${data.roomId}`);
+    },
+    onError: (err: any) => toast.error("Failed", err?.message),
+  });
 
   return (
     <div className="flex flex-col gap-5">
@@ -407,40 +418,87 @@ export default function AppointmentsPage() {
               const acting = update.isPending && update.variables?.id === (r.appointmentId ?? r.walkInId);
               const nextStatuses: string[] = r.appointmentId ? ALLOWED_TRANSITIONS[r.status] ?? [] : [];
               const cfg = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.scheduled;
+              const isVideoActive =
+                r.mode === "video" &&
+                (r.status === "scheduled" || r.status === "confirmed" || r.status === "in_progress");
+
               return (
-                <li key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`} className="flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-surface-2/30 transition-colors group">
-                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", r.kind === "appointment" ? "bg-sky-50 text-sky-600" : "bg-violet-50 text-violet-600")}>
-                    {r.kind === "appointment" ? <Calendar size={14} /> : <CalendarCheck size={14} />}
+                <li key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`} className="flex items-center gap-4 px-5 py-4 border-b border-border/40 last:border-0 hover:bg-surface-2/10 transition-all group">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm shrink-0">
+                    {(r.patientName ?? "?").slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="font-mono text-xs tabular-nums text-text-soft w-14 shrink-0 font-medium">
-                    {r.time ? formatTime(`1970-01-01T${r.time}`) : "—"}
-                  </span>
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setSelectedRow(r)} className="text-sm font-medium text-text truncate hover:text-brand hover:underline text-left">
+                    <div className="flex items-center gap-2.5">
+                      <button type="button" onClick={() => setSelectedRow(r)} className="text-sm font-bold text-text truncate hover:text-brand hover:underline text-left">
                         {r.patientName ?? t("walkins.unknownPatient")}
                       </button>
-                      {r.queueNumber && <Pill tone="neutral">Q#{r.queueNumber}</Pill>}
+                      {r.queueNumber && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-3 border border-border/80 text-text-soft">
+                          Q#{r.queueNumber}
+                        </span>
+                      )}
                     </div>
-                    <div className="text-xs text-text-muted truncate mt-0.5">{r.reason ?? "—"}</div>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-text-muted">
+                      <span className="font-mono tabular-nums font-semibold bg-surface-2 px-1.5 py-0.5 rounded text-text-soft">
+                        {r.time ? formatTime(`1970-01-01T${r.time}`) : "—"}
+                      </span>
+                      <span>·</span>
+                      <span className="truncate">{r.reason ?? "—"}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+
+                  <div className="flex items-center gap-2 shrink-0">
                     <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
+                    
                     {r.mode === "video" ? (
-                      <Pill tone="brand">{t("appointments.mode.video")}</Pill>
+                      <Pill tone="brand" className="flex items-center gap-1">
+                        <Video size={10} />
+                        <span>{t("appointments.mode.video")}</span>
+                      </Pill>
                     ) : r.mode === "in_person" ? (
                       <Pill tone="neutral">{t("appointments.mode.inPerson")}</Pill>
                     ) : null}
                   </div>
-                  <Link href={`/portal/patients/${r.patientId}`} className="text-xs text-brand font-medium hover:underline shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {t("common.open")}
-                  </Link>
-                  {r.appointmentId && nextStatuses.length > 0 && (
-                    <select value="" onChange={(e) => { if (e.target.value && r.appointmentId) update.mutate({ id: r.appointmentId, status: e.target.value }); }} disabled={acting} className={cn("h-7 px-2 rounded-lg border border-border/80 bg-surface text-xs text-text focus-ring", acting && "opacity-50")}>
-                      <option value="">{t("common.actions")}…</option>
-                      {nextStatuses.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
-                    </select>
-                  )}
+
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <Link href={`/portal/patients/${r.patientId}`} className="text-xs text-brand font-semibold hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
+                      {t("common.open")}
+                    </Link>
+
+                    {isVideoActive && r.appointmentId && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        leftIcon={<Video size={12} />}
+                        loading={startVideoVisit.isPending && startVideoVisit.variables === r.appointmentId}
+                        disabled={startVideoVisit.isPending}
+                        onClick={() => startVideoVisit.mutate(r.appointmentId!)}
+                        className="shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      >
+                        {t("consult.startVideoVisit")}
+                      </Button>
+                    )}
+
+                    {r.appointmentId && nextStatuses.length > 0 && (
+                      <select 
+                        value="" 
+                        onChange={(e) => { 
+                          if (e.target.value && r.appointmentId) {
+                            update.mutate({ id: r.appointmentId, status: e.target.value }); 
+                          }
+                        }} 
+                        disabled={acting} 
+                        className={cn(
+                          "h-8 px-2.5 rounded-lg border border-border/80 bg-surface text-xs text-text focus-ring font-medium hover:border-border-hover cursor-pointer transition-all", 
+                          acting && "opacity-50"
+                        )}
+                      >
+                        <option value="">{t("common.actions")}…</option>
+                        {nextStatuses.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+                      </select>
+                    )}
+                  </div>
                 </li>
               );
             })}

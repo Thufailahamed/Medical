@@ -421,8 +421,8 @@ export const createShareLinkSchema = z.object({
 });
 
 export const appointmentSchema = z.object({
-  doctorId: z.string().uuid("Invalid doctor id"),
-  hospitalId: z.string().uuid("Invalid hospital id"),
+  doctorId: z.string().min(1, "Invalid doctor id"),
+  hospitalId: z.string().min(1, "Invalid hospital id"),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),

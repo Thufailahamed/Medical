@@ -103,7 +103,10 @@ describe("POST /teleconsult/sessions", () => {
     expect(body.roomId).toMatch(/^[2-9a-z]{12}$/);
     expect(body.status).toBe("requested");
     expect(body.appointmentId).toBe(APPT_ID);
+    expect(body.wherebyRoomUrl).toBeTruthy();
+    expect(body.wherebyHostRoomUrl).toBeTruthy();
     expect(db.tables["teleconsultSessions"].rows.length).toBe(1);
+    expect(db.tables["teleconsultSessions"].rows[0].wherebyRoomUrl).toBeTruthy();
     // Audit row written for create
     const audits = db.tables["auditLogs"].rows;
     expect(audits.some((a) => a.action === "teleconsult.session.create")).toBe(true);
@@ -296,6 +299,8 @@ describe("GET /teleconsult/sessions/:id", () => {
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",
+        wherebyRoomUrl: "https://medsync-lk.whereby.com/testroom",
+        wherebyHostRoomUrl: "https://medsync-lk.whereby.com/testroom?roomKey=host",
       },
     ]);
     const app = await buildTestApp(db, { id: DOCTOR_USER, role: "doctor" });
@@ -307,6 +312,7 @@ describe("GET /teleconsult/sessions/:id", () => {
     const res = await getJson(app, "/teleconsult/sessions/sess-1");
     const body = await res.json();
     expect(body.session.id).toBe("sess-1");
+    expect(body.session.wherebyUrl).toBe("https://medsync-lk.whereby.com/testroom?roomKey=host");
     expect(body.you.role).toBe("doctor");
     expect(body.you.userId).toBe(DOCTOR_USER);
     expect(body.partyMax).toBe(2);

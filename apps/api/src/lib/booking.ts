@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, inArray } from "drizzle-orm";
 import { appointments } from "@healthcare/db";
 
 export const ACTIVE_STATUSES = ["scheduled", "confirmed", "in_progress"];
@@ -65,4 +65,51 @@ export async function slotCount(
       )
     );
   return rows.filter((r: any) => ACTIVE_STATUSES.includes(r.status)).length;
+}
+
+/**
+ * Auto-expire (mark as no_show) any scheduled/confirmed appointments
+ * that have passed their start time by more than 15 minutes.
+ */
+export async function autoExpireAppointments(
+  db: any,
+  patientId?: string,
+  doctorId?: string
+): Promise<void> {
+  try {
+    const now = Date.now();
+    const conditions = [];
+    if (patientId) {
+      conditions.push(eq(appointments.patientId, patientId));
+    }
+    if (doctorId) {
+      conditions.push(eq(appointments.doctorId, doctorId));
+    }
+
+    const pendingAppts = await db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          ...conditions,
+          inArray(appointments.status, ["scheduled", "confirmed"])
+        )
+      );
+
+    for (const appt of pendingAppts) {
+      // Parse local time (Sri Lanka UTC+5:30)
+      const localISO = `${appt.date}T${appt.time || "00:00"}:00+05:30`;
+      const apptTime = new Date(localISO).getTime();
+
+      // If 15 mins buffer time has passed
+      if (now - apptTime > 15 * 60 * 1000) {
+        await db
+          .update(appointments)
+          .set({ status: "no_show" })
+          .where(eq(appointments.id, appt.id));
+      }
+    }
+  } catch (err) {
+    console.error("autoExpireAppointments failed:", err);
+  }
 }

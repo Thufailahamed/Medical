@@ -37,6 +37,8 @@ import {
   Sparkles,
   MessageSquare,
   ScanText,
+  FlaskConical,
+  Stethoscope,
   FileSearch,
   Share2,
   FileText,
@@ -148,6 +150,9 @@ export default function HomeScreen() {
   const patient = profileData?.patient?.patients;
   const todayMeds: any[] = medsData?.medicines ?? [];
   const appointments: any[] = apptsData?.appointments ?? [];
+  const upcomingAppointments = appointments.filter((a: any) =>
+    ["scheduled", "confirmed", "in_progress"].includes(a.status)
+  );
 
   const hour = new Date().getHours();
   const greeting =
@@ -973,6 +978,20 @@ export default function HomeScreen() {
                     iconBg="#EEF2FF"
                     onPress={() => router.push("/(app)/ai/drug-check")}
                   />
+                  <AiTile
+                    icon={FlaskConical}
+                    label={t("home.aiLabTrend")}
+                    iconColor="#059669"
+                    iconBg="#ECFDF5"
+                    onPress={() => router.push("/(app)/ai/lab-trend")}
+                  />
+                  <AiTile
+                    icon={Stethoscope}
+                    label={t("home.aiClinicalNote")}
+                    iconColor="#E11D48"
+                    iconBg="#FFF1F2"
+                    onPress={() => router.push("/(app)/ai/clinical-note")}
+                  />
                 </View>
               </LinearGradient>
             </View>
@@ -1155,7 +1174,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Coming up */}
-          {appointments.length > 0 ? (
+          {upcomingAppointments.length > 0 ? (
             <View style={{ gap: spacing.sm }}>
               <SectionLabel
                 title={t("home.sectionComingUp")}
@@ -1175,7 +1194,7 @@ export default function HomeScreen() {
                       </Card>
                     </View>
                   ))
-                : appointments.slice(0, 4).map((a: any, idx: number) => (
+                : upcomingAppointments.slice(0, 4).map((a: any, idx: number) => (
                     <AppointmentTimelineRow
                       key={a.id ?? `a-${idx}`}
                       item={a}

@@ -90,7 +90,7 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       className={cn(
-        "portal-toast-card pointer-events-auto flex items-start gap-3 rounded-2xl border border-border/70 bg-surface px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)] border-l-[3px] animate-in",
+        "portal-toast-card pointer-events-auto flex items-start gap-3 rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)] border-l-[3px] animate-in",
         cfg.border
       )}
       role="status"
