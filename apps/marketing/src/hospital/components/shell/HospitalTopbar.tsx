@@ -87,7 +87,7 @@ export function HospitalTopbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-20 h-[var(--topbar-h,64px)] flex items-center justify-between gap-4 px-6 md:px-8 lg:px-10 transition-shadow duration-300",
+        "sticky top-0 z-20 h-[var(--topbar-h,64px)] flex items-center justify-between gap-4 px-6 md:px-8 lg:px-10 transition-shadow duration-300 no-print",
         "bg-surface border-b border-border",
         searchFocused && "shadow-[0_4px_12px_rgba(0,0,0,0.03)]"
       )}

@@ -10,6 +10,7 @@ import { Button } from "@/portal/components/ui/Button";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
 import { relativeTime } from "@/portal/lib/format";
+import { cn } from "@/portal/lib/utils";
 
 interface Notification {
   id: string;

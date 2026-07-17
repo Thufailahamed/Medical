@@ -58,7 +58,7 @@ export function HospitalSidebar() {
   return (
     <aside
       className={cn(
-        "h-full flex flex-col shrink-0 relative overflow-hidden",
+        "h-full flex flex-col shrink-0 relative overflow-hidden no-print",
         "transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
         collapsed ? "w-[76px]" : "w-[272px]"
       )}

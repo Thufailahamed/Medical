@@ -18,12 +18,23 @@ export default function WalkInsPage() {
   const t = useT();
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
+  const activeHospitalId = useAuthStore((s) => s.activeHospitalId);
   const [patientId, setPatientId] = useState("");
+  const [doctorId, setDoctorId] = useState("");
   const [reason, setReason] = useState("");
 
   const list = useQuery({
     queryKey: ["walkIns"],
     queryFn: () => api<{ walkIns: any[] }>("/walk-ins"),
+  });
+
+  const doctorsQuery = useQuery({
+    queryKey: ["hospitalDoctors", activeHospitalId],
+    queryFn: () =>
+      activeHospitalId
+        ? api<any[]>(`/hospital-doctors?hospitalId=${activeHospitalId}`)
+        : Promise.resolve([]),
+    enabled: !!activeHospitalId,
   });
 
   const create = useMutation({
@@ -32,6 +43,7 @@ export default function WalkInsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["walkIns"] });
       setPatientId("");
+      setDoctorId("");
       setReason("");
       toast.success("Added to queue");
     },
@@ -61,8 +73,8 @@ export default function WalkInsPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!patientId) return;
-            create.mutate({ patientId, reason });
+            if (!patientId || !doctorId) return;
+            create.mutate({ patientId, doctorId, reason });
           }}
           className="mt-3 flex flex-wrap gap-2"
         >
@@ -73,6 +85,19 @@ export default function WalkInsPage() {
             value={patientId}
             onChange={(e) => setPatientId(e.target.value)}
           />
+          <select
+            required
+            className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand-soft outline-none"
+            value={doctorId}
+            onChange={(e) => setDoctorId(e.target.value)}
+          >
+            <option value="">{t("reception.selectDoctor")}</option>
+            {(doctorsQuery.data || []).map((doc: any) => (
+              <option key={doc.doctorId} value={doc.doctorId}>
+                {doc.name} ({doc.specialization})
+              </option>
+            ))}
+          </select>
           <input
             placeholder={t("reception.reason")}
             className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand-soft outline-none"

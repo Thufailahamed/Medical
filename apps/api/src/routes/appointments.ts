@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings, teleconsultSessions } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
@@ -348,6 +348,93 @@ appointmentsRouter.patch(
     }
 
     return c.json({ appointment: inserted?.appointments || inserted, queueNumber });
+  }
+);
+
+// ─── List appointments ───────────────────────────────────
+// GET /appointments
+// List all appointments. If today=1 is passed, filter to today's appointments.
+appointmentsRouter.get(
+  "/",
+  authMiddleware,
+  async (c) => {
+    const db = c.get("db");
+    const dbUser = c.get("dbUser");
+    const activeHospitalId = c.get("activeHospitalId") || null;
+    const today = c.req.query("today");
+
+    let conditions = [];
+
+    // Filter by role / hospital
+    if (dbUser?.role === "hospital_admin" || dbUser?.role === "hospital_staff") {
+      if (!activeHospitalId) {
+        return c.json({ appointments: [] });
+      }
+      conditions.push(eq(appointments.hospitalId, activeHospitalId));
+    } else if (dbUser?.role === "doctor") {
+      const [doc] = await db.select().from(doctors).where(eq(doctors.userId, dbUser.id)).limit(1);
+      if (!doc) {
+        return c.json({ appointments: [] });
+      }
+      conditions.push(eq(appointments.doctorId, doc.id));
+    } else if (dbUser?.role === "super_admin") {
+      const hospitalId = c.req.query("hospitalId");
+      if (hospitalId) {
+        conditions.push(eq(appointments.hospitalId, hospitalId));
+      }
+    } else {
+      return c.json({ error: "Access denied" }, 403);
+    }
+
+    if (today === "1") {
+      const todayIso = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Colombo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+      conditions.push(eq(appointments.date, todayIso));
+    }
+
+    // Auto-expire passed appointments first
+    if (activeHospitalId) {
+      await autoExpireAppointments(db, undefined, undefined);
+    }
+
+    const rows = await db
+      .select({
+        id: appointments.id,
+        date: appointments.date,
+        time: appointments.time,
+        status: appointments.status,
+        patientId: appointments.patientId,
+        patientName: users.name,
+        doctorId: appointments.doctorId,
+        doctorName: sql<string>`(
+          SELECT u.name FROM users u 
+          JOIN doctors d ON d.user_id = u.id 
+          WHERE d.id = ${appointments.doctorId}
+        )`,
+      })
+      .from(appointments)
+      .innerJoin(patients, eq(patients.id, appointments.patientId))
+      .innerJoin(users, eq(users.id, patients.userId))
+      .where(and(...conditions))
+      .orderBy(appointments.date, appointments.time);
+
+    const mapped = rows.map((r: any) => ({
+      id: r.id,
+      startsAt: `${r.date}T${r.time || "00:00"}:00`,
+      date: r.date,
+      time: r.time,
+      patientId: r.patientId,
+      patientName: r.patientName,
+      doctorId: r.doctorId,
+      doctorName: r.doctorName || "—",
+      status: r.status,
+    }));
+
+    return c.json({ appointments: mapped });
   }
 );
 

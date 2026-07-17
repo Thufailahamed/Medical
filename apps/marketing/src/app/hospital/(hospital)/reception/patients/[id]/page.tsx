@@ -136,7 +136,7 @@ export default function PatientDetailPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/hospital/reception/patients" className="hospital-back-link">
+      <Link href="/hospital/reception/patients" className="hospital-back-link no-print">
         <ChevronLeft size={14} />
         {t("common.back")}
       </Link>
@@ -171,8 +171,12 @@ export default function PatientDetailPage({
                   ) : null}
                 </div>
               </div>
-              <div className="hospital-patient-hero-actions">
-                <button type="button" className="portal-btn portal-btn-secondary portal-btn-sm">
+              <div className="hospital-patient-hero-actions no-print">
+                <button
+                  type="button"
+                  className="portal-btn portal-btn-secondary portal-btn-sm"
+                  onClick={() => window.print()}
+                >
                   <FileText size={14} />
                   {t("patients.actions.print")}
                 </button>
@@ -180,7 +184,7 @@ export default function PatientDetailPage({
             </div>
           </header>
 
-          <nav className="hospital-detail-tabs" role="tablist">
+          <nav className="hospital-detail-tabs no-print" role="tablist">
             {TABS.map((key) => (
               <button
                 key={key}

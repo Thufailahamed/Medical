@@ -14,7 +14,7 @@
 // is family-only; this marketing route is the unified, branded version
 // that handles both invite types and surfaces a richer CTA surface.
 
-import { Users, ShieldUser, Calendar, Smartphone } from "lucide-react";
+import { Users, ShieldCheck, Calendar, Smartphone } from "lucide-react";
 
 import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
@@ -235,7 +235,7 @@ export default async function InviteLanding({
       <Card>
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl bg-info-soft flex items-center justify-center shrink-0">
-            <ShieldUser size={22} className="text-info" />
+            <ShieldCheck size={22} className="text-info" />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold text-text">

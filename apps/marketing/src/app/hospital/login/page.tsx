@@ -205,6 +205,50 @@ function LoginForm() {
             >
               {submitting ? t("auth.submitting") : t("auth.submit")} <ArrowRight size={14} />
             </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={submitting}
+              className="mt-3 h-10 rounded-xl border border-dashed border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-semibold transition-all"
+              onClick={async () => {
+                setError(null);
+                setSubmitting(true);
+                try {
+                  const user = await login({
+                    email: "admin@devhospital.lk",
+                    password: "DevPass#1234",
+                  });
+
+                  if (!hasHospitalRole(user, "hospital_admin", "hospital_staff", "pharmacy", "laboratory", "super_admin")) {
+                    toast.error(t("auth.wrongPortal"), t("auth.wrongPortalMsg"));
+                    useAuthStore.getState().logout();
+                    setSubmitting(false);
+                    return;
+                  }
+
+                  if (user.status === "pending") {
+                    toast.info(t("auth.pendingApproval"), t("auth.pendingApprovalMsg"));
+                    useAuthStore.getState().logout();
+                    setSubmitting(false);
+                    return;
+                  }
+                  if (user.status === "rejected") {
+                    toast.error(t("auth.rejected"), t("auth.rejectedMsg"));
+                    useAuthStore.getState().logout();
+                    setSubmitting(false);
+                    return;
+                  }
+
+                  router.replace(next);
+                } catch (err) {
+                  setError(friendlyError(err));
+                  setSubmitting(false);
+                }
+              }}
+            >
+              🛠️ Dev Test Login (Auto-seed)
+            </Button>
           </form>
 
           <div className="mt-6 text-[12px] text-text-soft flex flex-col gap-1.5">

@@ -54,7 +54,23 @@ export function tr(
 /** React hook — reads the active locale from the store and returns a translator. */
 export function useT() {
   const locale = useAuthStore((s) => s.locale);
-  return (path: string, vars?: Record<string, string | number>) => tr(locale, path, vars);
+  return (
+    path: string,
+    varsOrDefault?: Record<string, string | number> | string,
+    fallbackDefault?: string
+  ): string => {
+    // If second arg is a string, treat it as a default to return when the
+    // key is missing in every locale. Otherwise it's an interpolation
+    // vars map (the original behaviour).
+    if (typeof varsOrDefault === "string") {
+      const translated = tr(locale, path);
+      if (translated === path) return varsOrDefault;
+      return translated;
+    }
+    let translated = tr(locale, path, varsOrDefault);
+    if (translated === path && fallbackDefault) return fallbackDefault;
+    return translated;
+  };
 }
 
 /** Helper to swap a pluralised suffix on a key. E.g. {{count}} interaction vs interactions. */

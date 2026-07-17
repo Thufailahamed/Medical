@@ -144,7 +144,7 @@ export default function AdminMedicinesMasterPage() {
               <TH>Schedule</TH>
               <TH>Type</TH>
               <TH>Status</TH>
-              <TH />
+              <TH><span className="sr-only">Actions</span></TH>
             </TR>
           </THead>
           <TBody>
