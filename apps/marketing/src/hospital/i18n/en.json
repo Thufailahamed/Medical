@@ -64,6 +64,7 @@
     "unreadBadge": "{{count}} unread",
     "logout": "Sign out",
     "settings": "Settings",
+    "pacsIntegrations": "PACS integrations",
     "collapse": "Collapse",
     "expand": "Expand",
     "switchTenant": "Switch facility",
@@ -524,6 +525,57 @@
       "viewSummary": "View discharge summary",
       "acknowledge": "Acknowledge",
       "acknowledged": "Acknowledged"
+    }
+  },
+  "pacs": {
+    "title": "PACS integrations",
+    "subtitle": "Pull DICOM studies from your hospital's archive into the patient chart.",
+    "listTitle": "Configured integrations",
+    "listEmpty": "No PACS integrations configured yet.",
+    "addTitle": "Add PACS integration",
+    "editTitle": "Edit PACS integration",
+    "fields": {
+      "name": "Display name",
+      "baseUrl": "DICOMweb base URL",
+      "baseUrlHint": "Include the /dicom-web suffix if your PACS requires it (e.g. https://pacs.example.com/dicom-web)",
+      "username": "Username",
+      "password": "Password",
+      "passwordHint": "Leave blank to keep the existing password.",
+      "interval": "Sync interval (minutes)",
+      "enabled": "Enabled"
+    },
+    "actions": {
+      "addNew": "Add integration",
+      "save": "Save",
+      "cancel": "Cancel",
+      "testConnection": "Test connection",
+      "syncNow": "Sync now",
+      "edit": "Edit",
+      "disable": "Disable"
+    },
+    "status": {
+      "idle": "Idle",
+      "running": "Syncing",
+      "succeeded": "Succeeded",
+      "failed": "Failed"
+    },
+    "testResult": {
+      "ok": "PACS reachable",
+      "auth_failed": "Authentication failed (bad username or password)",
+      "transient_failure": "PACS is unreachable",
+      "credential_unwrap_failed": "Cannot decrypt stored credentials — KEK rotation gap?"
+    },
+    "syncResult": {
+      "completed": "Pulled {studies} studies ({instances} instances)",
+      "failed": "Sync failed"
+    },
+    "errors": {
+      "nameRequired": "Display name is required",
+      "baseUrlRequired": "Base URL is required",
+      "usernameRequired": "Username is required",
+      "passwordRequired": "Password is required",
+      "intervalInvalid": "Sync interval must be between 5 and 1440 minutes",
+      "urlInvalid": "Base URL is not a valid URL"
     }
   }
 }

@@ -38,8 +38,8 @@ export default function TestDetailScreen() {
 
   if (isLoading) {
     return (
-      <Screen>
-        <ScreenHeader title="Test Details" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Test Details" back />
         <View style={{ padding: 16 }}>
           <Skeleton style={{ height: 200, borderRadius: 16, marginBottom: 16 }} />
           <Skeleton style={{ height: 120, borderRadius: 12, marginBottom: 16 }} />
@@ -51,8 +51,8 @@ export default function TestDetailScreen() {
 
   if (error || !data?.test) {
     return (
-      <Screen>
-        <ScreenHeader title="Test Details" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Test Details" back />
         <EmptyState
           icon={AlertCircle}
           title="Test not found"
@@ -65,8 +65,8 @@ export default function TestDetailScreen() {
   const { test, packages } = data;
 
   return (
-    <Screen>
-      <ScreenHeader title={test.name} showBack />
+    <Screen padded={false} bottomInset={false}>
+      <ScreenHeader title={test.name} back />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -308,7 +308,7 @@ export default function TestDetailScreen() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: colors.background,
+          backgroundColor: colors.surface,
           paddingHorizontal: 16,
           paddingVertical: 16,
           paddingBottom: 32,
@@ -317,6 +317,7 @@ export default function TestDetailScreen() {
         }}
       >
         <Button
+          title={`Book Now — ${formatPrice(test.discountPrice ?? test.price)}`}
           onPress={() =>
             router.push({
               pathname: "/book-test",
@@ -331,9 +332,7 @@ export default function TestDetailScreen() {
             })
           }
           style={{ width: "100%" }}
-        >
-          Book Now — {formatPrice(test.discountPrice ?? test.price)}
-        </Button>
+        />
       </View>
     </Screen>
   );

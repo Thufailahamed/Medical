@@ -113,6 +113,8 @@ import imagingRouter from "./routes/imaging";
 import imagingUploadRouter from "./routes/imaging-upload";
 import diagnosticTestsRouter from "./routes/diagnostic-tests";
 import labPartnerPortalRouter from "./routes/lab-partner-portal";
+import adminPacsRouter from "./routes/admin-pacs";
+import { pacsSyncRouter } from "./cron/pacs-sync";
 import { TeleconsultRoom } from "./durable-objects/teleconsult-room";
 import type { AppEnvironment } from "./types";
 
@@ -330,6 +332,9 @@ app.route("/teleconsult", teleconsultRouter);
 // Phase IMG-1: DICOM imaging study endpoints + presigned uploads.
 app.route("/imaging", imagingRouter);
 app.route("/imaging", imagingUploadRouter);
+// Phase IMG-2: PACS pull integration endpoints
+app.route("/hospital-admin/pacs", adminPacsRouter);
+app.route("/", pacsSyncRouter);
 // Book a Test: diagnostic test catalog + home sample collection bookings.
 app.route("/diagnostic-tests", diagnosticTestsRouter);
 app.route("/lab-portal", labPartnerPortalRouter);

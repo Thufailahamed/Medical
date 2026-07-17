@@ -121,8 +121,8 @@ export default function TestBookingDetailScreen() {
 
   if (isLoading) {
     return (
-      <Screen>
-        <ScreenHeader title="Booking Details" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Booking Details" back />
         <View style={{ padding: 16 }}>
           <Skeleton style={{ height: 200, borderRadius: 16, marginBottom: 16 }} />
           <Skeleton style={{ height: 300, borderRadius: 12 }} />
@@ -133,8 +133,8 @@ export default function TestBookingDetailScreen() {
 
   if (error || !data?.booking) {
     return (
-      <Screen>
-        <ScreenHeader title="Booking Details" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Booking Details" back />
         <EmptyState
           icon={AlertCircle}
           title="Booking not found"
@@ -156,8 +156,8 @@ export default function TestBookingDetailScreen() {
   const canReschedule = canCancel;
 
   return (
-    <Screen>
-      <ScreenHeader title="Booking Details" showBack />
+    <Screen padded={false} bottomInset={false}>
+      <ScreenHeader title="Booking Details" back />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -736,69 +736,61 @@ export default function TestBookingDetailScreen() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: colors.background,
+            backgroundColor: colors.surface,
             paddingHorizontal: 16,
             paddingVertical: 16,
             paddingBottom: 32,
             borderTopWidth: 1,
             borderTopColor: colors.border,
             flexDirection: "row",
+            alignItems: "center",
             gap: 12,
           }}
         >
           {canCancel && (
-            <Button
-              variant="outline"
-              onPress={handleCancel}
-              style={{ flex: 1 }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Ban size={16} color="#EF4444" />
-                <Text style={{ color: "#EF4444", marginLeft: 6 }}>
-                  Cancel
-                </Text>
-              </View>
-            </Button>
+            <View style={{ flex: 1 }}>
+              <Button
+                variant="outline"
+                title="Cancel"
+                icon={Ban}
+                onPress={handleCancel}
+                style={{ width: "100%" }}
+              />
+            </View>
           )}
 
           {canReschedule && (
-            <Button
-              variant="outline"
-              onPress={() =>
-                router.push({
-                  pathname: "/book-test",
-                  params: {
-                    bookingType: booking.bookingType,
-                    testId: booking.testId || undefined,
-                    testName: booking.itemName,
-                    packageId: booking.packageId || undefined,
-                    testPrice: String(booking.totalPrice),
-                  },
-                })
-              }
-              style={{ flex: 1 }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <RefreshCw size={16} color={colors.primary} />
-                <Text style={{ color: colors.primary, marginLeft: 6 }}>
-                  Reschedule
-                </Text>
-              </View>
-            </Button>
+            <View style={{ flex: 1 }}>
+              <Button
+                variant="outline"
+                title="Reschedule"
+                icon={RefreshCw}
+                onPress={() =>
+                  router.push({
+                    pathname: "/book-test",
+                    params: {
+                      bookingType: booking.bookingType,
+                      testId: booking.testId || undefined,
+                      testName: booking.itemName,
+                      packageId: booking.packageId || undefined,
+                      testPrice: String(booking.totalPrice),
+                    },
+                  })
+                }
+                style={{ width: "100%" }}
+              />
+            </View>
           )}
 
           {isCompleted && booking.resultPdfUrl && (
-            <Button
-              onPress={() => Linking.openURL(booking.resultPdfUrl!)}
-              style={{ flex: 1 }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Download size={16} color="#fff" />
-                <Text style={{ color: "#fff", marginLeft: 6 }}>
-                  View Results
-                </Text>
-              </View>
-            </Button>
+            <View style={{ flex: 1 }}>
+              <Button
+                title="View Results"
+                icon={Download}
+                onPress={() => Linking.openURL(booking.resultPdfUrl!)}
+                style={{ width: "100%" }}
+              />
+            </View>
           )}
         </View>
       )}

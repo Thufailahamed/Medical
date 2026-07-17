@@ -64,6 +64,7 @@
     "unreadBadge": "{{count}} කියවීමට ඇත",
     "logout": "ඉවත් වන්න",
     "settings": "සැකසුම්",
+    "pacsIntegrations": "PACS ඒකාබද්ධ කිරීම්",
     "collapse": "හැකිලීම",
     "expand": "විහිදීම",
     "switchTenant": "ආයතනය මාරු කරන්න",
@@ -524,6 +525,57 @@
       "viewSummary": "නිකුත් සාරාංශය බලන්න",
       "acknowledge": "තහවුරු කරන්න",
       "acknowledged": "තහවුරු කළා"
+    }
+  },
+  "pacs": {
+    "title": "PACS ඒකාබද්ධ කිරීම්",
+    "subtitle": "රෝහල් සංරක්ෂණයෙන් DICOM අධ්‍යයන රෝගී පුවත්පතට ගෙන්වන්න.",
+    "listTitle": "වින්‍යාස කළ ඒකාබද්ධ කිරීම්",
+    "listEmpty": "PACS ඒකාබද්ධ කිරීම් නැත.",
+    "addTitle": "PACS ඒකාබද්ධ කිරීමක් එකතු කරන්න",
+    "editTitle": "PACS ඒකාබද්ධ කිරීම සංස්කරණය කරන්න",
+    "fields": {
+      "name": "නම",
+      "baseUrl": "DICOMweb මූලික URL",
+      "baseUrlHint": "PACS එකට /dicom-web අවශ්‍ය නම් එය ඇතුළත් කරන්න (උදා: https://pacs.example.com/dicom-web)",
+      "username": "පරිශීලක නාමය",
+      "password": "මුරපදය",
+      "passwordHint": "පවතින මුරපදය තබා ගැනීමට හිස් තබන්න.",
+      "interval": "සමමුහුර්ත පරතරය (මිනිත්තු)",
+      "enabled": "සක්‍රිය"
+    },
+    "actions": {
+      "addNew": "ඒකාබද්ධ කිරීමක් එකතු කරන්න",
+      "save": "සුරකින්න",
+      "cancel": "අවලංගු කරන්න",
+      "testConnection": "සම්බන්ධතාවය පරීක්ෂා කරන්න",
+      "syncNow": "දැන් සමමුහුර්ත කරන්න",
+      "edit": "සංස්කරණය",
+      "disable": "අක්‍රිය කරන්න"
+    },
+    "status": {
+      "idle": "නිශ්චල",
+      "running": "සමමුහුර්ත වෙමින්",
+      "succeeded": "සාර්ථකයි",
+      "failed": "අසාර්ථකයි"
+    },
+    "testResult": {
+      "ok": "PACS ළඟා විය හැක",
+      "auth_failed": "සත්‍යාපනය අසාර්ථක (නරක පරිශීලක නාමය හෝ මුරපදය)",
+      "transient_failure": "PACS ළඟා නොවේ",
+      "credential_unwrap_failed": "ගබඩා කළ අක්තපත්‍ර විකේතනය කළ නොහැක"
+    },
+    "syncResult": {
+      "completed": "{studies} අධ්‍යයන ({instances} උදාන්ද)",
+      "failed": "සමමුහුර්ත කිරීම අසාර්ථක"
+    },
+    "errors": {
+      "nameRequired": "නම අවශ්‍යයි",
+      "baseUrlRequired": "මූලික URL අවශ්‍යයි",
+      "usernameRequired": "පරිශීලක නාමය අවශ්‍යයි",
+      "passwordRequired": "මුරපදය අවශ්‍යයි",
+      "intervalInvalid": "සමමුහුර්ත පරතරය මිනිත්තු 5 සහ 1440 අතර විය යුතුය",
+      "urlInvalid": "මූලික URL වලංගු නැත"
     }
   }
 }

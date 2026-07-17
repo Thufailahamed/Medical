@@ -169,4 +169,9 @@ export const qk = {
     ["admin", "tenants", JSON.stringify(params)] as const,
   adminApprovals: (params: Record<string, unknown>) =>
     ["admin", "approvals", JSON.stringify(params)] as const,
+
+  // Tier 2 PACS integrations — hospital-admin onboarding surface.
+  pacsIntegrations: ["hospital-admin", "pacs", "integrations"] as const,
+  pacsIntegration: (id: string) =>
+    ["hospital-admin", "pacs", "integration", id] as const,
 };

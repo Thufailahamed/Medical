@@ -30,6 +30,7 @@ import {
   Settings,
   Bell,
   Share2,
+  Server,
 } from "lucide-react";
 
 import type { HospitalRole } from "@/hospital/stores/auth";
@@ -104,6 +105,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/hospital/staff/invites", labelKey: "staffInvites", icon: Mail, roles: ["hospital_admin", "super_admin"] },
       { href: "/hospital/staff/departments", labelKey: "departments", icon: Building2, roles: ["hospital_admin", "super_admin"] },
       { href: "/hospital/settings", labelKey: "settings", icon: Settings, roles: ["hospital_admin", "super_admin"] },
+      { href: "/hospital/settings/pacs", labelKey: "pacsIntegrations", icon: Server, roles: ["hospital_admin", "super_admin"] },
       { href: "/hospital/notifications", labelKey: "notifications", icon: Bell },
     ],
   },

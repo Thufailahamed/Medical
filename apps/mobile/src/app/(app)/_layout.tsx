@@ -409,6 +409,10 @@ export default function AppLayout() {
         name="test-result/[bookingId]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="rate-test/[bookingId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

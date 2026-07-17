@@ -245,11 +245,11 @@ export default function TestPackagesScreen() {
   );
 
   return (
-    <Screen>
+    <Screen padded={false} bottomInset={false}>
       <ScreenHeader
         title="Health Packages"
         subtitle="Comprehensive test bundles"
-        showBack
+        back
       />
 
       {/* Search Bar */}

@@ -266,8 +266,8 @@ export default function TestBookingsScreen() {
   );
 
   return (
-    <Screen>
-      <ScreenHeader title="My Test Bookings" showBack />
+    <Screen padded={false} bottomInset={false}>
+      <ScreenHeader title="My Test Bookings" back />
 
       {/* Tabs */}
       <View

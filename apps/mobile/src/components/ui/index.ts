@@ -47,3 +47,4 @@ export { Stepper } from "./Stepper";
 export { TimeSlots } from "./TimeSlots";
 export type { TimeSlot } from "./TimeSlots";
 export { VerifiedBadge, VerifiedBadgeWithRegNo } from "./VerifiedBadge";
+export { SelectField } from "./SelectField";

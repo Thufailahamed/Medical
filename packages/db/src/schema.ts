@@ -2391,6 +2391,89 @@ export const hospitalPatients = sqliteTable(
   })
 );
 
+// ─── Hospital PACS Integrations (Tier 2) ──────────────────
+//
+// One row per configured DICOMweb endpoint for a hospital. Credentials
+// (HTTP Basic username + password) are envelope-encrypted with the same
+// AES-256-GCM shape used by `doctors.signing_private_key_enc` — see
+// `apps/api/src/lib/envelope-crypto.ts`. The KEK wire id used to wrap
+// the per-row DEK is denormalised into `kekVersion` so a rotation script
+// can find rows that need to be re-wrapped under a new KEK without
+// scanning ciphertext.
+//
+// Sync state machine: `lastSyncStatus` ∈ {idle, running, succeeded,
+// failed}. The cron checks `enabled=true AND (lastSyncAt IS NULL OR
+// datetime(lastSyncAt, '+syncIntervalMinutes minutes') <= now)` before
+// claiming a row. A per-row lease (lastSyncAttemptAt + status=running)
+// prevents two cron ticks from racing on the same integration.
+export const hospitalPacsIntegrations = sqliteTable(
+  "hospital_pacs_integrations",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    hospitalId: text("hospital_id")
+      .notNull()
+      .references(() => hospitals.id),
+    name: text("name").notNull(),
+    baseUrl: text("base_url").notNull(),
+    usernameEnc: text("username_enc").notNull(),
+    passwordEnc: text("password_enc").notNull(),
+    kekVersion: text("kek_version").notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    syncIntervalMinutes: integer("sync_interval_minutes").notNull().default(60),
+    lastSyncAt: text("last_sync_at"),
+    lastSyncAttemptAt: text("last_sync_attempt_at"),
+    lastSyncStatus: text("last_sync_status", {
+      enum: ["idle", "running", "succeeded", "failed"],
+    })
+      .notNull()
+      .default("idle"),
+    lastSyncError: text("last_sync_error"),
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    hospitalIdx: index("hospital_pacs_integrations_hospital_idx").on(
+      t.hospitalId
+    ),
+    dueIdx: index("hospital_pacs_integrations_due_idx").on(
+      t.enabled,
+      t.lastSyncAt
+    ),
+  })
+);
+
+// Per (integration, MRN) sync cursor — lets each patient advance
+// independently without re-pulling studies the cron has already seen.
+// `lastStudyDate` is the max StudyDate (YYYYMMDD) seen for this MRN.
+export const hospitalPacsSyncCursors = sqliteTable(
+  "hospital_pacs_sync_cursors",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    integrationId: text("integration_id")
+      .notNull()
+      .references(() => hospitalPacsIntegrations.id, { onDelete: "cascade" }),
+    patientMrn: text("patient_mrn").notNull(),
+    lastStudyDate: text("last_study_date"),
+    lastPulledAt: text("last_pulled_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    pairUnique: uniqueIndex("hospital_pacs_cursors_pair_unique").on(
+      t.integrationId,
+      t.patientMrn
+    ),
+    integrationIdx: index("hospital_pacs_cursors_integration_idx").on(
+      t.integrationId
+    ),
+  })
+);
+
 // ─── Clinic ↔ Doctor (multi-doctor per locked decision) ────
 // A doctor can hold multiple roles in the same clinic over time
 // (owner → partner). The active partial UNIQUE on

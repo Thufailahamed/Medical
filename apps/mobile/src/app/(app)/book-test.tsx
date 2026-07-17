@@ -46,6 +46,7 @@ import {
   FormField,
   TextInput as TextField,
   useToast,
+  SelectField,
 } from "@/components/ui";
 
 const DISTRICTS = [
@@ -247,16 +248,16 @@ export default function BookTestScreen() {
   const steps = ["Schedule", "Address", "Confirm"];
 
   return (
-    <Screen>
+    <Screen padded={false} bottomInset={false}>
       <ScreenHeader
         title="Book a Test"
-        showBack
+        back
         onBack={handleBack}
       />
 
       {/* Stepper */}
       <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <Stepper steps={steps} currentStep={step} />
+        <Stepper steps={steps} current={step} />
       </View>
 
       <ScrollView
@@ -457,7 +458,7 @@ export default function BookTestScreen() {
                 control={control}
                 name="addressLine1"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <FormField label="Address Line 1" error={errors.addressLine1?.message}>
+                  <FormField label="Address Line 1" error={errors.addressLine1?.message} style={{ marginBottom: 16 }}>
                     <TextField
                       placeholder="House number, street name"
                       value={value}
@@ -472,7 +473,7 @@ export default function BookTestScreen() {
                 control={control}
                 name="addressLine2"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <FormField label="Address Line 2 (optional)">
+                  <FormField label="Address Line 2 (optional)" style={{ marginBottom: 16 }}>
                     <TextField
                       placeholder="Apartment, suite, floor"
                       value={value}
@@ -487,7 +488,7 @@ export default function BookTestScreen() {
                 control={control}
                 name="city"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <FormField label="City" error={errors.city?.message}>
+                  <FormField label="City" error={errors.city?.message} style={{ marginBottom: 16 }}>
                     <TextField
                       placeholder="e.g. Colombo, Kandy"
                       value={value}
@@ -502,40 +503,14 @@ export default function BookTestScreen() {
                 control={control}
                 name="district"
                 render={({ field: { onChange, value } }) => (
-                  <FormField label="District" error={errors.district?.message}>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={{ marginTop: 4 }}
-                    >
-                      {DISTRICTS.map((d) => (
-                        <Pressable
-                          key={d}
-                          onPress={() => onChange(d)}
-                          style={{
-                            paddingHorizontal: 14,
-                            paddingVertical: 8,
-                            borderRadius: 20,
-                            backgroundColor:
-                              value === d ? colors.primary : colors.card,
-                            marginRight: 8,
-                            borderWidth: 1,
-                            borderColor:
-                              value === d ? colors.primary : colors.border,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              color: value === d ? "#fff" : colors.text,
-                            }}
-                          >
-                            {d}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </FormField>
+                  <SelectField
+                    label="District"
+                    placeholder="Select district"
+                    value={value}
+                    onChange={onChange}
+                    options={DISTRICTS}
+                    error={errors.district?.message}
+                  />
                 )}
               />
 
@@ -546,6 +521,7 @@ export default function BookTestScreen() {
                   <FormField
                     label="Contact Phone"
                     error={errors.contactPhone?.message}
+                    style={{ marginBottom: 16 }}
                   >
                     <TextField
                       placeholder="07X XXX XXXX"
@@ -562,7 +538,7 @@ export default function BookTestScreen() {
                 control={control}
                 name="specialInstructions"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <FormField label="Special Instructions (optional)">
+                  <FormField label="Special Instructions (optional)" style={{ marginBottom: 16 }}>
                     <TextField
                       placeholder="Landmark, gate code, etc."
                       value={value}
@@ -854,53 +830,47 @@ export default function BookTestScreen() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: colors.background,
+          backgroundColor: colors.surface,
           paddingHorizontal: 16,
           paddingVertical: 16,
           paddingBottom: 32,
           borderTopWidth: 1,
           borderTopColor: colors.border,
           flexDirection: "row",
+          alignItems: "center",
           gap: 12,
         }}
       >
         {step > 0 && (
-          <Button
-            variant="outline"
-            onPress={handleBack}
-            style={{ flex: 1 }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <ChevronLeft size={18} color={colors.primary} />
-              <Text style={{ color: colors.primary, marginLeft: 4 }}>
-                Back
-              </Text>
-            </View>
-          </Button>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="outline"
+              title="Back"
+              icon={ChevronLeft}
+              onPress={handleBack}
+              style={{ width: "100%" }}
+            />
+          </View>
         )}
 
-        {step < 2 ? (
-          <Button
-            onPress={handleNext}
-            disabled={!canProceed()}
-            style={{ flex: step === 0 ? 1 : 1 }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ color: "#fff" }}>Continue</Text>
-              <ChevronRight size={18} color="#fff" />
-            </View>
-          </Button>
-        ) : (
-          <Button
-            onPress={handleSubmit(onSubmit)}
-            disabled={bookTest.isPending}
-            style={{ flex: 1 }}
-          >
-            {bookTest.isPending
-              ? "Booking..."
-              : `Confirm — ${formatPrice(price)}`}
-          </Button>
-        )}
+        <View style={{ flex: 1 }}>
+          {step < 2 ? (
+            <Button
+              title="Continue"
+              iconRight={ChevronRight}
+              onPress={handleNext}
+              disabled={!canProceed()}
+              style={{ width: "100%" }}
+            />
+          ) : (
+            <Button
+              title={bookTest.isPending ? "Booking..." : `Confirm — ${formatPrice(price)}`}
+              loading={bookTest.isPending}
+              onPress={handleSubmit(onSubmit)}
+              style={{ width: "100%" }}
+            />
+          )}
+        </View>
       </View>
     </Screen>
   );

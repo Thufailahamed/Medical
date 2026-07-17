@@ -45,8 +45,8 @@ export default function TestResultScreen() {
 
   if (isLoading) {
     return (
-      <Screen>
-        <ScreenHeader title="Test Results" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Test Results" back />
         <View style={{ padding: 16 }}>
           <Skeleton style={{ height: 160, borderRadius: 16, marginBottom: 16 }} />
           <Skeleton style={{ height: 200, borderRadius: 12 }} />
@@ -57,8 +57,8 @@ export default function TestResultScreen() {
 
   if (error || !data?.booking) {
     return (
-      <Screen>
-        <ScreenHeader title="Test Results" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Test Results" back />
         <EmptyState
           icon={AlertCircle}
           title="Results not found"
@@ -72,8 +72,8 @@ export default function TestResultScreen() {
 
   if (booking.status !== "completed") {
     return (
-      <Screen>
-        <ScreenHeader title="Test Results" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Test Results" back />
         <EmptyState
           icon={Clock}
           title="Results Pending"
@@ -84,8 +84,8 @@ export default function TestResultScreen() {
   }
 
   return (
-    <Screen>
-      <ScreenHeader title="Test Results" showBack />
+    <Screen padded={false} bottomInset={false}>
+      <ScreenHeader title="Test Results" back />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

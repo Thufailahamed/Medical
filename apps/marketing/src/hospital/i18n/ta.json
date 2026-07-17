@@ -64,6 +64,7 @@
     "unreadBadge": "{{count}} படிக்கப்படாதவை",
     "logout": "வெளியேறு",
     "settings": "அமைப்புகள்",
+    "pacsIntegrations": "PACS ஒருங்கிணைப்புகள்",
     "collapse": "சுருக்கு",
     "expand": "விரி",
     "switchTenant": "வசதியை மாற்று",
@@ -524,6 +525,57 @@
       "viewSummary": "வெளியேற்ற சுருக்கத்தை பார்",
       "acknowledge": "உறுதிப்படுத்து",
       "acknowledged": "உறுதிப்படுத்தப்பட்டது"
+    }
+  },
+  "pacs": {
+    "title": "PACS ஒருங்கிணைப்புகள்",
+    "subtitle": "மருத்துவமனை காப்பகத்திலிருந்து DICOM ஆய்வுகளை நோயாளி பதிவுக்கு இழுக்கவும்.",
+    "listTitle": "கட்டமைக்கப்பட்ட ஒருங்கிணைப்புகள்",
+    "listEmpty": "PACS ஒருங்கிணைப்புகள் எதுவும் கட்டமைக்கப்படவில்லை.",
+    "addTitle": "PACS ஒருங்கிணைப்பைச் சேர்க்கவும்",
+    "editTitle": "PACS ஒருங்கிணைப்பைத் திருத்து",
+    "fields": {
+      "name": "காட்சி பெயர்",
+      "baseUrl": "DICOMweb அடிப்படை URL",
+      "baseUrlHint": "PACS-க்கு /dicom-web தேவைப்பட்டால் சேர்க்கவும் (எ.கா: https://pacs.example.com/dicom-web)",
+      "username": "பயனர் பெயர்",
+      "password": "கடவுச்சொல்",
+      "passwordHint": "இருக்கும் கடவுச்சொல்லை வைத்திருக்க காலியாக விடவும்.",
+      "interval": "ஒத்திசைவு இடைவெளி (நிமிடங்கள்)",
+      "enabled": "இயக்கப்பட்டது"
+    },
+    "actions": {
+      "addNew": "ஒருங்கிணைப்பைச் சேர்",
+      "save": "சேமி",
+      "cancel": "ரத்து",
+      "testConnection": "இணைப்பை சோதி",
+      "syncNow": "இப்போது ஒத்திசை",
+      "edit": "திருத்து",
+      "disable": "முடக்கு"
+    },
+    "status": {
+      "idle": "செயலற்றது",
+      "running": "ஒத்திசைகிறது",
+      "succeeded": "வெற்றி",
+      "failed": "தோல்வி"
+    },
+    "testResult": {
+      "ok": "PACS அணுகக்கூடியது",
+      "auth_failed": "அங்கீகாரம் தோல்வி (தவறான பயனர் பெயர் அல்லது கடவுச்சொல்)",
+      "transient_failure": "PACS அணுக முடியவில்லை",
+      "credential_unwrap_failed": "சேமிக்கப்பட்ட நற்சான்றிதழ்களை குறியகற்ற முடியவில்லை"
+    },
+    "syncResult": {
+      "completed": "{studies} ஆய்வுகள் ({instances} நிகழ்வுகள்) இழுக்கப்பட்டன",
+      "failed": "ஒத்திசைவு தோல்வி"
+    },
+    "errors": {
+      "nameRequired": "காட்சி பெயர் தேவை",
+      "baseUrlRequired": "அடிப்படை URL தேவை",
+      "usernameRequired": "பயனர் பெயர் தேவை",
+      "passwordRequired": "கடவுச்சொல் தேவை",
+      "intervalInvalid": "ஒத்திசைவு இடைவெளி 5 முதல் 1440 நிமிடங்கள் வரை இருக்க வேண்டும்",
+      "urlInvalid": "அடிப்படை URL செல்லுபடியாகாது"
     }
   }
 }

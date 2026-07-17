@@ -55,8 +55,8 @@ export default function TestPackageDetailScreen() {
 
   if (isLoading) {
     return (
-      <Screen>
-        <ScreenHeader title="Package Details" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Package Details" back />
         <View style={{ padding: 16 }}>
           <Skeleton style={{ height: 180, borderRadius: 16, marginBottom: 16 }} />
           <Skeleton style={{ height: 300, borderRadius: 12 }} />
@@ -67,8 +67,8 @@ export default function TestPackageDetailScreen() {
 
   if (error || !data?.package) {
     return (
-      <Screen>
-        <ScreenHeader title="Package Details" showBack />
+      <Screen padded={false} bottomInset={false}>
+        <ScreenHeader title="Package Details" back />
         <EmptyState
           icon={AlertCircle}
           title="Package not found"
@@ -84,8 +84,8 @@ export default function TestPackageDetailScreen() {
   const hasSavings = savings > 0;
 
   return (
-    <Screen>
-      <ScreenHeader title={pkg.name} showBack />
+    <Screen padded={false} bottomInset={false}>
+      <ScreenHeader title={pkg.name} back />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -395,7 +395,7 @@ export default function TestPackageDetailScreen() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: colors.background,
+          backgroundColor: colors.surface,
           paddingHorizontal: 16,
           paddingVertical: 16,
           paddingBottom: 32,
@@ -404,6 +404,7 @@ export default function TestPackageDetailScreen() {
         }}
       >
         <Button
+          title={`Book Package — ${formatPrice(effectivePrice)}`}
           onPress={() =>
             router.push({
               pathname: "/book-test",
@@ -416,9 +417,7 @@ export default function TestPackageDetailScreen() {
             })
           }
           style={{ width: "100%" }}
-        >
-          Book Package — {formatPrice(effectivePrice)}
-        </Button>
+        />
       </View>
     </Screen>
   );

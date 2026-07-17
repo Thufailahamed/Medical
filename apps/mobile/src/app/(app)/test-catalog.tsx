@@ -302,11 +302,11 @@ export default function TestCatalogScreen() {
   );
 
   return (
-    <Screen>
+    <Screen padded={false} bottomInset={false}>
       <ScreenHeader
         title="Book a Test"
         subtitle="Home sample collection"
-        showBack
+        back
       />
 
       {/* Search Bar */}
