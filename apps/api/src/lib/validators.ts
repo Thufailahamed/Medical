@@ -604,3 +604,82 @@ export const tenantRegisterSchema = z.object({
   specializations: z.array(z.string().min(1).max(80)).max(20).optional(),
 });
 
+// ─── Diagnostic Test Bookings ──────────────────────────────
+
+const collectionAddressSchema = z.object({
+  line1: z.string().min(1, "Address line 1 is required").max(200),
+  line2: z.string().max(200).optional(),
+  city: z.string().min(1, "City is required").max(100),
+  district: z.string().min(1, "District is required").max(100),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  contactPhone: z.string().min(7).max(16),
+  specialInstructions: z.string().max(500).optional(),
+});
+
+export const testBookingSchema = z
+  .object({
+    bookingType: z.enum(["single_test", "package"]),
+    testId: z.string().optional(),
+    packageId: z.string().optional(),
+    scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+    scheduledTimeSlot: z.string().min(1, "Time slot is required"),
+    collectionAddress: collectionAddressSchema,
+    paymentMethod: z.enum(["cash", "card", "online"]).default("cash"),
+    notes: z.string().max(500).optional(),
+  })
+  .refine((d) => d.testId || d.packageId, {
+    message: "Either testId or packageId is required",
+  });
+
+export const testBookingCancelSchema = z.object({
+  cancellationReason: z.string().max(500).optional(),
+});
+
+export const testBookingRescheduleSchema = z.object({
+  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  scheduledTimeSlot: z.string().min(1, "Time slot is required"),
+});
+
+export const diagnosticTestCatalogSchema = z.object({
+  name: z.string().min(1).max(200),
+  slug: z.string().min(1).max(200),
+  category: z.enum([
+    "blood", "urine", "stool", "saliva", "swab", "cardiac", "diabetes",
+    "thyroid", "liver", "kidney", "lipid", "vitamin", "hormone",
+    "cancer_marker", "infection", "allergy", "genetic", "imaging", "other",
+  ]),
+  description: z.string().max(2000).optional(),
+  sampleType: z.enum(["blood", "urine", "stool", "saliva", "swab", "other"]),
+  fastingRequired: z.boolean().default(false),
+  fastingHours: z.number().int().min(0).max(48).default(0),
+  homeCollectionAvailable: z.boolean().default(true),
+  price: z.number().positive(),
+  discountPrice: z.number().positive().optional(),
+  turnaroundHours: z.number().int().min(1).max(720).default(24),
+  instructions: z.string().max(2000).optional(),
+});
+
+export const testPackageSchema = z.object({
+  name: z.string().min(1).max(200),
+  slug: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  price: z.number().positive(),
+  discountPrice: z.number().positive().optional(),
+  turnaroundHours: z.number().int().min(1).max(720).default(48),
+  instructions: z.string().max(2000).optional(),
+  testIds: z.array(z.string().min(1)).min(1).max(50),
+});
+
+export const assignPhlebotomistSchema = z.object({
+  phlebotomistId: z.string().min(1),
+  phlebotomistName: z.string().min(1).max(120),
+  phlebotomistPhone: z.string().min(7).max(16),
+});
+
+export const completeTestBookingSchema = z.object({
+  resultPdfUrl: z.string().url().optional(),
+  resultSummary: z.string().max(5000).optional(),
+  notes: z.string().max(1000).optional(),
+});
+

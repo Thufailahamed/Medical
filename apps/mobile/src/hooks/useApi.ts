@@ -4163,3 +4163,290 @@ export function useUpcomingAppointmentsForPatient(patientId: string | null | und
     staleTime: 60 * 1000,
   });
 }
+
+// ─── Diagnostic Tests (Book a Test) ────────────────────────
+
+export type DiagnosticTest = {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  description: string | null;
+  sampleType: string;
+  fastingRequired: boolean;
+  fastingHours: number;
+  homeCollectionAvailable: boolean;
+  price: number;
+  discountPrice: number | null;
+  labPartnerId: string;
+  turnaroundHours: number;
+  instructions: string | null;
+  isActive: boolean;
+};
+
+export type TestPackage = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number;
+  discountPrice: number | null;
+  labPartnerId: string;
+  turnaroundHours: number;
+  instructions: string | null;
+  isActive: boolean;
+  testCount?: number;
+  totalIndividualPrice?: number;
+  savings?: number;
+  tests?: Array<{
+    id: string;
+    testName: string;
+    testSlug: string;
+    testCategory: string;
+    testPrice: number;
+    testDiscountPrice: number | null;
+    sampleType: string;
+    fastingRequired: boolean;
+  }>;
+};
+
+export type TestBooking = {
+  id: string;
+  patientId: string;
+  labPartnerId: string;
+  bookingType: "single_test" | "package";
+  testId: string | null;
+  packageId: string | null;
+  status: string;
+  scheduledDate: string;
+  scheduledTimeSlot: string;
+  collectionAddress: {
+    line1: string;
+    line2?: string;
+    city: string;
+    district: string;
+    lat?: number;
+    lng?: number;
+    contactPhone: string;
+    specialInstructions?: string;
+  };
+  phlebotomistId: string | null;
+  phlebotomistName: string | null;
+  phlebotomistPhone: string | null;
+  totalPrice: number;
+  paymentStatus: string;
+  paymentMethod: string;
+  paymentRef: string | null;
+  resultPdfUrl: string | null;
+  resultSummary: string | null;
+  resultReadyAt: string | null;
+  cancellationReason: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  itemName?: string;
+  itemSlug?: string;
+  itemDetails?: any;
+};
+
+export type TimeSlot = {
+  id: string;
+  label: string;
+  time: string;
+  icon: string;
+};
+
+/** Browse diagnostic test catalog with filters. */
+export function useTestCatalog(filters?: {
+  category?: string;
+  search?: string;
+  labId?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.category) params.set("category", filters.category);
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.labId) params.set("labId", filters.labId);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.limit) params.set("limit", String(filters.limit));
+
+  return useQuery({
+    queryKey: ["test-catalog", filters],
+    queryFn: () =>
+      api<{
+        tests: DiagnosticTest[];
+        total: number;
+        page: number;
+        limit: number;
+      }>(`/diagnostic-tests/catalog?${params.toString()}`),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Get test detail by slug. */
+export function useTestDetail(slug: string | null | undefined) {
+  return useQuery({
+    queryKey: ["test-detail", slug],
+    queryFn: () =>
+      api<{
+        test: DiagnosticTest;
+        packages: Array<{
+          id: string;
+          name: string;
+          slug: string;
+          price: number;
+          discountPrice: number | null;
+        }>;
+      }>(`/diagnostic-tests/catalog/${slug}`),
+    enabled: Boolean(slug),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Browse test packages. */
+export function useTestPackages(filters?: { labId?: string; search?: string }) {
+  const params = new URLSearchParams();
+  if (filters?.labId) params.set("labId", filters.labId);
+  if (filters?.search) params.set("search", filters.search);
+
+  return useQuery({
+    queryKey: ["test-packages", filters],
+    queryFn: () =>
+      api<{ packages: TestPackage[] }>(
+        `/diagnostic-tests/packages?${params.toString()}`
+      ),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Get package detail by slug. */
+export function useTestPackageDetail(slug: string | null | undefined) {
+  return useQuery({
+    queryKey: ["test-package-detail", slug],
+    queryFn: () =>
+      api<{ package: TestPackage }>(`/diagnostic-tests/packages/${slug}`),
+    enabled: Boolean(slug),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Get test categories with counts. */
+export function useTestCategories() {
+  return useQuery({
+    queryKey: ["test-categories"],
+    queryFn: () =>
+      api<{
+        categories: Array<{ category: string; count: number }>;
+      }>("/diagnostic-tests/categories"),
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+/** Get available time slots for sample collection. */
+export function useTestTimeSlots() {
+  return useQuery({
+    queryKey: ["test-time-slots"],
+    queryFn: () => api<{ slots: TimeSlot[] }>("/diagnostic-tests/time-slots"),
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+/** Book a diagnostic test. */
+export function useBookTest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      bookingType: "single_test" | "package";
+      testId?: string;
+      packageId?: string;
+      scheduledDate: string;
+      scheduledTimeSlot: string;
+      collectionAddress: {
+        line1: string;
+        line2?: string;
+        city: string;
+        district: string;
+        lat?: number;
+        lng?: number;
+        contactPhone: string;
+        specialInstructions?: string;
+      };
+      paymentMethod: "cash" | "card" | "online";
+      notes?: string;
+    }) => api<{ booking: TestBooking }>("/diagnostic-tests/book", { method: "POST", body: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-test-bookings"] });
+    },
+  });
+}
+
+/** List my test bookings. */
+export function useMyTestBookings(status?: string) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+
+  return useQuery({
+    queryKey: ["my-test-bookings", status],
+    queryFn: () =>
+      api<{ bookings: TestBooking[] }>(
+        `/diagnostic-tests/bookings?${params.toString()}`
+      ),
+  });
+}
+
+/** Get test booking detail. */
+export function useTestBookingDetail(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["test-booking-detail", id],
+    queryFn: () =>
+      api<{ booking: TestBooking }>(`/diagnostic-tests/bookings/${id}`),
+    enabled: Boolean(id),
+  });
+}
+
+/** Cancel a test booking. */
+export function useCancelTestBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      cancellationReason,
+    }: {
+      id: string;
+      cancellationReason?: string;
+    }) =>
+      api<{ booking: TestBooking }>(
+        `/diagnostic-tests/bookings/${id}/cancel`,
+        { method: "PATCH", body: { cancellationReason } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-test-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["test-booking-detail"] });
+    },
+  });
+}
+
+/** Reschedule a test booking. */
+export function useRescheduleTestBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      scheduledDate,
+      scheduledTimeSlot,
+    }: {
+      id: string;
+      scheduledDate: string;
+      scheduledTimeSlot: string;
+    }) =>
+      api<{ booking: TestBooking }>(
+        `/diagnostic-tests/bookings/${id}/reschedule`,
+        { method: "PATCH", body: { scheduledDate, scheduledTimeSlot } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-test-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["test-booking-detail"] });
+    },
+  });
+}

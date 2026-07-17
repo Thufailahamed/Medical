@@ -213,6 +213,50 @@ function AdminLoginForm() {
                 </span>
               )}
             </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={submitting}
+              className="mt-3 h-12 rounded-xl border border-dashed border-amber-300 hover:bg-amber-50 text-amber-600 font-semibold transition-all"
+              onClick={async () => {
+                setError(null);
+                setSubmitting(true);
+                try {
+                  const user = await login({
+                    email: "admin@healthhub.local",
+                    password: "Admin#12345",
+                  });
+                  if (
+                    user.role !== "super_admin" &&
+                    user.role !== "insurance" &&
+                    user.role !== "ambulance"
+                  ) {
+                    toast.error(
+                      "Access denied",
+                      "This portal is for platform administrators and operators only.",
+                    );
+                    useAuthStore.getState().logout();
+                    setSubmitting(false);
+                    return;
+                  }
+                  const landing =
+                    next && next !== "/admin/dashboard"
+                      ? next
+                      : user.role === "insurance"
+                        ? "/admin/insurance-claims"
+                        : user.role === "ambulance"
+                          ? "/admin/ambulances"
+                          : "/admin/dashboard";
+                  router.replace(landing);
+                } catch (err: any) {
+                  setError(friendlyError(err));
+                  setSubmitting(false);
+                }
+              }}
+            >
+              🛠️ Dev Test Login (Auto-seed)
+            </Button>
           </form>
 
           <div className="mt-8 text-center">

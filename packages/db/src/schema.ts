@@ -3788,3 +3788,248 @@ export const caretakerMarketplaceInquiries = sqliteTable(
     ).on(t.patientUserId, t.status, t.createdAt),
   })
 );
+
+// ─── Diagnostic Test Catalog ─────────────────────────────
+//
+// Master list of diagnostic tests available for home collection.
+// Labs (laboratory role users) populate this catalog. Patients
+// browse and book from it. Categories follow standard lab
+// divisions (blood, urine, etc.) plus Sri Lankan-relevant
+// groupings (dengue, thalassemia screening).
+//
+// `homeCollectionAvailable` controls whether a phlebotomist can
+// visit the patient's home. Some tests (e.g. imaging, stress
+// tests) require the patient to visit a lab facility.
+
+export const diagnosticTestCatalog = sqliteTable(
+  "diagnostic_test_catalog",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    category: text("category", {
+      enum: [
+        "blood",
+        "urine",
+        "stool",
+        "saliva",
+        "swab",
+        "cardiac",
+        "diabetes",
+        "thyroid",
+        "liver",
+        "kidney",
+        "lipid",
+        "vitamin",
+        "hormone",
+        "cancer_marker",
+        "infection",
+        "allergy",
+        "genetic",
+        "imaging",
+        "other",
+      ],
+    }).notNull(),
+    description: text("description"),
+    sampleType: text("sample_type", {
+      enum: ["blood", "urine", "stool", "saliva", "swab", "other"],
+    }).notNull(),
+    fastingRequired: integer("fasting_required", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    fastingHours: integer("fasting_hours").default(0).notNull(),
+    homeCollectionAvailable: integer("home_collection_available", {
+      mode: "boolean",
+    })
+      .default(true)
+      .notNull(),
+    price: real("price").notNull(),
+    discountPrice: real("discount_price"),
+    labPartnerId: text("lab_partner_id")
+      .notNull()
+      .references(() => users.id),
+    turnaroundHours: integer("turnaround_hours").default(24).notNull(),
+    instructions: text("instructions"),
+    isActive: integer("is_active", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    categoryIdx: index("idx_diagnostic_test_catalog_category").on(
+      t.category,
+      t.isActive
+    ),
+    labPartnerIdx: index("idx_diagnostic_test_catalog_lab_partner").on(
+      t.labPartnerId,
+      t.isActive
+    ),
+  })
+);
+
+// ─── Test Packages ───────────────────────────────────────
+//
+// Bundled test packages (e.g. "Full Body Checkup", "Diabetes
+// Panel", "Women's Health"). Each package references multiple
+// tests from the catalog via `testPackageItems`.
+//
+// Pricing: the package `price` is the bundle price; individual
+// test prices are in `diagnosticTestCatalog`. The UI shows
+// savings = sum(individual) - package price.
+
+export const testPackages = sqliteTable(
+  "test_packages",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    description: text("description"),
+    price: real("price").notNull(),
+    discountPrice: real("discount_price"),
+    labPartnerId: text("lab_partner_id")
+      .notNull()
+      .references(() => users.id),
+    turnaroundHours: integer("turnaround_hours").default(48).notNull(),
+    instructions: text("instructions"),
+    isActive: integer("is_active", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    labPartnerIdx: index("idx_test_packages_lab_partner").on(
+      t.labPartnerId,
+      t.isActive
+    ),
+  })
+);
+
+// ─── Test Package Items ──────────────────────────────────
+// M:N join between packages and catalog tests.
+
+export const testPackageItems = sqliteTable(
+  "test_package_items",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    packageId: text("package_id")
+      .notNull()
+      .references(() => testPackages.id),
+    testId: text("test_id")
+      .notNull()
+      .references(() => diagnosticTestCatalog.id),
+  },
+  (t) => ({
+    packageIdx: index("idx_test_package_items_package").on(t.packageId),
+    testIdx: index("idx_test_package_items_test").on(t.testId),
+    packageTestUnique: uniqueIndex("idx_test_package_items_unique").on(
+      t.packageId,
+      t.testId
+    ),
+  })
+);
+
+// ─── Test Bookings ───────────────────────────────────────
+//
+// Patient-initiated diagnostic test bookings with home sample
+// collection. Status flow mirrors the phlebotomist visit lifecycle:
+//
+//   pending → confirmed → phlebotomist_assigned →
+//   sample_collection_en_route → sample_collected →
+//   in_progress → completed
+//
+// Cancellation is allowed up to `sample_collected`. Rescheduling
+// creates a new booking and marks the old one `rescheduled`.
+//
+// `collectionAddress` is a JSON blob with line1, line2, city,
+// district, lat, lng, contactPhone, specialInstructions.
+//
+// `paymentMethod: "cash"` means the phlebotomist collects payment
+// on-site (common in Sri Lanka). `"card"` / `"online"` uses
+// PayHere integration.
+
+export const testBookings = sqliteTable(
+  "test_bookings",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    labPartnerId: text("lab_partner_id")
+      .notNull()
+      .references(() => users.id),
+    bookingType: text("booking_type", {
+      enum: ["single_test", "package"],
+    }).notNull(),
+    testId: text("test_id").references(() => diagnosticTestCatalog.id),
+    packageId: text("package_id").references(() => testPackages.id),
+    status: text("status", {
+      enum: [
+        "pending",
+        "confirmed",
+        "phlebotomist_assigned",
+        "sample_collection_en_route",
+        "sample_collected",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "rescheduled",
+      ],
+    })
+      .default("pending")
+      .notNull(),
+    scheduledDate: text("scheduled_date").notNull(),
+    scheduledTimeSlot: text("scheduled_time_slot").notNull(),
+    collectionAddress: text("collection_address").notNull(), // JSON blob
+    phlebotomistId: text("phlebotomist_id").references(() => users.id),
+    phlebotomistName: text("phlebotomist_name"),
+    phlebotomistPhone: text("phlebotomist_phone"),
+    totalPrice: real("total_price").notNull(),
+    paymentStatus: text("payment_status", {
+      enum: ["pending", "paid", "refunded", "cash_on_collection"],
+    })
+      .default("pending")
+      .notNull(),
+    paymentMethod: text("payment_method", {
+      enum: ["cash", "card", "online"],
+    })
+      .default("cash")
+      .notNull(),
+    paymentRef: text("payment_ref"),
+    resultPdfUrl: text("result_pdf_url"),
+    resultSummary: text("result_summary"),
+    resultReadyAt: text("result_ready_at"),
+    cancellationReason: text("cancellation_reason"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientStatusIdx: index("idx_test_bookings_patient_status").on(
+      t.patientId,
+      t.status
+    ),
+    dateIdx: index("idx_test_bookings_date").on(t.scheduledDate),
+    labPartnerStatusIdx: index("idx_test_bookings_lab_partner_status").on(
+      t.labPartnerId,
+      t.status
+    ),
+    phlebotomistIdx: index("idx_test_bookings_phlebotomist").on(
+      t.phlebotomistId,
+      t.status
+    ),
+  })
+);

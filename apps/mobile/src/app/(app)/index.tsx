@@ -829,6 +829,20 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(app)/emergency")}
               />
             </View>
+            <View style={{ flexDirection: "row", gap: spacing.md }}>
+              <QuickTile
+                icon={FlaskConical}
+                label={t("home.bookTest", "Book a Test")}
+                tone="info"
+                onPress={() => router.push("/(app)/test-catalog")}
+              />
+              <QuickTile
+                icon={FileSearch}
+                label={t("home.testBookings", "My Test Bookings")}
+                tone="neutral"
+                onPress={() => router.push("/(app)/test-bookings")}
+              />
+            </View>
           </View>
 
           {/* AI Section (premium dark) */}

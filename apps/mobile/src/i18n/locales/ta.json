@@ -1009,7 +1009,9 @@
     "tapToViewDetails": "விவரங்களைக் காண தட்டவும்",
     "criticalAllergy_one": "முக்கிய ஒவ்வாமை: {{substance}}",
     "criticalAllergy_other": "{{count}} முக்கிய ஒவ்வாமைகள் பதிவில்",
-    "viewDetails": "விவரங்களைக் காண்க"
+    "viewDetails": "விவரங்களைக் காண்க",
+    "bookTest": "சோதனை முன்பதிவு",
+    "testBookings": "எனது சோதனைகள்"
   },
   "editProfile": {
     "title": "சுயவிவரத்தைத் திருத்து",
@@ -4117,5 +4119,40 @@
       "prescriptions": "மருந்துச் சீட்டுகள்",
       "clinicalNote": "குறிப்புகள்"
     }
+  },
+  "testCatalog": {
+    "title": "சோதனை முன்பதிவு",
+    "subtitle": "வீட்டு மாதிரி சேகரிப்பு",
+    "searchPlaceholder": "சோதனைகளைத் தேடு...",
+    "noTests": "சோதனைகள் கிடைக்கவில்லை",
+    "bookNow": "இப்போது முன்பதிவு செய்",
+    "homeCollection": "🏠 வீட்டு சேகரிப்பு",
+    "fasting": "உண்ணாவிரதம் {{hours}} மணி"
+  },
+  "testPackages": {
+    "title": "சுகாதார தொகுப்புகள்",
+    "subtitle": "விரிவான சோதனை தொகுப்புகள்"
+  },
+  "bookTest": {
+    "title": "சோதனை முன்பதிவு",
+    "steps": {
+      "schedule": "அட்டவணை",
+      "address": "முகவரி",
+      "confirm": "உறுதிப்படுத்து"
+    },
+    "success": "முன்பதிவு உறுதிப்படுத்தப்பட்டது!"
+  },
+  "testBookings": {
+    "title": "எனது சோதனை முன்பதிவுகள்",
+    "tabs": {
+      "active": "வரவிருக்கும்",
+      "completed": "நிறைவடைந்தது",
+      "cancelled": "ரத்து செய்யப்பட்டது"
+    }
+  },
+  "testBookingDetail": {
+    "title": "முன்பதிவு விவரங்கள்",
+    "cancel": "ரத்து செய்",
+    "reschedule": "மீண்டும் அட்டவணை"
   }
 }

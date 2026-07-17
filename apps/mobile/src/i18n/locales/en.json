@@ -2206,7 +2206,9 @@
     "tapToViewDetails": "Tap to view details",
     "criticalAllergy_one": "Critical allergy: {{substance}}",
     "criticalAllergy_other": "{{count}} critical allergies on file",
-    "viewDetails": "View details"
+    "viewDetails": "View details",
+    "bookTest": "Book a Test",
+    "testBookings": "My Test Bookings"
   },
   "aiChat": {
     "title": "Health Q&A",
@@ -3925,5 +3927,186 @@
       "prescriptions": "Prescriptions",
       "clinicalNote": "Notes"
     }
+  },
+  "testCatalog": {
+    "title": "Book a Test",
+    "subtitle": "Home sample collection",
+    "searchPlaceholder": "Search tests...",
+    "noTests": "No tests found",
+    "noTestsDesc": "No tests available in this category.",
+    "noResults": "No results for \"{{search}}\"",
+    "all": "All",
+    "resultsIn": "Results in {{hours}}h",
+    "homeCollection": "🏠 Home Collection",
+    "fasting": "Fasting {{hours}}h",
+    "bookNow": "Book Now",
+    "categories": {
+      "blood": "Blood Tests",
+      "urine": "Urine Tests",
+      "stool": "Stool Tests",
+      "cardiac": "Cardiac",
+      "diabetes": "Diabetes",
+      "thyroid": "Thyroid",
+      "liver": "Liver",
+      "kidney": "Kidney",
+      "lipid": "Lipid Panel",
+      "vitamin": "Vitamins",
+      "hormone": "Hormones",
+      "cancer_marker": "Cancer Markers",
+      "infection": "Infection",
+      "allergy": "Allergy",
+      "genetic": "Genetic",
+      "imaging": "Imaging",
+      "other": "Other"
+    }
+  },
+  "testDetail": {
+    "about": "About this test",
+    "preTestInstructions": "Pre-test Instructions",
+    "availableInPackages": "Available in packages",
+    "bookNow": "Book Now — {{price}}",
+    "notFound": "Test not found",
+    "notFoundDesc": "This test may no longer be available."
+  },
+  "testPackages": {
+    "title": "Health Packages",
+    "subtitle": "Comprehensive test bundles",
+    "searchPlaceholder": "Search packages...",
+    "noPackages": "No packages found",
+    "noPackagesDesc": "No health packages available yet.",
+    "testsIncluded": "{{count}} tests",
+    "resultsIn": "Results in {{hours}}h",
+    "save": "Save {{amount}}"
+  },
+  "testPackageDetail": {
+    "about": "About this package",
+    "preTestInstructions": "Pre-test Instructions",
+    "includedTests": "Included Tests ({{count}})",
+    "individualTotal": "Individual total: {{price}}",
+    "bookPackage": "Book Package — {{price}}",
+    "notFound": "Package not found",
+    "notFoundDesc": "This package may no longer be available."
+  },
+  "bookTest": {
+    "title": "Book a Test",
+    "steps": {
+      "schedule": "Schedule",
+      "address": "Address",
+      "confirm": "Confirm"
+    },
+    "schedule": {
+      "selectDate": "Select Date",
+      "selectTimeSlot": "Select Time Slot",
+      "fastingWarning": "This test requires {{hours}} hours of fasting. Please select an early morning slot for best results.",
+      "timeSlots": {
+        "earlyMorning": "Early Morning",
+        "morning": "Morning",
+        "lateMorning": "Late Morning",
+        "afternoon": "Afternoon",
+        "lateAfternoon": "Late Afternoon",
+        "evening": "Evening"
+      }
+    },
+    "address": {
+      "title": "Collection Address",
+      "line1": "Address Line 1",
+      "line1Placeholder": "House number, street name",
+      "line2": "Address Line 2 (optional)",
+      "line2Placeholder": "Apartment, suite, floor",
+      "city": "City",
+      "cityPlaceholder": "e.g. Colombo, Kandy",
+      "district": "District",
+      "phone": "Contact Phone",
+      "phonePlaceholder": "07X XXX XXXX",
+      "instructions": "Special Instructions (optional)",
+      "instructionsPlaceholder": "Landmark, gate code, etc."
+    },
+    "confirm": {
+      "summary": "Booking Summary",
+      "singleTest": "Single Test",
+      "healthPackage": "Health Package",
+      "paymentMethod": "Payment Method",
+      "cash": "Cash on Collection",
+      "cashDesc": "Pay when the phlebotomist arrives",
+      "card": "Card Payment",
+      "cardDesc": "Pay now with your debit/credit card",
+      "online": "Online Payment",
+      "onlineDesc": "Pay via PayHere gateway",
+      "fastingReminder": "Remember: Do not eat or drink anything (except water) for {{hours}} hours before your sample collection."
+    },
+    "actions": {
+      "back": "Back",
+      "continue": "Continue",
+      "confirm": "Confirm — {{price}}",
+      "booking": "Booking..."
+    },
+    "errors": {
+      "selectDateTime": "Please select a date and time slot",
+      "selectDate": "Please select a date",
+      "selectTime": "Please select a time slot"
+    },
+    "success": "Booking confirmed!"
+  },
+  "testBookings": {
+    "title": "My Test Bookings",
+    "tabs": {
+      "active": "Upcoming",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "noActive": "No upcoming bookings",
+    "noActiveDesc": "Book a diagnostic test and we'll come to your home!",
+    "noCompleted": "No completed bookings",
+    "noCancelled": "No cancelled bookings",
+    "browseTests": "Browse Tests"
+  },
+  "testBookingDetail": {
+    "title": "Booking Details",
+    "progress": "Progress",
+    "testDetails": "Test Details",
+    "collectionDetails": "Collection Details",
+    "phlebotomist": "Phlebotomist",
+    "results": "Results",
+    "aiSummary": "AI Summary",
+    "downloadReport": "Download Full Report (PDF)",
+    "payment": "Payment",
+    "method": "Method",
+    "status": "Status",
+    "total": "Total",
+    "cancel": "Cancel",
+    "reschedule": "Reschedule",
+    "viewResults": "View Results",
+    "cancelConfirm": "Are you sure you want to cancel this booking?",
+    "cancelSuccess": "Booking cancelled",
+    "notFound": "Booking not found",
+    "notFoundDesc": "This booking may have been removed.",
+    "statusLabels": {
+      "pending": "Booking Received",
+      "confirmed": "Confirmed by Lab",
+      "phlebotomist_assigned": "Phlebotomist Assigned",
+      "sample_collection_en_route": "En Route to You",
+      "sample_collected": "Sample Collected",
+      "in_progress": "Testing in Progress",
+      "completed": "Results Ready",
+      "cancelled": "Cancelled",
+      "rescheduled": "Rescheduled"
+    }
+  },
+  "testResult": {
+    "title": "Test Results",
+    "resultsReady": "Results Ready!",
+    "resultsReadyDesc": "{{name}} results are available",
+    "aiSummary": "AI Summary",
+    "testInfo": "Test Information",
+    "sampleCollected": "Sample collected on {{date}}",
+    "fullReport": "Full Report",
+    "downloadPdf": "Download PDF Report",
+    "downloadPdfDesc": "Full detailed lab report",
+    "shareWithDoctor": "Share with Doctor",
+    "disclaimer": "This report is for informational purposes. Please consult your doctor for medical interpretation and advice. Do not self-diagnose or self-medicate based on these results.",
+    "pending": "Results Pending",
+    "pendingDesc": "Your test is still being processed. You'll be notified when results are ready.",
+    "notFound": "Results not found",
+    "notFoundDesc": "This booking may not have results yet."
   }
 }

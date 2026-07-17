@@ -1009,7 +1009,9 @@
     "tapToViewDetails": "විස්තර බැලීමට තට්ටු කරන්න",
     "criticalAllergy_one": "දරුණු ආසාත්මකතාවය: {{substance}}",
     "criticalAllergy_other": "ගොන්නේ දරුණු ආසාත්මකතා {{count}}ක්",
-    "viewDetails": "විස්තර බලන්න"
+    "viewDetails": "විස්තර බලන්න",
+    "bookTest": "පරීක්ෂණයක් වෙන්කරවන්න",
+    "testBookings": "මගේ පරීක්ෂණ"
   },
   "editProfile": {
     "title": "පැතිකඩ සංශෝධනය කරන්න",
@@ -4117,5 +4119,40 @@
       "prescriptions": "බෙහෙත් වට්ටෝරු",
       "clinicalNote": "සටහන්"
     }
+  },
+  "testCatalog": {
+    "title": "පරීක්ෂණයක් වෙන්කරවන්න",
+    "subtitle": "නිවසේ සාම්පල එකතු කිරීම",
+    "searchPlaceholder": "පරීක්ෂණ සොයන්න...",
+    "noTests": "පරීක්ෂණ හමු නොවීය",
+    "bookNow": "දැන් වෙන්කරවන්න",
+    "homeCollection": "🏠 නිවසේ එකතු කිරීම",
+    "fasting": "උපවාසය පැ. {{hours}}"
+  },
+  "testPackages": {
+    "title": "සෞඛ්‍ය පැකේජ",
+    "subtitle": "සම්පූර්ණ පරීක්ෂණ එකතුව"
+  },
+  "bookTest": {
+    "title": "පරීක්ෂණයක් වෙන්කරවන්න",
+    "steps": {
+      "schedule": "කාලසටහන",
+      "address": "ලිපිනය",
+      "confirm": "තහවුරු කරන්න"
+    },
+    "success": "වෙන්කිරීම තහවුරු කරන ලදී!"
+  },
+  "testBookings": {
+    "title": "මගේ පරීක්ෂණ වෙන්කිරීම්",
+    "tabs": {
+      "active": "ඉදිරි",
+      "completed": "සම්පූර්ණ",
+      "cancelled": "අවලංගු"
+    }
+  },
+  "testBookingDetail": {
+    "title": "වෙන්කිරීම් විස්තර",
+    "cancel": "අවලංගු කරන්න",
+    "reschedule": "නැවත කාලසටහන් කරන්න"
   }
 }

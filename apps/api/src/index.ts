@@ -111,6 +111,8 @@ import teleconsultRouter from "./routes/teleconsult";
 // upload at /imaging/presign-upload + /imaging/complete-upload.
 import imagingRouter from "./routes/imaging";
 import imagingUploadRouter from "./routes/imaging-upload";
+import diagnosticTestsRouter from "./routes/diagnostic-tests";
+import labPartnerPortalRouter from "./routes/lab-partner-portal";
 import { TeleconsultRoom } from "./durable-objects/teleconsult-room";
 import type { AppEnvironment } from "./types";
 
@@ -328,6 +330,9 @@ app.route("/teleconsult", teleconsultRouter);
 // Phase IMG-1: DICOM imaging study endpoints + presigned uploads.
 app.route("/imaging", imagingRouter);
 app.route("/imaging", imagingUploadRouter);
+// Book a Test: diagnostic test catalog + home sample collection bookings.
+app.route("/diagnostic-tests", diagnosticTestsRouter);
+app.route("/lab-portal", labPartnerPortalRouter);
 // Phase 1.4: email alias read/rotate. Mounted at root with absolute paths
 // because the existing patientsRouter catches `:id` which would shadow it.
 app.route("/", emailRouter);
