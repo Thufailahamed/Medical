@@ -77,7 +77,6 @@ import {
   DoseRing,
   BottomSheet,
   useToast,
-  Button,
 } from "@/components/ui";
 
 type TimingKey = "morning" | "afternoon" | "evening" | "night";
@@ -830,34 +829,48 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(app)/emergency")}
               />
             </View>
-            <View style={{ flexDirection: "row", gap: spacing.md }}>
-              <QuickTile
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.sm }}
+            >
+              <SmallAction
                 icon={FlaskConical}
                 label={t("home.bookTest", "Book a Test")}
                 tone="info"
                 onPress={() => router.push("/(app)/test-catalog")}
               />
-              <QuickTile
+              <SmallAction
                 icon={FileSearch}
-                label={t("home.testBookings", "My Test Bookings")}
+                label={t("home.testBookings", "Test Bookings")}
                 tone="neutral"
                 onPress={() => router.push("/(app)/test-bookings")}
               />
-            </View>
-            <View style={{ flexDirection: "row", gap: spacing.md }}>
-              <QuickTile
+              <SmallAction
                 icon={Shield}
                 label={t("home.insurance", "Insurance")}
                 tone="primary"
                 onPress={() => router.push("/(app)/insurance")}
               />
-              <QuickTile
+              <SmallAction
                 icon={FileText}
                 label={t("home.healthSummary", "Health Summary")}
                 tone="info"
                 onPress={() => router.push("/(app)/health-summary")}
               />
-            </View>
+              <SmallAction
+                icon={StickyNote}
+                label={t("home.notes", "Notes")}
+                tone="warning"
+                onPress={() => router.push("/(app)/notes")}
+              />
+              <SmallAction
+                icon={Heart}
+                label={t("home.vitalsShort", "Vitals")}
+                tone="danger"
+                onPress={() => router.push("/(app)/vitals")}
+              />
+            </ScrollView>
           </View>
 
           {/* AI Section (premium dark) */}
@@ -865,7 +878,7 @@ export default function HomeScreen() {
             <SectionLabel title={t("home.sectionAi")} />
             <View
               style={{
-                borderRadius: 28,
+                borderRadius: 26,
                 overflow: "hidden",
                 shadowColor: colors.primary,
                 shadowOffset: { width: 0, height: 8 },
@@ -880,7 +893,7 @@ export default function HomeScreen() {
                 colors={["#FFFFFF", "#F0F7FF"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ padding: spacing.lg, position: "relative" }}
+                style={{ padding: spacing.md, position: "relative" }}
               >
                 {/* Subtle blue glow orbs */}
                 <View
@@ -912,14 +925,14 @@ export default function HomeScreen() {
                     alignItems: "center",
                     gap: spacing.sm,
                     position: "relative",
+                    marginBottom: spacing.md,
                   }}
                 >
                   <View
                     style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 14,
-                      backgroundColor: colors.primary,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 13,
                       alignItems: "center",
                       justifyContent: "center",
                       shadowColor: colors.primary,
@@ -927,6 +940,7 @@ export default function HomeScreen() {
                       shadowOpacity: 0.3,
                       shadowRadius: 8,
                       elevation: 4,
+                      overflow: "hidden",
                     }}
                   >
                     <LinearGradient
@@ -935,13 +949,13 @@ export default function HomeScreen() {
                       end={{ x: 1, y: 1 }}
                       style={StyleSheet.absoluteFill}
                     />
-                    <Sparkles size={20} color="#FFFFFF" strokeWidth={2.5} />
+                    <Sparkles size={18} color="#FFFFFF" strokeWidth={2.5} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text
                       numberOfLines={1}
                       style={{
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: "800",
                         color: colors.text,
                         letterSpacing: -0.2,
@@ -953,7 +967,7 @@ export default function HomeScreen() {
                     <Text
                       numberOfLines={1}
                       style={{
-                        fontSize: 12,
+                        fontSize: 11.5,
                         color: colors.textMuted,
                         marginTop: 1,
                         fontWeight: "500",
@@ -964,20 +978,10 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                <View
-                  style={{
-                    height: 1,
-                    backgroundColor: colors.border,
-                    marginVertical: spacing.md,
-                  }}
-                />
-
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: spacing.sm,
-                  }}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.xs }}
                 >
                   <AiTile
                     icon={MessageSquare}
@@ -1021,17 +1025,16 @@ export default function HomeScreen() {
                     iconBg="#FFF1F2"
                     onPress={() => router.push("/(app)/ai/clinical-note")}
                   />
-                </View>
+                  <AiTile
+                    icon={FileSearch}
+                    label={t("home.aiOcrLabel", "Prescription OCR")}
+                    iconColor="#7C3AED"
+                    iconBg="#F5F3FF"
+                    onPress={() => router.push("/(app)/ai/ocr")}
+                  />
+                </ScrollView>
               </LinearGradient>
             </View>
-            <Button
-              title={t("home.aiOcrButton")}
-              icon={FileSearch}
-              variant="outline"
-              size="md"
-              fullWidth
-              onPress={() => router.push("/(app)/ai/ocr")}
-            />
           </View>
 
           {/* Up next (premium gradient) */}
@@ -1197,10 +1200,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Vitals at a glance — sparkline row */}
-          <View style={{ gap: spacing.sm }}>
-            <SectionLabel title={t("home.vitalsGlance.title")} />
-            <VitalsGlanceCard />
-          </View>
+          <VitalsGlanceCard />
 
           {/* Coming up */}
           {upcomingAppointments.length > 0 ? (
@@ -1544,24 +1544,22 @@ function AiTile({
   iconBg?: string;
   onPress: () => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, typography } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => ({
-        flexBasis: "48%",
-        flexGrow: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
+        width: 92,
         paddingVertical: 12,
-        paddingHorizontal: 14,
+        paddingHorizontal: 8,
         borderRadius: 16,
         backgroundColor: pressed ? "#F0F7FF" : "#FFFFFF",
         borderWidth: 1,
         borderColor: pressed ? "#93C5FD" : colors.border,
+        alignItems: "center",
+        gap: 8,
         shadowColor: "#000000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.02,
@@ -1571,24 +1569,83 @@ function AiTile({
     >
       <View
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
+          width: 36,
+          height: 36,
+          borderRadius: 11,
           backgroundColor: iconBg,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={15} color={iconColor} strokeWidth={2.5} />
+        <Icon size={17} color={iconColor} strokeWidth={2.5} />
       </View>
       <Text
         numberOfLines={1}
         style={{
-          fontSize: 13,
-          fontWeight: "600",
+          fontSize: 11.5,
+          fontWeight: "700",
           color: colors.text,
           letterSpacing: -0.1,
-          flex: 1,
+          textAlign: "center",
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+// ─── Small action chip (for horizontal scroll under Quick Actions) ─────
+function SmallAction({
+  icon: Icon,
+  label,
+  tone,
+  onPress,
+}: {
+  icon: React.ComponentType<any>;
+  label: string;
+  tone: Tone;
+  onPress: () => void;
+}) {
+  const { colors, typography } = useTheme();
+  const palette = useTone(tone);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingLeft: 6,
+        paddingRight: 14,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: pressed ? colors.surfaceMuted : palette.bg,
+        borderWidth: 1,
+        borderColor: pressed ? colors.borderStrong : "transparent",
+      })}
+    >
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          backgroundColor: "#FFFFFF",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={14} color={palette.fg} strokeWidth={2.5} />
+      </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 12.5,
+          fontWeight: "700",
+          color: palette.fg,
+          letterSpacing: -0.1,
         }}
       >
         {label}
@@ -2074,11 +2131,11 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
   );
 }
 
-// ─── Vitals glance (4 mini sparkline cards) ─────────────────────────────
+// ─── Vitals glance (horizontal scroll of mini sparkline cards) ─────────
 function VitalsGlanceCard() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, radius, shadow: themeShadow } = useTheme();
   const { data: derivedData } = useVitalsDerived();
   const { data: bpSeries } = useVitalsSparkline("blood_pressure", 7);
   const { data: hrSeries } = useVitalsSparkline("heart_rate", 7);
@@ -2089,102 +2146,160 @@ function VitalsGlanceCard() {
   const latestByType = derivedData?.latestByType ?? [];
   const latest = (type: any) => latestByType.find((l) => l.type === type)?.latest;
 
-  const tiles: Array<{ type: any; series: any; icon: any }> = [
-    { type: "blood_pressure", series: bpSeries, icon: Heart },
-    { type: "blood_sugar", series: glucoseSeries, icon: Droplet },
-    { type: "heart_rate", series: hrSeries, icon: Activity },
-    { type: "spo2", series: spo2Series, icon: Activity },
-    { type: "weight", series: wtSeries, icon: Scale },
+  const tiles: Array<{ type: any; series: any; icon: any; tone: Tone }> = [
+    { type: "blood_pressure", series: bpSeries, icon: Heart, tone: "danger" },
+    { type: "blood_sugar", series: glucoseSeries, icon: Droplet, tone: "warning" },
+    { type: "heart_rate", series: hrSeries, icon: Activity, tone: "primary" },
+    { type: "spo2", series: spo2Series, icon: Activity, tone: "info" },
+    { type: "weight", series: wtSeries, icon: Scale, tone: "success" },
   ];
 
+  // Resolve all palettes at the top level so the order of hooks stays stable
+  const paletteBp = useTone("danger");
+  const paletteBs = useTone("warning");
+  const paletteHr = useTone("primary");
+  const paletteSp = useTone("info");
+  const paletteWt = useTone("success");
+  const palettes = [paletteBp, paletteBs, paletteHr, paletteSp, paletteWt];
+
   return (
-    <Pressable
-      onPress={() => router.push("/(app)/vitals")}
-      accessibilityRole="button"
-      accessibilityLabel={t("home.vitalsGlance.openAll")}
-    >
-      <Card padded={false}>
-        <View
-          style={{
-            padding: spacing.md,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-          }}
-        >
-          <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
-            {t("home.vitalsGlance.title")}
-          </Text>
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {t("home.vitalsGlance.last7d")}
-          </Text>
-        </View>
-        <View style={{ padding: spacing.sm, gap: spacing.xs }}>
-          {tiles.map(({ type, series, icon: Icon }) => {
-            const l = latest(type);
-            const def = VITAL_REGISTRY[type as VitalType];
-            const reading = l
-              ? l.secondary != null
-                ? `${l.value}/${l.secondary}`
-                : `${l.value}`
-              : "—";
-            const unit = l?.unit || def?.unit || "";
-            const cls = l?.classification ?? "normal";
-            const stroke =
-              cls === "critical" || cls === "high"
-                ? colors.danger
-                : cls === "elevated" || cls === "low"
-                ? colors.warning
-                : colors.success;
-            return (
+    <View style={{ gap: spacing.sm }}>
+      <SectionLabel
+        title={t("home.vitalsGlance.title")}
+        action={{
+          label: t("home.viewAll"),
+          onPress: () => router.push("/(app)/vitals"),
+        }}
+      />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.sm }}
+      >
+        {tiles.map(({ type, series, icon: Icon }, idx) => {
+          const l = latest(type);
+          const def = VITAL_REGISTRY[type as VitalType];
+          const reading = l
+            ? l.secondary != null
+              ? `${l.value}/${l.secondary}`
+              : `${l.value}`
+            : "—";
+          const unit = l?.unit || def?.unit || "";
+          const cls = l?.classification ?? "normal";
+          const stroke =
+            cls === "critical" || cls === "high"
+              ? colors.danger
+              : cls === "elevated" || cls === "low"
+              ? colors.warning
+              : colors.success;
+          const palette = palettes[idx];
+          return (
+            <Pressable
+              key={type}
+              onPress={() => router.push("/(app)/vitals")}
+              accessibilityRole="button"
+              accessibilityLabel={`${def?.label ?? type}: ${reading} ${unit}`}
+              style={({ pressed }) => ({
+                width: 140,
+                padding: spacing.md,
+                borderRadius: 18,
+                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                gap: spacing.sm,
+                opacity: pressed ? 0.92 : 1,
+                ...themeShadow.sm,
+              })}
+            >
               <View
-                key={type}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: spacing.sm,
-                  paddingVertical: spacing.xs,
+                  justifyContent: "space-between",
                 }}
               >
                 <View
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
+                    width: 30,
+                    height: 30,
+                    borderRadius: 10,
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: colors.primarySoft,
+                    backgroundColor: palette.bg,
                   }}
                 >
-                  <Icon size={16} color={colors.primary} />
+                  <Icon size={15} color={palette.fg} strokeWidth={2.5} />
                 </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={[typography.caption, { color: colors.textMuted }]}>
-                    {def?.label ?? type}
-                  </Text>
-                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-                    <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
-                      {reading}
-                    </Text>
-                    <Text style={[typography.caption, { color: colors.textMuted }]}>{unit}</Text>
-                  </View>
-                </View>
-                <View style={{ width: 80 }}>
-                  <Sparkline
-                    points={series?.points ?? []}
-                    width={80}
-                    height={28}
-                    stroke={stroke}
+                {l ? (
+                  <View
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 3.5,
+                      backgroundColor: stroke,
+                    }}
                   />
+                ) : null}
+              </View>
+              <View>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: "700",
+                    color: colors.textMuted,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.6,
+                  }}
+                >
+                  {def?.label ?? type}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "baseline",
+                    gap: 3,
+                    marginTop: 2,
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{
+                      fontSize: 18,
+                      fontWeight: "800",
+                      color: colors.text,
+                      letterSpacing: -0.4,
+                    }}
+                  >
+                    {reading}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: "600",
+                      color: colors.textMuted,
+                    }}
+                  >
+                    {unit}
+                  </Text>
                 </View>
               </View>
-            );
-          })}
-        </View>
-      </Card>
-    </Pressable>
+              <View style={{ marginTop: 2 }}>
+                <Sparkline
+                  points={series?.points ?? []}
+                  width={108}
+                  height={26}
+                  stroke={stroke}
+                />
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -2329,6 +2444,11 @@ function AppointmentTimelineRow({
             </Text>
           </View>
         ) : null}
+        <ChevronRight
+          size={16}
+          color={colors.textSubtle}
+          strokeWidth={2.25}
+        />
       </View>
     </Pressable>
   );

@@ -29,27 +29,31 @@ interface ClaimDetail {
     admissionDate: string | null;
     dischargeDate: string | null;
     diagnosis: string | null;
-    claimedAmountLkr: number;
-    approvedAmountLkr: number | null;
+    amountRequestedLkr: number;
+    amountApprovedLkr: number | null;
     insurerRemarks: string | null;
-    submittedAt: string | null;
-    enrollmentId: string;
-    planName?: string;
-    providerName?: string;
-    policyNumber?: string | null;
-  };
-  documents?: Array<{
-    id: string;
-    kind: string;
-    fileKey: string;
-    fileName?: string;
-  }>;
-  messages?: Array<{
-    id: string;
-    body: string;
-    senderRole: string;
+    patientRemarks: string | null;
     createdAt: string;
-  }>;
+    enrollmentId: string;
+    planName?: string | null;
+    providerName?: string | null;
+    policyNumber?: string | null;
+    documents?: Array<{
+      id: string;
+      kind: string;
+      fileKey: string;
+      fileName?: string | null;
+      contentType?: string | null;
+      uploadedAt: string;
+    }>;
+    messages?: Array<{
+      id: string;
+      body: string;
+      senderRole: "patient" | "operator";
+      senderUserId: string;
+      createdAt: string;
+    }>;
+  };
 }
 
 const STATUS_TONE: Record<string, "success" | "warn" | "danger" | "info" | "neutral"> = {
@@ -126,14 +130,14 @@ export default function ClaimDetailPage({
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-border/60">
           <Metric label="Treatment" value={c.treatmentType.replace(/_/g, " ")} />
-          <Metric label="Claimed" value={formatLkr(c.claimedAmountLkr)} />
+          <Metric label="Requested" value={formatLkr(c.amountRequestedLkr)} />
           <Metric
             label="Approved"
-            value={c.approvedAmountLkr != null ? formatLkr(c.approvedAmountLkr) : "—"}
+            value={c.amountApprovedLkr != null ? formatLkr(c.amountApprovedLkr) : "—"}
           />
           <Metric
             label="Submitted"
-            value={c.submittedAt ? formatDate(c.submittedAt) : "—"}
+            value={formatDate(c.createdAt)}
           />
         </div>
       </Card>
@@ -152,6 +156,9 @@ export default function ClaimDetailPage({
               value={c.dischargeDate ? formatDate(c.dischargeDate) : "—"}
             />
             <Row label="Diagnosis" value={c.diagnosis ?? "—"} />
+            {c.patientRemarks ? (
+              <Row label="Your remarks" value={c.patientRemarks} />
+            ) : null}
           </div>
         </Card>
 
@@ -167,11 +174,11 @@ export default function ClaimDetailPage({
         </Card>
       </div>
 
-      {q.data?.documents && q.data.documents.length > 0 ? (
+      {c.documents && c.documents.length > 0 ? (
         <Card>
           <h2 className="font-bold text-text mb-3">Documents</h2>
           <ul className="space-y-1.5">
-            {q.data.documents.map((d) => (
+            {c.documents.map((d) => (
               <li
                 key={d.id}
                 className="flex items-center gap-2 px-3 py-2 bg-surface-2 rounded-md text-sm"
@@ -192,19 +199,20 @@ export default function ClaimDetailPage({
           <MessageCircle size={14} />
           Conversation
         </h2>
-        {q.data?.messages && q.data.messages.length > 0 ? (
+        {c.messages && c.messages.length > 0 ? (
           <ul className="space-y-2 mb-4">
-            {q.data.messages.map((m) => (
+            {c.messages.map((m) => (
               <li
                 key={m.id}
-                className={`px-3 py-2 rounded-md text-sm ${
+                className={`px-3 py-2 rounded-md text-sm border-l-2 ${
                   m.senderRole === "patient"
-                    ? "bg-brand-soft ml-8"
-                    : "bg-surface-2 mr-8"
+                    ? "bg-brand-soft ml-8 border-brand"
+                    : "bg-surface-2 mr-8 border-text-muted"
                 }`}
               >
                 <div className="text-[11px] text-text-muted">
-                  {m.senderRole} · {formatDate(m.createdAt)}
+                  {m.senderRole === "patient" ? "You" : "Insurer"} ·{" "}
+                  {new Date(m.createdAt).toLocaleString()}
                 </div>
                 <div className="text-text mt-0.5">{m.body}</div>
               </li>

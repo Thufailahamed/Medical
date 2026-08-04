@@ -1,2419 +1,2071 @@
-// @ts-nocheck
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 
-export default function HomePage() {
+// ─── Inline SVG icons ───────────────────────────────────────────────────────
+const I = {
+  arrow: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M5 12h14M13 5l7 7-7 7" />
+    </svg>
+  ),
+  check: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  plus: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+  shield: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z" />
+    </svg>
+  ),
+  globe: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  ),
+  phone: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="5" y="2" width="14" height="20" rx="2" />
+      <path d="M12 18h.01" />
+    </svg>
+  ),
+  pill: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M10.5 20.5a7 7 0 0 1-9.9-9.9l9.9-9.9a7 7 0 0 1 9.9 9.9z" />
+      <path d="M8.5 8.5l7 7" />
+    </svg>
+  ),
+  clipboard: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    </svg>
+  ),
+  spark: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3l1.9 4.7L18.6 10l-4.7 2.3L12 17l-1.9-4.7L5.4 10l4.7-2.3z" />
+    </svg>
+  ),
+  heart: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  ),
+  bell: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
+  ),
+  chev: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  ),
+  doc: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  ),
+  flask: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M9 3h6M10 3v6L4 19a2 2 0 0 0 1.7 3h12.6a2 2 0 0 0 1.7-3L14 9V3" />
+    </svg>
+  ),
+  message: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  trend: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  ),
+  scan: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+      <line x1="7" y1="12" x2="17" y2="12" />
+    </svg>
+  ),
+  star: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" {...p}>
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  ),
+  book: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  ),
+  play: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" {...p}>
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  ),
+};
+
+// ─── Data ──────────────────────────────────────────────────────────────────
+const NAV_LINKS = [
+  { label: "Product", href: "#pillars" },
+  { label: "Tour", href: "#tour" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "Security", href: "#security" },
+  { label: "FAQ", href: "#faq" },
+];
+
+const PILLARS = [
+  {
+    tag: "01 / Records",
+    num: "01",
+    icon: <I.clipboard />,
+    title: "Every record, in one timeline.",
+    copy: "Lab reports, prescriptions, discharge summaries, vaccination cards — uploaded, OCR'd, and tagged. Search by date, doctor, or condition.",
+    bullets: ["AI lab value explainer", "Timeline & instant search", "1-tap share with doctor"],
+    stat: { value: 47, suffix: "k", label: "lab reports tagged last month" },
+    accent: "sky" as const,
+    href: "#records",
+    preview: {
+      type: "record",
+      title: "HbA1c & Fasting Glucose Report",
+      meta: "Asiri Health · 2 Aug 2026",
+      chip: "✓ OCR Verified · 6.1% Normal",
+      tag: "Lab Test",
+    },
+  },
+  {
+    tag: "02 / Medicines",
+    num: "02",
+    icon: <I.pill />,
+    title: "Reminders that feel human.",
+    copy: "Friendly nudges that adapt to your daily routine. Drug-interaction checks, refill alerts, and a quiet log of every dose you've taken.",
+    bullets: ["Adaptive routine nudges", "Refill & stock tracking", "Drug interaction safety"],
+    stat: { value: 99.4, decimals: 1, suffix: "%", label: "on-time dose rate" },
+    accent: "coral" as const,
+    href: "#medicines",
+    preview: {
+      type: "medicine",
+      title: "Paracetamol 500mg",
+      meta: "1 Tablet · After Food (8:00 PM)",
+      chip: "✓ Scheduled for Tonight",
+      tag: "Daily Dose",
+    },
+  },
+  {
+    tag: "03 / Health AI",
+    num: "03",
+    icon: <I.spark />,
+    title: "A second pair of eyes.",
+    copy: "Ask anything in plain language. Get a summary, a trend, or a clear explanation of your lab values — grounded in your real data.",
+    bullets: ["Plain-language Q&A", "Multi-year trend analysis", "100% Grounded in your records"],
+    stat: { value: 8, suffix: "s", label: "average response time" },
+    accent: "violet" as const,
+    href: "#ai",
+    preview: {
+      type: "ai",
+      title: '💬 "How are my blood sugar levels?"',
+      meta: '✨ "Your HbA1c improved from 6.4% to 6.1% over 3 months."',
+      chip: "AI Insight · 100% Grounded",
+      tag: "Health AI",
+    },
+  },
+];
+
+const HOW_STEPS = [
+  {
+    n: "I",
+    title: "Tell us about you",
+    body: "Add a profile in 30 seconds — your age, conditions, allergies, and the people you care for. We never ask for what we don't need.",
+  },
+  {
+    n: "II",
+    title: "Bring your records in",
+    body: "Snap a photo, forward an email, or link a lab. The OCR does the tagging, the AI explains the values, the timeline just makes sense.",
+  },
+  {
+    n: "III",
+    title: "Live with it for a day",
+    body: "Reminders match your routine. The AI starts to know what's worth flagging. By day three, you stop managing it and start relying on it.",
+  },
+];
+
+const TIMELINE = [
+  {
+    day: "Day 1",
+    role: "Stranger",
+    marker: "00",
+    theme: "neutral" as const,
+    changeIcon: <I.clipboard />,
+    changeTitle: "You onboard",
+    changeBody: <>Profile, family, last prescription — <em>in 3 minutes.</em></>,
+    quote: "Hi — I just met you.",
+    body: "Set up your profile, snap a photo of your last prescription, and add your family. We'll quietly learn the rest.",
+  },
+  {
+    day: "Day 2",
+    role: "Acquaintance",
+    marker: "01",
+    theme: "sky" as const,
+    changeIcon: <I.spark />,
+    changeTitle: "Patterns emerge",
+    changeBody: <>Routines form, records sort, AI starts <em>noticing.</em></>,
+    quote: "I'm noticing patterns.",
+    body: "Medicines are sorted into your routine, your records are tagged, and the AI starts to learn what matters to you.",
+  },
+  {
+    day: "Day 3",
+    role: "Colleague",
+    marker: "02",
+    theme: "emerald" as const,
+    changeIcon: <I.heart />,
+    changeTitle: "You rely on it",
+    changeBody: <>Reminders match your day, summary ready, <em>trend clear.</em></>,
+    quote: "Here's what I did for you.",
+    body: "Reminders that match your day, a generated health summary, and a clear trend you can show your doctor at the next visit.",
+  },
+];
+
+const JOBS = [
+  {
+    key: "meds",
+    num: "01",
+    shortLabel: "Meds",
+    label: "Remembers your medicines",
+    plainTitle: "You never miss a dose.",
+    tag: "Jobs we do for you",
+    title: <>You <strong>never miss a dose.</strong></>,
+    desc: "Reminders that match your routine — breakfast, lunch, dinner, bedtime. Refill alerts before you run out. A quiet, change-based log your doctor can actually read.",
+    icon: <I.pill />,
+    accent: "sky" as const,
+    window: {
+      title: "Today's medicines",
+      greeting: "Good evening, Thufail. Here's what's on for today:",
+      sections: [
+        { num: "3 doses", sub: "still ahead tonight", meta: "8:00 PM · 10:00 PM · 10:30 PM", pill: { text: "ON TRACK", cls: "kept" } },
+        { num: "1 refill", sub: "Metformin 500mg · 14 days left", meta: "", pill: { text: "REMIND ME", cls: "drafted" } },
+        { num: "0 missed", sub: "this week — best streak in 3 months", meta: "", pill: { text: "+12", cls: "normal" } },
+      ],
+    },
+  },
+  {
+    key: "explain",
+    num: "02",
+    shortLabel: "Explain",
+    label: "Explains your labs",
+    plainTitle: "You actually understand your results.",
+    tag: "Jobs we do for you",
+    title: <>You <strong>actually understand</strong> your results.</>,
+    desc: "Every lab value, explained in plain language. Out-of-range values flagged. Trends shown over time, not as one-off numbers.",
+    icon: <I.flask />,
+    accent: "amber" as const,
+    window: {
+      title: "Lab explainer · HbA1c",
+      greeting: "Your HbA1c came back at 6.8%. Here's what that means:",
+      sections: [
+        { num: "6.1 → 6.4 → 6.8", sub: "trending up over 3 readings", meta: "", pill: { text: "ATTENTION", cls: "pending" } },
+        { num: "Prediabetic", sub: "still reversible with lifestyle changes", meta: "", pill: { text: "INFO", cls: "normal" } },
+        { num: "Repeat in 3 mo", sub: "ask your GP about metformin", meta: "", pill: { text: "ACTION", cls: "high" } },
+      ],
+    },
+  },
+  {
+    key: "share",
+    num: "03",
+    shortLabel: "Share",
+    label: "Shares with your doctor",
+    plainTitle: "You stop explaining your history.",
+    tag: "Jobs we do for you",
+    title: <>You <strong>stop explaining</strong> your history.</>,
+    desc: "One-tap share to your doctor, with a clean summary, full timeline, and a structured intake. They arrive prepared. You arrive heard.",
+    icon: <I.doc />,
+    accent: "green" as const,
+    window: {
+      title: "Share with Dr. Saman K.",
+      greeting: "Here's what I've put together for your visit tomorrow:",
+      sections: [
+        { num: "47 records", sub: "last 18 months · 3 hospitals", meta: "", pill: { text: "INCLUDED", cls: "kept" } },
+        { num: "12 medicines", sub: "active · 2 with notes", meta: "", pill: { text: "INCLUDED", cls: "kept" } },
+        { num: "AI summary", sub: "generated · 2-minute read", meta: "", pill: { text: "READY", cls: "normal" } },
+      ],
+    },
+  },
+  {
+    key: "care",
+    num: "04",
+    shortLabel: "Care",
+    label: "Looks after your family",
+    plainTitle: "You keep them in the loop — gently.",
+    tag: "Jobs we do for you",
+    title: <>You <strong>keep them in the loop</strong> — gently.</>,
+    desc: "Quiet alerts only when something actually changes. Multi-profile support. The people you love, looked after — without the nagging.",
+    icon: <I.heart />,
+    accent: "rose" as const,
+    window: {
+      title: "Family overview",
+      greeting: "Here's how everyone did today:",
+      sections: [
+        { num: "Mum", sub: "1 alert · missed 8 PM dose", meta: "", pill: { text: "RESOLVED", cls: "pending" } },
+        { num: "Dad", sub: "BP 142/88 · high", meta: "", pill: { text: "WATCH", cls: "high" } },
+        { num: "Kids", sub: "Vitamin D taken", meta: "", pill: { text: "ALL GOOD", cls: "kept" } },
+      ],
+    },
+  },
+];
+
+const USE_CASES = [
+  {
+    key: "patients",
+    label: "For you",
+    sub: "Patients & families",
+    role: <>Your health, <em>finally in order.</em></>,
+    body: "A calm timeline for every prescription, lab, and visit. AI that explains your values in plain language. Share with the people you trust — without losing control.",
+    icon: <I.heart />,
+    tone: "primary" as const,
+    cta: "See patient features",
+    ctaHref: "#tour",
+    bullets: [
+      "One timeline for everything",
+      "Plain-language lab explainer",
+      "Family sharing — read-only",
+      "Multi-language: EN · සිං · த",
+    ],
+    visual: "phone-timeline",
+  },
+  {
+    key: "caregivers",
+    label: "For caregivers",
+    sub: "Parents, kids, elders",
+    role: <>Look after them, <em>without nagging.</em></>,
+    body: "Quiet alerts that only fire when something actually changes — a missed dose, a new allergy, a result out of range. Multi-profile support with the same calm UI.",
+    icon: <I.bell />,
+    tone: "warning" as const,
+    cta: "See family features",
+    ctaHref: "#tour",
+    bullets: [
+      "Quiet, change-based alerts",
+      "Multi-profile support",
+      "Doctor-ready share links",
+      "Read-only access controls",
+    ],
+    visual: "phone-caregiver",
+  },
+  {
+    key: "doctors",
+    label: "For clinicians",
+    sub: "GPs, specialists, hospitals",
+    role: <>Patients arrive <em>ready to talk.</em></>,
+    body: "Clean, structured intake before the visit. Trends, adherence, and allergies at a glance. Time-stamped, verifiable, exportable. Spend the visit on the conversation — not the clipboard.",
+    icon: <I.doc />,
+    tone: "info" as const,
+    cta: "See clinical features",
+    ctaHref: "#tour",
+    bullets: [
+      "Structured intake summary",
+      "Trend & adherence at a glance",
+      "Time-stamped, verifiable",
+      "Export to PDF / FHIR",
+    ],
+    visual: "stack-doctor",
+  },
+  {
+    key: "labs",
+    label: "For labs & hospitals",
+    sub: "Diagnostic partners",
+    role: <>Push results <em>in seconds.</em></>,
+    body: "Eliminate the WhatsApp photo, the lost email, the missing printout. Direct push to a patient's record, with a full audit trail. Built for the way Sri Lanka actually works.",
+    icon: <I.flask />,
+    tone: "success" as const,
+    cta: "See partner API",
+    ctaHref: "#cta",
+    bullets: [
+      "Direct push to patient",
+      "API & partner endpoints",
+      "Audit log included",
+      "Branded patient portal",
+    ],
+    visual: "stack-lab",
+  },
+];
+
+const STATS = [
+  { kicker: ["vh-pulse", "In private beta"], num: "1,247", suffix: "", lbl: "Sri Lankans on the waitlist" },
+  { kicker: [null, "TestFlight rating"], num: "4.9", suffix: "★", lbl: "across 312 reviews" },
+  { kicker: [null, "Onboarding"], num: "<3", suffix: " min", lbl: "from install to first record" },
+  { kicker: [null, "Languages"], num: "3", suffix: "", lbl: "EN · සිං · த — written by humans" },
+];
+
+const LOGOS = [
+  { name: "Daily Mirror", mark: "DM" },
+  { name: "Ada Derana", mark: "AD" },
+  { name: "Roar", mark: "R" },
+  { name: "TechGrit", mark: "TG" },
+  { name: "Lanka Business", mark: "LB" },
+  { name: "Sunday Times", mark: "ST" },
+];
+
+const TESTIMONIALS = [
+  {
+    quote: "I haven't lost a single prescription since I started using it. My mum's reminders just… work.",
+    name: "Ruwanthi P.",
+    role: "Patient · Colombo",
+    initials: "RP",
+  },
+  {
+    quote: "My patients show up with a clean summary. I can spend the visit on the actual medicine.",
+    name: "Dr. Saman K.",
+    role: "GP · Kandy",
+    initials: "SK",
+  },
+  {
+    quote: "We push results to a patient's record in seconds. The WhatsApp era is finally over.",
+    name: "Asiri L.",
+    role: "Lab operations · Galle",
+    initials: "AL",
+  },
+];
+
+const TIERS = [
+  {
+    name: "Free",
+    price: "LKR 0",
+    period: "/ forever",
+    desc: "Everything you need to get your records in one place.",
+    features: [
+      "Up to 2 profiles",
+      "Unlimited records & medicines",
+      "14-day free medicine reminders",
+      "AI summaries · 10 / month",
+      "iOS, Android & web",
+    ],
+    cta: "Get started",
+    href: "/account/signup",
+    featured: false,
+  },
+  {
+    name: "Plus",
+    price: "LKR 1,500",
+    period: "/ year",
+    desc: "For families who look after each other.",
+    features: [
+      "Unlimited profiles",
+      "Caregiver & family sharing",
+      "Unlimited medicine reminders",
+      "Unlimited AI summaries",
+      "Doctor-ready share links",
+      "Priority support",
+    ],
+    cta: "Start Plus",
+    href: "/account/signup?plan=plus",
+    featured: true,
+  },
+  {
+    name: "Clinic",
+    price: "Custom",
+    period: "",
+    desc: "For practices and labs that need direct integrations.",
+    features: [
+      "Everything in Plus",
+      "Direct result push (API)",
+      "Bulk seat management",
+      "Audit log & SSO",
+      "Dedicated success manager",
+    ],
+    cta: "Talk to us",
+    href: "mailto:hello@healthhub.app",
+    featured: false,
+  },
+];
+
+const FAQS = [
+  {
+    q: "Is my data really private?",
+    a: "Yes. Your records live encrypted at rest, are scoped per-user, and never sold or used to train AI models. You can export or delete everything at any time from settings.",
+  },
+  {
+    q: "Do I need a Sri Lankan phone number?",
+    a: "No. HealthHub works anywhere in the world. We started in Sri Lanka because that's where we saw the problem first — but the app, the reminders, and the AI work the same way for anyone.",
+  },
+  {
+    q: "How accurate is the lab explainer?",
+    a: "The explainer is grounded in your real values and a verified medical reference. It's not a doctor — every answer ends with a clear reminder to confirm important findings with your clinician.",
+  },
+  {
+    q: "Can my family see my records?",
+    a: "Only if you invite them. Sharing is opt-in, time-bound, and you decide exactly which records each person can see. You can revoke access at any time.",
+  },
+  {
+    q: "Do you support Sinhala and Tamil?",
+    a: "Yes — written by humans, not translated. The full app, reminders, and AI summaries are available in English, සිංහල, and தமிழ். Mandarin and Bahasa are next.",
+  },
+  {
+    q: "What if my doctor doesn't use it?",
+    a: "That's fine. You can generate a clean, structured summary or a one-time share link and send it however works for them — WhatsApp, email, even print.",
+  },
+];
+
+const TICKER_ITEMS = [
+  { icon: <I.heart />, label: "Records" },
+  { icon: <I.pill />, label: "Medicines" },
+  { icon: <I.flask />, label: "Lab explainer" },
+  { icon: <I.spark />, label: "AI summaries" },
+  { icon: <I.bell />, label: "Reminders" },
+  { icon: <I.doc />, label: "Prescriptions" },
+  { icon: <I.message />, label: "Health Q&A" },
+  { icon: <I.trend />, label: "Vitals & trends" },
+  { icon: <I.scan />, label: "Prescription OCR" },
+  { icon: <I.book />, label: "Health ID" },
+  { icon: <I.shield />, label: "End-to-end encrypted" },
+  { icon: <I.globe />, label: "EN · සිං · த" },
+];
+
+// ─── Hooks ──────────────────────────────────────────────────────────────────
+function useReveal() {
   useEffect(() => {
-    // Original static site interactions script (scripts/main.js)
-    // ============================================================
-// MedLocker marketing site — interactions
-// ============================================================
-
-(() => {
-  'use strict';
-
-  // ---------- 1. Nav: scrolled state -------------------------
-  const nav = document.querySelector('.nav');
-  const onScroll = () => {
-    if (!nav) return;
-    if (window.scrollY > 8) nav.classList.add('is-scrolled');
-    else nav.classList.remove('is-scrolled');
-
-    // scroll progress
-    const fill = document.querySelector('.scroll-progress__fill');
-    const pct = document.querySelector('.scroll-progress__pct');
-    if (fill) {
-      const max = (document.documentElement.scrollHeight - window.innerHeight) || 1;
-      fill.style.height = Math.min(100, (window.scrollY / max) * 100) + '%';
+    const els = document.querySelectorAll(
+      ".vh-reveal, .vh-stagger, .vh-words, .vh-timeline, .vh-phone-parallax"
+    );
+    if (!("IntersectionObserver" in window) || !els.length) {
+      els.forEach((el) => el.classList.add("is-in"));
+      return;
     }
-    if (pct) {
-      const max = (document.documentElement.scrollHeight - window.innerHeight) || 1;
-      pct.textContent = Math.round((window.scrollY / max) * 100) + '%';
-    }
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-
-  // ---------- 2. Reveal on scroll -----------------------------
-  const reveals = document.querySelectorAll('[data-reveal]');
-  if ('IntersectionObserver' in window && reveals.length) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
-        if (entry.isIntersecting) {
-          const siblings = entry.target.parentElement?.querySelectorAll('[data-reveal]');
-          let delay = 0;
-          if (siblings) {
-            siblings.forEach((s, idx) => {
-              if (s === entry.target) delay = idx * 60;
-            });
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-in");
+            io.unobserve(e.target);
           }
-          setTimeout(() => {
-            entry.target.classList.add('is-in');
-            // trigger count-up if present
-            const count = entry.target.querySelector('[data-count]');
-            if (count) animateCount(count);
-          }, Math.min(delay, 300));
-          io.unobserve(entry.target);
-        }
-      });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
-    reveals.forEach(el => io.observe(el));
-  } else {
-    reveals.forEach(el => el.classList.add('is-in'));
-  }
-
-  // ---------- 3. Highlight stroke on text ---------------------
-  const hls = document.querySelectorAll('.hl');
-  if (hls.length && 'IntersectionObserver' in window) {
-    const hlIo = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) { e.target.classList.add('is-in'); hlIo.unobserve(e.target); }
-      });
-    }, { threshold: 0.5 });
-    hls.forEach(h => hlIo.observe(h));
-  } else {
-    hls.forEach(h => h.classList.add('is-in'));
-  }
-
-  // ---------- 4. Number count-up ------------------------------
-  function animateCount(el) {
-    if (el.dataset.counted) return;
-    el.dataset.counted = '1';
-    const target = parseFloat(el.dataset.count);
-    const decimals = parseInt(el.dataset.decimals || '0', 10);
-    const dur = parseInt(el.dataset.dur || '1400', 10);
-    const start = performance.now();
-    const startVal = 0;
-    const ease = (t) => 1 - Math.pow(1 - t, 3);
-    function tick(now) {
-      const t = Math.min(1, (now - start) / dur);
-      const v = startVal + (target - startVal) * ease(t);
-      el.textContent = decimals
-        ? v.toFixed(decimals)
-        : Math.round(v).toLocaleString('en-US');
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-
-  // ---------- 5. Custom cursor (desktop only) ----------------
-  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    const cursor = document.createElement('div');
-    cursor.className = 'cursor';
-    const ring = document.createElement('div');
-    ring.className = 'cursor__ring';
-    document.body.appendChild(cursor);
-    document.body.appendChild(ring);
-
-    let cx = -100, cy = -100, rx = -100, ry = -100, mouseX = -100, mouseY = -100;
-    let raf = null;
-
-    document.addEventListener('mousemove', (e) => {
-      mouseX = e.clientX; mouseY = e.clientY;
-    }, { passive: true });
-
-    function loop() {
-      // cursor follows tightly
-      cx += (mouseX - cx) * 0.5;
-      cy += (mouseY - cy) * 0.5;
-      cursor.style.transform = `translate(${cx}px, ${cy}px) translate(-50%, -50%)`;
-      // ring lags slightly for that elastic feel
-      rx += (mouseX - rx) * 0.18;
-      ry += (mouseY - ry) * 0.18;
-      ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
-      raf = requestAnimationFrame(loop);
-    }
-    loop();
-
-    document.addEventListener('mouseleave', () => {
-      cursor.style.opacity = '0';
-      ring.style.opacity = '0';
-    });
-    document.addEventListener('mouseenter', () => {
-      cursor.style.opacity = '1';
-      ring.style.opacity = '1';
-    });
-
-    // hover state
-    const hoverSel = 'a, button, .btn, [data-magnetic], .faq__q, .notif-trigger, .day__card, .bento__item, .note';
-    const textSel = 'input, textarea, [contenteditable]';
-    document.addEventListener('mouseover', (e) => {
-      if (e.target.closest(hoverSel)) { cursor.classList.add('is-hover'); ring.classList.add('is-hover'); }
-      else if (e.target.closest(textSel)) { cursor.classList.add('is-text'); ring.classList.add('is-hover'); }
-    });
-    document.addEventListener('mouseout', (e) => {
-      if (e.target.closest(hoverSel)) { cursor.classList.remove('is-hover'); ring.classList.remove('is-hover'); }
-      else if (e.target.closest(textSel)) { cursor.classList.remove('is-text'); ring.classList.remove('is-hover'); }
-    });
-  }
-
-  // ---------- 6. Magnetic buttons -----------------------------
-  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    document.querySelectorAll('[data-magnetic]').forEach((btn) => {
-      btn.addEventListener('mousemove', (e) => {
-        const rect = btn.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width / 2;
-        const y = e.clientY - rect.top - rect.height / 2;
-        btn.style.transform = `translate(${x * 0.18}px, ${y * 0.18}px)`;
-      });
-      btn.addEventListener('mouseleave', () => {
-        btn.style.transform = '';
-      });
-    });
-  }
-
-  // ---------- 7. Animated phone content (hero) ---------------
-  // The hero phone shows typing greeting, then dose ring fills.
-  const phoneGreeting = document.querySelector('[data-hero-greeting]');
-  const phoneRing = document.querySelector('[data-hero-ring]');
-  if (phoneGreeting) {
-    const fullText = phoneGreeting.dataset.heroGreeting || phoneGreeting.textContent;
-    phoneGreeting.textContent = '';
-    const fullClean = fullText.trim();
-
-    // wait until the hero is in view, then type
-    const heroObserver = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          heroObserver.unobserve(e.target);
-          setTimeout(() => typeGreeting(phoneGreeting, fullClean, 0), 600);
-          if (phoneRing) setTimeout(() => animateDoseRing(phoneRing), 1100);
-        }
-      });
-    }, { threshold: 0.3 });
-    heroObserver.observe(phoneGreeting);
-  }
-
-  function typeGreeting(el, text, idx) {
-    if (idx <= text.length) {
-      el.textContent = text.slice(0, idx);
-      const nextChar = text[idx];
-      // slight pause on spaces
-      const delay = nextChar === ' ' ? 30 : 40 + Math.random() * 40;
-      setTimeout(() => typeGreeting(el, text, idx + 1), delay);
-    } else {
-      // leave the caret blinking via the ::after pseudo
-      setTimeout(() => { el.classList.add('done'); }, 100);
-    }
-  }
-
-  function animateDoseRing(svgRing) {
-    const fg = svgRing.querySelector('.ring-fg');
-    if (!fg) return;
-    const target = parseFloat(svgRing.dataset.target || '78');
-    const C = 2 * Math.PI * 42; // r=42
-    fg.style.strokeDasharray = C.toFixed(2);
-    fg.style.strokeDashoffset = C.toFixed(2);
-    requestAnimationFrame(() => {
-      fg.style.strokeDashoffset = (C * (1 - target / 100)).toFixed(2);
-    });
-    // also tick the number
-    const numEl = svgRing.querySelector('[data-count]');
-    if (numEl) {
-      numEl.dataset.count = target.toString();
-      numEl.dataset.dur = '1500';
-      animateCount(numEl);
-    }
-  }
-
-  // ---------- 8. FAQ accordion --------------------------------
-  document.querySelectorAll('.faq__item').forEach((item) => {
-    const q = item.querySelector('.faq__q');
-    if (!q) return;
-    q.addEventListener('click', () => {
-      const open = item.classList.contains('is-open');
-      item.parentElement.querySelectorAll('.faq__item').forEach(i => i.classList.remove('is-open'));
-      if (!open) item.classList.add('is-open');
-    });
-  });
-
-  // ---------- 9. Waitlist form --------------------------------
-  const form = document.querySelector('[data-waitlist-form]');
-  const success = document.querySelector('[data-waitlist-success]');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const input = form.querySelector('input[type="email"]');
-      const btn = form.querySelector('button[type="submit"]');
-      if (!input || !input.value) return;
-      const email = input.value.trim();
-      const role = form.querySelector('select[name="role"]')?.value || '';
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        input.focus();
-        input.setCustomValidity('Please use a valid email.');
-        input.reportValidity();
-        return;
-      }
-      input.setCustomValidity('');
-      const originalBtn = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Adding you…';
-      try {
-        const res = await fetch(form.action, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, role, source: 'marketing-site' }),
         });
-        if (!res.ok) throw new Error('Sign-up failed');
-        form.style.display = 'none';
-        if (success) success.classList.add('is-visible');
-        const meta = document.querySelector('[data-waitlist-meta]');
-        if (meta) meta.style.display = 'none';
-      } catch (err) {
-        btn.disabled = false;
-        btn.textContent = originalBtn;
-        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
-          form.style.display = 'none';
-          if (success) success.classList.add('is-visible');
-        } else {
-          input.setCustomValidity('Something went wrong. Please try again.');
-          input.reportValidity();
-        }
-      }
-    });
-  }
+      },
+      { rootMargin: "0px 0px -6% 0px", threshold: 0.05 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+}
 
-  // ---------- 10. Smooth scroll for hash links ----------------
-  document.querySelectorAll('a[href^="#"]').forEach((a) => {
-    a.addEventListener('click', (e) => {
-      const id = a.getAttribute('href');
-      if (id && id.length > 1) {
-        const el = document.querySelector(id);
-        if (el) {
-          e.preventDefault();
-          window.scrollTo({
-            top: el.getBoundingClientRect().top + window.scrollY - 80,
-            behavior: 'smooth',
-          });
-        }
-      }
-    });
-  });
+function useCountUp() {
+  useEffect(() => {
+    const els = document.querySelectorAll<HTMLElement>("[data-count]");
+    if (!els.length) return;
 
-  // ---------- 11. Drag-to-scroll rails ------------------------
-  const rails = document.querySelectorAll('[data-rail]');
-  rails.forEach((rail) => {
-    let isDown = false, startX = 0, startScroll = 0;
-    rail.addEventListener('mousedown', (e) => {
-      if (rail.classList.contains('day__rail') && window.matchMedia('(min-width: 901px)').matches) return;
-      isDown = true;
-      startX = e.pageX - rail.offsetLeft;
-      startScroll = rail.scrollLeft;
-      rail.style.cursor = 'grabbing';
-    });
-    rail.addEventListener('mouseleave', () => { isDown = false; rail.style.cursor = ''; });
-    rail.addEventListener('mouseup', () => { isDown = false; rail.style.cursor = ''; });
-    rail.addEventListener('mousemove', (e) => {
-      if (!isDown) return;
-      e.preventDefault();
-      const x = e.pageX - rail.offsetLeft;
-      rail.scrollLeft = startScroll - (x - startX) * 1.2;
-    });
-
-    // update dot indicators
-    const dotsWrap = rail.parentElement.querySelector('[data-dots]');
-    if (dotsWrap) {
-      const updateDots = () => {
-        const card = rail.querySelector('.day__card, .showcase__card');
-        if (!card) return;
-        const cardW = card.getBoundingClientRect().width + 20;
-        const idx = Math.round(rail.scrollLeft / cardW);
-        dotsWrap.querySelectorAll('.day__dot, .showcase__dot').forEach((d, i) => {
-          d.classList.toggle('is-active', i === idx);
-        });
+    const animate = (el: HTMLElement) => {
+      if (el.dataset.counted) return;
+      el.dataset.counted = "1";
+      const target = parseFloat(el.dataset.count || "0");
+      const decimals = parseInt(el.dataset.decimals || "0", 10);
+      const duration = parseInt(el.dataset.dur || "1600", 10);
+      const start = performance.now();
+      const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / duration);
+        const v = target * ease(t);
+        el.textContent = decimals ? v.toFixed(decimals) : Math.round(v).toLocaleString("en-US");
+        if (t < 1) requestAnimationFrame(tick);
       };
-      rail.addEventListener('scroll', updateDots, { passive: true });
-      updateDots();
+      requestAnimationFrame(tick);
+    };
+
+    if (!("IntersectionObserver" in window)) {
+      els.forEach(animate);
+      return;
     }
-  });
-
-  // ---------- 12. Notification demo (interactive) -------------
-  const notifTrigger = document.querySelector('[data-notif-trigger]');
-  const notifToast = document.querySelector('[data-notif-toast]');
-  if (notifTrigger && notifToast) {
-    notifTrigger.addEventListener('click', () => {
-      notifToast.classList.add('is-visible');
-      notifTrigger.disabled = true;
-      notifTrigger.textContent = 'Notification sent — tap again';
-      setTimeout(() => {
-        notifToast.classList.remove('is-visible');
-        notifTrigger.disabled = false;
-        notifTrigger.innerHTML = '<span class="pulse"></span> Trigger dose reminder';
-      }, 4500);
-    });
-  }
-
-  // ---------- 13. Phone "real-time" — animate the time text ---
-  // For the notification demo, tick the clock every minute.
-  const lockTime = document.querySelector('[data-lock-time]');
-  const lockDate = document.querySelector('[data-lock-date]');
-  if (lockTime && lockDate) {
-    const update = () => {
-      const now = new Date();
-      const h = now.getHours();
-      const m = now.getMinutes();
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const h12 = h % 12 || 12;
-      lockTime.textContent = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      const opts = { weekday: 'long', month: 'long', day: 'numeric' };
-      lockDate.textContent = now.toLocaleDateString('en-US', opts);
-    };
-    update();
-    setInterval(update, 30 * 1000);
-  }
-
-  // ============================================================
-  // PREMIUM LAYER
-  // ============================================================
-
-  // ---------- 14. Always-on bento decoration -----------------
-  // Inject corner halos + faint animated grid into each bento card.
-  // Cheap, "always on" — no hover required.
-  document.querySelectorAll('.bento__item').forEach((card, i) => {
-    if (card.querySelector('.bento__deco')) return;
-    const deco = document.createElement('div');
-    deco.className = 'bento__deco';
-    const palette = ['--c-sky-500', '--c-coral-500', '--c-emerald-500'];
-    deco.innerHTML = `
-      <div class="bento__halo" style="--halo-c: ${palette[i % 3]}"></div>
-      <div class="bento__stardust"></div>
-      <div class="bento__corner bento__corner--tl"></div>
-      <div class="bento__corner bento__corner--br"></div>
-    `;
-    card.appendChild(deco);
-  });
-
-  // ---------- 15. Bento tilt + spotlight -------------------
-  // Mouse position drives --rx, --ry (rotateX/Y) and --mx, --my (spotlight).
-  // The CSS already wires ::before to use these vars.
-  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    document.querySelectorAll('.bento__item').forEach((card) => {
-      let raf = null, latest = null;
-      const apply = () => {
-        const r = card.getBoundingClientRect();
-        const px = latest.x - r.left;
-        const py = latest.y - r.top;
-        const dx = (px / r.width) - 0.5;
-        const dy = (py / r.height) - 0.5;
-        card.style.setProperty('--rx', (-dy * 6).toFixed(2) + 'deg');
-        card.style.setProperty('--ry', (dx * 6).toFixed(2) + 'deg');
-        card.style.setProperty('--mx', ((px / r.width) * 100) + '%');
-        card.style.setProperty('--my', ((py / r.height) * 100) + '%');
-        card.style.setProperty('--spot-alpha', '1');
-        raf = null;
-      };
-      card.addEventListener('mousemove', (e) => {
-        latest = { x: e.clientX, y: e.clientY };
-        if (!raf) raf = requestAnimationFrame(apply);
-      });
-      card.addEventListener('mouseleave', () => {
-        card.style.setProperty('--rx', '0deg');
-        card.style.setProperty('--ry', '0deg');
-        card.style.setProperty('--spot-alpha', '0');
-      });
-    });
-  }
-
-  // ---------- 18. Spark self-draw on scroll-in --------------
-  // Measure each path's length, then animate dashoffset to 0
-  // when the parent bento__item enters the viewport.
-  if ('IntersectionObserver' in window) {
-    const drawObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-in');
-        entry.target.querySelectorAll('[data-path-draw]').forEach((p) => {
-          try {
-            const len = p.getTotalLength ? Math.ceil(p.getTotalLength()) : 1000;
-            p.style.setProperty('--len', len);
-          } catch (_) { /* noop */ }
-        });
-        drawObserver.unobserve(entry.target);
-      });
-    }, { threshold: 0.25 });
-    document.querySelectorAll('.bento__item, .map').forEach((el) => drawObserver.observe(el));
-  }
-
-  // ---------- 19. Day rail progress hairline ----------------
-  // Update --p on .day__progress-fill from rail scroll position.
-  const dayProgress = document.querySelector('.day__progress-fill');
-  const dayRail = document.querySelector('.day .day__rail');
-  if (dayProgress && dayRail) {
-    const updateDayProgress = () => {
-      const max = (dayRail.scrollWidth - dayRail.clientWidth) || 1;
-      const pct = Math.min(1, Math.max(0, dayRail.scrollLeft / max));
-      dayProgress.style.inset = `0 ${(1 - pct) * 100}% 0 0`;
-    };
-    dayRail.addEventListener('scroll', updateDayProgress, { passive: true });
-    updateDayProgress();
-  }
-
-  // ---------- 20. Compare drag slider -----------------------
-  const compareDrag = document.querySelector('[data-compare-drag]');
-  if (compareDrag) {
-    const handle = compareDrag.querySelector('[data-compare-handle]');
-    let dragging = false;
-    const setP = (clientX) => {
-      const r = compareDrag.getBoundingClientRect();
-      const pct = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-      compareDrag.style.setProperty('--p', (pct * 100) + '%');
-    };
-    const onDown = (e) => {
-      dragging = true;
-      compareDrag.classList.add('is-grabbed');
-      compareDrag.style.cursor = 'ew-resize';
-      const x = e.touches ? e.touches[0].clientX : e.clientX;
-      setP(x);
-      e.preventDefault();
-    };
-    const onMove = (e) => {
-      if (!dragging) return;
-      const x = e.touches ? e.touches[0].clientX : e.clientX;
-      setP(x);
-    };
-    const onUp = () => {
-      dragging = false;
-      compareDrag.classList.remove('is-grabbed');
-      compareDrag.style.cursor = '';
-    };
-    if (handle) handle.addEventListener('mousedown', onDown);
-    if (handle) handle.addEventListener('touchstart', onDown, { passive: false });
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('touchmove', onMove, { passive: true });
-    document.addEventListener('mouseup', onUp);
-    document.addEventListener('touchend', onUp);
-    // Click anywhere on the compare-drag surface also repositions.
-    compareDrag.addEventListener('click', (e) => {
-      if (matchMedia('(min-width: 700px)').matches) setP(e.clientX);
-    });
-    // Auto-shuffle for ambient feel — only if user hasn't interacted after 6s.
-    if (matchMedia('(prefers-reduced-motion: no-preference)').matches) {
-      let userTouched = false;
-      ['mousedown', 'touchstart', 'click'].forEach((ev) => compareDrag.addEventListener(ev, () => { userTouched = true; }));
-      setTimeout(() => {
-        if (userTouched) return;
-        let t = 0;
-        const walk = () => {
-          if (userTouched) return;
-          const v = 50 + Math.sin(t) * 18;
-          compareDrag.style.setProperty('--p', v + '%');
-          t += 0.012;
-          requestAnimationFrame(walk);
-        };
-        walk();
-      }, 6000);
-    }
-  }
-
-  // ---------- 21. CTA micro-celebration ---------------------
-  // Wrap existing form handler — when 2xx, add .is-bursting +
-  // .is-success to parent .cta. Skip the display:none flip.
-  // Spawn a confetti burst (CSS-only flying particles).
-  const cta = document.querySelector('.cta');
-  if (form && cta) {
-    form.addEventListener('submit', () => {
-      setTimeout(() => {
-        const wrap = form.querySelector('.cta__submit-wrap');
-        const success = cta.querySelector('[data-waitlist-success]');
-        const meta = cta.querySelector('[data-waitlist-meta]');
-        if (wrap) wrap.classList.add('is-bursting');
-        if (meta) meta.style.opacity = '1';
-        cta.classList.add('is-success');
-        if (success) {
-          success.style.opacity = '';
-          success.style.transform = '';
-          success.style.pointerEvents = '';
-        }
-        // Confetti — 24 tiny dots fly outward from the button.
-        if (wrap) {
-          for (let i = 0; i < 24; i++) {
-            const p = document.createElement('span');
-            p.className = 'cta__confetti';
-            const angle = (i / 24) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-            const dist = 80 + Math.random() * 80;
-            p.style.setProperty('--tx', (Math.cos(angle) * dist) + 'px');
-            p.style.setProperty('--ty', (Math.sin(angle) * dist) + 'px');
-            p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
-            p.style.background = ['#0EA5E9', '#FF7A59', '#10B981', '#FCD34D', '#A78BFA'][i % 5];
-            wrap.appendChild(p);
-            setTimeout(() => p.remove(), 1100);
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            animate(e.target as HTMLElement);
+            io.unobserve(e.target);
           }
-        }
-      }, 280);
+        });
+      },
+      { threshold: 0.4 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+}
+
+function useMagnetic() {
+  useEffect(() => {
+    if (window.matchMedia("(hover: none)").matches) return;
+    const els = document.querySelectorAll<HTMLElement>(".vh-magnetic");
+    const handlers: Array<{ el: HTMLElement; enter: () => void; leave: () => void; move: (e: PointerEvent) => void }> = [];
+    els.forEach((el) => {
+      const strength = parseFloat(el.dataset.magnetic || "0.25");
+      const onEnter = () => (el.style.transition = "transform 120ms ease-out");
+      const onLeave = () => {
+        el.style.transition = "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)";
+        el.style.transform = "";
+      };
+      const onMove = (e: PointerEvent) => {
+        const r = el.getBoundingClientRect();
+        const x = (e.clientX - (r.left + r.width / 2)) * strength;
+        const y = (e.clientY - (r.top + r.height / 2)) * strength;
+        el.style.transform = `translate(${x}px, ${y}px)`;
+      };
+      el.addEventListener("pointerenter", onEnter);
+      el.addEventListener("pointerleave", onLeave);
+      el.addEventListener("pointermove", onMove);
+      handlers.push({ el, enter: onEnter, leave: onLeave, move: onMove });
     });
-  }
-
-  // ---------- 22. Footer oversized mark underline ----------
-  // We don't need much — the CSS already animates .footer__mark-rule
-  // when .footer__mark.is-in. The existing [data-reveal] observer
-  // adds .is-in. Nothing else to do here.
-
-  // ---------- 23. Sticky Horizontal Scroll for Day Rail (Desktop Only) ----------
-  const stickyWrapper = document.querySelector('.day-sticky-wrapper');
-  const stickyRail = document.querySelector('.day .day__rail');
-  const stickyContainer = document.querySelector('.day-sticky-container');
-  
-  if (stickyWrapper && stickyRail && stickyContainer) {
-    const handleStickyScroll = () => {
-      if (!window.matchMedia('(min-width: 901px)').matches) {
-        return;
-      }
-      
-      const rect = stickyWrapper.getBoundingClientRect();
-      const stickyOffset = 140; // match CSS top: 140px
-      
-      // Calculate how far we've scrolled past the sticky start point
-      const scrolled = -rect.top + stickyOffset;
-      
-      // Calculate total vertical height the container will remain sticky
-      const containerHeight = stickyContainer.clientHeight || 650;
-      const totalScrollRange = rect.height - containerHeight;
-      
-      // Calculate scroll progress (from 0 to 1)
-      const progress = Math.min(1, Math.max(0, scrolled / totalScrollRange));
-      
-      // Translate progress to horizontal scroll position
-      const maxScrollLeft = stickyRail.scrollWidth - stickyRail.clientWidth;
-      stickyRail.scrollLeft = progress * maxScrollLeft;
+    return () => {
+      handlers.forEach(({ el, enter, leave, move }) => {
+        el.removeEventListener("pointerenter", enter);
+        el.removeEventListener("pointerleave", leave);
+        el.removeEventListener("pointermove", move);
+      });
     };
-    
-    window.addEventListener('scroll', handleStickyScroll, { passive: true });
-    window.addEventListener('resize', handleStickyScroll, { passive: true });
-    // Run once on load to sync initial state
-    handleStickyScroll();
-  }
+  }, []);
+}
 
-})();
+function useParallax() {
+  useEffect(() => {
+    let raf = 0;
+    const els = Array.from(document.querySelectorAll<HTMLElement>(".vh-phone-parallax"));
+    if (!els.length) return;
 
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const vh = window.innerHeight;
+        for (const el of els) {
+          const r = el.getBoundingClientRect();
+          const center = r.top + r.height / 2;
+          const delta = (center - vh / 2) / vh; // -0.5..0.5
+          const y = -delta * parseFloat(el.dataset.parallax || "30");
+          el.style.setProperty("--parallax-y", `${y}px`);
+        }
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+}
+
+function useTilt() {
+  useEffect(() => {
+    if (window.matchMedia("(hover: none)").matches) return;
+    const els = document.querySelectorAll<HTMLElement>(".vh-tilt");
+    const handlers: Array<() => void> = [];
+    els.forEach((el) => {
+      const max = parseFloat(el.dataset.tilt || "6");
+      const onMove = (e: PointerEvent) => {
+        const r = el.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width;
+        const py = (e.clientY - r.top) / r.height;
+        const ry = (px - 0.5) * 2 * max;
+        const rx = (0.5 - py) * 2 * max;
+        el.style.setProperty("--rx", `${rx}deg`);
+        el.style.setProperty("--ry", `${ry}deg`);
+        el.style.setProperty("--mx", `${px * 100}%`);
+        el.style.setProperty("--my", `${py * 100}%`);
+      };
+      const onLeave = () => {
+        el.style.setProperty("--rx", "0deg");
+        el.style.setProperty("--ry", "0deg");
+      };
+      el.addEventListener("pointermove", onMove);
+      el.addEventListener("pointerleave", onLeave);
+      handlers.push(() => {
+        el.removeEventListener("pointermove", onMove);
+        el.removeEventListener("pointerleave", onLeave);
+      });
+    });
+    return () => handlers.forEach((h) => h());
+  }, []);
+}
+
+// ─── Cursor halo (desktop only) ────────────────────────────────────────────
+function useCursorHalo() {
+  useEffect(() => {
+    if (window.matchMedia("(hover: none)").matches) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+    let raf = 0;
+    let tx = window.innerWidth / 2;
+    let ty = window.innerHeight / 2;
+    let cx = tx;
+    let cy = ty;
+    const halo = document.querySelector<HTMLElement>(".vh-cursor-halo");
+    if (!halo) return;
+
+    const onMove = (e: PointerEvent) => {
+      tx = e.clientX;
+      ty = e.clientY;
+    };
+    const tick = () => {
+      cx += (tx - cx) * 0.18;
+      cy += (ty - cy) * 0.18;
+      halo.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    window.addEventListener("pointermove", onMove, { passive: true });
+
+    const hoverSel = "a, button, .vh-magnetic, .vh-pillar, .vh-step, .vh-tier, .vh-tl-card, .vh-stat";
+    const onOver = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && t.closest(hoverSel)) halo.classList.add("is-hover");
+    };
+    const onOut = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && t.closest(hoverSel)) halo.classList.remove("is-hover");
+    };
+    document.addEventListener("pointerover", onOver);
+    document.addEventListener("pointerout", onOut);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerover", onOver);
+      document.removeEventListener("pointerout", onOut);
+    };
+  }, []);
+}
+
+// ─── CountUp component ──────────────────────────────────────────────────────
+function CountUp({
+  value,
+  decimals = 0,
+  dur = 1600,
+  suffix = "",
+  prefix = "",
+}: {
+  value: number;
+  decimals?: number;
+  dur?: number;
+  suffix?: string;
+  prefix?: string;
+}) {
+  return (
+    <span className="vh-count">
+      <span data-count={value} data-decimals={decimals} data-dur={dur}>
+        0
+      </span>
+      {suffix && <small style={{ marginLeft: 2 }}>{suffix}</small>}
+      {prefix && <small style={{ marginLeft: 2 }}>{prefix}</small>}
+    </span>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────
+export default function HomePage() {
+  const [scrolled, setScrolled] = useState(false);
+  const [openUc, setOpenUc] = useState<string | null>(USE_CASES[0].key);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [openJob, setOpenJob] = useState(0);
+
+  // Sticky-nav
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useReveal();
+  useCountUp();
+  useMagnetic();
+  useParallax();
+  useTilt();
+  useCursorHalo();
+
   return (
-    <>
-      
-  <nav className="nav" aria-label="Primary">
-    <div className="container nav__inner">
-      <a href="#" className="nav__brand" aria-label="MedLocker home">
-        <span className="nav__brand-mark">
-          <img className="logo" src="assets/logo.svg" alt="" width="22" height="22" />
-        </span>
-        <span className="nav__brand-name">MedLocker</span>
-      </a>
-      <div className="nav__links hidden-mobile">
-        <a className="nav__link" href="#features">Features</a>
-        <a className="nav__link" href="#tour">The app</a>
-        <a className="nav__link" href="#built-for">For you</a>
-        <a className="nav__link" href="#security">Security</a>
-        <a className="nav__link" href="#faq">FAQ</a>
-      </div>
-      <div className="nav__cta">
-        <span className="nav__status hidden-mobile" data-nav-status>
-          <span className="pulse"></span>
-          <span><span data-nav-count>147</span> in beta</span>
-        </span>
-        <Link className="nav__link hidden-mobile" href="/portal/login">
-          Clinician sign in
-        </Link>
-        <a className="nav__btn" href="#waitlist">
-          Get the app
-        </a>
-      </div>
-    </div>
-  </nav>
-
-  
-  
-  <div className="hero-bg" aria-hidden="true">
-    <div className="hero-bg__gradient"></div>
-    <div className="hero-bg__grid"></div>
-  </div>
-
-  <header className="hero">
-    <div className="container">
-      <div className="hero__grid">
-        <div className="hero__copy" data-reveal>
-          <span className="pill">
-            <span className="pill__dot"></span>
-            v1.0 — Now in private beta
-          </span>
-          <h1 className="h-display hero__headline">
-            <span className="headline__line">Your health,</span>
-            <span className="headline__line headline__line--em"><em>finally in one place.</em></span>
-          </h1>
-          <p className="lede hero__lede">
-            MedLocker is the calm, private health companion that brings your records,
-            medicines, vitals and care team into a single, beautifully designed app.
-            Built quietly in Sri Lanka — for the way you actually look after the people you love.
-          </p>
-          <div className="hero__cta-row">
-            <a className="btn btn--sky btn--xl" href="#waitlist" data-magnetic>
-              Join the waitlist
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </a>
-            <a className="btn btn--ghost btn--xl" href="#tour" data-magnetic>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Watch the tour
-            </a>
-          </div>
-          <div className="hero__meta">
-            <span className="hero__meta-item">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/></svg>
-              End-to-end encrypted
-            </span>
-            <span className="hero__meta-item">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              Built in Colombo 🇱🇰
-            </span>
-            <span className="hero__meta-item">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
-              iOS · Android
-            </span>
-          </div>
-          <div className="hero__mark">
-            <span className="hero__mark-rule"></span>
-            <span>01 / Overview</span>
-          </div>
-        </div>
-
-        <div className="hero__visual" data-reveal>
-          <div className="phone">
-            <div className="phone__frame">
-              <div className="phone__screen">
-                <div className="phone__notch"></div>
-                <div className="phone__status">
-                  <span>9:41</span>
-                  <div className="phone__status-icons">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 0 0-6 0zm-4-4l2 2a7.07 7.07 0 0 1 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
-                  </div>
-                </div>
-                <div className="phone__screen-content">
-                  <div className="app-header">
-                    <div className="app-avatar">TH</div>
-                    <div className="app-brand">
-                      MedLocker
-                      <small>Thufail · 32 yrs</small>
-                    </div>
-                    <div className="row" style={{"gap":"6px"}}>
-                      <div className="app-icon-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                      </div>
-                      <div className="app-icon-btn--ghost" style={{"width":"30px","height":"30px","borderRadius":"50%","border":"1px solid var(--c-line)","display":"flex","alignItems":"center","justifyContent":"center"}}>
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="app-hero-card">
-                    <div className="app-hero-card__date">Good morning · Sat 4 Jul</div>
-                    <div className="app-hero-card__name">
-                      <span className="phone__hero-greeting" data-hero-greeting="Thufail,">Thufail,</span>
-                    </div>
-                    <div className="app-hero-card__quote">"Stay hydrated — your dose adherence is 78% this week."</div>
-                    <div className="app-hero-card__ring" data-hero-ring data-target="78">
-                      <svg className="dose-ring-svg" viewBox="0 0 100 100" style={{"position":"absolute","inset":"0","width":"100%","height":"100%"}}>
-                        <circle className="ring-bg" cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="6"/>
-                        <circle className="ring-fg" cx="50" cy="50" r="42" fill="none" stroke="#7DD3FC" strokeWidth="6" strokeLinecap="round"
-                          transform="rotate(-90 50 50)"
-                          style={{"strokeDasharray":"263.89","strokeDashoffset":"263.89"}}/>
-                      </svg>
-                      <div style={{"position":"relative","zIndex":"2","display":"flex","flexDirection":"column","alignItems":"center","lineHeight":"1"}}>
-                        <span data-count="78" data-dur="1500" style={{"fontSize":"15px","fontWeight":"700"}}>0</span><span style={{"fontSize":"7.5px","color":"rgba(255,255,255,0.6)","fontWeight":"500","textTransform":"uppercase","letterSpacing":"0.08em","marginTop":"1px"}}>doses</span>
-                      </div>
-                      <small style={{"display":"none"}}>doses</small>
-                    </div>
-                    <div className="app-up-next">
-                      <div className="app-up-next__label">Upcoming today</div>
-                      <div className="app-up-next__row">
-                        <span>Metformin 500mg</span><span className="time">08:30</span>
-                      </div>
-                      <div className="app-up-next__row">
-                        <span>Dr. Perera — Cardiology</span><span className="time">14:00</span>
-                      </div>
-                    </div>
-                    <div className="app-pills">
-                      <span className="app-pill">A·O·B+</span>
-                      <span className="app-pill">BMI 23.4</span>
-                      <span className="app-pill">3 alerts</span>
-                    </div>
-                  </div>
-
-                  <div className="app-section-label">Quick actions</div>
-                  <div className="app-quick-grid">
-                    <div className="app-quick-tile">
-                      <div className="app-quick-tile__icon" style={{"background":"#E0F2FE","color":"#0369A1"}}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3 14a4.95 4.95 0 0 0 7 7l3-3"/><path d="M8.5 8.5l7 7"/></svg>
-                      </div>
-                      <span className="app-quick-tile__name">Medicines</span>
-                    </div>
-                    <div className="app-quick-tile">
-                      <div className="app-quick-tile__icon" style={{"background":"#D1FAE5","color":"#059669"}}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-                      </div>
-                      <span className="app-quick-tile__name">Records</span>
-                    </div>
-                    <div className="app-quick-tile">
-                      <div className="app-quick-tile__icon" style={{"background":"#FEF3C7","color":"#D97706"}}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                      </div>
-                      <span className="app-quick-tile__name">Book visit</span>
-                    </div>
-                    <div className="app-quick-tile">
-                      <div className="app-quick-tile__icon" style={{"background":"#FFEDE5","color":"#E85F3D"}}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>
-                      </div>
-                      <span className="app-quick-tile__name">Emergency</span>
-                    </div>
-                  </div>
-
-                  <div style={{"flex":"1"}}></div>
-
-                  <div className="app-tabbar">
-                    <div className="app-tab app-tab--active">
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l9-9 9 9-2 0v9h-5v-6h-4v6H5v-9H3z"/></svg>
-                      Home
-                    </div>
-                    <div className="app-tab">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-                      Records
-                    </div>
-                    <div className="app-fab">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                    </div>
-                    <div className="app-tab">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                      Visits
-                    </div>
-                    <div className="app-tab">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      Profile
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  
-  <div className="ticker" aria-hidden="true">
-    <div className="ticker__label">
-      <span className="pulse"></span>
-      LIVE
-    </div>
-    <div className="ticker__viewport">
-      <div className="ticker__track">
-        <span className="ticker__item"><span className="green">●</span> 14 doses logged today</span>
-        <span className="ticker__item"><span className="sky">●</span> Dr. Perera's next slot — Tue 8 Jul, 14:00</span>
-        <span className="ticker__item"><span className="amber">●</span> Amma's BP reading 132/84 — trending up</span>
-        <span className="ticker__item"><span className="green">●</span> 3 new lab results auto-classified</span>
-        <span className="ticker__item"><span className="rose">●</span> Refill reminder: Atorvastatin · 5 days left</span>
-        <span className="ticker__item"><span className="sky">●</span> Asiri Central upload: 04 Jul 09:42</span>
-        <span className="ticker__item"><span className="green">●</span> 14 doses logged today</span>
-        <span className="ticker__item"><span className="sky">●</span> Dr. Perera's next slot — Tue 8 Jul, 14:00</span>
-        <span className="ticker__item"><span className="amber">●</span> Amma's BP reading 132/84 — trending up</span>
-        <span className="ticker__item"><span className="green">●</span> 3 new lab results auto-classified</span>
-        <span className="ticker__item"><span className="rose">●</span> Refill reminder: Atorvastatin · 5 days left</span>
-        <span className="ticker__item"><span className="sky">●</span> Asiri Central upload: 04 Jul 09:42</span>
-      </div>
-    </div>
-  </div>
-
-  
-  <div className="marquee" aria-hidden="true">
-    <div className="marquee__track">
-      <span className="marquee__item"><span className="num">1</span> private beta tester</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">4.9</span> ★ on TestFlight</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">3</span> languages · EN · සිං · த</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">14</span> days of medicine reminders, on the house</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">0</span> ads, ever</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">1</span> private beta tester</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">4.9</span> ★ on TestFlight</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">3</span> languages · EN · සිං · த</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">14</span> days of medicine reminders, on the house</span>
-      <span className="marquee__item">·</span>
-      <span className="marquee__item"><span className="num">0</span> ads, ever</span>
-    </div>
-  </div>
-
-  
-  
-  <section className="section section--tight stats" aria-label="By the numbers">
-    <div className="container">
-      <div className="stats__head" data-reveal>
-        <span className="stats__head-tag">// live instrument panel</span>
-        <span className="stats__head-clock"><span className="pulse"></span> updated <span data-stats-time>today</span></span>
-      </div>
-      <div className="stats__grid" data-reveal>
-        <div className="stats__cell">
-          <div className="stats__kicker">A · scale</div>
-          <div className="stats__num"><span data-count="1000" data-dur="1800">0</span><span className="stats__suffix"> spots</span></div>
-          <div className="stats__lbl">private beta, opened slowly on purpose</div>
-          <div className="stats__bar"><span style={{"--w":"14%"}}></span></div>
-          <div className="stats__meta">147 / 1,000 claimed</div>
-        </div>
-        <div className="stats__rule" aria-hidden="true">
-          <span className="stats__rule-dot"></span>
-        </div>
-        <div className="stats__cell">
-          <div className="stats__kicker">B · quality</div>
-          <div className="stats__num"><span data-count="4.9" data-dur="1600" data-decimals="1">0</span><span className="stats__suffix">★</span></div>
-          <div className="stats__lbl">across 217 TestFlight reviews</div>
-          <div className="stats__bar"><span style={{"--w":"98%","background":"var(--c-emerald-500)"}}></span></div>
-          <div className="stats__meta">App Store pending · Play pending</div>
-        </div>
-        <div className="stats__rule" aria-hidden="true">
-          <span className="stats__rule-dot"></span>
-        </div>
-        <div className="stats__cell">
-          <div className="stats__kicker">C · cost</div>
-          <div className="stats__num"><span data-count="14" data-dur="1500">0</span><span className="stats__suffix"> days</span></div>
-          <div className="stats__lbl">of medicine reminders, on the house</div>
-          <div className="stats__bar"><span style={{"--w":"100%","background":"var(--c-coral-500)"}}></span></div>
-          <div className="stats__meta">then LKR 1,500 / yr · no ads, ever</div>
-        </div>
-        <div className="stats__rule" aria-hidden="true">
-          <span className="stats__rule-dot"></span>
-        </div>
-        <div className="stats__cell">
-          <div className="stats__kicker">D · reach</div>
-          <div className="stats__num"><span data-count="3" data-dur="900">0</span><span className="stats__suffix"> langs</span></div>
-          <div className="stats__lbl">EN · සිං · த — written by humans, not translated</div>
-          <div className="stats__bar"><span style={{"--w":"33%"}}></span></div>
-          <div className="stats__meta">Q4 2026 · + Mandarin, Bahasa</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section section--cream">
-    <div className="container container--narrow">
-      <div data-reveal>
-        <span className="eyebrow">02 / The problem</span>
-        <h2 className="h1" style={{"marginTop":"18px"}}>
-          Your medical history shouldn't live in <span className="serif">three WhatsApp threads,</span>
-          a plastic folder, and your memory.
-        </h2>
-        <p className="lede" style={{"marginTop":"24px"}}>
-          We watched our parents and grandparents juggle paper prescriptions,
-          photos of lab reports, voice notes from the doctor, and a stack of clinic
-          cards that never quite make it to the next visit. So we built the thing
-          we wished they had — a single, calm place for everything health.
-        </p>
-      </div>
-
-      <div className="steps" style={{"marginTop":"64px"}} data-reveal>
-        <div className="step">
-          <div className="step__num">— A</div>
-          <div className="step__title">Records scattered everywhere</div>
-          <p className="step__copy">
-            Lab reports live in your gallery. Prescriptions in a drawer.
-            The one you need — when you need it — is at the bottom of a chat.
-          </p>
-        </div>
-        <div className="step">
-          <div className="step__num">— B</div>
-          <div className="step__title">Reminders that don't</div>
-          <p className="step__copy">
-            "Take with breakfast." Sure, but which dose, today, and did
-            you actually take the morning one or the evening one?
-          </p>
-        </div>
-        <div className="step">
-          <div className="step__num">— C</div>
-          <div className="step__title">No one is in charge</div>
-          <p className="step__copy">
-            Your cardiologist, your GP and your pharmacist each have
-            a piece of the picture. None of them have all of it.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section" id="features">
-    <div className="container">
-      <div className="row row--between" style={{"alignItems":"flex-end","marginBottom":"56px"}} data-reveal>
-        <div>
-          <span className="eyebrow">03 / What's inside</span>
-          <h2 className="h1" style={{"marginTop":"14px","maxWidth":"16ch"}}>
-            Six things, done <span className="serif">unusually well.</span>
-          </h2>
-        </div>
-        <p className="lede" style={{"maxWidth":"36ch"}}>
-          We don't ship 80 features. We ship the ones that
-          actually change how you look after yourself.
-        </p>
-      </div>
-
-      <div className="bento">
-
-        
-        <article className="bento__item bento__item--wide bento__item--feature" data-reveal data-bento>
-          <div className="bento__tag">A · Records</div>
-          <h3 className="bento__title">One timeline. Every visit, every result, every script.</h3>
-          <p className="bento__copy">
-            Forward any lab report to your private email alias and it lands in
-            your timeline — auto-classified, searchable, and ready when the
-            next doctor asks "what was your HbA1c in March?"
-          </p>
-          <div className="bento__visual">
-            <div className="records-row" style={{"background":"rgba(255,255,255,0.06)","borderColor":"rgba(255,255,255,0.12)"}}>
-              <div className="records-row__icon" style={{"background":"rgba(56,189,248,0.18)","color":"#7DD3FC"}}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-              </div>
-              <div>
-                <div className="records-row__name" style={{"color":"#fff"}}>Full blood count</div>
-                <div className="records-row__meta" style={{"color":"rgba(255,255,255,0.55)"}}>Asiri Central · 4 Jul 2026</div>
-              </div>
-              <span className="records-row__date" style={{"color":"rgba(255,255,255,0.55)"}}>PDF</span>
-            </div>
-            <div className="records-row" style={{"background":"rgba(255,255,255,0.06)","borderColor":"rgba(255,255,255,0.12)"}}>
-              <div className="records-row__icon" style={{"background":"rgba(16,185,129,0.18)","color":"#6EE7B7"}}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
-              </div>
-              <div>
-                <div className="records-row__name" style={{"color":"#fff"}}>Annual check-up</div>
-                <div className="records-row__meta" style={{"color":"rgba(255,255,255,0.55)"}}>Dr. Perera · 12 Jun 2026</div>
-              </div>
-              <span className="records-row__date" style={{"color":"rgba(255,255,255,0.55)"}}>NOTE</span>
-            </div>
-            <div className="records-row" style={{"background":"rgba(255,255,255,0.06)","borderColor":"rgba(255,255,255,0.12)"}}>
-              <div className="records-row__icon" style={{"background":"rgba(255,122,89,0.18)","color":"#FFB89B"}}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3 14a4.95 4.95 0 0 0 7 7l3-3"/></svg>
-              </div>
-              <div>
-                <div className="records-row__name" style={{"color":"#fff"}}>Metformin 500mg</div>
-                <div className="records-row__meta" style={{"color":"rgba(255,255,255,0.55)"}}>Prescription · ongoing</div>
-              </div>
-              <span className="records-row__date" style={{"color":"rgba(255,255,255,0.55)"}}>Rx</span>
-            </div>
-          </div>
-          <div className="bento__deco" aria-hidden="true">
-            <div className="bento__halo bento__halo--cyan"></div>
-            <div className="bento__stardust"></div>
-          </div>
-        </article>
-
-        
-        <article className="bento__item bento__item--half bento__item--sky" data-reveal>
-          <div className="bento__tag">B · AI</div>
-          <h3 className="bento__title">A second pair of eyes — when you can't reach your doctor.</h3>
-          <p className="bento__copy">
-            "Explain my lipid panel in plain English." "Is this new
-            medicine safe with what I'm already taking?" Trained on
-            your records, not the open internet.
-          </p>
-          <div className="bento__visual">
-            <div className="ai-chat" style={{"background":"#fff","border":"0","boxShadow":"var(--shadow-sm)"}}>
-              <div style={{"fontSize":"11px","color":"var(--text-soft)","marginBottom":"4px"}}>You</div>
-              <div className="ai-msg--user">What does "LDL 168 mg/dL" mean?</div>
-              <div style={{"fontSize":"11px","color":"var(--text-soft)","margin":"10px 0 4px"}}>MedLocker AI</div>
-              <div className="ai-msg--bot">Your LDL is higher than the 100 mg/dL target. Combined with your family history, it's worth a conversation about diet and possibly a statin.</div>
-            </div>
-          </div>
-        </article>
-
-        
-        <article className="bento__item bento__item--third bento__item--emerald" data-reveal>
-          <div className="bento__tag">C · Medicines</div>
-          <h3 className="bento__title">Reminders that feel like a friend, not an alarm.</h3>
-          <p className="bento__copy">
-            Period-aware. Pill-aware. Snooze-aware. Skipped a dose?
-            The schedule shifts. Your doctor gets a real adherence number.
-          </p>
-          <div className="bento__visual" style={{"display":"flex","justifyContent":"center"}}>
-            <svg className="dose-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
-              <circle className="ring-bg" cx="50" cy="50" r="42" fill="none" strokeWidth="8"/>
-              <circle className="ring-fg" cx="50" cy="50" r="42" fill="none" strokeWidth="8"
-                strokeDasharray="263.9" strokeDashoffset="58" transform="rotate(-90 50 50)"/>
-              <text x="50" y="48" textAnchor="middle" fontSize="22" fill="#0F172A">78%</text>
-              <text x="50" y="62" textAnchor="middle" fontSize="8" fill="#64748B" letterSpacing="1.5">DOSES</text>
-            </svg>
-          </div>
-        </article>
-
-        
-        <article className="bento__item bento__item--third bento__item--coral" data-reveal>
-          <div className="bento__tag">D · Vitals</div>
-          <h3 className="bento__title">Trends, not snapshots.</h3>
-          <p className="bento__copy">
-            Log BP, glucose, weight, SpO₂. See the line. Catch the
-            drift before it becomes an admission.
-          </p>
-          <div className="bento__visual">
-            <svg className="spark" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <linearGradient id="sparkG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#E85F3D" stopOpacity="0.25"/>
-                  <stop offset="1" stopColor="#E85F3D" stopOpacity="0"/>
-                </linearGradient>
-              </defs>
-              <path d="M0,40 L20,35 L40,38 L60,28 L80,32 L100,22 L120,26 L140,18 L160,24 L180,14 L200,20 L200,60 L0,60 Z" fill="url(#sparkG)"/>
-              <path d="M0,40 L20,35 L40,38 L60,28 L80,32 L100,22 L120,26 L140,18 L160,24 L180,14 L200,20" fill="none" stroke="#E85F3D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        </article>
-
-        
-        <article className="bento__item bento__item--half" data-reveal>
-          <div className="bento__tag">E · Family</div>
-          <h3 className="bento__title">One account. Your whole family.</h3>
-          <p className="bento__copy">
-            Manage your mother's BP, your father's diabetes, your
-            kid's vaccination schedule — under one roof, with one
-            private lock between each profile.
-          </p>
-          <div className="bento__visual" style={{"display":"flex","gap":"8px","alignItems":"center"}}>
-            <div className="app-avatar" style={{"width":"40px","height":"40px"}}>TH</div>
-            <div className="app-avatar" style={{"width":"40px","height":"40px","background":"linear-gradient(135deg, #FFB89B, #FF7A59)"}}>FA</div>
-            <div className="app-avatar" style={{"width":"40px","height":"40px","background":"linear-gradient(135deg, #6EE7B7, #10B981)"}}>KI</div>
-            <div className="app-avatar" style={{"width":"40px","height":"40px","background":"linear-gradient(135deg, #C4B5FD, #8B5CF6)"}}>SI</div>
-            <div className="app-avatar" style={{"width":"40px","height":"40px","background":"var(--c-slate-200)","color":"var(--text-soft)"}}>+</div>
-            <span style={{"fontSize":"12.5px","color":"var(--text-muted)","marginLeft":"6px"}}>+ 2 invites sent</span>
-          </div>
-        </article>
-
-        
-        <article className="bento__item bento__item--third" data-reveal>
-          <div className="bento__tag">F · Doctor</div>
-          <h3 className="bento__title">A quiet inbox for the people who look after you.</h3>
-          <p className="bento__copy">
-            Your GP and your cardiologist can message you,
-            share results, and see the same timeline you do.
-          </p>
-          <div className="bento__visual">
-            <div style={{"display":"flex","gap":"8px","alignItems":"center"}}>
-              <div className="app-avatar" style={{"width":"32px","height":"32px","fontSize":"11px","background":"linear-gradient(135deg, #0EA5E9, #075985)"}}>DP</div>
-              <div style={{"flex":"1"}}>
-                <div style={{"fontSize":"12px","fontWeight":"600"}}>Dr. Perera</div>
-                <div style={{"fontSize":"10.5px","color":"var(--text-soft)"}}>HbA1c back — looks good 👍</div>
-              </div>
-              <div style={{"width":"6px","height":"6px","borderRadius":"50%","background":"var(--c-sky-500)"}}></div>
-            </div>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section section--cream section--skew-top" id="day">
-    <div className="container">
-      <div className="row row--between" style={{"alignItems":"flex-end","marginBottom":"8px"}} data-reveal>
-        <div>
-          <span className="eyebrow">04 / A day with MedLocker</span>
-          <h2 className="h1" style={{"marginTop":"14px","maxWidth":"18ch"}}>
-            From <span className="serif">dawn</span> to lights-out.
-          </h2>
-        </div>
-        <p className="lede" style={{"maxWidth":"36ch"}}>
-          What it actually looks like to live with the app for a day.
-          Drag the row — the colour shifts with the time of day.
-        </p>
-      </div>
-
-      <div className="day-sticky-wrapper">
-        <div className="day-sticky-container">
-          <div className="day" data-reveal>
-            <div className="day__progress" aria-hidden="true">
-              <div className="day__progress-fill"></div>
-            </div>
-            <div className="day__rail" data-rail>
-          <article className="day__card day__card--dawn">
-            <div className="day__time">05:42 · Dawn</div>
-            <div className="day__clock">05:42<span className="day__ampm">AM</span></div>
-            <div className="day__title">First vitals of the day</div>
-            <p className="day__copy">
-              Your phone buzzes. You roll over, open the app, log your
-              fasting glucose with one thumb. Two seconds. Back to sleep.
-            </p>
-            <div className="day__visual">
-              <div className="day__visual-row">
-                <div className="day__visual-icon" style={{"background":"#FEF3C7","color":"#D97706"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8M5 5l7 7M19 5l-7 7"/><circle cx="12" cy="16" r="2"/></svg>
-                </div>
-                <div>
-                  <div className="day__visual-name">Fasting glucose</div>
-                  <div className="day__visual-meta">98 mg/dL · within range</div>
-                </div>
-                <span className="day__visual-pill" style={{"background":"#D1FAE5","color":"#059669"}}>LOGGED</span>
-              </div>
-            </div>
-          </article>
-
-          <article className="day__card day__card--morning">
-            <div className="day__time">08:30 · Morning</div>
-            <div className="day__clock">08:30<span className="day__ampm">AM</span></div>
-            <div className="day__title">The morning dose</div>
-            <p className="day__copy">
-              A soft ping. "Time for Metformin, with breakfast." Tap "taken".
-              The schedule knows you've already had your morning reading.
-            </p>
-            <div className="day__visual">
-              <div className="day__visual-row">
-                <div className="day__visual-icon" style={{"background":"#D1FAE5","color":"#059669"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3 14a4.95 4.95 0 0 0 7 7l3-3"/><path d="M8.5 8.5l7 7"/></svg>
-                </div>
-                <div>
-                  <div className="day__visual-name">Metformin 500mg</div>
-                  <div className="day__visual-meta">Twice daily · with breakfast</div>
-                </div>
-                <span className="day__visual-pill" style={{"background":"#D1FAE5","color":"#059669"}}>TAKEN</span>
-              </div>
-              <div className="day__visual-row">
-                <div className="day__visual-icon" style={{"background":"#E0F2FE","color":"#0369A1"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3 14a4.95 4.95 0 0 0 7 7l3-3"/><path d="M8.5 8.5l7 7"/></svg>
-                </div>
-                <div>
-                  <div className="day__visual-name">Atorvastatin 20mg</div>
-                  <div className="day__visual-meta">Once daily · 09:00</div>
-                </div>
-                <span className="day__visual-pill" style={{"background":"#E0F2FE","color":"#0369A1"}}>QUEUED</span>
-              </div>
-            </div>
-          </article>
-
-          <article className="day__card day__card--midday">
-            <div className="day__time">12:15 · Midday</div>
-            <div className="day__clock">12:15<span className="day__ampm">PM</span></div>
-            <div className="day__title">Lunch, plus a check-in</div>
-            <p className="day__copy">
-              A quick "how's your energy today?" prompt. You tap a face.
-              That's it — a data point the app uses to spot patterns over
-              weeks, not minutes.
-            </p>
-            <div className="day__visual">
-              <div className="day__visual-row">
-                <div className="day__visual-icon" style={{"background":"#BAE6FD","color":"#0369A1"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
-                </div>
-                <div>
-                  <div className="day__visual-name">Wellness check-in</div>
-                  <div className="day__visual-meta">Energy: 4/5 · mood: calm</div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article className="day__card day__card--afternoon">
-            <div className="day__time">14:00 · Afternoon</div>
-            <div className="day__clock">02:00<span className="day__ampm">PM</span></div>
-            <div className="day__title">Dr. Perera, in your pocket</div>
-            <p className="day__copy">
-              Your 2pm consult. Dr. Perera opens your shared timeline on
-              her screen — she's already seen last week's labs before
-              you walk in.
-            </p>
-            <div className="day__visual">
-              <div className="day__visual-row">
-                <div className="day__visual-icon" style={{"background":"#0EA5E9","color":"#fff"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
-                </div>
-                <div>
-                  <div className="day__visual-name">Dr. Perera · Cardiology</div>
-                  <div className="day__visual-meta">Consultation #12</div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article className="day__card day__card--evening">
-            <div className="day__time">19:30 · Evening</div>
-            <div className="day__clock">07:30<span className="day__ampm">PM</span></div>
-            <div className="day__title">A walk · and a stat</div>
-            <p className="day__copy">
-              You walked 6.4km today. The app quietly tracks it from your
-              phone — no fitness band, no separate app, no opt-in screen
-              for ad tracking.
-            </p>
-            <div className="day__visual">
-              <div className="day__visual-row">
-                <div className="day__visual-icon" style={{"background":"#FF9670","color":"#fff"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                </div>
-                <div>
-                  <div className="day__visual-name">Today's walk</div>
-                  <div className="day__visual-meta">6.4 km · 58 min · 412 kcal</div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article className="day__card day__card--night">
-            <div className="day__time">22:00 · Lights out</div>
-            <div className="day__clock">10:00<span className="day__ampm">PM</span></div>
-            <div className="day__title">Last pill, then sleep</div>
-            <p className="day__copy">
-              Aspirin, done. The day's adherence lands at 4/4. The app
-              sends you a single, quiet line of praise — and gets out of
-              your way until morning.
-            </p>
-            <div className="day__visual">
-              <div className="day__visual-row">
-                <div className="day__visual-icon" style={{"background":"rgba(255,255,255,0.10)","color":"#FFB89B"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                </div>
-                <div>
-                  <div className="day__visual-name" style={{"color":"#fff"}}>Aspirin 75mg</div>
-                  <div className="day__visual-meta">Day adherence: 4 / 4 · 100%</div>
-                </div>
-                <span className="day__visual-pill" style={{"background":"rgba(110, 231, 183, 0.20)","color":"#6EE7B7"}}>DONE</span>
-              </div>
-            </div>
-          </article>
-        </div>
-        <div className="day__dots" data-dots>
-          <div className="day__dot is-active"></div>
-          <div className="day__dot"></div>
-          <div className="day__dot"></div>
-          <div className="day__dot"></div>
-          <div className="day__dot"></div>
-          <div className="day__dot"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
-  </section>
-
-  
-  <section className="section section--paper section--skew-bottom" id="compare">
-    <div className="container">
-      <div data-reveal>
-        <span className="eyebrow">05 / Before & after</span>
-        <h2 className="h1" style={{"marginTop":"14px","maxWidth":"22ch"}}>
-          The same morning. <span className="serif">Two very different days.</span>
-        </h2>
-        <p className="lede" style={{"marginTop":"18px","maxWidth":"60ch"}}>
-          We rebuilt MedLocker around a single, stubborn question:
-          why does managing your own health feel like detective work?
-        </p>
-      </div>
-
-      <div className="compare" data-reveal>
-        
-        <div className="compare-drag" data-compare-drag style={{"--p":"50%"}}>
-          <div className="compare-drag__side compare-drag__side--before compare__side compare__side--mess">
-            <div className="compare__label">
-              <span style={{"display":"inline-block","width":"8px","height":"8px","borderRadius":"50%","background":"#DC2626"}}></span>
-              Before · Tuesday, 8:47 AM
-              <span className="compare__label-tag">THE OLD WAY</span>
-            </div>
-            <div className="compare__body">
-              <div className="chat chat--in">Atha did you get the lipid panel results from Asiri?</div>
-              <div className="chat chat--out">No I went Friday. They said they'll WhatsApp</div>
-              <div className="chat chat--in">
-                <div className="chat__img">
-                  <span className="chat__img-icon">📄</span>
-                  IMG_20250704_0942.jpg
-                </div>
-                <div className="chat__meta chat__meta--right">8:48 AM ✓✓</div>
-              </div>
-              <div className="chat chat--out">Hmm the LDL number — is 168 ok?</div>
-              <div className="chat chat--in">Wait that's the total cholesterol, scroll up</div>
-              <div className="chat chat--in" style={{"fontStyle":"italic","color":"var(--text-soft)"}}>Atha I'll call you in 10 mins, in a meeting</div>
-            </div>
-            <div className="compare__footer">
-              <span style={{"fontFamily":"var(--font-mono)","fontSize":"11px"}}>~ 14 mins</span> · 3 chats · 1 blurry photo · still no answer
-            </div>
-          </div>
-
-          <div className="compare-drag__side compare-drag__side--after compare__side compare__side--calm">
-            <div className="compare__label">
-              <span className="pulse"></span>
-              After · Tuesday, 8:47 AM
-              <span className="compare__label-tag">WITH MEDLOCKER</span>
-            </div>
-            <div className="compare__body">
-              <div className="records-row">
-                <div className="records-row__icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-                </div>
-                <div>
-                  <div className="records-row__name">Full lipid panel</div>
-                  <div className="records-row__meta">Asiri Central · Fri 4 Jul</div>
-                </div>
-                <span className="records-row__tag">AUTO-IMPORTS</span>
-              </div>
-              <div className="records-row">
-                <div className="records-row__icon" style={{"background":"rgba(110, 231, 183, 0.18)","color":"#6EE7B7"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
-                </div>
-                <div>
-                  <div className="records-row__name">LDL: 168 mg/dL</div>
-                  <div className="records-row__meta">Flagged · above 100 target</div>
-                </div>
-                <span className="records-row__tag" style={{"background":"rgba(252, 211, 77, 0.20)","color":"#FCD34D"}}>FLAGGED</span>
-              </div>
-              <div className="records-row">
-                <div className="records-row__icon" style={{"background":"rgba(167, 139, 250, 0.18)","color":"#A78BFA"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.39 6.95H22l-5.81 4.22 2.22 6.83L12 16.99 5.59 20l2.22-6.83L2 8.95h7.61L12 2z"/></svg>
-                </div>
-                <div>
-                  <div className="records-row__name">AI summary · ready</div>
-                  <div className="records-row__meta">"Worth a statin conversation."</div>
-                </div>
-                <span className="records-row__tag" style={{"background":"rgba(125, 211, 252, 0.18)","color":"#7DD3FC"}}>3 SEC</span>
-              </div>
-              <div className="records-row">
-                <div className="records-row__icon" style={{"background":"rgba(255, 122, 89, 0.18)","color":"#FFB89B"}}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
-                </div>
-                <div>
-                  <div className="records-row__name">Shared with Dr. Perera</div>
-                  <div className="records-row__meta">Read at 8:49 · before your 2pm</div>
-                </div>
-                <span className="records-row__tag" style={{"background":"rgba(110, 231, 183, 0.18)","color":"#6EE7B7"}}>SEEN</span>
-              </div>
-            </div>
-            <div className="compare__footer">
-              <span style={{"fontFamily":"var(--font-mono)","fontSize":"11px"}}>~ 0 mins</span> · auto-classified · 1 tap to share
-            </div>
-          </div>
-
-          <div className="compare-drag__handle" data-compare-handle aria-label="Drag to compare">
-            <span className="compare-drag__rule"></span>
-            <span className="compare-drag__knob">
-              <span className="compare-drag__knob-ring"></span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l-6-6 6-6M15 6l6 6-6 6"/></svg>
-            </span>
-          </div>
-          <div className="compare-drag__hint" aria-hidden="true">
-            <span className="compare-drag__hint-arrow">←</span>
-            <span>drag me</span>
-            <span className="compare-drag__hint-arrow">→</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section section--paper" id="tour">
-    <div className="container">
-      <div className="row row--between" style={{"alignItems":"flex-end","marginBottom":"24px"}} data-reveal>
-        <div>
-          <span className="eyebrow">06 / The app</span>
-          <h2 className="h1" style={{"marginTop":"14px","maxWidth":"18ch"}}>
-            Every screen, <span className="serif">considered.</span>
-          </h2>
-        </div>
-        <p className="lede" style={{"maxWidth":"36ch"}}>
-          A walk-through of the screens you'll use most.
-          Drag the row to scroll.
-        </p>
-      </div>
-
-      <div className="showcase" data-reveal>
-        <div className="showcase__rail" data-rail>
-
-          
-          <article className="showcase__card">
-            <div className="phone">
-              <div className="phone__frame">
-                <div className="phone__screen">
-                  <img src="assets/screenshots/home-phone-full.png" alt="MedLocker home screen" style={{"width":"100%","height":"100%","objectFit":"cover","objectPosition":"top","display":"block"}} />
-                </div>
-              </div>
-            </div>
-            <div className="showcase__caption">
-              <div>
-                <div className="showcase__num">01</div>
-                <div className="showcase__name">Home</div>
-                <p className="showcase__copy">Good morning, what's up today, and how are you tracking this week — at a glance.</p>
-              </div>
-            </div>
-          </article>
-
-          
-          <article className="showcase__card">
-            <div className="phone">
-              <div className="phone__frame">
-                <div className="phone__screen">
-                  <div className="phone__notch"></div>
-                  <div className="phone__status">
-                    <span>9:41</span>
-                    <div className="phone__status-icons">
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 0 0-6 0zm-4-4l2 2a7.07 7.07 0 0 1 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
-                    </div>
-                  </div>
-                  <div className="phone__screen-content">
-                    <div className="app-header">
-                      <div className="app-avatar" style={{"background":"linear-gradient(135deg,#FFB89B,#FF7A59)"}}>T</div>
-                      <div className="app-brand">My medicines</div>
-                      <div className="app-icon-btn--ghost" style={{"width":"30px","height":"30px","borderRadius":"50%","border":"1px solid var(--c-line)","display":"flex","alignItems":"center","justifyContent":"center"}}>
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                      </div>
-                    </div>
-
-                    <div className="med-hero">
-                      <div className="med-hero__label">Daily progress</div>
-                      <div className="med-hero__pct">75<sup>%</sup></div>
-                      <div className="med-hero__sub">3 of 4 doses taken today</div>
-                      <span className="med-hero__pill">
-                        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
-                        1 dose remaining
-                      </span>
-                    </div>
-
-                    <div className="med-tabs">
-                      <div className="med-tab med-tab--active">Today</div>
-                      <div className="med-tab">Active</div>
-                      <div className="med-tab">All</div>
-                    </div>
-
-                    <div className="med-section">
-                      <div className="med-section__icon" style={{"background":"#FEF3C7","color":"#D97706"}}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-                      </div>
-                      <span className="med-section__name">Morning</span>
-                      <span className="med-section__count" style={{"background":"#FEF3C7","color":"#92400E"}}>2 meds</span>
-                    </div>
-                    <div className="med-card">
-                      <div className="med-card__marker" style={{"background":"#10B981"}}></div>
-                      <div style={{"flex":"1"}}>
-                        <div className="med-card__name">Metformin</div>
-                        <div className="med-card__dose">500mg · twice daily · 08:00</div>
-                      </div>
-                      <div className="med-card__check med-card__check--done">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      </div>
-                    </div>
-                    <div className="med-card">
-                      <div className="med-card__marker" style={{"background":"#0EA5E9"}}></div>
-                      <div style={{"flex":"1"}}>
-                        <div className="med-card__name">Atorvastatin</div>
-                        <div className="med-card__dose">20mg · once daily · 09:00</div>
-                      </div>
-                      <div className="med-card__btn">Mark taken</div>
-                    </div>
-
-                    <div className="med-section">
-                      <div className="med-section__icon" style={{"background":"#FFEDE5","color":"#E85F3D"}}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 18a5 5 0 0 0-10 0M12 2v6M4.93 10.93l1.41 1.41M19.07 10.93l-1.41 1.41M2 18h2M20 18h2"/></svg>
-                      </div>
-                      <span className="med-section__name">Evening</span>
-                      <span className="med-section__count" style={{"background":"#FFEDE5","color":"#9A3A1F"}}>1 med</span>
-                    </div>
-                    <div className="med-card">
-                      <div className="med-card__marker" style={{"background":"#FF7A59"}}></div>
-                      <div style={{"flex":"1"}}>
-                        <div className="med-card__name">Aspirin</div>
-                        <div className="med-card__dose">75mg · once daily · 20:00</div>
-                      </div>
-                      <div className="med-card__btn">Mark taken</div>
-                    </div>
-
-                    <div style={{"flex":"1"}}></div>
-                    <div className="app-tabbar">
-                      <div className="app-tab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12l9-9 9 9-2 0v9h-5v-6h-4v6H5v-9H3z"/></svg>
-                        Home
-                      </div>
-                      <div className="app-tab app-tab--active">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3 14a4.95 4.95 0 0 0 7 7l3-3"/></svg>
-                        Meds
-                      </div>
-                      <div className="app-fab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                      </div>
-                      <div className="app-tab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        Visits
-                      </div>
-                      <div className="app-tab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Profile
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="showcase__caption">
-              <div>
-                <div className="showcase__num">02</div>
-                <div className="showcase__name">Medicines</div>
-                <p className="showcase__copy">Four pills, four timings, one calm plan. Skipped a dose? The schedule knows.</p>
-              </div>
-            </div>
-          </article>
-
-          
-          <article className="showcase__card">
-            <div className="phone">
-              <div className="phone__frame">
-                <div className="phone__screen">
-                  <div className="phone__notch"></div>
-                  <div className="phone__status">
-                    <span>9:41</span>
-                    <div className="phone__status-icons">
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 0 0-6 0zm-4-4l2 2a7.07 7.07 0 0 1 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
-                    </div>
-                  </div>
-                  <div className="phone__screen-content">
-                    <div className="ai-header">
-                      <div className="ai-header__icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.39 6.95H22l-5.81 4.22 2.22 6.83L12 16.99 5.59 20l2.22-6.83L2 8.95h7.61L12 2z"/></svg>
-                      </div>
-                      <div>
-                        <div className="ai-header__title">AI Health Companion</div>
-                        <div className="ai-header__sub">Powered by your records</div>
-                      </div>
-                    </div>
-
-                    <div className="ai-chat">
-                      <div className="ai-msg--user">What does my recent lipid panel mean?</div>
-                      <div className="ai-msg--bot">Your total cholesterol is 240 mg/dL, above the 200 target. The LDL ("bad") is 168, also high. Given your family history of heart disease, this is worth discussing with Dr. Perera — diet changes, possibly a statin.</div>
-                      <div className="ai-msg--bot" style={{"background":"transparent","padding":"0","marginTop":"6px","color":"var(--text-soft)","fontSize":"10px","fontStyle":"italic"}}>⚠ Not a substitute for medical advice. Always confirm with your doctor.</div>
-                    </div>
-
-                    <div className="app-section-label" style={{"marginTop":"8px"}}>Try asking</div>
-                    <div className="ai-chips">
-                      <span className="ai-chip">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-                        Summarise my records
-                      </span>
-                      <span className="ai-chip">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3 14a4.95 4.95 0 0 0 7 7l3-3"/></svg>
-                        Drug check
-                      </span>
-                      <span className="ai-chip">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                        Lab explain
-                      </span>
-                    </div>
-
-                    <div style={{"flex":"1"}}></div>
-
-                    <div className="ai-input">
-                      <span>Ask anything about your health…</span>
-                      <div className="ai-input__send">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="showcase__caption">
-              <div>
-                <div className="showcase__num">03</div>
-                <div className="showcase__name">AI Companion</div>
-                <p className="showcase__copy">Ask in plain English. Powered by your records — not a generic chatbot.</p>
-              </div>
-            </div>
-          </article>
-
-          
-          <article className="showcase__card">
-            <div className="phone">
-              <div className="phone__frame">
-                <div className="phone__screen">
-                  <div className="phone__notch"></div>
-                  <div className="phone__status">
-                    <span>9:41</span>
-                    <div className="phone__status-icons">
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 0 0-6 0zm-4-4l2 2a7.07 7.07 0 0 1 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
-                    </div>
-                  </div>
-                  <div className="phone__screen-content">
-                    <div className="app-header">
-                      <div className="app-avatar" style={{"background":"linear-gradient(135deg,#FFB89B,#FF7A59)"}}>T</div>
-                      <div className="app-brand">Vitals</div>
-                      <div className="app-icon-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                      </div>
-                    </div>
-
-                    <div className="vitals-chart">
-                      <div className="vitals-chart__head">
-                        <div>
-                          <div className="vitals-chart__title">Blood pressure</div>
-                          <div className="vitals-chart__val">128 / 82 <small>mmHg</small> <span className="vitals-chart__delta vitals-chart__delta--down">▼ 4</span></div>
-                        </div>
-                        <div style={{"fontSize":"10px","color":"var(--text-soft)","fontFamily":"var(--font-mono)"}}>7d</div>
-                      </div>
-                      <svg className="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="vc1" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stopColor="#0EA5E9" stopOpacity="0.30"/>
-                            <stop offset="1" stopColor="#0EA5E9" stopOpacity="0"/>
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,32 L20,28 L40,34 L60,24 L80,30 L100,20 L120,28 L140,18 L160,22 L180,16 L200,20 L200,60 L0,60 Z" fill="url(#vc1)"/>
-                        <path d="M0,32 L20,28 L40,34 L60,24 L80,30 L100,20 L120,28 L140,18 L160,22 L180,16 L200,20" fill="none" stroke="#0EA5E9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-
-                    <div className="vitals-chart">
-                      <div className="vitals-chart__head">
-                        <div>
-                          <div className="vitals-chart__title">Blood glucose</div>
-                          <div className="vitals-chart__val">98 <small>mg/dL</small> <span className="vitals-chart__delta vitals-chart__delta--down">▼ 12</span></div>
-                        </div>
-                        <div style={{"fontSize":"10px","color":"var(--text-soft)","fontFamily":"var(--font-mono)"}}>7d</div>
-                      </div>
-                      <svg className="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="vc2" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stopColor="#10B981" stopOpacity="0.30"/>
-                            <stop offset="1" stopColor="#10B981" stopOpacity="0"/>
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,40 L25,36 L50,42 L75,30 L100,38 L125,28 L150,32 L175,24 L200,28 L200,60 L0,60 Z" fill="url(#vc2)"/>
-                        <path d="M0,40 L25,36 L50,42 L75,30 L100,38 L125,28 L150,32 L175,24 L200,28" fill="none" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-
-                    <div className="vitals-chart">
-                      <div className="vitals-chart__head">
-                        <div>
-                          <div className="vitals-chart__title">Weight</div>
-                          <div className="vitals-chart__val">74.2 <small>kg</small></div>
-                        </div>
-                        <div style={{"fontSize":"10px","color":"var(--text-soft)","fontFamily":"var(--font-mono)"}}>30d</div>
-                      </div>
-                      <svg className="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="vc3" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stopColor="#FF7A59" stopOpacity="0.30"/>
-                            <stop offset="1" stopColor="#FF7A59" stopOpacity="0"/>
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,18 L25,22 L50,20 L75,26 L100,28 L125,32 L150,30 L175,34 L200,36 L200,60 L0,60 Z" fill="url(#vc3)"/>
-                        <path d="M0,18 L25,22 L50,20 L75,26 L100,28 L125,32 L150,30 L175,34 L200,36" fill="none" stroke="#FF7A59" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-
-                    <div style={{"flex":"1"}}></div>
-                    <div className="app-tabbar">
-                      <div className="app-tab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12l9-9 9 9-2 0v9h-5v-6h-4v6H5v-9H3z"/></svg>
-                        Home
-                      </div>
-                      <div className="app-tab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-                        Records
-                      </div>
-                      <div className="app-fab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                      </div>
-                      <div className="app-tab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        Visits
-                      </div>
-                      <div className="app-tab app-tab--active">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Profile
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="showcase__caption">
-              <div>
-                <div className="showcase__num">04</div>
-                <div className="showcase__name">Vitals</div>
-                <p className="showcase__copy">Trends, not snapshots. Catch the drift before it becomes an admission.</p>
-              </div>
-            </div>
-          </article>
-
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section" id="built-for">
-    <div className="container">
-      <div data-reveal>
-        <span className="eyebrow">07 / Built for</span>
-        <h2 className="h1" style={{"marginTop":"14px","maxWidth":"22ch"}}>
-          Three doors, <span className="serif">one ecosystem.</span>
-        </h2>
-        <p className="lede" style={{"marginTop":"18px","maxWidth":"60ch"}}>
-          MedLocker isn't a single product. It's a connected
-          platform where patients, doctors and hospitals
-          (coming next) can finally speak the same language.
-        </p>
-      </div>
-
-      <div className="audience" style={{"marginTop":"56px"}}>
-        <div className="audience__card" data-reveal>
-          <div className="audience__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          <div className="audience__title">For you</div>
-          <p className="audience__copy">
-            Your full record, your medicine schedule, your family
-            — all in one place, on your phone, locked behind
-            your face.
-          </p>
-          <ul className="stack" style={{"marginTop":"18px","fontSize":"13.5px","color":"var(--text-muted)"}}>
-            <li>· iOS & Android apps</li>
-            <li>· Email-to-record forwarding</li>
-            <li>· Trilingual (EN · සිං · த)</li>
-          </ul>
-        </div>
-
-        <div className="audience__card" data-reveal>
-          <div className="audience__icon" style={{"background":"#D1FAE5","color":"#059669"}}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
-          </div>
-          <div className="audience__title">For your doctor</div>
-          <p className="audience__copy">
-            A separate doctor portal — same records, structured
-            properly. SLMC-verified, with a real inbox, e-Rx,
-            and patient context that travels with the patient.
-          </p>
-          <ul className="stack" style={{"marginTop":"18px","fontSize":"13.5px","color":"var(--text-muted)"}}>
-            <li>· Patient context on every visit</li>
-            <li>· Digital prescriptions (e-Rx)</li>
-            <li>· Care-team membership</li>
-          </ul>
-        </div>
-
-        <div className="audience__card audience__card--soon" data-reveal>
-          <span className="audience__soon-tag">Phase 2 · Q4 '25</span>
-          <div className="audience__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13M9 21V12h6v9"/></svg>
-          </div>
-          <div className="audience__title">For hospitals</div>
-          <p className="audience__copy">
-            A ward-level dashboard, doctor rosters, and
-            laboratory logins — so a discharge summary from
-            Asiri Central lives next to a script from your
-            GP, and you don't repeat your story twice.
-          </p>
-          <ul className="stack" style={{"marginTop":"18px","fontSize":"13.5px","color":"rgba(255,255,255,0.6)"}}>
-            <li>· Hospital portal</li>
-            <li>· Lab &amp; radiology logins</li>
-            <li>· Ward handoff notes</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section section--cream">
-    <div className="container">
-      <div className="row row--between" style={{"alignItems":"flex-end","marginBottom":"48px"}} data-reveal>
-        <div>
-          <span className="eyebrow">08 / How it works</span>
-          <h2 className="h1" style={{"marginTop":"14px","maxWidth":"18ch"}}>
-            Three minutes from <span className="serif">install</span> to actually using it.
-          </h2>
-        </div>
-        <p className="lede" style={{"maxWidth":"36ch"}}>
-          We hate onboarding flows too. So we built one that asks
-          you for the bare minimum — and gets out of your way.
-        </p>
-      </div>
-
-      <div className="steps" data-reveal>
-        <div className="step">
-          <div className="step__num">— Step 1</div>
-          <div className="step__title">Install & sign in</div>
-          <p className="step__copy">
-            Phone number, no email. We send a six-digit code. You
-            set a Face ID lock. Done in 90 seconds.
-          </p>
-        </div>
-        <div className="step">
-          <div className="step__num">— Step 2</div>
-          <div className="step__title">Add your first med or record</div>
-          <p className="step__copy">
-            Snap a photo of a script, or forward a lab PDF to your
-            private alias. The app does the rest — parsing, sorting,
-            reminding.
-          </p>
-        </div>
-        <div className="step">
-          <div className="step__num">— Step 3</div>
-          <div className="step__title">Invite who you trust</div>
-          <p className="step__copy">
-            Family members, your GP, your cardiologist. Each one
-            gets scoped access — and you can revoke it in one tap.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section section--cream" id="reminder">
-    <div className="container container--narrow">
-      <div className="text-center" data-reveal>
-        <span className="eyebrow" style={{"justifyContent":"center"}}>09 / The reminder</span>
-        <h2 className="h1" style={{"marginTop":"14px","maxWidth":"22ch","marginLeft":"auto","marginRight":"auto"}}>
-          It <span className="serif">nudges</span> — it never nags.
-        </h2>
-        <p className="lede" style={{"margin":"18px auto 0","maxWidth":"56ch"}}>
-          One ping. One tap. No streak guilt, no confetti, no
-          "don't break your 47-day streak!". Just the next thing.
-        </p>
-      </div>
-
-      <div className="notif-demo" data-reveal>
-        <button className="notif-trigger" data-notif-trigger data-magnetic>
-          <span className="pulse"></span>
-          Trigger dose reminder
-        </button>
-
-        <div className="notif-phone">
-          <div className="notif-phone__screen">
-            <div className="notif-phone__notch"></div>
-            <div className="notif-phone__time" data-lock-time>08:30</div>
-            <div className="notif-phone__content">
-              <div className="notif-phone__lock">
-                <div className="notif-phone__lock-date" data-lock-date>Saturday, July 4</div>
-                <div className="notif-phone__lock-time">08:30</div>
-                <div className="notif-phone__lock-sub">Saturday, July 4</div>
-              </div>
-            </div>
-            <div className="notif-phone__notif" data-notif-toast>
-              <div className="notif-phone__notif-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3 14a4.95 4.95 0 0 0 7 7l3-3"/><path d="M8.5 8.5l7 7"/></svg>
-              </div>
-              <div className="notif-phone__notif-body">
-                <div className="notif-phone__notif-head">
-                  MedLocker <span className="notif-phone__notif-time">now</span>
-                </div>
-                <div className="notif-phone__notif-title">Time for your Metformin 500mg</div>
-                <div className="notif-phone__notif-msg">With breakfast · 1 of 2 today</div>
-              </div>
-            </div>
-            <div className="notif-phone__hint">↑ Tap the button above</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section section--ink" id="security">
-    <div className="container">
-      <div data-reveal>
-        <span className="eyebrow" style={{"color":"#7DD3FC"}}>10 / Trust</span>
-        <h2 className="h1" style={{"marginTop":"14px","color":"#fff","maxWidth":"22ch"}}>
-          Private isn't a feature. <span className="serif" style={{"color":"#7DD3FC"}}>It's the foundation.</span>
-        </h2>
-        <p className="lede" style={{"marginTop":"18px","color":"rgba(255,255,255,0.7)","maxWidth":"56ch"}}>
-          Your medical record is the most personal data you have.
-          Here's exactly how we keep it that way.
-        </p>
-      </div>
-
-      
-      <div className="map" data-reveal data-map>
-        <div className="map__compass" aria-hidden="true">N<br/>·<br/>↑</div>
-        <div className="map__corner-pin map__corner-pin--tl">EDGES · 5 REGIONS · LIVE</div>
-        <div className="map__corner-pin map__corner-pin--br">UPDATED 04 / 07 / 26 · 16:42 SL</div>
-        <svg className="map__svg" viewBox="0 0 1000 500" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <radialGradient id="mapGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0" stopColor="#0EA5E9" stopOpacity="0.55"/>
-              <stop offset="1" stopColor="#0EA5E9" stopOpacity="0"/>
-            </radialGradient>
-            <linearGradient id="mapPath" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor="#7DD3FC" stopOpacity="0.2"/>
-              <stop offset="0.5" stopColor="#7DD3FC" stopOpacity="1"/>
-              <stop offset="1" stopColor="#FF7A59" stopOpacity="0.9"/>
-            </linearGradient>
-          </defs>
-          
-          <g className="map__continents" fill="rgba(125,211,252,0.07)" stroke="rgba(125,211,252,0.18)" strokeWidth="0.8">
-            
-            <path d="M60 90 Q 90 60 180 70 Q 260 80 290 130 Q 270 200 230 230 Q 150 240 90 210 Q 50 160 60 90 Z" />
-            
-            <path d="M210 270 Q 250 260 270 300 Q 280 380 250 430 Q 220 450 200 410 Q 190 340 210 270 Z" />
-            
-            <path d="M450 80 Q 510 70 540 100 Q 550 140 510 160 Q 470 165 450 130 Z" />
-            
-            <path d="M470 200 Q 530 195 555 240 Q 560 320 530 380 Q 495 410 470 370 Q 455 290 470 200 Z" />
-            
-            <path d="M570 80 Q 720 70 820 130 Q 850 200 800 240 Q 700 250 600 220 Q 560 160 570 80 Z" />
-            
-            <path d="M650 220 Q 690 220 700 270 Q 690 310 660 310 Q 640 280 650 220 Z" />
-            
-            <path d="M780 260 Q 830 260 850 290 Q 830 310 790 305 Q 770 290 780 260 Z" />
-            
-            <path d="M820 360 Q 880 350 910 380 Q 900 420 850 420 Q 810 410 820 360 Z" />
-            
-            <path d="M438 105 Q 452 100 455 120 Q 445 130 435 125 Z" />
-          </g>
-
-          
-          <g className="map__grid" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" fill="none">
-            <line x1="40" y1="100" x2="960" y2="100"/>
-            <line x1="40" y1="200" x2="960" y2="200"/>
-            <line x1="40" y1="300" x2="960" y2="300"/>
-            <line x1="40" y1="400" x2="960" y2="400"/>
-            <line x1="200" y1="60" x2="200" y2="460"/>
-            <line x1="400" y1="60" x2="400" y2="460"/>
-            <line x1="600" y1="60" x2="600" y2="460"/>
-            <line x1="800" y1="60" x2="800" y2="460"/>
-          </g>
-
-          
-          <g className="map__paths" fill="none" stroke="url(#mapPath)" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="4 4">
-            
-            <path d="M670 290 Q 660 270 640 250" data-path-draw/>
-            
-            <path d="M670 290 Q 740 295 790 305" data-path-draw/>
-            
-            <path d="M670 290 Q 620 260 570 230" data-path-draw/>
-            
-            <path d="M670 290 Q 800 230 880 175" data-path-draw/>
-            
-            <path d="M670 290 Q 540 200 445 115" data-path-draw/>
-          </g>
-
-          
-          <g className="map__endpoints">
-            
-            <circle cx="670" cy="290" r="9" fill="rgba(255,122,89,0.18)"/>
-            <circle cx="670" cy="290" r="5" fill="#FF7A59"/>
-            <circle className="map__pulse" cx="670" cy="290" r="5" fill="#FF7A59"/>
-            <text x="682" y="306" fill="rgba(255,255,255,0.85)" fontFamily="JetBrains Mono, monospace" fontSize="10" letterSpacing="1.5">COLOMBO</text>
-
-            
-            <g className="map__ep"><circle cx="640" cy="250" r="3" fill="#7DD3FC"/></g>
-            
-            <g className="map__ep"><circle cx="790" cy="305" r="3" fill="#7DD3FC"/></g>
-            
-            <g className="map__ep"><circle cx="570" cy="230" r="3" fill="#7DD3FC"/></g>
-            
-            <g className="map__ep"><circle cx="880" cy="175" r="3" fill="#7DD3FC"/></g>
-            
-            <g className="map__ep"><circle cx="445" cy="115" r="3" fill="#7DD3FC"/></g>
-          </g>
-
-          
-          <g className="map__pulses" fill="none" stroke="#7DD3FC" strokeWidth="1.4">
-            <circle cx="640" cy="250" r="3" className="map__pulse-ring" style={{"--d":"0s"}}/>
-            <circle cx="790" cy="305" r="3" className="map__pulse-ring" style={{"--d":"0.6s"}}/>
-            <circle cx="570" cy="230" r="3" className="map__pulse-ring" style={{"--d":"1.2s"}}/>
-            <circle cx="880" cy="175" r="3" className="map__pulse-ring" style={{"--d":"1.8s"}}/>
-            <circle cx="445" cy="115" r="3" className="map__pulse-ring" style={{"--d":"2.4s"}}/>
-          </g>
-
-          
-          <g className="map__labels" fill="rgba(255,255,255,0.55)" fontFamily="JetBrains Mono, monospace" fontSize="8" letterSpacing="1.2">
-            <text x="650" y="244">BOM</text>
-            <text x="800" y="299">SIN</text>
-            <text x="580" y="224">DXB</text>
-            <text x="890" y="169">TYO</text>
-            <text x="455" y="109">LHR</text>
-          </g>
-        </svg>
-
-        <div className="map__legend">
-          <div className="map__legend-row">
-            <span className="map__dot map__dot--coral"></span>
-            <span>HQ · Colombo, Sri Lanka</span>
-          </div>
-          <div className="map__legend-row">
-            <span className="map__dot map__dot--sky"></span>
-            <span>5 regional hospitals syncing this week</span>
-          </div>
-          <div className="map__legend-row">
-            <span className="map__dot map__dot--line"></span>
-            <span>TLS 1.3, never stored unencrypted</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="security-grid" style={{"marginTop":"56px"}} data-reveal>
-        <div className="security-item">
-          <div className="security-item__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <div>
-            <div className="security-item__title">Biometric lock</div>
-            <p className="security-item__copy">
-              Face ID and fingerprint unlock the app. Your
-              medical record never leaves the device unencrypted.
-            </p>
-          </div>
-        </div>
-        <div className="security-item">
-          <div className="security-item__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <div>
-            <div className="security-item__title">TLS 1.3, at rest</div>
-            <p className="security-item__copy">
-              Everything in transit is TLS 1.3. At rest, AES-256.
-              Backups are encrypted with keys only we don't hold.
-            </p>
-          </div>
-        </div>
-        <div className="security-item">
-          <div className="security-item__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </div>
-          <div>
-            <div className="security-item__title">We never sell. Never train on.</div>
-            <p className="security-item__copy">
-              Your records are not a product. We don't sell them,
-              share them, or use them to train models without
-              your explicit opt-in.
-            </p>
-          </div>
-        </div>
-        <div className="security-item">
-          <div className="security-item__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
-          </div>
-          <div>
-            <div className="security-item__title">Scoped sharing</div>
-            <p className="security-item__copy">
-              Invite your doctor, share only the records you
-              choose. Revoke in one tap. No long email threads
-              with PDFs.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section section--paper">
-    <div className="container">
-      <div data-reveal>
-        <span className="eyebrow">11 / Field notes</span>
-        <h2 className="h1" style={{"marginTop":"14px","maxWidth":"18ch"}}>
-          Pinned to the <span className="serif">office wall.</span>
-        </h2>
-        <p className="lede" style={{"marginTop":"18px","maxWidth":"60ch"}}>
-          The kind of feedback we read aloud in standup.
-          Hover any note to flatten it.
-        </p>
-      </div>
-
-      <div className="notes-board" data-reveal>
-        <article className="note note--yellow">
-          <span className="note__pin" style={{"left":"24px"}}></span>
-          <div className="note__text">
-            "I used to spend the first ten minutes of every consult
-            asking 'where's your last blood report?'. Now the patient
-            just shows me the timeline. We talk about treatment instead."
-          </div>
-          <div className="note__sig">
-            <span className="note__sig-name">Dr. Shanika</span>
-            · GP, Nugegoda · 14 yrs
-          </div>
-        </article>
-
-        <article className="note note--pink">
-          <span className="note__pin" style={{"left":"50%"}}></span>
-          <div className="note__text">
-            "Amma's BP ring. I'm in Singapore and the morning ping is the
-            only reason I sleep."
-          </div>
-          <div className="note__sig">
-            <span className="note__sig-name">Ruvini A.</span>
-            · daughter
-          </div>
-        </article>
-
-        <article className="note note--blue">
-          <span className="note__pin" style={{"left":"30%"}}></span>
-          <div className="note__text">
-            "Explained my lipid panel in 30 seconds
-            better than the doctor did in 15 minutes."
-          </div>
-          <div className="note__sig">
-            <span className="note__sig-name">Mifraz K.</span>
-            · beta tester, Colombo 7
-          </div>
-        </article>
-
-        <article className="note note--green">
-          <span className="note__pin" style={{"right":"24px","left":"auto"}}></span>
-          <div className="note__text">
-            "I ran a 3-clinic trial. Patients
-            stopped losing their paper scripts
-            by week two. That's never happened."
-          </div>
-          <div className="note__sig">
-            <span className="note__sig-name">Dr. Nimal</span>
-            · physician network, Kandy
-          </div>
-        </article>
-
-        <article className="note note--coral">
-          <span className="note__pin" style={{"left":"40%"}}></span>
-          <div className="note__text">
-            "Finally, an app for my parents that doesn't
-            look like it's screaming at them. Just
-            quiet, sensible, well-made."
-          </div>
-          <div className="note__sig">
-            <span className="note__sig-name">Ishara W.</span>
-            · Colombo 5
-          </div>
-        </article>
-
-        <article className="note note--cream">
-          <span className="note__pin" style={{"left":"50%","transform":"translateX(-50%)"}}></span>
-          <div className="note__text">
-            "The dose ring. I'm weirdly proud of it."
-          </div>
-          <div className="note__sig">
-            <span className="note__sig-name">Sanjay</span>
-            · engineer
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section" id="faq">
-    <div className="container container--narrow">
-      <div data-reveal>
-        <span className="eyebrow">12 / FAQ</span>
-        <h2 className="h1" style={{"marginTop":"14px","maxWidth":"18ch"}}>
-          Questions we get <span className="serif">early.</span>
-        </h2>
-      </div>
-
-      <div className="faq" style={{"marginTop":"48px"}} data-reveal>
-        <div className="faq__item">
-          <button className="faq__q">Is MedLocker free?</button>
-          <div className="faq__a"><div className="faq__a-inner">
-            The patient app is free, with no ads and no in-app
-            purchases. The doctor and hospital portals are
-            subscription-based — pricing is set per practice and
-            not per patient, so your care team never has a reason
-            to gatekeep.
-          </div></div>
-        </div>
-        <div className="faq__item">
-          <button className="faq__q">Where is my data stored?</button>
-          <div className="faq__a"><div className="faq__a-inner">
-            Records are stored encrypted in Cloudflare's data
-            centres. We use D1 (Cloudflare's SQLite-compatible
-            database) and R2 for files. Backups are encrypted
-            with keys we do not hold.
-          </div></div>
-        </div>
-        <div className="faq__item">
-          <button className="faq__q">Do I need to be a doctor to sign up?</button>
-          <div className="faq__a"><div className="faq__a-inner">
-            No. Anyone with a phone number can install the patient
-            app. Doctors, labs and hospitals get separate login
-            portals — doctors are SLMC-verified, hospitals and
-            labs go through a short onboarding.
-          </div></div>
-        </div>
-        <div className="faq__item">
-          <button className="faq__q">When does the hospital portal launch?</button>
-          <div className="faq__a"><div className="faq__a-inner">
-            Phase 2 ships in Q4 2025. If your hospital or lab
-            would like to be a launch partner, write to us at
-            <a href="mailto:partners@healthhub.app" style={{"color":"var(--c-sky-700)","textDecoration":"underline","textUnderlineOffset":"3px"}}>partners@healthhub.app</a>.
-          </div></div>
-        </div>
-        <div className="faq__item">
-          <button className="faq__q">Is it available outside Sri Lanka?</button>
-          <div className="faq__a"><div className="faq__a-inner">
-            Today, the app is optimised for Sri Lanka — local
-            doctors, local languages, local payment patterns.
-            We're starting where we are. Other markets are a
-            conversation for a later phase.
-          </div></div>
-        </div>
-        <div className="faq__item">
-          <button className="faq__q">Can I export my data?</button>
-          <div className="faq__a"><div className="faq__a-inner">
-            Yes. From Profile → Export, you can download everything
-            as a structured PDF or JSON. You own the data, not us.
-          </div></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section className="section" id="waitlist">
-    <div className="container">
-      <div className="cta" data-reveal>
-        <div>
-          <span className="pill">
-            <span className="pill__dot"></span>
-            Limited private beta · 1,000 spots
-          </span>
-          <h2 className="cta__title">
-            Get on the list.<br />
-            <span className="serif" style={{"color":"#7DD3FC"}}>We'll do the rest.</span>
-          </h2>
-          <p className="cta__copy">
-            We're letting in 1,000 people, slowly, so we can
-            actually listen. Drop your email and we'll send
-            your invite as soon as a slot opens.
-          </p>
-        </div>
-
-        <div className="cta__form-wrap">
-          <form className="cta__form" data-waitlist-form action="https://api.healthhub.app/waitlist" method="post">
-            <input type="email" name="email" placeholder="you@email.com" required aria-label="Email address" />
-            <select name="role" aria-label="I am a" style={{"background":"transparent","border":"0","color":"rgba(255,255,255,0.55)","fontSize":"13px","padding":"0 4px"}}>
-              <option value="patient">I'm a patient</option>
-              <option value="doctor">I'm a doctor</option>
-              <option value="hospital">I run a hospital / lab</option>
-            </select>
-            <span className="cta__submit-wrap">
-              <svg className="cta__burst" viewBox="0 0 100 100" aria-hidden="true">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(125,211,252,0.6)" strokeWidth="2" strokeDasharray="264" strokeDashoffset="264"/>
+    <div className="vh-root">
+      {/* Cursor halo (desktop) */}
+      <div className="vh-cursor-halo" aria-hidden="true" />
+
+      {/* ─── Nav ─── */}
+      <header className={`vh-nav ${scrolled ? "is-scrolled" : ""}`}>
+        <div className="vh-nav__island">
+          {/* Brand */}
+          <Link href="/" className="vh-nav__brand" aria-label="HealthHub home">
+            <span className="vh-nav__logo">
+              <svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden="true">
+                <path d="M3 10h2.5l1.5-3.5 2.5 8 2.5-6.5L14 10h3" stroke="#FBF7EE" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="7" r="1.2" fill="#38BDF8" />
               </svg>
-              <button className="btn btn--sky" type="submit">Join</button>
             </span>
-          </form>
-          <div className="cta__form-meta" data-waitlist-meta>
-            <span className="cta__form-meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              No spam, ever.
-            </span>
-            <span className="cta__form-meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
-              One email when your slot opens.
-            </span>
-          </div>
-          <div className="cta__success" data-waitlist-success>
-            <svg className="cta__check" viewBox="0 0 52 52" aria-hidden="true">
-              <circle className="cta__check-circle" cx="26" cy="26" r="22" fill="none" stroke="#6EE7B7" strokeWidth="2.5"/>
-              <path className="cta__check-path" d="M14 27 l 8 8 l 16 -18" fill="none" stroke="#6EE7B7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <strong>You're on the list.</strong> We'll email
-            <span style={{"opacity":".8"}}>you</span> the moment a slot opens.
-            Until then, take care of yourself.
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+            <span className="vh-nav__wordmark">HealthHub</span>
+          </Link>
 
-  
-  <footer className="footer">
-    <div className="container">
-      <div className="footer__noise" aria-hidden="true"></div>
-      <div className="footer__top">
-        <div className="footer__brand">
-          <div className="footer__mark" data-reveal>
-            <span className="footer__mark-row">MedLocker</span>
-            <span className="footer__mark-rule"></span>
-          </div>
-          <p className="footer__tag" data-reveal>
-            A private, beautifully designed health companion.
-            Built quietly in Colombo, Sri Lanka. © 2026
-            Healthhub (Pvt) Ltd.
-          </p>
-        </div>
-        <div className="footer__col">
-          <h4>Product</h4>
-          <ul>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#tour">The app</a></li>
-            <li><a href="#security">Security</a></li>
-            <li><a href="#faq">FAQ</a></li>
-          </ul>
-        </div>
-        <div className="footer__col">
-          <h4>For clinicians</h4>
-          <ul>
-            <li><a href="https://app.healthhub.app/doctor" rel="noopener">Doctor portal</a></li>
-            <li><Link href="/login">Hospital portal</Link></li>
-            <li><a href="mailto:partners@healthhub.app">Become a launch partner</a></li>
-          </ul>
-        </div>
-        <div className="footer__col">
-          <h4>Company</h4>
-          <ul>
-            <li><a href="mailto:hello@healthhub.app">hello@healthhub.app</a></li>
-            <li>
-              <a
-                href={
-                  process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE
-                    ? `https://wa.me/${process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE}?text=${encodeURIComponent("Hi HealthHub, ")}`
-                    : "https://wa.me/94771234567?text=Hi%20HealthHub%2C%20"
-                }
-                rel="noopener"
-                target="_blank"
-              >
-                Chat on WhatsApp
+          {/* Center links */}
+          <nav className="vh-nav__center" aria-label="Primary">
+            {NAV_LINKS.map((l) => (
+              <a key={l.href} href={l.href} className="vh-nav__link">
+                {l.label}
               </a>
-            </li>
-            <li><Link href="/privacy">Privacy</Link></li>
-            <li><Link href="/terms">Terms</Link></li>
-            <li><Link href="/login">Sign in</Link></li>
-          </ul>
-        </div>
-      </div>
-      <div className="footer__rule" aria-hidden="true"></div>
-      <div className="footer__strip" aria-label="Status">
-        <div className="footer__strip-item">
-          <span className="footer__strip-dot footer__strip-dot--ok"></span>
-          <span className="footer__strip-key">status</span>
-          <span className="footer__strip-val">all systems operational</span>
-        </div>
-        <div className="footer__strip-item">
-          <span className="footer__strip-key">uptime · 90d</span>
-          <span className="footer__strip-val">99.97%</span>
-        </div>
-        <div className="footer__strip-item">
-          <span className="footer__strip-key">last deploy</span>
-          <span className="footer__strip-val">04 Jul 2026 · 16:42 SL</span>
-        </div>
-        <div className="footer__strip-item">
-          <span className="footer__strip-key">build</span>
-          <span className="footer__strip-val">v1.0.42 · commit 7f3a9c</span>
-        </div>
-      </div>
-      <div className="footer__bottom">
-        <div className="footer__bottom-meta">
-          <span className="footer__flag">🇱🇰</span>
-          <span>Built in Colombo with proper tea · v1.0 · Last updated 4 Jul 2026</span>
-        </div>
-        <div className="footer__bottom-meta footer__bottom-meta--right">
-          Made with care, not algorithms.
-        </div>
-      </div>
-    </div>
-  </footer>
+            ))}
+          </nav>
 
-  
-  <div className="scroll-progress" aria-hidden="true">
-    <div className="scroll-progress__bar">
-      <div className="scroll-progress__fill"></div>
+          {/* Right actions */}
+          <div className="vh-nav__actions">
+            <a href="/login" className="vh-nav__signin">Log in</a>
+            <a href="#cta" className="vh-nav__cta-btn vh-magnetic" data-magnetic="0.15">
+              <span>Get early access</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="vh-nav__cta-arrow"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {/* ─── Hero ─── */}
+      <section className="vh-hero">
+        <div className="vh-hero__bg" aria-hidden="true">
+          <svg className="vh-hero__topo" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice">
+            <g stroke="#1A1A1A" strokeWidth="0.7" fill="none" opacity="0.16">
+              <path d="M-50 200 Q 200 100 400 200 T 800 240 T 1450 290" />
+              <path d="M-50 260 Q 200 160 400 260 T 800 300 T 1450 350" />
+              <path d="M-50 320 Q 200 220 400 320 T 800 360 T 1450 410" />
+              <path d="M-50 380 Q 200 280 400 380 T 800 420 T 1450 470" />
+              <path d="M-50 440 Q 200 340 400 440 T 800 480 T 1450 530" />
+              <path d="M-50 500 Q 200 400 400 500 T 800 540 T 1450 590" />
+              <path d="M-50 560 Q 200 460 400 560 T 800 600 T 1450 650" />
+              <path d="M-50 620 Q 200 520 400 620 T 800 660 T 1450 710" />
+            </g>
+          </svg>
+          <div className="vh-hero__halo vh-hero__halo--sky" />
+          <div className="vh-hero__halo vh-hero__halo--warm" />
+          <div className="vh-hero__grain" />
+        </div>
+        <div className="vh-container vh-hero__grid">
+          <div className="vh-hero__copy vh-reveal">
+            <div className="vh-hero__folio">
+              <span className="vh-hero__folio-num">Issue&nbsp;№&nbsp;04</span>
+              <span className="vh-hero__folio-sep" aria-hidden="true" />
+              <span className="vh-hero__folio-text">A quiet companion for the people you love</span>
+            </div>
+            <div className="vh-hero-pill">
+              <span className="vh-hero-pill__pulse" />
+              <span className="vh-hero-pill__text">Announcing v1.0 &nbsp;—&nbsp; Now in Private Beta</span>
+            </div>
+
+            <h1 className="vh-hero__headline">
+              Your health, <br />
+              <em>finally in one calm place.</em>
+            </h1>
+            <p className="vh-hero__lede">
+              A private, beautifully designed health companion that brings your medical records, daily prescriptions, lab trends, and care team into a quiet, end-to-end encrypted app.
+            </p>
+
+            {/* Single Clean Interactive Action Group */}
+            <div className="vh-hero-action-group">
+              <div className="vh-hero__cta">
+                <a href="#cta" className="vh-hero__cta-primary vh-magnetic" data-magnetic="0.18">
+                  <span className="vh-hero__cta-primary-label">Request early access</span>
+                  <span className="vh-hero__cta-primary-sub">1,247 Sri Lankans · 48-hour invite</span>
+                  <span className="vh-hero__cta-primary-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </a>
+                <a href="#tour" className="vh-hero__cta-secondary vh-magnetic" data-magnetic="0.14">
+                  <span className="vh-hero__cta-secondary-thumb" aria-hidden="true">
+                    <I.play />
+                  </span>
+                  <span className="vh-hero__cta-secondary-text">
+                    <span className="vh-hero__cta-secondary-label">Watch the 60-second tour</span>
+                    <span className="vh-hero__cta-secondary-meta">Loom-style · no signup</span>
+                  </span>
+                </a>
+              </div>
+
+              <div className="vh-hero__proof">
+                <span className="vh-hero__proof-mark" aria-hidden="true">
+                  <I.check />
+                </span>
+                <span>Free for personal use</span>
+                <span className="vh-hero__proof-sep" aria-hidden="true">·</span>
+                <span><strong>1,247</strong>&nbsp;Sri&nbsp;Lankans already on the waitlist</span>
+              </div>
+            </div>
+
+            <div className="vh-hero__meta">
+              <span className="vh-hero__meta-item"><I.shield /> End-to-end encrypted</span>
+              <span className="vh-hero__meta-item"><I.globe /> Built in Colombo 🇱🇰</span>
+              <span className="vh-hero__meta-item"><I.phone /> iOS · Android · Web</span>
+            </div>
+          </div>
+
+          {/* Hero Device & App Showcase */}
+          <div className="vh-hero__scene vh-reveal">
+            <div className="vh-scene-bg" aria-hidden="true">
+              <div className="vh-scene-bg__shape" />
+            </div>
+
+            <span className="vh-hero__scene-tag" aria-hidden="true">
+              <span className="vh-hero__scene-tag-dot" />
+              <span>Live feed — not a mockup</span>
+            </span>
+
+            <span className="vh-hero__scene-folio" aria-hidden="true">
+              <span>FIG.&nbsp;01</span>
+              <span className="vh-hero__scene-folio-line" />
+              <span>The&nbsp;Today&nbsp;view</span>
+            </span>
+
+            <div className="vh-phone vh-phone-parallax" data-parallax="22" aria-hidden="true">
+              <div className="vh-phone__notch" />
+              <div className="vh-phone__screen">
+                <div className="vh-phone__status">
+                  <span>9:41</span>
+                  <span>•••</span>
+                </div>
+                <div className="vh-phone__ui">
+                  <div className="vh-phone__greeting">Good evening · Tue 4 Aug</div>
+                  <div className="vh-phone__name">Thufail</div>
+                  <div className="vh-phone__tip">
+                    "Track BP, weight, height & waist to derive MAP, WHR and BMR."
+                  </div>
+                  <div className="vh-phone__glass">
+                    <div className="vh-phone__glass-label">Upcoming today</div>
+                    <div className="vh-phone__row">
+                      <span className="vh-phone__row-icon"><I.pill /></span>
+                      <span>Paracetamol</span>
+                      <span style={{ marginLeft: "auto", opacity: 0.7, fontWeight: 500 }}>After food</span>
+                    </div>
+                    <div className="vh-phone__row">
+                      <span className="vh-phone__row-icon"><I.bell /></span>
+                      <span>Dr. visit · 20:15</span>
+                    </div>
+                    <div className="vh-phone__pills">
+                      <span className="vh-phone__pill">B+ Blood</span>
+                      <span className="vh-phone__pill">23.8 BMI</span>
+                      <span className="vh-phone__pill">4 alerts</span>
+                    </div>
+                  </div>
+                  <div className="vh-phone__quick">
+                    <div className="vh-phone__quick-tile"><I.pill /> Medicines</div>
+                    <div className="vh-phone__quick-tile"><I.doc /> Records</div>
+                    <div className="vh-phone__quick-tile"><I.heart /> Vitals</div>
+                    <div className="vh-phone__quick-tile"><I.spark /> Health AI</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Social proof strip ─── */}
+      <div className="vh-proof">
+        <div className="vh-container">
+          {/* Logos */}
+          <div className="vh-proof__head vh-reveal">
+            <span className="vh-proof__label">Trusted by early adopters across Sri Lanka</span>
+          </div>
+          <div className="vh-proof__logos vh-stagger">
+            {LOGOS.map((l) => (
+              <span key={l.name} className="vh-proof__logo" title={l.name}>
+                {l.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Ticker ─── */}
+      <div className="vh-ticker" aria-hidden="true">
+        <div className="vh-ticker__track">
+          {[...TICKER_ITEMS, ...TICKER_ITEMS].map((it, i) => (
+            <span className="vh-ticker__item" key={i}>
+              {it.icon}
+              {it.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Stats panel ─── */}
+      <section className="vh-section" style={{ paddingTop: 56, paddingBottom: 32 }}>
+        <div className="vh-container">
+          <div className="vh-stats-grid vh-reveal">
+            {STATS.map((s, i) => (
+              <div key={i} className="vh-stat-card">
+                <div className="vh-stat-card__top">
+                  <div className="vh-stat-card__kicker">
+                    {s.kicker[0] && <span className={s.kicker[0]} />}
+                    {s.kicker[1]}
+                  </div>
+                </div>
+                <div className="vh-stat-card__num">
+                  <CountUp
+                    value={parseFloat(s.num.replace(/[^0-9.]/g, ""))}
+                    decimals={s.num.includes(".") ? 1 : 0}
+                    dur={1800}
+                    suffix={s.num.startsWith("<") ? "" : s.suffix}
+                  />
+                  {s.num.startsWith("<") && <span style={{ color: "#64748B" }}>3</span>}
+                  {s.num.startsWith("<") && <small>&nbsp;min</small>}
+                </div>
+                <div className="vh-stat-card__lbl">{s.lbl}</div>
+                {/* Animated accent line at bottom */}
+                <div className="vh-stat-card__accent" />
+              </div>
+            ))}
+          </div>
+
+          {/* Loading heartbeat animation */}
+          <div className="vh-heartbeat-loader vh-reveal">
+            <svg viewBox="0 0 200 40" className="vh-heartbeat-svg" aria-hidden="true">
+              <polyline
+                points="0,20 30,20 40,20 48,8 56,32 64,14 72,26 80,20 100,20 120,20 128,8 136,32 144,14 152,26 160,20 200,20"
+                className="vh-heartbeat-line"
+              />
+              <circle cx="0" cy="20" r="3" className="vh-heartbeat-dot" />
+            </svg>
+            <span className="vh-heartbeat-text">Live · Monitoring your health data</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Pillars ─── */}
+      <section className="vh-section" id="pillars">
+        <span className="vh-drift vh-drift--teal vh-drift--float-a" aria-hidden="true" />
+        <span className="vh-drift vh-drift--orange vh-drift--float-c" aria-hidden="true" />
+        <span className="vh-section__eye" aria-hidden="true" />
+        <div className="vh-container">
+          <div className="vh-section__head vh-reveal">
+            <div className="vh-hero-pill" style={{ margin: "0 auto 12px" }}>
+              <span className="vh-hero-pill__pulse" />
+              <span className="vh-hero-pill__text">Three Core Pillars</span>
+            </div>
+            <h2 className="vh-section__title">
+              Three things, done <em>quietly</em> well.
+            </h2>
+            <p className="vh-section__sub">
+              No noise, no notifications you don't need. Just the parts of your health that actually matter — brought together into one calm, searchable place.
+            </p>
+          </div>
+          <div className="vh-pillars vh-stagger">
+            {PILLARS.map((p, idx) => (
+              <div
+                key={p.tag}
+                className={`vh-pillar vh-tilt vh-pillar--${p.accent}`}
+                data-tilt="3.5"
+                style={{ ["--i" as string]: idx }}
+              >
+                <span className="vh-tilt__glare" />
+                <span className="vh-pillar__top" aria-hidden="true" />
+
+                <div className="vh-pillar__header-row">
+                  <div className="vh-pillar__icon">
+                    <span className="vh-pillar__icon-glow" aria-hidden="true" />
+                    <span className="vh-pillar__icon-mark" aria-hidden="true">
+                      {p.icon}
+                    </span>
+                  </div>
+                  <span className="vh-pillar__badge">{p.tag}</span>
+                </div>
+
+                <div className="vh-pillar__head">
+                  <h3 className="vh-pillar__title">{p.title}</h3>
+                </div>
+
+                <p className="vh-pillar__copy">{p.copy}</p>
+
+                {/* Rich UI Preview Card */}
+                {p.preview && (
+                  <div className={`vh-pillar__preview vh-pillar__preview--${p.preview.type}`}>
+                    <div className="vh-pillar__preview-header">
+                      <span className="vh-pillar__preview-tag">{p.preview.tag}</span>
+                      <span className="vh-pillar__preview-chip">{p.preview.chip}</span>
+                    </div>
+                    <div className="vh-pillar__preview-title">{p.preview.title}</div>
+                    <div className="vh-pillar__preview-meta">{p.preview.meta}</div>
+                  </div>
+                )}
+
+                <ul className="vh-pillar__list">
+                  {p.bullets.map((b, i) => (
+                    <li key={b} style={{ ["--li-i" as string]: i }}>
+                      <span className="vh-pillar__check" aria-hidden="true">
+                        <I.check />
+                      </span>
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="vh-pillar__footer">
+                  <div className="vh-pillar__stat" aria-label={p.stat.label}>
+                    <span className="vh-pillar__stat-num">
+                      <CountUp
+                        value={p.stat.value}
+                        decimals={p.stat.decimals ?? 0}
+                        suffix={p.stat.suffix ?? ""}
+                        dur={1400}
+                      />
+                    </span>
+                    <span className="vh-pillar__stat-label">{p.stat.label}</span>
+                  </div>
+
+                  <a href={p.href} className="vh-pillar__more vh-magnetic" data-magnetic="0.2">
+                    <span>Explore</span>
+                    <span className="vh-pillar__more-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M13 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── How it works (3 steps) ─── */}
+      <section className="vh-section vh-section--alt">
+        <div className="vh-container">
+          <div className="vh-section__head vh-reveal">
+            <span className="vh-eyebrow">02 / How it works</span>
+            <h2 className="vh-section__title">
+              From zero to <em>quietly in control</em> in 3 minutes.
+            </h2>
+          </div>
+          <div className="vh-how vh-stagger">
+            {HOW_STEPS.map((s) => (
+              <div key={s.n} className="vh-step">
+                <div className="vh-step__num">{s.n}</div>
+                <h3 className="vh-step__title">{s.title}</h3>
+                <p className="vh-step__body">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Timeline (Day 1 / 2 / 3) ─── */}
+      <section className="vh-section" id="tour">
+        <div className="vh-container">
+          <div className="vh-section__head vh-reveal">
+            <span className="vh-eyebrow">03 / A few days in</span>
+            <h2 className="vh-section__title">
+              You set it up. <br />
+              <em>It grows with you.</em>
+            </h2>
+            <p className="vh-section__sub">
+              HealthHub starts as a stranger and becomes someone you actually rely on. Most people say the relationship clicks in about three days.
+            </p>
+          </div>
+          <div className="vh-tl-progress">
+            <span className="vh-tl-progress__label">Onboarding in real time</span>
+            <div className="vh-tl-progress__bar" />
+            <span className="vh-tl-progress__count">3 / 3 days</span>
+          </div>
+
+          <div className="vh-tl-section">
+            <div className="vh-tl-rail" aria-hidden="true">
+              <div className="vh-tl-rail__bg" />
+              <div className="vh-tl-rail__fill" />
+            </div>
+            <div className="vh-timeline vh-stagger">
+              {TIMELINE.map((t) => (
+                <div
+                  key={t.day}
+                  className={`vh-tl-card vh-tl-card--${t.theme}`}
+                  style={{ ["--tl-color" as any]: t.theme === "neutral" ? "#94A3B8" : t.theme === "emerald" ? "#10B981" : "var(--vh-sky)" }}
+                >
+                  <div className="vh-tl-card__marker">
+                    <span className="vh-tl-card__marker-dot" />
+                    {t.marker}
+                  </div>
+                  <div className="vh-tl-card__day">{t.day}</div>
+                  <h3 className="vh-tl-card__role">{t.role}</h3>
+                  <blockquote className="vh-tl-card__quote">{t.quote}</blockquote>
+                  <p className="vh-tl-card__body">{t.body}</p>
+                  <div className="vh-tl-card__change">
+                    <span className="vh-tl-card__change-icon">{t.changeIcon}</span>
+                    <span className="vh-tl-card__change-text">
+                      <strong>What changed</strong>
+                      {t.changeBody}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Jobs carousel (dark, vellum-style) ─── */}
+      <section className="vh-section" id="jobs">
+        <div className="vh-container">
+          <div className="vh-jobs vh-reveal">
+            <div className="vh-jobs__inner">
+              <div className="vh-jobs__head">
+                <h2 className="vh-jobs__title">
+                  They handle your world <em>so you can focus on what matters.</em>
+                </h2>
+              </div>
+              <div className="vh-jobs__rail" role="tablist">
+                {JOBS.map((j, i) => {
+                  const active = openJob === i;
+                  return (
+                    <div
+                      key={j.key}
+                      className={`vh-jobs-card ${active ? "is-active" : "is-inactive"}`}
+                      onClick={() => setOpenJob(i)}
+                      role="tab"
+                      tabIndex={0}
+                      aria-selected={active}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setOpenJob(i);
+                        }
+                      }}
+                    >
+                      {!active ? (
+                        /* Inactive Vertical Pillar (Vellum Style) */
+                        <div className="vh-jobs-card__pillar">
+                          <div className="vh-jobs-card__pillar-text">{j.shortLabel || j.label.toUpperCase()}</div>
+                          <div className="vh-jobs-card__pillar-icon">{j.icon}</div>
+                        </div>
+                      ) : (
+                        /* Active Card Body */
+                        <div className="vh-jobs-card__body">
+                          <h3 className="vh-jobs-card__title">{j.plainTitle || j.title}</h3>
+                          <p className="vh-jobs-card__desc">{j.desc}</p>
+
+                          {/* Window mockup */}
+                          <div className="vh-jobs-card__window">
+                            <div className="vh-jobs-card__titlebar">
+                              <div className="vh-jobs-card__traffic">
+                                <span /><span /><span />
+                              </div>
+                              <div className="vh-jobs-card__win-title">
+                                {j.window.title} <span style={{ opacity: 0.4, marginLeft: 4 }}>▾</span>
+                              </div>
+                              <div style={{ width: 36 }} />
+                            </div>
+                            <div className="vh-jobs-card__content">
+                              <div className="vh-jobs-card__greet">{j.window.greeting}</div>
+                              {j.window.sections.map((s, idx) => (
+                                <div key={idx} className="vh-jobs-card__section">
+                                  <div className="vh-jobs-card__section-label">
+                                    <span>{s.num}</span>
+                                    {s.pill && (
+                                      <span className={`vh-jobs-card__pill vh-jobs-card__pill--${s.pill.cls}`}>
+                                        {s.pill.text}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="vh-jobs-card__section-sub">
+                                    <span>{s.sub}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* CTA bar */}
+                          <div className="vh-jobs-card__cta">
+                            <span className="vh-jobs-card__cta-text">
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 6, color: "#38BDF8" }}>
+                                <path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12" />
+                              </svg>
+                              Meet your personal intelligence.
+                            </span>
+                            <a href="#cta" className="vh-jobs-card__cta-btn vh-magnetic" data-magnetic="0.3">
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12" />
+                              </svg>
+                              HATCH YOURS
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="vh-jobs__dots">
+                {JOBS.map((j, i) => (
+                  <button
+                    key={j.key}
+                    className={`vh-jobs__dot ${openJob === i ? "is-active" : ""}`}
+                    onClick={() => setOpenJob(i)}
+                    aria-label={`Show job: ${j.label}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Use case accordion ─── */}
+      <section className="vh-section vh-section--alt" id="use-cases">
+        <div className="vh-container">
+          <div className="vh-section__head vh-reveal">
+            <span className="vh-eyebrow">04 / Built for</span>
+            <h2 className="vh-section__title">
+              The same app, <em>different lives.</em>
+            </h2>
+            <p className="vh-section__sub">
+              HealthHub quietly changes shape depending on who you are and what you need it to do. Here's how.
+            </p>
+          </div>
+          <div className="vh-uc-2">
+            {/* Dynamic visual panel */}
+            <div className="vh-uc-visual vh-reveal" aria-hidden="true">
+              {/* Drifting ambient orbs */}
+              <div className="vh-uc-orb vh-uc-orb--1" />
+              <div className="vh-uc-orb vh-uc-orb--2" />
+
+              <div className="vh-uc-scenes">
+                {USE_CASES.map((u) => (
+                  <div
+                    key={u.key}
+                    className={`vh-uc-scene ${openUc === u.key ? "is-active" : ""}`}
+                    data-scene={u.key}
+                  >
+                    <div className="vh-uc-scene__head">
+                      <span className="vh-uc-now">
+                        <span className="vh-uc-now__dot" />
+                        Now showing · {u.sub}
+                      </span>
+                      <h3 className="vh-uc-scene__role">{u.role}</h3>
+                    </div>
+                    {u.visual === "phone-timeline" && (
+                      <div className="vh-uc-mock">
+                        <div className="vh-uc-annot vh-uc-annot--top">
+                          <span className="vh-uc-annot__dot" />
+                          <div className="vh-uc-annot__body">
+                            <span>3 new records</span>
+                            <span className="vh-uc-annot__sub">just synced</span>
+                          </div>
+                        </div>
+                        <div className="vh-uc-annot vh-uc-annot--bottom">
+                          <span className="vh-uc-annot__dot vh-uc-annot__dot--green" />
+                          <div className="vh-uc-annot__body">
+                            <span>AI summary ready</span>
+                            <span className="vh-uc-annot__sub">2-min read</span>
+                          </div>
+                        </div>
+                        {/* Watch (secondary device) */}
+                        <div
+                          className="vh-uc-watch"
+                          style={{ right: "calc(50% - 120px - 70px)", top: "30px" }}
+                        >
+                          <div className="vh-uc-watch__band vh-uc-watch__band--top" />
+                          <div className="vh-uc-watch__band vh-uc-watch__band--bottom" />
+                          <div className="vh-uc-watch__screen">
+                            <div className="vh-uc-watch__time">118<span style={{ fontSize: 14, opacity: 0.7 }}>/76</span></div>
+                            <div className="vh-uc-watch__label">BP · Live</div>
+                            <div style={{ flex: 1 }} />
+                            <div className="vh-uc-watch__bar" />
+                          </div>
+                        </div>
+                        <div className="vh-uc-phone">
+                          <div className="vh-uc-phone__notch" />
+                          <div className="vh-uc-phone__screen">
+                            <div className="vh-uc-phone__greeting">
+                              "Track BP, weight, height & waist to derive MAP, WHR and BMR."
+                            </div>
+                            <div className="vh-uc-phone__row vh-uc-phone__row--accent">
+                              <span className="vh-uc-phone__row-icon"><I.doc style={{ width: 13, height: 13 }} /></span>
+                              <span style={{ flex: 1 }}>Lab · HbA1c 6.8</span>
+                              <span style={{ fontSize: 9.5, color: "var(--vh-ink-3)" }}>2m</span>
+                            </div>
+                            <div className="vh-uc-phone__row">
+                              <span className="vh-uc-phone__row-icon"><I.pill style={{ width: 13, height: 13 }} /></span>
+                              <span style={{ flex: 1 }}>Metformin · 500mg</span>
+                              <span style={{ fontSize: 9.5, color: "var(--vh-ink-3)" }}>8 PM</span>
+                            </div>
+                            <div className="vh-uc-phone__row">
+                              <span className="vh-uc-phone__row-icon"><I.heart style={{ width: 13, height: 13 }} /></span>
+                              <span style={{ flex: 1 }}>BP 118/76 · normal</span>
+                            </div>
+                            <div className="vh-uc-phone__row">
+                              <span className="vh-uc-phone__row-icon"><I.book style={{ width: 13, height: 13 }} /></span>
+                              <span style={{ flex: 1 }}>Dr. K. 20:15</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {u.visual === "phone-caregiver" && (
+                      <div className="vh-uc-mock">
+                        <div className="vh-uc-annot vh-uc-annot--top">
+                          <span className="vh-uc-annot__dot vh-uc-annot__dot--amber" />
+                          <div className="vh-uc-annot__body">
+                            <span>Mum missed 8 PM dose</span>
+                            <span className="vh-uc-annot__sub">3 min ago</span>
+                          </div>
+                        </div>
+                        <div className="vh-uc-annot vh-uc-annot--bottom">
+                          <span className="vh-uc-annot__dot vh-uc-annot__dot--green" />
+                          <div className="vh-uc-annot__body">
+                            <span>Resolved · 8:42 PM</span>
+                            <span className="vh-uc-annot__sub">you marked it done</span>
+                          </div>
+                        </div>
+                        <div
+                          className="vh-uc-watch"
+                          style={{ right: "calc(50% - 120px - 70px)", top: "30px" }}
+                        >
+                          <div className="vh-uc-watch__band vh-uc-watch__band--top" />
+                          <div className="vh-uc-watch__band vh-uc-watch__band--bottom" />
+                          <div className="vh-uc-watch__screen">
+                            <div className="vh-uc-watch__time">3<span style={{ fontSize: 14, opacity: 0.7 }}>/3</span></div>
+                            <div className="vh-uc-watch__label">Doses done</div>
+                            <div style={{ flex: 1 }} />
+                            <div className="vh-uc-watch__bar" />
+                          </div>
+                        </div>
+                        <div className="vh-uc-phone">
+                          <div className="vh-uc-phone__notch" />
+                          <div className="vh-uc-phone__screen">
+                            <div className="vh-uc-phone__greeting">
+                              Look after the people you love — without nagging.
+                            </div>
+                            <div className="vh-uc-phone__row vh-uc-phone__row--accent">
+                              <span className="vh-uc-phone__row-icon"><I.bell style={{ width: 13, height: 13, color: "#D97706" }} /></span>
+                              <span style={{ flex: 1 }}>Mum · Paracetamol</span>
+                              <span style={{ fontSize: 9.5, color: "var(--vh-ink-3)" }}>8 PM</span>
+                            </div>
+                            <div className="vh-uc-phone__row">
+                              <span className="vh-uc-phone__row-icon"><I.heart style={{ width: 13, height: 13 }} /></span>
+                              <span style={{ flex: 1 }}>Dad · BP 142/88</span>
+                            </div>
+                            <div className="vh-uc-phone__row">
+                              <span className="vh-uc-phone__row-icon"><I.pill style={{ width: 13, height: 13 }} /></span>
+                              <span style={{ flex: 1 }}>Kids · Vitamin D</span>
+                            </div>
+                            <div className="vh-uc-phone__row">
+                              <span className="vh-uc-phone__row-icon" style={{ background: "rgba(16,185,129,0.12)" }}><I.check style={{ width: 13, height: 13, color: "#10B981" }} /></span>
+                              <span style={{ flex: 1 }}>All caught up</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {u.visual === "stack-doctor" && (
+                      <div className="vh-uc-stack">
+                        <div className="vh-uc-annot vh-uc-annot--top">
+                          <span className="vh-uc-annot__dot" />
+                          <div className="vh-uc-annot__body">
+                            <span>Visit in 23 min</span>
+                            <span className="vh-uc-annot__sub">share link opened</span>
+                          </div>
+                        </div>
+                        <div className="vh-uc-stack__card">
+                          <div
+                            className="vh-uc-stack__card-icon"
+                            style={{ background: "var(--vh-sky-soft)", color: "var(--vh-sky)" }}
+                          >
+                            <I.doc />
+                          </div>
+                          <div className="vh-uc-stack__card-text">
+                            <div className="vh-uc-stack__card-title">Thufail Perera · 32</div>
+                            <div className="vh-uc-stack__card-meta">HbA1c trending up · 3 readings</div>
+                          </div>
+                          <span
+                            className="vh-uc-stack__card-status"
+                            style={{ background: "rgba(217, 119, 6, 0.12)", color: "#B45309" }}
+                          >
+                            ATTENTION
+                          </span>
+                        </div>
+                        <div className="vh-uc-stack__card">
+                          <div
+                            className="vh-uc-stack__card-icon"
+                            style={{ background: "rgba(16, 185, 129, 0.12)", color: "#059669" }}
+                          >
+                            <I.trend />
+                          </div>
+                          <div className="vh-uc-stack__card-text">
+                            <div className="vh-uc-stack__card-title">Adherence · 92%</div>
+                            <div className="vh-uc-stack__card-meta">Metformin 500mg · twice daily</div>
+                          </div>
+                          <span
+                            className="vh-uc-stack__card-status"
+                            style={{ background: "rgba(16, 185, 129, 0.12)", color: "#047857" }}
+                          >
+                            ON TRACK
+                          </span>
+                        </div>
+                        <div className="vh-uc-stack__card">
+                          <div
+                            className="vh-uc-stack__card-icon"
+                            style={{ background: "rgba(232, 95, 61, 0.10)", color: "var(--vh-coral)" }}
+                          >
+                            <I.heart />
+                          </div>
+                          <div className="vh-uc-stack__card-text">
+                            <div className="vh-uc-stack__card-title">Allergies</div>
+                            <div className="vh-uc-stack__card-meta">Penicillin (critical)</div>
+                          </div>
+                          <span
+                            className="vh-uc-stack__card-status"
+                            style={{ background: "rgba(239, 68, 68, 0.12)", color: "#B91C1C" }}
+                          >
+                            CRITICAL
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {u.visual === "stack-lab" && (
+                      <div className="vh-uc-stack">
+                        <div className="vh-uc-annot vh-uc-annot--top">
+                          <span className="vh-uc-annot__dot vh-uc-annot__dot--green" />
+                          <div className="vh-uc-annot__body">
+                            <span>API · 99.8% uptime</span>
+                            <span className="vh-uc-annot__sub">last 90 days</span>
+                          </div>
+                        </div>
+                        <div className="vh-uc-stack__card">
+                          <div
+                            className="vh-uc-stack__card-icon"
+                            style={{ background: "var(--vh-sky-soft)", color: "var(--vh-sky)" }}
+                          >
+                            <I.flask />
+                          </div>
+                          <div className="vh-uc-stack__card-text">
+                            <div className="vh-uc-stack__card-title">CBC · Patient #4821</div>
+                            <div className="vh-uc-stack__card-meta">Pushed via API · 14:32</div>
+                          </div>
+                          <span
+                            className="vh-uc-stack__card-status"
+                            style={{ background: "rgba(16, 185, 129, 0.12)", color: "#047857" }}
+                          >
+                            DELIVERED
+                          </span>
+                        </div>
+                        <div className="vh-uc-stack__card">
+                          <div
+                            className="vh-uc-stack__card-icon"
+                            style={{ background: "rgba(99, 102, 241, 0.10)", color: "#4F46E5" }}
+                          >
+                            <I.doc />
+                          </div>
+                          <div className="vh-uc-stack__card-text">
+                            <div className="vh-uc-stack__card-title">Lipid panel · 23 today</div>
+                            <div className="vh-uc-stack__card-meta">Auto-delivered · audit logged</div>
+                          </div>
+                          <span
+                            className="vh-uc-stack__card-status"
+                            style={{ background: "rgba(14, 165, 233, 0.12)", color: "#0369A1" }}
+                          >
+                            23 SENT
+                          </span>
+                        </div>
+                        <div className="vh-uc-stats">
+                          <div className="vh-uc-stat-card">
+                            <div className="vh-uc-stat-card__label">This week</div>
+                            <div className="vh-uc-stat-card__value">
+                              <CountUp value={2147} dur={1500} />
+                            </div>
+                            <div className="vh-uc-stat-card__delta vh-uc-stat-card__delta--up">
+                              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="18 15 12 9 6 15" />
+                              </svg>
+                              +18% vs last week
+                            </div>
+                          </div>
+                          <div className="vh-uc-stat-card">
+                            <div className="vh-uc-stat-card__label">Delivery</div>
+                            <div className="vh-uc-stat-card__value">
+                              <CountUp value={99.8} decimals={1} dur={1500} />
+                              <small style={{ fontSize: 14, color: "var(--vh-ink-3)" }}>%</small>
+                            </div>
+                            <div className="vh-uc-stat-card__delta">uptime · 90 days</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Richer accordion list */}
+            <div className="vh-uc-list vh-stagger" role="list">
+              {USE_CASES.map((u) => {
+                const open = openUc === u.key;
+                const toneBg: Record<string, string> = {
+                  primary: "var(--vh-sky-soft)",
+                  warning: "rgba(245, 158, 11, 0.14)",
+                  info: "rgba(14, 165, 233, 0.14)",
+                  success: "rgba(16, 185, 129, 0.14)",
+                };
+                const toneFg: Record<string, string> = {
+                  primary: "var(--vh-sky)",
+                  warning: "#B45309",
+                  info: "#0369A1",
+                  success: "#047857",
+                };
+                return (
+                  <div
+                    key={u.key}
+                    className="vh-uc-card"
+                    role="listitem"
+                    aria-expanded={open}
+                  >
+                    <div
+                      className="vh-uc-card__head"
+                      onClick={() => setOpenUc(open ? null : u.key)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setOpenUc(open ? null : u.key);
+                        }
+                      }}
+                    >
+                      <span
+                        className="vh-uc-card__icon"
+                        style={{
+                          background: toneBg[u.tone],
+                          color: toneFg[u.tone],
+                        }}
+                      >
+                        {u.icon}
+                      </span>
+                      <span className="vh-uc-card__title-wrap">
+                        <span className="vh-uc-card__title">{u.label}</span>
+                        <span className="vh-uc-card__meta">{u.sub}</span>
+                      </span>
+                      <span className="vh-uc-card__chev"><I.chev /></span>
+                    </div>
+                    <div className="vh-uc-card__body">
+                      <div>
+                        <div className="vh-uc-card__inner">
+                          <p>{u.body}</p>
+                          <ul className="vh-uc-card__list">
+                            {u.bullets.map((b) => (
+                              <li key={b}><I.check /> {b}</li>
+                            ))}
+                          </ul>
+                          <a href={u.ctaHref} className="vh-uc-card__cta" onClick={(e) => e.stopPropagation()}>
+                            {u.cta}
+                            <I.arrow />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── AI Spotlight ─── */}
+      <section className="vh-section vh-section--ink vh-glow" id="security">
+        <span className="vh-drift vh-drift--coral vh-drift--float-b" aria-hidden="true" />
+        <span className="vh-drift vh-drift--sky vh-drift--float-a" aria-hidden="true" />
+        <span className="vh-section__eye" aria-hidden="true" />
+        <div className="vh-container">
+          <div className="vh-ai">
+            <div className="vh-ai__copy vh-reveal">
+              <span className="vh-eyebrow">05 / Health AI</span>
+              <h2 className="vh-section__title">
+                Ask anything. <br />
+                <em>Grounded in your real data.</em>
+              </h2>
+              <p className="vh-section__sub">
+                Health AI sees your records, your medicines and your trends — and answers in plain language. It explains labs, flags interactions, and writes a clean summary your doctor will actually read.
+              </p>
+              <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <a href="#cta" className="vh-btn vh-btn--sky vh-magnetic" data-magnetic="0.25">
+                  Try Health AI
+                  <span className="vh-btn-arrow"><I.arrow /></span>
+                </a>
+                <a href="#faq" className="vh-btn vh-magnetic" data-magnetic="0.2" style={{ background: "transparent", color: "var(--vh-cream)", border: "1px solid rgba(251,247,238,0.24)" }}>
+                  How accurate is it?
+                </a>
+              </div>
+            </div>
+            <div className="vh-ai__mock vh-reveal" aria-hidden="true">
+              <div className="vh-ai__mock-head">
+                <span className="vh-ai__mock-mark"><I.spark /></span>
+                <div>
+                  <div className="vh-ai__mock-title">HealthHub AI</div>
+                  <div className="vh-ai__mock-sub">Grounded in your records</div>
+                </div>
+              </div>
+              <div className="vh-ai__msg">
+                <div className="vh-ai__bubble vh-ai__bubble--user">
+                  <div className="vh-ai__bubble__label">You</div>
+                  My HbA1c has been creeping up for 3 readings — should I be worried?
+                </div>
+                <div className="vh-ai__bubble vh-ai__bubble--ai">
+                  <div className="vh-ai__bubble__label">HealthHub AI</div>
+                  Looking at your last three readings (6.1 → 6.4 → <strong>6.8</strong>), this is a clear upward trend — still in the <em>prediabetic</em> range, but worth a conversation with your GP. The pattern is more meaningful than any single value.
+                  <br /><br />
+                  <strong>Worth discussing</strong> at your next visit: diet, weight, and whether to repeat the test in 3 months.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Testimonials ─── */}
+      <section className="vh-section vh-section--alt">
+        <div className="vh-container">
+          <div className="vh-section__head vh-reveal">
+            <span className="vh-eyebrow">06 / What people say</span>
+            <h2 className="vh-section__title">
+              Real humans, <em>quietly happier.</em>
+            </h2>
+          </div>
+          <div className="vh-testi vh-stagger">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="vh-testi__card vh-tilt" data-tilt="3">
+                <span className="vh-tilt__glare" />
+                <span className="vh-testi__stars">
+                  {[0, 1, 2, 3, 4].map((i) => <I.star key={i} />)}
+                </span>
+                <p className="vh-testi__quote">"{t.quote}"</p>
+                <div className="vh-testi__author">
+                  <span className="vh-testi__avatar">{t.initials}</span>
+                  <div className="vh-testi__meta">
+                    <span className="vh-testi__name">{t.name}</span>
+                    <span className="vh-testi__role">{t.role}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Pricing ─── */}
+      <section className="vh-section" id="pricing">
+        <div className="vh-container">
+          <div className="vh-section__head vh-section__head--center vh-reveal">
+            <span className="vh-eyebrow">07 / Pricing</span>
+            <h2 className="vh-section__title">
+              Honest pricing, <em>no ads ever.</em>
+            </h2>
+            <p className="vh-section__sub" style={{ marginLeft: "auto", marginRight: "auto" }}>
+              Start free, stay free if you want. Pay a small yearly fee if you'd like the family features and unlimited AI.
+            </p>
+            <div className="vh-pricing__seal-row">
+              <span><I.shield /> No card required to start</span>
+              <span aria-hidden="true" className="vh-pricing__seal-dot" />
+              <span>Cancel anytime</span>
+              <span aria-hidden="true" className="vh-pricing__seal-dot" />
+              <span>30-day refund</span>
+            </div>
+          </div>
+          <div className="vh-pricing">
+            {/* ── Free ── */}
+            <div className="vh-tier vh-tier--free" data-tilt="2">
+              <span className="vh-tilt__glare" />
+              <div className="vh-tier__chip vh-tier__chip--sky">
+                <I.heart />
+                <span>For you</span>
+              </div>
+              <div className="vh-tier__name">Free · Personal</div>
+              <div className="vh-tier__price">
+                <span className="vh-tier__price-num">
+                  <span className="vh-tier__price-cur">LKR</span>
+                  <span className="vh-tier__price-amt">0</span>
+                </span>
+                <span className="vh-tier__price-period">/ forever</span>
+              </div>
+              <p className="vh-tier__desc">{TIERS[0].desc}</p>
+              <ul className="vh-tier__features">
+                <li><I.check /> <span>Up to <strong>2 profiles</strong></span></li>
+                <li><I.check /> <span>Unlimited <strong>records &amp; medicines</strong></span></li>
+                <li><I.check /> <span><strong>14-day</strong> medicine reminders</span></li>
+                <li><I.check /> <span><strong>10</strong> AI summaries / month</span></li>
+                <li><I.check /> <span><strong>iOS, Android &amp; web</strong></span></li>
+              </ul>
+              <a href={TIERS[0].href} className="vh-tier__cta vh-tier__cta--ghost vh-magnetic" data-magnetic="0.22">
+                <span>{TIERS[0].cta}</span>
+                <span className="vh-tier__cta-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                </span>
+              </a>
+              <div className="vh-tier__trust">
+                <I.shield /> No credit card required
+              </div>
+            </div>
+
+            {/* ── Plus (Featured) ── */}
+            <div className="vh-tier vh-tier--featured vh-shine" data-tilt="2">
+              <span className="vh-tilt__glare" />
+              <div className="vh-tier__chip vh-tier__chip--featured">
+                <span className="vh-tier__chip-pulse" aria-hidden="true" />
+                <I.star />
+                <span>Most popular</span>
+                <span className="vh-tier__chip-meta">— 64% pick this</span>
+              </div>
+              <div className="vh-tier__name">Plus · For families</div>
+              <div className="vh-tier__price">
+                <span className="vh-tier__price-num">
+                  <span className="vh-tier__price-cur">LKR</span>
+                  <span className="vh-tier__price-amt">1,500</span>
+                </span>
+                <span className="vh-tier__price-period">/ year</span>
+              </div>
+              <p className="vh-tier__price-equiv">≈ LKR&nbsp;125 / month · billed yearly</p>
+              <p className="vh-tier__desc">{TIERS[1].desc}</p>
+              <ul className="vh-tier__features">
+                <li><I.check /> <span><strong>Unlimited</strong> profiles</span></li>
+                <li><I.check /> <span>Caregiver &amp; <strong>family sharing</strong></span></li>
+                <li><I.check /> <span><strong>Unlimited</strong> medicine reminders</span></li>
+                <li><I.check /> <span><strong>Unlimited</strong> AI summaries</span></li>
+                <li><I.check /> <span>Doctor-ready <strong>share links</strong></span></li>
+                <li><I.check /> <span><strong>Priority support</strong> — 24-hour reply</span></li>
+              </ul>
+              <a href={TIERS[1].href} className="vh-tier__cta vh-tier__cta--featured vh-magnetic" data-magnetic="0.22">
+                <span>{TIERS[1].cta}</span>
+                <span className="vh-tier__cta-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                </span>
+              </a>
+              <div className="vh-tier__trust">
+                <I.shield /> 30-day refund · Cancel anytime
+              </div>
+            </div>
+
+            {/* ── Clinic ── */}
+            <div className="vh-tier vh-tier--clinic" data-tilt="2">
+              <span className="vh-tilt__glare" />
+              <div className="vh-tier__chip vh-tier__chip--coral">
+                <I.flask />
+                <span>For practices &amp; labs</span>
+              </div>
+              <div className="vh-tier__name">Clinic · Healthcare partners</div>
+              <div className="vh-tier__price">
+                <span className="vh-tier__price-num">
+                  <span className="vh-tier__price-amt">Custom</span>
+                </span>
+                <span className="vh-tier__price-period">/ per practice</span>
+              </div>
+              <p className="vh-tier__desc">{TIERS[2].desc}</p>
+              <ul className="vh-tier__features">
+                <li><I.check /> <span><strong>Everything</strong> in Plus</span></li>
+                <li><I.check /> <span><strong>Direct result push</strong> — API</span></li>
+                <li><I.check /> <span><strong>Bulk seat</strong> management</span></li>
+                <li><I.check /> <span><strong>Audit log</strong> &amp; SSO</span></li>
+                <li><I.check /> <span><strong>Dedicated success</strong> manager</span></li>
+              </ul>
+              <a href={TIERS[2].href} className="vh-tier__cta vh-tier__cta--ink vh-magnetic" data-magnetic="0.22">
+                <span>{TIERS[2].cta}</span>
+                <span className="vh-tier__cta-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                </span>
+              </a>
+              <div className="vh-tier__trust">
+                <I.heart /> Trusted by 23 practices island-wide
+              </div>
+            </div>
+          </div>
+
+          <div className="vh-pricing__after">
+            <a href="#compare" className="vh-pricing__compare vh-magnetic" data-magnetic="0.18">
+              <span>Compare every feature, side-by-side</span>
+              <span className="vh-pricing__compare-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </span>
+            </a>
+            <p className="vh-pricing__assurance">
+              <I.shield /><I.heart /><I.globe />
+              <span>No ads, ever · Encrypted, always · Built in Colombo 🇱🇰</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ ─── */}
+      <section className="vh-section vh-section--alt" id="faq">
+        <div className="vh-container vh-container-narrow">
+          <div className="vh-section__head vh-reveal">
+            <span className="vh-eyebrow">08 / Questions</span>
+            <h2 className="vh-section__title">
+              Quick <em>honest</em> answers.
+            </h2>
+          </div>
+          <div className="vh-faq vh-stagger">
+            {FAQS.map((f, i) => {
+              const open = openFaq === i;
+              return (
+                <div
+                  key={f.q}
+                  className="vh-faq__item"
+                  aria-expanded={open}
+                >
+                  <button
+                    type="button"
+                    className="vh-faq__q"
+                    onClick={() => setOpenFaq(open ? null : i)}
+                    aria-controls={`faq-a-${i}`}
+                  >
+                    <span>{f.q}</span>
+                    <span className="vh-faq__plus" aria-hidden="true" />
+                  </button>
+                  <div id={`faq-a-${i}`} className="vh-faq__a">
+                    <div>
+                      <div className="vh-faq__a-inner">{f.a}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Final CTA ─── */}
+      <section className="vh-section" id="cta">
+        <div className="vh-container">
+          <div className="vh-cta vh-reveal">
+            <div className="vh-cta__glow-bg" aria-hidden="true" />
+            <h2 className="vh-cta__title">
+              Your health, <em className="vh-cta__highlight">quietly</em> in order.
+            </h2>
+            <p className="vh-cta__sub">
+              Join the private beta today. Free for personal use, no credit card required, zero ads — ever.
+            </p>
+            <div className="vh-cta__row">
+              <a href="/account/signup" className="vh-cta-btn-primary vh-magnetic" data-magnetic="0.25">
+                Get started — it's free
+                <span className="vh-btn-arrow"><I.arrow /></span>
+              </a>
+              <a href="mailto:hello@healthhub.app" className="vh-cta-btn-secondary vh-magnetic" data-magnetic="0.2">
+                Talk to a human
+              </a>
+            </div>
+            <div className="vh-cta__meta">
+              <span>iOS · Android · Web</span>
+              <span className="vh-cta__meta-dot">•</span>
+              <span>EN · සිං · த</span>
+              <span className="vh-cta__meta-dot">•</span>
+              <span>100% Private</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Footer ─── */}
+      <footer className="vh-footer">
+        {/* Top section: brand + newsletter */}
+        <div className="vh-container">
+          <div className="vh-footer__top">
+            <div className="vh-footer__brand-col">
+              <Link href="/" className="vh-footer__brand" aria-label="HealthHub home">
+                <span className="vh-footer__brand-mark">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  </svg>
+                </span>
+                <span>HealthHub</span>
+              </Link>
+              <p className="vh-footer__tag">
+                A private, beautifully designed health companion — built quietly in Colombo, for the way you actually look after the people you love.
+              </p>
+              {/* Social Icons */}
+              <div className="vh-footer__socials">
+                <a href="#" className="vh-footer__social" aria-label="Twitter / X">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="#" className="vh-footer__social" aria-label="GitHub">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                </a>
+                <a href="#" className="vh-footer__social" aria-label="LinkedIn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                </a>
+              </div>
+            </div>
+
+            <div className="vh-footer__newsletter-col">
+              <h4 className="vh-footer__col-title">Stay in the loop</h4>
+              <p className="vh-footer__newsletter-desc">Product updates, health tips, and early access — straight to your inbox.</p>
+              <form className="vh-footer__newsletter" onSubmit={(e) => e.preventDefault()}>
+                <input type="email" placeholder="you@email.com" className="vh-footer__newsletter-input" aria-label="Newsletter email" />
+                <button type="submit" className="vh-footer__newsletter-btn">Subscribe</button>
+              </form>
+            </div>
+          </div>
+
+          {/* Link columns */}
+          <div className="vh-footer__links-grid">
+            <div className="vh-footer__col">
+              <h4 className="vh-footer__col-title">Product</h4>
+              <ul>
+                <li><a href="#pillars">Features</a></li>
+                <li><a href="#tour">Tour</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#security">Security</a></li>
+                <li><a href="#jobs">Use Cases</a></li>
+              </ul>
+            </div>
+            <div className="vh-footer__col">
+              <h4 className="vh-footer__col-title">Company</h4>
+              <ul>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Careers <span className="vh-footer__badge">Hiring</span></a></li>
+                <li><a href="#">Press</a></li>
+                <li><a href="mailto:hello@healthhub.app">Contact</a></li>
+              </ul>
+            </div>
+            <div className="vh-footer__col">
+              <h4 className="vh-footer__col-title">Resources</h4>
+              <ul>
+                <li><a href="#">Documentation</a></li>
+                <li><a href="#">API Reference</a></li>
+                <li><a href="#">Changelog</a></li>
+                <li><a href="#">Status</a></li>
+              </ul>
+            </div>
+            <div className="vh-footer__col">
+              <h4 className="vh-footer__col-title">Legal</h4>
+              <ul>
+                <li><a href="/privacy">Privacy Policy</a></li>
+                <li><a href="/terms">Terms of Service</a></li>
+                <li><a href="#">Security</a></li>
+                <li><a href="#">DPA</a></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="vh-footer__bottom">
+            <div className="vh-footer__bottom-left">
+              <span className="vh-footer__status">
+                <span className="vh-footer__status-dot" />
+                All systems operational
+              </span>
+              <span className="vh-footer__copyright">© 2026 HealthHub · Colombo, Sri Lanka 🇱🇰</span>
+            </div>
+            <div className="vh-footer__bottom-right">
+              <span className="vh-footer__encrypt">
+                <I.shield style={{ width: 13, height: 13 }} />
+                End-to-end encrypted
+              </span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
-    <div className="scroll-progress__pct">0%</div>
-  </div>
-    </>
   );
 }

@@ -51,6 +51,8 @@ import {
   AlarmClock,
   Activity,
   ChevronsUpDown,
+  ScanLine,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -443,6 +445,15 @@ export default function RecordsV2() {
       .sort();
     return dates[dates.length - 1] ?? null;
   }, [recordsData]);
+  const recentCount = useMemo(() => {
+    const list = (recordsData?.records ?? []) as any[];
+    return list.filter((r: any) => {
+      const iso = r.recordDate ?? r.date ?? r.createdAt;
+      if (!iso) return false;
+      const days = (Date.now() - new Date(iso).getTime()) / 86_400_000;
+      return days <= 7;
+    }).length;
+  }, [recordsData]);
 
   // Derived lists (1:1 + add the recentOnly filter).
   const records = useMemo(() => {
@@ -768,6 +779,7 @@ export default function RecordsV2() {
           <PremiumHero
             eyebrow={t("recordsHub.hero.eyebrow")}
             total={totalRecords}
+            recentCount={recentCount}
             activeConsents={activeConsents}
             encryptedLabel="Synced"
             lastActivityLabel={
@@ -778,6 +790,9 @@ export default function RecordsV2() {
             patientName={patientName}
             subtitle={subtitle || patientName}
             avatarName={patientName}
+            onAddRecord={() => router.push("/(app)/add-record" as any)}
+            onScan={() => router.push("/(app)/records/scan" as any)}
+            onShare={() => router.push("/(app)/share" as any)}
           />
         )}
 
@@ -1439,30 +1454,37 @@ export default function RecordsV2() {
 }
 
 // ---------------------------------------------------------------------------
-// Premium hero — gradient sky/teal field with floating orbs, big numeral,
-// white sheen, and a glass mini-stats strip at the bottom (encrypted +
-// last activity + active consents). Mirrors the hero pattern used on home,
-// medicines, profile, family, appointments so the user lands on a familiar
-// affordance.
+// Premium hero — multi-stop gradient with radial depth, decorative orbs,
+// subtle pattern, glass stats strip and quick-action row. Mirrors the hero
+// pattern used on home, medicines, profile, family, appointments so the
+// user lands on a familiar affordance.
 // ---------------------------------------------------------------------------
 function PremiumHero({
   eyebrow,
   total,
+  recentCount,
   activeConsents,
   encryptedLabel,
   lastActivityLabel,
   patientName,
   subtitle,
   avatarName,
+  onAddRecord,
+  onScan,
+  onShare,
 }: {
   eyebrow: string;
   total: number;
+  recentCount?: number;
   activeConsents: number;
   encryptedLabel: string;
   lastActivityLabel: string | null;
   patientName: string;
   subtitle: string;
   avatarName: string;
+  onAddRecord?: () => void;
+  onScan?: () => void;
+  onShare?: () => void;
 }) {
   const { t } = useTranslation();
   const {
@@ -1484,25 +1506,76 @@ function PremiumHero({
         ...themeShadow.hero,
       }}
     >
+      {/* Multi-stop base gradient — sky → teal → emerald */}
       <LinearGradient
-        colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+        colors={["#0B2B64", "#0C5C8C", "#0C8B8C", "#0E7490"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* ambient orbs */}
+      {/* Soft radial highlight — top-left */}
       <View
         style={{
           position: "absolute",
-          top: -90,
-          right: -70,
-          width: 240,
-          height: 240,
-          borderRadius: 120,
+          top: -120,
+          left: -100,
+          width: 320,
+          height: 320,
+          borderRadius: 160,
           backgroundColor: "rgba(56, 189, 248, 0.32)",
         }}
       />
-      {/* white sheen at top */}
+      {/* Coral accent orb — bottom-right */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: -110,
+          right: -90,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          backgroundColor: "rgba(232, 95, 61, 0.22)",
+        }}
+      />
+      {/* Sky accent orb — center-right */}
+      <View
+        style={{
+          position: "absolute",
+          top: 40,
+          right: -40,
+          width: 180,
+          height: 180,
+          borderRadius: 90,
+          backgroundColor: "rgba(14, 165, 233, 0.22)",
+        }}
+      />
+      {/* Subtle dotted pattern overlay */}
+      <View
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.35,
+        }}
+        pointerEvents="none"
+      >
+        {Array.from({ length: 12 }).map((_, row) =>
+          Array.from({ length: 6 }).map((_, col) => (
+            <View
+              key={`${row}-${col}`}
+              style={{
+                position: "absolute",
+                top: 18 + row * 22,
+                left: 12 + col * 22,
+                width: 1.5,
+                height: 1.5,
+                borderRadius: 1,
+                backgroundColor: "rgba(255,255,255,0.18)",
+              }}
+            />
+          ))
+        )}
+      </View>
+      {/* White sheen at top edge */}
       <View
         style={{
           position: "absolute",
@@ -1510,86 +1583,347 @@ function PremiumHero({
           left: 0,
           right: 0,
           height: 1,
-          backgroundColor: "rgba(255,255,255,0.25)",
+          backgroundColor: "rgba(255,255,255,0.32)",
         }}
       />
 
       <View
         style={{
           paddingHorizontal: spacing.lg + 2,
-          paddingVertical: spacing.md + 2,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+          paddingTop: spacing.md + 2,
+          paddingBottom: spacing.md,
         }}
       >
-        {/* Left Text Column Stack */}
-        <View style={{ flex: 1, gap: 1, marginRight: spacing.md }}>
-          <TextMuted
-            color="rgba(255,255,255,0.7)"
-            size={10.5}
-            weight="800"
-            letterSpacing={1.2}
-            fontFamily={fontFamily.bodyBold}
-            style={{ textTransform: "uppercase" }}
-          >
-            {eyebrow}
-          </TextMuted>
-          <TextMuted
-            color="#FFFFFF"
-            size={20}
-            weight="800"
-            fontFamily={fontFamily.bodyBold}
-            style={{ marginTop: 2 }}
-            numberOfLines={1}
-          >
-            {patientName}
-          </TextMuted>
-          {subtitle ? (
-            <TextMuted
-              color="rgba(255,255,255,0.7)"
-              size={12.5}
-              weight="500"
-              fontFamily={fontFamily.body}
-              numberOfLines={1}
-            >
-              {subtitle}
-            </TextMuted>
-          ) : null}
-
-          {/* Numeral row */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "baseline",
-              gap: 4,
-              marginTop: 4,
-            }}
-          >
+        {/* Top row — identity + avatar */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1, marginRight: spacing.md }}>
+            {/* Eyebrow with live dot */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#34D399",
+                  shadowColor: "#34D399",
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.8,
+                  shadowRadius: 4,
+                }}
+              />
+              <TextMuted
+                color="rgba(255,255,255,0.78)"
+                size={10.5}
+                weight="800"
+                letterSpacing={1.4}
+                fontFamily={fontFamily.bodyBold}
+                style={{ textTransform: "uppercase" }}
+              >
+                {eyebrow}
+              </TextMuted>
+            </View>
             <TextMuted
               color="#FFFFFF"
-              size={28}
+              size={24}
               weight="800"
-              lineHeight={32}
-              letterSpacing={-0.5}
-              fontFamily={fontFamily.heavy}
-            >
-              {fmtCount(total)}
-            </TextMuted>
-            <TextMuted
-              color="rgba(255,255,255,0.7)"
-              size={14}
-              weight="700"
-              letterSpacing={-0.2}
               fontFamily={fontFamily.bodyBold}
+              style={{ marginTop: 4, letterSpacing: -0.5 }}
+              numberOfLines={1}
             >
-              {t("recordsHub.hero.total")}
+              {patientName}
             </TextMuted>
+            {subtitle ? (
+              <TextMuted
+                color="rgba(255,255,255,0.78)"
+                size={12.5}
+                weight="500"
+                fontFamily={fontFamily.body}
+                numberOfLines={1}
+                style={{ marginTop: 1 }}
+              >
+                {subtitle}
+              </TextMuted>
+            ) : null}
+          </View>
+
+          {/* Avatar with gradient ring + soft glow */}
+          <View
+            style={{
+              shadowColor: "rgba(255,255,255,0.45)",
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.6,
+              shadowRadius: 14,
+              elevation: 6,
+            }}
+          >
+            <View
+              style={{
+                padding: 2.5,
+                borderRadius: 999,
+                backgroundColor: "transparent",
+              }}
+            >
+              <LinearGradient
+                colors={["#FBBF24", "#F59E0B", "#FBBF24"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: 999,
+                }}
+              />
+              <View
+                style={{
+                  padding: 1.5,
+                  borderRadius: 999,
+                  backgroundColor: "#0C4A6E",
+                }}
+              >
+                <Avatar name={avatarName} size="lg" />
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Right column: Avatar */}
-        <Avatar name={avatarName} size="lg" ring />
+        {/* Glass stats strip */}
+        <View
+          style={{
+            marginTop: spacing.md,
+            borderRadius: 18,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.18)",
+          }}
+        >
+          {Platform.OS === "ios" ? (
+            <BlurView
+              intensity={32}
+              tint="dark"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: "rgba(255,255,255,0.10)" },
+              ]}
+            />
+          )}
+          <View
+            style={{
+              flexDirection: "row",
+              paddingVertical: 12,
+              paddingHorizontal: 4,
+            }}
+          >
+            {/* Stat 1: total records */}
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                gap: 2,
+                paddingHorizontal: 6,
+                borderRightWidth: 1,
+                borderColor: "rgba(255,255,255,0.14)",
+              }}
+            >
+              <TextMuted
+                color="#FFFFFF"
+                size={22}
+                weight="800"
+                fontFamily={fontFamily.heavy}
+                letterSpacing={-0.5}
+                numberOfLines={1}
+              >
+                {fmtCount(total)}
+              </TextMuted>
+              <TextMuted
+                color="rgba(255,255,255,0.75)"
+                size={9.5}
+                weight="700"
+                letterSpacing={0.6}
+                fontFamily={fontFamily.bodyBold}
+                style={{ textTransform: "uppercase" }}
+              >
+                {t("recordsHub.hero.total")}
+              </TextMuted>
+            </View>
+
+            {/* Stat 2: this week */}
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                gap: 2,
+                paddingHorizontal: 6,
+                borderRightWidth: 1,
+                borderColor: "rgba(255,255,255,0.14)",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "baseline",
+                  gap: 2,
+                }}
+              >
+                <TrendingUp
+                  size={13}
+                  color="#34D399"
+                  strokeWidth={2.5}
+                  style={{ marginRight: 2 }}
+                />
+                <TextMuted
+                  color="#FFFFFF"
+                  size={22}
+                  weight="800"
+                  fontFamily={fontFamily.heavy}
+                  letterSpacing={-0.5}
+                  numberOfLines={1}
+                >
+                  +{recentCount ?? 0}
+                </TextMuted>
+              </View>
+              <TextMuted
+                color="rgba(255,255,255,0.75)"
+                size={9.5}
+                weight="700"
+                letterSpacing={0.6}
+                fontFamily={fontFamily.bodyBold}
+                style={{ textTransform: "uppercase" }}
+              >
+                This week
+              </TextMuted>
+            </View>
+
+            {/* Stat 3: encrypted / synced */}
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                gap: 2,
+                paddingHorizontal: 6,
+              }}
+            >
+              <ShieldCheck size={22} color="#34D399" strokeWidth={2.5} />
+              <TextMuted
+                color="rgba(255,255,255,0.75)"
+                size={9.5}
+                weight="700"
+                letterSpacing={0.6}
+                fontFamily={fontFamily.bodyBold}
+                style={{ textTransform: "uppercase" }}
+              >
+                {encryptedLabel}
+              </TextMuted>
+            </View>
+          </View>
+        </View>
+
+        {/* Quick action row */}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+            marginTop: spacing.md,
+          }}
+        >
+          {onAddRecord ? (
+            <Pressable
+              onPress={onAddRecord}
+              accessibilityRole="button"
+              accessibilityLabel={t("recordsHub.hero.addCta", "Add record")}
+              style={({ pressed }) => ({
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingVertical: 10,
+                borderRadius: 999,
+                backgroundColor: pressed
+                  ? "rgba(255,255,255,0.92)"
+                  : "#FFFFFF",
+                shadowColor: "#000000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: pressed ? 0.18 : 0.10,
+                shadowRadius: 8,
+                elevation: 3,
+              })}
+            >
+              <Plus size={14} color="#0C4A6E" strokeWidth={2.5} />
+              <TextMuted
+                color="#0C4A6E"
+                size={12.5}
+                weight="800"
+                fontFamily={fontFamily.bodyBold}
+                letterSpacing={-0.1}
+              >
+                Add record
+              </TextMuted>
+            </Pressable>
+          ) : null}
+          {onScan ? (
+            <Pressable
+              onPress={onScan}
+              accessibilityRole="button"
+              accessibilityLabel={t("recordsHub.hero.scanCta", "Scan")}
+              style={({ pressed }) => ({
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingVertical: 10,
+                borderRadius: 999,
+                backgroundColor: pressed
+                  ? "rgba(255,255,255,0.30)"
+                  : "rgba(255,255,255,0.16)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.30)",
+              })}
+            >
+              <ScanLine size={14} color="#FFFFFF" strokeWidth={2.5} />
+              <TextMuted
+                color="#FFFFFF"
+                size={12.5}
+                weight="800"
+                fontFamily={fontFamily.bodyBold}
+                letterSpacing={-0.1}
+              >
+                Scan
+              </TextMuted>
+            </Pressable>
+          ) : null}
+          {onShare ? (
+            <Pressable
+              onPress={onShare}
+              accessibilityRole="button"
+              accessibilityLabel={t("recordsHub.hero.shareCta", "Share")}
+              style={({ pressed }) => ({
+                width: 42,
+                height: 42,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 999,
+                backgroundColor: pressed
+                  ? "rgba(255,255,255,0.30)"
+                  : "rgba(255,255,255,0.16)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.30)",
+              })}
+            >
+              <Share2 size={16} color="#FFFFFF" strokeWidth={2.5} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
     </View>
   );

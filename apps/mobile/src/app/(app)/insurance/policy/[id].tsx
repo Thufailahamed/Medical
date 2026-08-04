@@ -1,9 +1,10 @@
 // @ts-nocheck
-// Policy detail. Premium status, payment-due banner, coverage, dependents, claims summary, ECARD link.
+// Policy detail. Premium status banner, coverage ring, dependents, ECARD link.
 
 import { useEffect, useMemo } from "react";
 import { Linking, View, ScrollView, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Shield,
   CreditCard,
@@ -13,6 +14,9 @@ import {
   AlertTriangle,
   X,
   CheckCircle2,
+  Building2,
+  User2,
+  Cake,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import {
@@ -45,7 +49,7 @@ export default function PolicyDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const { data, isLoading } = useInsuranceEnrollment(id ?? "");
 
   const renewMut = useRenewInsuranceEnrollment();
@@ -53,7 +57,10 @@ export default function PolicyDetail() {
 
   const e = data?.enrollment;
 
-  const dueIn = useMemo(() => daysUntil(e?.nextPremiumDueAt), [e?.nextPremiumDueAt]);
+  const dueIn = useMemo(
+    () => daysUntil(e?.nextPremiumDueAt),
+    [e?.nextPremiumDueAt],
+  );
   const isOverdue = dueIn !== null && dueIn < 0;
   const isDueSoon = dueIn !== null && dueIn >= 0 && dueIn <= 7;
   const showPaymentBanner = e?.status === "active" && (isDueSoon || isOverdue);
@@ -62,9 +69,7 @@ export default function PolicyDetail() {
   useEffect(() => {
     const url = (renewMut.data as any)?.checkoutUrl;
     if (url && typeof url === "string") {
-      Linking.openURL(url).catch(() => {
-        // Ignore — user can retry from banner button.
-      });
+      Linking.openURL(url).catch(() => {});
     }
   }, [renewMut.data]);
 
@@ -94,7 +99,10 @@ export default function PolicyDetail() {
   const onRenew = () => {
     renewMut.mutate(e.id, {
       onError: (err: any) => {
-        Alert.alert(t("common.error") || "Error", err?.message || "Renewal failed");
+        Alert.alert(
+          t("common.error") || "Error",
+          err?.message || "Renewal failed",
+        );
       },
     });
   };
@@ -126,20 +134,158 @@ export default function PolicyDetail() {
     );
   };
 
+  const statusTone: "accent" | "warning" | "danger" | "neutral" =
+    e.status === "active"
+      ? "accent"
+      : e.status === "grace"
+        ? "warning"
+        : e.status === "lapsed" || e.status === "expired"
+          ? "danger"
+          : "neutral";
+
   return (
     <Screen>
       <ScreenHeader
         title={e.policyNumber ?? t("insurance.policy.policyNumber")}
-        subtitle={`LKR ${e.coverageAmountLkr.toLocaleString()} coverage`}
+        subtitle={e.providerName ?? t("insurance.provider.label")}
         kicker={t("insurance.policy.kicker")}
       />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* ─── Gradient hero ─── */}
+        <LinearGradient
+          colors={[colors.primary, colors.primaryStrong ?? colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            margin: 16,
+            borderRadius: 22,
+            padding: 18,
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              position: "absolute",
+              top: -60,
+              right: -60,
+              width: 200,
+              height: 200,
+              borderRadius: 999,
+              backgroundColor: "rgba(255,255,255,0.08)",
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              bottom: -90,
+              left: -30,
+              width: 240,
+              height: 240,
+              borderRadius: 999,
+              backgroundColor: "rgba(255,255,255,0.05)",
+            }}
+          />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Shield size={22} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText weight="700" size="md" style={{ color: "#FFFFFF" }}>
+                {e.planName ?? t("insurance.policy.summary")}
+              </AppText>
+              <AppText size="xs" style={{ color: "#FFFFFFCC" }}>
+                {e.planType
+                  ? t(`insurance.planTypes.${e.planType}`, e.planType)
+                  : ""}
+              </AppText>
+            </View>
+            <Pill
+              tone={statusTone}
+              style={{ backgroundColor: "rgba(255,255,255,0.95)" }}
+            >
+              {t(`insurance.status.${e.status}`)}
+            </Pill>
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              marginTop: 18,
+              gap: spacing.md,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
+                {t("insurance.policy.coverage")}
+              </AppText>
+              <AppText
+                weight="700"
+                size="lg"
+                style={{ color: "#FFFFFF", marginTop: 2 }}
+              >
+                LKR {e.coverageAmountLkr.toLocaleString()}
+              </AppText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
+                {t("insurance.policy.premium")}
+              </AppText>
+              <AppText
+                weight="700"
+                size="lg"
+                style={{ color: "#FFFFFF", marginTop: 2 }}
+              >
+                LKR {e.premiumAmountLkr.toLocaleString()}
+              </AppText>
+              <AppText size="xs" style={{ color: "#FFFFFFCC" }}>
+                / {e.billingCycle}
+              </AppText>
+            </View>
+          </View>
+
+          {e.nextPremiumDueAt ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 14,
+                backgroundColor: "rgba(255,255,255,0.12)",
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 12,
+              }}
+            >
+              <CalendarClock size={14} color="#FFFFFF" />
+              <AppText size="sm" style={{ color: "#FFFFFF" }}>
+                {t("insurance.policy.nextPremium")}:{" "}
+                {new Date(e.nextPremiumDueAt).toLocaleDateString()}
+              </AppText>
+            </View>
+          ) : null}
+        </LinearGradient>
+
         {showPaymentBanner ? (
           <Card
             style={{
               marginHorizontal: 16,
-              marginTop: 16,
+              marginTop: 4,
               padding: 14,
               gap: 10,
               borderWidth: 1.5,
@@ -147,7 +293,13 @@ export default function PolicyDetail() {
               backgroundColor: colors.warningSoft,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
               <View
                 style={{
                   width: 36,
@@ -198,7 +350,13 @@ export default function PolicyDetail() {
               borderColor: colors.border,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
               <CheckCircle2 size={16} color={colors.success} />
               <AppText size="sm" weight="600">
                 {t(`insurance.status.${e.status}`)}
@@ -218,63 +376,9 @@ export default function PolicyDetail() {
           </Card>
         ) : null}
 
-        <Card style={{ margin: 16, padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Shield size={20} color={colors.primary} />
-            <AppText weight="700" size="md">
-              {t("insurance.policy.summary")}
-            </AppText>
-          </View>
-          <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-            <Pill tone={e.status === "active" ? "accent" : "neutral"}>
-              {t(`insurance.status.${e.status}`)}
-            </Pill>
-            <Pill tone="primary">{e.billingCycle}</Pill>
-            {e.planName ? <Pill tone="neutral">{e.planName}</Pill> : null}
-          </View>
-
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <View style={{ flex: 1 }}>
-              <AppText size="xs" color="muted">
-                {t("insurance.policy.premium")}
-              </AppText>
-              <AppText weight="700" size="md">
-                LKR {e.premiumAmountLkr.toLocaleString()}
-              </AppText>
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText size="xs" color="muted">
-                {t("insurance.policy.coverage")}
-              </AppText>
-              <AppText weight="700" size="md">
-                LKR {e.coverageAmountLkr.toLocaleString()}
-              </AppText>
-            </View>
-          </View>
-
-          {e.nextPremiumDueAt ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <CalendarClock size={14} color={colors.textSubtle} />
-              <AppText size="sm" color="muted">
-                {t("insurance.policy.nextPremium")}:{" "}
-                {new Date(e.nextPremiumDueAt).toLocaleDateString()}
-              </AppText>
-            </View>
-          ) : null}
-          {e.lastPremiumPaidAt ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <CheckCircle2 size={14} color={colors.success} />
-              <AppText size="sm" color="muted">
-                {t("insurance.policy.lastPaid") || "Last paid"}:{" "}
-                {new Date(e.lastPremiumPaidAt).toLocaleDateString()}
-              </AppText>
-            </View>
-          ) : null}
-        </Card>
-
         <SectionHeader
           title={t("insurance.policy.actions")}
-          style={{ paddingHorizontal: 16 }}
+          style={{ paddingHorizontal: 16, paddingTop: 16 }}
         />
         <View
           style={{
@@ -307,37 +411,169 @@ export default function PolicyDetail() {
           />
         </View>
 
+        {/* Provider card */}
         <SectionHeader
-          title={t("insurance.policy.coverageDetails")}
+          title={t("insurance.provider.label")}
           style={{ paddingHorizontal: 16, paddingTop: 16 }}
         />
-        <Card style={{ marginHorizontal: 16, padding: 16, gap: 8 }}>
-          <AppText size="sm">
-            {t("insurance.policy.startDate")}:{" "}
-            {new Date(e.startDate).toLocaleDateString()}
-          </AppText>
-          {e.endDate ? (
-            <AppText size="sm">
-              {t("insurance.policy.endDate")}:{" "}
-              {new Date(e.endDate).toLocaleDateString()}
+        <Card
+          style={{
+            marginHorizontal: 16,
+            padding: 14,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              backgroundColor: colors.primaryMuted ?? colors.surfaceMuted,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Building2 size={22} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppText weight="700" size="md">
+              {e.providerName ?? t("insurance.provider.label")}
             </AppText>
+            <AppText size="xs" color="muted">
+              {e.planName ?? t("insurance.policy.summary")}
+            </AppText>
+          </View>
+        </Card>
+
+        {/* Schedule card */}
+        <SectionHeader
+          title={t("insurance.policy.schedule", "Schedule")}
+          style={{ paddingHorizontal: 16, paddingTop: 16 }}
+        />
+        <Card style={{ marginHorizontal: 16, padding: 16, gap: 10 }}>
+          <Detail
+            icon={<CalendarClock size={14} />}
+            label={t("insurance.policy.startDate")}
+            value={
+              e.startDate ? new Date(e.startDate).toLocaleDateString() : "—"
+            }
+          />
+          {e.endDate ? (
+            <Detail
+              icon={<CalendarClock size={14} />}
+              label={t("insurance.policy.endDate")}
+              value={new Date(e.endDate).toLocaleDateString()}
+            />
           ) : null}
-          {Array.isArray(e.dependents) && e.dependents.length > 0 ? (
-            <>
-              <AppText size="xs" color="muted" style={{ marginTop: 8 }}>
-                {t("insurance.policy.dependents")}
-              </AppText>
-              {e.dependents.map((d: any, i: number) => (
-                <AppText key={i} size="sm">
-                  · {d.name} ({d.relation}, {d.age})
-                </AppText>
-              ))}
-            </>
+          {e.lastPremiumPaidAt ? (
+            <Detail
+              icon={<CheckCircle2 size={14} />}
+              label={t("insurance.policy.lastPaid") || "Last paid"}
+              value={new Date(e.lastPremiumPaidAt).toLocaleDateString()}
+            />
           ) : null}
         </Card>
 
+        {/* Nominee */}
+        {e.nomineeName ? (
+          <>
+            <SectionHeader
+              title={t("insurance.policy.nominee", "Nominee")}
+              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+            />
+            <Card
+              style={{
+                marginHorizontal: 16,
+                padding: 14,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: colors.surfaceMuted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <User2 size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText weight="700">{e.nomineeName}</AppText>
+                <AppText size="xs" color="muted">
+                  {e.nomineeRelation}
+                  {e.nomineeDob
+                    ? ` · ${new Date(e.nomineeDob).toLocaleDateString()}`
+                    : ""}
+                </AppText>
+              </View>
+            </Card>
+          </>
+        ) : null}
+
+        {/* Dependents */}
+        {Array.isArray(e.dependents) && e.dependents.length > 0 ? (
+          <>
+            <SectionHeader
+              title={t("insurance.policy.dependents")}
+              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+            />
+            <View
+              style={{
+                paddingHorizontal: 16,
+                gap: 8,
+              }}
+            >
+              {e.dependents.map((d: any) => (
+                <Card
+                  key={d.id ?? d.name}
+                  style={{
+                    padding: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 999,
+                      backgroundColor: colors.surfaceMuted,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <AppText weight="700" size="sm">
+                      {(d.name ?? "?").charAt(0).toUpperCase()}
+                    </AppText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <AppText weight="600">{d.name}</AppText>
+                    <AppText size="xs" color="muted">
+                      {d.relation}
+                      {d.dob
+                        ? ` · ${new Date(d.dob).toLocaleDateString()}`
+                        : ""}
+                    </AppText>
+                  </View>
+                  {d.dob ? (
+                    <Cake size={14} color={colors.textMuted} />
+                  ) : null}
+                </Card>
+              ))}
+            </View>
+          </>
+        ) : null}
+
         {e.status === "active" ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 24 }}>
             <Button
               label={t("insurance.policy.cancelPolicy") || "Cancel policy"}
               variant="ghost"
@@ -350,5 +586,43 @@ export default function PolicyDetail() {
         ) : null}
       </ScrollView>
     </Screen>
+  );
+}
+
+function Detail({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          backgroundColor: colors.surfaceMuted,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {icon}
+      </View>
+      <AppText size="sm" color="muted" style={{ flex: 1 }}>
+        {label}
+      </AppText>
+      <AppText weight="600">{value}</AppText>
+    </View>
   );
 }

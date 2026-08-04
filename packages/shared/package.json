@@ -8,7 +8,8 @@
     "./types": "./src/types.ts",
     "./validators": "./src/validators.ts",
     "./vitals": "./src/vitals.ts",
-    "./records": "./src/records.ts"
+    "./records": "./src/records.ts",
+    "./extractors": "./src/extractors.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

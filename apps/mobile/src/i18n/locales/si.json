@@ -1011,7 +1011,10 @@
     "criticalAllergy_other": "ගොන්නේ දරුණු ආසාත්මකතා {{count}}ක්",
     "viewDetails": "විස්තර බලන්න",
     "bookTest": "පරීක්ෂණයක් වෙන්කරවන්න",
-    "testBookings": "මගේ පරීක්ෂණ"
+    "testBookings": "මගේ පරීක්ෂණ",
+    "notes": "සටහන්",
+    "vitalsShort": "ප්‍රතිඵල",
+    "aiOcrLabel": "බෙහෙත් පත්‍ර OCR"
   },
   "editProfile": {
     "title": "පැතිකඩ සංශෝධනය කරන්න",
@@ -1173,6 +1176,15 @@
     },
     "aiGuess": {
       "pill": "AI අනුමානය"
+    },
+    "trends": {
+      "title": "ප්‍රවණතා",
+      "meds": "ඖෂධ අනුගමනය",
+      "noMeds": "ක්‍රියාකාරී ඖෂධ නැත.",
+      "noData": "මේ මිනුම සඳහා දත්ත නැත. ප්‍රවණතා බැලීමට විචල්‍යයක් ඇතුළත් කරන්න.",
+      "labTitle": "රසායනාගාර ප්‍රතිඵල ප්‍රවණතාව",
+      "noLabData": "මේ පරීක්ෂණය සඳහා ව්‍යුහගත ප්‍රතිඵල නැත. අදාළ රසායනාගාර වාර්තාව උඩුගත කරන්න.",
+      "labLast": "අන්තිම: {{value}}{{unit}} · කියවීම් {{count}}ක්"
     },
     "hero": {
       "totalLabel": "මුළු",
@@ -2437,6 +2449,20 @@
     },
     "detailsHeading": "Details",
     "emptyDetails": "This record has no attachments or notes yet.",
+    "structured": {
+      "title": "ව්‍යුහගත දත්ත",
+      "tests": "පරීක්ෂණ ප්‍රතිඵල",
+      "findings": "රූප සොයාගැනීම්",
+      "events": "රෝහලෙන් මුදා හැරීමේ සිදුවීම්",
+      "doses": "එන්නත් මාත්‍රා",
+      "items": "බෙහෙත් ලැයිස්තුව",
+      "empty": "ව්‍යුහගත පේළි නැත. නැවත උත්සාහ කිරීමට නැවත උපුටා ගන්න ඔබන්න.",
+      "reExtract": "නැවත උපුටා ගන්න",
+      "reExtracting": "නැවත උපුටමින්…",
+      "reExtractOk": "නැවත උපුටා ගැනීම සම්පූර්ණයි",
+      "reExtractSkip": "මේ වාර්තා වර්ගය උපුටා ගැනීමට සහාය නොදක්වයි",
+      "reExtractFail": "නැවත උපුටා ගැනීම අසාර්ථක විය"
+    },
     "attachments": "ATTACHMENTS · {{count}}",
     "a11y": {
       "moreOptions": "More options",

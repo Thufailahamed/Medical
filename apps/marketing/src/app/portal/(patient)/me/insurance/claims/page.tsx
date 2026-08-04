@@ -21,9 +21,10 @@ interface Claim {
   claimNumber: string | null;
   status: string;
   treatmentType: string;
-  claimedAmountLkr: number;
-  approvedAmountLkr?: number | null;
-  submittedAt: string | null;
+  amountRequestedLkr: number;
+  amountApprovedLkr?: number | null;
+  providerName: string | null;
+  createdAt: string;
 }
 
 const STATUS_TONE: Record<string, "success" | "warn" | "danger" | "info" | "neutral"> = {
@@ -103,8 +104,9 @@ export default function ClaimsListPage() {
                   </div>
                   <div className="text-xs text-text-soft mt-0.5">
                     {c.treatmentType.replace(/_/g, " ")} ·{" "}
-                    {formatLkr(c.claimedAmountLkr)} claimed
-                    {c.submittedAt ? ` · ${formatDate(c.submittedAt)}` : ""}
+                    {formatLkr(c.amountRequestedLkr)} requested
+                    {c.providerName ? ` · ${c.providerName}` : ""}
+                    {` · ${formatDate(c.createdAt)}`}
                   </div>
                 </div>
                 <ChevronRight size={16} className="text-text-muted shrink-0" />

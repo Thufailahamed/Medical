@@ -19,6 +19,7 @@ import {
   recordText,
 } from "../lib/ai/dedupe";
 import { parseDicomHeader } from "../lib/dicom-parse";
+import { runExtraction } from "../lib/extraction-pipeline";
 import type { AppEnvironment } from "../types";
 
 /**
@@ -438,6 +439,30 @@ filesRouter.post("/upload-with-record", authMiddleware, requireRole("patient", "
         if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
           c.executionCtx.waitUntil(classifyPromise);
         }
+      }
+
+      // Migration 0070: structured extraction. Sibling of the
+      // classify+OCR blocks above. Auto-fires for the kinds we
+      // extract (lab_report, imaging, discharge_summary,
+      // vaccination, prescription). Best-effort — never blocks the
+      // upload response.
+      const extractPromise = (async () => {
+        try {
+          await runExtraction(c.env, db, {
+            recordId: record.id,
+            patientId,
+            fileUrl: `/files/download/${encodeURIComponent(r2Key)}?stream=1`,
+            mimeType: file.type || null,
+            recordKind: recordType,
+            source: "upload",
+            userId,
+          });
+        } catch (err) {
+          console.error("[files.upload-with-record] extract failed:", err);
+        }
+      })();
+      if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+        c.executionCtx.waitUntil(extractPromise);
       }
     }
   }

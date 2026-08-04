@@ -1388,4 +1388,202 @@ medicalRecordsRouter.get("/by-hash/:hash", authMiddleware, requireRole("patient"
   return c.json(row);
 });
 
+// ─── Migration 0070: Structured extraction child-row GETs ──
+// All gated by `canAccessRecord` so a doctor with a relationship
+// can read child tables; patients/caretakers see their own. The
+// child rows are immutable for the moment — re-extraction re-writes
+// them under a new transaction (see POST /:id/re-extract).
+
+import {
+  labTestResults,
+  imagingFindings,
+  dischargeEvents,
+  vaccinationDoses,
+  prescriptionItems,
+} from "@healthcare/db";
+
+async function loadRecordOr403(c: any, recordId: string) {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const userRole = c.get("userRole") ?? "patient";
+  const [record] = await db
+    .select()
+    .from(medicalRecords)
+    .where(eq(medicalRecords.id, recordId))
+    .limit(1);
+  if (!record) return { error: c.json({ error: "not_found" }, 404) };
+  const access = await canAccessRecord(db, userId, userRole, record);
+  if (!access.allowed) return { error: c.json({ error: "forbidden", reason: access.reason }, 403) };
+  return { record, db, userId };
+}
+
+medicalRecordsRouter.get("/:id/lab-results", authMiddleware, async (c) => {
+  const recordId = c.req.param("id");
+  const loaded = await loadRecordOr403(c, recordId);
+  if ("error" in loaded) return loaded.error;
+  const rows = await loaded.db
+    .select()
+    .from(labTestResults)
+    .where(eq(labTestResults.recordId, recordId))
+    .orderBy(labTestResults.reportedAt);
+  return c.json({ items: rows });
+});
+
+medicalRecordsRouter.get("/:id/imaging-findings", authMiddleware, async (c) => {
+  const recordId = c.req.param("id");
+  const loaded = await loadRecordOr403(c, recordId);
+  if ("error" in loaded) return loaded.error;
+  const rows = await loaded.db
+    .select()
+    .from(imagingFindings)
+    .where(eq(imagingFindings.recordId, recordId))
+    .limit(1);
+  return c.json({ item: rows[0] ?? null });
+});
+
+medicalRecordsRouter.get("/:id/discharge-events", authMiddleware, async (c) => {
+  const recordId = c.req.param("id");
+  const loaded = await loadRecordOr403(c, recordId);
+  if ("error" in loaded) return loaded.error;
+  const rows = await loaded.db
+    .select()
+    .from(dischargeEvents)
+    .where(eq(dischargeEvents.recordId, recordId))
+    .limit(1);
+  return c.json({ item: rows[0] ?? null });
+});
+
+medicalRecordsRouter.get("/:id/vaccination-doses", authMiddleware, async (c) => {
+  const recordId = c.req.param("id");
+  const loaded = await loadRecordOr403(c, recordId);
+  if ("error" in loaded) return loaded.error;
+  const rows = await loaded.db
+    .select()
+    .from(vaccinationDoses)
+    .where(eq(vaccinationDoses.recordId, recordId))
+    .orderBy(vaccinationDoses.date);
+  return c.json({ items: rows });
+});
+
+medicalRecordsRouter.get("/:id/prescription-items", authMiddleware, async (c) => {
+  const recordId = c.req.param("id");
+  const loaded = await loadRecordOr403(c, recordId);
+  if ("error" in loaded) return loaded.error;
+  const rows = await loaded.db
+    .select()
+    .from(prescriptionItems)
+    .where(eq(prescriptionItems.recordId, recordId))
+    .orderBy(prescriptionItems.prescribedDate);
+  return c.json({ items: rows });
+});
+
+// Re-extract: force a fresh extractor run. Useful after a model upgrade
+// or when the user manually verifies the existing extraction is wrong.
+// Rate-limited per-user via the same middleware that gates /ai/*.
+medicalRecordsRouter.post("/:id/re-extract", authMiddleware, async (c) => {
+  const recordId = c.req.param("id");
+  const loaded = await loadRecordOr403(c, recordId);
+  if ("error" in loaded) return loaded.error;
+  const { record, db, userId } = loaded;
+  // Find the first attached file to feed the extractor.
+  const [file] = await db
+    .select()
+    .from(files)
+    .where(eq(files.recordId, recordId))
+    .limit(1);
+  if (!file) {
+    return c.json({ error: "no_attached_file" }, 400);
+  }
+  const { runExtraction } = await import("../lib/extraction-pipeline");
+  // Wait inline — the user is waiting for the verdict.
+  const result = await runExtraction(c.env, db, {
+    recordId: record.id,
+    patientId: record.patientId,
+    fileUrl: `/files/download/${encodeURIComponent(file.r2Key || file.url)}?stream=1`,
+    mimeType: file.mimeType ?? null,
+    recordKind: record.kind || record.recordType,
+    source: "retry",
+    userId,
+    force: true,
+  });
+  return c.json({ result });
+});
+
+// Patient-wide lab trend: flat numeric series for charts.
+// `?test=HbA1c&months=24` filters to one test name across the patient's
+// history. This is the foundation that lets the UI show a real
+// HbA1c-over-time chart instead of cadence-only.
+//
+// Shared handler — both `/me/lab-results` and `/patients/:patientId/lab-results`
+// resolve to this after resolving the patientId.
+async function labResultsHandler(c: any): Promise<Response> {
+  const patientId = c.req.param("patientId");
+  const userId = c.get("userId");
+  const userRole = c.get("userRole") ?? "patient";
+  const db = c.get("db");
+  const access = await canAccessPatient(db, userId, userRole, patientId);
+  if (!access.allowed) return c.json({ error: "forbidden", reason: access.reason }, 403);
+
+  const testName = (c.req.query("test") || "").trim();
+  const months = Math.min(parseInt(c.req.query("months") || "24", 10) || 24, 120);
+  const cutoff = new Date(Date.now() - months * 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const whereParts: any[] = [eq(labTestResults.patientId, patientId)];
+  if (testName) {
+    whereParts.push(sql`LOWER(${labTestResults.testName}) = LOWER(${testName})`);
+  }
+  whereParts.push(sql`(${labTestResults.reportedAt} IS NULL OR ${labTestResults.reportedAt} >= ${cutoff})`);
+
+  const rows = await db
+    .select()
+    .from(labTestResults)
+    .where(and(...whereParts))
+    .orderBy(desc(labTestResults.reportedAt))
+    .limit(500);
+
+  // Build summary: last value per test name.
+  const summary: Record<string, { last: number | null; lastText: string | null; unit: string | null; lastDate: string | null; count: number }> = {};
+  for (const r of rows) {
+    const key = r.testName.toLowerCase();
+    if (!summary[key]) {
+      summary[key] = {
+        last: r.value ?? null,
+        lastText: r.valueText ?? null,
+        unit: r.unit ?? null,
+        lastDate: r.reportedAt ?? null,
+        count: 0,
+      };
+    }
+    summary[key].count++;
+  }
+  return c.json({ items: rows, summary });
+}
+
+medicalRecordsRouter.get("/me/lab-results", authMiddleware, async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const { patients } = await import("@healthcare/db");
+  const { eq } = await import("drizzle-orm");
+  const [me] = await db
+    .select({ id: patients.id })
+    .from(patients)
+    .where(eq(patients.userId, userId))
+    .limit(1);
+  if (!me) return c.json({ items: [], summary: {} });
+  c.set("patientId", me.id);
+  // Synthesize a minimal Request that satisfies the handler.
+  return labResultsHandler({
+    ...c,
+    req: {
+      ...c.req,
+      param: (k: string) => (k === "patientId" ? me.id : undefined),
+      query: c.req.query.bind(c.req),
+    },
+  } as any);
+});
+
+medicalRecordsRouter.get("/patients/:patientId/lab-results", authMiddleware, labResultsHandler);
+
 export default medicalRecordsRouter;

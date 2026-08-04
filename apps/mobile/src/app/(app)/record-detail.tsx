@@ -36,6 +36,12 @@ import {
   X,
   Check,
   MoreHorizontal,
+  Sparkles,
+  RefreshCw,
+  FlaskConical,
+  ScanLine,
+  Syringe,
+  ListChecks,
 } from "lucide-react-native";
 import {
   useMedicalRecord,
@@ -45,6 +51,12 @@ import {
   useMoveRecordToFamily,
   useReturnRecordToOwn,
   useDeleteRecord,
+  useRecordLabResults,
+  useRecordImagingFindings,
+  useRecordDischargeEvents,
+  useRecordVaccinationDoses,
+  useRecordPrescriptionItems,
+  useReExtractRecord,
 } from "@/hooks/useApi";
 import { api, getApiBaseUrl } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -770,6 +782,19 @@ export default function RecordDetailScreen() {
           })}
         </View>
 
+        {/* Structured data (migration 0070) — child-table counts
+            per extraction kind + re-extract button. Shown only for
+            record kinds the extraction pipeline understands. */}
+        {recordKind &&
+        ["lab_report", "imaging", "discharge_summary", "vaccination", "prescription"].includes(
+          recordKind,
+        ) ? (
+          <StructuredDataCard
+            recordId={recordId as string}
+            recordKind={recordKind}
+          />
+        ) : null}
+
         {/* Tags */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
           <Card>
@@ -1277,4 +1302,189 @@ function formatDate(dateStr: string, locale: string) {
   } catch {
     return dateStr;
   }
+}
+
+// ─── Structured data card ───────────────────────────────
+//
+// Shown on lab_report / imaging / discharge_summary / vaccination /
+// prescription records. Lists child-row counts per kind + a
+// Re-extract button. Reads from the same query keys the trend chart
+// uses, so the UI re-renders once the new rows land.
+function StructuredDataCard({
+  recordId,
+  recordKind,
+}: {
+  recordId: string;
+  recordKind: string;
+}) {
+  const { t } = useTranslation();
+  const { spacing, typography, colors, fontFamily } = useTheme();
+  const toast = useToast();
+  const reExtract = useReExtractRecord();
+
+  const lab = useRecordLabResults(recordKind === "lab_report" ? recordId : undefined);
+  const img = useRecordImagingFindings(recordKind === "imaging" ? recordId : undefined);
+  const dis = useRecordDischargeEvents(recordKind === "discharge_summary" ? recordId : undefined);
+  const vac = useRecordVaccinationDoses(recordKind === "vaccination" ? recordId : undefined);
+  const rx = useRecordPrescriptionItems(recordKind === "prescription" ? recordId : undefined);
+
+  const counts: Array<{ key: string; label: string; icon: any; n: number }> = [];
+  if (recordKind === "lab_report") {
+    counts.push({
+      key: "tests",
+      label: t("recordDetail.structured.tests", "Test results"),
+      icon: FlaskConical,
+      n: lab.data?.results?.length ?? 0,
+    });
+  }
+  if (recordKind === "imaging") {
+    counts.push({
+      key: "findings",
+      label: t("recordDetail.structured.findings", "Imaging findings"),
+      icon: ScanLine,
+      n: img.data?.findings?.length ?? 0,
+    });
+  }
+  if (recordKind === "discharge_summary") {
+    counts.push({
+      key: "events",
+      label: t("recordDetail.structured.events", "Discharge events"),
+      icon: ListChecks,
+      n: dis.data?.events?.length ?? 0,
+    });
+  }
+  if (recordKind === "vaccination") {
+    counts.push({
+      key: "doses",
+      label: t("recordDetail.structured.doses", "Vaccination doses"),
+      icon: Syringe,
+      n: vac.data?.doses?.length ?? 0,
+    });
+  }
+  if (recordKind === "prescription") {
+    counts.push({
+      key: "items",
+      label: t("recordDetail.structured.items", "Prescription items"),
+      icon: ListChecks,
+      n: rx.data?.items?.length ?? 0,
+    });
+  }
+
+  const totalCount = counts.reduce((s, c) => s + c.n, 0);
+  const isLoading =
+    lab.isLoading || img.isLoading || dis.isLoading || vac.isLoading || rx.isLoading;
+  const isExtracting = reExtract.isPending;
+
+  function onReExtract() {
+    reExtract.mutate(recordId, {
+      onSuccess: (res: any) => {
+        if (res?.status === "completed") {
+          toast.show(t("recordDetail.structured.reExtractOk"), "success");
+        } else if (res?.status === "skipped") {
+          toast.show(t("recordDetail.structured.reExtractSkip"), "info");
+        } else {
+          toast.show(
+            res?.error || t("recordDetail.structured.reExtractFail"),
+            "danger",
+          );
+        }
+      },
+      onError: () =>
+        toast.show(t("recordDetail.structured.reExtractFail"), "danger"),
+    });
+  }
+
+  return (
+    <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+      <Card>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 8,
+          }}
+        >
+          <Sparkles size={14} color={colors.primary} strokeWidth={2.5} />
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "800",
+              color: colors.textMuted,
+              letterSpacing: 1,
+              fontFamily: fontFamily.displayBold,
+            }}
+          >
+            {t("recordDetail.structured.title", "STRUCTURED DATA").toUpperCase()}
+          </Text>
+        </View>
+        {isLoading ? (
+          <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+            {t("common.loading", "Loading…")}
+          </Text>
+        ) : totalCount === 0 ? (
+          <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+            {t(
+              "recordDetail.structured.empty",
+              "No structured rows extracted yet. Run Re-extract to try again.",
+            )}
+          </Text>
+        ) : (
+          <View style={{ gap: 6, marginBottom: 10 }}>
+            {counts.map((c) => {
+              const Icon = c.icon;
+              return (
+                <View
+                  key={c.key}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  <Icon size={14} color={colors.primary} strokeWidth={2.25} />
+                  <Text
+                    style={[
+                      typography.body.sm,
+                      { color: "#1D1B20", fontFamily: fontFamily.body },
+                    ]}
+                  >
+                    {c.label}
+                  </Text>
+                  <View
+                    style={{
+                      marginLeft: "auto",
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 999,
+                      backgroundColor: `${colors.primary}14`,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: colors.primary,
+                        fontFamily: fontFamily.bodyBold,
+                      }}
+                    >
+                      {c.n}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+        <Button
+          title={
+            isExtracting
+              ? t("recordDetail.structured.reExtracting", "Re-extracting…")
+              : t("recordDetail.structured.reExtract", "Re-extract")
+          }
+          variant="secondary"
+          size="sm"
+          onPress={onReExtract}
+          disabled={isExtracting}
+          leftIcon={<RefreshCw size={14} color={colors.primary} />}
+        />
+      </Card>
+    </View>
+  );
 }

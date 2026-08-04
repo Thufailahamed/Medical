@@ -1,10 +1,12 @@
 // @ts-nocheck
-// Insurance tab home. Lists user's policies + entry to marketplace.
+// Insurance tab home. Hero, quick actions, my policies (rich cards),
+// claims summary, marketplace entry.
 
 import { useMemo } from "react";
 import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Shield,
   FilePlus,
@@ -12,6 +14,8 @@ import {
   Search,
   ChevronRight,
   FileText,
+  CalendarClock,
+  Building2,
 } from "lucide-react-native";
 import {
   useMyInsuranceEnrollments,
@@ -35,7 +39,19 @@ import {
 import { AppText } from "@/components/ui/AppText";
 import { Pressable } from "@/components/ui/Pressable";
 
-function QuickAction({ icon: Icon, label, color, bgColor, onPress }) {
+function QuickAction({
+  icon: Icon,
+  label,
+  color,
+  bgColor,
+  onPress,
+}: {
+  icon: any;
+  label: string;
+  color: string;
+  bgColor: string;
+  onPress: () => void;
+}) {
   const { colors, spacing, radius } = useTheme();
   return (
     <Pressable
@@ -83,15 +99,28 @@ function QuickAction({ icon: Icon, label, color, bgColor, onPress }) {
 export default function InsuranceHome() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const { data, isLoading } = useMyInsuranceEnrollments();
   const { data: claimsData } = useMyInsuranceClaims();
-  const { data: catalogData, isLoading: catalogLoading } = useInsuranceMarketplaceCatalog();
+  const { data: catalogData, isLoading: catalogLoading } =
+    useInsuranceMarketplaceCatalog();
 
   const enrollments = data?.enrollments ?? [];
   const active = useMemo(
     () => enrollments.filter((e) => e.status === "active"),
     [enrollments],
+  );
+  const dueSoon = useMemo(
+    () =>
+      active.filter((e) => {
+        if (!e.nextPremiumDueAt) return false;
+        const d = Math.ceil(
+          (new Date(e.nextPremiumDueAt).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24),
+        );
+        return d <= 7;
+      }).length,
+    [active],
   );
   const claims = claimsData?.claims ?? [];
   const pendingClaims = claims.filter((c) =>
@@ -168,6 +197,14 @@ export default function InsuranceHome() {
           tone="accent"
           icon={FilePlus}
         />
+        {dueSoon > 0 ? (
+          <StatCard
+            label={t("insurance.dueSoon", "Due ≤ 7d")}
+            value={String(dueSoon)}
+            tone="warning"
+            icon={CalendarClock}
+          />
+        ) : null}
       </View>
 
       {/* ─── Quick Actions ─── */}
@@ -222,22 +259,37 @@ export default function InsuranceHome() {
 
       {isLoading ? (
         <View style={{ padding: spacing.lg, gap: spacing.sm }}>
-          <Skeleton height={84} radius={16} />
-          <Skeleton height={84} radius={16} />
+          <Skeleton height={104} radius={16} />
+          <Skeleton height={104} radius={16} />
         </View>
       ) : enrollments.length === 0 ? (
         <View style={{ gap: spacing.lg }}>
           <View style={{ paddingHorizontal: spacing.lg }}>
-            <Card style={{ padding: spacing.md, alignItems: "center", gap: spacing.sm, backgroundColor: colors.surface }}>
+            <Card
+              style={{
+                padding: spacing.md,
+                alignItems: "center",
+                gap: spacing.sm,
+                backgroundColor: colors.surface,
+              }}
+            >
               <Shield size={24} color={colors.textSubtle} />
-              <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center" }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  textAlign: "center",
+                }}
+              >
                 {t("insurance.noPolicies")}
               </Text>
             </Card>
           </View>
 
           <View style={{ paddingHorizontal: spacing.lg }}>
-            <SectionHeader title={t("insurance.policiesToBuy", "Policies You Can Buy")} />
+            <SectionHeader
+              title={t("insurance.policiesToBuy", "Policies You Can Buy")}
+            />
             <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
               {catalogLoading ? (
                 <View style={{ gap: spacing.sm }}>
@@ -262,69 +314,16 @@ export default function InsuranceHome() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            gap: spacing.sm,
+            gap: spacing.md,
             marginTop: spacing.sm,
           }}
         >
           {enrollments.map((item) => (
-            <Pressable
+            <PolicyCard
               key={item.id}
+              item={item}
               onPress={() => router.push(`/insurance/policy/${item.id}`)}
-              haptic="light"
-            >
-              <Card style={{ padding: 14, gap: 6 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    gap: 8,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontWeight: "700",
-                      fontSize: 14,
-                      color: colors.text,
-                      flex: 1,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {item.policyNumber ??
-                      t("insurance.policy.policyNumber")}
-                  </Text>
-                  <Pill
-                    tone={
-                      item.status === "active" ? "accent" : "neutral"
-                    }
-                  >
-                    {t(`insurance.status.${item.status}`)}
-                  </Pill>
-                </View>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: colors.textMuted,
-                  }}
-                >
-                  LKR {item.premiumAmountLkr.toLocaleString()} /{" "}
-                  {item.billingCycle} · LKR{" "}
-                  {item.coverageAmountLkr.toLocaleString()} coverage
-                </Text>
-                {item.nextPremiumDueAt ? (
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: colors.textMuted,
-                    }}
-                  >
-                    {t("insurance.policy.nextPremium")}:{" "}
-                    {new Date(
-                      item.nextPremiumDueAt,
-                    ).toLocaleDateString()}
-                  </Text>
-                ) : null}
-              </Card>
-            </Pressable>
+            />
           ))}
         </View>
       )}
@@ -367,9 +366,7 @@ export default function InsuranceHome() {
           {claims.slice(0, 5).map((claim) => (
             <Pressable
               key={claim.id}
-              onPress={() =>
-                router.push(`/insurance/claims/${claim.id}`)
-              }
+              onPress={() => router.push(`/insurance/claims/${claim.id}`)}
               haptic="light"
             >
               <Card style={{ padding: 14, gap: 6 }}>
@@ -390,19 +387,19 @@ export default function InsuranceHome() {
                     numberOfLines={1}
                   >
                     {claim.claimNumber ??
-                      `Claim #${claim.id.slice(0, 8)}`}
+                      `Claim #${claim.id.slice(0, 8).toUpperCase()}`}
                   </Text>
                   <Pill
                     tone={
-                      claim.status === "approved"
+                      claim.status === "approved" || claim.status === "paid"
                         ? "accent"
                         : claim.status === "rejected"
-                        ? "danger"
-                        : "warning"
+                          ? "danger"
+                          : "warning"
                     }
                   >
                     {t(
-                      `insurance.claim.status.${claim.status}`,
+                      `insurance.claim.statuses.${claim.status}`,
                       claim.status,
                     )}
                   </Pill>
@@ -411,16 +408,14 @@ export default function InsuranceHome() {
                   style={{ fontSize: 13, color: colors.textMuted }}
                 >
                   LKR{" "}
-                  {(claim.claimedAmountLkr ?? 0).toLocaleString()}{" "}
-                  claimed
+                  {(claim.amountRequestedLkr ?? 0).toLocaleString()} ·{" "}
+                  {claim.providerName ?? t("insurance.provider.label")}
                 </Text>
-                {claim.submittedAt ? (
+                {claim.createdAt ? (
                   <Text
                     style={{ fontSize: 11, color: colors.textMuted }}
                   >
-                    {new Date(
-                      claim.submittedAt,
-                    ).toLocaleDateString()}
+                    {new Date(claim.createdAt).toLocaleDateString()}
                   </Text>
                 ) : null}
               </Card>
@@ -428,10 +423,7 @@ export default function InsuranceHome() {
           ))}
           {claims.length > 5 ? (
             <Button
-              label={t(
-                "insurance.claim.viewAll",
-                "View all claims",
-              )}
+              label={t("insurance.claim.viewAll", "View all claims")}
               variant="outline"
               onPress={() => router.push("/insurance/claims")}
               style={{ marginTop: spacing.sm }}
@@ -443,5 +435,176 @@ export default function InsuranceHome() {
       {/* Bottom spacing */}
       <View style={{ height: spacing.xxxl }} />
     </Screen>
+  );
+}
+
+function PolicyCard({
+  item,
+  onPress,
+}: {
+  item: any;
+  onPress: () => void;
+}) {
+  const { colors, spacing, radius } = useTheme();
+  const statusTone: "accent" | "warning" | "danger" | "neutral" =
+    item.status === "active"
+      ? "accent"
+      : item.status === "grace"
+        ? "warning"
+        : item.status === "lapsed" || item.status === "expired"
+          ? "danger"
+          : "neutral";
+
+  const daysToDue = item.nextPremiumDueAt
+    ? Math.ceil(
+        (new Date(item.nextPremiumDueAt).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24),
+      )
+    : null;
+  const dueSoon = daysToDue !== null && daysToDue >= 0 && daysToDue <= 7;
+  const overdue = daysToDue !== null && daysToDue < 0;
+
+  return (
+    <Pressable onPress={onPress} haptic="light">
+      <LinearGradient
+        colors={[colors.surface, colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: overdue
+            ? colors.danger
+            : dueSoon
+              ? colors.warning
+              : colors.border,
+          overflow: "hidden",
+          shadowColor: "#000",
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 1,
+        }}
+      >
+        {/* accent stripe */}
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
+            backgroundColor:
+              item.status === "active"
+                ? colors.primary
+                : colors.textSubtle,
+          }}
+        />
+        <View style={{ padding: 14, gap: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: colors.primaryMuted ?? colors.surfaceMuted,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Building2 size={18} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText weight="700" size="sm" numberOfLines={1}>
+                {item.planName ?? item.policyNumber}
+              </AppText>
+              <AppText size="xs" color="muted" numberOfLines={1}>
+                {item.providerName ??
+                  item.policyNumber ??
+                  t("insurance.provider.label")}
+              </AppText>
+            </View>
+            <Pill tone={statusTone}>
+              {t(`insurance.status.${item.status}`)}
+            </Pill>
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 4,
+            }}
+          >
+            <View>
+              <AppText size="xs" color="muted">
+                {t("insurance.policy.coverage")}
+              </AppText>
+              <AppText weight="700">
+                LKR {item.coverageAmountLkr.toLocaleString()}
+              </AppText>
+            </View>
+            <View>
+              <AppText size="xs" color="muted">
+                {t("insurance.policy.premium")}
+              </AppText>
+              <AppText weight="700">
+                LKR {item.premiumAmountLkr.toLocaleString()} /{" "}
+                {item.billingCycle}
+              </AppText>
+            </View>
+          </View>
+
+          {item.nextPremiumDueAt ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 4,
+              }}
+            >
+              <CalendarClock
+                size={12}
+                color={
+                  overdue
+                    ? colors.danger
+                    : dueSoon
+                      ? colors.warning
+                      : colors.textMuted
+                }
+              />
+              <AppText
+                size="xs"
+                color="muted"
+                style={{
+                  color: overdue
+                    ? colors.danger
+                    : dueSoon
+                      ? colors.warning
+                      : colors.textMuted,
+                }}
+              >
+                {t("insurance.policy.nextPremium")}:{" "}
+                {new Date(item.nextPremiumDueAt).toLocaleDateString()}
+                {daysToDue !== null
+                  ? ` · ${
+                      overdue
+                        ? `${-daysToDue}d overdue`
+                        : `${daysToDue}d`
+                    }`
+                  : ""}
+              </AppText>
+            </View>
+          ) : null}
+        </View>
+      </LinearGradient>
+    </Pressable>
   );
 }

@@ -39,8 +39,10 @@ interface Claim {
   id: string;
   claimNumber: string | null;
   status: string;
-  claimedAmountLkr: number;
-  submittedAt: string | null;
+  amountRequestedLkr: number;
+  amountApprovedLkr: number | null;
+  providerName: string | null;
+  createdAt: string;
 }
 
 interface Provider {
@@ -207,13 +209,17 @@ export default function PatientInsuranceHome() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="font-semibold text-text text-sm truncate">
-                        {e.policyNumber ?? `Policy ${e.id.slice(0, 8)}`}
+                        {e.planName ??
+                          e.policyNumber ??
+                          `Policy ${e.id.slice(0, 8)}`}
                       </div>
                       <Pill tone={STATUS_TONE[e.status] ?? "neutral"}>
                         {statusLabel(e.status)}
                       </Pill>
                     </div>
                     <div className="text-xs text-text-soft mt-0.5">
+                      {e.providerName ?? ""}
+                      {e.providerName ? " · " : ""}
                       {formatLkr(e.coverageAmountLkr)} coverage ·{" "}
                       {formatLkr(e.premiumAmountLkr)} / {e.billingCycle}
                     </div>
@@ -274,10 +280,12 @@ export default function PatientInsuranceHome() {
                       </Pill>
                     </div>
                     <div className="text-xs text-text-soft mt-0.5">
-                      {formatLkr(c.claimedAmountLkr)} claimed
-                      {c.submittedAt
-                        ? ` · ${formatDate(c.submittedAt)}`
+                      {formatLkr(c.amountRequestedLkr)} requested
+                      {c.amountApprovedLkr != null
+                        ? ` · ${formatLkr(c.amountApprovedLkr)} approved`
                         : ""}
+                      {c.providerName ? ` · ${c.providerName}` : ""}
+                      {` · ${formatDate(c.createdAt)}`}
                     </div>
                   </div>
                   <ChevronRight size={16} className="text-text-muted shrink-0" />

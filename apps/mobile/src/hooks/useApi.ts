@@ -4750,3 +4750,146 @@ export function useCoverageCheck() {
       ),
   });
 }
+
+// ─── Structured extraction (migration 0070) ──────────────
+//
+// Patient-mobile hooks for the typed-extraction child tables.
+// The backend writes normalised rows into lab_test_results /
+// imaging_findings / discharge_events / vaccination_doses /
+// prescription_items; these hooks expose them for charts and
+// the "Structured data" badge on record-detail.
+
+export interface LabTestResultRow {
+  id: string;
+  recordId: string;
+  testName: string;
+  value: number | null;
+  valueText: string | null;
+  unit: string | null;
+  refRangeLow: number | null;
+  refRangeHigh: number | null;
+  refRangeText: string | null;
+  flag: "normal" | "low" | "high" | "critical" | "abnormal" | "unknown";
+  reportedAt: string | null;
+  collectedAt: string | null;
+  loincCode: string | null;
+  extractionConfidence: number | null;
+  modelVersion: string | null;
+}
+
+export interface PatientLabTrendPoint {
+  testName: string;
+  value: number | null;
+  valueText: string | null;
+  unit: string | null;
+  reportedAt: string | null;
+  flag: string;
+}
+
+export function useRecordLabResults(recordId: string | undefined) {
+  return useQuery({
+    queryKey: ["record-lab-results", recordId],
+    queryFn: () =>
+      api<{ results: LabTestResultRow[] }>(
+        `/medical-records/${recordId}/lab-results`,
+        { silent401: true },
+      ),
+    enabled: !!recordId,
+    staleTime: 60_000,
+  });
+}
+
+export function useRecordImagingFindings(recordId: string | undefined) {
+  return useQuery({
+    queryKey: ["record-imaging", recordId],
+    queryFn: () =>
+      api<{ findings: any[] }>(
+        `/medical-records/${recordId}/imaging-findings`,
+        { silent401: true },
+      ),
+    enabled: !!recordId,
+    staleTime: 60_000,
+  });
+}
+
+export function useRecordDischargeEvents(recordId: string | undefined) {
+  return useQuery({
+    queryKey: ["record-discharge", recordId],
+    queryFn: () =>
+      api<{ events: any[] }>(
+        `/medical-records/${recordId}/discharge-events`,
+        { silent401: true },
+      ),
+    enabled: !!recordId,
+    staleTime: 60_000,
+  });
+}
+
+export function useRecordVaccinationDoses(recordId: string | undefined) {
+  return useQuery({
+    queryKey: ["record-vaccinations", recordId],
+    queryFn: () =>
+      api<{ doses: any[] }>(
+        `/medical-records/${recordId}/vaccination-doses`,
+        { silent401: true },
+      ),
+    enabled: !!recordId,
+    staleTime: 60_000,
+  });
+}
+
+export function useRecordPrescriptionItems(recordId: string | undefined) {
+  return useQuery({
+    queryKey: ["record-prescription-items", recordId],
+    queryFn: () =>
+      api<{ items: any[] }>(
+        `/medical-records/${recordId}/prescription-items`,
+        { silent401: true },
+      ),
+    enabled: !!recordId,
+    staleTime: 60_000,
+  });
+}
+
+export function usePatientLabTrend(
+  patientId: string | undefined,
+  testName: string | undefined,
+  months = 24,
+) {
+  return useQuery({
+    queryKey: ["patient-lab-trend", patientId, testName, months],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (testName) q.set("test", testName);
+      if (months) q.set("months", String(months));
+      const path = patientId
+        ? `/patients/${patientId}/lab-results?${q.toString()}`
+        : `/me/lab-results?${q.toString()}`;
+      return api<{
+        items: any[];
+        summary: Record<string, any>;
+      }>(path, { silent401: true });
+    },
+    enabled: !!testName,
+    staleTime: 60_000,
+  });
+}
+
+export function useReExtractRecord() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recordId: string) =>
+      api<{ ok: boolean; status: string; error?: string }>(
+        `/medical-records/${recordId}/re-extract`,
+        { method: "POST" },
+      ),
+    onSuccess: (_data, recordId) => {
+      queryClient.invalidateQueries({ queryKey: ["medical-record", recordId] });
+      queryClient.invalidateQueries({ queryKey: ["record-lab-results", recordId] });
+      queryClient.invalidateQueries({ queryKey: ["record-imaging", recordId] });
+      queryClient.invalidateQueries({ queryKey: ["record-discharge", recordId] });
+      queryClient.invalidateQueries({ queryKey: ["record-vaccinations", recordId] });
+      queryClient.invalidateQueries({ queryKey: ["record-prescription-items", recordId] });
+    },
+  });
+}

@@ -355,6 +355,13 @@ export const medicalRecords = sqliteTable(
     embedding: text("embedding"),
     embeddingModel: text("embedding_model"),
     embeddedAt: text("embedded_at"),
+    // Migration 0070: structured-extraction pipeline status. NULL until
+    // an extractor runs. `'pending'` claim-set guards backfill race
+    // conditions; `'skipped'` for record kinds we don't extract.
+    extractedDataStatus: text("extracted_data_status", {
+      enum: ["pending", "completed", "failed", "skipped"],
+    }),
+    extractedAt: text("extracted_at"),
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -369,6 +376,12 @@ export const medicalRecords = sqliteTable(
     emailMessageIdUnique: uniqueIndex(
       "medical_records_email_message_id_unique"
     ).on(t.emailMessageId),
+    // Backfill scanner: cheap scan of (status, record_type, created_at).
+    extractStatusIdx: index("idx_medical_records_extract_status").on(
+      t.extractedDataStatus,
+      t.recordType,
+      t.createdAt
+    ),
   })
 );
 
@@ -386,6 +399,211 @@ export const files = sqliteTable("files", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });
+
+// ─── Migration 0070: Structured extraction child tables ──
+// One row per typed fact extracted from a medical document PDF/image.
+// Distinct from the `lab_partner_portal` test_booking flow (migrations
+// 0062-0067) — those tables are the in-house diagnostic-booking domain;
+// the tables below are the general PHR-upload pipeline where a patient
+// drops a PDF/image into their locker and the LLM extracts facts.
+
+// ─── lab_test_results ─────────────────────────────────────
+export const labTestResults = sqliteTable(
+  "lab_test_results",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => medicalRecords.id, { onDelete: "cascade" }),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    labReportId: text("lab_report_id").references(() => labReports.id, {
+      onDelete: "set null",
+    }),
+    testName: text("test_name").notNull(),
+    loincCode: text("loinc_code"),
+    value: real("value"),
+    valueText: text("value_text"),
+    unit: text("unit"),
+    refRangeLow: real("ref_range_low"),
+    refRangeHigh: real("ref_range_high"),
+    refRangeText: text("ref_range_text"),
+    flag: text("flag", {
+      enum: ["normal", "low", "high", "critical", "abnormal", "unknown"],
+    })
+      .notNull()
+      .default("unknown"),
+    collectedAt: text("collected_at"),
+    reportedAt: text("reported_at"),
+    rawText: text("raw_text"),
+    pageHint: integer("page_hint"),
+    extractionConfidence: real("extraction_confidence"),
+    modelVersion: text("model_version"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientTestReportedIdx: index("idx_lab_test_results_patient_test_reported").on(
+      t.patientId,
+      t.testName,
+      t.reportedAt
+    ),
+    recordIdx: index("idx_lab_test_results_record").on(t.recordId),
+    labReportIdx: index("idx_lab_test_results_lab_report").on(t.labReportId),
+    confidenceIdx: index("idx_lab_test_results_confidence").on(
+      t.extractionConfidence
+    ),
+  })
+);
+
+// ─── imaging_findings ─────────────────────────────────────
+export const imagingFindings = sqliteTable(
+  "imaging_findings",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => medicalRecords.id, { onDelete: "cascade" }),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    modality: text("modality").notNull(),
+    bodyPart: text("body_part"),
+    studyDate: text("study_date"),
+    findings: text("findings"),
+    impression: text("impression"),
+    recommendations: text("recommendations"),
+    radiologistName: text("radiologist_name"),
+    critical: integer("critical", { mode: "boolean" }).notNull().default(false),
+    rawText: text("raw_text"),
+    extractionConfidence: real("extraction_confidence"),
+    modelVersion: text("model_version"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientDateIdx: index("idx_imaging_findings_patient_date").on(
+      t.patientId,
+      t.studyDate
+    ),
+    recordIdx: index("idx_imaging_findings_record").on(t.recordId),
+    criticalIdx: index("idx_imaging_findings_critical").on(t.critical),
+  })
+);
+
+// ─── discharge_events ─────────────────────────────────────
+export const dischargeEvents = sqliteTable(
+  "discharge_events",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => medicalRecords.id, { onDelete: "cascade" }),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    admissionDate: text("admission_date"),
+    dischargeDate: text("discharge_date"),
+    primaryDiagnosis: text("primary_diagnosis"),
+    secondaryDiagnoses: text("secondary_diagnoses"), // JSON []
+    procedures: text("procedures"), // JSON [{name, date}]
+    medicationsGiven: text("medications_given"), // JSON [{name, dosage, duration}]
+    followUpInstructions: text("follow_up_instructions"),
+    followUpDate: text("follow_up_date"),
+    hospitalName: text("hospital_name"),
+    attendingDoctor: text("attending_doctor"),
+    rawText: text("raw_text"),
+    extractionConfidence: real("extraction_confidence"),
+    modelVersion: text("model_version"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientDateIdx: index("idx_discharge_events_patient_date").on(
+      t.patientId,
+      t.dischargeDate
+    ),
+    recordIdx: index("idx_discharge_events_record").on(t.recordId),
+  })
+);
+
+// ─── vaccination_doses ───────────────────────────────────
+export const vaccinationDoses = sqliteTable(
+  "vaccination_doses",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => medicalRecords.id, { onDelete: "cascade" }),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    catalogId: text("catalog_id").references(() => vaccineCatalog.id, {
+      onDelete: "set null",
+    }),
+    vaccineName: text("vaccine_name").notNull(),
+    doseNumber: integer("dose_number"),
+    date: text("date"),
+    provider: text("provider"),
+    batchNumber: text("batch_number"),
+    site: text("site"),
+    rawText: text("raw_text"),
+    extractionConfidence: real("extraction_confidence"),
+    modelVersion: text("model_version"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientVaccineDateIdx: index("idx_vaccination_doses_patient_vaccine_date").on(
+      t.patientId,
+      t.vaccineName,
+      t.date
+    ),
+    recordIdx: index("idx_vaccination_doses_record").on(t.recordId),
+    catalogIdx: index("idx_vaccination_doses_catalog").on(t.catalogId),
+  })
+);
+
+// ─── prescription_items ──────────────────────────────────
+export const prescriptionItems = sqliteTable(
+  "prescription_items",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => medicalRecords.id, { onDelete: "cascade" }),
+    patientId: text("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    name: text("name").notNull(),
+    dosage: text("dosage"),
+    frequency: text("frequency"),
+    timing: text("timing"),
+    durationDays: integer("duration_days"),
+    refills: integer("refills"),
+    prescriberName: text("prescriber_name"),
+    prescribedDate: text("prescribed_date"),
+    rawText: text("raw_text"),
+    extractionConfidence: real("extraction_confidence"),
+    modelVersion: text("model_version"),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    patientDateIdx: index("idx_prescription_items_patient_date").on(
+      t.patientId,
+      t.prescribedDate
+    ),
+    recordIdx: index("idx_prescription_items_record").on(t.recordId),
+    nameIdx: index("idx_prescription_items_name").on(t.patientId, t.name),
+  })
+);
 
 // ─── Medicines ───────────────────────────────────────────
 export const medicines = sqliteTable(

@@ -113,7 +113,7 @@ function shapePlan(row: any) {
   };
 }
 
-function shapeEnrollment(row: any, deps: any[] = []) {
+function shapeEnrollment(row: any, deps: any[] = [], lookups: any = {}) {
   if (!row) return null;
   return {
     id: row.id,
@@ -146,11 +146,20 @@ function shapeEnrollment(row: any, deps: any[] = []) {
     cancelledReason: row.cancelledReason,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    planName: lookups.planName ?? null,
+    planType: lookups.planType ?? null,
+    providerName: lookups.providerName ?? null,
+    providerLogoUrl: lookups.providerLogoUrl ?? null,
+    holderName: lookups.holderName ?? null,
   };
 }
 
-function shapeClaim(row: any, docs: any[] = [], msgs: any[] = []) {
+function shapeClaim(row: any, docs: any[] = [], msgs: any[] = [], lookups: any = {}) {
   if (!row) return null;
+  // CLM prefix mirrors policy-number style; use the stable row id (first 8).
+  const claimNumber =
+    row.claimNumber ??
+    `CLM-${new Date(row.createdAt).getFullYear()}-${row.id.slice(0, 8).toUpperCase()}`;
   return {
     id: row.id,
     enrollmentId: row.enrollmentId,
@@ -188,6 +197,11 @@ function shapeClaim(row: any, docs: any[] = [], msgs: any[] = []) {
       attachmentFileKey: m.attachmentFileKey,
       createdAt: m.createdAt,
     })),
+    claimNumber,
+    policyNumber: lookups.policyNumber ?? null,
+    providerName: lookups.providerName ?? null,
+    planName: lookups.planName ?? null,
+    holderName: lookups.holderName ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -617,7 +631,11 @@ marketplaceRouter.post(
     if (!enrollment || enrollment.userId !== userId) {
       return c.json({ error: "Not found" }, 404);
     }
-    if (enrollment.status !== "payment_pending") {
+    // Allow payment for first purchase OR a renewal on an active/grace/expired
+    // policy that has an open invoice. Cancelled/lapsed policies must renew
+    // via the activation flow before paying.
+    const allowedStatuses = ["payment_pending", "active", "grace", "expired"];
+    if (!allowedStatuses.includes(enrollment.status)) {
       return c.json(
         { error: `Cannot pay: enrollment is ${enrollment.status}` },
         400,
@@ -732,8 +750,11 @@ marketplaceRouter.get(
       arr.push(d);
       depByEnr.set(d.enrollmentId, arr);
     }
+    const lookups = await loadEnrollmentsByIds(db, ids);
     return c.json({
-      enrollments: rows.map((r) => shapeEnrollment(r, depByEnr.get(r.id) ?? [])),
+      enrollments: rows.map((r) =>
+        shapeEnrollment(r, depByEnr.get(r.id) ?? [], lookups.get(r.id) ?? {}),
+      ),
     });
   },
 );
@@ -811,7 +832,9 @@ marketplaceRouter.delete(
 
 /**
  * POST /insurance-marketplace/enrollments/:id/renew
- * Generates the next premium invoice. Idempotent for the current cycle.
+ * Generates the next premium invoice (idempotent for the current cycle) and,
+ * when PayHere is configured, returns the checkout payload so the client can
+ * open the hosted page immediately. The client can also call /pay separately.
  */
 marketplaceRouter.post(
   "/enrollments/:id/renew",
@@ -820,50 +843,120 @@ marketplaceRouter.post(
   async (c) => {
     const db = c.get("db");
     const userId = c.get("userId");
+    const env = c.env;
     const enrollment = await loadEnrollment(db, c.req.param("id"));
     if (!enrollment || enrollment.userId !== userId) {
       return c.json({ error: "Not found" }, 404);
     }
-    if (!["active", "grace", "expired"].includes(enrollment.status)) {
+    if (!["active", "grace", "expired", "lapsed"].includes(enrollment.status)) {
       return c.json(
         { error: `Cannot renew: status is ${enrollment.status}` },
         400,
       );
     }
 
-    // If an open invoice already exists for the next cycle, return it.
-    const [existing] = await db
-      .select()
-      .from(insurancePremiumInvoices)
-      .where(
-        and(
-          eq(insurancePremiumInvoices.enrollmentId, enrollment.id),
-          eq(insurancePremiumInvoices.status, "open"),
-        ),
-      )
-      .limit(1);
-    if (existing) return c.json({ invoice: existing });
+    // If an open invoice already exists for the next cycle, reuse it.
+    let invoice = (
+      await db
+        .select()
+        .from(insurancePremiumInvoices)
+        .where(
+          and(
+            eq(insurancePremiumInvoices.enrollmentId, enrollment.id),
+            eq(insurancePremiumInvoices.status, "open"),
+          ),
+        )
+        .limit(1)
+    )[0];
 
-    const dueAt =
-      enrollment.billingCycle === "monthly"
-        ? addDays(new Date().toISOString(), 30)
-        : addDays(new Date().toISOString(), 365);
-    const [invoice] = await db
-      .insert(insurancePremiumInvoices)
-      .values({
-        id: crypto.randomUUID(),
-        enrollmentId: enrollment.id,
-        cycle: enrollment.billingCycle,
-        amountLkr: enrollment.premiumAmountLkr,
-        dueAt,
-        status: "open",
-      } as any)
-      .returning();
-    await db
-      .update(insuranceEnrollments)
-      .set({ nextPremiumDueAt: dueAt, updatedAt: new Date().toISOString() })
-      .where(eq(insuranceEnrollments.id, enrollment.id));
-    return c.json({ invoice }, 201);
+    if (!invoice) {
+      const dueAt =
+        enrollment.billingCycle === "monthly"
+          ? addDays(new Date().toISOString(), 30)
+          : addDays(new Date().toISOString(), 365);
+      invoice = (
+        await db
+          .insert(insurancePremiumInvoices)
+          .values({
+            id: crypto.randomUUID(),
+            enrollmentId: enrollment.id,
+            cycle: enrollment.billingCycle,
+            amountLkr: enrollment.premiumAmountLkr,
+            dueAt,
+            status: "open",
+          } as any)
+          .returning()
+      )[0];
+      await db
+        .update(insuranceEnrollments)
+        .set({
+          nextPremiumDueAt: dueAt,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(insuranceEnrollments.id, enrollment.id));
+    }
+
+    // PayHere not configured → just return the invoice (status 201 for first
+    // creation, 200 for reused).
+    const merchantId = env.PAYHERE_MERCHANT_ID;
+    const secret = env.PAYHERE_SECRET;
+    if (!merchantId || !secret) {
+      return c.json({ invoice }, invoice ? 200 : 201);
+    }
+
+    // Reuse pending orderId if invoice already linked to one.
+    let orderId = invoice.paymentId ?? `INS-${mintOrderId()}`;
+    if (!invoice.paymentId) {
+      await db
+        .update(insurancePremiumInvoices)
+        .set({ paymentId: orderId, updatedAt: new Date().toISOString() })
+        .where(eq(insurancePremiumInvoices.id, invoice.id));
+    }
+
+    const hash = await computeHash(
+      merchantId,
+      orderId,
+      invoice.amountLkr,
+      "LKR",
+      secret,
+    );
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const fullName = user?.name || user?.email?.split("@")[0] || "Patient";
+    const [firstName, ...rest] = fullName.split(" ");
+    const lastName = rest.join(" ") || "-";
+    const publicUrl = env.PUBLIC_URL || "https://app.healthhub.app";
+    const fields = {
+      merchant_id: merchantId,
+      return_url: `${publicUrl}/insurance/payment/return?order=${orderId}`,
+      cancel_url: `${publicUrl}/insurance/payment/cancel?order=${orderId}`,
+      notify_url: `${publicUrl}/api/payments/notify`,
+      order_id: orderId,
+      items: `Health insurance premium ${enrollment.billingCycle} (policy ${enrollment.policyNumber ?? "draft"})`,
+      currency: "LKR",
+      amount: invoice.amountLkr.toFixed(2),
+      first_name: firstName,
+      last_name: lastName,
+      email: user?.email || "noreply@healthhub.app",
+      phone: user?.phone || "+94770000000",
+      address: "Sri Lanka",
+      city: "Colombo",
+      country: "Sri Lanka",
+      hash,
+    };
+    return c.json({
+      invoice,
+      orderId,
+      amount: invoice.amountLkr,
+      currency: "LKR",
+      hash,
+      checkoutUrl: checkoutUrl(env),
+      sandbox: isSandbox(env),
+      fields,
+    });
   },
 );
 
@@ -898,6 +991,16 @@ marketplaceRouter.get(
       .from(insuranceProviders)
       .where(eq(insuranceProviders.id, enrollment.providerId))
       .limit(1);
+    const [plan] = await db
+      .select()
+      .from(insurancePlans)
+      .where(eq(insurancePlans.id, enrollment.planId))
+      .limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, enrollment.userId))
+      .limit(1);
     return c.json({
       ecard: {
         id: card.id,
@@ -906,10 +1009,15 @@ marketplaceRouter.get(
         qrToken: card.qrToken,
         issuedAt: card.issuedAt,
         validUntil: card.validUntil,
+        holderName: user?.name ?? null,
+        providerName: provider?.name ?? null,
+        planName: plan?.name ?? null,
+        policyNumber: enrollment.policyNumber,
+        coverageAmountLkr: enrollment.coverageAmountLkr,
       },
       policyNumber: enrollment.policyNumber,
       providerName: provider?.name,
-      holderName: null,
+      holderName: user?.name,
     });
   },
 );
@@ -1066,7 +1174,15 @@ marketplaceRouter.get(
       .from(insuranceMarketplaceClaims)
       .where(eq(insuranceMarketplaceClaims.userId, userId))
       .orderBy(desc(insuranceMarketplaceClaims.createdAt));
-    return c.json({ claims: rows.map((r) => shapeClaim(r)) });
+    const lookups = await loadEnrollmentsByIds(
+      db,
+      Array.from(new Set(rows.map((r) => r.enrollmentId))),
+    );
+    return c.json({
+      claims: rows.map((r) =>
+        shapeClaim(r, [], [], lookups.get(r.enrollmentId) ?? {}),
+      ),
+    });
   },
 );
 
@@ -1340,22 +1456,35 @@ export async function handleInsurancePremiumPaid(
     })
     .where(eq(insuranceEnrollments.id, enrollment.id));
 
-  // Mint E-card on first activation.
-  if (isFirstPremium) {
-    const existingCard = await db
-      .select()
-      .from(insuranceEcards)
-      .where(eq(insuranceEcards.enrollmentId, enrollment.id))
-      .limit(1);
-    if (existingCard.length === 0) {
-      await db.insert(insuranceEcards).values({
-        id: crypto.randomUUID(),
-        enrollmentId: enrollment.id,
-        cardNumber: mintCardNumber(),
+  // Mint E-card on first activation; refresh validity on every renewal so
+  // the card stays valid for the new paid cycle.
+  const newValidUntil = addMonths(
+    startDate,
+    enrollment.billingCycle === "monthly" ? 1 : 12,
+  );
+  const [existingCard] = await db
+    .select()
+    .from(insuranceEcards)
+    .where(eq(insuranceEcards.enrollmentId, enrollment.id))
+    .limit(1);
+  if (!existingCard) {
+    await db.insert(insuranceEcards).values({
+      id: crypto.randomUUID(),
+      enrollmentId: enrollment.id,
+      cardNumber: mintCardNumber(),
+      qrToken: crypto.randomUUID().replace(/-/g, ""),
+      validUntil: newValidUntil,
+    } as any);
+  } else if (new Date(existingCard.validUntil).getTime() < Date.now()) {
+    // Card expired — rotate the QR token on renewal so old screenshots
+    // can't be reused past expiry.
+    await db
+      .update(insuranceEcards)
+      .set({
+        validUntil: newValidUntil,
         qrToken: crypto.randomUUID().replace(/-/g, ""),
-        validUntil: addMonths(startDate, enrollment.billingCycle === "monthly" ? 1 : 12),
-      } as any);
-    }
+      })
+      .where(eq(insuranceEcards.id, existingCard.id));
   }
 
   await notify({
@@ -1447,7 +1576,67 @@ async function loadEnrollment(db: any, id: string) {
     .select()
     .from(insuranceDependentMembers)
     .where(eq(insuranceDependentMembers.enrollmentId, id));
-  return shapeEnrollment(row, deps);
+  const [plan] = await db
+    .select()
+    .from(insurancePlans)
+    .where(eq(insurancePlans.id, row.planId))
+    .limit(1);
+  const [provider] = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.id, row.providerId))
+    .limit(1);
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, row.userId))
+    .limit(1);
+  return shapeEnrollment(row, deps, {
+    planName: plan?.name ?? null,
+    planType: plan?.planType ?? null,
+    providerName: provider?.name ?? null,
+    providerLogoUrl: provider?.logoUrl ?? null,
+    holderName: user?.name ?? null,
+  });
+}
+
+async function loadEnrollmentsByIds(db: any, ids: string[]) {
+  if (!ids.length) return new Map();
+  const rows = await db
+    .select()
+    .from(insuranceEnrollments)
+    .where(inArray(insuranceEnrollments.id, ids));
+  const planIds = Array.from(new Set(rows.map((r) => r.planId)));
+  const providerIds = Array.from(new Set(rows.map((r) => r.providerId)));
+  const userIds = Array.from(new Set(rows.map((r) => r.userId)));
+  const [plans, providers, usersRows] = await Promise.all([
+    planIds.length
+      ? db.select().from(insurancePlans).where(inArray(insurancePlans.id, planIds))
+      : [],
+    providerIds.length
+      ? db
+          .select()
+          .from(insuranceProviders)
+          .where(inArray(insuranceProviders.id, providerIds))
+      : [],
+    userIds.length
+      ? db.select().from(users).where(inArray(users.id, userIds))
+      : [],
+  ]);
+  const planById = new Map(plans.map((p) => [p.id, p]));
+  const providerById = new Map(providers.map((p) => [p.id, p]));
+  const userById = new Map(usersRows.map((u) => [u.id, u]));
+  const out = new Map();
+  for (const r of rows) {
+    out.set(r.id, {
+      planName: planById.get(r.planId)?.name ?? null,
+      planType: planById.get(r.planId)?.planType ?? null,
+      providerName: providerById.get(r.providerId)?.name ?? null,
+      providerLogoUrl: providerById.get(r.providerId)?.logoUrl ?? null,
+      holderName: userById.get(r.userId)?.name ?? null,
+    });
+  }
+  return out;
 }
 
 async function loadClaim(db: any, id: string) {
@@ -1466,7 +1655,8 @@ async function loadClaim(db: any, id: string) {
     .from(insuranceMarketplaceClaimMessages)
     .where(eq(insuranceMarketplaceClaimMessages.claimId, id))
     .orderBy(insuranceMarketplaceClaimMessages.createdAt);
-  return shapeClaim(row, docs, msgs);
+  const lookups = await loadEnrollmentsByIds(db, [row.enrollmentId]);
+  return shapeClaim(row, docs, msgs, lookups.get(row.enrollmentId) ?? {});
 }
 
 function createDbInternal(env: any) {

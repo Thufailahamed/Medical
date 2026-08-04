@@ -1,11 +1,20 @@
 // @ts-nocheck
-// Submit reimbursement claim. Treatment details + amount + file refs.
+// Submit reimbursement claim. Treatment details + amount + real document
+// upload via expo-document-picker / expo-image-picker → /files/upload.
 
 import { useState } from "react";
-import { View, ScrollView, TextInput } from "react-native";
+import { View, ScrollView, TextInput, Alert } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Upload, FilePlus } from "lucide-react-native";
+import {
+  Upload,
+  FilePlus,
+  Camera,
+  FileText,
+  X,
+} from "lucide-react-native";
 import {
   Screen,
   ScreenHeader,
@@ -34,7 +43,22 @@ const TREATMENTS = [
   "maternity",
 ] as const;
 
-const DOC_KINDS = ["bill", "discharge_summary", "prescription", "lab_report", "id_proof"] as const;
+const DOC_KINDS = [
+  "bill",
+  "discharge_summary",
+  "prescription",
+  "lab_report",
+  "id_proof",
+] as const;
+
+type DocKind = (typeof DOC_KINDS)[number];
+
+type AttachedDoc = {
+  kind: DocKind;
+  fileKey: string;
+  fileName: string;
+  contentType: string;
+};
 
 export default function NewClaim() {
   const router = useRouter();
@@ -61,16 +85,97 @@ export default function NewClaim() {
   const [dischargeDate, setDischargeDate] = useState("");
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
-  const [docs, setDocs] = useState<Array<{ kind: typeof DOC_KINDS[number]; fileKey: string }>>(
-    [],
-  );
-  const [pendingDocKind, setPendingDocKind] = useState<typeof DOC_KINDS[number]>("bill");
+  const [docs, setDocs] = useState<AttachedDoc[]>([]);
+  const [pendingDocKind, setPendingDocKind] = useState<DocKind>("bill");
 
-  const onAddDoc = async () => {
-    // Native file picker not wired — placeholder fileKey from URL hash placeholder.
-    const fakeKey = `pending-${Date.now()}`;
-    setDocs((prev) => [...prev, { kind: pendingDocKind, fileKey: fakeKey }]);
-    uploadMut.reset();
+  const uploadOne = async (
+    file: { uri: string; name: string; mimeType: string | null },
+  ): Promise<AttachedDoc | null> => {
+    const fd: any = {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType || "application/octet-stream",
+    };
+    const res: any = await uploadMut.mutateAsync({
+      file: fd,
+    } as any);
+    const f = res?.file ?? res;
+    if (!f?.r2Key) {
+      Alert.alert(
+        t("common.error") || "Error",
+        t("insurance.claim.uploadFailed") || "Upload failed",
+      );
+      return null;
+    }
+    return {
+      kind: pendingDocKind,
+      fileKey: f.r2Key,
+      fileName: f.fileName ?? file.name,
+      contentType: f.mimeType ?? file.mimeType ?? "application/octet-stream",
+    };
+  };
+
+  const onPickDocument = async () => {
+    try {
+      const pick = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        type: [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/heic",
+          "image/webp",
+        ],
+      });
+      if (pick.canceled || !pick.assets?.[0]) return;
+      const a = pick.assets[0];
+      const uploaded = await uploadOne({
+        uri: a.uri,
+        name: a.name ?? `document-${Date.now()}.pdf`,
+        mimeType: a.mimeType ?? "application/pdf",
+      });
+      if (uploaded) setDocs((prev) => [...prev, uploaded]);
+    } catch (err: any) {
+      Alert.alert(
+        t("common.error") || "Error",
+        err?.message || "Pick failed",
+      );
+    }
+  };
+
+  const onTakePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          t("insurance.claim.cameraDenied") || "Camera denied",
+          t("insurance.claim.cameraDeniedDetail") ||
+            "Allow camera access to attach a photo.",
+        );
+        return;
+      }
+      const shot = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.85,
+      });
+      if (shot.canceled || !shot.assets?.[0]) return;
+      const a = shot.assets[0];
+      const uploaded = await uploadOne({
+        uri: a.uri,
+        name: `claim-photo-${Date.now()}.jpg`,
+        mimeType: a.mimeType ?? "image/jpeg",
+      });
+      if (uploaded) setDocs((prev) => [...prev, uploaded]);
+    } catch (err: any) {
+      Alert.alert(
+        t("common.error") || "Error",
+        err?.message || "Camera failed",
+      );
+    }
+  };
+
+  const removeDoc = (idx: number) => {
+    setDocs((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const onSubmit = async () => {
@@ -84,7 +189,12 @@ export default function NewClaim() {
       dischargeDate: dischargeDate || undefined,
       amountRequestedLkr: Number(amount),
       patientRemarks: remarks || undefined,
-      documents: docs,
+      documents: docs.map((d) => ({
+        kind: d.kind,
+        fileKey: d.fileKey,
+        fileName: d.fileName,
+        contentType: d.contentType,
+      })),
     });
     await submitMut.mutateAsync(created.claim.id);
     router.replace(`/insurance/claims/${created.claim.id}`);
@@ -98,7 +208,9 @@ export default function NewClaim() {
         kicker={t("insurance.claim.kicker")}
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}
+      >
         <SectionHeader title={t("insurance.claim.policy")} />
         <Card style={{ padding: 12, gap: 8 }}>
           {activeEnrollments.length === 0 ? (
@@ -110,7 +222,10 @@ export default function NewClaim() {
               {activeEnrollments.map((e: any) => (
                 <Chip
                   key={e.id}
-                  label={e.policyNumber ?? t("insurance.policy.policyNumber")}
+                  label={
+                    e.policyNumber ??
+                    t("insurance.policy.policyNumber")
+                  }
                   selected={enrollmentId === e.id}
                   onPress={() => setEnrollmentId(e.id)}
                 />
@@ -255,6 +370,10 @@ export default function NewClaim() {
 
         <SectionHeader title={t("insurance.claim.documents")} />
         <Card style={{ padding: 16, gap: 10 }}>
+          <AppText size="xs" color="muted">
+            {t("insurance.claim.docKindHint") ||
+              "Pick the document type before adding."}
+          </AppText>
           <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
             {DOC_KINDS.map((d) => (
               <Chip
@@ -265,18 +384,63 @@ export default function NewClaim() {
               />
             ))}
           </View>
-          <Button
-            variant="outline"
-            label={t("insurance.claim.uploadDoc")}
-            leftIcon={<Upload size={14} />}
-            onPress={onAddDoc}
-            loading={uploadMut.isPending}
-          />
-          {docs.map((d, i) => (
-            <Pill key={i} tone="primary" icon={<FilePlus size={12} />}>
-              {t(`insurance.claim.docKinds.${d.kind}`)} · {d.fileKey.slice(0, 16)}
-            </Pill>
-          ))}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Button
+              variant="outline"
+              label={t("insurance.claim.uploadDoc") || "Upload file"}
+              leftIcon={<Upload size={14} />}
+              onPress={onPickDocument}
+              loading={uploadMut.isPending}
+              style={{ flex: 1 }}
+            />
+            <Button
+              variant="outline"
+              label={t("insurance.claim.takePhoto") || "Photo"}
+              leftIcon={<Camera size={14} />}
+              onPress={onTakePhoto}
+              loading={uploadMut.isPending}
+              style={{ flex: 1 }}
+            />
+          </View>
+          {docs.length === 0 ? (
+            <AppText size="xs" color="muted">
+              {t("insurance.claim.noDocs") || "No documents attached yet."}
+            </AppText>
+          ) : (
+            docs.map((d, i) => (
+              <View
+                key={i}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  backgroundColor: colors.surface,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <FileText size={14} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <AppText size="sm" weight="600">
+                    {t(`insurance.claim.docKinds.${d.kind}`)}
+                  </AppText>
+                  <AppText size="xs" color="muted" numberOfLines={1}>
+                    {d.fileName}
+                  </AppText>
+                </View>
+                <Pill
+                  tone="neutral"
+                  onPress={() => removeDoc(i)}
+                  style={{ paddingHorizontal: 6 }}
+                >
+                  <X size={12} color={colors.textMuted} />
+                </Pill>
+              </View>
+            ))
+          )}
         </Card>
 
         <Button

@@ -1686,6 +1686,15 @@
     "aiGuess": {
       "pill": "AI GUESS"
     },
+    "trends": {
+      "title": "Trends",
+      "meds": "Medicine adherence",
+      "noMeds": "No active medicines.",
+      "noData": "No data for this metric yet. Add a vital to see trends.",
+      "labTitle": "Lab results trend",
+      "noLabData": "No structured results for this test yet. Upload the relevant lab report to see the trend.",
+      "labLast": "Last: {{value}}{{unit}} · {{count}} readings"
+    },
     "actions": {
       "share": "Share",
       "export": "Export",
@@ -1710,6 +1719,20 @@
     },
     "detailsHeading": "Details",
     "emptyDetails": "This record has no attachments or notes yet.",
+    "structured": {
+      "title": "Structured data",
+      "tests": "Test results",
+      "findings": "Imaging findings",
+      "events": "Discharge events",
+      "doses": "Vaccination doses",
+      "items": "Prescription items",
+      "empty": "No structured rows extracted yet. Tap Re-extract to try again.",
+      "reExtract": "Re-extract",
+      "reExtracting": "Re-extracting…",
+      "reExtractOk": "Re-extraction completed",
+      "reExtractSkip": "This record type doesn't support extraction",
+      "reExtractFail": "Re-extraction failed"
+    },
     "attachments": "ATTACHMENTS · {{count}}",
     "a11y": {
       "moreOptions": "More options",
@@ -2245,7 +2268,10 @@
     "criticalAllergy_other": "{{count}} critical allergies on file",
     "viewDetails": "View details",
     "bookTest": "Book a Test",
-    "testBookings": "My Test Bookings"
+    "testBookings": "My Test Bookings",
+    "notes": "Notes",
+    "vitalsShort": "Vitals",
+    "aiOcrLabel": "Prescription OCR"
   },
   "aiChat": {
     "title": "Health Q&A",

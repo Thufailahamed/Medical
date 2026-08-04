@@ -18,7 +18,11 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, AppText, Pill, Skeleton } from "@/components/ui";
 import { VitalsChart } from "@/components/vitals/VitalsChart";
 import { MedicineAdherenceStrip } from "@/components/records/MedicineAdherenceStrip";
-import { useHealthSnapshot } from "@/hooks/useApi";
+import {
+  useHealthSnapshot,
+  usePatientLabTrend,
+  type PatientLabTrendPoint,
+} from "@/hooks/useApi";
 import type { VitalsPoint } from "@/hooks/useApi";
 
 type VitalKey = "bp" | "hr" | "glucose" | "weight" | "spo2" | "temp";
@@ -40,6 +44,19 @@ const RANGES = [
   { key: "all", label: "All", days: null },
 ];
 
+// Common HbA1c + Lipid panel tests surfaced as trend candidates.
+// Backed by the structured-extraction pipeline (lab_test_results).
+const LAB_TESTS = [
+  { key: "HbA1c", label: "HbA1c" },
+  { key: "LDL", label: "LDL" },
+  { key: "HDL", label: "HDL" },
+  { key: "Triglycerides", label: "Triglycerides" },
+  { key: "Total Cholesterol", label: "Total Cholesterol" },
+  { key: "Fasting Glucose", label: "Fasting Glucose" },
+  { key: "Creatinine", label: "Creatinine" },
+  { key: "TSH", label: "TSH" },
+];
+
 export default function TrendsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -48,6 +65,47 @@ export default function TrendsScreen() {
   const [range, setRange] = useState("30d");
 
   const { data: snapshot, isLoading } = useHealthSnapshot();
+
+  const [labTest, setLabTest] = useState<string>("HbA1c");
+  const monthsForRange = useMemo(() => {
+    const r = RANGES.find((x) => x.key === range);
+    if (!r || !r.days) return 60; // ~5y default
+    return Math.max(1, Math.round(r.days / 30));
+  }, [range]);
+
+  const { data: labTrend, isLoading: labLoading } = usePatientLabTrend(
+    undefined,
+    labTest,
+    monthsForRange,
+  );
+
+  const labPoints: { value: number; recordedAt: string; unit?: string | null; flag?: string }[] =
+    useMemo(() => {
+      const items = labTrend?.items ?? [];
+      // API returns DESC by reportedAt — reverse for chronological chart.
+      return items
+        .slice()
+        .reverse()
+        .filter((r: any) => typeof r.value === "number")
+        .map((r: any) => ({
+          value: r.value,
+          recordedAt: r.reportedAt || r.collectedAt,
+          unit: r.unit,
+          flag: r.flag,
+        }));
+    }, [labTrend]);
+
+  const labSummary = useMemo(() => {
+    const s = (labTrend?.summary ?? {})[labTest.toLowerCase()];
+    return s
+      ? {
+          last: s.last,
+          unit: s.unit,
+          lastDate: s.lastDate,
+          count: s.count,
+        }
+      : null;
+  }, [labTrend, labTest]);
 
   const points: VitalsPoint[] = useMemo(() => {
     if (!snapshot) return [];
@@ -121,6 +179,64 @@ export default function TrendsScreen() {
               )}
             </AppText>
           )}
+        </View>
+
+        {/* Lab trend (typed extraction, migration 0070) */}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <AppText variant="title.sm" weight="700">
+            {t("records.trends.labTitle", "Lab results trend")}
+          </AppText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
+            {LAB_TESTS.map((t2) => (
+              <Pill
+                key={t2.key}
+                tone={labTest === t2.key ? "info" : "neutral"}
+                onPress={() => setLabTest(t2.key)}
+              >
+                {t2.label}
+              </Pill>
+            ))}
+          </ScrollView>
+          {labLoading ? (
+            <Skeleton height={160} radius={12} />
+          ) : labPoints.length > 0 ? (
+            <VitalsChart
+              type={"cholesterol" as any}
+              points={labPoints as any}
+              stats={null}
+              width={320}
+              showSecondary={false}
+            />
+          ) : (
+            <AppText variant="body.sm" color="muted">
+              {t(
+                "records.trends.noLabData",
+                "No structured results for this test yet. Upload the relevant lab report to see the trend.",
+              )}
+            </AppText>
+          )}
+          {labSummary ? (
+            <AppText variant="body.sm" color="muted">
+              {t("records.trends.labLast", {
+                defaultValue: "Last: {{value}}{{unit}} · {{count}} readings",
+                value:
+                  labSummary.last != null
+                    ? String(labSummary.last)
+                    : "—",
+                unit: labSummary.unit ? ` ${labSummary.unit}` : "",
+                count: labSummary.count,
+              })}
+            </AppText>
+          ) : null}
         </View>
 
         {/* Med adherence */}

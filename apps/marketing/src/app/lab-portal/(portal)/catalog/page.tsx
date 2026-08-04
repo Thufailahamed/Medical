@@ -28,12 +28,12 @@ export default function CatalogPage() {
       category: form.category as any,
       sampleType: form.sampleType as any,
       price: Number(form.price),
-      description: form.description || undefined,
+      description: form.description || null,
       fastingRequired: form.fastingRequired,
       fastingHours: Number(form.fastingHours),
       turnaroundHours: Number(form.turnaroundHours),
       homeCollectionAvailable: form.homeCollectionAvailable,
-      instructions: form.instructions || undefined,
+      instructions: form.instructions || null,
     });
     setShowForm(false);
     setForm({ name: "", slug: "", category: "blood", sampleType: "blood", price: "", description: "", fastingRequired: false, fastingHours: "0", turnaroundHours: "24", homeCollectionAvailable: true, instructions: "" });

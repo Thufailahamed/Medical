@@ -829,6 +829,12 @@ export interface InsuranceEnrollment {
   cancelledReason: string | null;
   createdAt: string;
   updatedAt: string;
+  // Enriched lookups (joined server-side, optional for legacy callers).
+  planName: string | null;
+  planType: InsurancePlanType | null;
+  providerName: string | null;
+  providerLogoUrl: string | null;
+  holderName: string | null;
 }
 
 export interface InsurancePremiumInvoice {
@@ -850,6 +856,11 @@ export interface InsuranceEcard {
   qrToken: string;
   issuedAt: string;
   validUntil: string;
+  holderName: string | null;
+  providerName: string | null;
+  planName: string | null;
+  policyNumber: string | null;
+  coverageAmountLkr: number | null;
 }
 
 export interface InsuranceClaimDocument {
@@ -893,6 +904,12 @@ export interface InsuranceClaim {
   transactionRef: string | null;
   documents: InsuranceClaimDocument[];
   messages: InsuranceClaimMessage[];
+  // Enriched lookups (joined server-side, optional for legacy callers).
+  claimNumber: string | null;
+  policyNumber: string | null;
+  providerName: string | null;
+  planName: string | null;
+  holderName: string | null;
   createdAt: string;
   updatedAt: string;
 }
