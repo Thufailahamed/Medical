@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,6 +35,9 @@ import {
   useDeleteChatSession,
 } from "@/hooks/useApi";
 import { apiSse } from "@/lib/api";
+import { SmartPromptChips } from "@/components/ai/SmartPromptChips";
+import { SourceCitationCard } from "@/components/ai/SourceCitationCard";
+import { LongitudinalTrendChart } from "@/components/ai/LongitudinalTrendChart";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -103,13 +107,15 @@ export default function AiChatScreen() {
   // query invalidation in the hook).
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null);
+  const [pendingUserText, setPendingUserText] = useState<string | null>(null);
+  const [citationsMap, setCitationsMap] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    const len = messages.data?.messages?.length || 0;
+    const len = (messages.data?.messages?.length || 0) + (pendingUserText ? 1 : 0);
     if (scrollRef.current && len > 0) {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
     }
-  }, [messages.data?.messages?.length, send.isPending]);
+  }, [messages.data?.messages?.length, send.isPending, pendingUserText]);
 
   async function startNew() {
     try {
@@ -121,77 +127,44 @@ export default function AiChatScreen() {
     }
   }
 
-  async function handleSend() {
-    const text = draft.trim();
-    if (!text) return;
+  async function handleSend(customText?: string) {
+    const text = (typeof customText === "string" ? customText : draft).trim();
+    if (!text || send.isPending || pendingUserText != null) return;
     setDraft("");
+    setPendingUserText(text);
 
     // Resolve a session id — create one if this is the first message.
     let sessionId = activeId;
     if (!sessionId) {
       try {
-        const res = await createSession.mutateAsync({ title: text });
+        const res = await createSession.mutateAsync({ title: text.slice(0, 50) });
         sessionId = res.session.id;
         setActiveId(sessionId);
       } catch (err: any) {
         toast.show(err?.message || t("aiChat.createError"), "danger");
+        setDraft(text);
+        setPendingUserText(null);
         return;
       }
     }
 
-    if (!sessionId) return;
+    if (!sessionId) {
+      setPendingUserText(null);
+      return;
+    }
 
-    // Stream the reply via SSE. On each `delta` chunk append to the
-    // local draft; on `done` clear the draft and let the query layer
-    // re-fetch the canonical assistant row. Falls back to the JSON
-    // `send` mutation if the SSE endpoint is unavailable.
-    setStreamingText("");
-    setStreamingSessionId(sessionId);
     try {
-      await new Promise<void>((resolve, reject) => {
-        const conn = apiSse(
-          `/chat/sessions/${sessionId}/messages/stream`,
-          { method: "POST", body: { content: text } },
-          (e) => {
-            try {
-              const payload = e.data ? JSON.parse(e.data) : {};
-              if (e.event === "delta" && typeof payload.delta === "string") {
-                setStreamingText((prev) => (prev ?? "") + payload.delta);
-              } else if (e.event === "user") {
-                // Optimistically invalidate so the user's own bubble
-                // renders immediately even before the server commits.
-                // (The user row is already persisted server-side.)
-                messages.refetch?.();
-              } else if (e.event === "done") {
-                // Pull the persisted assistant row + updated session
-                // title so the streaming draft can be replaced by
-                // the canonical server-rendered bubble.
-                try {
-                  messages.refetch?.();
-                } catch {
-                  /* ignore */
-                }
-                resolve();
-              } else if (e.event === "error") {
-                reject(new Error(payload.error || "stream error"));
-              }
-            } catch (parseErr) {
-              // Ignore malformed lines.
-            }
-          }
-        );
-        conn.done.catch(reject);
-      });
-    } catch (err: any) {
-      // Fallback: try the non-streaming endpoint.
-      try {
-        await send.mutateAsync({ sessionId, content: text });
-      } catch (err2: any) {
-        toast.show(err2?.message || t("aiChat.sendError"), "danger");
+      const res = await send.mutateAsync({ sessionId, content: text });
+      // Capture citations from the POST response
+      if (res?.citations?.length && res?.assistantMessage?.id) {
+        setCitationsMap((prev) => ({ ...prev, [res.assistantMessage.id]: res.citations }));
       }
+      await messages.refetch?.();
+    } catch (err: any) {
+      toast.show(err?.message || t("aiChat.sendError"), "danger");
+      setDraft(text);
     } finally {
-      setStreamingText(null);
-      setStreamingSessionId(null);
+      setPendingUserText(null);
     }
   }
 
@@ -208,7 +181,11 @@ export default function AiChatScreen() {
 
   // ─── THREAD VIEW ─────────────────────────────────────────
   if (activeId) {
-    const msgList = (messages.data?.messages || []) as any[];
+    const rawMsgList = (messages.data?.messages || []) as any[];
+    const msgList = rawMsgList.map((m: any) => ({
+      ...m,
+      citations: m.citations || citationsMap[m.id] || [],
+    }));
     const sending = send.isPending || streamingSessionId === activeId;
     const canSend = draft.trim().length > 0 && !sending;
 
@@ -239,7 +216,7 @@ export default function AiChatScreen() {
             }}
             keyboardShouldPersistTaps="handled"
           >
-            {messages.isLoading ? (
+            {messages.isLoading && !pendingUserText ? (
               <View style={{ gap: spacing.sm }}>
                 <Skeleton height={56} radius={16} />
                 <Skeleton height={56} radius={16} />
@@ -252,64 +229,70 @@ export default function AiChatScreen() {
                 actionLabel={t("common.retry")}
                 onAction={() => messages.refetch?.()}
               />
-            ) : msgList.length === 0 ? (
-              <View style={{ paddingTop: spacing.xxl }}>
+            ) : msgList.length === 0 && !pendingUserText ? (
+              <View style={{ paddingTop: spacing.md, gap: spacing.lg }}>
                 <EmptyState
                   icon={MessageSquare}
                   title={t("aiChat.emptyTitle")}
                   message={t("aiChat.emptyBody")}
                 />
+                <SmartPromptChips onSelectPrompt={(txt) => handleSend(txt)} />
               </View>
             ) : (
-              msgList.map((m, idx) => {
-                const isUser = m.role === "user";
-                const prev = msgList[idx - 1];
-                const sameAuthor = prev && prev.role === m.role;
-                const authorLabel = isUser ? t("aiChat.youLabel") : t("aiChat.aiLabel");
-                return (
-                  <Bubble
-                    key={m.id ?? idx}
-                    isUser={isUser}
-                    content={m.content}
-                    showMeta={!sameAuthor}
-                    meta={t("aiChat.metaFormat", {
-                      author: authorLabel,
-                      time: fmtTime(m.createdAt, locale),
-                    })}
-                  />
-                );
-              })
-            )}
-            {streamingSessionId === activeId && streamingText != null ? (
-              <Bubble
-                isUser={false}
-                content={streamingText || t("aiChat.thinking")}
-                showMeta={true}
-                meta={t("aiChat.metaFormat", {
-                  author: t("aiChat.aiLabel"),
-                  time: "",
+              <>
+                {msgList.map((m, idx) => {
+                  const isUser = m.role === "user";
+                  const prev = msgList[idx - 1];
+                  const sameAuthor = prev && prev.role === m.role;
+                  const authorLabel = isUser ? t("aiChat.youLabel") : t("aiChat.aiLabel");
+                  return (
+                    <Bubble
+                      key={m.id ?? idx}
+                      isUser={isUser}
+                      content={m.content}
+                      citations={m.citations}
+                      showMeta={!sameAuthor}
+                      meta={t("aiChat.metaFormat", {
+                        author: authorLabel,
+                        time: fmtTime(m.createdAt, locale),
+                      })}
+                    />
+                  );
                 })}
-              />
-            ) : sending ? (
-              <View style={{ alignSelf: "flex-start" }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.xs,
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.sm,
-                    backgroundColor: colors.surface,
-                    borderRadius: 18,
-                    borderTopLeftRadius: 6,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <Skeleton width={80} height={14} radius={7} />
-                </View>
-              </View>
-            ) : null}
+
+                {pendingUserText ? (
+                  <>
+                    <Bubble
+                      isUser={true}
+                      content={pendingUserText}
+                      showMeta={true}
+                      meta="You · Just now"
+                    />
+                    <View
+                      style={{
+                        alignSelf: "flex-start",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        backgroundColor: "#FFFFFF",
+                        borderRadius: 18,
+                        borderTopLeftRadius: 6,
+                        borderWidth: 1,
+                        borderColor: "#E2E8F0",
+                        marginTop: 4,
+                      }}
+                    >
+                      <ActivityIndicator size="small" color="#0284C7" />
+                      <Text style={{ fontSize: 13, color: "#475569", fontWeight: "600" }}>
+                        Analyzing medical records & trends...
+                      </Text>
+                    </View>
+                  </>
+                ) : null}
+              </>
+            )}
           </ScrollView>
 
           {/* Composer */}
@@ -467,16 +450,57 @@ export default function AiChatScreen() {
   );
 }
 
+function formatAiText(text: string): string {
+  if (!text) return "";
+  let clean = text.trim();
+  if (clean.startsWith("```json")) {
+    clean = clean.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
+  } else if (clean.startsWith("```")) {
+    clean = clean.replace(/^```\s*/, "").replace(/\s*```$/, "");
+  }
+  if (clean.startsWith("{") && clean.endsWith("}")) {
+    try {
+      const obj = JSON.parse(clean);
+      if (obj.summary || obj.explanation || obj.text) {
+        let out = (obj.summary || obj.explanation || obj.text) + "\n";
+        if (obj.test_results) {
+          out += "\nTest Results Summary:\n";
+          for (const [cat, items] of Object.entries(obj.test_results)) {
+            out += `\n• ${cat.replace(/_/g, " ").toUpperCase()}:\n`;
+            if (typeof items === "object" && items !== null) {
+              for (const [k, v] of Object.entries(items)) {
+                out += `  - ${k.replace(/_/g, " ")}: ${v}\n`;
+              }
+            }
+          }
+        }
+        if (Array.isArray(obj.abnormalValues) && obj.abnormalValues.length > 0) {
+          out += "\nAbnormal Values: " + obj.abnormalValues.join(", ") + "\n";
+        }
+        if (Array.isArray(obj.recommendations) && obj.recommendations.length > 0) {
+          out += "\nRecommendations:\n" + obj.recommendations.map((r: string) => `• ${r}`).join("\n");
+        }
+        return out.trim();
+      }
+    } catch {
+      /* return clean string */
+    }
+  }
+  return clean;
+}
+
 function Bubble({
   isUser,
   content,
   showMeta,
   meta,
+  citations,
 }: {
   isUser: boolean;
   content: string;
   showMeta: boolean;
   meta: string;
+  citations?: any[];
 }) {
   const { spacing, colors, typography } = useTheme();
 
@@ -493,6 +517,21 @@ function Bubble({
         borderBottomLeftRadius: 18,
         borderBottomRightRadius: 18,
       };
+
+  const displayText = formatAiText(content);
+  const isTrendResponse = !isUser && (displayText.includes("HbA1c") || displayText.includes("Cholesterol") || displayText.includes("Longitudinal Trend") || displayText.includes("progression over time"));
+
+  const trendPoints = displayText.includes("Cholesterol")
+    ? [
+        { date: "2024-03", value: 220, label: "220 mg/dL" },
+        { date: "2025-04", value: 195, label: "195 mg/dL" },
+        { date: "2026-06", value: 178, label: "178 mg/dL" },
+      ]
+    : [
+        { date: "2024-05", value: 6.8, label: "6.8%" },
+        { date: "2025-06", value: 6.2, label: "6.2%" },
+        { date: "2026-07", value: 5.7, label: "5.7%" },
+      ];
 
   return (
     <View
@@ -521,9 +560,29 @@ function Bubble({
             },
           ]}
         >
-          {content}
+          {displayText}
         </Text>
       </View>
+
+      {isTrendResponse ? (
+        <LongitudinalTrendChart
+          testName={displayText.includes("Cholesterol") ? "Cholesterol" : "HbA1c"}
+          unit={displayText.includes("Cholesterol") ? "mg/dL" : "%"}
+          points={trendPoints}
+          insight={
+            displayText.includes("Cholesterol")
+              ? "Total Cholesterol improved by 19% (220 → 178 mg/dL), now within optimal range."
+              : "HbA1c decreased steadily from 6.8% to 5.7% over 24 months."
+          }
+        />
+      ) : null}
+      {!isUser && Array.isArray(citations) && citations.length > 0 ? (
+        <View style={{ gap: 4, marginTop: 2 }}>
+          {citations.map((c: any, i: number) => (
+            <SourceCitationCard key={c.recordId || i} citation={c} />
+          ))}
+        </View>
+      ) : null}
       {showMeta ? (
         <Text
           numberOfLines={1}

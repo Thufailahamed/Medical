@@ -42,6 +42,8 @@ import {
   ScanLine,
   Syringe,
   ListChecks,
+  Stethoscope,
+  Activity,
 } from "lucide-react-native";
 import {
   useMedicalRecord,
@@ -57,6 +59,7 @@ import {
   useRecordVaccinationDoses,
   useRecordPrescriptionItems,
   useReExtractRecord,
+  usePresignFile,
 } from "@/hooks/useApi";
 import { api, getApiBaseUrl } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -509,7 +512,7 @@ export default function RecordDetailScreen() {
   const ownerLabel = record.familyMember?.name || t("common.you");
 
   return (
-    <Screen padded={false} edges={["top"]}>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       {/* Top Bar */}
       <View
         style={{
@@ -520,7 +523,7 @@ export default function RecordDetailScreen() {
           paddingVertical: 14,
           backgroundColor: "#FFFFFF",
           borderBottomWidth: 1,
-          borderBottomColor: "#F4F2F8",
+          borderBottomColor: "#E2E8F0",
         }}
       >
         <IconButton
@@ -533,13 +536,13 @@ export default function RecordDetailScreen() {
         />
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <IconComp size={16} color={meta.tone} strokeWidth={2.25} />
+          <IconComp size={16} color={meta.tone} strokeWidth={2.5} />
           <Text
             style={{
               fontSize: 13,
               fontWeight: "800",
               color: meta.tone,
-              letterSpacing: 1,
+              letterSpacing: 1.1,
               fontFamily: fontFamily.displayBold,
             }}
           >
@@ -563,10 +566,10 @@ export default function RecordDetailScreen() {
       </View>
 
       <ScrollView
-        style={{ backgroundColor: "#FAF9FC" }}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        style={{ backgroundColor: "#F8FAFC" }}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Hero */}
+        {/* Hero Card */}
         <View
           style={{
             paddingHorizontal: spacing.lg,
@@ -574,103 +577,140 @@ export default function RecordDetailScreen() {
             paddingBottom: spacing.md,
           }}
         >
-          <Text
+          <View
             style={{
-              fontSize: 13,
-              fontWeight: "500",
-              color: "#7F7B8C",
-              marginBottom: 6,
-              fontFamily: fontFamily.body,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 20,
+              padding: 18,
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
+              shadowColor: "rgba(0,0,0,0.03)",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 1,
+              shadowRadius: 10,
+              elevation: 2,
+              gap: 12,
             }}
           >
-            {ownerLabel} · {formatDate(record.date, locale)}
-          </Text>
-          <Text
-            style={{
-              fontSize: 26,
-              fontWeight: "800",
-              color: "#1D1B20",
-              lineHeight: 30,
-              fontFamily: fontFamily.displayBold,
-              marginBottom: spacing.sm,
-            }}
-          >
-            {record.title}
-          </Text>
-
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {record.doctor?.name ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  backgroundColor: "#F4F2F8",
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 999,
-                }}
-              >
-                <User size={12} color={colors.primary} strokeWidth={2.5} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: colors.primary,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
-                  {record.doctor.name}
-                </Text>
-              </View>
-            ) : null}
-            {record.hospital?.name ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  backgroundColor: "#F4F2F8",
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 999,
-                }}
-              >
-                <Hospital size={12} color={colors.primary} strokeWidth={2.5} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: colors.primary,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
-                  {record.hospital.name}
-                </Text>
-              </View>
-            ) : null}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                backgroundColor: "#F4F2F8",
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 999,
-              }}
-            >
-              <Calendar size={12} color={colors.primary} strokeWidth={2.5} />
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Text
                 style={{
                   fontSize: 12,
-                  fontWeight: "700",
-                  color: colors.primary,
-                  fontFamily: fontFamily.bodyBold,
+                  fontWeight: "600",
+                  color: "#64748B",
+                  fontFamily: fontFamily.body,
                 }}
               >
-                {formatDate(record.date, locale)}
+                {ownerLabel} · {formatDate(record.date, locale)}
               </Text>
+              <View
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 999,
+                  backgroundColor: `${meta.tone}14`,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: "800",
+                    color: meta.tone,
+                    letterSpacing: 0.8,
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  {meta.label.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: "800",
+                color: "#0F172A",
+                lineHeight: 30,
+                fontFamily: fontFamily.displayBold,
+              }}
+            >
+              {record.title}
+            </Text>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {record.doctor?.name ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                    backgroundColor: "#E0F2FE",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                  }}
+                >
+                  <User size={13} color="#0369A1" strokeWidth={2.5} />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: "#0369A1",
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    {record.doctor.name}
+                  </Text>
+                </View>
+              ) : null}
+              {record.hospital?.name ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                    backgroundColor: "#CCFBF1",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                  }}
+                >
+                  <Hospital size={13} color="#0F766E" strokeWidth={2.5} />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: "#0F766E",
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    {record.hospital.name}
+                  </Text>
+                </View>
+              ) : null}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                  backgroundColor: "#F1F5F9",
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                }}
+              >
+                <Calendar size={13} color="#475569" strokeWidth={2.5} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "700",
+                    color: "#475569",
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  {formatDate(record.date, locale)}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -733,27 +773,30 @@ export default function RecordDetailScreen() {
           }}
         >
           {[
-            { key: "diagnosis", value: record.diagnosis },
-            { key: "summary", value: record.summary },
-            { key: "notes", value: record.notes },
-            { key: "followUp", value: record.followUpDate },
+            { key: "diagnosis", value: record.diagnosis, icon: Stethoscope, color: "#0D9488" },
+            { key: "summary", value: record.summary, icon: FileText, color: "#0284C7" },
+            { key: "notes", value: record.notes, icon: Pencil, color: "#9333EA" },
+            { key: "followUp", value: record.followUpDate, icon: Calendar, color: "#EA580C" },
           ].map((sec) => {
             if (!sec.value || (sec.key === "followUp" && !record.followUpDate))
               return null;
+            const SecIcon = sec.icon;
             return (
-              <Card key={sec.key}>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "800",
-                    color: colors.textMuted,
-                    letterSpacing: 1,
-                    marginBottom: 6,
-                    fontFamily: fontFamily.displayBold,
-                  }}
-                >
-                  {t(`recordDetail.sections.${sec.key}`).toUpperCase()}
-                </Text>
+              <Card key={sec.key} style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <SecIcon size={14} color={sec.color} strokeWidth={2.5} />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "800",
+                      color: colors.textMuted,
+                      letterSpacing: 1.1,
+                      fontFamily: fontFamily.displayBold,
+                    }}
+                  >
+                    {t(`recordDetail.sections.${sec.key}`).toUpperCase()}
+                  </Text>
+                </View>
                 {sec.key === "followUp" ? (
                   <Text
                     style={{
@@ -769,7 +812,7 @@ export default function RecordDetailScreen() {
                   <Text
                     style={{
                       fontSize: 15,
-                      color: "#1D1B20",
+                      color: "#1E293B",
                       lineHeight: 22,
                       fontFamily: fontFamily.body,
                     }}
@@ -797,19 +840,21 @@ export default function RecordDetailScreen() {
 
         {/* Tags */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <Card>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "800",
-                color: colors.textMuted,
-                letterSpacing: 1,
-                marginBottom: 8,
-                fontFamily: fontFamily.displayBold,
-              }}
-            >
-              {t("recordDetail.tagsHeading").toUpperCase()}
-            </Text>
+          <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Tag size={14} color={colors.primary} strokeWidth={2.5} />
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "800",
+                  color: colors.textMuted,
+                  letterSpacing: 1.1,
+                  fontFamily: fontFamily.displayBold,
+                }}
+              >
+                {t("recordDetail.tagsHeading").toUpperCase()}
+              </Text>
+            </View>
             {record.tags?.length ? (
               <View
                 style={{
@@ -825,8 +870,8 @@ export default function RecordDetailScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 4,
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
                       borderRadius: 999,
                       backgroundColor: `${colors.primary}14`,
                     }}
@@ -861,13 +906,13 @@ export default function RecordDetailScreen() {
 
         {/* Details (JSON pretty) */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <Card>
+          <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
             <Text
               style={{
                 fontSize: 11,
                 fontWeight: "800",
                 color: colors.textMuted,
-                letterSpacing: 1,
+                letterSpacing: 1.1,
                 marginBottom: 8,
                 fontFamily: fontFamily.displayBold,
               }}
@@ -931,13 +976,13 @@ export default function RecordDetailScreen() {
         {/* Attachments */}
         {attachments.length ? (
           <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-            <Card>
+            <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
               <Text
                 style={{
                   fontSize: 11,
                   fontWeight: "800",
                   color: colors.textMuted,
-                  letterSpacing: 1,
+                  letterSpacing: 1.1,
                   marginBottom: 8,
                   fontFamily: fontFamily.displayBold,
                 }}
@@ -965,14 +1010,16 @@ export default function RecordDetailScreen() {
                       key={att.id}
                       onPress={() => openAttachment(att)}
                       accessibilityLabel={t("recordDetail.a11y.openFile")}
-                      style={{
+                      style={({ pressed }) => ({
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: spacing.md,
-                        padding: spacing.sm,
+                        gap: 12,
+                        padding: 12,
                         borderRadius: 14,
-                        backgroundColor: "#F4F2F8",
-                      }}
+                        backgroundColor: pressed ? "#F1F5F9" : "#F8FAFC",
+                        borderWidth: 1,
+                        borderColor: "#E2E8F0",
+                      })}
                     >
                       {isImage && att.id && signedUrls[att.id] ? (
                         <Image
@@ -980,8 +1027,8 @@ export default function RecordDetailScreen() {
                             uri: signedUrls[att.id],
                           }}
                           style={{
-                            width: 56,
-                            height: 56,
+                            width: 48,
+                            height: 48,
                             borderRadius: 10,
                           }}
                           resizeMode="cover"
@@ -989,18 +1036,18 @@ export default function RecordDetailScreen() {
                       ) : (
                         <View
                           style={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 10,
-                            backgroundColor: "#FFFFFF",
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            backgroundColor: "#E0F2FE",
                             alignItems: "center",
                             justifyContent: "center",
                           }}
                         >
                           <FileText
                             size={20}
-                            color={colors.primary}
-                            strokeWidth={2}
+                            color="#0284C7"
+                            strokeWidth={2.25}
                           />
                         </View>
                       )}
@@ -1009,17 +1056,19 @@ export default function RecordDetailScreen() {
                           style={{
                             fontSize: 14,
                             fontWeight: "700",
-                            color: "#1D1B20",
+                            color: "#0F172A",
                             fontFamily: fontFamily.bodyBold,
                           }}
+                          numberOfLines={1}
                         >
                           {displayName}
                         </Text>
                         <Text
                           style={{
                             fontSize: 12,
-                            color: colors.textMuted,
+                            color: "#64748B",
                             fontFamily: fontFamily.body,
+                            marginTop: 2,
                           }}
                         >
                           {sizeKb != null
@@ -1027,11 +1076,22 @@ export default function RecordDetailScreen() {
                             : att.type}
                         </Text>
                       </View>
-                      <ExternalLink
-                        size={16}
-                        color={colors.primary}
-                        strokeWidth={2.25}
-                      />
+                      <View
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          backgroundColor: "#F1F5F9",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <ExternalLink
+                          size={15}
+                          color={colors.primary}
+                          strokeWidth={2.25}
+                        />
+                      </View>
                     </Pressable>
                   );
                 })}
@@ -1039,46 +1099,62 @@ export default function RecordDetailScreen() {
             </Card>
           </View>
         ) : null}
-
-        {/* Quick actions */}
-        <View
-          style={{
-            paddingHorizontal: spacing.lg,
-            flexDirection: "row",
-            gap: spacing.sm,
-          }}
-        >
-          <Button
-            title={t("recordDetail.quickActions.edit")}
-            variant="secondary"
-            size="md"
-            onPress={() =>
-              router.push({
-                pathname: "/(app)/edit-record",
-                params: { id: params.id },
-              })
-            }
-            style={{ flex: 1 }}
-            leftIcon={<Pencil size={16} color={colors.primary} />}
-          />
-          <Button
-            title={t("recordDetail.quickActions.share")}
-            variant="ghost"
-            size="md"
-            onPress={doShare}
-            style={{ flex: 1 }}
-            leftIcon={<Share2 size={16} color={colors.primary} />}
-          />
-          <Button
-            title={t("recordDetail.quickActions.link")}
-            variant="ghost"
-            size="md"
-            onPress={() => router.push("/(app)/notifications")}
-            style={{ flex: 1 }}
-            leftIcon={<ExternalLink size={16} color={colors.primary} />}
-          />
-        </View>
       </ScrollView>
+
+      {/* Fixed elevated quick actions bar at bottom */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 1,
+          borderColor: "#E2E8F0",
+          paddingHorizontal: spacing.lg,
+          paddingTop: 12,
+          paddingBottom: Platform.OS === "ios" ? 28 : 14,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          shadowColor: "rgba(0,0,0,0.06)",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 1,
+          shadowRadius: 10,
+          elevation: 8,
+        }}
+      >
+        <Button
+          title={t("recordDetail.quickActions.edit")}
+          variant="primary"
+          size="md"
+          onPress={() =>
+            router.push({
+              pathname: "/(app)/edit-record",
+              params: { id: params.id },
+            })
+          }
+          style={{ flex: 1, height: 46, borderRadius: 14 }}
+          icon={Pencil}
+        />
+        <Button
+          title={t("recordDetail.quickActions.share")}
+          variant="secondary"
+          size="md"
+          onPress={doShare}
+          style={{ flex: 1, height: 46, borderRadius: 14 }}
+          icon={Share2}
+        />
+        <Button
+          title={t("recordDetail.quickActions.link")}
+          variant="outline"
+          size="md"
+          onPress={() => router.push("/(app)/notifications")}
+          style={{ flex: 1, height: 46, borderRadius: 14 }}
+          icon={ExternalLink}
+        />
+      </View>
 
       {/* ─── Bottom-sheet of actions ─────────────────── */}
       <Modal
@@ -1396,22 +1472,22 @@ function StructuredDataCard({
 
   return (
     <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <Card>
+      <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            marginBottom: 8,
+            marginBottom: 10,
           }}
         >
-          <Sparkles size={14} color={colors.primary} strokeWidth={2.5} />
+          <Sparkles size={14} color="#0D9488" strokeWidth={2.5} />
           <Text
             style={{
               fontSize: 11,
               fontWeight: "800",
               color: colors.textMuted,
-              letterSpacing: 1,
+              letterSpacing: 1.1,
               fontFamily: fontFamily.displayBold,
             }}
           >
@@ -1423,67 +1499,85 @@ function StructuredDataCard({
             {t("common.loading", "Loading…")}
           </Text>
         ) : totalCount === 0 ? (
-          <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-            {t(
-              "recordDetail.structured.empty",
-              "No structured rows extracted yet. Run Re-extract to try again.",
-            )}
-          </Text>
+          <View style={{ gap: 12 }}>
+            <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 18, fontFamily: fontFamily.body }}>
+              {t(
+                "recordDetail.structured.empty",
+                "No structured medical rows extracted yet. Tap below to run AI Multimodal Extraction.",
+              )}
+            </Text>
+            <Button
+              title={
+                isExtracting
+                  ? t("recordDetail.structured.reExtracting", "Extracting with AI…")
+                  : t("recordDetail.structured.reExtract", "Re-extract with AI")
+              }
+              variant="primary"
+              size="md"
+              onPress={onReExtract}
+              disabled={isExtracting}
+              style={{ borderRadius: 12, height: 42 }}
+              leftIcon={<Sparkles size={15} color="#FFFFFF" />}
+            />
+          </View>
         ) : (
-          <View style={{ gap: 6, marginBottom: 10 }}>
-            {counts.map((c) => {
-              const Icon = c.icon;
-              return (
-                <View
-                  key={c.key}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                >
-                  <Icon size={14} color={colors.primary} strokeWidth={2.25} />
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: "#1D1B20", fontFamily: fontFamily.body },
-                    ]}
-                  >
-                    {c.label}
-                  </Text>
+          <View style={{ gap: 10 }}>
+            <View style={{ gap: 8, marginBottom: 4 }}>
+              {counts.map((c) => {
+                const Icon = c.icon;
+                return (
                   <View
-                    style={{
-                      marginLeft: "auto",
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 999,
-                      backgroundColor: `${colors.primary}14`,
-                    }}
+                    key={c.key}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                   >
+                    <Icon size={15} color={colors.primary} strokeWidth={2.25} />
                     <Text
+                      style={[
+                        typography.body.sm,
+                        { color: "#1E293B", fontFamily: fontFamily.body, fontWeight: "600" },
+                      ]}
+                    >
+                      {c.label}
+                    </Text>
+                    <View
                       style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: colors.primary,
-                        fontFamily: fontFamily.bodyBold,
+                        marginLeft: "auto",
+                        paddingHorizontal: 10,
+                        paddingVertical: 3,
+                        borderRadius: 999,
+                        backgroundColor: `${colors.primary}14`,
                       }}
                     >
-                      {c.n}
-                    </Text>
+                      <Text
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: "800",
+                          color: colors.primary,
+                          fontFamily: fontFamily.bodyBold,
+                        }}
+                      >
+                        {c.n}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
+            <Button
+              title={
+                isExtracting
+                  ? t("recordDetail.structured.reExtracting", "Extracting with AI…")
+                  : t("recordDetail.structured.reExtract", "Re-extract with AI")
+              }
+              variant="secondary"
+              size="sm"
+              onPress={onReExtract}
+              disabled={isExtracting}
+              style={{ borderRadius: 10, height: 38 }}
+              leftIcon={<RefreshCw size={14} color={colors.primary} />}
+            />
           </View>
         )}
-        <Button
-          title={
-            isExtracting
-              ? t("recordDetail.structured.reExtracting", "Re-extracting…")
-              : t("recordDetail.structured.reExtract", "Re-extract")
-          }
-          variant="secondary"
-          size="sm"
-          onPress={onReExtract}
-          disabled={isExtracting}
-          leftIcon={<RefreshCw size={14} color={colors.primary} />}
-        />
       </Card>
     </View>
   );

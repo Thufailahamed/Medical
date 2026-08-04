@@ -1,25 +1,10 @@
 // @ts-nocheck
-// Google Gemini adapter — non-streaming text/vision generation.
-//
-// Used by the structured-extraction pipeline (apps/api/src/lib/extractors/*)
-// because Gemini's `responseMimeType: application/json` + `responseSchema`
-// eliminates the parse failures we kept hitting with Llama. The schema
-// is the Zod shape's JSON-Schema equivalent — we send it inline so the
-// model returns a strict typed payload, no prose, no markdown fences.
-//
-// Auth: env.GEMINI_API_KEY. If unset, `isAvailable` returns false and
-// the runner falls back to Workers AI.
-//
-// Wire: POST https://generativelanguage.googleapis.com/v1beta/models/{model}
-//   :generateContent?key=API_KEY
-//
-// We deliberately expose a non-streaming shape (`completeGemini` returns
-// a string) — extractors are single-shot JSON parses, streaming buys
-// nothing and adds SSE parsing code we'd have to test.
+// Google Gemini adapter — Gemini 3.1 Flash-Lite / 2.0 Flash-Lite AI text/vision generation.
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
-const GEMINI_VISION_MODEL = "gemini-2.5-flash";
+// Gemini 3.1 Flash-Lite / Gemini 2.0 Flash-Lite model identifiers
+export const GEMINI_TEXT_MODEL = "gemini-2.0-flash-lite";
+export const GEMINI_VISION_MODEL = "gemini-2.0-flash-lite";
 
 export interface GeminiMessage {
   role: "user" | "model" | "system";
@@ -32,19 +17,14 @@ export interface GeminiImagePart {
 }
 
 export interface GeminiCompleteOpts {
-  apiKey: string;
+  apiKey?: string;
   model?: string;
   maxTokens?: number;
   temperature?: number;
   signal?: AbortSignal;
   timeoutMs?: number;
-  // Optional JSON schema. When present, responseMimeType="application/json"
-  // is enforced and the model is constrained to the schema.
   responseSchema?: Record<string, unknown>;
-  // Optional pre-built image parts to include in the user message.
-  // Vision path: when any image part is present, we use it; else text-only.
   images?: GeminiImagePart[];
-  // Optional text hint included in the user message after images.
   userText?: string;
 }
 
@@ -54,7 +34,10 @@ export interface GeminiCompleteResult {
 }
 
 export function isGeminiConfigured(env: Record<string, unknown>): boolean {
-  return Boolean((env as Record<string, string>).GEMINI_API_KEY);
+  return Boolean(
+    (env as Record<string, string>)?.GEMINI_API_KEY ||
+    (typeof process !== "undefined" && process?.env?.GEMINI_API_KEY)
+  );
 }
 
 interface GeminiPart {
@@ -98,8 +81,6 @@ function buildRequest(
     turns.push({ role: m.role, parts: [{ text: m.content }] });
   }
 
-  // Vision: replace the last user turn with a parts array carrying image
-  // + text. Pure-text path keeps the existing turns as-is.
   if (opts.images?.length) {
     const lastUserIdx = turns.map((t) => t.role).lastIndexOf("user");
     if (lastUserIdx >= 0) {
@@ -119,8 +100,8 @@ function buildRequest(
   }
 
   const generationConfig: GeminiRequest["generationConfig"] = {
-    maxOutputTokens: opts.maxTokens ?? 4096,
-    temperature: opts.temperature ?? 0.1,
+    maxOutputTokens: opts.maxTokens ?? 2048,
+    temperature: opts.temperature ?? 0.2,
   };
   if (opts.responseSchema) {
     generationConfig.responseMimeType = "application/json";
@@ -144,15 +125,22 @@ function extractText(resp: GeminiResponse): string {
 }
 
 /**
- * Single-shot Gemini call. Throws on non-2xx with the body surfaced for
- * diagnostics, throws on blockReason / empty candidates.
+ * Single-shot Gemini 3.1 Flash-Lite call.
  */
 export async function completeGemini(
   messages: GeminiMessage[],
-  opts: GeminiCompleteOpts,
+  opts: GeminiCompleteOpts = {},
 ): Promise<GeminiCompleteResult> {
+  const apiKey =
+    opts.apiKey ||
+    (typeof process !== "undefined" ? process.env.GEMINI_API_KEY : undefined);
+
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
+  }
+
   const model = opts.model ?? (opts.images?.length ? GEMINI_VISION_MODEL : GEMINI_TEXT_MODEL);
-  const url = `${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(opts.apiKey)}`;
+  const url = `${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const req = buildRequest(messages, opts);
 
   const controller = new AbortController();
@@ -174,9 +162,7 @@ export async function completeGemini(
 
   const text = await resp.text();
   if (!resp.ok) {
-    throw new Error(
-      `gemini ${resp.status}: ${text.slice(0, 500)}`,
-    );
+    throw new Error(`gemini ${resp.status}: ${text.slice(0, 500)}`);
   }
 
   let json: GeminiResponse;
@@ -197,6 +183,8 @@ export async function completeGemini(
 }
 
 export const GEMINI_MODELS = {
-  text: GEMINI_TEXT_MODEL,
-  vision: GEMINI_VISION_MODEL,
+  text: "gemini-2.0-flash-lite",
+  vision: "gemini-2.0-flash-lite",
+  flashLite: "gemini-2.0-flash-lite",
+  flashLite31: "gemini-3.1-flash-lite",
 };

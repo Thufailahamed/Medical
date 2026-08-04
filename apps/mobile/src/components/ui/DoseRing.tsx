@@ -27,6 +27,7 @@ type Props = {
   onPress?: () => void;
   accessibilityLabel?: string;
   centerColor?: string;
+  textColor?: string;
 };
 
 // Create an animated circle using reanimated
@@ -41,6 +42,7 @@ export function DoseRing({
   onPress,
   accessibilityLabel,
   centerColor,
+  textColor,
 }: Props) {
   const { colors, motion: motionTokens, typography } = useTheme();
   const motionEnabled = useMotionEnabled();
@@ -142,7 +144,7 @@ export function DoseRing({
           <Text
             style={[
               typography.title.sm,
-              { color: colors.text, fontWeight: "700" },
+              { color: textColor ?? colors.text, fontWeight: "800", fontSize: 16 },
             ]}
             numberOfLines={1}
           >
@@ -153,7 +155,7 @@ export function DoseRing({
           <Text
             style={[
               typography.caption,
-              { color: colors.textMuted, fontSize: 9, lineHeight: 11 },
+              { color: textColor ? `${textColor}CD` : colors.textMuted, fontSize: 10, fontWeight: "700", lineHeight: 12 },
             ]}
             numberOfLines={1}
           >

@@ -5,6 +5,7 @@
 import { aiCache, aiCalls } from "@healthcare/db";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { redactPii, redactMessages } from "./redact";
+import { completeGemini } from "./ai/gemini";
 
 export type AiKind =
   | "summary"
@@ -205,8 +206,24 @@ export type ChatMsg = {
 export async function aiComplete(
   ai: any,
   messages: ChatMsg[],
-  opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number; telemetry?: RecordAiCallInput } = {}
+  opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number; telemetry?: RecordAiCallInput; apiKey?: string } = {}
 ): Promise<string> {
+  const geminiKey = opts.apiKey || (typeof process !== "undefined" ? process.env.GEMINI_API_KEY : undefined);
+  if (geminiKey) {
+    try {
+      const gRes = await completeGemini(
+        messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : (m.role as any),
+          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+        })),
+        { apiKey: geminiKey, model: "gemini-2.0-flash-lite", maxTokens: opts.maxTokens, temperature: opts.temperature }
+      );
+      if (gRes?.text) return gRes.text;
+    } catch (gErr) {
+      console.warn("[aiComplete] Gemini Flash-Lite call failed, falling back:", (gErr as Error)?.message || gErr);
+    }
+  }
+
   if (!ai) {
     console.error("[aiComplete] no AI binding");
     return "";

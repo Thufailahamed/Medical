@@ -16,6 +16,7 @@ import {
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { aiUserRateLimit } from "../middleware/ai-rate-limit";
+import { getPatientHealthContext, APP_USER_GUIDE_KNOWLEDGE, smartFallbackChat } from "../lib/ai/knowledge-context";
 import {
   aiSummarySchema,
   aiLabExplainSchema,
@@ -591,47 +592,17 @@ ai.post("/chat", async (c) => {
     }
   }
 
-  // Build minimal context. If a patientId is provided, pull a small slice.
-  let context: any = null;
-  if (patientId) {
-    const [p] = await db
-      .select({ patient: patients, user: users })
-      .from(patients)
-      .innerJoin(users, eq(patients.userId, users.id))
-      .where(eq(patients.id, patientId))
-      .limit(1);
-    if (p) {
-      const meds = await db
-        .select()
-        .from(medicines)
-        .where(and(eq(medicines.patientId, patientId), eq(medicines.active, true)))
-        .limit(20);
-      const allergies = (() => {
-        try {
-          return p.patient.allergies ? JSON.parse(p.patient.allergies) : [];
-        } catch {
-          return [];
-        }
-      })();
-      const conditions = (() => {
-        try {
-          return p.patient.medicalConditions
-            ? JSON.parse(p.patient.medicalConditions)
-            : [];
-        } catch {
-          return [];
-        }
-      })();
-      context = {
-        name: p.user.name,
-        allergies,
-        conditions,
-        activeMedicines: meds.map((m) => ({
-          name: m.name,
-          dosage: m.dosage,
-        })),
-      };
-    }
+  // Resolve patient ID (either explicitly passed or derived from logged-in user)
+  let targetPatientId = patientId;
+  if (!targetPatientId && userId) {
+    const p = await getPatientForUser(db, userId);
+    if (p) targetPatientId = p.id;
+  }
+
+  // Build rich health snapshot + app user guide knowledge
+  let healthSnapshot: any = null;
+  if (targetPatientId) {
+    healthSnapshot = await getPatientHealthContext(db, targetPatientId);
   }
 
   // Pull recent chat history if sessionId provided
@@ -656,34 +627,102 @@ ai.post("/chat", async (c) => {
     }
   }
 
+  const chatSystemPrompt =
+    "You are an AI Health & System Assistant for a personal health application. " +
+    "Answer medical and app questions in friendly, plain conversational text with clear bullet points. " +
+    "CRITICAL: Do NOT output raw JSON code blocks or raw JSON objects. Format all lab test explanations, medication reviews, and health answers into easy-to-read, beautifully formatted text. " +
+    "Always advise consulting a licensed physician for diagnosis or emergency symptoms." +
+    (healthSnapshot
+      ? `\n\nPatient Medical Snapshot: ${JSON.stringify(healthSnapshot).slice(0, 3000)}.`
+      : "") +
+    `\n\n${APP_USER_GUIDE_KNOWLEDGE}`;
+
   const messages: ChatMsg[] = [
     {
       role: "system",
-      content:
-        systemPrompt(
-          "Answer health questions for a patient in a personal health record app. Always be brief, recommend seeing a doctor for serious issues, and never claim to be a doctor."
-        ) +
-        (context
-          ? ` Patient context: ${JSON.stringify(context).slice(0, 1500)}.`
-          : ""),
+      content: chatSystemPrompt,
     },
     ...history,
     { role: "user", content: message },
   ];
 
-  let reply: string;
+  let rawReply: string;
   try {
-    reply =
-      (await aiComplete(aiBinding, messages, {
-        maxTokens: 400,
-        temperature: 0.4,
-      })) || fallbackChat(message);
+    rawReply = await aiComplete(aiBinding, messages, {
+      maxTokens: 600,
+      temperature: 0.3,
+      apiKey: (c.env as any).GEMINI_API_KEY,
+    });
   } catch (err) {
     console.error("[ai/chat] failed", err);
-    reply = fallbackChat(message);
+    rawReply = "";
   }
 
-  return c.json({ response: reply });
+  if (!rawReply || rawReply.includes("trouble reaching the assistant")) {
+    rawReply = smartFallbackChat(message, healthSnapshot);
+  }
+
+  // Clean raw JSON or markdown wrappers into human-friendly prose
+  let reply = rawReply.trim();
+  if (reply.startsWith("```json")) {
+    reply = reply.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
+  } else if (reply.startsWith("```")) {
+    reply = reply.replace(/^```\s*/, "").replace(/\s*```$/, "");
+  }
+  if (reply.startsWith("{") && reply.endsWith("}")) {
+    try {
+      const obj = JSON.parse(reply);
+      if (obj.summary || obj.explanation || obj.text) {
+        let out = (obj.summary || obj.explanation || obj.text) + "\n";
+        if (obj.test_results) {
+          out += "\n**Test Results Summary:**\n";
+          for (const [cat, items] of Object.entries(obj.test_results)) {
+            out += `\n* **${cat.replace(/_/g, " ").toUpperCase()}**:\n`;
+            if (typeof items === "object" && items !== null) {
+              for (const [k, v] of Object.entries(items)) {
+                out += `  • ${k.replace(/_/g, " ")}: ${v}\n`;
+              }
+            }
+          }
+        }
+        if (Array.isArray(obj.abnormalValues) && obj.abnormalValues.length > 0) {
+          out += "\n**Abnormal Values:** " + obj.abnormalValues.join(", ") + "\n";
+        }
+        if (Array.isArray(obj.recommendations) && obj.recommendations.length > 0) {
+          out += "\n**Recommendations:**\n" + obj.recommendations.map((r: string) => `• ${r}`).join("\n");
+        }
+        reply = out.trim();
+      }
+    } catch {
+      /* keep clean string */
+    }
+  }
+
+  // Generate source citations matching patient records
+  const citations = (healthSnapshot?.recentRecords || [])
+    .filter(
+      (r: any) =>
+        message.toLowerCase().includes(r.title.toLowerCase()) ||
+        message.toLowerCase().includes("lab") ||
+        message.toLowerCase().includes("report") ||
+        message.toLowerCase().includes("record") ||
+        message.toLowerCase().includes("blood") ||
+        message.toLowerCase().includes("test")
+    )
+    .slice(0, 3)
+    .map((r: any) => ({
+      recordId: r.id,
+      title: r.title,
+      kind: r.kind ?? "record",
+      date: r.date,
+    }));
+
+  return c.json({
+    response: reply,
+    reply,
+    citations,
+    sessionId: sessionId ?? null,
+  });
 });
 
 // ─── Prescription OCR ────────────────────────────────────

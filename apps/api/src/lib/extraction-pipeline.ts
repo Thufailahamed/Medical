@@ -17,7 +17,11 @@ import {
   dischargeEvents,
   vaccinationDoses,
   prescriptionItems,
+  patients,
+  allergies,
 } from "@healthcare/db";
+import { lookupLoinc, lookupRxNorm } from "@healthcare/shared";
+import { notify } from "./notifications";
 import { extractLabReport } from "./extractors/lab-report";
 import { extractImagingReport } from "./extractors/imaging-report";
 import { extractDischargeSummary } from "./extractors/discharge-summary";
@@ -157,30 +161,89 @@ async function writeLabResults(
   collectedAt?: string | null,
 ) {
   if (!tests.length) return 0;
+  const criticalItems: any[] = [];
+  const abnormalItems: any[] = [];
+
   const rows = tests
     .filter((t) => t.name && (t._valueNumber != null || t._valueText))
-    .map((t) => ({
-      recordId,
-      patientId,
-      labReportId,
-      testName: t.name,
-      loincCode: t.loincCode ?? null,
-      value: t._valueNumber ?? null,
-      valueText: t._valueText ?? null,
-      unit: t.unit ?? null,
-      refRangeLow: t.refLow ?? null,
-      refRangeHigh: t.refHigh ?? null,
-      refRangeText: t.refText ?? null,
-      flag: t.flag ?? "unknown",
-      collectedAt: collectedAt ?? null,
-      reportedAt: reportedAt ?? null,
-      rawText: null,
-      pageHint: null,
-      extractionConfidence: meta.confidence,
-      modelVersion: meta.modelVersion,
-    }));
+    .map((t) => {
+      // LOINC auto-mapping
+      const loincLookup = lookupLoinc(t.name);
+      const loincCode = t.loincCode || loincLookup?.code || null;
+
+      // Flag calculation if missing
+      let flag = t.flag ?? "unknown";
+      if (flag === "unknown" && t._valueNumber != null) {
+        if (t.refLow != null && t._valueNumber < t.refLow) flag = "low";
+        else if (t.refHigh != null && t._valueNumber > t.refHigh) flag = "high";
+        else if (t.refLow != null && t.refHigh != null) flag = "normal";
+      }
+
+      if (flag === "critical") {
+        criticalItems.push({ name: t.name, value: t._valueNumber ?? t._valueText, unit: t.unit || loincLookup?.unit });
+      } else if (flag === "high" || flag === "low" || flag === "abnormal") {
+        abnormalItems.push({ name: t.name, value: t._valueNumber ?? t._valueText, unit: t.unit || loincLookup?.unit, flag });
+      }
+
+      return {
+        recordId,
+        patientId,
+        labReportId,
+        testName: t.name,
+        loincCode,
+        value: t._valueNumber ?? null,
+        valueText: t._valueText ?? null,
+        unit: t.unit || loincLookup?.unit || null,
+        refRangeLow: t.refLow ?? null,
+        refRangeHigh: t.refHigh ?? null,
+        refRangeText: t.refText ?? null,
+        flag,
+        collectedAt: collectedAt ?? null,
+        reportedAt: reportedAt ?? null,
+        rawText: null,
+        pageHint: null,
+        extractionConfidence: meta.confidence,
+        modelVersion: meta.modelVersion,
+      };
+    });
+
   if (!rows.length) return 0;
   await db.insert(labTestResults).values(rows);
+
+  // Send push notification if critical panic values or out-of-range lab results exist
+  if (criticalItems.length > 0 || abnormalItems.length > 0) {
+    try {
+      const [pat] = await db.select({ userId: patients.userId }).from(patients).where(eq(patients.id, patientId)).limit(1);
+      if (pat?.userId) {
+        if (criticalItems.length > 0) {
+          const itemDesc = criticalItems.map(i => `${i.name}: ${i.value} ${i.unit || ''}`.trim()).join(", ");
+          await notify({
+            db,
+            userId: pat.userId,
+            type: "lab_ready",
+            title: "🚨 Critical Lab Result Alert",
+            body: `Panic value detected in your extracted report: ${itemDesc}. Please review immediately.`,
+            forcePush: true,
+            data: { recordId, criticalItems },
+          });
+        } else if (abnormalItems.length > 0) {
+          const itemDesc = abnormalItems.slice(0, 3).map(i => `${i.name} (${i.flag.toUpperCase()})`).join(", ");
+          await notify({
+            db,
+            userId: pat.userId,
+            type: "lab_ready",
+            title: "📊 Out-of-Range Lab Result",
+            body: `Your extracted lab report contains out-of-range results: ${itemDesc}.`,
+            forcePush: false,
+            data: { recordId, abnormalItems },
+          });
+        }
+      }
+    } catch {
+      // Best-effort notification
+    }
+  }
+
   return rows.length;
 }
 
@@ -305,25 +368,78 @@ async function writePrescriptionItems(
 ) {
   const meds = Array.isArray(payload.medicines) ? payload.medicines : [];
   if (!meds.length) return 0;
+
+  const safetyWarnings: string[] = [];
+
   const rows = meds
     .filter((m: any) => m.name)
-    .map((m: any) => ({
-      recordId,
-      patientId,
-      name: m.name,
-      dosage: m.dosage ?? null,
-      frequency: m.frequency ?? null,
-      timing: m.timing ?? null,
-      durationDays: m.durationDays ?? null,
-      refills: m.refills ?? null,
-      prescriberName: payload.doctor || fallback.doctorsName || null,
-      prescribedDate: payload.date || fallback.prescribedDate || null,
-      rawText: null,
-      extractionConfidence: meta.confidence,
-      modelVersion: meta.modelVersion,
-    }));
+    .map((m: any) => {
+      const rxnormLookup = lookupRxNorm(m.name);
+      return {
+        recordId,
+        patientId,
+        name: m.name,
+        dosage: m.dosage ?? null,
+        frequency: m.frequency ?? null,
+        timing: m.timing ?? null,
+        durationDays: m.durationDays ?? null,
+        refills: m.refills ?? null,
+        prescriberName: payload.doctor || fallback.doctorsName || null,
+        prescribedDate: payload.date || fallback.prescribedDate || null,
+        rawText: rxnormLookup ? `RxNorm:${rxnormLookup.code} (${rxnormLookup.concept})` : null,
+        extractionConfidence: meta.confidence,
+        modelVersion: meta.modelVersion,
+      };
+    });
+
   if (!rows.length) return 0;
   await db.insert(prescriptionItems).values(rows);
+
+  // Cross-reference extracted prescription meds against patient's allergies
+  try {
+    const patientAllergies = await db
+      .select()
+      .from(allergies)
+      .where(eq(allergies.patientId, patientId));
+
+    if (patientAllergies.length > 0) {
+      for (const m of rows) {
+        const drugName = m.name.toLowerCase();
+        for (const alg of patientAllergies) {
+          const allergen = (alg.allergen || alg.substance || "").toLowerCase();
+          if (allergen && (drugName.includes(allergen) || allergen.includes(drugName))) {
+            safetyWarnings.push(`Extracted medication "${m.name}" conflicts with known allergy "${alg.allergen || alg.substance}".`);
+          }
+        }
+      }
+    }
+
+    if (safetyWarnings.length > 0) {
+      // Record warning in medical_records JSON envelope
+      const [rec] = await db.select({ extractedData: medicalRecords.extractedData }).from(medicalRecords).where(eq(medicalRecords.id, recordId)).limit(1);
+      let blob: any = {};
+      try { blob = JSON.parse(rec?.extractedData || "{}"); } catch { blob = {}; }
+      blob.safetyWarnings = safetyWarnings;
+      await db.update(medicalRecords).set({ extractedData: JSON.stringify(blob) }).where(eq(medicalRecords.id, recordId));
+
+      // Dispatch alert notification
+      const [pat] = await db.select({ userId: patients.userId }).from(patients).where(eq(patients.id, patientId)).limit(1);
+      if (pat?.userId) {
+        await notify({
+          db,
+          userId: pat.userId,
+          type: "prescription",
+          title: "⚠️ Medication Safety Alert",
+          body: safetyWarnings[0],
+          forcePush: true,
+          data: { recordId, safetyWarnings },
+        });
+      }
+    }
+  } catch {
+    // Best-effort safety check
+  }
+
   return rows.length;
 }
 

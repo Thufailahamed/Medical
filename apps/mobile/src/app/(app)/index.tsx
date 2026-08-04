@@ -618,6 +618,7 @@ export default function HomeScreen() {
                   label={`${adherence}%`}
                   sublabel={t("home.doses")}
                   centerColor="rgba(255, 255, 255, 0.08)"
+                  textColor="#FFFFFF"
                 />
               </View>
             </View>
@@ -750,10 +751,14 @@ export default function HomeScreen() {
                           fontFamily: fontFamily.bodySemibold,
                         }}
                       >
-                        {t("home.doctorAt", {
-                          name: appointments[0].doctorName,
-                          time: appointments[0].time,
-                        })}
+                        {(() => {
+                          const appt = appointments[0];
+                          const rawName = appt.doctorName || appt.providerName || appt.doctor?.name || appt.provider || appt.reason || appt.type || "";
+                          const cleanName = String(rawName).replace(/^Dr\.?\s*/i, "").trim();
+                          const doctorStr = cleanName ? `Dr. ${cleanName}` : "Doctor visit";
+                          const timeStr = appt.time || (appt.scheduledAt ? new Date(appt.scheduledAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "20:15");
+                          return `${doctorStr} at ${timeStr}`;
+                        })()}
                       </Text>
                     </View>
                   )}

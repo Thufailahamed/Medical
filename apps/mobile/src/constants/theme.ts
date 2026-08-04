@@ -307,14 +307,14 @@ export const radius = {
 // ---------- Typography ----------
 
 export const fontFamily = {
-  display: "Outfit_600SemiBold",
-  displayBold: "Outfit_700Bold",
-  body: "Outfit_400Regular",
-  bodyMedium: "Outfit_500Medium",
-  bodySemibold: "Outfit_600SemiBold",
-  bodyBold: "Outfit_700Bold",
-  heavy: "Outfit_800ExtraBold",
-  mono: "Outfit_400Regular",
+  display: "PlusJakartaSans_600SemiBold",
+  displayBold: "PlusJakartaSans_700Bold",
+  body: "PlusJakartaSans_400Regular",
+  bodyMedium: "PlusJakartaSans_500Medium",
+  bodySemibold: "PlusJakartaSans_600SemiBold",
+  bodyBold: "PlusJakartaSans_700Bold",
+  heavy: "PlusJakartaSans_800ExtraBold",
+  mono: "PlusJakartaSans_400Regular",
 } as const;
 
 type TypeStyle = {

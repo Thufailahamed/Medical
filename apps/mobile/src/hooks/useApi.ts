@@ -2486,7 +2486,7 @@ export function useSendChat() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { sessionId: string; content: string }) =>
-      api<{ userMessage: any; assistantMessage: any }>(
+      api<{ userMessage: any; assistantMessage: any; message: any; citations: any[] }>(
         `/chat/sessions/${data.sessionId}/messages`,
         { method: "POST", body: { content: data.content } }
       ),

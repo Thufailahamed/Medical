@@ -96,27 +96,32 @@ export function useAppLockGate() {
   //                                          router handle it
   useEffect(() => {
     if (!hasHydrated) return;
-    const inLockGroup = segments[0] === "lock";
-    const isLockScreen = segments[0] === "lock" && segments[1] !== "setup";
 
-    if (isAuthenticated && !pinHash && !inLockGroup) {
-      router.replace("/lock/setup");
-      return;
-    }
-    if (isAuthenticated && pinHash && isLocked && !inLockGroup) {
-      router.replace("/lock");
-      return;
-    }
-    // Successfully unlocked — navigate out of the lock screen.
-    if (isAuthenticated && pinHash && !isLocked && isLockScreen) {
-      router.replace("/(app)");
-      return;
-    }
-    // Auth dropped while we were on /lock: kick back to login.
-    if (!isAuthenticated && inLockGroup) {
-      router.replace("/(auth)/login");
-      return;
-    }
+    const timeout = setTimeout(() => {
+      const inLockGroup = segments[0] === "lock";
+      const isLockScreen = segments[0] === "lock" && segments[1] !== "setup";
+
+      if (isAuthenticated && !pinHash && !inLockGroup) {
+        router.replace("/lock/setup");
+        return;
+      }
+      if (isAuthenticated && pinHash && isLocked && !inLockGroup) {
+        router.replace("/lock");
+        return;
+      }
+      // Successfully unlocked — navigate out of the lock screen.
+      if (isAuthenticated && pinHash && !isLocked && isLockScreen) {
+        router.replace("/(app)");
+        return;
+      }
+      // Auth dropped while we were on /lock: kick back to login.
+      if (!isAuthenticated && inLockGroup) {
+        router.replace("/(auth)/login");
+        return;
+      }
+    }, 0);
+
+    return () => clearTimeout(timeout);
   }, [
     hasHydrated,
     isAuthenticated,

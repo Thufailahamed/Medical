@@ -1,39 +1,51 @@
 // @ts-nocheck
 import { StyleSheet, type StyleProp, type TextStyle } from "react-native";
 
-/** PostScript names from @expo-google-fonts/outfit (must match theme.ts). */
-export const OUTFIT = {
-  regular: "Outfit_400Regular",
-  medium: "Outfit_500Medium",
-  semibold: "Outfit_600SemiBold",
-  bold: "Outfit_700Bold",
-  extrabold: "Outfit_800ExtraBold",
+/** PostScript names for Plus Jakarta Sans font. */
+export const JAKARTA = {
+  regular: "PlusJakartaSans_400Regular",
+  medium: "PlusJakartaSans_500Medium",
+  semibold: "PlusJakartaSans_600SemiBold",
+  bold: "PlusJakartaSans_700Bold",
+  extrabold: "PlusJakartaSans_800ExtraBold",
 } as const;
 
-const WEIGHT_TO_OUTFIT: Record<string, string> = {
-  normal: OUTFIT.regular,
-  "400": OUTFIT.regular,
-  "500": OUTFIT.medium,
-  "600": OUTFIT.semibold,
-  "700": OUTFIT.bold,
-  bold: OUTFIT.bold,
-  "800": OUTFIT.extrabold,
-  "900": OUTFIT.extrabold,
+export const OUTFIT = JAKARTA;
+export const GEIST = JAKARTA;
+export const SORA = JAKARTA;
+export const URBANIST = JAKARTA;
+
+const WEIGHT_TO_JAKARTA: Record<string, string> = {
+  normal: JAKARTA.regular,
+  "400": JAKARTA.regular,
+  "500": JAKARTA.medium,
+  "600": JAKARTA.semibold,
+  "700": JAKARTA.bold,
+  bold: JAKARTA.bold,
+  "800": JAKARTA.extrabold,
+  "900": JAKARTA.extrabold,
 };
 
 /**
- * Maps fontWeight → Outfit file name and drops fontWeight.
+ * Maps fontWeight → Plus Jakarta Sans file name and drops fontWeight.
  * Android ignores fontWeight for custom fonts and falls back to Roboto.
  */
-export function resolveOutfitTextStyle(
+export function resolveJakartaTextStyle(
   style: StyleProp<TextStyle> | undefined
 ): StyleProp<TextStyle> {
   const flat = StyleSheet.flatten(style);
   if (!flat) {
-    return { fontFamily: OUTFIT.regular };
+    return { fontFamily: JAKARTA.regular };
   }
 
-  if (flat.fontFamily && String(flat.fontFamily).startsWith("Outfit_")) {
+  if (
+    flat.fontFamily &&
+    (String(flat.fontFamily).startsWith("PlusJakartaSans") ||
+      String(flat.fontFamily).startsWith("Sora") ||
+      String(flat.fontFamily).startsWith("Urbanist") ||
+      String(flat.fontFamily).startsWith("Outfit") ||
+      String(flat.fontFamily).startsWith("Geist"))
+  ) {
     const { fontWeight: _drop, ...rest } = flat;
     return rest;
   }
@@ -42,10 +54,15 @@ export function resolveOutfitTextStyle(
     flat.fontWeight != null ? String(flat.fontWeight) : undefined;
   const fontFamily =
     flat.fontFamily ??
-    (weightKey ? WEIGHT_TO_OUTFIT[weightKey] : undefined) ??
-    OUTFIT.regular;
+    (weightKey ? WEIGHT_TO_JAKARTA[weightKey] : undefined) ??
+    JAKARTA.regular;
 
   const { fontWeight: _drop, ...rest } = flat;
   return { ...rest, fontFamily };
 }
+
+export const resolveOutfitTextStyle = resolveJakartaTextStyle;
+export const resolveGeistTextStyle = resolveJakartaTextStyle;
+export const resolveSoraTextStyle = resolveJakartaTextStyle;
+export const resolveUrbanistTextStyle = resolveJakartaTextStyle;
 

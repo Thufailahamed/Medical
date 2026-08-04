@@ -166,36 +166,8 @@
     {
       "idx": 23,
       "version": "6",
-      "when": 1784100000000,
-      "tag": "0023_keen_otter",
-      "breakpoints": true
-    },
-    {
-      "idx": 24,
-      "version": "6",
-      "when": 1784200000000,
-      "tag": "0043_share_links_prescription",
-      "breakpoints": true
-    },
-    {
-      "idx": 25,
-      "version": "6",
-      "when": 1784300000000,
-      "tag": "0044_appointment_ratings",
-      "breakpoints": true
-    },
-    {
-      "idx": 26,
-      "version": "6",
-      "when": 1790000000000,
-      "tag": "0049_caretaker_patient_links",
-      "breakpoints": true
-    },
-    {
-      "idx": 27,
-      "version": "6",
-      "when": 1790000000001,
-      "tag": "0050_audit_actor_user_id",
+      "when": 1785873506953,
+      "tag": "0023_moaning_princess_powerful",
       "breakpoints": true
     }
   ]

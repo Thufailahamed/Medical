@@ -11,6 +11,10 @@ import {
   medicines,
   appointments,
   patients,
+  labTestResults,
+  prescriptionItems,
+  dischargeEvents,
+  imagingFindings,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { resolvePatientContext } from "../lib/caretaker";
@@ -54,14 +58,49 @@ timelineRouter.get("/me", authMiddleware, async (c) => {
       .from(medicalRecords)
       .where(and(...conds));
     for (const r of rows) {
+      let extractedItems: any[] = [];
+      const recType = (r.kind || r.recordType || "").toLowerCase();
+
+      try {
+        if (recType.includes("lab")) {
+          const labs = await db.select().from(labTestResults).where(eq(labTestResults.recordId, r.id)).limit(6);
+          extractedItems = labs.map((l: any) => ({
+            name: l.testName,
+            value: l.value != null ? String(l.value) : l.valueText || "",
+            unit: l.unit || "",
+            flag: l.flag || "normal",
+          }));
+        } else if (recType.includes("presc") || recType.includes("rx")) {
+          const meds = await db.select().from(prescriptionItems).where(eq(prescriptionItems.recordId, r.id)).limit(6);
+          extractedItems = meds.map((m: any) => ({
+            name: m.name,
+            dosage: m.dosage || "",
+            frequency: m.frequency || "",
+          }));
+        } else if (recType.includes("image") || recType.includes("xray") || recType.includes("mri")) {
+          const imgs = await db.select().from(imagingFindings).where(eq(imagingFindings.recordId, r.id)).limit(1);
+          if (imgs.length > 0) {
+            extractedItems = [{
+              modality: imgs[0].modality,
+              bodyPart: imgs[0].bodyPart,
+              impression: imgs[0].impression || "Report available",
+            }];
+          }
+        }
+      } catch {
+        // Best-effort enrichment
+      }
+
       events.push({
         id: `rec-${r.id}`,
+        recordId: r.id,
         kind: "record",
         date: r.recordDate || r.createdAt,
         title: r.title || r.recordType,
         subtitle: r.description || r.provider || null,
+        extractedItems,
         meta: {
-          recordType: r.recordType,
+          recordType: r.recordType || r.kind,
           provider: r.provider,
         },
       });

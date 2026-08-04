@@ -15,13 +15,13 @@ import { useLocaleStore } from "@/stores/locale";
 const NARROW_TAB_LABEL = {
   fontSize: 9,
   fontWeight: "700" as const,
-  letterSpacing: 0,
+  letterSpacing: -0.2,
   marginTop: 4,
 };
 const WIDE_TAB_LABEL = {
-  fontSize: 10,
+  fontSize: 9.5,
   fontWeight: "700" as const,
-  letterSpacing: 0.4,
+  letterSpacing: -0.2,
   marginTop: 4,
 };
 
@@ -123,7 +123,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="appointments"
         options={{
-          title: t("nav.tabs.appointments"),
+          title: t("nav.tabs.visits", { defaultValue: "Visits" }),
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={CalendarCheck} focused={focused} />
           ),
@@ -217,6 +217,10 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="edit-record"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="records/scan"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen

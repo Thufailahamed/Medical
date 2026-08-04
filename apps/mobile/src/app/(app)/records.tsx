@@ -791,7 +791,7 @@ export default function RecordsV2() {
             subtitle={subtitle || patientName}
             avatarName={patientName}
             onAddRecord={() => router.push("/(app)/add-record" as any)}
-            onScan={() => router.push("/(app)/records/scan" as any)}
+            onScan={() => router.push("/(app)/add-record" as any)}
             onShare={() => router.push("/(app)/share" as any)}
           />
         )}
@@ -1506,9 +1506,9 @@ function PremiumHero({
         ...themeShadow.hero,
       }}
     >
-      {/* Multi-stop base gradient — sky → teal → emerald */}
+      {/* Multi-stop base gradient — rich deep navy → electric cyan → medical teal */}
       <LinearGradient
-        colors={["#0B2B64", "#0C5C8C", "#0C8B8C", "#0E7490"]}
+        colors={["#0A2540", "#0C4A6E", "#0284C7", "#0D9488"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -1517,36 +1517,36 @@ function PremiumHero({
       <View
         style={{
           position: "absolute",
-          top: -120,
-          left: -100,
-          width: 320,
-          height: 320,
-          borderRadius: 160,
-          backgroundColor: "rgba(56, 189, 248, 0.32)",
+          top: -100,
+          left: -80,
+          width: 300,
+          height: 300,
+          borderRadius: 150,
+          backgroundColor: "rgba(56, 189, 248, 0.28)",
         }}
       />
-      {/* Coral accent orb — bottom-right */}
+      {/* Ambient teal orb — top-right */}
       <View
         style={{
           position: "absolute",
-          bottom: -110,
-          right: -90,
-          width: 280,
-          height: 280,
-          borderRadius: 140,
-          backgroundColor: "rgba(232, 95, 61, 0.22)",
+          top: -40,
+          right: -50,
+          width: 220,
+          height: 220,
+          borderRadius: 110,
+          backgroundColor: "rgba(45, 212, 191, 0.22)",
         }}
       />
-      {/* Sky accent orb — center-right */}
+      {/* Soft emerald orb — bottom-right */}
       <View
         style={{
           position: "absolute",
-          top: 40,
-          right: -40,
-          width: 180,
-          height: 180,
-          borderRadius: 90,
-          backgroundColor: "rgba(14, 165, 233, 0.22)",
+          bottom: -90,
+          right: -60,
+          width: 260,
+          height: 260,
+          borderRadius: 130,
+          backgroundColor: "rgba(13, 148, 136, 0.25)",
         }}
       />
       {/* Subtle dotted pattern overlay */}
@@ -1554,7 +1554,7 @@ function PremiumHero({
         style={{
           position: "absolute",
           inset: 0,
-          opacity: 0.35,
+          opacity: 0.30,
         }}
         pointerEvents="none"
       >
@@ -1569,7 +1569,7 @@ function PremiumHero({
                 width: 1.5,
                 height: 1.5,
                 borderRadius: 1,
-                backgroundColor: "rgba(255,255,255,0.18)",
+                backgroundColor: "rgba(255,255,255,0.22)",
               }}
             />
           ))
@@ -1582,16 +1582,16 @@ function PremiumHero({
           top: 0,
           left: 0,
           right: 0,
-          height: 1,
-          backgroundColor: "rgba(255,255,255,0.32)",
+          height: 1.5,
+          backgroundColor: "rgba(255,255,255,0.35)",
         }}
       />
 
       <View
         style={{
           paddingHorizontal: spacing.lg + 2,
-          paddingTop: spacing.md + 2,
-          paddingBottom: spacing.md,
+          paddingTop: spacing.lg,
+          paddingBottom: spacing.md + 4,
         }}
       >
         {/* Top row — identity + avatar */}
@@ -1603,23 +1603,24 @@ function PremiumHero({
           }}
         >
           <View style={{ flex: 1, marginRight: spacing.md }}>
-            {/* Eyebrow with live dot */}
+            {/* Eyebrow with live green pulse dot */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <View
                 style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
+                  width: 7,
+                  height: 7,
+                  borderRadius: 3.5,
                   backgroundColor: "#34D399",
                   shadowColor: "#34D399",
                   shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.8,
-                  shadowRadius: 4,
+                  shadowOpacity: 0.9,
+                  shadowRadius: 6,
+                  elevation: 3,
                 }}
               />
               <TextMuted
-                color="rgba(255,255,255,0.78)"
-                size={10.5}
+                color="rgba(255,255,255,0.85)"
+                size={11}
                 weight="800"
                 letterSpacing={1.4}
                 fontFamily={fontFamily.bodyBold}
@@ -1630,35 +1631,35 @@ function PremiumHero({
             </View>
             <TextMuted
               color="#FFFFFF"
-              size={24}
-              weight="800"
+              size={25}
+              weight="900"
               fontFamily={fontFamily.bodyBold}
-              style={{ marginTop: 4, letterSpacing: -0.5 }}
+              style={{ marginTop: 4, letterSpacing: -0.6 }}
               numberOfLines={1}
             >
               {patientName}
             </TextMuted>
             {subtitle ? (
               <TextMuted
-                color="rgba(255,255,255,0.78)"
-                size={12.5}
-                weight="500"
-                fontFamily={fontFamily.body}
+                color="rgba(255,255,255,0.82)"
+                size={13}
+                weight="600"
+                fontFamily={fontFamily.bodySemibold}
                 numberOfLines={1}
-                style={{ marginTop: 1 }}
+                style={{ marginTop: 2 }}
               >
                 {subtitle}
               </TextMuted>
             ) : null}
           </View>
 
-          {/* Avatar with gradient ring + soft glow */}
+          {/* Avatar with matching cyan-emerald gradient ring + soft glow */}
           <View
             style={{
-              shadowColor: "rgba(255,255,255,0.45)",
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.6,
-              shadowRadius: 14,
+              shadowColor: "#38BDF8",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.5,
+              shadowRadius: 12,
               elevation: 6,
             }}
           >
@@ -1670,7 +1671,7 @@ function PremiumHero({
               }}
             >
               <LinearGradient
-                colors={["#FBBF24", "#F59E0B", "#FBBF24"]}
+                colors={["#38BDF8", "#34D399", "#2DD4BF"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
@@ -1681,9 +1682,9 @@ function PremiumHero({
               />
               <View
                 style={{
-                  padding: 1.5,
+                  padding: 2,
                   borderRadius: 999,
-                  backgroundColor: "#0C4A6E",
+                  backgroundColor: "#0A2540",
                 }}
               >
                 <Avatar name={avatarName} size="lg" />
@@ -1692,35 +1693,30 @@ function PremiumHero({
           </View>
         </View>
 
-        {/* Glass stats strip */}
+        {/* Glass stats strip — perfectly balanced 3-column layout */}
         <View
           style={{
-            marginTop: spacing.md,
+            marginTop: spacing.lg - 2,
             borderRadius: 18,
             overflow: "hidden",
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.18)",
+            borderColor: "rgba(255,255,255,0.22)",
+            backgroundColor: Platform.OS === "ios" ? "transparent" : "rgba(255,255,255,0.12)",
           }}
         >
           {Platform.OS === "ios" ? (
             <BlurView
-              intensity={32}
+              intensity={35}
               tint="dark"
               style={StyleSheet.absoluteFill}
             />
-          ) : (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: "rgba(255,255,255,0.10)" },
-              ]}
-            />
-          )}
+          ) : null}
           <View
             style={{
               flexDirection: "row",
-              paddingVertical: 12,
+              paddingVertical: 14,
               paddingHorizontal: 4,
+              alignItems: "center",
             }}
           >
             {/* Stat 1: total records */}
@@ -1728,22 +1724,25 @@ function PremiumHero({
               style={{
                 flex: 1,
                 alignItems: "center",
-                gap: 2,
-                paddingHorizontal: 6,
+                justifyContent: "center",
+                gap: 4,
+                paddingHorizontal: 4,
                 borderRightWidth: 1,
-                borderColor: "rgba(255,255,255,0.14)",
+                borderColor: "rgba(255,255,255,0.16)",
               }}
             >
-              <TextMuted
-                color="#FFFFFF"
-                size={22}
-                weight="800"
-                fontFamily={fontFamily.heavy}
-                letterSpacing={-0.5}
-                numberOfLines={1}
-              >
-                {fmtCount(total)}
-              </TextMuted>
+              <View style={{ height: 24, justifyContent: "center" }}>
+                <TextMuted
+                  color="#FFFFFF"
+                  size={21}
+                  weight="800"
+                  fontFamily={fontFamily.heavy}
+                  letterSpacing={-0.5}
+                  numberOfLines={1}
+                >
+                  {fmtCount(total)}
+                </TextMuted>
+              </View>
               <TextMuted
                 color="rgba(255,255,255,0.75)"
                 size={9.5}
@@ -1761,28 +1760,30 @@ function PremiumHero({
               style={{
                 flex: 1,
                 alignItems: "center",
-                gap: 2,
-                paddingHorizontal: 6,
+                justifyContent: "center",
+                gap: 4,
+                paddingHorizontal: 4,
                 borderRightWidth: 1,
-                borderColor: "rgba(255,255,255,0.14)",
+                borderColor: "rgba(255,255,255,0.16)",
               }}
             >
               <View
                 style={{
+                  height: 24,
                   flexDirection: "row",
-                  alignItems: "baseline",
-                  gap: 2,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
                 }}
               >
                 <TrendingUp
-                  size={13}
+                  size={14}
                   color="#34D399"
                   strokeWidth={2.5}
-                  style={{ marginRight: 2 }}
                 />
                 <TextMuted
                   color="#FFFFFF"
-                  size={22}
+                  size={21}
                   weight="800"
                   fontFamily={fontFamily.heavy}
                   letterSpacing={-0.5}
@@ -1803,16 +1804,37 @@ function PremiumHero({
               </TextMuted>
             </View>
 
-            {/* Stat 3: encrypted / synced */}
+            {/* Stat 3: encrypted / synced with 100% indicator */}
             <View
               style={{
                 flex: 1,
                 alignItems: "center",
-                gap: 2,
-                paddingHorizontal: 6,
+                justifyContent: "center",
+                gap: 4,
+                paddingHorizontal: 4,
               }}
             >
-              <ShieldCheck size={22} color="#34D399" strokeWidth={2.5} />
+              <View
+                style={{
+                  height: 24,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
+              >
+                <ShieldCheck size={16} color="#34D399" strokeWidth={2.5} />
+                <TextMuted
+                  color="#FFFFFF"
+                  size={21}
+                  weight="800"
+                  fontFamily={fontFamily.heavy}
+                  letterSpacing={-0.5}
+                  numberOfLines={1}
+                >
+                  100%
+                </TextMuted>
+              </View>
               <TextMuted
                 color="rgba(255,255,255,0.75)"
                 size={9.5}
@@ -1827,11 +1849,12 @@ function PremiumHero({
           </View>
         </View>
 
-        {/* Quick action row */}
+        {/* Quick action row — unified button height and crisp styling */}
         <View
           style={{
             flexDirection: "row",
-            gap: 8,
+            alignItems: "center",
+            gap: 10,
             marginTop: spacing.md,
           }}
         >
@@ -1842,26 +1865,27 @@ function PremiumHero({
               accessibilityLabel={t("recordsHub.hero.addCta", "Add record")}
               style={({ pressed }) => ({
                 flex: 1,
+                height: 42,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 6,
-                paddingVertical: 10,
+                paddingHorizontal: 14,
                 borderRadius: 999,
                 backgroundColor: pressed
                   ? "rgba(255,255,255,0.92)"
                   : "#FFFFFF",
                 shadowColor: "#000000",
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: pressed ? 0.18 : 0.10,
+                shadowOpacity: pressed ? 0.20 : 0.12,
                 shadowRadius: 8,
                 elevation: 3,
               })}
             >
-              <Plus size={14} color="#0C4A6E" strokeWidth={2.5} />
+              <Plus size={15} color="#0C4A6E" strokeWidth={2.5} />
               <TextMuted
                 color="#0C4A6E"
-                size={12.5}
+                size={13}
                 weight="800"
                 fontFamily={fontFamily.bodyBold}
                 letterSpacing={-0.1}
@@ -1877,23 +1901,24 @@ function PremiumHero({
               accessibilityLabel={t("recordsHub.hero.scanCta", "Scan")}
               style={({ pressed }) => ({
                 flex: 1,
+                height: 42,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 6,
-                paddingVertical: 10,
+                paddingHorizontal: 14,
                 borderRadius: 999,
                 backgroundColor: pressed
-                  ? "rgba(255,255,255,0.30)"
-                  : "rgba(255,255,255,0.16)",
+                  ? "rgba(255,255,255,0.28)"
+                  : "rgba(255,255,255,0.18)",
                 borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.30)",
+                borderColor: "rgba(255,255,255,0.32)",
               })}
             >
-              <ScanLine size={14} color="#FFFFFF" strokeWidth={2.5} />
+              <ScanLine size={15} color="#FFFFFF" strokeWidth={2.5} />
               <TextMuted
                 color="#FFFFFF"
-                size={12.5}
+                size={13}
                 weight="800"
                 fontFamily={fontFamily.bodyBold}
                 letterSpacing={-0.1}
@@ -1914,10 +1939,10 @@ function PremiumHero({
                 justifyContent: "center",
                 borderRadius: 999,
                 backgroundColor: pressed
-                  ? "rgba(255,255,255,0.30)"
-                  : "rgba(255,255,255,0.16)",
+                  ? "rgba(255,255,255,0.28)"
+                  : "rgba(255,255,255,0.18)",
                 borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.30)",
+                borderColor: "rgba(255,255,255,0.32)",
               })}
             >
               <Share2 size={16} color="#FFFFFF" strokeWidth={2.5} />
