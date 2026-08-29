@@ -61,6 +61,7 @@ export const patientKeys = {
   vaccinations: () => ["patient", "vaccinations"] as const,
   vaccinationsDue: () => ["patient", "vaccinations", "due"] as const,
   family: () => ["patient", "family"] as const,
+  familyActive: () => ["patient", "family", "active"] as const,
   notes: () => ["patient", "notes"] as const,
   labResults: (params: { months?: number } = {}) =>
     ["patient", "records", "lab-results", params] as const,

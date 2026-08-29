@@ -19,6 +19,7 @@
  * directly via fetch + the same base URL — they don't go through here.
  */
 
+import { useActiveFamilyMemberStore } from "@/patient/stores/activeFamilyMember";
 import { useAuthStore } from "@/portal/stores/auth";
 
 export const API_URL =
@@ -120,6 +121,11 @@ export async function api<T = any>(
   const locale = store.locale;
   const hospitalId = store.activeHospitalId;
   const clinicId = store.activeClinicId;
+  // Phase 2.3: forward active family member so list endpoints filter
+  // and POST endpoints default-assign. Mirrors mobile lib/api.ts:58.
+  // Read per-request so optimistic updates on the picker reflect on
+  // the very next call — destructuring at module load would freeze.
+  const activeFmId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
 
   const url = `${base ?? API_URL}${path}`;
 
@@ -132,6 +138,7 @@ export async function api<T = any>(
   if (locale) reqHeaders["Accept-Language"] = locale;
   if (hospitalId) reqHeaders["x-active-hospital-id"] = hospitalId;
   if (clinicId) reqHeaders["x-active-clinic-id"] = clinicId;
+  if (activeFmId) reqHeaders["x-active-family-member-id"] = activeFmId;
 
   let res = await fetch(url, {
     ...rest,
@@ -192,6 +199,13 @@ export async function api<T = any>(
   }
 
   if (!res.ok) {
+    // Phase 2.3: 410 with `family_member_gone` means the FM the client
+    // thinks it's acting as no longer exists (deleted on another device,
+    // owner changed, etc.). Clear the local store + tell the caller via
+    // a typed error so screens can react. Mirrors mobile lib/api.ts:115.
+    if (res.status === 410 && body?.reason === "family_member_gone") {
+      useActiveFamilyMemberStore.getState().clear();
+    }
     const msg = body?.error ?? `Request failed (${res.status})`;
     throw new ApiError(msg, res.status, body?.details ?? body);
   }
