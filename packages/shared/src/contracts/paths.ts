@@ -69,6 +69,24 @@ export const patientPaths = {
     detail: (id: string) => `/medical-records/${id}`,
     labResults: (q: LabResultsQuery = {}) =>
       `/medical-records/me/lab-results${qs({ months: q.months, test: q.test })}`,
+    // Write-path additions (SP2a)
+    create: () => "/medical-records/envelope",
+    update: (id: string) => `/medical-records/${id}`,
+    delete: (id: string) => `/medical-records/${id}`,
+    attachments: (id: string) => `/files/record/${id}`,
+    attachmentUpload: () => "/files/upload",
+    attachmentDelete: (id: string) => `/files/${id}`,
+    attachmentPresign: () => "/files/presign",
+    attachmentDownload: (key: string, stream?: 0 | 1) =>
+      `/files/download/${key}${qs({ stream })}`,
+    reExtract: (id: string) => `/medical-records/${id}/re-extract`,
+    children: {
+      lab: (id: string) => `/medical-records/${id}/lab-results`,
+      imaging: (id: string) => `/medical-records/${id}/imaging-findings`,
+      discharge: (id: string) => `/medical-records/${id}/discharge-events`,
+      vaccination: (id: string) => `/medical-records/${id}/vaccination-doses`,
+      prescription: (id: string) => `/medical-records/${id}/prescription-items`,
+    },
   },
 
   medicines: {

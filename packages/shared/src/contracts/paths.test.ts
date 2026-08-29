@@ -92,4 +92,25 @@ describe("patientPaths", () => {
       "/doses/me?from=2026-08-29T00%3A00%3A00.000Z&to=2026-08-29T23%3A59%3A59.999Z"
     );
   });
+
+  it("builds the record write-path endpoints (SP2a)", () => {
+    expect(patientPaths.records.create()).toBe("/medical-records/envelope");
+    expect(patientPaths.records.update("abc")).toBe("/medical-records/abc");
+    expect(patientPaths.records.delete("abc")).toBe("/medical-records/abc");
+    expect(patientPaths.records.attachments("r1")).toBe("/files/record/r1");
+    expect(patientPaths.records.attachmentUpload()).toBe("/files/upload");
+    expect(patientPaths.records.attachmentDelete("f1")).toBe("/files/f1");
+    expect(patientPaths.records.attachmentPresign()).toBe("/files/presign");
+    expect(patientPaths.records.attachmentDownload("k", 1)).toBe("/files/download/k?stream=1");
+    expect(patientPaths.records.attachmentDownload("k")).toBe("/files/download/k");
+    expect(patientPaths.records.reExtract("r1")).toBe("/medical-records/r1/re-extract");
+  });
+
+  it("builds the per-kind child endpoints (SP2a)", () => {
+    expect(patientPaths.records.children.lab("r1")).toBe("/medical-records/r1/lab-results");
+    expect(patientPaths.records.children.imaging("r1")).toBe("/medical-records/r1/imaging-findings");
+    expect(patientPaths.records.children.discharge("r1")).toBe("/medical-records/r1/discharge-events");
+    expect(patientPaths.records.children.vaccination("r1")).toBe("/medical-records/r1/vaccination-doses");
+    expect(patientPaths.records.children.prescription("r1")).toBe("/medical-records/r1/prescription-items");
+  });
 });
