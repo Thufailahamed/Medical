@@ -20,7 +20,7 @@ export default function RecordDetailPage({
     <div className="flex flex-col gap-6 p-6 lg:p-8">
       <Card>
         <QueryBoundary
-          query={query as any}
+          query={query}
           loadingCount={2}
           emptyTitle="No such record"
           emptyDescription="We couldn't find that record on your file."

@@ -22,7 +22,7 @@ export default function MessagesPage() {
 
       <Card>
         <QueryBoundary
-          query={query as any}
+          query={query}
           loadingCount={3}
           emptyTitle="No messages yet"
           emptyDescription="Conversations with your care team will show here."

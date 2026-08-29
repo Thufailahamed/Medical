@@ -27,7 +27,7 @@ export function WellnessScore({ className }: { className?: string }) {
         icon={<HeartPulse size={15} />}
       />
       <QueryBoundary
-        query={query as any}
+        query={query}
         emptyTitle="Wellness unavailable"
         emptyDescription="We don't have enough recent data to score today."
         className="mt-3"

@@ -103,7 +103,7 @@ export function BodyOverview({ className }: { className?: string }) {
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-surface-3 pt-4">
         <QueryBoundary
-          query={summary as any}
+          query={summary}
           emptyTitle=""
           className="min-w-0"
         >

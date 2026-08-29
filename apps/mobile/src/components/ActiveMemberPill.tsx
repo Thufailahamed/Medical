@@ -30,22 +30,20 @@ export function ActiveMemberPill() {
   const label = member?.name || t("home.activeMemberFallback");
 
   async function pick(id: string | null) {
-    // Optimistic local update — header updates instantly.
+    const previousId = activeId;
     if (id) setActive(id);
     else clear();
     setOpen(false);
-    // Sync to server column (durable across devices).
     try {
       await api("/family/active", {
         method: "PATCH",
         body: { memberId: id },
       });
+      qc.invalidateQueries();
     } catch {
-      // Server sync failed — keep the local change; next request will
-      // re-validate the column on the server side.
+      if (previousId) setActive(previousId);
+      else clear();
     }
-    // Invalidate all list queries so screens refilter.
-    qc.invalidateQueries();
   }
 
   return (

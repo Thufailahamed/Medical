@@ -1,105 +1,35 @@
 "use client";
 
-import { useState } from "react";
-
-import { BodyFigure, BodyHotspot } from "@/patient/components/body";
-import { OrganDetailPanel, type OrganDetail } from "@/patient/components/body/OrganDetailPanel";
 import { VitalsTrend } from "@/patient/components/dashboard/VitalsTrend";
 import { Card } from "@/patient/components/primitives/Card";
-import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { useHealthSummary, useVitalsAlerts } from "@/patient/hooks";
-import type { VitalType } from "@/patient/types/patient";
 import { VITAL_REGISTRY } from "@/patient/lib/vitals";
 import { cn } from "@/portal/lib/utils";
 
-interface HotspotSpec {
-  id: string;
-  cx: number;
-  cy: number;
-  r?: number;
-  label: string;
-  vital: VitalType;
-  tone?: "brand" | "warn" | "danger" | "info";
-}
-
-const HOTSPOTS: HotspotSpec[] = [
-  { id: "head", cx: 50, cy: 14, label: "Head", vital: "blood_pressure" },
-  { id: "heart", cx: 50, cy: 42, label: "Heart", vital: "heart_rate", tone: "brand" },
-  { id: "lungs", cx: 36, cy: 40, label: "Lungs", vital: "spo2" },
-  { id: "liver", cx: 60, cy: 50, label: "Liver", vital: "blood_sugar", tone: "info" },
-  { id: "kidney-l", cx: 42, cy: 58, label: "Left kidney", vital: "blood_pressure" },
-  { id: "kidney-r", cx: 58, cy: 58, label: "Right kidney", vital: "blood_pressure" },
-];
-
 export default function HealthPage() {
-  const [active, setActive] = useState<HotspotSpec | null>(null);
   const summary = useHealthSummary();
   const alerts = useVitalsAlerts(7);
-
-  const detail: OrganDetail | null = active
-    ? {
-        id: active.id,
-        title: active.label,
-        status: `Latest ${VITAL_REGISTRY[active.vital].label.toLowerCase()} reading is available`,
-        metrics: [
-          { label: "Tracking", value: VITAL_REGISTRY[active.vital].label },
-          { label: "Unit", value: VITAL_REGISTRY[active.vital].unit },
-        ],
-        body: "The readings mapped to this organ come straight from your vitals feed. Select a different vitals tab to compare, or open Care Assistant to send a question to your doctor.",
-      }
-    : null;
 
   return (
     <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
       <SectionHeader
-        label="My body"
+        label="Vitals & Metrics"
         title="Health"
-        description="Explore organ hotspots and review recent vitals trends."
+        description="Track your vitals trends, recent alerts, and health profile."
       />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        <Card className="anim-rise relative flex flex-col gap-4 overflow-hidden xl:col-span-5">
-          <div
-            className="pointer-events-none absolute inset-x-8 top-24 h-48 rounded-full bg-brand/10 blur-3xl"
-            aria-hidden
-          />
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="t-label">Body map</p>
-              <p className="t-card-title mt-1">Tap a region to inspect</p>
-            </div>
-            <Pill tone="info">Front view</Pill>
-          </div>
-
-          <div className="relative mx-auto aspect-[5/6] w-full max-w-sm">
-            <BodyFigure>
-              {HOTSPOTS.map((h) => (
-                <BodyHotspot
-                  key={h.id}
-                  cx={h.cx}
-                  cy={h.cy}
-                  r={h.r ?? 4}
-                  label={h.label}
-                  tone={h.tone ?? "brand"}
-                  active={active?.id === h.id}
-                  onSelect={() =>
-                    setActive(active?.id === h.id ? null : h)
-                  }
-                  testId={`spot-${h.id}`}
-                />
-              ))}
-            </BodyFigure>
-          </div>
-        </Card>
-
-        <div className="flex flex-col gap-5 xl:col-span-7">
+        <div className="flex flex-col gap-5 xl:col-span-8">
           <VitalsTrend />
-          <Card className="anim-rise anim-rise-delay-1">
+        </div>
+
+        <div className="flex flex-col gap-5 xl:col-span-4">
+          <Card className="anim-rise anim-rise-delay-1 h-full">
             <p className="t-label">Recent alerts</p>
             <QueryBoundary
-              query={alerts as any}
+              query={alerts}
               isEmpty={(d) => {
                 const list = d?.items ?? (d as any)?.alerts;
                 return !list || list.length === 0;
@@ -154,7 +84,7 @@ export default function HealthPage() {
       <Card className="anim-rise anim-rise-delay-2">
         <p className="t-label">About you</p>
         <QueryBoundary
-          query={summary as any}
+          query={summary}
           emptyTitle="No profile summary"
           emptyDescription="Information from your intake will populate here."
           className="mt-4"
@@ -174,12 +104,6 @@ export default function HealthPage() {
           )}
         </QueryBoundary>
       </Card>
-
-      <OrganDetailPanel
-        detail={detail}
-        open={Boolean(active)}
-        onClose={() => setActive(null)}
-      />
     </div>
   );
 }

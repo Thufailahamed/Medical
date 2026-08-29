@@ -5,9 +5,10 @@ import {
   View,
   Text,
   ScrollView,
-  Share,
   Pressable,
 } from "react-native";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
 import {
   Download,
@@ -86,9 +87,17 @@ export default function ExportScreen() {
         const json = JSON.parse(text);
         payload = JSON.stringify(json, null, 2);
       } catch {}
-      await Share.share({
-        message: payload.slice(0, 200_000),
-        title: t("export.shareTitle", { format }),
+      const cacheDir = FileSystem.cacheDirectory;
+      if (!cacheDir) throw new Error("Cache directory unavailable on this device");
+      const extension = format === "txt" ? "txt" : "json";
+      const fileUri = `${cacheDir}healthhub-export-${Date.now()}.${extension}`;
+      await FileSystem.writeAsStringAsync(fileUri, payload);
+      if (!(await Sharing.isAvailableAsync())) {
+        throw new Error("Sharing is not available on this device");
+      }
+      await Sharing.shareAsync(fileUri, {
+        mimeType: format === "txt" ? "text/plain" : "application/json",
+        dialogTitle: t("export.shareTitle", { format }),
       });
       toast.show({ message: t("export.toast.success"), tone: "success" });
     } catch (e: any) {

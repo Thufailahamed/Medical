@@ -29,7 +29,7 @@ export function MedicationsToday({ className }: { className?: string }) {
       />
 
       <QueryBoundary
-        query={query as any}
+        query={query}
         emptyTitle="Nothing scheduled today"
         emptyDescription="You'll see doses here once your doctor issues an active plan."
         className="mt-4"

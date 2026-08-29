@@ -32,7 +32,7 @@ export function resolvePatientPortalHref(
   const kind = typeof data?.kind === "string" ? data.kind : notificationType;
 
   if (typeof data?.recordId === "string") {
-    return "/portal/me/records";
+    return `/patient/records/${data.recordId}`;
   }
 
   switch (kind) {
@@ -42,16 +42,15 @@ export function resolvePatientPortalHref(
     case "prescription_rejected":
     case "lab_ready":
     case "follow_up":
-      return "/portal/me/records";
-    case "appointment":
-      return "/portal/me";
     case "invoice_issued":
-      return "/portal/me/records";
+      return "/patient/records";
+    case "appointment":
+      return "/patient/appointments";
     default:
       if (notificationType === "prescription" || notificationType === "lab_ready") {
-        return "/portal/me/records";
+        return "/patient/records";
       }
-      return "/portal/me";
+      return "/patient";
   }
 }
 

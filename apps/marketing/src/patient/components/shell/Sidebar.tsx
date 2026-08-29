@@ -12,6 +12,7 @@ import {
   Pill,
   ScrollText,
   User,
+  MoreHorizontal,
 } from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
     testId: "nav-messages",
   },
   { href: "/patient/profile", label: "Profile", icon: User, testId: "nav-profile" },
+  { href: "/patient/more", label: "More features", icon: MoreHorizontal, testId: "nav-more" },
 ];
 
 /**

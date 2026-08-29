@@ -199,6 +199,7 @@ export function useActivePrincipal() {
     queryKey: ["caretaker", "me", "active-principal"],
     queryFn: () =>
       api<{
+        activePatientId: string | null;
         principal: { patientId: string; name: string; photo: string | null } | null;
       }>("/caretaker/me/active-principal"),
     staleTime: 60_000,

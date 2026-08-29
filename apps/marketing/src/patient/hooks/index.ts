@@ -36,6 +36,21 @@ import type {
 import type { AuthUser } from "@/portal/stores/auth";
 
 // ─── Profile & summary ──────────────────────────────────────
+export interface PatientProfileResponse {
+  patient: {
+    patients: { id: string; dateOfBirth: string | null; gender: string | null };
+    users: { id: string; name: string; email: string | null; phone: string | null };
+  };
+}
+
+export function usePatientProfile() {
+  return useQuery<PatientProfileResponse>({
+    queryKey: ["patient", "profile", "record"],
+    queryFn: () => api<PatientProfileResponse>("/patients/me"),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
 export function useProfile() {
   return useQuery<AuthUser | null>({
     queryKey: patientKeys.profile(),
@@ -100,6 +115,54 @@ export function useAppointments() {
   });
 }
 
+export function useAppointmentRecords(id: string) {
+  return useQuery<{ appointment: AppointmentRow; records: RecordRow[] }>({
+    queryKey: patientKeys.appointmentRecords(id),
+    queryFn: () => api<{ appointment: AppointmentRow; records: RecordRow[] }>(`/appointments/${id}/records`),
+    enabled: Boolean(id),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useBookAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) =>
+      api<{ appointment: AppointmentRow }>("/appointments", { method: "POST", json: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.appointments() });
+      qc.invalidateQueries({ queryKey: patientKeys.all });
+    },
+  });
+}
+
+export function useCancelAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ appointment: AppointmentRow }>(`/appointments/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.appointments() });
+      qc.invalidateQueries({ queryKey: patientKeys.all });
+    },
+  });
+}
+
+export function useRescheduleAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, date, time }: { id: string; date: string; time: string }) =>
+      api<{ appointment: AppointmentRow }>(`/appointments/${id}/reschedule`, {
+        method: "PATCH",
+        json: { date, time },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.appointments() });
+      qc.invalidateQueries({ queryKey: patientKeys.all });
+    },
+  });
+}
+
 // ─── Medical records ───────────────────────────────────────
 export function useRecords(params: {
   type?: string;
@@ -144,6 +207,80 @@ export function useMedications() {
     queryFn: () =>
       api<{ medicines: MedicineRow[] }>("/medicines/me"),
     ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useAddMedication() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) =>
+      api<{ medicine: MedicineRow }>("/medicines", { method: "POST", json: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.all }),
+  });
+}
+
+export function useEditMedication() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: string; [key: string]: unknown }) =>
+      api<{ medicine: MedicineRow }>(`/medicines/${id}`, { method: "PATCH", json: patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.all }),
+  });
+}
+
+export function useStopMedication() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ medicine: MedicineRow }>(`/medicines/${id}/stop`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.all }),
+  });
+}
+
+export function useTodayDoses() {
+  return useQuery<{ doses: Array<{ id: string; medicineId: string; takenAt: string | null; skipped: boolean }> }>({
+    queryKey: ["patient", "doses", "today"],
+    queryFn: () => {
+      const now = new Date();
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+      const params = new URLSearchParams({ from: start.toISOString(), to: end.toISOString() });
+      return api<{ doses: Array<{ id: string; medicineId: string; takenAt: string | null; skipped: boolean }> }>(`/doses/me?${params}`);
+    },
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+function invalidateMedicationQueries(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: patientKeys.all });
+  qc.invalidateQueries({ queryKey: ["patient", "doses"] });
+}
+
+export function useMarkDoseTaken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
+      api(`/doses/${id}/taken`, { method: "POST", json: { notes } }),
+    onSuccess: () => invalidateMedicationQueries(qc),
+  });
+}
+
+export function useSkipDose() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
+      api(`/doses/${id}/skip`, { method: "POST", json: { notes } }),
+    onSuccess: () => invalidateMedicationQueries(qc),
+  });
+}
+
+export function useUntakeDose() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/doses/${id}/taken`, { method: "DELETE" }),
+    onSuccess: () => invalidateMedicationQueries(qc),
   });
 }
 
@@ -193,10 +330,18 @@ export function useConversations() {
 }
 
 export function useConversationMessages(conversationId: string) {
-  return useQuery<{ messages: Message[] }>({
+  return useQuery<{
+    conversation: Conversation;
+    doctor: { id: string; userId: string; name: string; photo: string | null } | null;
+    messages: Message[];
+  }>({
     queryKey: patientKeys.conversation(conversationId),
     queryFn: () =>
-      api<{ messages: Message[] }>(
+      api<{
+        conversation: Conversation;
+        doctor: { id: string; userId: string; name: string; photo: string | null } | null;
+        messages: Message[];
+      }>(
         `/patient-messages/conversations/${conversationId}/messages`
       ),
     ...PATIENT_QUERY_DEFAULTS,
@@ -204,11 +349,50 @@ export function useConversationMessages(conversationId: string) {
   });
 }
 
+export function useSendPatientMessage(conversationId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      api<{ message: Message }>(`/patient-messages/conversations/${conversationId}/messages`, {
+        method: "POST",
+        json: { body },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.conversation(conversationId) });
+      qc.invalidateQueries({ queryKey: patientKeys.conversations() });
+    },
+  });
+}
+
+export function useMarkConversationRead(conversationId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean }>(`/patient-messages/conversations/${conversationId}/read`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.conversation(conversationId) });
+      qc.invalidateQueries({ queryKey: patientKeys.conversations() });
+    },
+  });
+}
+
 // ─── Notifications ─────────────────────────────────────────
+export interface PatientNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  read: boolean;
+  createdAt: string;
+  data?: unknown;
+}
+
 export function useNotifications() {
-  return useQuery<{ items: unknown[] }>({
+  return useQuery<{ notifications: PatientNotification[] }>({
     queryKey: patientKeys.notifications(),
-    queryFn: () => api<{ items: unknown[] }>("/patient-notifications"),
+    queryFn: () => api<{ notifications: PatientNotification[] }>("/notifications/me"),
     ...PATIENT_QUERY_DEFAULTS,
   });
 }
@@ -216,9 +400,34 @@ export function useNotifications() {
 export function useUnreadNotificationsCount() {
   return useQuery<{ count: number }>({
     queryKey: patientKeys.unreadCount(),
-    queryFn: () =>
-      api<{ count: number }>("/patient-notifications/unread-count"),
+    queryFn: () => api<{ count: number }>("/notifications/unread-count"),
     ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ notification: PatientNotification }>(`/notifications/${id}/read`, {
+        method: "PUT",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.notifications() });
+      qc.invalidateQueries({ queryKey: patientKeys.unreadCount() });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ message: string }>("/notifications/read-all", { method: "PUT" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.notifications() });
+      qc.invalidateQueries({ queryKey: patientKeys.unreadCount() });
+    },
   });
 }
 

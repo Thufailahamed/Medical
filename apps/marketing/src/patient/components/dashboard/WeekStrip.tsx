@@ -79,7 +79,7 @@ export function WeekStrip({ className }: { className?: string }) {
       </div>
 
       <QueryBoundary
-        query={query as any}
+        query={query}
         emptyTitle=""
         className="border-t border-surface-3 px-5 py-3"
       >

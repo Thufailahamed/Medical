@@ -10,9 +10,9 @@ vi.mock("@/patient/hooks", () => ({
 import HealthPage from "./page";
 
 describe("HealthPage", () => {
-  it("renders the body map card and the vitals trend header", () => {
+  it("renders the health page and recent alerts", () => {
     render(<HealthPage />);
-    expect(screen.getByText(/Body map/)).toBeTruthy();
-    expect(screen.getByText(/Tap a region/)).toBeTruthy();
+    expect(screen.getByText(/Health/)).toBeTruthy();
+    expect(screen.getByText(/Recent alerts/)).toBeTruthy();
   });
 });

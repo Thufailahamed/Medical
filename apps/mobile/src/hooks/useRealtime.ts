@@ -107,6 +107,16 @@ export function useRealtime() {
 
     let cancelled = false;
     let es: EventSource | null = null;
+    let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+
+    const startFallback = () => {
+      if (fallbackTimer || cancelled) return;
+      fallbackTimer = setInterval(() => {
+        qc.invalidateQueries({ queryKey: ["notifications"] });
+        qc.invalidateQueries({ queryKey: ["patient", "messages"] });
+        qc.invalidateQueries({ queryKey: ["patient", "appointments"] });
+      }, 30_000);
+    };
 
     (async () => {
       let token: string | null = null;
@@ -115,13 +125,16 @@ export function useRealtime() {
       } catch {
         token = null;
       }
-      if (cancelled || !token) return;
+      if (cancelled || !token) {
+        startFallback();
+        return;
+      }
 
       const url = `${API_URL}/realtime?token=${encodeURIComponent(token)}`;
       try {
         es = new EventSource(url, { withCredentials: false });
       } catch {
-        // Some RN runtimes don't ship EventSource; silent best-effort.
+        startFallback();
         return;
       }
       esRef.current = es;
@@ -148,6 +161,7 @@ export function useRealtime() {
       es.onerror = () => {
         if (es && es.readyState === EventSource.CLOSED) {
           esRef.current = null;
+          startFallback();
         }
       };
     })();
@@ -157,6 +171,7 @@ export function useRealtime() {
       es?.close();
       es = null;
       esRef.current = null;
+      if (fallbackTimer) clearInterval(fallbackTimer);
     };
   }, [userId, qc]);
 }

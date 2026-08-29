@@ -28,12 +28,13 @@ export function ActivePrincipalPill() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
 
-  // On first mount, if we have a local id but the server returns a
-  // different active principal, accept the server's truth.
-  const serverActive = data?.principals?.[0]?.patientId ?? null;
+  const serverActive = data?.activePatientId ?? null;
   useEffect(() => {
-    if (!activeId && serverActive) setActive(serverActive);
-  }, [serverActive, activeId]);
+    if (serverActive !== activeId) {
+      if (serverActive) setActive(serverActive);
+      else clear();
+    }
+  }, [serverActive, activeId, setActive, clear]);
 
   if (!activeId) return null;
 
@@ -43,15 +44,17 @@ export function ActivePrincipalPill() {
   const label = principal?.principalName ?? t("caretaker.pickerTitle");
 
   async function pick(id: string | null) {
+    const previousId = activeId;
     if (id) setActive(id);
     else clear();
     setOpen(false);
     try {
       await setServer.mutateAsync(id);
+      qc.invalidateQueries();
     } catch {
-      // ignore; subsequent requests revalidate against server column
+      if (previousId) setActive(previousId);
+      else clear();
     }
-    qc.invalidateQueries();
   }
 
   return (

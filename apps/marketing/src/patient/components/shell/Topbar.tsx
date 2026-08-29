@@ -22,6 +22,7 @@ import type { AuthUser } from "@/portal/stores/auth";
 import { logout } from "@/portal/lib/auth";
 import { useUnreadNotificationsCount } from "@/patient/hooks/useNotifications";
 import { useActiveFamilyMember } from "@/patient/hooks/useActiveFamilyMember";
+import { useMedicationStats, useWellness } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
 
 import { ActiveMemberPill } from "./ActiveMemberPill";
@@ -79,10 +80,9 @@ export function Topbar({ user }: { user: AuthUser | null }) {
   const firstName = user?.name?.split(" ")[0] ?? null;
   const initialsSource = user?.name?.trim() || null;
   const unread = useUnreadNotificationsCount();
-  // Phase 2.3: hydrate the active-FM store from the server column on
-  // every mount. Server column is the cross-device durable state;
-  // localStorage is best-effort. Mounting this here guarantees the
-  // query runs before any list endpoint on this page fires.
+  const wellness = useWellness();
+  const medicationStats = useMedicationStats(7);
+  // Hydrate the active-FM store from the server column on every mount.
   useActiveFamilyMember();
   const pathname = usePathname();
   const router = useRouter();
@@ -186,7 +186,7 @@ export function Topbar({ user }: { user: AuthUser | null }) {
                 </>
               ) : null}
               <span aria-hidden className="text-text-muted">·</span>
-              <WellnessChip />
+               <WellnessChip streak={medicationStats.data?.streakDays} score={wellness.data?.score} />
             </div>
           </div>
         </div>
@@ -329,21 +329,16 @@ function IconAction({
   );
 }
 
-function WellnessChip() {
-  // Lightweight, deterministic streak so the chip never flickers between
-  // "loading" and "empty". Uses the day-of-year as a stable seed.
-  const day = new Date();
-  const dayOfYear = Math.floor(
-    (day.getTime() - new Date(day.getFullYear(), 0, 0).getTime()) / 86_400_000
-  );
-  const streak = 6 + (dayOfYear % 9);
+function WellnessChip({ streak, score }: { streak?: number; score?: number }) {
+  if (streak == null && score == null) return null;
+  const label = streak != null ? `${streak}-day adherence` : `Wellness ${score}`;
   return (
     <span
       className="inline-flex items-center gap-1 rounded-pill bg-success-soft px-2 py-[2px] text-[10.5px] font-semibold text-success"
-      title={`${streak}-day wellness streak`}
+      title={label}
     >
       <HeartPulse size={11} aria-hidden />
-      {streak}-day streak
+      {label}
     </span>
   );
 }
@@ -438,7 +433,14 @@ function ProfileChip({
               <MenuItem href="/patient/profile" label="Profile" />
               <MenuItem href="/patient/appointments" label="Appointments" />
               <MenuItem href="/patient/messages" label="Messages" />
+              <MenuItem href="/patient/insurance" label="Insurance" />
+              <MenuItem href="/patient/imaging" label="Imaging" />
               <MenuItem href="/patient/share" label="Share access" />
+              <MenuItem href="/patient/export" label="Export my data" />
+              <MenuItem href="/patient/audit" label="Activity and audit" />
+              <MenuItem href="/patient/family" label="Family" />
+              <MenuItem href="/patient/care-team" label="Care team" />
+              <MenuItem href="/patient/emergency" label="Emergency profile" />
               <div
                 className="my-1 border-t"
                 style={{ borderColor: "var(--color-border)" }}

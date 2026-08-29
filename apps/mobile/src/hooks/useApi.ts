@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -645,8 +645,8 @@ export function useMyMedicines(opts?: { includeInactive?: boolean }) {
         `/medicines/me${opts?.includeInactive ? "?includeInactive=true" : ""}`
       ),
   });
-  // V3: hydrate offline cache (active only)
-  if (!opts?.includeInactive && q.data?.medicines) {
+  useEffect(() => {
+    if (opts?.includeInactive || !q.data?.medicines) return;
     setLastMeds(
       q.data.medicines
         .filter((m: any) => !m.endDate)
@@ -656,7 +656,8 @@ export function useMyMedicines(opts?: { includeInactive?: boolean }) {
           frequency: m.frequency,
         }))
     );
-  }
+  }, [opts?.includeInactive, q.data?.medicines]);
+
   return q;
 }
 
@@ -3526,8 +3527,9 @@ export function useMarkPatientConversationRead(conversationId: string | undefine
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      api<PatientConversationDetail>(
-        `/patient-messages/conversations/${conversationId}/messages?markRead=true`
+      api<{ ok: boolean }>(
+        `/patient-messages/conversations/${conversationId}/read`,
+        { method: "POST" }
       ),
     onSuccess: () => {
       qc.invalidateQueries({

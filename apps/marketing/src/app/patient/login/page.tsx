@@ -37,7 +37,7 @@ function PatientLoginForm() {
         router.replace("/patient/403");
         return;
       }
-      router.replace(next.startsWith("/patient") ? next : "/patient");
+      router.replace(next === "/patient" || next.startsWith("/patient/") ? next : "/patient");
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -61,7 +61,7 @@ function PatientLoginForm() {
         router.replace("/patient/403");
         return;
       }
-      router.replace(next.startsWith("/patient") ? next : "/patient");
+      router.replace(next === "/patient" || next.startsWith("/patient/") ? next : "/patient");
     } catch (err) {
       setError(
         err instanceof ApiError

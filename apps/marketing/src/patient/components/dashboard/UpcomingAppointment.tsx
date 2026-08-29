@@ -23,7 +23,7 @@ export function UpcomingAppointment({ className }: { className?: string }) {
       />
 
       <QueryBoundary
-        query={query as any}
+        query={query}
         emptyTitle="No upcoming appointments"
         emptyDescription="When your doctor schedules a visit, it'll show here."
         className="mt-4"

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
@@ -21,14 +23,14 @@ export default function AppointmentsPage() {
 
       <Card>
         <QueryBoundary
-          query={query as any}
+          query={query}
           loadingCount={4}
           emptyTitle="No appointments"
           emptyDescription="Once a doctor schedules a visit with you, it will land here."
         >
           {(data) => {
             const sorted = [...(data.appointments ?? [])].sort((a, b) =>
-              (b.date + b.time).localeCompare(a.date + a.time)
+              (a.date + a.time).localeCompare(b.date + b.time)
             );
             if (sorted.length === 0) {
               return (
@@ -46,30 +48,32 @@ export default function AppointmentsPage() {
                     <p className="t-label">Upcoming</p>
                     <ul className="mt-3 flex flex-col gap-2">
                       {upcoming.map((a) => (
-                        <li
-                          key={a.id}
-                          className="flex items-center gap-3 rounded-inner bg-surface-2 px-4 py-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-text">
-                              {a.doctorName ?? "Doctor"}{" "}
-                              {a.doctorSpecialization ? (
-                                <span className="text-text-muted">
-                                  · {a.doctorSpecialization}
-                                </span>
-                              ) : null}
-                            </p>
-                            <p className="t-micro">
-                              {formatDayLabel(a.date)} · {formatTime(a.time)}{" "}
-                              {a.hospitalName ? `· ${a.hospitalName}` : ""}
-                            </p>
-                          </div>
-                          <Pill tone={a.mode === "video" ? "brand" : "neutral"}>
-                            {humanize(a.mode)}
-                          </Pill>
-                          <Pill tone={statusTone(a.status)}>
-                            {humanize(a.status)}
-                          </Pill>
+                        <li key={a.id}>
+                          <Link
+                            href={`/patient/appointments/${a.id}`}
+                            className="flex items-center gap-3 rounded-inner bg-surface-2 px-4 py-3 hover:bg-surface-3"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-text">
+                                {a.doctorName ?? "Doctor"}{" "}
+                                {a.doctorSpecialization ? (
+                                  <span className="text-text-muted">
+                                    · {a.doctorSpecialization}
+                                  </span>
+                                ) : null}
+                              </p>
+                              <p className="t-micro">
+                                {formatDayLabel(a.date)} · {formatTime(a.time)}{" "}
+                                {a.hospitalName ? `· ${a.hospitalName}` : ""}
+                              </p>
+                            </div>
+                            <Pill tone={a.mode === "video" ? "brand" : "neutral"}>
+                              {humanize(a.mode)}
+                            </Pill>
+                            <Pill tone={statusTone(a.status)}>
+                              {humanize(a.status)}
+                            </Pill>
+                          </Link>
                         </li>
                       ))}
                     </ul>

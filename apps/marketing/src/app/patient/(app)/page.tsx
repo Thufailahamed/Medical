@@ -1,5 +1,4 @@
 import {
-  BodyOverview,
   CareAssistant,
   MedicationsToday,
   RecentActivity,
@@ -11,7 +10,7 @@ import {
 } from "@/patient/components/dashboard";
 
 /**
- * Health Monitoring dashboard — three-column composition matching
+ * Health Monitoring dashboard — balanced two-column composition matching
  * the patient portal design system, powered by real patient data.
  */
 export default function DashboardPage() {
@@ -26,21 +25,16 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
         {/* Left column */}
-        <div className="flex flex-col gap-5 xl:col-span-4">
+        <div className="flex flex-col gap-5 xl:col-span-7">
           <VitalsTrend />
           <CareAssistant />
         </div>
 
-        {/* Center — body */}
-        <div className="xl:col-span-4">
-          <BodyOverview className="h-full" />
-        </div>
-
         {/* Right column */}
-        <div className="flex flex-col gap-5 xl:col-span-4">
-          <WeekStrip />
-          <MedicationsToday />
+        <div className="flex flex-col gap-5 xl:col-span-5">
           <WellnessScore />
+          <MedicationsToday />
+          <WeekStrip />
         </div>
       </div>
 

@@ -99,7 +99,6 @@ patientMessagesRouter.get("/conversations/:id/messages", async (c) => {
   if (!patient) return c.json({ error: "Patient profile not found" }, 404);
 
   const limit = Math.min(parseInt(c.req.query("limit") || "50", 10) || 50, 200);
-  const markRead = c.req.query("markRead") !== "false";
 
   const [conv] = await db
     .select()
@@ -122,23 +121,6 @@ patientMessagesRouter.get("/conversations/:id/messages", async (c) => {
 
   const ordered = rows.slice().reverse();
 
-  // Mark patient-side as read.
-  if (markRead && conv.patientUnread > 0) {
-    await db
-      .update(messagesConversations)
-      .set({ patientUnread: 0 })
-      .where(eq(messagesConversations.id, conversationId));
-    await db
-      .update(messages)
-      .set({ readAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(messages.conversationId, conversationId),
-          eq(messages.senderRole, "doctor")
-        )
-      );
-  }
-
   // Doctor header.
   const [headerDoctor] = await db
     .select({ doctor: doctors, user: users })
@@ -148,7 +130,7 @@ patientMessagesRouter.get("/conversations/:id/messages", async (c) => {
     .limit(1);
 
   return c.json({
-    conversation: { ...conv, patientUnread: markRead ? 0 : conv.patientUnread, status: conv.status ?? "open" },
+    conversation: { ...conv, status: conv.status ?? "open" },
     doctor: headerDoctor
       ? {
           id: headerDoctor.doctor.id,
@@ -159,6 +141,42 @@ patientMessagesRouter.get("/conversations/:id/messages", async (c) => {
       : null,
     messages: ordered,
   });
+});
+
+patientMessagesRouter.post("/conversations/:id/read", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const conversationId = c.req.param("id");
+  const patient = await getPatient(db, userId);
+  if (!patient) return c.json({ error: "Patient profile not found" }, 404);
+
+  const [conv] = await db
+    .select({ id: messagesConversations.id })
+    .from(messagesConversations)
+    .where(
+      and(
+        eq(messagesConversations.id, conversationId),
+        eq(messagesConversations.patientId, patient.id)
+      )
+    )
+    .limit(1);
+  if (!conv) return c.json({ error: "Conversation not found" }, 404);
+
+  await db
+    .update(messagesConversations)
+    .set({ patientUnread: 0 })
+    .where(eq(messagesConversations.id, conversationId));
+  await db
+    .update(messages)
+    .set({ readAt: new Date().toISOString() })
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        eq(messages.senderRole, "doctor")
+      )
+    );
+
+  return c.json({ ok: true });
 });
 
 // ─── Send a reply ────────────────────────────────────────

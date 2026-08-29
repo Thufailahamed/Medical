@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthStore } from "@/portal/stores/auth";
+import { useActiveFamilyMember } from "@/patient/hooks/useActiveFamilyMember";
 
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -11,6 +12,32 @@ import { Topbar } from "./Topbar";
  */
 export function PatientShell({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
+  const activeFamily = useActiveFamilyMember();
+
+  if (activeFamily.isLoading) {
+    return (
+      <div className="grid min-h-[100dvh] place-items-center p-6 text-sm text-text-soft">
+        Loading your health context…
+      </div>
+    );
+  }
+
+  if (activeFamily.isError) {
+    return (
+      <div className="grid min-h-[100dvh] place-items-center p-6">
+        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+          <p className="text-sm text-text-soft">We couldn’t load your health context.</p>
+          <button
+            type="button"
+            onClick={() => activeFamily.refetch()}
+            className="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] p-4 sm:p-6 lg:p-8">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, Pill, CheckCircle2, X } from "lucide-react";
+import { Flame, Pill, CheckCircle2, X, Check, SkipForward } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
@@ -13,6 +13,10 @@ import {
   useMedications,
   useMedicationStats,
   useRefillDue,
+  useTodayDoses,
+  useMarkDoseTaken,
+  useSkipDose,
+  useUntakeDose,
 } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
 
@@ -20,7 +24,12 @@ export default function MedicationsPage() {
   const list = useMedications();
   const stats = useMedicationStats(7);
   const refills = useRefillDue(14);
+  const doses = useTodayDoses();
+  const markTaken = useMarkDoseTaken();
+  const skipDose = useSkipDose();
+  const untakeDose = useUntakeDose();
   const [refillOpen, setRefillOpen] = useState(false);
+  const [doseError, setDoseError] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
@@ -32,7 +41,7 @@ export default function MedicationsPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <QueryBoundary
-          query={stats as any}
+          query={stats}
           loadingCount={1}
           emptyTitle=""
         >
@@ -85,7 +94,7 @@ export default function MedicationsPage() {
 
       <Card accent="brand">
         <QueryBoundary
-          query={list as any}
+          query={list}
           isEmpty={(d) => !d || !d.medicines || d.medicines.length === 0}
           loadingCount={3}
           emptyTitle="No medications yet"
@@ -93,31 +102,91 @@ export default function MedicationsPage() {
         >
           {(data) => {
             const medicines = data?.medicines ?? [];
+            const todayDoses = doses.data?.doses ?? [];
             return (
-              <ul className="flex flex-col gap-2.5">
-                {medicines.map((m) => (
-                  <li
-                    key={m.id}
-                    className={cn(
-                      "flex items-center gap-3 rounded-inner border border-[color:var(--color-border)] px-4 py-3",
-                      m.active ? "bg-surface-2/80" : "bg-surface-2/40"
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-text">
-                        {m.name}
-                      </p>
-                      <p className="t-micro">
-                        {m.dosage} {m.frequency ? `· ${m.frequency}` : ""}
-                        {m.timing ? ` · ${m.timing}` : ""}
-                      </p>
-                    </div>
-                    <StatusPill tone={m.active ? "success" : "neutral"}>
-                      {m.active ? "Active" : "Paused"}
-                    </StatusPill>
-                  </li>
-                ))}
-              </ul>
+              <div className="flex flex-col gap-3">
+                {doseError ? <p role="alert" className="text-sm text-danger">{doseError}</p> : null}
+                <ul className="flex flex-col gap-2.5">
+                  {medicines.map((m) => {
+                    const dose = todayDoses.find((item) => item.medicineId === m.id);
+                    const busy = markTaken.isPending || skipDose.isPending || untakeDose.isPending;
+                    return (
+                      <li
+                        key={m.id}
+                        className={cn(
+                          "flex flex-wrap items-center gap-3 rounded-inner border border-[color:var(--color-border)] px-4 py-3",
+                          m.active ? "bg-surface-2/80" : "bg-surface-2/40"
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-text">{m.name}</p>
+                          <p className="t-micro">
+                            {m.dosage} {m.frequency ? `· ${m.frequency}` : ""}
+                            {m.timing ? ` · ${m.timing}` : ""}
+                          </p>
+                        </div>
+                        <StatusPill tone={m.active ? "success" : "neutral"}>
+                          {m.active ? "Active" : "Paused"}
+                        </StatusPill>
+                        {dose ? (
+                          <div className="flex items-center gap-1.5">
+                            {dose.takenAt ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDoseError(null);
+                                  untakeDose.mutate(dose.id, { onError: (error) => setDoseError(error instanceof Error ? error.message : "Could not undo dose.") });
+                                }}
+                                disabled={busy}
+                                className="inline-flex items-center gap-1 rounded-pill bg-success-soft px-3 py-1.5 text-xs font-semibold text-success disabled:opacity-60"
+                              >
+                                <Check size={13} aria-hidden /> Taken · Undo
+                              </button>
+                            ) : dose.skipped ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDoseError(null);
+                                  untakeDose.mutate(dose.id, { onError: (error) => setDoseError(error instanceof Error ? error.message : "Could not reset dose.") });
+                                }}
+                                disabled={busy}
+                                className="rounded-pill bg-surface-3 px-3 py-1.5 text-xs font-semibold text-text-soft disabled:opacity-60"
+                              >
+                                Skipped · Reset
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDoseError(null);
+                                    markTaken.mutate({ id: dose.id }, { onError: (error) => setDoseError(error instanceof Error ? error.message : "Could not mark dose.") });
+                                  }}
+                                  disabled={busy}
+                                  className="inline-flex items-center gap-1 rounded-pill bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                                >
+                                  <Check size={13} aria-hidden /> Taken
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDoseError(null);
+                                    skipDose.mutate({ id: dose.id }, { onError: (error) => setDoseError(error instanceof Error ? error.message : "Could not skip dose.") });
+                                  }}
+                                  disabled={busy}
+                                  className="inline-flex items-center gap-1 rounded-pill border border-border px-3 py-1.5 text-xs font-semibold text-text-soft disabled:opacity-60"
+                                >
+                                  <SkipForward size={13} aria-hidden /> Skip
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             );
           }}
         </QueryBoundary>

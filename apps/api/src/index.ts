@@ -241,6 +241,7 @@ app.route("/safety", safetyRouter);
 app.route("/", signatureRouter);
 app.route("/doctor", doctorRouter);
 app.route("/notifications", notificationsRouter);
+app.route("/patient-notifications", notificationsRouter);
 app.route("/hospitals", hospitalsRouter);
 app.route("/vitals", vitalsRouter);
 app.route("/notes", notesRouter);

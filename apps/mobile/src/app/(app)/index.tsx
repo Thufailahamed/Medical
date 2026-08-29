@@ -1277,8 +1277,8 @@ export default function HomeScreen() {
             snapshot={snapshotData as any}
             loading={snapshotLoading}
             onJumpToTrends={() => router.push("/(app)/records/trends")}
-            onJumpToAllergies={() => router.push("/(app)/records")}
-            onJumpToMeds={() => router.push("/(app)/vitals")}
+            onJumpToAllergies={() => router.push("/(app)/allergies")}
+            onJumpToMeds={() => router.push("/(app)/medicines")}
           />
 
           <View style={{ height: spacing.lg }} />

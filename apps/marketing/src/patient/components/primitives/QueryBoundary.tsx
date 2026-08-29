@@ -1,5 +1,7 @@
 "use client";
 
+import type { UseQueryResult } from "@tanstack/react-query";
+
 import { cn } from "@/portal/lib/utils";
 
 import { EmptyState } from "./EmptyState";
@@ -24,7 +26,10 @@ export function QueryBoundary<T>({
   className,
   children,
 }: {
-  query: { isLoading: boolean; isError: boolean; error?: unknown; data: T | undefined };
+  query: Pick<
+    UseQueryResult<T>,
+    "isLoading" | "isError" | "error" | "refetch" | "data"
+  >;
   isEmpty?: (data: T) => boolean;
   loadingCount?: number;
   emptyTitle: string;
@@ -33,7 +38,7 @@ export function QueryBoundary<T>({
   className?: string;
   children: (data: T) => React.ReactNode;
 }) {
-  const { isLoading, isError, data } = query;
+  const { isLoading, isError, error, data } = query;
 
   if (isLoading) {
     return (
@@ -47,10 +52,21 @@ export function QueryBoundary<T>({
 
   if (isError) {
     return (
-      <EmptyState
-        title="We couldn't load this right now"
-        description="Refresh the page or check your connection. Your data is safe."
-      />
+      <div className={cn("flex flex-col items-center gap-3 py-8 text-center", className)}>
+        <EmptyState
+          title="We couldn't load this right now"
+          description={error instanceof Error ? error.message : "Refresh the page or check your connection. Your data is safe."}
+        />
+        {query.refetch ? (
+          <button
+            type="button"
+            onClick={() => void query.refetch?.()}
+            className="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
     );
   }
 

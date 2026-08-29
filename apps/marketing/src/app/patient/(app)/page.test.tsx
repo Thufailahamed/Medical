@@ -52,6 +52,5 @@ describe("DashboardPage", () => {
     expect(screen.getByText(/Recent records/)).toBeTruthy();
     expect(screen.getByText(/Recent activity/)).toBeTruthy();
     expect(screen.getByText(/Care insights/)).toBeTruthy();
-    expect(screen.getByText(/Body scan/)).toBeTruthy();
   });
 });

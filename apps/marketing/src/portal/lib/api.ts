@@ -95,17 +95,20 @@ function bounceToLogin(reason?: string) {
   const onLoginPage =
     path === "/portal/login" ||
     path === "/login" ||
+    path === "/patient/login" ||
     path === "/hospital/login" ||
     path === "/admin/login";
   if (onLoginPage) return;
   const next = encodeURIComponent(path);
-  const loginTarget = path.startsWith("/portal")
-    ? "/portal/login"
-    : path.startsWith("/hospital")
-      ? "/hospital/login"
-      : path.startsWith("/admin")
-        ? "/admin/login"
-        : "/login";
+  const loginTarget = path.startsWith("/patient")
+    ? "/patient/login"
+    : path.startsWith("/portal")
+      ? "/portal/login"
+      : path.startsWith("/hospital")
+        ? "/hospital/login"
+        : path.startsWith("/admin")
+          ? "/admin/login"
+          : "/login";
   const qs = reason ? `&reason=${encodeURIComponent(reason)}` : "";
   window.location.href = `${loginTarget}?next=${next}${qs}`;
 }
@@ -152,7 +155,8 @@ export async function api<T = any>(
     const onLoginPage =
       typeof window !== "undefined" &&
       (window.location.pathname === "/portal/login" ||
-        window.location.pathname === "/login");
+        window.location.pathname === "/login" ||
+        window.location.pathname === "/patient/login");
     // The refresh endpoint is itself auth-free, so even when /auth/me
     // bounces us here there's a path back. Don't try to refresh on the
     // login page (where the user has no refresh token yet anyway).
@@ -186,7 +190,8 @@ export async function api<T = any>(
     const onLoginPage =
       typeof window !== "undefined" &&
       (window.location.pathname === "/portal/login" ||
-        window.location.pathname === "/login");
+        window.location.pathname === "/login" ||
+        window.location.pathname === "/patient/login");
     const msg =
       onLoginPage && body?.error
         ? body.error

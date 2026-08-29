@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <head>
         <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -42,7 +42,41 @@ notificationsRouter.get("/me", authMiddleware, async (c) => {
     .where(inArray(notifications.userId, Array.from(userIds)))
     .orderBy(desc(notifications.createdAt));
 
-  return c.json({ notifications: notifs });
+  return c.json({ notifications: notifs, items: notifs });
+});
+
+// GET / - alias for /me to support /patient-notifications
+notificationsRouter.get("/", authMiddleware, async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const dbUser = c.get("dbUser");
+
+  const userIds = new Set<string>([userId]);
+
+  if (dbUser?.role === "caretaker") {
+    const activeId =
+      (c.get("activePrincipalPatientId") as string | null) ||
+      dbUser?.activePrincipalPatientId ||
+      null;
+    if (activeId) {
+      const [principalPatient] = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.id, activeId))
+        .limit(1);
+      if (principalPatient?.userId) {
+        userIds.add(principalPatient.userId);
+      }
+    }
+  }
+
+  const notifs = await db
+    .select()
+    .from(notifications)
+    .where(inArray(notifications.userId, Array.from(userIds)))
+    .orderBy(desc(notifications.createdAt));
+
+  return c.json({ notifications: notifs, items: notifs, count: notifs.length });
 });
 
 // ─── Get unread count (DB query, not JS filter) ──────────

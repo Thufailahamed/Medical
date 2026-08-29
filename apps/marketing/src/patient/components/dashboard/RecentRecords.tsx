@@ -23,7 +23,7 @@ export function RecentRecords({ className }: { className?: string }) {
       />
 
       <QueryBoundary
-        query={query as any}
+        query={query}
         emptyTitle="No records yet"
         emptyDescription="Lab results, prescriptions and visit notes will appear here."
         className="mt-4 flex flex-col gap-2"

@@ -46,7 +46,7 @@ describe("PatientShell", () => {
       </PatientShell>
     );
     expect(screen.getByLabelText("Primary")).toBeTruthy();
-    expect(screen.getByText("Welcome back")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
     expect(screen.getByTestId("child")).toBeTruthy();
   });
 
@@ -64,13 +64,18 @@ describe("PatientShell", () => {
     expect(plate!.style.borderRadius).not.toBe("");
   });
 
-  it("falls back to a generic greeting when no user is logged in", () => {
+  it("falls back to a time-based greeting when no user is logged in", () => {
     renderWithClient(
       <PatientShell>
         <span>x</span>
       </PatientShell>
     );
-    expect(screen.getByText("Welcome back")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: /Good (morning|afternoon|evening)/,
+      })
+    ).toBeTruthy();
   });
 
   it("greets the user by first name when present", () => {
@@ -82,6 +87,11 @@ describe("PatientShell", () => {
         <span>x</span>
       </PatientShell>
     );
-    expect(screen.getByText(/Welcome to Nimal!/)).toBeTruthy();
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: /Good (morning|afternoon|evening), Nimal/,
+      })
+    ).toBeTruthy();
   });
 });

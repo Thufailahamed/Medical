@@ -69,18 +69,24 @@ export function useSetActiveFamilyMember() {
   const setActive = useActiveFamilyMemberStore((s) => s.setActiveFamilyMemberId);
   const clear = useActiveFamilyMemberStore((s) => s.clear);
   return useMutation({
-    mutationFn: async (memberId: string | null) => {
-      if (memberId) setActive(memberId);
-      else clear();
-      return api<{ activeId: string | null }>("/family/active", {
+    mutationFn: (memberId: string | null) =>
+      api<{ activeId: string | null }>("/family/active", {
         method: "PATCH",
         json: { memberId },
-      });
+      }),
+    onMutate: (memberId) => {
+      const previousId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
+      if (memberId) setActive(memberId);
+      else clear();
+      return { previousId };
     },
-    onSuccess: () => {
-      // Re-scope every patient-scoped list (records, vitals, allergies,
-      // medicines, timeline, …). The `["patient"]` prefix covers all
-      // patientKeys.* keys.
+    onError: (_error, _memberId, context) => {
+      if (context?.previousId) setActive(context.previousId);
+      else clear();
+    },
+    onSuccess: (response) => {
+      if (response.activeId) setActive(response.activeId);
+      else clear();
       qc.invalidateQueries({ queryKey: ["patient"] });
     },
   });

@@ -19,7 +19,7 @@ export function RecentActivity({ className }: { className?: string }) {
         icon={<Activity size={15} />}
       />
       <QueryBoundary
-        query={query as any}
+        query={query}
         emptyTitle="No recent activity"
         emptyDescription="Visits, prescriptions and readings you've logged will appear here."
         className="mt-4"

@@ -25,7 +25,7 @@ export default function RecordsListPage() {
 
       <Card>
         <QueryBoundary
-          query={stats as any}
+          query={stats}
           emptyTitle=""
           loadingCount={3}
         >
@@ -46,7 +46,7 @@ export default function RecordsListPage() {
 
       <Card>
         <QueryBoundary
-          query={query as any}
+          query={query}
           loadingCount={5}
           emptyTitle="No records on file"
           emptyDescription="Your lab results, prescriptions and visit notes will land here."

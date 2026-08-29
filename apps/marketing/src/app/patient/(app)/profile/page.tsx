@@ -56,13 +56,14 @@ export default function ProfilePage() {
 
       <Card>
         <QueryBoundary
-          query={query as any}
+          query={query}
           loadingCount={4}
           emptyTitle="No profile loaded"
           emptyDescription="Profile details land here once you're signed in."
         >
-          {(data) => (
-            <div className="flex flex-col gap-6">
+          {(data) => {
+            if (!data) return null;
+            return <div className="flex flex-col gap-6">
               <div className="flex items-center gap-4">
                 {data.photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -99,8 +100,8 @@ export default function ProfilePage() {
                 <Field label="Status" value={data.status ?? "active"} />
                 <Field label="ID" value={data.id ?? "—"} />
               </dl>
-            </div>
-          )}
+            </div>;
+          }}
         </QueryBoundary>
       </Card>
     </div>
