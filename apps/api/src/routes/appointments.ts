@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings, teleconsultSessions } from "@healthcare/db";
+import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings, teleconsultSessions, hospitals } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { resolvePatientContext } from "../lib/caretaker";
@@ -461,11 +461,92 @@ appointmentsRouter.get("/me", authMiddleware, async (c) => {
     .where(eq(appointments.patientId, patient.id))
     .orderBy(appointments.date);
 
-  // Annotate each row with recordCount (records tied to that appointment).
-  const enriched = upcoming.map((a: any) => ({ ...a, recordCount: 0 }));
+  // Annotate each row with recordCount PLUS the doctor and hospital names.
+  // The doctor/hospital joins are additive: a missing doctor must not
+  // drop the appointment, so the names fall through as null.
+  const enriched = await enrichAppointmentsWithNames(db, upcoming);
 
   return c.json({ appointments: enriched });
 });
+
+// Fetch doctors + users + hospitals for the rows returned by GET /me,
+// then attach doctorName / doctorSpecialization / hospitalName to each
+// appointment. The lookup is keyed by id, so a missing doctor/hospital
+// row falls through as null — never drops the appointment itself.
+//
+// Implementation note: every here uses a flat `select()` (no projection
+// spec) because the in-memory mock applies column refs via the DB
+// snake_case name, while the spec handler would need a JS-camelCase
+// alias. Production Drizzle returns whatever we name the JS column, so
+// the same logic stays correct against Cloudflare D1.
+async function enrichAppointmentsWithNames(db: any, rows: any[]) {
+  if (rows.length === 0) return rows.map((r) => ({ ...r, recordCount: 0 }));
+
+  const doctorIds = Array.from(
+    new Set(rows.map((r) => r.doctorId).filter((id) => id != null))
+  );
+  const hospitalIds = Array.from(
+    new Set(rows.map((r) => r.hospitalId).filter((id) => id != null))
+  );
+
+  const doctorMap = new Map<string, { userId: string | null; specialization: string | null }>();
+  for (const did of doctorIds) {
+    const doctorRows = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.id, did))
+      .limit(1);
+    const r = doctorRows[0];
+    if (r) {
+      doctorMap.set(r.id, {
+        userId: r.userId ?? null,
+        specialization: r.specialization ?? null,
+      });
+    }
+  }
+
+  const userIds = Array.from(
+    new Set(
+      Array.from(doctorMap.values())
+        .map((d) => d.userId)
+        .filter((id) => id != null)
+    )
+  );
+  const userMap = new Map<string, string | null>();
+  for (const uid of userIds) {
+    const userRows = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, uid))
+      .limit(1);
+    const u = userRows[0];
+    if (u) userMap.set(u.id, u.name ?? null);
+  }
+
+  const hospitalMap = new Map<string, string | null>();
+  for (const hid of hospitalIds) {
+    const hospitalRows = await db
+      .select()
+      .from(hospitals)
+      .where(eq(hospitals.id, hid))
+      .limit(1);
+    const h = hospitalRows[0];
+    if (h) hospitalMap.set(h.id, h.name ?? null);
+  }
+
+  return rows.map((r) => {
+    const doc = r.doctorId ? doctorMap.get(r.doctorId) : undefined;
+    const hosp = r.hospitalId ? hospitalMap.get(r.hospitalId) : undefined;
+    const userName = doc?.userId ? userMap.get(doc.userId) : undefined;
+    return {
+      ...r,
+      recordCount: 0,
+      doctorName: userName ?? null,
+      doctorSpecialization: doc?.specialization ?? null,
+      hospitalName: hosp ?? null,
+    };
+  });
+}
 
 // ─── Doctor's appointments (today only) — covered by /doctor-portal/queue ──
 // Removed: use /doctor-portal/queue?date=YYYY-MM-DD instead.
