@@ -2,10 +2,17 @@
 
 import { use } from "react";
 
+import { useRouter } from "next/navigation";
+
+import {
+  RecordActionsBar,
+  RecordAttachmentsSection,
+  StructuredChildren,
+} from "@/patient/components/records";
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
-import { useRecord } from "@/patient/hooks";
+import { useRecord, useRecordAttachments } from "@/patient/hooks";
 import { formatDayLabel } from "@/patient/lib/format";
 
 export default function RecordDetailPage({
@@ -14,7 +21,10 @@ export default function RecordDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const query = useRecord(id);
+  const attachments = useRecordAttachments(id);
+  const files = attachments.data?.files ?? [];
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
@@ -35,6 +45,14 @@ export default function RecordDetailPage({
                 </div>
                 <Pill tone="info">{data.status ?? "—"}</Pill>
               </div>
+
+              <RecordActionsBar
+                recordId={id}
+                archived={Boolean((data as { archivedAt?: string }).archivedAt)}
+                hasAttachments={files.length > 0}
+                onEdit={() => router.push(`/patient/records/${id}/edit`)}
+                onDeleteSuccess={() => router.push("/patient/records")}
+              />
 
               {data.diagnosis ? (
                 <div>
@@ -66,6 +84,18 @@ export default function RecordDetailPage({
                 </div>
               ) : null}
             </div>
+          )}
+        </QueryBoundary>
+      </Card>
+
+      <Card>
+        <RecordAttachmentsSection recordId={id} />
+      </Card>
+
+      <Card>
+        <QueryBoundary query={query} loadingCount={1} emptyTitle="">
+          {(data) => (
+            <StructuredChildren recordId={id} kind={data.recordType} />
           )}
         </QueryBoundary>
       </Card>
