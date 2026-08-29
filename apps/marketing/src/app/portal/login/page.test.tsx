@@ -99,8 +99,22 @@ describe("LoginPage RBAC gate", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
   }
 
-  it("rejects a patient login (wrong portal)", async () => {
+  it("allows a patient login (lands on /patient, not the clinician portal)", async () => {
     const user = userEvent.setup();
+    const mockRouter = {
+      push: vi.fn(),
+      replace: vi.fn(),
+      refresh: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+      prefetch: vi.fn(),
+    };
+    vi.doMock("next/navigation", () => ({
+      useRouter: () => mockRouter,
+      usePathname: () => "/portal/login",
+      useSearchParams: () => new URLSearchParams("next=/portal/dashboard"),
+      useParams: () => ({}),
+    }));
     mockLogin.mockResolvedValueOnce({
       id: "u1",
       name: "Pat Ient",
@@ -112,11 +126,11 @@ describe("LoginPage RBAC gate", () => {
     await submitForm(user);
 
     await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalled();
+      expect(mockLogin).toHaveBeenCalled();
     });
-    // Bouncing back / not navigating away is implied by the toast +
-    // logout + absence of a router.replace. We assert via state.
-    expect(mockLogout).toHaveBeenCalled();
+    // No toast + no logout + redirect toward /patient.
+    expect(mockToastError).not.toHaveBeenCalled();
+    expect(mockLogout).not.toHaveBeenCalled();
   });
 
   it("rejects a hospital_admin login (wrong portal)", async () => {

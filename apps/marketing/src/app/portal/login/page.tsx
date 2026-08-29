@@ -69,11 +69,13 @@ function LoginForm() {
         setSubmitting(false);
         return;
       }
-      const destination = isClinician
-        ? next
-        : next.startsWith("/portal")
-          ? "/portal/me"
-          : next;
+      // Patients land on the new /patient portal; clinicians honour the
+// `next` param so deep-links like /portal/patients/123 keep working.
+const destination = isClinician
+  ? next
+  : next && next.startsWith("/patient")
+    ? next
+    : "/patient";
       router.replace(destination);
     } catch (err) {
       setError(friendlyError(err));
