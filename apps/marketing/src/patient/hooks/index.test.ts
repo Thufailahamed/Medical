@@ -62,6 +62,23 @@ const EXPECTED_HOOK_EXPORTS = [
   "useDeleteNote",
   "useLabResults",
   "useRefillDue",
+  // SP2a additions
+  "useRecordAttachments",
+  "useRecordLabResults",
+  "useRecordImagingFindings",
+  "useRecordDischargeEvents",
+  "useRecordVaccinationDoses",
+  "useRecordPrescriptionItems",
+  "useCreateRecord",
+  "useUpdateRecord",
+  "useDeleteRecord",
+  "useArchiveRecord",
+  "useRestoreRecord",
+  "useMoveRecord",
+  "useAddAttachment",
+  "useDeleteAttachment",
+  "usePresignAttachment",
+  "useReExtractRecord",
 ] as const;
 
 const EXPECTED = new Set<string>(EXPECTED_HOOK_EXPORTS);

@@ -21,9 +21,9 @@ the `(app)` route group and the bare path.
 |---|---|---|---|---|
 | `(app)/index` | `/patient` | done | 0 | |
 | `(app)/records` | `/patient/records` | done | 0 | list only; write-path in 2 |
-| `(app)/record-detail` | `/patient/records/[id]` | done | 0 | read-only; actions in 2 |
-| `(app)/add-record` | `/patient/records/new` | planned | 2 | |
-| `(app)/edit-record` | `/patient/records/[id]/edit` | planned | 2 | |
+| `(app)/record-detail` | `/patient/records/[id]` | done | 2 | actions bar (edit/archive/restore/move/re-extract/delete) + attachments + structured children |
+| `(app)/add-record` | `/patient/records/new` | done | 2 | envelope-create; attachments added on detail |
+| `(app)/edit-record` | `/patient/records/[id]/edit` | done | 2 | edit metadata + tags; delete inline |
 | `(app)/records/scan` | `/patient/records/scan` | planned | 6 | OCR via file upload |
 | `(app)/records/trends` | `/patient/trends` | done | 0 | |
 | `(app)/timeline` | `/patient/timeline` | planned | 9 | |
