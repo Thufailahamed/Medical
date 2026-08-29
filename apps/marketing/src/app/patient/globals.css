@@ -131,3 +131,25 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Skeleton shimmer ────────────────────────────────────── */
+/* Used by primitives/Skeleton.tsx. The shimmer slides left → right
+   across a neutral surface, then pauses. */
+@keyframes patient-shimmer {
+  from {
+    background-position: -300px 0;
+  }
+  to {
+    background-position: 300px 0;
+  }
+}
+[data-app="patient"] .patient-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    var(--color-surface) 50%,
+    var(--color-surface-2) 100%
+  );
+  background-size: 600px 100%;
+  animation: patient-shimmer 1400ms linear infinite;
+}
