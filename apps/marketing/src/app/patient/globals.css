@@ -1,0 +1,133 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+/* ============================================================
+   Patient portal design tokens.
+
+   Tailwind v4 generates utilities from `--color-*` custom
+   properties declared at :root, so the palette lives there. The
+   `[data-app="patient"]` block below owns everything that is a
+   *style* rather than a token — background, font, base resets —
+   so marketing and the clinician portal are untouched.
+
+   This mirrors the pattern already used by
+   src/app/portal/globals.css and src/app/hospital/globals.css.
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --color-canvas: #e9ecf1;
+  --color-bg: #f4f5f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f6f8;
+  --color-surface-3: #eceef2;
+
+  /* Ink */
+  --color-text: #0b0b0f;
+  --color-text-soft: #56585f;
+  --color-text-muted: #9a9da6;
+
+  /* Accent */
+  --color-brand: #5b4ee9;
+  --color-brand-soft: #eeebfe;
+  --color-brand-strong: #4338ca;
+  --color-ink: #101014;
+
+  /* Semantic */
+  --color-success: #16a06a;
+  --color-success-soft: #e7f7ef;
+  --color-warn: #e08a00;
+  --color-warn-soft: #fdf3e0;
+  --color-danger: #e0464b;
+  --color-danger-soft: #fdecec;
+
+  /* Geometry */
+  --radius-plate: 32px;
+  --radius-card: 24px;
+  --radius-inner: 16px;
+  --radius-pill: 999px;
+
+  /* Depth — wide, low-opacity, no dark edges */
+  --shadow-card: 0 1px 2px rgba(11, 11, 15, 0.04),
+    0 8px 24px rgba(11, 11, 15, 0.05);
+  --shadow-float: 0 4px 12px rgba(11, 11, 15, 0.06),
+    0 18px 40px rgba(11, 11, 15, 0.08);
+  --shadow-brand: 0 8px 24px rgba(91, 78, 233, 0.28);
+
+  --font-patient: "Plus Jakarta Sans", "Outfit", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-app="patient"] {
+  /* The marketing root layout owns <html>/<body>, so the canvas
+     background is painted on this wrapper instead of on body. */
+  min-height: 100dvh;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-patient);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-app="patient"] *:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Type scale ───────────────────────────────────────────── */
+[data-app="patient"] .t-display {
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+[data-app="patient"] .t-card-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+[data-app="patient"] .t-metric {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+[data-app="patient"] .t-unit {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+[data-app="patient"] .t-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+[data-app="patient"] .t-micro {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ── Motion ───────────────────────────────────────────────── */
+@keyframes patient-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[data-app="patient"] .anim-rise {
+  animation: patient-rise 180ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-app="patient"] *,
+  [data-app="patient"] *::before,
+  [data-app="patient"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

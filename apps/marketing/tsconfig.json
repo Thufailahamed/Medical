@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/portal/*": ["./src/portal/*"],
-      "@/hospital/*": ["./src/hospital/*"]
+      "@/hospital/*": ["./src/hospital/*"],
+      "@/patient/*": ["./src/patient/*"]
     }
   },
   "include": [

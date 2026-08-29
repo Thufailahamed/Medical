@@ -28,6 +28,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@/portal": path.resolve(__dirname, "./src/portal"),
+      "@/patient": path.resolve(__dirname, "./src/patient"),
     },
   },
 });
