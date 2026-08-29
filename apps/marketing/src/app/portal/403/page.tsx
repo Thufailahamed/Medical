@@ -6,6 +6,7 @@ import { ShieldOff, ArrowLeft, LogOut } from "lucide-react";
 
 import { Button } from "@/portal/components/ui/Button";
 import { useAuthStore } from "@/portal/stores/auth";
+import { loginHref } from "@/portal/lib/login";
 
 /**
  * Forbidden page for the portal route. Reached when a non-doctor user
@@ -19,7 +20,7 @@ export default function ForbiddenPage() {
 
   function onLogout() {
     logout();
-    router.replace("/portal/login");
+    router.replace(loginHref({ port: "doctor" }));
   }
 
   const role = user?.role;

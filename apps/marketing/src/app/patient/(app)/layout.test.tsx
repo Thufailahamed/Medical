@@ -56,7 +56,7 @@ describe("PatientAppLayout gate", () => {
         <p>dash</p>
       </PatientAppLayout>
     );
-    expect(replace).toHaveBeenCalledWith("/patient/login?next=%2Fpatient");
+    expect(replace).toHaveBeenCalledWith("/login?port=patient&next=%2Fpatient");
   });
 
   it("redirects a doctor to 403", () => {

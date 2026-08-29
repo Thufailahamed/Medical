@@ -8,6 +8,7 @@ import { AdminTopbar } from "@/portal/components/admin/AdminTopbar";
 import { StepUpModal } from "@/portal/components/admin/StepUpModal";
 import { ImpersonationBanner } from "@/portal/components/admin/ImpersonationBanner";
 import { useRealtime } from "@/portal/hooks/useRealtime";
+import { loginHref } from "@/portal/lib/login";
 
 const ADMIN_ROLES = ["super_admin", "insurance", "ambulance"] as const;
 
@@ -18,7 +19,9 @@ export default function AdminShellLayout({ children }: { children: ReactNode }) 
   useEffect(() => {
     if (!hydrated) return;
     if (!token || !user) {
-      router.replace(`/admin/login?next=${encodeURIComponent(window.location.pathname)}`);
+      router.replace(
+        loginHref({ port: "operator", next: window.location.pathname }),
+      );
       return;
     }
     if (!ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {

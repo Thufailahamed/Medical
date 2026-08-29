@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useInsuranceOperatorAuthStore } from "./stores/auth";
+import { loginHref } from "@/portal/lib/login";
 
 export default function InsuranceOperatorRoot() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function InsuranceOperatorRoot() {
     router.replace(
       isAuthenticated
         ? "/insurance-operator/dashboard"
-        : "/insurance-operator/login",
+        : loginHref({ port: "operator" }),
     );
   }, [isAuthenticated, router]);
 

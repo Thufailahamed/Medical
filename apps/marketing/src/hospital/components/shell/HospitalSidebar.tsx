@@ -18,6 +18,7 @@ import { useAuthStore } from "@/hospital/stores/auth";
 import { useT } from "@/hospital/i18n";
 import { cn } from "@/hospital/lib/utils";
 import { logout } from "@/hospital/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { visibleNavGroups } from "./nav";
 import type { HospitalRole } from "@/hospital/stores/auth";
 
@@ -52,7 +53,7 @@ export function HospitalSidebar() {
 
   async function handleLogout() {
     await logout();
-    router.replace("/hospital/login");
+    router.replace(loginHref({ port: "facility" }));
   }
 
   return (

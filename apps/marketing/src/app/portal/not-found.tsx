@@ -47,7 +47,7 @@ export default function PortalNotFound() {
               </Button>
             </Link>
           ) : (
-            <Link href="/portal/login">
+            <Link href="/login?port=doctor">
               <Button variant="primary" leftIcon={<LogIn size={14} />}>
                 Sign in
               </Button>

@@ -9,6 +9,7 @@ import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { useProfile } from "@/patient/hooks";
 import { logout } from "@/portal/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 
 function initials(name: string | null | undefined) {
   return (name ?? "")
@@ -28,7 +29,7 @@ export default function ProfilePage() {
     setSigningOut(true);
     try {
       await logout();
-      router.replace("/patient/login");
+      router.replace(loginHref({ port: "patient" }));
     } finally {
       setSigningOut(false);
     }

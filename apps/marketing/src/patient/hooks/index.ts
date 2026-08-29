@@ -25,3 +25,8 @@ export * from "./doctors";
 export * from "./care-team";
 export * from "./marketplace";
 export * from "./diagnostic";
+export * from "./family";
+export * from "./emergency";
+export * from "./health-id";
+export * from "./consents";
+export * from "./dsar";

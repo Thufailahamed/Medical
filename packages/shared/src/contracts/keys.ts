@@ -73,7 +73,24 @@ export const patientKeys = {
   vaccinationsDue: () => ["patient", "vaccinations", "due"] as const,
   family: () => ["patient", "family"] as const,
   familyActive: () => ["patient", "family", "active"] as const,
+  familyInvites: () => ["patient", "family", "invites"] as const,
+  familyLocks: () => ["patient", "family", "locks"] as const,
   notes: () => ["patient", "notes"] as const,
+
+  recordSearch: (q: string, limit?: number) =>
+    ["patient", "records", "search", q, limit ?? 50] as const,
+
+  emergencyQr: () => ["patient", "emergency", "qr"] as const,
+
+  healthId: (purpose?: string) =>
+    ["patient", "health-id", purpose ?? "all"] as const,
+
+  consents: () => ["patient", "consents"] as const,
+  consentsMine: () => ["patient", "consents", "mine"] as const,
+  consentsIssued: () => ["patient", "consents", "issued"] as const,
+  consentsAudit: () => ["patient", "consents", "audit"] as const,
+
+  dsarJobs: () => ["patient", "dsar", "jobs"] as const,
 
   prescriptions: () => ["patient", "prescriptions"] as const,
   prescription: (id: string) => ["patient", "prescriptions", id] as const,

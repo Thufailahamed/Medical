@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Heart } from "lucide-react";
+import { Clock } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { TrendArea } from "@/patient/components/charts/TrendArea";
@@ -60,15 +60,10 @@ export function VitalsTrend({ className }: { className?: string }) {
           <p className="t-label">{meta.label}</p>
           <p className="mt-1 text-sm text-text-soft">This week&apos;s readings</p>
         </div>
-        <div className="flex items-center gap-2 text-text-muted">
-          <Clock size={14} aria-hidden />
-          <Heart
-            size={28}
-            className="text-danger anim-pulse-soft"
-            fill="currentColor"
-            aria-hidden
-          />
-        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-text-muted">
+          <Clock size={12} aria-hidden />
+          7 days
+        </span>
       </div>
 
       {isLoading ? (

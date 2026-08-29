@@ -1,47 +1,37 @@
+"use client";
+
 import {
   CareAssistant,
+  DashboardHero,
   MedicationsToday,
-  RecentActivity,
+  QuickActions,
   RecentRecords,
+  SafetyBanner,
   UpcomingAppointment,
   VitalsTrend,
-  WeekStrip,
-  WellnessScore,
 } from "@/patient/components/dashboard";
 
 /**
- * Health Monitoring dashboard — balanced two-column composition matching
- * the patient portal design system, powered by real patient data.
+ * Patient home — only what you need today:
+ * greeting, safety, shortcuts, meds + next visit, vitals, records, AI.
  */
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
-      <header className="anim-rise flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="t-label">Overview</p>
-          <h2 className="t-page mt-1 text-text">Health Monitoring</h2>
-        </div>
-      </header>
+    <div className="flex flex-col gap-5 px-1 pb-6 pt-1 sm:gap-6 sm:px-2">
+      <DashboardHero />
+      <SafetyBanner />
+      <QuickActions />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        {/* Left column */}
-        <div className="flex flex-col gap-5 xl:col-span-7">
-          <VitalsTrend />
-          <CareAssistant />
-        </div>
-
-        {/* Right column */}
-        <div className="flex flex-col gap-5 xl:col-span-5">
-          <WellnessScore />
-          <MedicationsToday />
-          <WeekStrip />
-        </div>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <MedicationsToday />
+        <UpcomingAppointment />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <UpcomingAppointment />
+      <VitalsTrend />
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <RecentRecords />
-        <RecentActivity />
+        <CareAssistant className="min-h-full" />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { ADMIN_NAV_GROUPS } from "./admin-nav";
 import { useAuthStore } from "@/portal/stores/auth";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
+import { loginHref } from "@/portal/lib/login";
 
 function resolveLabel(t: (k: string) => string, key: string): string {
   // `admin.nav.<slug>` keys live under the `admin` namespace. The custom
@@ -98,7 +99,7 @@ export function AdminSidebar() {
           <button
             onClick={() => {
               logout();
-              window.location.href = "/admin/login";
+              window.location.href = loginHref({ port: "operator" });
             }}
             aria-label="Sign out"
             className="h-8 w-8 rounded-md hover:bg-surface-2 flex items-center justify-center text-text-muted hover:text-text"

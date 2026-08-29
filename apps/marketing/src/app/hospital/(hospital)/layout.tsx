@@ -7,11 +7,12 @@ import { useAuthStore } from "@/hospital/stores/auth";
 import { HospitalSidebar } from "@/hospital/components/shell/HospitalSidebar";
 import { HospitalTopbar } from "@/hospital/components/shell/HospitalTopbar";
 import { useRealtime } from "@/portal/hooks/useRealtime";
+import { loginHref } from "@/portal/lib/login";
 
 /**
  * (hospital) route group layout:
  *   - On mount, gates the URL by checking the auth store
- *   - If no token → /hospital/login (with `next` to come back here)
+ *   - If no token → /login?port=facility (with `next` to come back here)
  *   - If a non-hospital role → /hospital/403
  *   - Otherwise renders the sidebar + topbar shell around the page
  *
@@ -41,8 +42,9 @@ export default function HospitalGroupLayout({
   useEffect(() => {
     if (!hydrated) return;
     if (!token) {
-      const next = encodeURIComponent(window.location.pathname);
-      router.replace(`/hospital/login?next=${next}`);
+      router.replace(
+        loginHref({ port: "facility", next: window.location.pathname }),
+      );
       return;
     }
     if (

@@ -20,8 +20,15 @@ function qs(params: Record<string, string | number | undefined | null>): string 
 
 export interface RecordsQuery {
   type?: string;
+  /** Free-text filter; sent as `q` to match the API. */
   search?: string;
   limit?: number;
+  offset?: number;
+  tags?: string;
+  archived?: "true" | "all" | "only";
+  scope?: "own" | "family";
+  familyMemberId?: string;
+  sort?: "newest" | "oldest" | "relevance";
 }
 
 export interface LabResultsQuery {
@@ -64,7 +71,19 @@ export const patientPaths = {
 
   records: {
     mine: (q: RecordsQuery = {}) =>
-      `/medical-records/me${qs({ type: q.type, search: q.search, limit: q.limit })}`,
+      `/medical-records/me${qs({
+        type: q.type,
+        q: q.search,
+        limit: q.limit,
+        offset: q.offset,
+        tags: q.tags,
+        archived: q.archived,
+        scope: q.scope,
+        familyMemberId: q.familyMemberId,
+        sort: q.sort,
+      })}`,
+    search: (q: string, limit?: number) =>
+      `/medical-records/me/search${qs({ q, limit })}`,
     stats: () => "/medical-records/me/stats",
     detail: (id: string) => `/medical-records/${id}`,
     labResults: (q: LabResultsQuery = {}) =>
@@ -80,6 +99,11 @@ export const patientPaths = {
     attachmentDownload: (key: string, stream?: 0 | 1) =>
       `/files/download/${key}${qs({ stream })}`,
     reExtract: (id: string) => `/medical-records/${id}/re-extract`,
+    bulkDelete: () => "/medical-records/bulk-delete",
+    bulkArchive: () => "/medical-records/bulk-archive",
+    bulkRestore: () => "/medical-records/bulk-restore",
+    bulkTag: () => "/medical-records/bulk-tag",
+    bulkMove: () => "/medical-records/bulk-move",
     children: {
       lab: (id: string) => `/medical-records/${id}/lab-results`,
       imaging: (id: string) => `/medical-records/${id}/imaging-findings`,
@@ -87,6 +111,46 @@ export const patientPaths = {
       vaccination: (id: string) => `/medical-records/${id}/vaccination-doses`,
       prescription: (id: string) => `/medical-records/${id}/prescription-items`,
     },
+  },
+
+  family: {
+    mine: () => "/patients/me/family",
+    create: () => "/patients/me/family",
+    detail: (id: string) => `/patients/me/family/${id}`,
+    active: () => "/family/active",
+    lock: (id: string) => `/family/members/${id}/lock`,
+    locks: () => "/family/members/locks",
+    invites: () => "/family/invites",
+    invite: (token: string) => `/family/invites/${token}`,
+    acceptInvite: (token: string) => `/family/invites/${token}/accept`,
+  },
+
+  emergency: {
+    qr: () => "/emergency/qr",
+    sos: () => "/emergency/sos",
+  },
+
+  healthId: {
+    current: (purpose?: string) =>
+      `/me/health-id/current${qs({ purpose })}`,
+    issue: () => "/me/health-id/issue",
+    revoke: () => "/me/health-id/revoke",
+  },
+
+  consents: {
+    create: () => "/consents",
+    mine: () => "/consents/me",
+    issued: () => "/consents/issued",
+    detail: (id: string) => `/consents/${id}`,
+    audit: () => "/consents/audit",
+  },
+
+  dsar: {
+    export: () => "/dsar/export",
+    erasure: () => "/dsar/erasure",
+    rectification: () => "/dsar/rectification",
+    jobs: () => "/dsar/jobs",
+    job: (id: string) => `/dsar/jobs/${id}`,
   },
 
   medicines: {
@@ -222,6 +286,8 @@ export const patientPaths = {
     forgot: () => "/auth/forgot-password",
     reset: () => "/auth/reset-password",
     register: () => "/auth/register",
+    login: () => "/auth/login",
+    loginByPhone: () => "/auth/login-by-phone",
     verifyOtp: () => "/auth/verify-otp",
     mfaSetup: () => "/auth/mfa/setup",
     mfaChallenge: () => "/auth/mfa/challenge",

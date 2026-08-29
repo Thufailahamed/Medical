@@ -39,6 +39,7 @@ import {
 import { useUiStore } from "@/portal/stores/ui";
 import { useAuthStore } from "@/portal/stores/auth";
 import { logout } from "@/portal/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { cn } from "@/portal/lib/utils";
 import { useUnreadNotificationsCount } from "@/patient/hooks/useNotifications";
 
@@ -103,7 +104,9 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/patient/notifications", label: "Notifications", icon: Bell, testId: "nav-notifications", badge: true },
       { href: "/patient/notes", label: "Personal Notes", icon: StickyNote, testId: "nav-notes" },
       { href: "/patient/share", label: "Share Records", icon: Share2, testId: "nav-share" },
+      { href: "/patient/consents", label: "Consents", icon: ShieldCheck, testId: "nav-consents" },
       { href: "/patient/export", label: "Export Data", icon: Download, testId: "nav-export" },
+      { href: "/patient/dsar", label: "Data Requests", icon: ClipboardList, testId: "nav-dsar" },
       { href: "/patient/audit", label: "Activity Audit", icon: Clock3, testId: "nav-audit" },
       { href: "/patient/profile", label: "Profile", icon: User, testId: "nav-profile" },
       { href: "/patient/more", label: "More Features", icon: MoreHorizontal, testId: "nav-more" },
@@ -135,7 +138,7 @@ export function Sidebar() {
     setSigningOut(true);
     try {
       await logout();
-      router.replace("/patient/login");
+      router.replace(loginHref({ port: "patient" }));
     } finally {
       setSigningOut(false);
     }

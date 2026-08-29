@@ -20,19 +20,21 @@ the `(app)` route group and the bare path.
 | mobile | web | status | sub-project | notes |
 |---|---|---|---|---|
 | `(app)/index` | `/patient` | done | 0 | |
-| `(app)/records` | `/patient/records` | done | 0 | list only; write-path in 2 |
+| `(app)/records` | `/patient/records` | done | 2 | list + search/filter/multi-select/bulk (SP2b); write-path SP2a |
 | `(app)/record-detail` | `/patient/records/[id]` | done | 2 | actions bar (edit/archive/restore/move/re-extract/delete) + attachments + structured children |
 | `(app)/add-record` | `/patient/records/new` | done | 2 | envelope-create; attachments added on detail |
 | `(app)/edit-record` | `/patient/records/[id]/edit` | done | 2 | edit metadata + tags; delete inline |
 | `(app)/records/scan` | `/patient/records/scan` | done | 6 | OCR via file upload |
 | `(app)/records/trends` | `/patient/trends` | done | 0 | |
+| records sharing tab | `/patient/consents` | done | 2c | consents issue/revoke + audit |
+| records DSAR sheet | `/patient/dsar` | done | 2c | export / erasure / rectification + jobs |
 | `(app)/timeline` | `/patient/timeline` | done | 9 | |
 | `(app)/notes` | `/patient/notes` | done | 0 | |
 | `(app)/allergies` | `/patient/allergies` | done | 0 | |
 | `(app)/vitals` | `/patient/vitals` | done | 0 | |
 | `(app)/vaccinations` | `/patient/vaccinations` | done | 0 | |
 | `(app)/health-summary` | `/patient/health` | done | 0 | |
-| `(app)/medicines` | `/patient/medications` | done | 0 | dose actions only; add/edit in 3 |
+| `(app)/medicines` | `/patient/medications` | done | 3 | dose actions + add/edit/history |
 | `(app)/add-medicine` | `/patient/medications/new` | done | 3 | |
 | `(app)/edit-medicine` | `/patient/medications/[id]/edit` | done | 3 | |
 | `(app)/medicines-history` | `/patient/medications/history` | done | 3 | |
@@ -50,7 +52,7 @@ the `(app)` route group and the bare path.
 | `(app)/inbox/[id]` | `/patient/messages/[id]` | done | 0 | |
 | `(app)/notifications` | `/patient/notifications` | done | 0 | |
 | `(app)/notification-preferences` | `/patient/notifications/preferences` | done | 8 | |
-| `(app)/profile` | `/patient/profile` | done | 0 | read-only; editing in 5 |
+| `(app)/profile` | `/patient/profile` | done | 5 | profile + edit at /patient/profile/edit |
 | `(app)/edit-profile` | `/patient/profile/edit` | done | 5 | |
 | `(app)/appearance` | `/patient/settings/appearance` | done | 5 | |
 | `(app)/change-password` | `/patient/settings/password` | done | 5 | |
@@ -61,8 +63,8 @@ the `(app)` route group and the bare path.
 | `(app)/export` | `/patient/export` | done | 0 | |
 | `(app)/audit` | `/patient/audit` | done | 0 | |
 | `(app)/activity` | `/patient/activity` | done | 9 | |
-| `(app)/emergency` | `/patient/emergency` | done | 0 | |
-| `(app)/health-id` | `/patient/health-id` | done | 0 | |
+| `(app)/emergency` | `/patient/emergency` | done | 8 | QR + SOS + contacts/allergies/meds |
+| `(app)/health-id` | `/patient/health-id` | done | 8 | rotating QR + purpose/issue/revoke |
 | `(app)/ai/chat` | `/patient/ai/chat` | done | 6 | |
 | `(app)/ai/summary` | `/patient/ai` | done | 0 | |
 | `(app)/ai/drug-check` | `/patient/ai` | done | 0 | |
@@ -95,9 +97,9 @@ the `(app)` route group and the bare path.
 | `(app)/insurance/claims/[id]` | `/patient/insurance/claims/[id]` | done | 1 | |
 | `(app)/tenants/index` | `/patient/tenants` | done | 9 | |
 | `(app)/tenants/[id]` | `/patient/tenants` | done | 9 | switcher, not a page per tenant |
-| `(app)/family` | `/patient/family` | done | 0 | invites and lock in 8 |
+| `(app)/family` | `/patient/family` | done | 8 | invites + privacy lock + add/remove |
 | `(app)/caretakers` | `/patient/caretakers` | done | 0 | |
-| `(app)/care-team` | `/patient/care-team` | done | 0 | add-member in 8 |
+| `(app)/care-team` | `/patient/care-team` | done | 8 | list + add at /patient/care-team/add |
 | `(app)/care-team-add` | `/patient/care-team/add` | done | 8 | |
 | `(app)/marketplace` | `/patient/marketplace` | done | 8 | |
 | `(app)/marketplace/[caretakerId]` | `/patient/marketplace/[caretakerId]` | done | 8 | |

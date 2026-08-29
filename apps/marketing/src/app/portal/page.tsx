@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/portal/stores/auth";
+import { loginHref } from "@/portal/lib/login";
 
 /**
  * Root path: if the user is signed in, push to the dashboard; otherwise
@@ -16,7 +17,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    router.replace(token ? "/portal/dashboard" : "/portal/login");
+    router.replace(
+      token ? "/portal/dashboard" : loginHref({ port: "doctor" }),
+    );
   }, [hydrated, token, router]);
 
   return (

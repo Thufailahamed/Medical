@@ -7,6 +7,7 @@ import { ShieldOff, ArrowLeft, LogOut } from "lucide-react";
 import { Button } from "@/portal/components/ui/Button";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { logout } from "@/hospital/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { useT } from "@/hospital/i18n";
 
 /**
@@ -20,7 +21,7 @@ export default function ForbiddenPage() {
 
   async function onLogout() {
     await logout();
-    router.replace("/hospital/login");
+    router.replace(loginHref({ port: "facility" }));
   }
 
   return (

@@ -1,3 +1,5 @@
+import { loginHref } from "@/portal/lib/login";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.healthhub.app";
 
 export async function api<T>(
@@ -28,7 +30,7 @@ export async function api<T>(
   if (res.status === 401) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("healthcare-insurance-operator-auth");
-      window.location.href = "/insurance-operator/login";
+      window.location.href = loginHref({ port: "operator" });
     }
     throw new Error("Unauthorized");
   }

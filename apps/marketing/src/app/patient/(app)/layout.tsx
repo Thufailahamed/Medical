@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/portal/stores/auth";
 import { useRealtime } from "@/portal/hooks/useRealtime";
+import { loginHref } from "@/portal/lib/login";
 import { PatientShell } from "@/patient/components/shell/PatientShell";
+import "../globals.css";
 
 /**
  * (app) route-group layout — the authenticated patient surface.
@@ -37,8 +39,9 @@ export default function PatientAppLayout({
   useEffect(() => {
     if (!hydrated) return;
     if (!token) {
-      const next = encodeURIComponent(window.location.pathname);
-      router.replace(`/patient/login?next=${next}`);
+      router.replace(
+        loginHref({ port: "patient", next: window.location.pathname }),
+      );
       return;
     }
     if (

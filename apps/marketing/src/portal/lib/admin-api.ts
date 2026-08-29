@@ -1,11 +1,12 @@
 "use client";
 
+import { loginHref } from "@/portal/lib/login";
 import { useAuthStore } from "@/portal/stores/auth";
 
 /**
  * Admin fetch wrapper. Reuses the same Authorization + Accept-Language
- * headers as the doctor portal, but routes auth failures to /admin/login
- * instead of /portal/login.
+ * headers as the doctor portal, but routes auth failures to /login?port=operator
+ * instead of the doctor portal.
  *
  * Thin wrapper so admin pages don't have to repeat the redirect logic.
  *
@@ -76,8 +77,10 @@ export async function adminApi<T = any>(path: string, init: Init = {}): Promise<
     if (typeof window !== "undefined") {
       const onAdminPath = window.location.pathname.startsWith("/admin");
       if (!onAdminPath) {
-        const next = encodeURIComponent(window.location.pathname);
-        window.location.href = `/admin/login?next=${next}`;
+        window.location.href = loginHref({
+          port: "operator",
+          next: window.location.pathname,
+        });
       }
     }
     let body: any = null;

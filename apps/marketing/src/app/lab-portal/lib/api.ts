@@ -1,3 +1,5 @@
+import { loginHref } from "@/portal/lib/login";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.healthhub.app";
 
 export async function api<T>(
@@ -26,7 +28,7 @@ export async function api<T>(
   if (res.status === 401) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("healthcare-lab-auth");
-      window.location.href = "/lab-portal/login";
+      window.location.href = loginHref({ port: "facility" });
     }
     throw new Error("Unauthorized");
   }

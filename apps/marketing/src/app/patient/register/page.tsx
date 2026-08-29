@@ -167,7 +167,7 @@ function RegisterForm() {
           <p className="text-sm text-text-soft">
             Already have one?{" "}
             <Link
-              href="/patient/login"
+              href="/login?port=patient"
               className="font-semibold text-brand hover:underline"
             >
               Sign in

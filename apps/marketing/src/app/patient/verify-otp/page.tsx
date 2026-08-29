@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, KeyRound, Lock, Loader2 } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { verifyPhoneLogin } from "@/portal/lib/auth";
 import { api, ApiError } from "@/portal/lib/api";
 import { patientPaths } from "@healthcare/shared/contracts";
 import { useAuthStore, type AuthUser } from "@/portal/stores/auth";
@@ -14,7 +15,11 @@ function VerifyOtpForm() {
   const router = useRouter();
   const params = useSearchParams();
   const identifier = params.get("identifier") || "";
-  const mode = params.get("mode") || "register"; // register | reset | mfa
+  const mode = params.get("mode") || "register"; // register | reset | mfa | login
+  const userId = params.get("userId") || "";
+  const channel = (params.get("channel") || "mobile") as "mobile" | "email";
+  const target = params.get("target") || identifier;
+  const next = params.get("next") || "/patient";
 
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -35,7 +40,7 @@ function VerifyOtpForm() {
             newPassword,
           },
         });
-        router.push("/patient/login");
+        router.push("/login?port=patient");
         return;
       }
 
@@ -44,8 +49,29 @@ function VerifyOtpForm() {
           method: "POST",
           json: { otp, identifier },
         });
-        // The auth store is updated by the api wrapper on success.
         router.push("/patient");
+        return;
+      }
+
+      if (mode === "login") {
+        if (!userId) {
+          setError("Missing login session. Please start again from sign in.");
+          return;
+        }
+        const user = await verifyPhoneLogin({
+          userId,
+          channel,
+          code: otp,
+        });
+        if (user.role !== "patient") {
+          router.replace("/patient/403");
+          return;
+        }
+        router.replace(
+          next === "/patient" || next.startsWith("/patient/")
+            ? next
+            : "/patient",
+        );
         return;
       }
 
@@ -70,46 +96,57 @@ function VerifyOtpForm() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "We could not verify your code. Please try again."
+          : "We could not verify your code. Please try again.",
       );
     } finally {
       setBusy(false);
     }
   }
 
+  const backHref =
+    mode === "reset"
+      ? "/patient/forgot-password"
+      : mode === "mfa"
+        ? "/patient/mfa/challenge"
+        : mode === "login"
+          ? "/login?port=patient"
+          : "/patient/register";
+
+  const title =
+    mode === "reset"
+      ? "Enter your reset code"
+      : mode === "mfa"
+        ? "Enter your 2FA code"
+        : mode === "login"
+          ? "Enter your login code"
+          : "Enter your verification code";
+
+  const label =
+    mode === "reset"
+      ? "Reset password"
+      : mode === "mfa"
+        ? "Two-factor"
+        : mode === "login"
+          ? "Phone sign-in"
+          : "Verify your account";
+
+  const destination = target || identifier || "your phone";
+
   return (
     <main className="flex min-h-[100dvh] items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <Link
-            href={
-              mode === "reset"
-                ? "/patient/forgot-password"
-                : mode === "mfa"
-                  ? "/patient/mfa/challenge"
-                  : "/patient/register"
-            }
+            href={backHref}
             className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft hover:text-brand"
           >
             <ChevronLeft size={14} aria-hidden /> Back
           </Link>
-          <p className="t-label">
-            {mode === "reset"
-              ? "Reset password"
-              : mode === "mfa"
-                ? "Two-factor"
-                : "Verify your account"}
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-text">
-            {mode === "reset"
-              ? "Enter your reset code"
-              : mode === "mfa"
-                ? "Enter your 2FA code"
-                : "Enter your verification code"}
-          </h1>
+          <p className="t-label">{label}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-text">{title}</h1>
           <p className="text-sm text-text-soft">
             We sent a 6-digit code to{" "}
-            <span className="font-semibold">{identifier}</span>. Enter it below
+            <span className="font-semibold">{destination}</span>. Enter it below
             to continue.
           </p>
 
@@ -137,6 +174,12 @@ function VerifyOtpForm() {
                 className="h-12 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-center text-2xl font-bold tracking-widest text-text outline-none focus:border-brand"
               />
             </div>
+            {mode === "login" ? (
+              <p className="mt-2 text-xs text-text-soft">
+                In local development you can also use{" "}
+                <span className="font-semibold">123456</span>.
+              </p>
+            ) : null}
           </div>
 
           {mode === "reset" ? (

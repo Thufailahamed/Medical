@@ -8,18 +8,15 @@ import {
   CalendarDays,
   ChevronDown,
   HeartPulse,
-  Home,
   LogOut,
-  Moon,
   Search,
-  ScrollText,
-  ShieldCheck,
-  Sun,
-  Sunrise,
+  Settings,
+  Sparkles,
 } from "lucide-react";
 
 import type { AuthUser } from "@/portal/stores/auth";
 import { logout } from "@/portal/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { useUnreadNotificationsCount } from "@/patient/hooks/useNotifications";
 import { useActiveFamilyMember } from "@/patient/hooks/useActiveFamilyMember";
 import { useMedicationStats, useWellness } from "@/patient/hooks";
@@ -27,32 +24,38 @@ import { cn } from "@/portal/lib/utils";
 
 import { ActiveMemberPill } from "./ActiveMemberPill";
 
-type TopLink = {
-  href: string;
-  label: string;
-  icon: typeof Home;
-  /** Tiny description shown on hover / on mobile sheets. */
-  hint?: string;
-};
-
-const TOP_LINKS: TopLink[] = [
-  { href: "/patient", label: "Dashboard", icon: Home, hint: "Today's overview" },
-  { href: "/patient/health", label: "Health", icon: HeartPulse, hint: "Vitals & trends" },
-  { href: "/patient/records", label: "Reports", icon: ScrollText, hint: "Records & labs" },
+/** Longest-prefix match against known patient routes → page title. */
+const PAGE_TITLES: { match: string; title: string; subtitle?: string }[] = [
+  { match: "/patient/settings", title: "Settings", subtitle: "Account & security" },
+  { match: "/patient/profile", title: "Profile", subtitle: "Your details" },
+  { match: "/patient/notifications", title: "Notifications", subtitle: "Inbox" },
+  { match: "/patient/health", title: "My Health", subtitle: "Vitals & trends" },
+  { match: "/patient/appointments", title: "Appointments", subtitle: "Visits & bookings" },
+  { match: "/patient/medications", title: "Medications", subtitle: "Doses & refills" },
+  { match: "/patient/prescriptions", title: "Prescriptions", subtitle: "Active scripts" },
+  { match: "/patient/care-team", title: "Care Team", subtitle: "Your clinicians" },
+  { match: "/patient/ai", title: "AI Assistant", subtitle: "Ask with context" },
+  { match: "/patient/records", title: "Medical Records", subtitle: "Files & reports" },
+  { match: "/patient/diagnostic-tests", title: "Lab Tests", subtitle: "Orders & results" },
+  { match: "/patient/imaging", title: "Imaging", subtitle: "Scans & studies" },
+  { match: "/patient/vaccinations", title: "Vaccinations", subtitle: "Immunisation record" },
+  { match: "/patient/allergies", title: "Allergies", subtitle: "Known reactions" },
+  { match: "/patient/family", title: "Family", subtitle: "Linked members" },
+  { match: "/patient/caretakers", title: "Caretakers", subtitle: "Access sharing" },
+  { match: "/patient/emergency", title: "Emergency Card", subtitle: "Critical info" },
+  { match: "/patient/health-id", title: "Health ID", subtitle: "QR identity" },
+  { match: "/patient/insurance", title: "Insurance", subtitle: "Cover & claims" },
+  { match: "/patient/export", title: "Export", subtitle: "Download your data" },
+  { match: "/patient/consents", title: "Consents", subtitle: "Sharing permissions" },
+  { match: "/patient/dsar", title: "Data requests", subtitle: "Privacy rights" },
+  { match: "/patient", title: "Dashboard", subtitle: "Today at a glance" },
 ];
 
-function timeGreeting(now = new Date()): {
-  text: string;
-  Icon: typeof Sun;
-  // Subtle context used in the meta line — friendly, not over-cute.
-  vibe: string;
-} {
-  const hour = now.getHours();
-  if (hour < 5) return { text: "Up late", Icon: Moon, vibe: "Rest well" };
-  if (hour < 12) return { text: "Good morning", Icon: Sunrise, vibe: "Fresh start" };
-  if (hour < 17) return { text: "Good afternoon", Icon: Sun, vibe: "Stay hydrated" };
-  if (hour < 21) return { text: "Good evening", Icon: Sun, vibe: "Wind down gently" };
-  return { text: "Good night", Icon: Moon, vibe: "Rest well" };
+function pageMeta(pathname: string) {
+  const hit = PAGE_TITLES.find(
+    (p) => pathname === p.match || pathname.startsWith(`${p.match}/`),
+  );
+  return hit ?? { title: "HealthHub", subtitle: "Patient portal" };
 }
 
 function formatLongDate(now: Date) {
@@ -64,17 +67,10 @@ function formatLongDate(now: Date) {
 }
 
 /**
- * Patient topbar — greeting + section nav + identity / actions.
+ * Patient chrome topbar — page context + utilities only.
  *
- * Composed in three zones inside a floating plate:
- *  1. Greeting block: time-aware greeting, day context, wellness chip
- *  2. Section pill nav with icons and active-state shine
- *  3. Quick actions: search, notifications (with pulsing dot), profile
- *     chip, logout
- *
- * Sticky inside the main column so the nav stays visible while the
- * dashboard cards scroll. Honours `prefers-reduced-motion` via the
- * shared `anim-rise` class.
+ * Greeting lives on the dashboard hero so we do not double-say
+ * "Good night" / "Good evening". Section links live in the sidebar.
  */
 export function Topbar({ user }: { user: AuthUser | null }) {
   const firstName = user?.name?.split(" ")[0] ?? null;
@@ -82,28 +78,23 @@ export function Topbar({ user }: { user: AuthUser | null }) {
   const unread = useUnreadNotificationsCount();
   const wellness = useWellness();
   const medicationStats = useMedicationStats(7);
-  // Hydrate the active-FM store from the server column on every mount.
   useActiveFamilyMember();
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const now = new Date();
-  const greeting = timeGreeting(now);
-  const greetingLine = firstName
-    ? `${greeting.text}, ${firstName}`
-    : greeting.text;
-  const today = formatLongDate(now);
+  const today = formatLongDate(new Date());
   const fullName = user?.name?.trim() || "Patient";
   const showName = firstName ?? (user?.name ?? "Patient");
+  const page = pageMeta(pathname);
 
   async function onLogout() {
     if (signingOut) return;
     setSigningOut(true);
     try {
       await logout();
-      router.replace("/patient/login");
+      router.replace(loginHref({ port: "patient" }));
     } finally {
       setSigningOut(false);
     }
@@ -111,143 +102,59 @@ export function Topbar({ user }: { user: AuthUser | null }) {
 
   return (
     <header
-      className="anim-rise sticky top-3 z-30 overflow-hidden"
+      className="anim-rise sticky top-3 z-30"
+      data-testid="patient-topbar"
       style={{
         borderRadius: "var(--radius-card)",
         background:
-          "linear-gradient(120deg, rgba(255,255,255,0.95) 0%, rgba(244,247,255,0.92) 60%, rgba(232,239,255,0.92) 100%)",
+          "linear-gradient(120deg, rgba(255,255,255,0.97) 0%, rgba(247,250,255,0.94) 100%)",
         boxShadow: "var(--shadow-card)",
         border: "1px solid var(--color-border)",
-        backdropFilter: "blur(8px)",
+        backdropFilter: "blur(10px)",
       }}
     >
-      {/* Decorative gradient orb — softens the right edge and gives the
-          bar a brand-tinted glow without adding visual weight. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(59,111,245,0.22), rgba(59,111,245,0) 70%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-12 -bottom-12 h-32 w-32 rounded-full"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(124,108,255,0.16), rgba(124,108,255,0) 70%)",
-        }}
-      />
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        style={{ borderRadius: "inherit" }}
+      >
+        <div
+          className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(24,84,255,0.12), transparent 70%)",
+          }}
+        />
+      </div>
 
-      <div className="relative z-10 flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-5 sm:py-3.5">
-        {/* ── Zone 1: Greeting block ─────────────────────────────── */}
-        <div className="flex min-w-0 flex-1 items-center gap-3 basis-[16rem]">
-          <span
-            aria-hidden
-            className="hidden h-11 w-11 shrink-0 place-items-center sm:grid"
-            style={{
-              borderRadius: "var(--radius-inner)",
-              background:
-                "linear-gradient(145deg, var(--color-brand-soft) 0%, rgba(124,108,255,0.18) 100%)",
-              color: "var(--color-brand-strong)",
-              boxShadow: "inset 0 0 0 1px rgba(59,111,245,0.18)",
-            }}
-          >
-            <greeting.Icon size={20} strokeWidth={2.1} />
-          </span>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-[17px] font-bold leading-tight tracking-tight text-text sm:text-lg">
-                {greetingLine}
-              </h1>
-              {user?.verified ? (
-                <span
-                  title="Verified patient"
-                  aria-label="Verified patient"
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-success"
-                  style={{ borderRadius: "var(--radius-pill)" }}
-                >
-                  <ShieldCheck size={15} strokeWidth={2.4} aria-hidden />
+      <div className="relative z-10 flex items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
+        {/* Page context */}
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[15px] font-bold tracking-tight text-text sm:text-base">
+            {page.title}
+          </h1>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-text-soft">
+            <span className="inline-flex items-center gap-1">
+              <CalendarDays size={11} aria-hidden className="text-text-muted" />
+              {today}
+            </span>
+            {page.subtitle ? (
+              <>
+                <span aria-hidden className="text-text-muted">
+                  ·
                 </span>
-              ) : null}
-            </div>
-
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-text-soft">
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays size={11} aria-hidden className="text-text-muted" />
-                {today}
-              </span>
-              {greeting.vibe ? (
-                <>
-                  <span aria-hidden className="text-text-muted">·</span>
-                  <span>{greeting.vibe}</span>
-                </>
-              ) : null}
-              <span aria-hidden className="text-text-muted">·</span>
-               <WellnessChip streak={medicationStats.data?.streakDays} score={wellness.data?.score} />
-            </div>
+                <span className="truncate">{page.subtitle}</span>
+              </>
+            ) : null}
+            <WellnessChip
+              streak={medicationStats.data?.streakDays}
+              score={wellness.data?.score}
+            />
           </div>
         </div>
 
-        {/* ── Zone 2: Section nav ────────────────────────────────── */}
-        <nav
-          aria-label="Sections"
-          className="order-3 mx-auto flex w-full max-w-md items-center gap-0.5 bg-surface/80 p-1 sm:order-none sm:mx-0 sm:w-auto sm:max-w-none"
-          style={{
-            borderRadius: "var(--radius-pill)",
-            boxShadow: "inset 0 0 0 1px var(--color-border)",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          {TOP_LINKS.map((link) => {
-            const Icon = link.icon;
-            const active =
-              link.href === "/patient"
-                ? pathname === "/patient"
-                : pathname === link.href ||
-                  pathname.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                title={link.hint}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "group relative inline-flex items-center gap-1.5 rounded-pill px-3.5 py-1.5 text-sm font-semibold transition-all",
-                  active
-                    ? "text-white"
-                    : "text-text-soft hover:text-brand"
-                )}
-                style={
-                  active
-                    ? {
-                        background:
-                          "linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-strong) 100%)",
-                        boxShadow:
-                          "0 6px 14px -6px rgba(59,111,245,0.55), inset 0 0 0 1px rgba(255,255,255,0.18)",
-                      }
-                    : undefined
-                }
-              >
-                <Icon
-                  size={15}
-                  strokeWidth={active ? 2.2 : 1.9}
-                  aria-hidden
-                  className={cn(
-                    "transition-transform",
-                    !active && "group-hover:-translate-y-px"
-                  )}
-                />
-                <span>{link.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* ── Zone 3: Quick actions ──────────────────────────────── */}
-        <div className="flex flex-1 basis-[16rem] items-center justify-end gap-1.5">
+        {/* Utilities */}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <ActiveMemberPill />
           <IconAction
             href="/patient/records?focus=search"
@@ -267,24 +174,20 @@ export function Topbar({ user }: { user: AuthUser | null }) {
           >
             <Bell size={18} aria-hidden />
             {unread > 0 ? (
-              <>
-                <span
-                  aria-hidden
-                  className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger"
-                  style={{ boxShadow: "0 0 0 4px rgba(224,70,75,0.18)" }}
-                >
-                  <span className="absolute inset-0 anim-pulse-soft rounded-full bg-danger" />
-                </span>
-                <span
-                  aria-hidden
-                  className="absolute right-1.5 top-1.5 grid h-4 min-w-[16px] place-items-center bg-danger px-1 text-[10px] font-bold text-white"
-                  style={{ borderRadius: "var(--radius-pill)" }}
-                >
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              </>
+              <span
+                aria-hidden
+                className="absolute right-1.5 top-1.5 grid h-4 min-w-[16px] place-items-center bg-danger px-1 text-[10px] font-bold text-white"
+                style={{ borderRadius: "var(--radius-pill)" }}
+              >
+                {unread > 9 ? "9+" : unread}
+              </span>
             ) : null}
           </Link>
+
+          <div
+            className="mx-0.5 hidden h-6 w-px bg-border sm:block"
+            aria-hidden
+          />
 
           <ProfileChip
             user={user}
@@ -302,10 +205,6 @@ export function Topbar({ user }: { user: AuthUser | null }) {
     </header>
   );
 }
-
-/* ──────────────────────────────────────────────────────────────
-   Sub-components
-   ────────────────────────────────────────────────────────────── */
 
 function IconAction({
   href,
@@ -331,15 +230,26 @@ function IconAction({
 
 function WellnessChip({ streak, score }: { streak?: number; score?: number }) {
   if (streak == null && score == null) return null;
-  const label = streak != null ? `${streak}-day adherence` : `Wellness ${score}`;
+  const label =
+    streak != null && streak > 0
+      ? `${streak}-day adherence`
+      : score != null
+        ? `Wellness ${score}`
+        : null;
+  if (!label) return null;
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-pill bg-success-soft px-2 py-[2px] text-[10.5px] font-semibold text-success"
-      title={label}
-    >
-      <HeartPulse size={11} aria-hidden />
-      {label}
-    </span>
+    <>
+      <span aria-hidden className="text-text-muted">
+        ·
+      </span>
+      <span
+        className="inline-flex items-center gap-1 rounded-pill bg-success-soft px-2 py-[2px] text-[10.5px] font-semibold text-success"
+        title={label}
+      >
+        <HeartPulse size={11} aria-hidden />
+        {label}
+      </span>
+    </>
   );
 }
 
@@ -373,8 +283,8 @@ function ProfileChip({
         aria-expanded={menuOpen}
         aria-label="Open account menu"
         className={cn(
-          "group flex items-center gap-2 pl-1 pr-2.5 py-1 text-left transition-colors hover:bg-surface-2",
-          menuOpen && "bg-surface-2"
+          "group flex items-center gap-2 py-1 pl-1 pr-2.5 text-left transition-colors hover:bg-surface-2",
+          menuOpen && "bg-surface-2",
         )}
         style={{ borderRadius: "var(--radius-pill)" }}
       >
@@ -392,87 +302,93 @@ function ProfileChip({
           aria-hidden
           className={cn(
             "hidden text-text-muted transition-transform md:block",
-            menuOpen && "rotate-180"
+            menuOpen && "rotate-180",
           )}
         />
       </button>
 
       {menuOpen ? (
         <>
-          {/* Click-away layer */}
           <button
             type="button"
             aria-label="Close menu"
             onClick={onClose}
-            className="fixed inset-0 z-20 cursor-default"
+            className="fixed inset-0 z-40 cursor-default"
             tabIndex={-1}
           />
           <div
             role="menu"
-            className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 overflow-hidden bg-surface"
+            className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-2xl bg-white shadow-2xl"
             style={{
-              borderRadius: "var(--radius-card)",
-              boxShadow: "var(--shadow-float)",
-              border: "1px solid var(--color-border)",
+              backgroundColor: "#ffffff",
+              boxShadow:
+                "0 20px 50px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(59, 111, 245, 0.15)",
             }}
           >
             <div
-              className="px-4 py-3"
+              className="border-b border-slate-100 px-4 py-3"
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(59,111,245,0.10) 0%, rgba(124,108,255,0.10) 100%)",
+                  "linear-gradient(135deg, rgba(59,111,245,0.06) 0%, rgba(124,108,255,0.04) 100%)",
               }}
             >
-              <p className="truncate text-sm font-bold text-text">{fullName}</p>
-              <p className="mt-0.5 truncate text-[11.5px] text-text-soft">
-                {user?.email ?? user?.phone ?? "Patient account"}
-              </p>
+              <div className="flex items-center gap-3">
+                <Avatar user={user} initialsSource={initialsSource} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-slate-900">
+                    {fullName}
+                  </p>
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                    {user?.email ?? user?.phone ?? "Patient account"}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="p-1.5">
-              <MenuItem href="/patient/profile" label="Profile" />
-              <MenuItem href="/patient/appointments" label="Appointments" />
-              <MenuItem href="/patient/messages" label="Messages" />
-              <MenuItem href="/patient/insurance" label="Insurance" />
-              <MenuItem href="/patient/imaging" label="Imaging" />
-              <MenuItem href="/patient/share" label="Share access" />
-              <MenuItem href="/patient/export" label="Export my data" />
-              <MenuItem href="/patient/audit" label="Activity and audit" />
-              <MenuItem href="/patient/family" label="Family" />
-              <MenuItem href="/patient/care-team" label="Care team" />
-              <MenuItem href="/patient/emergency" label="Emergency profile" />
-              <div
-                className="my-1 border-t"
-                style={{ borderColor: "var(--color-border)" }}
-              />
+              <Link
+                role="menuitem"
+                href="/patient/profile"
+                onClick={onClose}
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 hover:text-blue-600"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                  <Settings size={14} />
+                </span>
+                <span>Profile & Settings</span>
+              </Link>
+
+              <div className="my-1 border-t border-slate-100" />
+
               <button
                 type="button"
                 role="menuitem"
                 onClick={onLogout}
                 disabled={signingOut}
                 data-testid="logout-button"
-                className="flex w-full items-center gap-2.5 rounded-inner px-3 py-2 text-left text-sm font-semibold text-danger transition-colors hover:bg-danger-soft disabled:opacity-60"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-60"
               >
-                <LogOut size={15} aria-hidden />
-                {signingOut ? "Signing out…" : "Log out"}
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                  <LogOut size={14} />
+                </span>
+                <span>{signingOut ? "Signing out…" : "Sign out"}</span>
               </button>
+            </div>
+
+            <div
+              className="flex items-center gap-1.5 border-t border-slate-100 px-3.5 py-2"
+              style={{ background: "rgba(248,250,252,0.7)" }}
+            >
+              <Sparkles size={10} className="text-sky-500" />
+              <span className="text-[10px] font-bold tracking-wide text-slate-500">
+                HEALTHHUB
+              </span>
+              <span className="text-[10px] text-slate-400">· Patient Portal</span>
             </div>
           </div>
         </>
       ) : null}
     </div>
-  );
-}
-
-function MenuItem({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      role="menuitem"
-      href={href}
-      className="block rounded-inner px-3 py-2 text-sm font-semibold text-text transition-colors hover:bg-surface-2 hover:text-brand"
-    >
-      {label}
-    </Link>
   );
 }
 
@@ -491,7 +407,6 @@ function Avatar({
         .join("")
     : "?";
 
-  // Online dot: shows the user is signed in.
   const online = Boolean(user);
 
   if (user?.photo) {
@@ -520,7 +435,8 @@ function Avatar({
           borderRadius: "var(--radius-pill)",
           background:
             "linear-gradient(145deg, var(--color-brand) 0%, var(--color-brand-strong) 100%)",
-          boxShadow: "0 4px 10px -3px rgba(59,111,245,0.5), inset 0 0 0 1px rgba(255,255,255,0.18)",
+          boxShadow:
+            "0 4px 10px -3px rgba(59,111,245,0.5), inset 0 0 0 1px rgba(255,255,255,0.18)",
         }}
       >
         {initials}

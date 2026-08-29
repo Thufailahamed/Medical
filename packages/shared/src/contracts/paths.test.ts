@@ -62,7 +62,7 @@ describe("patientPaths", () => {
 
   it("encodes query values so a search term cannot break the URL", () => {
     expect(patientPaths.records.mine({ search: "a&b", limit: 5 })).toBe(
-      "/medical-records/me?search=a%26b&limit=5"
+      "/medical-records/me?q=a%26b&limit=5"
     );
     expect(
       patientPaths.vitals.series("blood_pressure", "2026-01-01T00:00:00.000Z")
@@ -71,6 +71,38 @@ describe("patientPaths", () => {
     );
   });
 
+  it("builds FTS search and bulk record endpoints", () => {
+    expect(patientPaths.records.search("hba1c", 20)).toBe(
+      "/medical-records/me/search?q=hba1c&limit=20"
+    );
+    expect(patientPaths.records.bulkArchive()).toBe("/medical-records/bulk-archive");
+    expect(patientPaths.records.bulkDelete()).toBe("/medical-records/bulk-delete");
+    expect(patientPaths.records.bulkRestore()).toBe("/medical-records/bulk-restore");
+    expect(patientPaths.records.bulkTag()).toBe("/medical-records/bulk-tag");
+    expect(patientPaths.records.bulkMove()).toBe("/medical-records/bulk-move");
+  });
+
+  it("builds family, emergency, health-id, consents, and dsar endpoints", () => {
+    expect(patientPaths.family.mine()).toBe("/patients/me/family");
+    expect(patientPaths.family.lock("fm1")).toBe("/family/members/fm1/lock");
+    expect(patientPaths.family.invites()).toBe("/family/invites");
+    expect(patientPaths.family.invite("tok")).toBe("/family/invites/tok");
+    expect(patientPaths.family.acceptInvite("tok")).toBe(
+      "/family/invites/tok/accept"
+    );
+    expect(patientPaths.emergency.qr()).toBe("/emergency/qr");
+    expect(patientPaths.emergency.sos()).toBe("/emergency/sos");
+    expect(patientPaths.healthId.current("all")).toBe(
+      "/me/health-id/current?purpose=all"
+    );
+    expect(patientPaths.healthId.issue()).toBe("/me/health-id/issue");
+    expect(patientPaths.consents.mine()).toBe("/consents/me");
+    expect(patientPaths.consents.detail("c1")).toBe("/consents/c1");
+    expect(patientPaths.dsar.export()).toBe("/dsar/export");
+    expect(patientPaths.dsar.jobs()).toBe("/dsar/jobs");
+    expect(patientPaths.auth.login()).toBe("/auth/login");
+    expect(patientPaths.auth.loginByPhone()).toBe("/auth/login-by-phone");
+  });
   it("joins timeline kinds with commas", () => {
     expect(
       patientPaths.timeline.mine({ limit: 10, kinds: ["record", "vital"] })

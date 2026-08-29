@@ -20,6 +20,7 @@
  */
 
 import { useActiveFamilyMemberStore } from "@/patient/stores/activeFamilyMember";
+import { isLoginPath, loginHref, portForPath } from "@/portal/lib/login";
 import { useAuthStore } from "@/portal/stores/auth";
 
 export const API_URL =
@@ -92,25 +93,12 @@ async function attemptRefresh(refreshToken: string): Promise<boolean> {
 function bounceToLogin(reason?: string) {
   if (typeof window === "undefined") return;
   const path = window.location.pathname;
-  const onLoginPage =
-    path === "/portal/login" ||
-    path === "/login" ||
-    path === "/patient/login" ||
-    path === "/hospital/login" ||
-    path === "/admin/login";
-  if (onLoginPage) return;
-  const next = encodeURIComponent(path);
-  const loginTarget = path.startsWith("/patient")
-    ? "/patient/login"
-    : path.startsWith("/portal")
-      ? "/portal/login"
-      : path.startsWith("/hospital")
-        ? "/hospital/login"
-        : path.startsWith("/admin")
-          ? "/admin/login"
-          : "/login";
-  const qs = reason ? `&reason=${encodeURIComponent(reason)}` : "";
-  window.location.href = `${loginTarget}?next=${next}${qs}`;
+  if (isLoginPath(path)) return;
+  window.location.href = loginHref({
+    port: portForPath(path),
+    next: path,
+    reason,
+  });
 }
 
 export async function api<T = any>(
@@ -153,10 +141,7 @@ export async function api<T = any>(
   // ─── 401 → refresh + retry once (Phase 1.1) ────────────────────
   if (res.status === 401 && !__skipRefresh) {
     const onLoginPage =
-      typeof window !== "undefined" &&
-      (window.location.pathname === "/portal/login" ||
-        window.location.pathname === "/login" ||
-        window.location.pathname === "/patient/login");
+      typeof window !== "undefined" && isLoginPath(window.location.pathname);
     // The refresh endpoint is itself auth-free, so even when /auth/me
     // bounces us here there's a path back. Don't try to refresh on the
     // login page (where the user has no refresh token yet anyway).
@@ -188,10 +173,7 @@ export async function api<T = any>(
   // credentials") instead of the generic session-expired copy.
   if (res.status === 401) {
     const onLoginPage =
-      typeof window !== "undefined" &&
-      (window.location.pathname === "/portal/login" ||
-        window.location.pathname === "/login" ||
-        window.location.pathname === "/patient/login");
+      typeof window !== "undefined" && isLoginPath(window.location.pathname);
     const msg =
       onLoginPage && body?.error
         ? body.error

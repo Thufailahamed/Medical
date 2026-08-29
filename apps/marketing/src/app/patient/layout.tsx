@@ -12,7 +12,7 @@ import { AuthBoot } from "@/portal/components/AuthBoot";
  * scoped to, keeping the indigo system out of marketing and out of
  * the clinician portal.
  *
- * Role gating deliberately does NOT happen here: /patient/login and
+ * Role gating deliberately does NOT happen here: /login (patient port) and
  * /patient/403 must render for signed-out and wrong-role visitors.
  * The gate lives in (app)/layout.tsx.
  */

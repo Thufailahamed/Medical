@@ -17,6 +17,7 @@ import { useAuthStore } from "@/hospital/stores/auth";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { logout } from "@/hospital/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { api, qk } from "@/hospital/lib/api";
 import { useT } from "@/hospital/i18n";
 import { cn } from "@/hospital/lib/utils";
@@ -72,7 +73,7 @@ export function HospitalTopbar() {
 
   async function onLogout() {
     await logout();
-    router.replace("/hospital/login");
+    router.replace(loginHref({ port: "facility" }));
   }
 
   const initials = user?.name

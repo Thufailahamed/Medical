@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useLabAuthStore } from "../stores/auth";
+import { loginHref } from "@/portal/lib/login";
 
 const NAV_ITEMS = [
   { href: "/lab-portal/dashboard", label: "Dashboard", icon: "📊" },
@@ -23,7 +24,7 @@ export default function PortalLayout({
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.push("/lab-portal/login");
+      router.push(loginHref({ port: "facility" }));
     }
   }, [isAuthenticated, router]);
 
@@ -69,7 +70,7 @@ export default function PortalLayout({
           <button
             onClick={() => {
               clearAuth();
-              router.push("/lab-portal/login");
+              router.push(loginHref({ port: "facility" }));
             }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition"
           >

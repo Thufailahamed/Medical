@@ -71,20 +71,19 @@ describe("PatientShell", () => {
     expect(screen.getByTestId("child")).toBeTruthy();
   });
 
-  it("renders the main column with the topbar greeting when no user is logged in", () => {
+  it("renders the topbar page title for the current route", () => {
     renderWithClient(
       <PatientShell>
         <span>x</span>
       </PatientShell>
     );
-    // Topbar greets with one of: Up late / Good morning / Good afternoon / Good evening / Good night
-    const heading = screen.queryByRole("heading", { level: 1 });
-    expect(heading?.textContent ?? "").toMatch(
-      /Up late|Good (morning|afternoon|evening|night)/
+    expect(screen.getByTestId("patient-topbar")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "Dashboard",
     );
   });
 
-  it("greets the user by first name when present", () => {
+  it("shows the signed-in name in the account menu trigger", () => {
     useAuthStore.setState({
       user: { id: "u", name: "Nimal Perera", role: "patient" } as any,
     } as any);
@@ -93,7 +92,8 @@ describe("PatientShell", () => {
         <span>x</span>
       </PatientShell>
     );
-    const heading = screen.queryByRole("heading", { level: 1 });
-    expect(heading?.textContent ?? "").toMatch(/Nimal/);
+    expect(screen.getByLabelText("Open account menu").textContent).toMatch(
+      /Nimal/,
+    );
   });
 });

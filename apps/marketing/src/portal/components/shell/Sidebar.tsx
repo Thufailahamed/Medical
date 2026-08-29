@@ -39,6 +39,7 @@ import { useAuthStore, type UserRole } from "@/portal/stores/auth";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
 import { logout } from "@/portal/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 
 // ─── Grouped navigation structure ────────────────────────────────────────────
 //
@@ -144,7 +145,7 @@ export function Sidebar() {
 
   async function handleLogout() {
     await logout();
-    router.replace("/portal/login");
+    router.replace(loginHref({ port: "doctor" }));
   }
 
   // Filter groups + items by the active role. Items without a `roles`

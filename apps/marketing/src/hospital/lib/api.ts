@@ -5,12 +5,13 @@
  * - Adds `Accept-Language` from the auth store's locale field.
  * - Adds `x-active-hospital-id` / `x-active-clinic-id` for tenant scoping.
  * - Throws `ApiError` on non-2xx so React Query surfaces a useful message.
- * - On 401 the store is cleared and the window redirected to /hospital/login.
+ * - On 401 the store is cleared and the window redirected to /login.
  *
  * The hospital store is intentionally separate from the doctor portal store
  * so a user can be signed into both surfaces in the same browser.
  */
 
+import { isLoginPath, loginHref } from "@/portal/lib/login";
 import { useAuthStore } from "@/hospital/stores/auth";
 
 export const API_URL =
@@ -62,13 +63,15 @@ export async function api<T = any>(
     body: json !== undefined ? JSON.stringify(json) : (rest as RequestInit).body,
   });
 
-  // Unauthorised → drop the session and bounce to /hospital/login.
+  // Unauthorised → drop the session and bounce to unified /login.
   if (res.status === 401) {
     if (typeof window !== "undefined") {
       useAuthStore.getState().logout();
-      if (window.location.pathname !== "/hospital/login") {
-        const next = encodeURIComponent(window.location.pathname);
-        window.location.href = `/hospital/login?next=${next}`;
+      if (!isLoginPath(window.location.pathname)) {
+        window.location.href = loginHref({
+          port: "facility",
+          next: window.location.pathname,
+        });
       }
     }
     throw new ApiError("Session expired. Please sign in again.", 401);

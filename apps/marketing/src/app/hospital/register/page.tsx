@@ -60,7 +60,7 @@ export default function RegisterPage() {
               {t("auth.pendingApprovalMsg")}
             </p>
             <Link
-              href="/hospital/login"
+              href="/login?port=facility"
               className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-strong shadow-sm transition-colors"
             >
               {t("auth.submit")}
@@ -223,7 +223,7 @@ export default function RegisterPage() {
               </Button>
             ) : (
               <Link
-                href="/hospital/login"
+                href="/login?port=facility"
                 className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               >
                 {t("auth.backToSite")}

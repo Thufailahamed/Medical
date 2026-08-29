@@ -7,3 +7,6 @@ export { RecentRecords } from "./RecentRecords";
 export { RecentActivity } from "./RecentActivity";
 export { CareAssistant } from "./CareAssistant";
 export { BodyOverview } from "./BodyOverview";
+export { DashboardHero } from "./DashboardHero";
+export { SafetyBanner } from "./SafetyBanner";
+export { QuickActions } from "./QuickActions";

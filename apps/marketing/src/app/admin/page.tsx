@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/portal/stores/auth";
+import { loginHref } from "@/portal/lib/login";
 
 export default function AdminEntryPage() {
   const router = useRouter();
@@ -11,13 +12,13 @@ export default function AdminEntryPage() {
   useEffect(() => {
     if (!hydrated) return;
     if (!token || !user) {
-      router.replace("/admin/login");
+      router.replace(loginHref({ port: "operator" }));
       return;
     }
     if (user.role === "super_admin") router.replace("/admin/dashboard");
     else if (user.role === "insurance") router.replace("/admin/insurance-claims");
     else if (user.role === "ambulance") router.replace("/admin/ambulances");
-    else router.replace("/admin/login");
+    else router.replace(loginHref({ port: "operator" }));
   }, [hydrated, token, user, router]);
 
   return (

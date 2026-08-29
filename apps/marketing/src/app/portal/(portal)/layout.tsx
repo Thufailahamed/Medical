@@ -7,6 +7,7 @@ import { useAuthStore } from "@/portal/stores/auth";
 import { Sidebar } from "@/portal/components/shell/Sidebar";
 import { Topbar } from "@/portal/components/shell/Topbar";
 import { useRealtime } from "@/portal/hooks/useRealtime";
+import { loginHref } from "@/portal/lib/login";
 
 /**
  * (portal) route group layout:
@@ -61,8 +62,9 @@ export default function PortalLayout({
   useEffect(() => {
     if (!hydrated) return;
     if (!token) {
-      const next = encodeURIComponent(window.location.pathname);
-      router.replace(`/portal/login?next=${next}`);
+      router.replace(
+        loginHref({ port: "doctor", next: window.location.pathname }),
+      );
       return;
     }
     if (user && user.role && !PORTAL_ROLES.includes(user.role as any)) {

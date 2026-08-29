@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/hospital/stores/auth";
+import { loginHref } from "@/portal/lib/login";
 
 /**
  * Hospital portal root. If signed in, push to dashboard; otherwise the
@@ -16,7 +17,9 @@ export default function HospitalHome() {
 
   useEffect(() => {
     if (!hydrated) return;
-    router.replace(token ? "/hospital/dashboard" : "/hospital/login");
+    router.replace(
+      token ? "/hospital/dashboard" : loginHref({ port: "facility" }),
+    );
   }, [hydrated, token, router]);
 
   return (

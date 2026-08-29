@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 import { Pill } from "@/patient/components/primitives/Pill";
-import { useCreateRecord, useUpdateRecord } from "@/patient/hooks";
-import { RECORD_KINDS, RECORD_REGISTRY } from "@healthcare/shared/records";
+import { useCreateRecord, useFamilyMembers, useUpdateRecord } from "@/patient/hooks";
+import { RECORD_KINDS } from "@healthcare/shared/records";
 
 const MAX_TAG_LEN = 40;
 
@@ -50,6 +50,7 @@ export function RecordForm({
 }) {
   const create = useCreateRecord();
   const update = useUpdateRecord();
+  const family = useFamilyMembers();
   const [kind, setKind] = useState(initial?.kind ?? RECORD_KINDS[0]);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
@@ -198,7 +199,13 @@ export function RecordForm({
           className={inputCls}
         >
           <option value="">Myself</option>
-          {/* family picker wiring lives in SP8; SP2a leaves a single Myself option */}
+          {(family.data?.family ?? []).map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.name}
+              {member.relationship ? ` (${member.relationship})` : ""}
+              {member.isLocked ? " — locked" : ""}
+            </option>
+          ))}
         </select>
       </label>
 

@@ -118,7 +118,7 @@ export default function PublicInsuranceLanding() {
           </nav>
           <div className="flex items-center gap-3">
             <Link
-              href="/portal/login"
+              href="/login?port=doctor"
               className="hidden sm:inline-block text-sm font-semibold text-slate-700 hover:text-slate-900"
             >
               Sign in
@@ -533,7 +533,7 @@ export default function PublicInsuranceLanding() {
               Get my quote <ArrowRight size={16} />
             </Link>
             <Link
-              href="/portal/login"
+              href="/login?port=doctor"
               className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-3 rounded-xl border border-white/20"
             >
               Sign in

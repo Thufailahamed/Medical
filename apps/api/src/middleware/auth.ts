@@ -47,7 +47,19 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
     );
   }
 
-  if (c.env.DEV_MODE === "true" && !hasBearer) {
+  // Dev stub only when the request has NO credentials at all. Cookie and
+  // Bearer sessions must win — otherwise a portal login that relies on the
+  // httpOnly cookie (or a briefly unhydrated Zustand token) silently becomes
+  // `dev-user-001` ("Dev User") instead of Thufail / the real patient.
+  const cookiePreview = readSessionCookie(c);
+  const ssePathEarly =
+    c.req.path === "/realtime" || c.req.path.startsWith("/realtime/");
+  const queryTokenEarly = ssePathEarly ? c.req.query("token") : undefined;
+  const hasAnyCredential = Boolean(
+    hasBearer || cookiePreview || queryTokenEarly,
+  );
+
+  if (c.env.DEV_MODE === "true" && !hasAnyCredential) {
     const db = c.get("db");
 
     // Ensure dev user exists in D1

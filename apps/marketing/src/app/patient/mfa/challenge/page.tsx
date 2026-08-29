@@ -54,7 +54,7 @@ export default function MfaChallengePage() {
       <Card className="w-full max-w-md">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <Link
-            href="/patient/login"
+            href="/login?port=patient"
             className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft hover:text-brand"
           >
             <ChevronLeft size={14} aria-hidden /> Back to sign in

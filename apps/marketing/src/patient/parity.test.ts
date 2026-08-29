@@ -98,4 +98,62 @@ describe("parity manifest", () => {
       expect(row.notes.length, `${row.mobile} needs a reason`).toBeGreaterThan(0);
     }
   });
+
+  it("has no planned rows left", () => {
+    const planned = rows.filter((r) => r.status === "planned");
+    expect(planned.map((r) => r.mobile)).toEqual([]);
+  });
+
+  it("behavioral markers: family lock, QR pages, bulk hooks, consents/dsar", () => {
+    const familyPage = readFileSync(
+      path.join(PATIENT_APP_DIR, "(app)/family/page.tsx"),
+      "utf8",
+    );
+    expect(familyPage).toMatch(/useToggleFamilyLock/);
+    expect(familyPage).toMatch(/useCreateFamilyInvite/);
+
+    const emergencyPage = readFileSync(
+      path.join(PATIENT_APP_DIR, "(app)/emergency/page.tsx"),
+      "utf8",
+    );
+    expect(emergencyPage).toMatch(/qrcode/i);
+    expect(emergencyPage).toMatch(/useEmergencyQR/);
+
+    const healthIdPage = readFileSync(
+      path.join(PATIENT_APP_DIR, "(app)/health-id/page.tsx"),
+      "utf8",
+    );
+    expect(healthIdPage).toMatch(/encodeHealthIdPayload/);
+    expect(healthIdPage).toMatch(/qrcode/i);
+
+    const recordsPage = readFileSync(
+      path.join(PATIENT_APP_DIR, "(app)/records/page.tsx"),
+      "utf8",
+    );
+    expect(recordsPage).toMatch(/useBulkArchiveRecords/);
+    expect(recordsPage).toMatch(/useRecordSearch/);
+
+    const consentsPage = readFileSync(
+      path.join(PATIENT_APP_DIR, "(app)/consents/page.tsx"),
+      "utf8",
+    );
+    expect(consentsPage).toMatch(/useConsentsMine/);
+    expect(consentsPage).toMatch(/useRevokeConsent/);
+
+    const dsarPage = readFileSync(
+      path.join(PATIENT_APP_DIR, "(app)/dsar/page.tsx"),
+      "utf8",
+    );
+    expect(dsarPage).toMatch(/useDsarExport/);
+    expect(dsarPage).toMatch(/useDsarJobs/);
+
+    const recordForm = readFileSync(
+      path.join(
+        REPO_ROOT,
+        "apps/marketing/src/patient/components/records/RecordForm.tsx",
+      ),
+      "utf8",
+    );
+    expect(recordForm).toMatch(/useFamilyMembers/);
+  });
 });

@@ -493,3 +493,114 @@ export interface TimelineDay {
   date: string;
   events: TimelineEvent[];
 }
+
+/** GET /patients/me/family */
+export interface FamilyMemberRow {
+  id: string;
+  name: string;
+  relationship: string | null;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  isLocked?: boolean;
+  lockedAt?: string | null;
+}
+
+/** GET /family/invites */
+export interface FamilyInvite {
+  id: string;
+  token: string;
+  label: string | null;
+  scope: string;
+  expiresAt: string;
+  revoked: boolean;
+  createdAt: string;
+  consumedAt: string | null;
+  redeemedByUserId: string | null;
+}
+
+/** Public preview of a family invite */
+export interface FamilyInviteView {
+  inviterName: string;
+  inviterPhoto: string | null;
+  name: string;
+  relationship: string | null;
+  expiresAt: string;
+  consumed: boolean;
+}
+
+/** GET /emergency/qr payload (subset used by UI) */
+export interface EmergencyQrData {
+  id?: string | null;
+  name?: string | null;
+  bloodGroup?: string | null;
+  allergies?: string[] | string | null;
+  conditions?: string[] | string | null;
+  phone?: string | null;
+  contacts?: Array<{ name: string; relationship?: string; phone?: string }>;
+  currentMedicines?: Array<{ name: string; dosage?: string | null }>;
+}
+
+export type HealthIdPurpose = "checkin" | "dispense" | "id" | "all";
+
+/** GET /me/health-id/current | POST /me/health-id/issue */
+export interface HealthIdToken {
+  token: string;
+  purpose: HealthIdPurpose;
+  rotationSeconds?: number;
+  expiresAt: string;
+  scopes?: string[];
+}
+
+/** GET /consents/me row */
+export interface ConsentGrant {
+  id: string;
+  purpose: string;
+  label?: string | null;
+  recipientUserId?: string | null;
+  recipientToken?: string | null;
+  familyMemberId?: string | null;
+  expiresAt: string;
+  revokedAt?: string | null;
+  createdAt: string;
+  status: "active" | "expired" | "revoked";
+  scope?: Record<string, unknown> | null;
+}
+
+/** POST /consents */
+export interface ConsentIssueInput {
+  purpose: string;
+  recipientUserId?: string;
+  recipientToken?: string;
+  familyMemberId?: string;
+  durationDays?: number;
+  expiresAt?: string;
+  label?: string;
+  scope?: Record<string, unknown>;
+}
+
+/** Consent audit timeline row */
+export interface ConsentAuditEntry {
+  id: string;
+  action: string;
+  purpose?: string | null;
+  actor?: string | null;
+  createdAt: string;
+  details?: Record<string, unknown> | null;
+}
+
+/** DSAR job from GET /dsar/jobs */
+export interface DsarJob {
+  id: string;
+  type: "export" | "erasure" | "rectification" | string;
+  status: "pending" | "processing" | "completed" | "failed" | string;
+  createdAt: string;
+  completedAt?: string | null;
+  result?: Record<string, unknown> | null;
+  notes?: string | null;
+}
+
+/** Bulk mutation denial row */
+export interface BulkDenied {
+  id: string;
+  reason: string;
+}

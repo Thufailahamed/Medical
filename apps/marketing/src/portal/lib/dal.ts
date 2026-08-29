@@ -88,7 +88,7 @@ export const getServerSession = cache(
 
 /**
  * Gate a server component / layout. If the DAL finds a valid session
- * the user is returned; otherwise we redirect to /portal/login with
+ * the user is returned; otherwise we redirect to /login?port=doctor with
  * a `next` query so the user lands back here after signing in.
  *
  * Use as the first awaitable in a server layout:
@@ -97,7 +97,7 @@ export const getServerSession = cache(
  */
 export async function requireServerAuth(): Promise<ServerUser> {
   const user = await getServerSession();
-  if (!user) redirect('/portal/login?next=/portal');
+  if (!user) redirect('/login?port=doctor&next=/portal');
   return user;
 }
 

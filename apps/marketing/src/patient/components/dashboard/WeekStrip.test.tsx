@@ -1,17 +1,26 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+vi.mock("@/patient/hooks", () => ({
+  useHealthSummary: () => ({
+    data: { alerts: { count: 0, items: [] } },
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useAppointments: () => ({
+    data: { appointments: [] },
+    isLoading: false,
+    isError: false,
+  }),
+}));
 
 import { WeekStrip } from "./WeekStrip";
 
-function renderWithClient(ui: React.ReactNode) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
-}
-
 describe("WeekStrip", () => {
   it("renders the label and a loading state, no crash", () => {
-    const { container } = renderWithClient(<WeekStrip />);
+    const { container } = render(<WeekStrip />);
     expect(container.textContent).toMatch(/This week/);
   });
 });

@@ -19,6 +19,12 @@ export function useRecords(params: {
   type?: string;
   search?: string;
   limit?: number;
+  offset?: number;
+  tags?: string;
+  archived?: "true" | "all" | "only";
+  scope?: "own" | "family";
+  familyMemberId?: string;
+  sort?: "newest" | "oldest" | "relevance";
 }) {
   return useQuery<{ records: RecordRow[] }>({
     queryKey: patientKeys.records({ ...params }),
@@ -259,5 +265,86 @@ export function useReExtractRecord(recordId: string) {
       qc.invalidateQueries({ queryKey: patientKeys.record(recordId) });
       qc.invalidateQueries({ queryKey: ["patient", "records", recordId] });
     },
+  });
+}
+
+// ─── SP2b bulk + search ───────────────────────────────────────────────
+
+function invalidateRecordLists(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["patient", "records"] });
+}
+
+export function useRecordSearch(query: string, opts?: { limit?: number }) {
+  const trimmed = query.trim();
+  const limit = opts?.limit ?? 50;
+  return useQuery<{ records: RecordRow[]; total: number }>({
+    queryKey: patientKeys.recordSearch(trimmed, limit),
+    queryFn: () =>
+      api<{ records: RecordRow[]; total: number }>(
+        patientPaths.records.search(trimmed, limit),
+      ),
+    enabled: trimmed.length >= 2,
+    staleTime: 15_000,
+    retry: 1,
+  });
+}
+
+export function useBulkDeleteRecords() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<{ deleted: number; denied: Array<{ id: string; reason: string }> }>(
+        patientPaths.records.bulkDelete(),
+        { method: "POST", json: { ids } },
+      ),
+    onSuccess: () => invalidateRecordLists(qc),
+  });
+}
+
+export function useBulkArchiveRecords() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<{ archived: number; denied: Array<{ id: string; reason: string }> }>(
+        patientPaths.records.bulkArchive(),
+        { method: "POST", json: { ids } },
+      ),
+    onSuccess: () => invalidateRecordLists(qc),
+  });
+}
+
+export function useBulkRestoreRecords() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<{ restored: number; denied: Array<{ id: string; reason: string }> }>(
+        patientPaths.records.bulkRestore(),
+        { method: "POST", json: { ids } },
+      ),
+    onSuccess: () => invalidateRecordLists(qc),
+  });
+}
+
+export function useBulkTagRecords() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: string[]; add?: string[]; remove?: string[] }) =>
+      api<{ updated: number; denied: Array<{ id: string; reason: string }> }>(
+        patientPaths.records.bulkTag(),
+        { method: "POST", json: data },
+      ),
+    onSuccess: () => invalidateRecordLists(qc),
+  });
+}
+
+export function useBulkMoveRecords() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: string[]; familyMemberId: string | null }) =>
+      api<{ moved: number; denied: Array<{ id: string; reason: string }> }>(
+        patientPaths.records.bulkMove(),
+        { method: "POST", json: data },
+      ),
+    onSuccess: () => invalidateRecordLists(qc),
   });
 }

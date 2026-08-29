@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
               <KeyRound size={14} aria-hidden /> Enter reset code
             </Link>
             <Link
-              href="/patient/login"
+              href="/login?port=patient"
               className="text-xs font-semibold text-text-soft hover:text-brand"
             >
               Back to sign in
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
         ) : (
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <Link
-              href="/patient/login"
+              href="/login?port=patient"
               className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft hover:text-brand"
             >
               <ChevronLeft size={14} aria-hidden /> Back to sign in

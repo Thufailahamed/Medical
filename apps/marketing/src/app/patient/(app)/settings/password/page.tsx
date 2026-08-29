@@ -8,6 +8,7 @@ import { ChevronLeft, Lock, Check, Eye, EyeOff } from "lucide-react";
 import { Card } from "@/patient/components/primitives/Card";
 import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { changePassword } from "@/portal/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { useAuthStore } from "@/portal/stores/auth";
 
 export default function ChangePasswordPage() {
@@ -42,7 +43,7 @@ export default function ChangePasswordPage() {
       // Sign the user out so they re-authenticate with the new password.
       setTimeout(() => {
         logout();
-        router.push("/patient/login");
+        router.push(loginHref({ port: "patient" }));
       }, 1500);
     } catch (err) {
       setError(

@@ -20,6 +20,7 @@ import { Avatar } from "@/portal/components/ui/Avatar";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { logout } from "@/portal/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { api, qk } from "@/portal/lib/api";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
@@ -91,7 +92,7 @@ export function Topbar() {
 
   async function onLogout() {
     await logout();
-    router.replace("/portal/login");
+    router.replace(loginHref({ port: "doctor" }));
   }
 
   const initials = user?.name

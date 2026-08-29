@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useInsuranceOperatorAuthStore } from "../stores/auth";
+import { loginHref } from "@/portal/lib/login";
 
 const NAV_ITEMS = [
   { href: "/insurance-operator/dashboard", label: "Dashboard", icon: "📊" },
@@ -21,7 +22,7 @@ export default function PortalLayout({
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.push("/insurance-operator/login");
+      router.push(loginHref({ port: "operator" }));
     }
   }, [isAuthenticated, router]);
 
@@ -66,7 +67,7 @@ export default function PortalLayout({
           <button
             onClick={() => {
               clearAuth();
-              router.push("/insurance-operator/login");
+              router.push(loginHref({ port: "operator" }));
             }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition"
           >

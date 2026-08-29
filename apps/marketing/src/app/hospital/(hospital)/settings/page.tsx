@@ -8,6 +8,7 @@ import { Pill } from "@/portal/components/ui/Pill";
 import { LocaleSwitcher } from "@/hospital/components/shell/LocaleSwitcher";
 import { useAuthStore, hasHospitalRole, isHospitalAdmin, isPharmacy, isLab } from "@/hospital/stores/auth";
 import { logout } from "@/hospital/lib/auth";
+import { loginHref } from "@/portal/lib/login";
 import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 import {
@@ -30,7 +31,7 @@ export default function SettingsPage() {
 
   async function onLogout() {
     await logout();
-    router.replace("/hospital/login");
+    router.replace(loginHref({ port: "facility" }));
   }
 
   return (

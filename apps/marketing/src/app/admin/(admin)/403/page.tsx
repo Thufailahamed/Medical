@@ -17,7 +17,7 @@ export default function AdminForbiddenPage() {
         </p>
         <div className="flex gap-2 justify-center">
           <Link
-            href="/admin/login"
+            href="/login?port=operator"
             className="px-4 h-10 rounded-lg bg-amber-600 text-white text-sm font-semibold inline-flex items-center"
           >
             Admin sign in

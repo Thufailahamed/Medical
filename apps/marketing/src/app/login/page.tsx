@@ -2,35 +2,36 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
+  AlertCircle,
   ArrowRight,
   Building2,
   Check,
   Eye,
   EyeOff,
-  FlaskConical,
-  Heart,
   Lock,
   Mail,
-  MessageCircle,
-  ShieldCheck,
+  Phone,
+  Shield,
+  Stethoscope,
   Truck,
+  User,
 } from "lucide-react";
 
-import { Input } from "@/portal/components/ui/Form";
-import { login } from "@/portal/lib/auth";
+import { login, loginWithPhone } from "@/portal/lib/auth";
 import { useAuthStore } from "@/portal/stores/auth";
 import { friendlyError } from "@/portal/lib/errors";
 import { cn } from "@/portal/lib/utils";
+import "./login.css";
 
-type Port = "patient" | "facility" | "doctor" | "operator";
+type Port = "patient" | "doctor" | "facility" | "operator";
 
 const schema = z.object({
-  identifier: z.string().min(1, "Email or phone is required"),
+  identifier: z.string().min(1, "Email or phone number is required"),
   password: z.string().min(1, "Password is required"),
 });
 type FormValues = z.infer<typeof schema>;
@@ -38,12 +39,11 @@ type FormValues = z.infer<typeof schema>;
 interface PortSpec {
   value: Port;
   label: string;
-  icon: typeof Building2;
+  badge: string;
+  icon: any;
   roles: string[];
   landingFor: Record<string, string>;
   description: string;
-  hint: string;
-  group: "personal" | "staff";
   placeholder: string;
 }
 
@@ -51,19 +51,35 @@ const PORTS: PortSpec[] = [
   {
     value: "patient",
     label: "Patient",
-    icon: Heart,
+    badge: "Personal",
+    icon: User,
     roles: ["patient"],
     landingFor: { patient: "/patient" },
-    description: "Your personal health journal",
-    hint: "You & your family",
-    group: "personal",
-    placeholder: "you@email.com",
+    description: "Access your health records, prescriptions, and connected care team.",
+    placeholder: "you@example.com or 07X XXX XXXX",
+  },
+  {
+    value: "doctor",
+    label: "Doctor",
+    badge: "Clinician",
+    icon: Stethoscope,
+    roles: ["doctor"],
+    landingFor: { doctor: "/portal/dashboard" },
+    description: "Clinical cockpit with verified charts, diagnostic tests, and consults.",
+    placeholder: "doctor@hospital.lk",
   },
   {
     value: "facility",
     label: "Facility",
+    badge: "Admin & Ops",
     icon: Building2,
-    roles: ["hospital_admin", "hospital_staff", "pharmacy", "laboratory", "super_admin"],
+    roles: [
+      "hospital_admin",
+      "hospital_staff",
+      "pharmacy",
+      "laboratory",
+      "super_admin",
+    ],
     landingFor: {
       hospital_admin: "/hospital/dashboard",
       hospital_staff: "/hospital/dashboard",
@@ -71,84 +87,89 @@ const PORTS: PortSpec[] = [
       laboratory: "/hospital/dashboard",
       super_admin: "/admin/dashboard",
     },
-    description: "Hospitals, labs, and pharmacies",
-    hint: "Admin & ops",
-    group: "staff",
+    description: "Operations hub for hospital wards, licensed pharmacies, and labs.",
     placeholder: "admin@hospital.lk",
   },
   {
-    value: "doctor",
-    label: "Doctor",
-    icon: FlaskConical,
-    roles: ["doctor"],
-    landingFor: { doctor: "/portal/dashboard" },
-    description: "Clinical workspace for practising clinicians",
-    hint: "Clinicians",
-    group: "staff",
-    placeholder: "doctor@hospital.lk",
-  },
-  {
     value: "operator",
-    label: "Operator",
+    label: "Partner",
+    badge: "Insurance & EMS",
     icon: Truck,
     roles: ["insurance", "ambulance"],
     landingFor: {
       insurance: "/admin/insurance-claims",
       ambulance: "/admin/ambulances",
     },
-    description: "Insurance and ambulance partners",
-    hint: "Partners",
-    group: "staff",
+    description: "Policy verification, claims settlement, and rapid dispatch fleet.",
     placeholder: "operator@insurance.lk",
   },
 ];
 
-const LEFT_COPY: Record<Port, { index: string; eyebrow: string; title: ReactNode; lede: string }> = {
+const PORT_HERO: Record<
+  Port,
+  {
+    eyebrow: string;
+    headline: string;
+    description: string;
+    points: [string, string, string];
+  }
+> = {
   patient: {
-    index: "01 — personal",
-    eyebrow: "Private beta · Colombo",
-    title: (
-      <>
-        Your health,<br />finally <em>together.</em>
-      </>
-    ),
-    lede: "Records, medicines, vitals, and quiet AI insights — organised for you and the people you look after.",
-  },
-  facility: {
-    index: "02 — facility",
-    eyebrow: "Operations access",
-    title: (
-      <>
-        One place for the <em>whole floor.</em>
-      </>
-    ),
-    lede: "Records, coordination, and day-to-day operations for hospitals, labs, and pharmacies.",
+    eyebrow: "Personal care",
+    headline: "Your health story, kept in one quiet place.",
+    description:
+      "Records, medicines, vitals, and the people who look after you — together, private, and ready when you need them.",
+    points: [
+      "Encrypted records on your account",
+      "Reminders that follow your day",
+      "Share only what you choose",
+    ],
   },
   doctor: {
-    index: "03 — clinician",
-    eyebrow: "Clinical workspace",
-    title: (
-      <>
-        Start with the <em>whole picture.</em>
-      </>
-    ),
-    lede: "History, notes, and prescriptions ready before the consult — built for practising clinicians.",
+    eyebrow: "Clinical practice",
+    headline: "The chart, already in context, before you walk in.",
+    description:
+      "Longitudinal history, lab orders, prescriptions, and care coordination — without hunting across systems.",
+    points: [
+      "One view of the patient journey",
+      "Orders and notes in the same place",
+      "Built for Sri Lankan clinics",
+    ],
+  },
+  facility: {
+    eyebrow: "Hospital & pharmacy",
+    headline: "Wards, labs, and pharmacies, finally speaking the same language.",
+    description:
+      "Bed flow, dispensation, specimens, and department control — one operations layer for the people who run care.",
+    points: [
+      "Live occupancy and inventory",
+      "Lab workflows without the paper chase",
+      "Audit-ready by default",
+    ],
   },
   operator: {
-    index: "04 — partner",
-    eyebrow: "Partner access",
-    title: (
-      <>
-        Claims without the <em>chase.</em>
-      </>
-    ),
-    lede: "Insurance and ambulance partners manage coverage, claims, and dispatch from here.",
+    eyebrow: "Insurance & EMS",
+    headline: "Eligibility, claims, and dispatch without the waiting room.",
+    description:
+      "Verify cover, settle claims, and move emergency fleets with the same trusted patient identity.",
+    points: [
+      "Instant eligibility checks",
+      "Claims that carry the clinical record",
+      "Fleet status you can act on",
+    ],
   },
 };
 
+const IS_DEV = process.env.NODE_ENV === "development";
+
+function isLikelySlPhone(value: string): boolean {
+  const digits = value.replace(/[\s\-().+]/g, "");
+  return /^07[0-9]\d{7}$/.test(digits) || /^947[0-9]\d{7}$/.test(digits);
+}
+
 export default function UnifiedLoginPage() {
   return (
-    <Suspense fallback={<div className="hh-login" aria-busy="true" />}>
+    <Suspense fallback={<div className="hl-root" />}>
       <UnifiedLoginForm />
     </Suspense>
   );
@@ -156,37 +177,82 @@ export default function UnifiedLoginPage() {
 
 function UnifiedLoginForm() {
   const params = useSearchParams();
+  const nextPath = params.get("next") || "";
   const initialPort = (() => {
     const raw = params.get("port");
-    if (raw === "facility" || raw === "doctor" || raw === "operator" || raw === "patient") return raw;
+    if (
+      raw === "facility" ||
+      raw === "doctor" ||
+      raw === "operator" ||
+      raw === "patient"
+    ) {
+      return raw;
+    }
     return "patient";
   })();
+
   const [port, setPort] = useState<Port>(initialPort);
+  const [patientMode, setPatientMode] = useState<"password" | "phone">("password");
+  const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
-  const [ready, setReady] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setReady(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+    const raw = params.get("port");
+    if (
+      raw === "facility" ||
+      raw === "doctor" ||
+      raw === "operator" ||
+      raw === "patient"
+    ) {
+      setPort(raw);
+    }
+  }, [params]);
 
   const selected = PORTS.find((p) => p.value === port)!;
-  const left = LEFT_COPY[port];
-  const personalPorts = PORTS.filter((p) => p.group === "personal");
-  const staffPorts = PORTS.filter((p) => p.group === "staff");
+  const hero = PORT_HERO[port];
 
   const {
     register,
     handleSubmit,
+    setValue,
     reset,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { identifier: "", password: "" },
   });
+
+  const identifierVal = watch("identifier") ?? "";
+  const passwordVal = watch("password") ?? "";
+
+  function land(role: string) {
+    const spec = PORTS.find((p) => p.roles.includes(role));
+    if (!spec) {
+      useAuthStore.getState().logout();
+      setError("This account has no portal access yet. Contact support.");
+      setSubmitting(false);
+      return;
+    }
+    if (spec.value !== port) {
+      useAuthStore.getState().logout();
+      const wanted = PORTS.find((p) => p.value === spec.value)!;
+      setError(
+        `This account is registered for ${spec.label}. Switch to the "${wanted.label}" tab to sign in.`,
+      );
+      setSubmitting(false);
+      return;
+    }
+    const fallback = spec.landingFor[role] ?? "/";
+    const dest =
+      nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+        ? nextPath
+        : fallback;
+    router.replace(dest);
+  }
 
   async function onSubmit(values: FormValues) {
     setError(null);
@@ -198,32 +264,100 @@ function UnifiedLoginForm() {
         ...(isEmail ? { email: id } : { phone: id }),
         password: values.password,
       });
-      const role = String(user.role);
-      const spec = PORTS.find((p) => p.roles.includes(role));
-      if (!spec) {
-        useAuthStore.getState().logout();
-        setError("This account has no portal access yet. Contact support.");
-        setSubmitting(false);
-        return;
-      }
-      if (spec.value !== port) {
-        useAuthStore.getState().logout();
-        const wanted = PORTS.find((p) => p.value === spec.value)!;
-        setError(
-          `This account is a ${role.replace(/_/g, " ")} account. Use the "${wanted.label}" tab instead.`,
-        );
-        setSubmitting(false);
-        return;
-      }
-      router.replace(spec.landingFor[role] ?? "/");
+      land(String(user.role));
     } catch (err: unknown) {
-      const code = (err as { details?: { code?: string }; code?: string })?.details?.code
-        || (err as { code?: string })?.code;
-      if (code === "account_pending") setError("Your account is pending approval.");
-      else if (code === "account_suspended") setError("Your account is suspended.");
-      else if (code === "account_rejected") setError("Your application was rejected.");
+      const code =
+        (err as { details?: { code?: string }; code?: string })?.details
+          ?.code || (err as { code?: string })?.code;
+      if (code === "account_pending")
+        setError("Your account is currently pending administrative approval.");
+      else if (code === "account_suspended")
+        setError("Your account has been temporarily suspended. Contact support.");
+      else if (code === "account_rejected")
+        setError("Your application was not approved.");
       else setError(friendlyError(err));
       setSubmitting(false);
+    }
+  }
+
+  async function onPhoneSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const trimmed = phone.trim();
+    if (!isLikelySlPhone(trimmed)) {
+      setError("Please enter a valid Sri Lankan mobile number (e.g. 0771234567).");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await loginWithPhone(trimmed);
+      if (result.needsOtp) {
+        const qs = new URLSearchParams({
+          mode: "login",
+          userId: result.start.userId,
+          channel: String(result.start.channel || "mobile"),
+          target: result.start.target || trimmed,
+          next: nextPath || "/patient",
+        });
+        router.push(`/patient/verify-otp?${qs.toString()}`);
+        return;
+      }
+      land(String(result.user.role));
+    } catch (err: unknown) {
+      setError(friendlyError(err));
+      setSubmitting(false);
+    }
+  }
+
+  async function devLoginAsPatient() {
+    setPort("patient");
+    setError(null);
+    setValue("identifier", "0771234567");
+    setValue("password", "dev");
+    setSubmitting(true);
+    try {
+      const user = await login({
+        phone: "0771234567",
+        password: "dev",
+      });
+      land(String(user.role));
+    } catch {
+      try {
+        const user = await login({
+          email: "dev-patient@healthhub.local",
+          password: "dev",
+        });
+        land(String(user.role));
+      } catch (err: unknown) {
+        setError(friendlyError(err));
+        setSubmitting(false);
+      }
+    }
+  }
+
+  async function devLoginAsDoctor() {
+    setPort("doctor");
+    setError(null);
+    setValue("identifier", "doctor@hospital.lk");
+    setValue("password", "dev");
+    setSubmitting(true);
+    try {
+      const user = await login({
+        email: "doctor@hospital.lk",
+        password: "dev",
+      });
+      land(String(user.role));
+    } catch {
+      try {
+        const user = await login({
+          email: "doctor@healthhub.local",
+          password: "dev",
+        });
+        land(String(user.role));
+      } catch (err: unknown) {
+        setError(friendlyError(err));
+        setSubmitting(false);
+      }
     }
   }
 
@@ -231,212 +365,340 @@ function UnifiedLoginForm() {
     setPort(next);
     setError(null);
     setShowPw(false);
+    setPatientMode("password");
+    setPhone("");
     reset({ identifier: "", password: "" });
   }
 
-  function renderTab(p: PortSpec, featured = false) {
-    const Icon = p.icon;
-    const active = port === p.value;
-    return (
-      <button
-        key={p.value}
-        type="button"
-        role="tab"
-        aria-selected={active}
-        onClick={() => switchPort(p.value)}
-        className={cn("hh-login__tab", featured && "hh-login__tab--featured", active && "is-active")}
-      >
-        <Icon size={featured ? 18 : 15} strokeWidth={1.85} aria-hidden="true" />
-        <span>
-          <strong>{p.label}</strong>
-          <em>{p.hint}</em>
-        </span>
-      </button>
-    );
-  }
-
   return (
-    <div className={cn("hh-login", ready && "is-ready")}>
-      <div className="hh-login__grid" aria-hidden="true" />
-      <div className="hh-login__grain" aria-hidden="true" />
+    <div className="hl-root">
+      <a className="hl-skip" href="#login-form">
+        Skip to sign in
+      </a>
 
-      <div className="hh-login__shell">
-        <aside className="hh-login__visual">
-          <Link href="/" className="hh-login__brand" aria-label="HealthHub home">
-            <img className="hh-login__mark" src="/assets/logo.svg" alt="" />
-            <span>HealthHub</span>
-          </Link>
+      <aside className="hl-hero" aria-label="HealthHub">
+        <div className="hl-hero__glow" />
+        <div className="hl-hero__glow--alt" />
+        <div className="hl-hero__grain" />
 
-          <div className="hh-login__copy" key={port}>
-            <p className="hh-login__masthead">
-              <span>{left.index}</span>
-              <span>Vol. 01</span>
-              <span>2026</span>
-            </p>
-            <p className="hh-login__eyebrow">
-              <span className="hh-login__dot" />
-              {left.eyebrow}
-            </p>
-            <h1 className="hh-login__title">{left.title}</h1>
-            <p className="hh-login__lede">{left.lede}</p>
-            <ul className="hh-login__meta">
-              <li><ShieldCheck size={14} /> Private by default</li>
-              <li>EN · සිං · த</li>
-              <li>Encrypted at rest</li>
-            </ul>
+        <Link href="/" className="hl-brand">
+          <img
+            className="hl-brand__mark"
+            src="/assets/logo.svg"
+            alt=""
+            width={40}
+            height={40}
+          />
+          <div>
+            <div className="hl-brand__name">HealthHub</div>
+            <div className="hl-brand__tag">Private health companion</div>
+          </div>
+        </Link>
+
+        <div key={port} className="hl-hero__copy">
+          <p className="hl-kicker">
+            <span className="hl-kicker__dot" />
+            {hero.eyebrow}
+          </p>
+          <h1 className="hl-headline">{hero.headline}</h1>
+          <p className="hl-lede">{hero.description}</p>
+          <ul className="hl-points">
+            {hero.points.map((point) => (
+              <li key={point}>
+                <span className="hl-points__icon" aria-hidden>
+                  <Check size={12} strokeWidth={2.6} />
+                </span>
+                {point}
+              </li>
+            ))}
+          </ul>
+          <div className="hl-pulse" aria-hidden="true">
+            <svg viewBox="0 0 640 64">
+              <path className="hl-pulse__grid" d="M0 32 H640" />
+              <path
+                className="hl-pulse__wave"
+                d="M0 32 H48 l8-2 10 18 8-38 10 28 12-6 H160 l8-2 10 18 8-38 10 28 12-6 H272 l8-2 10 18 8-38 10 28 12-6 H384 l8-2 10 18 8-38 10 28 12-6 H496 l8-2 10 18 8-38 10 28 12-6 H640"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <div className="hl-hero__foot">
+          <div className="hl-hero__trust">
+            <span>
+              <Lock size={12} />
+              Encrypted by default
+            </span>
+            <span>
+              <Shield size={12} />
+              Never sold or trained on
+            </span>
+          </div>
+          <span>© {new Date().getFullYear()} HealthHub · Colombo</span>
+        </div>
+      </aside>
+
+      <main className="hl-panel">
+        <div className="hl-mobile-brand">
+          <div className="hl-mobile-brand__left">
+            <img src="/assets/logo.svg" alt="" width={32} height={32} />
+            <strong>HealthHub</strong>
+          </div>
+          <span className="hl-secure">Secure</span>
+        </div>
+
+        <div className="hl-form-container" id="login-form">
+          <div className="hl-header">
+            <span className="hl-eyebrow">Welcome back</span>
+            <h2>Sign in to your portal</h2>
+            <p>Choose who you are, then continue with the credentials for that workspace.</p>
           </div>
 
-          <p className="hh-login__rail" aria-hidden="true">
-            <span>Fig. 00</span>
-            <i />
-            <span>Sign in</span>
+          <div className="hl-tabs" role="tablist" aria-label="Choose a portal">
+            {PORTS.map((p) => {
+              const active = port === p.value;
+              const Icon = p.icon;
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => switchPort(p.value)}
+                  className={cn("hl-tab-btn", active && "is-active")}
+                >
+                  <Icon size={16} strokeWidth={active ? 2.4 : 1.8} />
+                  <span className="truncate w-full">{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="hl-port-note">
+            <strong>{selected.label}.</strong> {selected.description}
           </p>
-        </aside>
 
-        <main className="hh-login__panel">
-          <div className="hh-login__panel-inner">
-            <Link href="/" className="hh-login__brand hh-login__brand--mobile" aria-label="HealthHub home">
-              <img className="hh-login__mark" src="/assets/logo.svg" alt="" />
-              <span>HealthHub</span>
-            </Link>
-
-            <header className="hh-login__head">
-              <span className="hh-login__kicker">Secure access</span>
-              <h2 className="hh-login__heading">
-                Sign <em>in</em>
-              </h2>
-              <p className="hh-login__sub">Choose your portal, then enter your details.</p>
-            </header>
-
-            <div className="hh-login__ports">
-              <div className="hh-login__ports-label">Personal</div>
-              <div className="hh-login__tabs hh-login__tabs--personal" role="tablist" aria-label="Personal access">
-                {personalPorts.map((p) => renderTab(p, true))}
-              </div>
-              <div className="hh-login__ports-label">Staff &amp; partners</div>
-              <div className="hh-login__tabs hh-login__tabs--staff" role="tablist" aria-label="Staff and partner access">
-                {staffPorts.map((p) => renderTab(p))}
-              </div>
+          {port === "patient" && (
+            <div className="hl-mode" role="tablist" aria-label="Sign-in method">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={patientMode === "password"}
+                onClick={() => {
+                  setPatientMode("password");
+                  setError(null);
+                }}
+                className={cn(patientMode === "password" && "is-active")}
+              >
+                <Mail size={14} />
+                Email / Password
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={patientMode === "phone"}
+                onClick={() => {
+                  setPatientMode("phone");
+                  setError(null);
+                }}
+                className={cn(patientMode === "phone" && "is-active")}
+              >
+                <Phone size={14} />
+                Mobile OTP
+              </button>
             </div>
+          )}
 
-            <p className="hh-login__desc">
-              <selected.icon size={13} strokeWidth={1.85} />
-              {selected.description}
-            </p>
+          {error && (
+            <div className="hl-error" role="alert">
+              <AlertCircle size={16} aria-hidden />
+              <span>{error}</span>
+            </div>
+          )}
 
-            {error ? (
-              <div className="hh-login__error" role="alert">
-                {error}
-              </div>
-            ) : null}
-
-            <form className="hh-login__form" onSubmit={handleSubmit(onSubmit)} noValidate>
-              <div className="hh-login__field">
-                <label htmlFor="identifier">Email or phone</label>
-                <div className="hh-login__control">
-                  <Mail size={15} aria-hidden="true" />
-                  <Input
-                    id="identifier"
-                    autoComplete="username"
-                    placeholder={selected.placeholder}
-                    className="hh-login__input"
-                    {...register("identifier")}
+          {port === "patient" && patientMode === "phone" ? (
+            <form onSubmit={onPhoneSubmit} className="flex flex-col gap-4">
+              <div className="hl-field">
+                <label htmlFor="phone" className="hl-label">
+                  Mobile Number
+                </label>
+                <div className="hl-input-wrap">
+                  <span className="hl-input-icon">
+                    <Phone size={16} />
+                  </span>
+                  <input
+                    id="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="077 123 4567"
+                    className="hl-input"
+                    required
                   />
                 </div>
-                {errors.identifier?.message ? (
-                  <span className="hh-login__field-error">{errors.identifier.message}</span>
-                ) : null}
               </div>
 
-              <div className="hh-login__field">
-                <div className="hh-login__label-row">
-                  <label htmlFor="password">Password</label>
-                  <a href="mailto:support@healthhub.app?subject=Password%20reset">Forgot?</a>
-                </div>
-                <div className="hh-login__control">
-                  <Lock size={15} aria-hidden="true" />
-                  <Input
-                    id="password"
-                    type={showPw ? "text" : "password"}
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    className="hh-login__input hh-login__input--suffix"
-                    {...register("password")}
-                  />
-                  <button
-                    type="button"
-                    className="hh-login__reveal"
-                    onClick={() => setShowPw((s) => !s)}
-                    aria-label={showPw ? "Hide password" : "Show password"}
-                  >
-                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-                {errors.password?.message ? (
-                  <span className="hh-login__field-error">{errors.password.message}</span>
-                ) : null}
-              </div>
-
-              <label className="hh-login__remember">
-                <input type="checkbox" defaultChecked />
-                <span className="hh-login__check" aria-hidden="true"><Check size={11} strokeWidth={3} /></span>
-                <span>Keep me signed in for 30 days</span>
-              </label>
-
-              <button type="submit" className="hh-login__submit" disabled={submitting}>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="hl-btn-primary"
+                aria-busy={submitting}
+              >
                 {submitting ? (
                   <>
-                    <span className="hh-login__spinner" />
-                    Signing you in…
+                    <span className="hl-spinner" aria-hidden />
+                    <span>Sending OTP code…</span>
                   </>
                 ) : (
                   <>
-                    Sign in to {selected.label}
-                    <ArrowRight size={16} strokeWidth={2.25} />
+                    <span>Continue with Phone</span>
+                    <ArrowRight size={16} />
                   </>
                 )}
               </button>
             </form>
-
-            <div className="hh-login__rule"><span>or</span></div>
-
-            <a
-              className="hh-login__whatsapp"
-              href={
-                process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE
-                  ? `https://wa.me/${process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE}?text=${encodeURIComponent("Hi HealthHub, I need help signing in.")}`
-                  : "mailto:support@healthhub.app"
-              }
-              target="_blank"
-              rel="noopener"
+          ) : (
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              noValidate
+              className="flex flex-col gap-4"
             >
-              <MessageCircle size={15} />
-              Chat on WhatsApp
-            </a>
+              <div className="hl-field">
+                <label htmlFor="identifier" className="hl-label">
+                  Email or Phone
+                </label>
+                <div className="hl-input-wrap">
+                  <span className="hl-input-icon">
+                    <Mail size={16} />
+                  </span>
+                  <input
+                    id="identifier"
+                    autoComplete="username"
+                    placeholder={selected.placeholder}
+                    {...register("identifier")}
+                    value={identifierVal}
+                    className="hl-input"
+                  />
+                </div>
+                {errors.identifier?.message && (
+                  <p className="hl-field-error">{errors.identifier.message}</p>
+                )}
+              </div>
 
+              <div className="hl-field">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="hl-label">
+                    Password
+                  </label>
+                  <a
+                    href="mailto:support@healthhub.app?subject=Password%20Reset%20Request"
+                    className="hl-forgot"
+                  >
+                    Forgot password?
+                  </a>
+                </div>
+                <div className="hl-input-wrap">
+                  <span className="hl-input-icon">
+                    <Lock size={16} />
+                  </span>
+                  <input
+                    id="password"
+                    type={showPw ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    {...register("password")}
+                    value={passwordVal}
+                    className="hl-input"
+                    style={{ paddingRight: 48 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => !s)}
+                    className="hl-reveal"
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                  >
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {errors.password?.message && (
+                  <p className="hl-field-error">{errors.password.message}</p>
+                )}
+              </div>
+
+              <label className="hl-check">
+                <input type="checkbox" defaultChecked />
+                <span>Keep me signed in</span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="hl-btn-primary"
+                aria-busy={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <span className="hl-spinner" aria-hidden />
+                    <span>Authenticating…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign in to {selected.label}</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {IS_DEV && (
+            <div className="hl-dev">
+              <span>Quick Dev</span>
+              <div className="hl-dev__btns">
+                <button
+                  type="button"
+                  onClick={devLoginAsPatient}
+                  disabled={submitting}
+                >
+                  As Patient
+                </button>
+                <button
+                  type="button"
+                  onClick={devLoginAsDoctor}
+                  disabled={submitting}
+                >
+                  As Doctor
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="hl-foot">
+          <div>
             {port === "patient" ? (
-              <a className="hh-login__cta" href="/account/signup">
-                New here? <strong>Join HealthHub →</strong>
-              </a>
+              <span>
+                New to HealthHub?{" "}
+                <Link href="/patient/register">Create account</Link>
+              </span>
             ) : (
-              <a className="hh-login__cta" href="mailto:support@healthhub.app?subject=Access%20request">
-                Need a staff account? <strong>Request access →</strong>
-              </a>
+              <span>
+                Need staff credentials?{" "}
+                <a href="mailto:support@healthhub.app?subject=Staff%20Access">
+                  Contact admin
+                </a>
+              </span>
             )}
           </div>
-
-          <footer className="hh-login__footer">
-            <span>© {new Date().getFullYear()} Healthhub (Pvt) Ltd.</span>
-            <span>
-              <Link href="/privacy">Privacy</Link>
-              <i aria-hidden="true">·</i>
-              <Link href="/terms">Terms</Link>
-              <i aria-hidden="true">·</i>
-              <a href="mailto:support@healthhub.app">Support</a>
-            </span>
-          </footer>
-        </main>
-      </div>
+          <div className="hl-foot__legal">
+            <Link href="/privacy">Privacy</Link>
+            <span aria-hidden>·</span>
+            <Link href="/terms">Terms</Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
