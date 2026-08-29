@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/portal/lib/api";
 import {
   PATIENT_QUERY_DEFAULTS,
-  type RangeKey,
   patientKeys,
   rangeToFrom,
 } from "@/patient/lib/query";
@@ -13,7 +12,6 @@ import type {
   AllergyRow,
   AppointmentRow,
   Conversation,
-  HealthSummary,
   LabResultRow,
   MedicineRow,
   MedicineStats,
@@ -27,83 +25,19 @@ import type {
   VaccinationAdministeredRow,
   VaccinationSlot,
   VitalAlert,
-  VitalContext,
   VitalSeriesResponse,
   VitalType,
-  VitalsDerived,
   WellnessResponse,
 } from "@/patient/types/patient";
-import type { AuthUser } from "@/portal/stores/auth";
 
-// ─── Profile & summary ──────────────────────────────────────
-export interface PatientProfileResponse {
-  patient: {
-    patients: { id: string; dateOfBirth: string | null; gender: string | null };
-    users: { id: string; name: string; email: string | null; phone: string | null };
-  };
-}
-
-export function usePatientProfile() {
-  return useQuery<PatientProfileResponse>({
-    queryKey: ["patient", "profile", "record"],
-    queryFn: () => api<PatientProfileResponse>("/patients/me"),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useProfile() {
-  return useQuery<AuthUser | null>({
-    queryKey: patientKeys.profile(),
-    queryFn: () => api<{ user: AuthUser }>("/auth/me").then((r) => r.user),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useHealthSummary() {
-  return useQuery<HealthSummary>({
-    queryKey: patientKeys.healthSummary(),
-    queryFn: () => api<HealthSummary>("/health-summary/me"),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useWellness() {
-  return useQuery<WellnessResponse>({
-    queryKey: patientKeys.wellness(),
-    queryFn: () => api<WellnessResponse>("/wellness/me"),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-// ─── Vitals ────────────────────────────────────────────────
-export function useVitalsSeries(type: VitalType, range: RangeKey) {
-  const from = rangeToFrom(range);
-  return useQuery<VitalSeriesResponse>({
-    queryKey: patientKeys.vitalsSeries(type, range),
-    queryFn: () =>
-      api<VitalSeriesResponse>(
-        `/vitals/me/series?type=${encodeURIComponent(type)}&from=${encodeURIComponent(from)}`
-      ),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useVitalsAlerts(days = 7) {
-  return useQuery<{ items: VitalAlert[]; count: number }>({
-    queryKey: patientKeys.vitalsAlerts(days),
-    queryFn: async () => {
-      const res = await api<{ alerts?: VitalAlert[]; items?: VitalAlert[]; count?: number }>(
-        `/vitals/me/alerts?days=${days}`
-      );
-      const items = res.items ?? res.alerts ?? [];
-      return {
-        items,
-        count: res.count ?? items.length,
-      };
-    },
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
+// Read-side hooks have moved to per-domain modules. This barrel
+// re-exports them so existing imports keep working. Task 6 finishes the
+// split for appointments, medicines, messages, notifications, allergies,
+// vaccinations, and notes.
+export * from "./profile";
+export * from "./vitals";
+export * from "./records";
+export * from "./timeline";
 
 // ─── Appointments ──────────────────────────────────────────
 export function useAppointments() {
@@ -160,43 +94,6 @@ export function useRescheduleAppointment() {
       qc.invalidateQueries({ queryKey: patientKeys.appointments() });
       qc.invalidateQueries({ queryKey: patientKeys.all });
     },
-  });
-}
-
-// ─── Medical records ───────────────────────────────────────
-export function useRecords(params: {
-  type?: string;
-  search?: string;
-  limit?: number;
-}) {
-  const qs = new URLSearchParams();
-  if (params.type) qs.set("type", params.type);
-  if (params.search) qs.set("search", params.search);
-  if (params.limit) qs.set("limit", String(params.limit));
-  return useQuery<{ records: RecordRow[] }>({
-    queryKey: patientKeys.records({ ...params }),
-    queryFn: () =>
-      api<{ records: RecordRow[] }>(
-        `/medical-records/me${qs.size ? "?" + qs.toString() : ""}`
-      ),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useRecordStats() {
-  return useQuery<RecordStats>({
-    queryKey: patientKeys.recordStats(),
-    queryFn: () => api<RecordStats>("/medical-records/me/stats"),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useRecord(id: string) {
-  return useQuery<RecordRow>({
-    queryKey: patientKeys.record(id),
-    queryFn: () => api<RecordRow>(`/medical-records/${id}`),
-    ...PATIENT_QUERY_DEFAULTS,
-    enabled: Boolean(id),
   });
 }
 
@@ -298,21 +195,6 @@ export function useMedicationStats(days = 7) {
     queryKey: patientKeys.medicineStats(days),
     queryFn: () =>
       api<MedicineStats>(`/medicines/me/stats?days=${days}`),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-// ─── Timeline ──────────────────────────────────────────────
-export function useTimeline(params: { limit?: number; kinds?: string[] } = {}) {
-  const qs = new URLSearchParams();
-  if (params.limit) qs.set("limit", String(params.limit));
-  if (params.kinds?.length) qs.set("kinds", params.kinds.join(","));
-  return useQuery<{ events: TimelineEvent[] }>({
-    queryKey: patientKeys.timeline({ ...params }),
-    queryFn: () =>
-      api<{ events: TimelineEvent[] }>(
-        `/timeline/me${qs.size ? "?" + qs.toString() : ""}`
-      ),
     ...PATIENT_QUERY_DEFAULTS,
   });
 }
@@ -520,86 +402,6 @@ export function useAddVaccination() {
   });
 }
 
-// ─── Vitals + Symptoms ─────────────────────────────────────
-export function useVitalsDerived() {
-  return useQuery<{ derived: VitalsDerived }>({
-    queryKey: patientKeys.vitalsDerived(),
-    queryFn: () => api<{ derived: VitalsDerived }>("/vitals/me/derived"),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useVitalsSeriesRaw(type: VitalType, days: number) {
-  const from = new Date(Date.now() - days * 86400_000).toISOString();
-  return useQuery<VitalSeriesResponse>({
-    queryKey: [...patientKeys.vitalsSeries(type, "week"), "raw", days] as const,
-    queryFn: () =>
-      api<VitalSeriesResponse>(
-        `/vitals/me/series?type=${encodeURIComponent(type)}&from=${encodeURIComponent(from)}`
-      ),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useSymptoms() {
-  return useQuery<{ symptoms: SymptomRow[] }>({
-    queryKey: patientKeys.symptoms(),
-    queryFn: () => api<{ symptoms: SymptomRow[] }>("/vitals/symptoms/me"),
-    ...PATIENT_QUERY_DEFAULTS,
-  });
-}
-
-export function useAddVital() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      type: VitalType;
-      value: number;
-      secondaryValue?: number | null;
-      context?: VitalContext | null;
-      recordedAt?: string;
-      notes?: string | null;
-    }) =>
-      api<{ vital: { id: string } }>("/vitals", { method: "POST", json: input }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["patient", "vitals"] });
-    },
-  });
-}
-
-export function useDeleteVital() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api<{ message: string }>(`/vitals/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["patient", "vitals"] });
-    },
-  });
-}
-
-export function useAddSymptom() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      symptom: string;
-      severity?: SymptomRow["severity"];
-      startedAt?: string;
-      notes?: string | null;
-    }) =>
-      api<{ symptom: SymptomRow }>("/vitals/symptoms", { method: "POST", json: input }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.symptoms() }),
-  });
-}
-
-export function useDeleteSymptom() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      api<{ message: string }>(`/vitals/symptoms/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.symptoms() }),
-  });
-}
-
 // ─── Notes ─────────────────────────────────────────────────
 export function useNotes() {
   return useQuery<{ notes: NoteRow[] }>({
@@ -630,23 +432,9 @@ export function useEditNote() {
 export function useDeleteNote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api<{ message: string }>(`/notes/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) =>
+      api<{ message: string }>(`/notes/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.notes() }),
-  });
-}
-
-// ─── Lab Results ───────────────────────────────────────────
-export function useLabResults(params: { months?: number; test?: string } = {}) {
-  const qs = new URLSearchParams();
-  if (params.months) qs.set("months", String(params.months));
-  if (params.test) qs.set("test", params.test);
-  return useQuery<{ items: LabResultRow[] }>({
-    queryKey: patientKeys.labResults(params),
-    queryFn: () =>
-      api<{ items: LabResultRow[] }>(
-        `/medical-records/me/lab-results${qs.size ? "?" + qs.toString() : ""}`
-      ),
-    ...PATIENT_QUERY_DEFAULTS,
   });
 }
 
