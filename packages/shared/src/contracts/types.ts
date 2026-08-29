@@ -242,6 +242,45 @@ export interface RecordStats {
   byType: Record<string, number>;
 }
 
+/** POST /medical-records/envelope — patient-allowed create path. */
+export interface RecordCreateInput {
+  kind: string;
+  title: string;
+  summary?: string;
+  notes?: string;
+  diagnosis?: string;
+  tags?: string[];
+  familyMemberId?: string | null;
+  recordDate?: string;
+}
+
+/** PATCH /medical-records/:id. */
+export interface RecordUpdateInput {
+  id: string;
+  title?: string;
+  diagnosis?: string;
+  summary?: string;
+  notes?: string;
+  date?: string;
+  followUpDate?: string;
+  recordType?: string;
+  tags?: string[];
+  familyMemberId?: string | null;
+  archived?: boolean;
+}
+
+/** One row from GET /files/record/:recordId. */
+export interface RecordAttachment {
+  id: string;
+  recordId: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+  r2Key?: string;
+  uploadedByUserId?: string;
+}
+
 /** An event from GET /timeline/me. */
 export interface TimelineEvent {
   id: string;
