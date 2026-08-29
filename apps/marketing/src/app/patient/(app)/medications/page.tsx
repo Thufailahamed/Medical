@@ -1,18 +1,26 @@
 "use client";
 
-import { Flame, Pill, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Flame, Pill, CheckCircle2, X } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { StatTile } from "@/patient/components/primitives/StatTile";
-import { useMedications, useMedicationStats } from "@/patient/hooks";
+import { Sheet } from "@/patient/components/primitives/Sheet";
+import {
+  useMedications,
+  useMedicationStats,
+  useRefillDue,
+} from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
 
 export default function MedicationsPage() {
   const list = useMedications();
   const stats = useMedicationStats(7);
+  const refills = useRefillDue(14);
+  const [refillOpen, setRefillOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
@@ -58,6 +66,23 @@ export default function MedicationsPage() {
         </QueryBoundary>
       </div>
 
+      <div className="space-y-2">
+        <h2 className="text-sm font-medium text-text-muted">
+          Refills due in next 14 days
+        </h2>
+        <button
+          onClick={() => setRefillOpen(true)}
+          disabled={refills.isLoading || refills.data?.count === 0}
+          className="w-full rounded border border-[color:var(--color-border)] bg-surface-1 p-3 text-left text-sm disabled:opacity-60"
+        >
+          {refills.isLoading
+            ? "Loading…"
+            : refills.data?.count
+              ? `${refills.data.count} medicine${refills.data.count === 1 ? "" : "s"} need refill`
+              : "Nothing due for refill"}
+        </button>
+      </div>
+
       <Card accent="brand">
         <QueryBoundary
           query={list as any}
@@ -97,6 +122,42 @@ export default function MedicationsPage() {
           }}
         </QueryBoundary>
       </Card>
+
+      <Sheet
+        open={refillOpen}
+        onClose={() => setRefillOpen(false)}
+        ariaLabel="Refills due"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="t-page text-text">Refills due</h2>
+          <button
+            aria-label="Close"
+            onClick={() => setRefillOpen(false)}
+            className="text-text-muted hover:text-text"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="space-y-3">
+          {(refills.data?.refills ?? []).map((m) => (
+            <div
+              key={m.id}
+              className="rounded border border-[color:var(--color-border)] bg-surface-1 p-3"
+            >
+              <p className="font-medium">{m.name}</p>
+              <p className="text-sm text-text-muted">{m.dosage}</p>
+              <p className="text-xs text-text-muted">
+                {m.daysRemaining <= 0
+                  ? "Past due"
+                  : `Empty in ${m.daysRemaining} day${m.daysRemaining === 1 ? "" : "s"}`}
+              </p>
+            </div>
+          ))}
+          {!refills.data?.refills?.length && (
+            <p className="text-sm text-text-muted">Nothing due.</p>
+          )}
+        </div>
+      </Sheet>
     </div>
   );
 }
