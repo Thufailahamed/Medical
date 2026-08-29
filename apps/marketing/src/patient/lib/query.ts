@@ -59,7 +59,11 @@ export const patientKeys = {
 
   allergies: () => ["patient", "allergies"] as const,
   vaccinations: () => ["patient", "vaccinations"] as const,
+  vaccinationsDue: () => ["patient", "vaccinations", "due"] as const,
   family: () => ["patient", "family"] as const,
+  notes: () => ["patient", "notes"] as const,
+  labResults: (params: { months?: number } = {}) =>
+    ["patient", "records", "lab-results", params] as const,
 };
 
 /** Range key → an ISO `from` bound. `to` is always "now" (omitted). */

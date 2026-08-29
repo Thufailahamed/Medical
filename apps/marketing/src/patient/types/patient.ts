@@ -192,3 +192,65 @@ export interface Message {
   body: string;
   createdAt: string;
 }
+
+/** GET /allergies/me */
+export interface AllergyRow {
+  id: string;
+  substance: string;
+  severity: "mild" | "moderate" | "severe" | "life_threatening" | null;
+  reaction: string | null;
+  notes: string | null;
+  recordedAt: string;
+}
+
+/** GET /vaccinations/me and /vaccinations/me/due */
+export interface VaccinationRow {
+  id: string;
+  vaccine: string;
+  doseNumber: number | null;
+  administeredAt: string;
+  dueAt: string | null;
+  status: "administered" | "due" | "overdue" | "upcoming";
+  lotNumber: string | null;
+  notes: string | null;
+}
+
+/** GET /vitals/symptoms/me */
+export interface SymptomRow {
+  id: string;
+  symptom: string;
+  severity: "mild" | "moderate" | "severe" | null;
+  startedAt: string;
+  endedAt: string | null;
+  notes: string | null;
+}
+
+/** GET /notes/me */
+export interface NoteRow {
+  id: string;
+  title: string;
+  body: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** GET /me/lab-results */
+export interface LabResultRow {
+  id: string;
+  test: string;
+  value: string;
+  unit: string | null;
+  referenceRange: string | null;
+  flag: "low" | "normal" | "high" | "critical" | null;
+  collectedAt: string;
+}
+
+/** GET /medicines/refill-due?days=N */
+export interface RefillDueRow {
+  id: string;
+  name: string;
+  dosage: string;
+  lastFillDate: string | null;
+  daysUntilEmpty: number;
+}
