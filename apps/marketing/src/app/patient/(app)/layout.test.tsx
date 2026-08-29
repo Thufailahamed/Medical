@@ -11,11 +11,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 const replace = vi.fn();
+const realtimeSpy = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/patient",
   useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("@/portal/hooks/useRealtime", () => ({
+  useRealtime: (args: unknown) => realtimeSpy(args),
 }));
 
 let mockState: {
@@ -91,5 +96,22 @@ describe("PatientAppLayout gate", () => {
       </PatientAppLayout>
     );
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("opens a realtime connection for the signed-in patient", () => {
+    realtimeSpy.mockClear();
+    mockState = {
+      token: "tok_1",
+      user: { id: "u1", name: "Test", role: "patient" },
+      hydrated: true,
+    };
+    render(
+      <PatientAppLayout>
+        <p>dash</p>
+      </PatientAppLayout>
+    );
+    expect(realtimeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ token: "tok_1", userId: "u1" })
+    );
   });
 });

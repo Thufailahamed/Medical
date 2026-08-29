@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/portal/stores/auth";
+import { useRealtime } from "@/portal/hooks/useRealtime";
 import { PatientShell } from "@/patient/components/shell/PatientShell";
 
 /**
@@ -27,6 +28,11 @@ export default function PatientAppLayout({
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const hydrated = useAuthStore((s) => s.hydrated);
+
+  // Server-pushed invalidations. Mounted here so anything the patient
+  // does on mobile — a dose marked taken, a record uploaded — refreshes
+  // an open web tab within one SSE tick. No-ops until the token hydrates.
+  useRealtime({ token: token ?? null, userId: user?.id ?? null });
 
   useEffect(() => {
     if (!hydrated) return;

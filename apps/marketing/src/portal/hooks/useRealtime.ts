@@ -45,16 +45,36 @@ export interface RealtimeNotification {
  * Notification-type → query keys to invalidate.
  * `general` (empty key) nukes everything; everything else is targeted.
  */
-const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
+export const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   appointment: [["appointments"], ["doctor-portal", "appointments"], ["patient", "appointments"]],
-  medicine: [["medicines"], ["doses"]],
-  lab_ready: [["lab-orders"], ["doctor-portal", "lab-orders"], ["medical-records"]],
-  prescription: [["prescription"], ["doctor", "prescriptions"], ["doctor-portal", "prescriptions"]],
-  insurance: [["insurance"], ["admin", "insurance-claims"]],
+  medicine: [
+    ["medicines"],
+    ["doses"],
+    ["patient", "medicines"],
+    ["patient", "doses"],
+  ],
+  lab_ready: [
+    ["lab-orders"],
+    ["doctor-portal", "lab-orders"],
+    ["medical-records"],
+    ["patient", "records"],
+  ],
+  prescription: [
+    ["prescription"],
+    ["doctor", "prescriptions"],
+    ["doctor-portal", "prescriptions"],
+    ["patient", "prescriptions"],
+  ],
+  insurance: [["insurance"], ["admin", "insurance-claims"], ["patient", "insurance"]],
   hospital: [["hospital-portal"], ["doctor-portal"]],
-  emergency: [["emergency"]],
-  vaccination: [["vaccinations"]],
-  general: [["doctor-messages", "conversations"], ["doctor-portal", "messages"], ["inbox"]],
+  emergency: [["emergency"], ["patient", "emergency"]],
+  vaccination: [["vaccinations"], ["patient", "vaccinations"]],
+  general: [
+    ["doctor-messages", "conversations"],
+    ["doctor-portal", "messages"],
+    ["inbox"],
+    ["patient", "messages"],
+  ],
   account_pending_review: [["admin", "approvals"], ["admin", "users"]],
   hospital_request: [["hospital-portal"], ["hospital", "collab"]],
 };
@@ -65,12 +85,13 @@ const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
  * SSE events fire directly on row inserts/updates; the notification
  * handler still covers `notification` events.
  */
-const EVENT_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
+export const EVENT_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   record: [
     ["medical-records"],
     ["doctor-portal", "records"],
     ["patient", "records"],
     ["timeline"],
+    ["patient", "timeline"],
   ],
   lab_report: [
     ["lab-orders"],
@@ -91,11 +112,17 @@ const EVENT_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> = {
   ],
   walk_in: [["walk-ins"], ["hospital-portal", "walk-ins"]],
   message: [["inbox"], ["doctor-portal", "messages"], ["patient", "messages"]],
+  appointment: [
+    ["appointments"],
+    ["doctor-portal", "appointments"],
+    ["patient", "appointments"],
+  ],
 };
 
 function invalidateFor(qc: ReturnType<typeof useQueryClient>, n: RealtimeNotification) {
   // Catch-all first — anything matching the `notifications` tree refreshes.
   qc.invalidateQueries({ queryKey: ["notifications"] });
+  qc.invalidateQueries({ queryKey: ["patient", "notifications"] });
   const mapped = TYPE_TO_QUERY_KEYS[n.type];
   if (mapped) {
     for (const key of mapped) {
