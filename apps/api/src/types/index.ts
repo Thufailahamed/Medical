@@ -58,6 +58,43 @@ export interface AppEnvironment {
     TURN_USERNAME?: string;
     TURN_CREDENTIAL?: string;
     WHEREBY_API_KEY?: string;
+
+    // Round 6: TOTP MFA for doctors (lib/mfa.ts). Wraps the per-user
+    // TOTP seed and the recovery-code pepper with their own KEKs so a
+    // DB-only leak doesn't yield usable authenticator seeds. /mfa
+    // returns 503 when either is missing.
+    MFA_SECRET_KEK?: string;
+    MFA_RECOVERY_PEPPER?: string;
+
+    // Round 6: doctor signing keypair KEK (lib/signing.ts). Aliases
+    // RECORD_KEK_PRIMARY for legacy deploys; lib/signing.ts reads
+    // DOCTOR_KEY_KEK first. Wraps each doctor's RSA private key in
+    // the doctors table.
+    DOCTOR_KEY_KEK?: string;
+    RECORD_KEK_PRIMARY?: string;
+
+    // Round ADM-3: KV binding that stores WebAuthn passkey challenges
+    // across isolate restarts. Currently the in-memory map in
+    // routes/admin-webauthn.ts is used; production must wire the
+    // [[kv_namespaces]] binding so passkey challenges survive.
+    WEBAUTHN_KV?: KVNamespace;
+
+    // Round 7: outbound email provider key (Resend). When missing the
+    // email channel falls back to console — fine for dev, broken in
+    // prod. /auth/send-otp logs the code rather than sending.
+    RESEND_API_KEY?: string;
+
+    // Round 7: PayHere (Sri Lanka B2B gateway) credentials. /payments
+    // returns 503 when both are missing.
+    PAYHERE_MERCHANT_ID?: string;
+    PAYHERE_SECRET?: string;
+
+    // Round 8: AI provider keys. The router in lib/ai/router.ts
+    // prefers Workers AI on the free tier; Anthropic Sonnet is the
+    // paid fallback; Gemini powers structured extraction. Each is
+    // independently optional — the router falls back automatically.
+    ANTHROPIC_API_KEY?: string;
+    GEMINI_API_KEY?: string;
   };
   Variables: {
     user: User;
@@ -91,4 +128,14 @@ export interface AppEnvironment {
 // Cloudflare Workers AI binding shape (minimal fields used).
 export interface Ai {
   run: (model: string, options: { messages?: any[]; prompt?: string; [k: string]: any }) => Promise<any>;
+}
+
+// Minimal KV namespace shape for typed env bindings. The full
+// Cloudflare Workers runtime type extends this; we only declare the
+// bits used in code so the same shape compiles whether or not
+// `@cloudflare/workers-types` is installed.
+export interface KVNamespace {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  delete(key: string): Promise<void>;
 }

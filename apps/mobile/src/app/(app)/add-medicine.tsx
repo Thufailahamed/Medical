@@ -234,7 +234,7 @@ export default function AddMedicineScreen() {
 
   const [nameQuery, setNameQuery] = useState("");
   const [nameFocused, setNameFocused] = useState(false);
-  const [, setPendingWarnings] = useState<InteractionsResponse | null>(null);
+  const [pendingWarnings, setPendingWarnings] = useState<InteractionsResponse | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
 

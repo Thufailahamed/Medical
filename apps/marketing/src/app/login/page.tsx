@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState, useEffect, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,6 +11,7 @@ import {
   Building2,
   FlaskConical,
   Truck,
+  Heart,
   Mail,
   Lock,
   Eye,
@@ -22,24 +23,18 @@ import {
   Globe,
 } from "lucide-react";
 
-import { Button } from "@/portal/components/ui/Button";
-import { Field, Input } from "@/portal/components/ui/Form";
+import { Input } from "@/portal/components/ui/Form";
 import { login } from "@/portal/lib/auth";
 import { useAuthStore } from "@/portal/stores/auth";
 import { friendlyError } from "@/portal/lib/errors";
 import { cn } from "@/portal/lib/utils";
 
 /**
- * Unified sign-in entry. The user picks which kind of account they're
- * using; the server tells us the role after /auth/login, and we route
- * them to the matching surface. Operators (insurance + ambulance) get
- * sent into /admin/* with a role-filtered sidebar.
- *
- * Visual: two-column premium layout — left = brand visual (phone scene
- * + orbs + welcome message + trust signals), right = form.
+ * Unified sign-in. User picks an account type; after /auth/login the
+ * server role is checked and they are routed to the matching surface.
  */
 
-type Port = "facility" | "doctor" | "operator";
+type Port = "patient" | "facility" | "doctor" | "operator";
 
 const schema = z.object({
   identifier: z.string().min(1, "Email or phone is required"),
@@ -55,9 +50,22 @@ interface PortSpec {
   landingFor: Record<string, string>;
   description: string;
   hint: string;
+  group: "personal" | "staff";
+  placeholder: string;
 }
 
 const PORTS: PortSpec[] = [
+  {
+    value: "patient",
+    label: "Patient",
+    icon: Heart,
+    roles: ["patient"],
+    landingFor: { patient: "/patient" },
+    description: "Your personal health journal",
+    hint: "You & your family",
+    group: "personal",
+    placeholder: "you@email.com",
+  },
   {
     value: "facility",
     label: "Facility",
@@ -71,7 +79,9 @@ const PORTS: PortSpec[] = [
       super_admin: "/admin/dashboard",
     },
     description: "Hospitals, labs, and pharmacies",
-    hint: "For admin and operations staff",
+    hint: "Admin & operations",
+    group: "staff",
+    placeholder: "admin@hospital.lk",
   },
   {
     value: "doctor",
@@ -79,8 +89,10 @@ const PORTS: PortSpec[] = [
     icon: FlaskConical,
     roles: ["doctor"],
     landingFor: { doctor: "/portal/dashboard" },
-    description: "Doctor sign-in",
-    hint: "For practicing clinicians",
+    description: "Clinical workspace for practising clinicians",
+    hint: "Clinicians",
+    group: "staff",
+    placeholder: "doctor@hospital.lk",
   },
   {
     value: "operator",
@@ -91,13 +103,68 @@ const PORTS: PortSpec[] = [
       insurance: "/admin/insurance-claims",
       ambulance: "/admin/ambulances",
     },
-    description: "Insurance + ambulance operators",
-    hint: "For insurance & ambulance partners",
+    description: "Insurance and ambulance partners",
+    hint: "Partners",
+    group: "staff",
+    placeholder: "operator@insurance.lk",
   },
 ];
 
+const LEFT_COPY: Record<Port, { eyebrow: string; title: ReactNode; lede: string }> = {
+  patient: {
+    eyebrow: "Personal health",
+    title: (
+      <>
+        Your health,<br />finally <em>together.</em>
+      </>
+    ),
+    lede: "Records, medicines, vitals, and AI insights — privately organised for you and the people you look after.",
+  },
+  facility: {
+    eyebrow: "Facility access",
+    title: (
+      <>
+        Your team&rsquo;s <em>calm, private</em> place to work.
+      </>
+    ),
+    lede: "Operations, records, and care coordination for hospitals, labs, and pharmacies — quietly in one place.",
+  },
+  doctor: {
+    eyebrow: "Clinical workspace",
+    title: (
+      <>
+        Care that starts with the <em>whole picture.</em>
+      </>
+    ),
+    lede: "Prescriptions, notes, and patient history ready before the visit — built for practising clinicians.",
+  },
+  operator: {
+    eyebrow: "Partner access",
+    title: (
+      <>
+        Claims and coverage, <em>without the chase.</em>
+      </>
+    ),
+    lede: "Insurance and ambulance partners sign in here to manage claims, coverage, and dispatch.",
+  },
+};
+
 export default function UnifiedLoginPage() {
-  const [port, setPort] = useState<Port>("facility");
+  return (
+    <Suspense fallback={<div className="vh-login" />}>
+      <UnifiedLoginForm />
+    </Suspense>
+  );
+}
+
+function UnifiedLoginForm() {
+  const params = useSearchParams();
+  const initialPort = (() => {
+    const raw = params.get("port");
+    if (raw === "facility" || raw === "doctor" || raw === "operator" || raw === "patient") return raw;
+    return "patient";
+  })();
+  const [port, setPort] = useState<Port>(initialPort);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
@@ -109,6 +176,9 @@ export default function UnifiedLoginPage() {
   }, []);
 
   const selected = PORTS.find((p) => p.value === port)!;
+  const left = LEFT_COPY[port];
+  const personalPorts = PORTS.filter((p) => p.group === "personal");
+  const staffPorts = PORTS.filter((p) => p.group === "staff");
 
   const {
     register,
@@ -134,7 +204,7 @@ export default function UnifiedLoginPage() {
       const spec = PORTS.find((p) => p.roles.includes(role));
       if (!spec) {
         useAuthStore.getState().logout();
-        setError("This account has no portal access yet. Contact platform ops.");
+        setError("This account has no portal access yet. Contact support.");
         setSubmitting(false);
         return;
       }
@@ -142,7 +212,7 @@ export default function UnifiedLoginPage() {
         useAuthStore.getState().logout();
         const wanted = PORTS.find((p) => p.value === spec.value)!;
         setError(
-          `This account is a ${role.replace("_", " ")} account. Use the "${wanted.label}" tab instead.`,
+          `This account is a ${role.replace(/_/g, " ")} account. Use the "${wanted.label}" tab instead.`,
         );
         setSubmitting(false);
         return;
@@ -163,20 +233,47 @@ export default function UnifiedLoginPage() {
   function switchPort(next: Port) {
     setPort(next);
     setError(null);
+    setShowPw(false);
     reset({ identifier: "", password: "" });
   }
 
+  function renderTab(p: PortSpec, featured = false) {
+    const PIcon = p.icon;
+    const active = port === p.value;
+    return (
+      <button
+        key={p.value}
+        type="button"
+        role="tab"
+        aria-selected={active}
+        onClick={() => switchPort(p.value)}
+        className={cn(
+          "vh-login__tab",
+          featured && "vh-login__tab--featured",
+          active && "is-active",
+        )}
+      >
+        <span className="vh-login__tab-icon" aria-hidden="true">
+          <PIcon size={featured ? 18 : 15} strokeWidth={2.25} />
+        </span>
+        <span className="vh-login__tab-text">
+          <span className="vh-login__tab-label">{p.label}</span>
+          <span className="vh-login__tab-hint">{p.hint}</span>
+        </span>
+      </button>
+    );
+  }
+
   return (
-    <div className="vh-login">
-      {/* ─── Subtle noise overlay ─── */}
+    <div className={cn("vh-login", mounted && "is-ready")}>
       <div className="vh-login__noise" aria-hidden="true" />
 
       <div className="vh-login__shell">
-        {/* ─── LEFT — Brand visual ─── */}
         <aside className="vh-login__visual">
           <div className="vh-login__visual-bg" aria-hidden="true" />
+          <div className="vh-login__visual-orb vh-login__visual-orb--a" aria-hidden="true" />
+          <div className="vh-login__visual-orb vh-login__visual-orb--b" aria-hidden="true" />
 
-          {/* Brand header */}
           <div className="vh-login__brand">
             <Link href="/" className="vh-login__brand-link" aria-label="HealthHub home">
               <span className="vh-login__brand-mark">H</span>
@@ -184,20 +281,14 @@ export default function UnifiedLoginPage() {
             </Link>
           </div>
 
-          {/* Eyebrow + main message */}
-          <div className="vh-login__copy">
+          <div className="vh-login__copy" key={port}>
             <span className="vh-login__eyebrow">
               <span className="vh-login__eyebrow-dot" />
-              Welcome back
+              {left.eyebrow}
             </span>
-            <h1 className="vh-login__title">
-              Your team&rsquo;s <em>calm, private</em> place to work.
-            </h1>
-            <p className="vh-login__lede">
-              Records, medicines, vitals and AI insights — quietly in one place for your staff and the people you look after.
-            </p>
+            <h1 className="vh-login__title">{left.title}</h1>
+            <p className="vh-login__lede">{left.lede}</p>
 
-            {/* Trust pills */}
             <div className="vh-login__trust">
               <span className="vh-login__trust-pill">
                 <ShieldCheck size={13} />
@@ -215,45 +306,33 @@ export default function UnifiedLoginPage() {
           </div>
         </aside>
 
-        {/* ─── RIGHT — Form ─── */}
         <main className="vh-login__form-wrap">
           <div className="vh-login__form">
-            {/* Mobile-only brand */}
             <Link href="/" className="vh-login__brand-link vh-login__brand-link--mobile" aria-label="HealthHub home">
               <span className="vh-login__brand-mark">H</span>
               <span className="vh-login__brand-name">HealthHub</span>
             </Link>
 
             <div className="vh-login__form-head">
-              <span className="vh-login__form-eyebrow">// staff &amp; partner access</span>
+              <span className="vh-login__form-eyebrow">// secure access</span>
               <h2 className="vh-login__form-title">
                 Sign <em>in</em>
               </h2>
               <p className="vh-login__form-sub">
-                Staff, doctor, or operator &mdash; pick the right portal below.
+                Choose how you use HealthHub, then enter your details.
               </p>
             </div>
 
-            {/* Tab switcher */}
-            <div className="vh-login__tabs" role="tablist">
-              {PORTS.map((p) => {
-                const PIcon = p.icon;
-                const active = port === p.value;
-                return (
-                  <button
-                    key={p.value}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => switchPort(p.value)}
-                    className={cn("vh-login__tab", active && "is-active")}
-                  >
-                    <PIcon size={15} strokeWidth={2.25} />
-                    <span className="vh-login__tab-label">{p.label}</span>
-                    <span className="vh-login__tab-hint">{p.hint}</span>
-                  </button>
-                );
-              })}
+            <div className="vh-login__ports">
+              <div className="vh-login__ports-label">Personal</div>
+              <div className="vh-login__tabs vh-login__tabs--personal" role="tablist" aria-label="Personal access">
+                {personalPorts.map((p) => renderTab(p, true))}
+              </div>
+
+              <div className="vh-login__ports-label">Staff &amp; partners</div>
+              <div className="vh-login__tabs vh-login__tabs--staff" role="tablist" aria-label="Staff and partner access">
+                {staffPorts.map((p) => renderTab(p))}
+              </div>
             </div>
 
             <p className="vh-login__port-desc">
@@ -278,13 +357,7 @@ export default function UnifiedLoginPage() {
                   <Input
                     id="identifier"
                     autoComplete="username"
-                    placeholder={
-                      port === "doctor"
-                        ? "doctor@hospital.lk"
-                        : port === "operator"
-                        ? "operator@insurance.lk"
-                        : "admin@hospital.lk"
-                    }
+                    placeholder={selected.placeholder}
                     className="vh-login__input"
                     {...register("identifier")}
                   />
@@ -299,7 +372,7 @@ export default function UnifiedLoginPage() {
                   <label htmlFor="password" className="vh-login__label">
                     Password
                   </label>
-                  <a href="#" className="vh-login__forgot">
+                  <a href="mailto:support@healthhub.app?subject=Password%20reset" className="vh-login__forgot">
                     Forgot?
                   </a>
                 </div>
@@ -354,12 +427,10 @@ export default function UnifiedLoginPage() {
               </button>
             </form>
 
-            {/* Or divider */}
             <div className="vh-login__divider">
               <span>or</span>
             </div>
 
-            {/* Alternative actions */}
             <div className="vh-login__alts">
               <a
                 href={
@@ -376,12 +447,17 @@ export default function UnifiedLoginPage() {
               </a>
             </div>
 
-            <a href="mailto:support@healthhub.app" className="vh-login__request">
-              Don&rsquo;t have an account? <strong>Request access &rarr;</strong>
-            </a>
+            {port === "patient" ? (
+              <a href="/account/signup" className="vh-login__request">
+                New here? <strong>Join HealthHub &rarr;</strong>
+              </a>
+            ) : (
+              <a href="mailto:support@healthhub.app?subject=Access%20request" className="vh-login__request">
+                Need a staff account? <strong>Request access &rarr;</strong>
+              </a>
+            )}
           </div>
 
-          {/* Footer */}
           <div className="vh-login__footer">
             <span>&copy; {new Date().getFullYear()} Healthhub (Pvt) Ltd.</span>
             <span className="vh-login__footer-links">

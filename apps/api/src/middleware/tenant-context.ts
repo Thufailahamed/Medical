@@ -42,6 +42,7 @@ import {
   users,
 } from "@healthcare/db";
 import { createDb } from "../lib/db";
+import { resolveJwtSecret } from "../lib/jwt-secret";
 import type { AppEnvironment } from "../types";
 
 declare module "hono" {
@@ -66,7 +67,18 @@ export const tenantContextMiddleware = async (
     const authHeader = c.req.header("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
-      const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+      const secretResult = resolveJwtSecret(c.env);
+      if (!secretResult.ok) {
+        return c.json(
+          {
+            error:
+              "Server misconfigured: JWT_SECRET is required in production.",
+            reason: secretResult.reason,
+          },
+          503,
+        );
+      }
+      const secret = secretResult.secret;
       try {
         const { verifyToken } = await import("../lib/crypto");
         const decoded = await verifyToken(token, secret);

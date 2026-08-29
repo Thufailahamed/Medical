@@ -321,14 +321,15 @@ auth.post("/register", async (c) => {
 });
 
 const DEV_SEED_EMAIL = "dev-doctor@healthhub.local";
+const DEV_PATIENT_EMAIL = "dev-patient@healthhub.local";
 
-/** Portal "Dev Test Login" — auto-seed doctor + tenants. Local: DEV_MODE. Cloud: ALLOW_DEV_SEED + password `dev`. */
+/** Portal "Dev Test Login" — auto-seed doctor/patient + tenants. Local: DEV_MODE. Cloud: ALLOW_DEV_SEED + password `dev`. */
 function canUseDevSeedLogin(
   env: { DEV_MODE?: string; ALLOW_DEV_SEED?: string },
   email: string | undefined,
   password: string | undefined
 ): boolean {
-  if (email !== DEV_SEED_EMAIL) return false;
+  if (email !== DEV_SEED_EMAIL && email !== DEV_PATIENT_EMAIL) return false;
   if (env.DEV_MODE === "true") return true;
   return env.ALLOW_DEV_SEED === "true" && password === "dev";
 }
@@ -350,6 +351,74 @@ auth.post("/login", async (c) => {
 
   // Dev auto-seed login (portal Dev Test Login button)
   if (canUseDevSeedLogin(c.env, email, password)) {
+    if (email === DEV_PATIENT_EMAIL) {
+      const DEV_PATIENT_USER_ID = "dev-patient-user-001";
+      [dbUser] = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.id, DEV_PATIENT_USER_ID), eq(users.email, DEV_PATIENT_EMAIL)))
+        .limit(1);
+
+      if (!dbUser) {
+        const [existingPhone] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.phone, "0771234567"))
+          .limit(1);
+
+        [dbUser] = await db
+          .insert(users)
+          .values({
+            id: DEV_PATIENT_USER_ID,
+            supabaseId: DEV_PATIENT_USER_ID,
+            email: DEV_PATIENT_EMAIL,
+            phone: existingPhone ? null : "0771234567",
+            name: "Dev Patient",
+            role: "patient",
+            status: "active",
+            dateOfBirth: "1990-01-01",
+          })
+          .returning();
+      }
+
+      let [dbPatient] = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.userId, dbUser.id))
+        .limit(1);
+
+      if (!dbPatient) {
+        [dbPatient] = await db
+          .insert(patients)
+          .values({
+            id: "dev-patient-001",
+            userId: dbUser.id,
+            bloodGroup: "O+",
+            dateOfBirth: "1990-01-01",
+            gender: "male",
+          })
+          .returning();
+      }
+
+      const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+      const token = await generateToken(dbUser.id, jwtSecret, {
+        nic: null,
+        dob: "1990-01-01",
+        nicVerificationLevel: null,
+        isMinor: false,
+      });
+
+      emitSessionCookie(c, token);
+
+      return c.json({
+        user: dbUser,
+        session: {
+          access_token: token,
+          refresh_token: "dummy-refresh-token",
+        },
+      });
+    }
+
     const DEV_DOCTOR_USER_ID = "dev-doctor-user-001";
     const { hospitals, hospitalDoctors, clinics, clinicDoctors } = await import("@healthcare/db");
 

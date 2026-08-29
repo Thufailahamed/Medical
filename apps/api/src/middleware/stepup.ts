@@ -17,6 +17,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Context, Next } from "hono";
 import type { AppEnvironment } from "../types";
+import { resolveJwtSecret } from "../lib/jwt-secret";
 
 const STEPUP_TTL_SECONDS = 5 * 60;
 
@@ -30,14 +31,31 @@ function fromB64url(s: string): Buffer {
   return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64");
 }
 
-function getSecret(c: Context<AppEnvironment>): string {
-  return c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+/**
+ * Returns the HMAC key used to sign step-up tokens. Throws when the
+ * deploy is misconfigured in production (no JWT_SECRET) so the caller
+ * can surface a 503 instead of silently issuing tokens under a public
+ * default key. See lib/jwt-secret.ts for the rule.
+ */
+function requireSecret(c: Context<AppEnvironment>): string {
+  const r = resolveJwtSecret(c.env);
+  if (!r.ok) {
+    throw new JwtSecretMissingError(r.reason);
+  }
+  return r.secret;
+}
+
+class JwtSecretMissingError extends Error {
+  constructor(public readonly reason: string) {
+    super(`JWT_SECRET missing in production (${reason})`);
+    this.name = "JwtSecretMissingError";
+  }
 }
 
 export function issueStepUpToken(c: Context<AppEnvironment>, userId: string): string {
   const exp = Math.floor(Date.now() / 1000) + STEPUP_TTL_SECONDS;
   const payload = JSON.stringify({ userId, exp });
-  const mac = createHmac("sha256", getSecret(c)).update(payload).digest();
+  const mac = createHmac("sha256", requireSecret(c)).update(payload).digest();
   return `${b64url(payload)}.${b64url(mac)}`;
 }
 
@@ -52,7 +70,18 @@ export function verifyStepUpToken(c: Context<AppEnvironment>, token: string): { 
   } catch {
     return null;
   }
-  const expected = createHmac("sha256", getSecret(c)).update(payloadBuf).digest();
+  let expected: Buffer;
+  try {
+    expected = createHmac("sha256", requireSecret(c)).update(payloadBuf).digest();
+  } catch (err) {
+    if (err instanceof JwtSecretMissingError) {
+      // Bubble up the typed error so requirePasskeyFresh can map it
+      // to a 503. Returning null here would silently accept invalid
+      // tokens, which is exactly the bug we're trying to prevent.
+      throw err;
+    }
+    throw err;
+  }
   if (sigBuf.length !== expected.length) return null;
   if (!timingSafeEqual(sigBuf, expected)) return null;
   let parsed: any;
@@ -80,7 +109,21 @@ export async function requirePasskeyFresh(c: Context<AppEnvironment>, next: Next
   if (!token) {
     return c.json({ error: "Step-up authentication required", code: "step_up_required" }, 401);
   }
-  const parsed = verifyStepUpToken(c, token);
+  let parsed: ReturnType<typeof verifyStepUpToken>;
+  try {
+    parsed = verifyStepUpToken(c, token);
+  } catch (err) {
+    if (err instanceof JwtSecretMissingError) {
+      return c.json(
+        {
+          error: "Server misconfigured: JWT_SECRET is required in production.",
+          reason: err.reason,
+        },
+        503,
+      );
+    }
+    throw err;
+  }
   if (!parsed) {
     return c.json({ error: "Step-up token invalid or expired", code: "step_up_invalid" }, 401);
   }

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { users } from "@healthcare/db";
 import type { Context, Next } from "hono";
 import type { AppEnvironment } from "../types";
+import { resolveJwtSecret } from "../lib/jwt-secret";
 import { verifyToken } from "../lib/crypto";
 import { readSessionCookie } from "../lib/session-cookie";
 
@@ -97,8 +98,22 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
   const token = authHeader?.startsWith("Bearer ")
     ? authHeader.split(" ")[1]
     : (queryToken as string) ?? cookieToken ?? "";
-  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
-  const decoded = await verifyToken(token, secret);
+
+  // P0 fail-closed: never silently fall back to a public, hard-coded
+  // secret in production. A misconfigured deploy must NOT accept
+  // attacker-signed tokens. See lib/jwt-secret.ts for the rule.
+  const secretResult = resolveJwtSecret(c.env);
+  if (secretResult.ok === false) {
+    return c.json(
+      {
+        error:
+          "Server misconfigured: JWT_SECRET is required in production.",
+        reason: secretResult.reason,
+      },
+      503,
+    );
+  }
+  const decoded = await verifyToken(token, secretResult.secret);
 
   if (!decoded || !decoded.sub) {
     return c.json({ error: "Invalid or expired token" }, 401);

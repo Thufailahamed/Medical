@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Shell(npx tsc --noEmit 2 >& 1)",
-      "Shell(grep:*)"
+      "Shell(grep:*)",
+      "Shell(bunx eslint src/app/page.tsx src/app/layout.tsx)",
+      "Shell(bun:*)"
     ],
     "deny": [],
     "defaultMode": "default"

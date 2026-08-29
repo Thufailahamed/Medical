@@ -49,6 +49,30 @@ function PatientLoginForm() {
     }
   }
 
+  async function onDevLogin() {
+    setError(null);
+    setBusy(true);
+    try {
+      const user = await login({
+        email: "dev-patient@healthhub.local",
+        password: "dev",
+      });
+      if (user.role !== "patient") {
+        router.replace("/patient/403");
+        return;
+      }
+      router.replace(next.startsWith("/patient") ? next : "/patient");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Dev test login failed. Please ensure the backend is running."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="flex min-h-[100dvh] items-center justify-center p-6">
       <form
@@ -70,6 +94,7 @@ function PatientLoginForm() {
         <input
           id="identifier"
           value={identifier}
+          placeholder="e.g. dev-patient@healthhub.local or 0771234567"
           onChange={(e) => setIdentifier(e.target.value)}
           autoComplete="username"
           required
@@ -83,6 +108,7 @@ function PatientLoginForm() {
         <input
           id="password"
           type="password"
+          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
@@ -100,10 +126,20 @@ function PatientLoginForm() {
         <button
           type="submit"
           disabled={busy}
-          className="mt-7 h-12 w-full bg-ink text-sm font-semibold text-white transition-shadow hover:shadow-float disabled:opacity-60"
+          className="mt-7 h-12 w-full bg-ink text-sm font-semibold text-white transition-shadow hover:shadow-float disabled:opacity-60 cursor-pointer"
           style={{ borderRadius: "var(--radius-pill)" }}
         >
           {busy ? "Signing in…" : "Sign in"}
+        </button>
+
+        <button
+          type="button"
+          onClick={onDevLogin}
+          disabled={busy}
+          className="mt-3 h-12 w-full border border-dashed border-teal-500/60 bg-teal-50/50 text-sm font-semibold text-teal-800 transition hover:bg-teal-100/70 disabled:opacity-60 cursor-pointer"
+          style={{ borderRadius: "var(--radius-pill)" }}
+        >
+          🛠️ Dev Test Login (Auto-seed)
         </button>
       </form>
     </main>
