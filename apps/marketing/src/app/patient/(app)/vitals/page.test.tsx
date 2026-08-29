@@ -42,7 +42,7 @@ describe("VitalsPage", () => {
     );
     await waitFor(() => expect(screen.getByText("Heart rate")).toBeInTheDocument());
     expect(screen.getByText("Blood pressure")).toBeInTheDocument();
-    expect(screen.getByText("SpO₂")).toBeInTheDocument();
+    expect(screen.getByText("Oxygen saturation")).toBeInTheDocument();
     expect(screen.getByText("Symptom diary")).toBeInTheDocument();
   });
 });
