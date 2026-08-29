@@ -38,6 +38,8 @@ export const patientKeys = {
     ["patient", "records", params] as const,
   recordStats: () => ["patient", "records", "stats"] as const,
   record: (id: string) => ["patient", "records", id] as const,
+  recordAttachments: (id: string) =>
+    ["patient", "records", id, "attachments"] as const,
   recordChildren: (id: string, kind: string) =>
     ["patient", "records", id, kind] as const,
   labTrend: (test: string, months: number) =>

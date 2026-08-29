@@ -39,6 +39,24 @@ describe("patientKeys", () => {
   it("defaults queries to a 60s staleTime with one retry", () => {
     expect(PATIENT_QUERY_DEFAULTS).toEqual({ staleTime: 60_000, retry: 1 });
   });
+
+  it("exposes recordAttachments factory under the record prefix (SP2a)", () => {
+    expect(patientKeys.recordAttachments("r1")).toEqual([
+      "patient",
+      "records",
+      "r1",
+      "attachments",
+    ]);
+  });
+
+  it("recordChildren keeps its id+kind shape (SP2a first consumer)", () => {
+    expect(patientKeys.recordChildren("r1", "lab_report")).toEqual([
+      "patient",
+      "records",
+      "r1",
+      "lab_report",
+    ]);
+  });
 });
 
 describe("rangeToFrom", () => {
