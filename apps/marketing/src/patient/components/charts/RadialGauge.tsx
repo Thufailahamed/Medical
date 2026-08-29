@@ -15,6 +15,7 @@ export function RadialGauge({
   size = 132,
   tone = "brand",
   label,
+  display,
   className,
 }: {
   value: number;
@@ -22,6 +23,8 @@ export function RadialGauge({
   size?: number;
   tone?: "brand" | "success" | "warn" | "danger";
   label?: string;
+  /** Override the centered numeric readout (e.g. "30/60"). */
+  display?: string;
   className?: string;
 }) {
   const r = (size - 12) / 2;
@@ -65,7 +68,9 @@ export function RadialGauge({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="t-card-title text-text">{value}</span>
+        <span className="t-card-title text-text">
+          {display ?? value}
+        </span>
         {label ? <span className="t-micro">{label}</span> : null}
       </div>
     </div>

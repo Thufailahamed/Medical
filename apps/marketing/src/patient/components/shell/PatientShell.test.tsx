@@ -12,6 +12,11 @@ vi.mock("@/patient/hooks/useNotifications", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/patient",
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+}));
+
+vi.mock("@/portal/lib/auth", () => ({
+  logout: vi.fn(),
 }));
 
 function renderWithClient(ui: React.ReactNode) {
@@ -41,7 +46,7 @@ describe("PatientShell", () => {
       </PatientShell>
     );
     expect(screen.getByLabelText("Primary")).toBeTruthy();
-    expect(screen.getByText("Patient portal")).toBeTruthy();
+    expect(screen.getByText("Welcome back")).toBeTruthy();
     expect(screen.getByTestId("child")).toBeTruthy();
   });
 
@@ -77,6 +82,6 @@ describe("PatientShell", () => {
         <span>x</span>
       </PatientShell>
     );
-    expect(screen.getByText(/Good morning, Nimal/)).toBeTruthy();
+    expect(screen.getByText(/Welcome to Nimal!/)).toBeTruthy();
   });
 });

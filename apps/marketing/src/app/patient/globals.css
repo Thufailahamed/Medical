@@ -2,67 +2,63 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Patient portal design tokens.
-
-   Tailwind v4 generates utilities from `--color-*` custom
-   properties declared at :root, so the palette lives there. The
-   `[data-app="patient"]` block below owns everything that is a
-   *style* rather than a token — background, font, base resets —
-   so marketing and the clinician portal are untouched.
-
-   This mirrors the pattern already used by
-   src/app/portal/globals.css and src/app/hospital/globals.css.
+   Patient portal design tokens — soft health-tech dashboard.
+   Scoped styles live under [data-app="patient"] so marketing /
+   clinician / hospital palettes stay untouched.
    ============================================================ */
 
 :root {
-  /* Surfaces */
-  --color-canvas: #e9ecf1;
-  --color-bg: #f4f5f8;
+  /* Surfaces — soft blue workspace, bright white cards */
+  --color-canvas: #dce6f8;
+  --color-bg: #e8effc;
   --color-surface: #ffffff;
-  --color-surface-2: #f5f6f8;
-  --color-surface-3: #eceef2;
+  --color-surface-2: #f0f5fd;
+  --color-surface-3: #dde7f8;
+  --color-ink-card: #0c1a3a;
 
   /* Ink */
-  --color-text: #0b0b0f;
-  --color-text-soft: #56585f;
-  --color-text-muted: #9a9da6;
+  --color-text: #0c1630;
+  --color-text-soft: #4a5a78;
+  --color-text-muted: #8494b0;
 
-  /* Accent */
-  --color-brand: #5b4ee9;
-  --color-brand-soft: #eeebfe;
-  --color-brand-strong: #4338ca;
-  --color-ink: #101014;
+  /* Accent — clear blue theme */
+  --color-brand: #3b6ff5;
+  --color-brand-soft: #e4ecff;
+  --color-brand-strong: #2a58d9;
+  --color-ink: #132044;
 
   /* Semantic */
-  --color-success: #16a06a;
-  --color-success-soft: #e7f7ef;
+  --color-success: #1fad74;
+  --color-success-soft: #e6f8ef;
   --color-warn: #e08a00;
   --color-warn-soft: #fdf3e0;
   --color-danger: #e0464b;
   --color-danger-soft: #fdecec;
 
   /* Geometry */
-  --radius-plate: 32px;
-  --radius-card: 24px;
+  --radius-plate: 36px;
+  --radius-card: 28px;
   --radius-inner: 16px;
   --radius-pill: 999px;
 
-  /* Depth — wide, low-opacity, no dark edges */
-  --shadow-card: 0 1px 2px rgba(11, 11, 15, 0.04),
-    0 8px 24px rgba(11, 11, 15, 0.05);
-  --shadow-float: 0 4px 12px rgba(11, 11, 15, 0.06),
-    0 18px 40px rgba(11, 11, 15, 0.08);
-  --shadow-brand: 0 8px 24px rgba(91, 78, 233, 0.28);
+  /* Depth — soft, wide, blue-tinted */
+  --shadow-card: 0 2px 4px rgba(30, 64, 160, 0.04),
+    0 12px 32px rgba(30, 64, 160, 0.08);
+  --shadow-float: 0 8px 24px rgba(30, 64, 160, 0.1),
+    0 24px 48px rgba(30, 64, 160, 0.12);
+  --shadow-brand: 0 10px 28px rgba(59, 111, 245, 0.35);
 
   --font-patient: "Plus Jakarta Sans", "Outfit", ui-sans-serif, system-ui,
     -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 [data-app="patient"] {
-  /* The marketing root layout owns <html>/<body>, so the canvas
-     background is painted on this wrapper instead of on body. */
   min-height: 100dvh;
-  background: var(--color-canvas);
+  background:
+    radial-gradient(1200px 640px at 8% -8%, rgba(59, 111, 245, 0.18), transparent 55%),
+    radial-gradient(900px 520px at 100% 0%, rgba(90, 150, 255, 0.14), transparent 50%),
+    radial-gradient(700px 400px at 50% 100%, rgba(59, 111, 245, 0.08), transparent 55%),
+    var(--color-canvas);
   color: var(--color-text);
   font-family: var(--font-patient);
   -webkit-font-smoothing: antialiased;
@@ -76,29 +72,38 @@
 
 /* ── Type scale ───────────────────────────────────────────── */
 [data-app="patient"] .t-display {
-  font-size: 56px;
+  font-size: clamp(36px, 4vw, 48px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+[data-app="patient"] .t-page {
+  font-size: clamp(28px, 3vw, 36px);
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.02;
+  line-height: 1.1;
 }
 [data-app="patient"] .t-card-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 [data-app="patient"] .t-metric {
-  font-size: 40px;
+  font-size: 36px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   line-height: 1;
 }
 [data-app="patient"] .t-unit {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--color-text-muted);
 }
 [data-app="patient"] .t-label {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
 }
 [data-app="patient"] .t-micro {
@@ -111,15 +116,38 @@
 @keyframes patient-rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
+@keyframes patient-soft-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
 [data-app="patient"] .anim-rise {
-  animation: patient-rise 180ms ease-out both;
+  animation: patient-rise 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-app="patient"] .anim-rise-delay-1 {
+  animation-delay: 60ms;
+}
+[data-app="patient"] .anim-rise-delay-2 {
+  animation-delay: 120ms;
+}
+[data-app="patient"] .anim-rise-delay-3 {
+  animation-delay: 180ms;
+}
+[data-app="patient"] .anim-pulse-soft {
+  animation: patient-soft-pulse 2.8s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -133,8 +161,6 @@
 }
 
 /* ── Skeleton shimmer ────────────────────────────────────── */
-/* Used by primitives/Skeleton.tsx. The shimmer slides left → right
-   across a neutral surface, then pauses. */
 @keyframes patient-shimmer {
   from {
     background-position: -300px 0;
@@ -152,4 +178,12 @@
   );
   background-size: 600px 100%;
   animation: patient-shimmer 1400ms linear infinite;
+}
+
+/* Dark insight card glow */
+[data-app="patient"] .patient-ink-glow {
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 50%, rgba(77, 93, 251, 0.45), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 70% 80%, rgba(99, 140, 255, 0.25), transparent 55%),
+    var(--color-ink-card);
 }

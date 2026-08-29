@@ -8,6 +8,7 @@ import { VitalsTrend } from "@/patient/components/dashboard/VitalsTrend";
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
+import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { useHealthSummary, useVitalsAlerts } from "@/patient/hooks";
 import type { VitalType } from "@/patient/types/patient";
 import { VITAL_REGISTRY } from "@/patient/lib/vitals";
@@ -19,9 +20,7 @@ interface HotspotSpec {
   cy: number;
   r?: number;
   label: string;
-  /** Which vital type the latest reading for this organ lives under. */
   vital: VitalType;
-  /** Tone of the active hotspot; defaults to brand. */
   tone?: "brand" | "warn" | "danger" | "info";
 }
 
@@ -53,9 +52,19 @@ export default function HealthPage() {
     : null;
 
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="anim-rise flex flex-col gap-4">
+    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
+      <SectionHeader
+        label="My body"
+        title="Health"
+        description="Explore organ hotspots and review recent vitals trends."
+      />
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <Card className="anim-rise relative flex flex-col gap-4 overflow-hidden xl:col-span-5">
+          <div
+            className="pointer-events-none absolute inset-x-8 top-24 h-48 rounded-full bg-brand/10 blur-3xl"
+            aria-hidden
+          />
           <div className="flex items-end justify-between">
             <div>
               <p className="t-label">Body map</p>
@@ -64,7 +73,7 @@ export default function HealthPage() {
             <Pill tone="info">Front view</Pill>
           </div>
 
-          <div className="mx-auto aspect-[5/6] w-full max-w-sm">
+          <div className="relative mx-auto aspect-[5/6] w-full max-w-sm">
             <BodyFigure>
               {HOTSPOTS.map((h) => (
                 <BodyHotspot
@@ -85,9 +94,9 @@ export default function HealthPage() {
           </div>
         </Card>
 
-        <div className="flex flex-col gap-6 xl:col-span-2">
+        <div className="flex flex-col gap-5 xl:col-span-7">
           <VitalsTrend />
-          <Card className="anim-rise">
+          <Card className="anim-rise anim-rise-delay-1">
             <p className="t-label">Recent alerts</p>
             <QueryBoundary
               query={alerts as any}
@@ -103,7 +112,9 @@ export default function HealthPage() {
                 const items = data?.items ?? (data as any)?.alerts ?? [];
                 if (items.length === 0) {
                   return (
-                    <p className="text-sm text-text-soft">Your vitals are within healthy range.</p>
+                    <p className="text-sm text-text-soft">
+                      Your vitals are within healthy range.
+                    </p>
                   );
                 }
                 return (
@@ -112,7 +123,7 @@ export default function HealthPage() {
                       <li
                         key={i}
                         className={cn(
-                          "flex items-start gap-3 rounded-inner px-3 py-2",
+                          "flex items-start gap-3 rounded-inner px-3 py-2.5",
                           a.classification?.toLowerCase().includes("low") ||
                             a.classification?.toLowerCase().includes("critical")
                             ? "bg-danger-soft"
@@ -120,13 +131,12 @@ export default function HealthPage() {
                         )}
                       >
                         <span
-                          className="mt-1 block h-2 w-2 rounded-full bg-danger"
+                          className="mt-1.5 block h-2 w-2 rounded-full bg-danger"
                           aria-hidden
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-text">
-                            {VITAL_REGISTRY[a.type]?.label ?? a.type}:{" "}
-                            {a.value}
+                            {VITAL_REGISTRY[a.type]?.label ?? a.type}: {a.value}
                             {VITAL_REGISTRY[a.type]?.unit ?? ""}
                           </p>
                           <p className="t-micro">{a.classification}</p>
@@ -141,7 +151,7 @@ export default function HealthPage() {
         </div>
       </div>
 
-      <Card className="anim-rise">
+      <Card className="anim-rise anim-rise-delay-2">
         <p className="t-label">About you</p>
         <QueryBoundary
           query={summary as any}
@@ -150,7 +160,7 @@ export default function HealthPage() {
           className="mt-4"
         >
           {(data) => (
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
               <Field label="Name" value={data.demographics?.name ?? "—"} />
               <Field label="Age" value={data.demographics?.age ?? "—"} />
               <Field label="Sex" value={data.demographics?.sex ?? "—"} />
@@ -176,9 +186,9 @@ export default function HealthPage() {
 
 function Field({ label, value }: { label: string; value: unknown }) {
   return (
-    <div>
+    <div className="rounded-inner bg-surface-2 px-3 py-2.5">
       <dt className="t-micro">{label}</dt>
-      <dd className="font-medium text-text">{String(value)}</dd>
+      <dd className="mt-0.5 font-semibold text-text">{String(value)}</dd>
     </div>
   );
 }

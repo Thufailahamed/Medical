@@ -20,7 +20,7 @@ function withClient(ui: React.ReactNode) {
 describe("VitalsTrend", () => {
   it("renders all four dashboard vital tabs by name", () => {
     withClient(<VitalsTrend />);
-    expect(screen.getByRole("button", { name: "Heart" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Heart Check" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Saturation" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Pressure" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Temperature" })).toBeTruthy();

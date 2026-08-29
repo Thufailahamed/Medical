@@ -12,6 +12,6 @@ function withClient(ui: React.ReactNode) {
 describe("WellnessScore", () => {
   it("renders the label and surfaces the empty state when /wellness/me fails", () => {
     const { container } = withClient(<WellnessScore />);
-    expect(container.textContent).toMatch(/Wellness score/);
+    expect(container.textContent).toMatch(/Life quality/);
   });
 });

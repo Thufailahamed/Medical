@@ -12,7 +12,7 @@ import { cn } from "@/portal/lib/utils";
 export default function AppointmentsPage() {
   const query = useAppointments();
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
+    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
       <SectionHeader
         label="Your calendar"
         title="Appointments"

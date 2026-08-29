@@ -13,8 +13,12 @@ export default function MessagesPage() {
   const query = useConversations();
 
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
-      <SectionHeader label="Care team" title="Messages" />
+    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
+      <SectionHeader
+        label="Care team"
+        title="Messages"
+        description="Conversations with your doctors and care team."
+      />
 
       <Card>
         <QueryBoundary

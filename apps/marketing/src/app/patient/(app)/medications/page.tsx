@@ -13,8 +13,12 @@ export default function MedicationsPage() {
   const stats = useMedicationStats(7);
 
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
-      <SectionHeader label="Daily plan" title="Medications" />
+    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
+      <SectionHeader
+        label="Daily plan"
+        title="Medications"
+        description="Active prescriptions and today's adherence."
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <QueryBoundary

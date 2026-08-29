@@ -7,6 +7,11 @@ import { Sidebar } from "./Sidebar";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/patient/appointments",
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+}));
+
+vi.mock("@/portal/lib/auth", () => ({
+  logout: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -53,10 +58,8 @@ describe("Sidebar", () => {
     expect(screen.getByTitle("Anya Perera")).toBeTruthy();
   });
 
-  it("omits the name chip entirely when the user is null", () => {
-    const { container } = render(<Sidebar />);
-    // No element with the special truncate class is rendered without a
-    // logged-in user. Cheapest check: no `truncate` paragraph exists.
-    expect(container.querySelectorAll("p.truncate")).toHaveLength(0);
+  it("renders a logout control", () => {
+    render(<Sidebar />);
+    expect(screen.getByTestId("sidebar-logout")).toBeTruthy();
   });
 });

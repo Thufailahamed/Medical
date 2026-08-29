@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CalendarDays } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill } from "@/patient/components/primitives/Pill";
@@ -14,10 +15,19 @@ export function UpcomingAppointment({ className }: { className?: string }) {
   return (
     <Card className={cn("anim-rise", className)}>
       <div className="flex items-end justify-between">
-        <p className="t-label">Next up</p>
+        <div className="flex items-center gap-2">
+          <span
+            className="grid h-8 w-8 place-items-center bg-brand-soft text-brand"
+            style={{ borderRadius: 12 }}
+            aria-hidden
+          >
+            <CalendarDays size={16} />
+          </span>
+          <p className="t-label">Next up</p>
+        </div>
         <Link
           href="/patient/appointments"
-          className="text-xs font-medium text-text-soft hover:text-text"
+          className="text-xs font-semibold text-brand hover:text-brand-strong"
         >
           All appointments
         </Link>
@@ -39,7 +49,7 @@ export function UpcomingAppointment({ className }: { className?: string }) {
             );
           }
           return (
-            <div className="mt-2 flex flex-col gap-3">
+            <div className="mt-1 flex flex-col gap-3">
               <div>
                 <p className="t-card-title">
                   {formatDayLabel(next.date)}{" "}
@@ -49,7 +59,9 @@ export function UpcomingAppointment({ className }: { className?: string }) {
                 <p className="mt-1 text-sm text-text-soft">
                   {next.doctorName ?? "Doctor"}{" "}
                   {next.doctorSpecialization ? (
-                    <span className="text-text-muted">· {next.doctorSpecialization}</span>
+                    <span className="text-text-muted">
+                      · {next.doctorSpecialization}
+                    </span>
                   ) : null}
                 </p>
                 {next.hospitalName ? (

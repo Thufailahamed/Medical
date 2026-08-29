@@ -6,7 +6,7 @@ import { CareAssistant } from "./CareAssistant";
 describe("CareAssistant", () => {
   it("shows the prompt and a link to messages", () => {
     render(<CareAssistant />);
-    expect(screen.getByText(/Care assistant/)).toBeTruthy();
+    expect(screen.getByText(/Care insights/)).toBeTruthy();
     expect(
       screen.getByRole("link", { name: /Open chat/i })
     ).toHaveAttribute("href", "/patient/messages");

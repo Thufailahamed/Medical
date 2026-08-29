@@ -16,8 +16,12 @@ export default function RecordsListPage() {
   const stats = useRecordStats();
 
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
-      <SectionHeader label="Your file" title="Medical records" />
+    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
+      <SectionHeader
+        label="Your file"
+        title="Medical records"
+        description="Labs, visit notes, and documents from your care team."
+      />
 
       <Card>
         <QueryBoundary

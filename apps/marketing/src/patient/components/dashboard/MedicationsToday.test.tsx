@@ -12,6 +12,6 @@ function withClient(ui: React.ReactNode) {
 describe("MedicationsToday", () => {
   it("renders the header card and today label", () => {
     const { container } = withClient(<MedicationsToday />);
-    expect(container.textContent).toMatch(/Today's medications/);
+    expect(container.textContent).toMatch(/Today's plan/);
   });
 });

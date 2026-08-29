@@ -20,7 +20,7 @@ export const VITAL_REGISTRY: Record<VitalType, VitalMeta> = {
   heart_rate: {
     key: "heart_rate",
     label: "Heart rate",
-    shortLabel: "Heart",
+    shortLabel: "Heart Check",
     unit: "bpm",
     decimals: 0,
   },

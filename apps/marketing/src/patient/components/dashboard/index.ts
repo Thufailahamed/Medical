@@ -6,3 +6,4 @@ export { UpcomingAppointment } from "./UpcomingAppointment";
 export { RecentRecords } from "./RecentRecords";
 export { RecentActivity } from "./RecentActivity";
 export { CareAssistant } from "./CareAssistant";
+export { BodyOverview } from "./BodyOverview";

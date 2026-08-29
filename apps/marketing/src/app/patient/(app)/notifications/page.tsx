@@ -10,8 +10,12 @@ import { formatRelative } from "@/patient/lib/format";
 export default function NotificationsPage() {
   const query = useNotifications();
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
-      <SectionHeader label="Inbox" title="Notifications" />
+    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
+      <SectionHeader
+        label="Inbox"
+        title="Notifications"
+        description="Alerts and updates from your care team."
+      />
 
       <Card>
         <QueryBoundary
