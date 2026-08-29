@@ -7,13 +7,33 @@
  */
 
 export type VitalType =
-  | "heart_rate"
   | "blood_pressure"
-  | "spo2"
-  | "temperature"
   | "blood_sugar"
   | "weight"
-  | "respiratory_rate";
+  | "height"
+  | "heart_rate"
+  | "temperature"
+  | "spo2"
+  | "cholesterol"
+  | "respiratory_rate"
+  | "hrv_rmssd"
+  | "body_fat_pct"
+  | "waist_circumference"
+  | "hip_circumference"
+  | "pain_scale"
+  | "peak_flow";
+
+export type VitalContext =
+  | "resting"
+  | "fasting"
+  | "post_meal"
+  | "pre_meal"
+  | "post_medication"
+  | "pre_medication"
+  | "exercise"
+  | "standing"
+  | "supine"
+  | "random";
 
 /** One point from GET /vitals/me/series. */
 export interface VitalPoint {
@@ -22,7 +42,95 @@ export interface VitalPoint {
   secondary: number | null;
   id: string;
   unit: string;
-  context: string | null;
+  context: VitalContext | null;
+}
+
+/** GET /vitals/me/derived. */
+export interface VitalsDerived {
+  map: number | null;
+  pulsePressure: number | null;
+  whr: number | null;
+  bmr: number | null;
+  bmi: number | null;
+  bmiCategory: string | null;
+}
+
+/** GET /allergies/me */
+export interface AllergyRow {
+  id: string;
+  substance: string;
+  severity: "mild" | "moderate" | "severe" | "critical" | null;
+  reaction: string | null;
+  onsetDate: string | null;
+  notes: string | null;
+  active: boolean;
+  recordedAt: string;
+}
+
+/** GET /vaccinations/me — administered rows come from medical_records where recordType='vaccination'. */
+export interface VaccinationAdministeredRow {
+  id: string;
+  vaccineName: string;
+  dose: string | null;
+  administeredAt: string;
+  provider: string | null;
+  lotNumber: string | null;
+  notes: string | null;
+  recordType: "vaccination";
+}
+
+/** One slot from GET /vaccinations/me/due. */
+export interface VaccinationSlot {
+  id: string;
+  vaccineName: string;
+  doseNumber: number | null;
+  dueAt: string;
+  status: "due" | "overdue" | "upcoming";
+}
+
+/** GET /vitals/symptoms/me */
+export interface SymptomRow {
+  id: string;
+  symptom: string;
+  severity: "mild" | "moderate" | "severe" | null;
+  startedAt: string;
+  endedAt: string | null;
+  notes: string | null;
+}
+
+/** GET /notes/me */
+export interface NoteRow {
+  id: string;
+  title: string | null;
+  body: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** One item from GET /medical-records/me/lab-results. */
+export interface LabResultRow {
+  id: string;
+  test: string;
+  value: string;
+  unit: string | null;
+  referenceRange: string | null;
+  flag: "low" | "normal" | "high" | "critical" | null;
+  collectedAt: string;
+}
+
+/** GET /medicines/refill-due?days=N — single candidate. */
+export interface RefillCandidate {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string | null;
+  timing: string | null;
+  startDate: string;
+  expectedEndDate: string;
+  daysRemaining: number;
+  refillReminder: boolean;
+  source: "explicit" | "inferred" | "unknown";
 }
 
 export interface VitalStats {
@@ -191,66 +299,4 @@ export interface Message {
   senderRole: "doctor" | "patient";
   body: string;
   createdAt: string;
-}
-
-/** GET /allergies/me */
-export interface AllergyRow {
-  id: string;
-  substance: string;
-  severity: "mild" | "moderate" | "severe" | "life_threatening" | null;
-  reaction: string | null;
-  notes: string | null;
-  recordedAt: string;
-}
-
-/** GET /vaccinations/me and /vaccinations/me/due */
-export interface VaccinationRow {
-  id: string;
-  vaccine: string;
-  doseNumber: number | null;
-  administeredAt: string;
-  dueAt: string | null;
-  status: "administered" | "due" | "overdue" | "upcoming";
-  lotNumber: string | null;
-  notes: string | null;
-}
-
-/** GET /vitals/symptoms/me */
-export interface SymptomRow {
-  id: string;
-  symptom: string;
-  severity: "mild" | "moderate" | "severe" | null;
-  startedAt: string;
-  endedAt: string | null;
-  notes: string | null;
-}
-
-/** GET /notes/me */
-export interface NoteRow {
-  id: string;
-  title: string;
-  body: string;
-  pinned: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/** GET /me/lab-results */
-export interface LabResultRow {
-  id: string;
-  test: string;
-  value: string;
-  unit: string | null;
-  referenceRange: string | null;
-  flag: "low" | "normal" | "high" | "critical" | null;
-  collectedAt: string;
-}
-
-/** GET /medicines/refill-due?days=N */
-export interface RefillDueRow {
-  id: string;
-  name: string;
-  dosage: string;
-  lastFillDate: string | null;
-  daysUntilEmpty: number;
 }

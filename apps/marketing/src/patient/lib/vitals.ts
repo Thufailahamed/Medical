@@ -66,6 +66,14 @@ export const VITAL_REGISTRY: Record<VitalType, VitalMeta> = {
     unit: "br/min",
     decimals: 0,
   },
+  height: { key: "height", label: "Height", shortLabel: "Height", unit: "cm", decimals: 1 },
+  cholesterol: { key: "cholesterol", label: "Cholesterol", shortLabel: "Cholesterol", unit: "mg/dL", decimals: 0 },
+  hrv_rmssd: { key: "hrv_rmssd", label: "HRV (RMSSD)", shortLabel: "HRV", unit: "ms", decimals: 1 },
+  body_fat_pct: { key: "body_fat_pct", label: "Body fat", shortLabel: "Body fat", unit: "%", decimals: 1 },
+  waist_circumference: { key: "waist_circumference", label: "Waist circumference", shortLabel: "Waist", unit: "cm", decimals: 1 },
+  hip_circumference: { key: "hip_circumference", label: "Hip circumference", shortLabel: "Hip", unit: "cm", decimals: 1 },
+  pain_scale: { key: "pain_scale", label: "Pain", shortLabel: "Pain", unit: "/10", decimals: 0 },
+  peak_flow: { key: "peak_flow", label: "Peak flow", shortLabel: "Peak flow", unit: "L/min", decimals: 0 },
 };
 
 /** The four vitals the dashboard trend card offers as tabs, in order. */
