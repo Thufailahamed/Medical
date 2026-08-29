@@ -7,11 +7,9 @@
 import React, { useMemo, useState } from "react";
 import {
   View,
-  StyleSheet,
   Pressable,
   ScrollView,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   Play,
@@ -21,13 +19,10 @@ import {
   ScanLine,
   FileText,
   Activity,
-  Calendar,
   Stethoscope,
   ChevronRight,
   TrendingUp,
-  TrendingDown,
   Clock,
-  MapPin,
   Sparkles,
   Heart,
   Filter,
@@ -191,16 +186,16 @@ function getNavigationTarget(it: any) {
   const recordId = rawId ? String(rawId).replace(/^rec-/, "") : null;
 
   if (recordId && (k.includes("record") || k.includes("visit") || k.includes("lab") || k.includes("presc") || k.includes("note") || k.includes("imaging") || k.includes("consultation"))) {
-    return { path: `/record-detail?id=${recordId}`, label: "Tap to view record details" };
+    return { path: `/record-detail?id=${recordId}` };
   }
   if (k.includes("medicine")) {
-    return { path: "/(app)/medicines", label: "Tap to view medicine details" };
+    return { path: "/(app)/medicines" };
   }
   if (k.includes("appointment") || k.includes("consultation")) {
-    return { path: "/(app)/appointments", label: "Tap to view visit details" };
+    return { path: "/(app)/appointments" };
   }
   if (recordId) {
-    return { path: `/record-detail?id=${recordId}`, label: "Tap to view details" };
+    return { path: `/record-detail?id=${recordId}` };
   }
   return null;
 }
@@ -216,7 +211,7 @@ export function RecordTimeline() {
   };
 
   const rawEvents = data?.events ?? data?.items ?? [];
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<FilterCategory>("all");
 
   // Category Filter logic
@@ -324,92 +319,94 @@ export function RecordTimeline() {
     { key: "record", label: "Records", icon: FileText, count: counts.record },
   ];
 
+  const insightYear = new Date().getFullYear();
+
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingHorizontal: 10,
-        paddingTop: spacing.xs,
-        paddingBottom: spacing.xl,
-      }}
-    >
-      {/* 1. Light & Professional AI Timeline Summary Card */}
-      <View
-        style={{
-          backgroundColor: "#FFFFFF",
-          borderRadius: 16,
-          padding: 14,
-          marginBottom: 14,
+    <View style={{ gap: spacing.md }}>
+      {/* AI summary — compact */}
+      <Pressable
+        onPress={() => router.push("/(app)/ai/chat" as any)}
+        accessibilityRole="button"
+        accessibilityLabel="Ask AI about timeline"
+        style={({ pressed }) => ({
+          backgroundColor: pressed ? "#F0F9FF" : colors.surface,
+          borderRadius: 18,
+          padding: 12,
           borderWidth: 1,
-          borderColor: "#E2E8F0",
-          shadowColor: "rgba(0, 0, 0, 0.03)",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 1,
-          shadowRadius: 6,
-          elevation: 1,
-          gap: 10,
-        }}
+          borderColor: colors.border,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+        })}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                backgroundColor: "#E0F2FE",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Sparkles size={15} color="#0284C7" strokeWidth={2.25} />
-            </View>
-            <AppText
-              style={{
-                fontSize: 11.5,
-                fontWeight: "800",
-                color: "#0F172A",
-                fontFamily: fontFamily.bodyBold,
-                letterSpacing: 0.6,
-                textTransform: "uppercase",
-              }}
-            >
-              AI Timeline Insights
-            </AppText>
-          </View>
-
-          <Pressable
-            onPress={() => router.push("/(app)/ai/chat" as any)}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              backgroundColor: pressed ? "#E0F2FE" : "#F0F9FF",
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: "#BAE6FD",
-            })}
-          >
-            <Bot size={12} color="#0284C7" />
-            <AppText style={{ fontSize: 11, fontWeight: "700", color: "#0284C7" }}>
-              Ask AI
-            </AppText>
-            <ChevronRight size={11} color="#0284C7" strokeWidth={2.5} />
-          </Pressable>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            backgroundColor: "#E0F2FE",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Sparkles size={18} color="#0284C7" strokeWidth={2.25} />
         </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <AppText
+            style={{
+              fontSize: 13,
+              fontWeight: "800",
+              color: colors.text,
+              fontFamily: fontFamily.bodyBold,
+              letterSpacing: -0.2,
+            }}
+          >
+            Timeline insights
+          </AppText>
+          <AppText
+            numberOfLines={2}
+            style={{
+              fontSize: 12,
+              color: colors.textMuted,
+              lineHeight: 16,
+              fontWeight: "500",
+            }}
+          >
+            {`${rawEvents.length} events in ${insightYear} · ${counts.lab} labs · ${counts.medicine} meds · ${counts.visit} visits`}
+          </AppText>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 3,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            backgroundColor: "#F0F9FF",
+            borderWidth: 1,
+            borderColor: "#BAE6FD",
+          }}
+        >
+          <Bot size={12} color="#0284C7" />
+          <AppText
+            style={{
+              fontSize: 11,
+              fontWeight: "800",
+              color: "#0284C7",
+              fontFamily: fontFamily.bodyBold,
+            }}
+          >
+            Ask
+          </AppText>
+        </View>
+      </Pressable>
 
-        <AppText style={{ fontSize: 12.5, color: "#475569", lineHeight: 17, fontWeight: "500" }}>
-          {`${rawEvents.length} health events recorded in 2026. Includes ${counts.lab || 0} lab reports, ${counts.medicine || 0} medication updates, and ${counts.visit || 0} clinical visits.`}
-        </AppText>
-      </View>
-
-      {/* 2. Interactive Category Filter Bar */}
+      {/* Category filters */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingBottom: 14 }}
+        contentContainerStyle={{ gap: 8, paddingRight: 4 }}
       >
         {filterButtons.map((btn) => {
           const isActive = selectedCategory === btn.key;
@@ -418,22 +415,23 @@ export function RecordTimeline() {
             <Pressable
               key={btn.key}
               onPress={() => setSelectedCategory(btn.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 5,
+                gap: 6,
                 paddingHorizontal: 12,
-                paddingVertical: 7,
+                paddingVertical: 8,
                 borderRadius: 999,
-                backgroundColor: isActive ? colors.primary : colors.surface,
+                backgroundColor: isActive
+                  ? colors.primary
+                  : pressed
+                    ? colors.surfaceMuted
+                    : colors.surface,
                 borderWidth: 1,
                 borderColor: isActive ? colors.primary : colors.border,
-                opacity: pressed ? 0.9 : 1,
-                shadowColor: isActive ? colors.primary : "transparent",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isActive ? 0.2 : 0,
-                shadowRadius: 4,
-                elevation: isActive ? 2 : 0,
+                minHeight: 36,
               })}
             >
               <IconComponent
@@ -443,102 +441,80 @@ export function RecordTimeline() {
               />
               <AppText
                 style={{
-                  fontSize: 12,
-                  fontWeight: isActive ? "800" : "600",
+                  fontSize: 12.5,
+                  fontWeight: "700",
                   color: isActive ? "#FFFFFF" : colors.text,
-                  fontFamily: isActive ? fontFamily.bodyBold : fontFamily.body,
+                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 {btn.label}
               </AppText>
-              {btn.count > 0 ? (
-                <View
-                  style={{
-                    paddingHorizontal: 6,
-                    paddingVertical: 1,
-                    borderRadius: 999,
-                    backgroundColor: isActive ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
-                  }}
-                >
-                  <AppText
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "800",
-                      color: isActive ? "#FFFFFF" : colors.textMuted,
-                    }}
-                  >
-                    {btn.count}
-                  </AppText>
-                </View>
-              ) : null}
+              <AppText
+                style={{
+                  fontSize: 11,
+                  fontWeight: "800",
+                  color: isActive ? "rgba(255,255,255,0.8)" : colors.textMuted,
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {btn.count}
+              </AppText>
             </Pressable>
           );
         })}
       </ScrollView>
 
-      {/* 3. Grouped Events List */}
+      {/* Grouped events */}
       {groupedByYear.map(([year, yearEvents]) => {
         const isCurrentYear = year === new Date().getFullYear().toString();
         return (
-          <View key={year} style={{ marginBottom: 28 }}>
-            {/* Year header without background box */}
+          <View key={year} style={{ gap: 10 }}>
             <View
               style={{
                 flexDirection: "row",
-                alignItems: "baseline",
+                alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 14,
-                paddingHorizontal: 4,
+                paddingHorizontal: 2,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <AppText
                   style={{
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: "800",
                     color: colors.text,
-                    fontFamily: fontFamily.heavy,
-                    letterSpacing: -0.4,
+                    fontFamily: fontFamily.bodyBold,
+                    letterSpacing: -0.3,
                   }}
                 >
                   {year}
                 </AppText>
-
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  <AppText
+                {isCurrentYear ? (
+                  <View
                     style={{
-                      fontSize: 11,
-                      fontWeight: "800",
-                      color: colors.primary,
-                      fontFamily: fontFamily.bodyBold,
-                      letterSpacing: 1.1,
-                      textTransform: "uppercase",
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 999,
+                      backgroundColor: colors.primarySoft,
                     }}
                   >
-                    {isCurrentYear ? "THIS YEAR" : "YEAR"}
-                  </AppText>
-                  {isCurrentYear ? (
-                    <View
+                    <AppText
                       style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: "#10B981",
+                        fontSize: 10,
+                        fontWeight: "800",
+                        color: colors.primary,
+                        fontFamily: fontFamily.bodyBold,
+                        letterSpacing: 0.6,
                       }}
-                    />
-                  ) : null}
-                </View>
+                    >
+                      THIS YEAR
+                    </AppText>
+                  </View>
+                ) : null}
               </View>
-
               <AppText
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: "600",
                   color: colors.textMuted,
                 }}
@@ -547,7 +523,6 @@ export function RecordTimeline() {
               </AppText>
             </View>
 
-            {/* Timeline list with left-aligned vertical axis */}
             <View>
               {yearEvents.map((it: any, idx: number) => {
                 const titleText = it.title ?? it.label ?? "Event";
@@ -558,71 +533,70 @@ export function RecordTimeline() {
                 const time = formatTime(dateStr);
                 const isLast = idx === yearEvents.length - 1;
                 const extractedItems: any[] = it.extractedItems || [];
-                const isHover = hoverIdx === idx;
+                const eventKey = `${year}-${it.id ?? idx}`;
+                const isPressed = pressedKey === eventKey;
                 const navTarget = getNavigationTarget(it);
+                const Icon = meta.icon;
 
                 return (
                   <View
-                    key={`${it.id ?? idx}`}
+                    key={eventKey}
                     style={{
                       flexDirection: "row",
-                      marginBottom: isLast ? 0 : 12,
+                      marginBottom: isLast ? 0 : 8,
                     }}
                   >
-                    {/* Left Timeline Axis Column */}
+                    {/* Axis */}
                     <View
                       style={{
                         alignItems: "center",
-                        width: 24,
-                        marginRight: 8,
+                        width: 22,
+                        marginRight: 10,
                       }}
                     >
-                      {/* Top connector line */}
                       {idx !== 0 ? (
                         <View
                           style={{
                             width: 2,
-                            height: 12,
+                            height: 8,
                             backgroundColor: colors.border,
                           }}
                         />
                       ) : (
-                        <View style={{ height: 12 }} />
+                        <View style={{ height: 8 }} />
                       )}
-
-                      {/* Timeline Node Dot */}
                       <View
                         style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 9,
+                          width: 16,
+                          height: 16,
+                          borderRadius: 8,
                           backgroundColor: meta.color,
                           alignItems: "center",
                           justifyContent: "center",
+                          borderWidth: 2,
+                          borderColor: "#FFFFFF",
                           shadowColor: meta.color,
                           shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.35,
-                          shadowRadius: 4,
+                          shadowOpacity: 0.3,
+                          shadowRadius: 3,
                           elevation: 2,
                         }}
                       >
                         <View
                           style={{
-                            width: 5,
-                            height: 5,
-                            borderRadius: 2.5,
+                            width: 4,
+                            height: 4,
+                            borderRadius: 2,
                             backgroundColor: "#fff",
                           }}
                         />
                       </View>
-
-                      {/* Bottom connector line */}
                       {!isLast ? (
                         <View
                           style={{
                             flex: 1,
                             width: 2,
-                            minHeight: 14,
+                            minHeight: 10,
                             backgroundColor: colors.border,
                             marginTop: 2,
                           }}
@@ -630,53 +604,54 @@ export function RecordTimeline() {
                       ) : null}
                     </View>
 
-                    {/* Expanded Event Card */}
+                    {/* Compact event row */}
                     <Pressable
                       onPress={() => {
-                        if (navTarget?.path) {
-                          router.push(navTarget.path as any);
-                        }
+                        if (navTarget?.path) router.push(navTarget.path as any);
                       }}
-                      onPressIn={() => setHoverIdx(idx)}
-                      onPressOut={() => setHoverIdx(null)}
+                      onPressIn={() => setPressedKey(eventKey)}
+                      onPressOut={() => setPressedKey(null)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${meta.verb || meta.tag}: ${titleText}`}
                       style={({ pressed }) => ({
                         flex: 1,
-                        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                        borderRadius: 16,
-                        padding: 13,
-                        opacity: pressed ? 0.96 : 1,
+                        backgroundColor:
+                          pressed || isPressed ? colors.surfaceMuted : colors.surface,
+                        borderRadius: 14,
+                        paddingVertical: 10,
+                        paddingHorizontal: 11,
                         borderWidth: 1,
-                        borderColor: isHover ? meta.color : colors.border,
-                        shadowColor: isHover ? meta.color : "rgba(0,0,0,0.04)",
-                        shadowOffset: { width: 0, height: isHover ? 4 : 2 },
-                        shadowOpacity: isHover ? 0.15 : 0.05,
-                        shadowRadius: isHover ? 10 : 4,
-                        elevation: isHover ? 3 : 1,
-                        gap: 8,
+                        borderColor:
+                          pressed || isPressed ? meta.color : colors.border,
+                        gap: 6,
                       })}
                     >
-                      {/* Top Row: Date Pill + Title/Verb + Category Tag */}
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        {/* Month/Day Date Pill */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          gap: 10,
+                        }}
+                      >
+                        {/* Date */}
                         <View
                           style={{
                             alignItems: "center",
+                            justifyContent: "center",
                             backgroundColor: meta.bg,
-                            borderRadius: 9,
-                            paddingHorizontal: 7,
-                            paddingVertical: 3,
-                            minWidth: 42,
-                            borderWidth: 1,
-                            borderColor: meta.ring,
+                            borderRadius: 10,
+                            paddingHorizontal: 6,
+                            paddingVertical: 5,
+                            minWidth: 40,
                           }}
                         >
                           <AppText
                             style={{
-                              fontSize: 8.5,
+                              fontSize: 9,
                               fontWeight: "800",
                               color: meta.color,
                               fontFamily: fontFamily.bodyBold,
-                              letterSpacing: 0.5,
+                              letterSpacing: 0.4,
                               textTransform: "uppercase",
                             }}
                           >
@@ -684,139 +659,123 @@ export function RecordTimeline() {
                           </AppText>
                           <AppText
                             style={{
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: "900",
                               color: meta.color,
                               fontFamily: fontFamily.heavy,
-                              lineHeight: 15,
-                              marginTop: 1,
+                              lineHeight: 17,
                             }}
                           >
                             {date.day}
                           </AppText>
                         </View>
 
-                        {/* Event Verb & Title */}
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                            {meta.verb ? (
+                        {/* Title block */}
+                        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 4,
+                                paddingHorizontal: 7,
+                                paddingVertical: 3,
+                                borderRadius: 6,
+                                backgroundColor: meta.tagBg,
+                              }}
+                            >
+                              <Icon size={10} color={meta.tagFg} strokeWidth={2.5} />
                               <AppText
                                 style={{
-                                  fontSize: 10.5,
+                                  fontSize: 10,
                                   fontWeight: "800",
-                                  color: meta.color,
+                                  color: meta.tagFg,
                                   fontFamily: fontFamily.bodyBold,
-                                  letterSpacing: 0.5,
-                                  textTransform: "uppercase",
+                                  letterSpacing: 0.3,
                                 }}
                               >
-                                {meta.verb}
+                                {meta.tag}
                               </AppText>
+                            </View>
+                            {time ? (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 3,
+                                }}
+                              >
+                                <Clock size={10} color={colors.textMuted} />
+                                <AppText
+                                  style={{
+                                    fontSize: 11,
+                                    color: colors.textMuted,
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  {time}
+                                </AppText>
+                              </View>
                             ) : null}
                           </View>
+
                           <AppText
+                            numberOfLines={2}
                             style={{
-                              fontSize: 14.5,
+                              fontSize: 15,
                               fontWeight: "800",
                               color: colors.text,
                               fontFamily: fontFamily.bodyBold,
-                              letterSpacing: -0.2,
-                              marginTop: 1,
+                              letterSpacing: -0.25,
+                              lineHeight: 19,
                             }}
                           >
                             {titleText}
                           </AppText>
+
+                          {(it.subtitle || it.provider || it.location) ? (
+                            <AppText
+                              numberOfLines={1}
+                              style={{
+                                fontSize: 12,
+                                color: colors.textMuted,
+                                fontWeight: "500",
+                              }}
+                            >
+                              {[it.subtitle, it.provider, it.location]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </AppText>
+                          ) : null}
                         </View>
 
-                        {/* Tag Badge */}
-                        <View
-                          style={{
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 8,
-                            backgroundColor: meta.tagBg,
-                            borderWidth: 1,
-                            borderColor: meta.ring,
-                          }}
-                        >
-                          <AppText
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: "800",
-                              color: meta.tagFg,
-                              fontFamily: fontFamily.bodyBold,
-                              letterSpacing: 0.4,
-                            }}
-                          >
-                            {meta.tag}
-                          </AppText>
-                        </View>
+                        {navTarget ? (
+                          <ChevronRight
+                            size={16}
+                            color={colors.textSubtle}
+                            strokeWidth={2.25}
+                            style={{ marginTop: 10 }}
+                          />
+                        ) : null}
                       </View>
 
-                      {/* Subtitle / Provider line */}
-                      {it.subtitle ? (
-                        <AppText
-                          style={{
-                            fontSize: 12,
-                            color: colors.textMuted,
-                            lineHeight: 16,
-                          }}
-                        >
-                          {it.subtitle}
-                        </AppText>
-                      ) : null}
-
-                      {/* Quick Meta Footer Strip (Time, Provider, Location) */}
-                      {(time || it.provider || it.location) ? (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                            gap: 12,
-                            paddingTop: 6,
-                            borderTopWidth: 1,
-                            borderTopColor: colors.surfaceMuted,
-                          }}
-                        >
-                          {time ? (
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                              <Clock size={11} color={colors.textMuted} />
-                              <AppText style={{ fontSize: 11.5, color: colors.textMuted, fontWeight: "600" }}>
-                                {time}
-                              </AppText>
-                            </View>
-                          ) : null}
-                          {it.provider ? (
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                              <Stethoscope size={11} color={colors.textMuted} />
-                              <AppText style={{ fontSize: 11.5, color: colors.textMuted, fontWeight: "600" }}>
-                                {it.provider}
-                              </AppText>
-                            </View>
-                          ) : null}
-                          {it.location ? (
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                              <MapPin size={11} color={colors.textMuted} />
-                              <AppText style={{ fontSize: 11.5, color: colors.textMuted, fontWeight: "600" }}>
-                                {it.location}
-                              </AppText>
-                            </View>
-                          ) : null}
-                        </View>
-                      ) : null}
-
-                      {/* Extracted Lab Values / Sub-items Grid */}
                       {extractedItems.length > 0 ? (
                         <View
                           style={{
                             flexDirection: "row",
                             flexWrap: "wrap",
-                            gap: 6,
-                            paddingTop: 4,
+                            gap: 5,
+                            paddingLeft: 50,
                           }}
                         >
-                          {extractedItems.slice(0, 4).map((item, i) => {
+                          {extractedItems.slice(0, 3).map((item, i) => {
                             const isAbnormal =
                               item.flag === "high" ||
                               item.flag === "low" ||
@@ -825,18 +784,13 @@ export function RecordTimeline() {
                             const flagBg = isCritical
                               ? "#FEE2E2"
                               : isAbnormal
-                              ? "#FEF3C7"
-                              : colors.surfaceMuted;
+                                ? "#FEF3C7"
+                                : colors.surfaceMuted;
                             const flagFg = isCritical
                               ? "#B91C1C"
                               : isAbnormal
-                              ? "#92400E"
-                              : colors.text;
-                            const FlagIcon = isCritical
-                              ? TrendingUp
-                              : isAbnormal
-                              ? TrendingUp
-                              : null;
+                                ? "#92400E"
+                                : colors.textMuted;
 
                             return (
                               <View
@@ -844,70 +798,29 @@ export function RecordTimeline() {
                                 style={{
                                   flexDirection: "row",
                                   alignItems: "center",
-                                  paddingHorizontal: 8,
-                                  paddingVertical: 4,
-                                  borderRadius: 8,
+                                  paddingHorizontal: 7,
+                                  paddingVertical: 3,
+                                  borderRadius: 6,
                                   backgroundColor: flagBg,
-                                  gap: 4,
+                                  gap: 3,
                                 }}
                               >
-                                {FlagIcon ? (
-                                  <FlagIcon size={10} color={flagFg} strokeWidth={2.5} />
+                                {isAbnormal ? (
+                                  <TrendingUp size={9} color={flagFg} strokeWidth={2.5} />
                                 ) : null}
                                 <AppText
                                   style={{
-                                    fontSize: 11,
+                                    fontSize: 10.5,
                                     fontWeight: "700",
                                     color: flagFg,
-                                    letterSpacing: -0.1,
                                   }}
                                 >
-                                  {item.name}:
-                                </AppText>
-                                <AppText
-                                  style={{
-                                    fontSize: 11.5,
-                                    fontWeight: "800",
-                                    color: flagFg,
-                                    letterSpacing: -0.1,
-                                  }}
-                                >
-                                  {item.value} {item.unit || ""}
+                                  {item.name} {item.value}
+                                  {item.unit ? ` ${item.unit}` : ""}
                                 </AppText>
                               </View>
                             );
                           })}
-                        </View>
-                      ) : null}
-
-                      {/* Clickable Detail Footer Indicator */}
-                      {navTarget ? (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingTop: 6,
-                            marginTop: 2,
-                            borderTopWidth: 1,
-                            borderTopColor: "rgba(0,0,0,0.05)",
-                          }}
-                        >
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                            <Sparkles size={11} color={meta.color} />
-                            <AppText
-                              style={{
-                                fontSize: 11,
-                                fontWeight: "700",
-                                color: meta.color,
-                                letterSpacing: -0.1,
-                                fontFamily: fontFamily.bodyBold,
-                              }}
-                            >
-                              {navTarget.label}
-                            </AppText>
-                          </View>
-                          <ChevronRight size={13} color={meta.color} strokeWidth={2.5} />
                         </View>
                       ) : null}
                     </Pressable>
@@ -918,6 +831,6 @@ export function RecordTimeline() {
           </View>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }

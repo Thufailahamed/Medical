@@ -398,7 +398,6 @@ export default function RecordsV2() {
   const [dsarOpen, setDsarOpen] = useState(false);
   const [timeFilter, setTimeFilter] = useState<"all" | "year" | "30days">("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
-  const [folderDropdownOpen, setFolderDropdownOpen] = useState(false);
   // Tier 1 records: multi-select mode for share-pack. Long-press a
   // record to enter; top action bar shows "Share (N)" + cancel.
   const [selectionMode, setSelectionMode] = useState(false);
@@ -549,90 +548,7 @@ export default function RecordsV2() {
   void timeline;
   void auditData;
 
-  // Folder tap: toggles kinds[] / recentOnly. Second click on the same
-  // folder clears the filter (so users can come back to "all" without
-  // hunting for a pill).
-  const handleFolderPress = useCallback(
-    (folder: SmartFolder) => {
-      if (folder.kind) {
-        setKinds((prev) => {
-          const isActive = prev.length === 1 && prev[0] === folder.kind;
-          return isActive ? [] : [folder.kind];
-        });
-        setRecentOnly(false);
-      } else if (folder.isRecent) {
-        setKinds((prev) => (prev.length === 0 ? prev : []));
-        setRecentOnly((prev) => !prev);
-      }
-      setQuery("");
-      setTab("all");
-    },
-    [],
-  );
-
-  // The currently active folder (one only) — drives the visual "selected"
-  // state on the smart folder tile.
-  const activeFolder: SmartFolderKind | null = useMemo(() => {
-    if (recentOnly && kinds.length === 0) return "recent30";
-    if (!recentOnly && kinds.length === 1) return kinds[0] as SmartFolderKind;
-    return null;
-  }, [recentOnly, kinds]);
-
-  const activeFolderDetails = useMemo(() => {
-    if (activeFolder === null) {
-      return {
-        label: "All Folders",
-        icon: FolderOpen,
-        count: records.length,
-        visual: { bg: "#F1F5F9", fg: "#475569" },
-      };
-    }
-    if (activeFolder === "recent30") {
-      const count = (recordsData?.records ?? []).filter((r: any) => {
-        const iso = r.recordDate ?? r.date ?? r.createdAt;
-        if (!iso) return false;
-        const days = (Date.now() - new Date(iso).getTime()) / 86_400_000;
-        return days <= 30;
-      }).length;
-      return {
-        label: t("recordsHub.smartFolders.recent30"),
-        icon: AlarmClock,
-        count,
-        visual: { bg: "#FEE2E2", fg: "#EF4444" },
-      };
-    }
-    // Specific folder kind
-    const Icon = kindIcon(activeFolder as RecordKind);
-    const count = counts[activeFolder as RecordKind] ?? 0;
-    const visual = visualFor(activeFolder as RecordKind);
-    const label = t(`recordsHub.smartFolders.${activeFolder === "lab_report" ? "labReports" : activeFolder === "prescription" ? "prescriptions" : activeFolder === "imaging" ? "imaging" : activeFolder === "vaccination" ? "vaccinations" : "allergies"}`);
-    const customVisual = (() => {
-      switch (activeFolder) {
-        case "lab_report": return { bg: "#FEF3C7", fg: "#D97706" };
-        case "prescription": return { bg: "#F3E8FF", fg: "#9333EA" };
-        case "imaging": return { bg: "#E0E7FF", fg: "#4F46E5" };
-        case "vaccination": return { bg: "#CCFBF1", fg: "#0D9488" };
-        default: return { bg: "#E2E8F0", fg: "#475569" };
-      }
-    })();
-    return { label, icon: Icon, count, visual: customVisual };
-  }, [activeFolder, records, counts, recordsData, t]);
-
-  // Active filter chip (with clear) shown right above the record list.
-  const activeFilterChip = useMemo(() => {
-    if (kinds.length === 0 && !recentOnly) return null;
-    const kindLabel =
-      kinds.length > 0
-        ? RECORD_REGISTRY[kinds[0] as RecordKind]?.key.replace(/_/g, " ") ??
-          kinds[0]
-        : null;
-    const label = recentOnly
-      ? t("recordsHub.smartFolders.recent30")
-      : kindLabel ?? "";
-    if (!label) return null;
-    const tone = recentOnly ? "warning" : "primary";
-    return { label: label.toString(), tone: tone as PillTone };
-  }, [kinds, recentOnly, t]);
+  // Folder helpers removed — category pills + time segments own filtering now.
 
   const clearFilters = useCallback(() => {
     setKinds([]);
@@ -796,464 +712,324 @@ export default function RecordsV2() {
           />
         )}
 
-        {/* ─── Smart folders dropdown selector ──────────────────────────── */}
+        {/* ─── Tabs + list controls ─────────────────────────────────────── */}
         <View
           style={{
-            flexDirection: "row",
             paddingHorizontal: spacing.lg,
-            marginTop: spacing.xl,
-            alignItems: "center",
-            justifyContent: "space-between",
+            marginTop: spacing.lg,
+            gap: spacing.md,
           }}
         >
-          <TextMuted
-            color={colors.textSubtle}
-            size={11}
-            weight="800"
-            letterSpacing={1.4}
-            style={{ textTransform: "uppercase" }}
-            fontFamily={fontFamily.bodyBold}
-          >
-            {t("recordsHub.smartFolders.title")}
-          </TextMuted>
-          {activeFolder !== null ? (
-            <Pressable
-              onPress={() => {
-                clearFilters();
-                setFolderDropdownOpen(false);
-              }}
-              hitSlop={6}
-              accessibilityRole="button"
-            >
-              <TextMuted
-                color={colors.primary}
-                size={12}
-                weight="700"
-                fontFamily={fontFamily.bodyBold}
-              >
-                Clear filter
-              </TextMuted>
-            </Pressable>
-          ) : null}
-        </View>
+          <SlidingTabs tab={tab} onChange={setTab} />
 
-        {/* Dropdown Selector Button */}
-        <Pressable
-          onPress={() => setFolderDropdownOpen((prev) => !prev)}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            padding: 8,
-            backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: colors.border,
-            marginHorizontal: spacing.lg,
-            marginTop: spacing.sm,
-            shadowColor: "rgba(0,0,0,0.01)",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 1,
-            shadowRadius: 4,
-            elevation: 1,
-          })}
-        >
-          {/* Active folder icon */}
-          <View
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 6,
-              backgroundColor: activeFolderDetails.visual.bg,
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: spacing.sm,
-            }}
-          >
-            {React.createElement(activeFolderDetails.icon, {
-              size: 12,
-              color: activeFolderDetails.visual.fg,
-              strokeWidth: 2.5,
-            })}
-          </View>
-          <AppText
-            style={{
-              fontSize: 14,
-              fontWeight: "800",
-              color: colors.text,
-              fontFamily: fontFamily.bodyBold,
-            }}
-          >
-            {activeFolderDetails.label}
-          </AppText>
-          {/* Count + Arrow */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginLeft: "auto",
-              gap: 6,
-            }}
-          >
+          {tab === "all" ? (
             <View
               style={{
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                borderRadius: 6,
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: colors.surface,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: spacing.md,
+                gap: spacing.md,
+                shadowColor: "#0F172A",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.04,
+                shadowRadius: 16,
+                elevation: 2,
               }}
             >
-              <AppText
+              <View
                 style={{
-                  fontSize: 10.5,
-                  fontWeight: "800",
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.bodyBold,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: spacing.sm,
                 }}
               >
-                {activeFolderDetails.count}
-              </AppText>
-            </View>
-            <ChevronsUpDown size={14} color={colors.textMuted} strokeWidth={2} />
-          </View>
-        </Pressable>
-
-        {/* Dropdown Options List */}
-        {folderDropdownOpen ? (
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: colors.border,
-              marginHorizontal: spacing.lg,
-              marginTop: 6,
-              padding: spacing.xs,
-              shadowColor: "rgba(0,0,0,0.04)",
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 1,
-              shadowRadius: 12,
-              elevation: 3,
-            }}
-          >
-            {[
-              {
-                key: "all",
-                label: "All Folders",
-                icon: FolderOpen,
-                count: records.length,
-                visual: { bg: "#F1F5F9", fg: "#475569" },
-                kind: undefined,
-              },
-              ...SMART_FOLDERS.map((f) => {
-                const count =
-                  f.kind !== undefined
-                    ? counts[f.kind] ?? 0
-                    : (recordsData?.records ?? []).filter((r: any) => {
-                        const iso = r.recordDate ?? r.date ?? r.createdAt;
-                        if (!iso) return false;
-                        const days =
-                          (Date.now() - new Date(iso).getTime()) / 86_400_000;
-                        return days <= 30;
-                      }).length;
-                const Icon = f.kind !== undefined ? kindIcon(f.kind) : AlarmClock;
-                const customVisual = (() => {
-                  switch (f.kind) {
-                    case "lab_report":
-                      return { bg: "#FEF3C7", fg: "#D97706" };
-                    case "prescription":
-                      return { bg: "#F3E8FF", fg: "#9333EA" };
-                    case "imaging":
-                      return { bg: "#E0E7FF", fg: "#4F46E5" };
-                    case "vaccination":
-                      return { bg: "#CCFBF1", fg: "#0D9488" };
-                    default:
-                      return { bg: "#E2E8F0", fg: "#475569" };
-                  }
-                })();
-                return {
-                  key: f.key,
-                  label: t(f.labelKey),
-                  icon: Icon,
-                  count,
-                  visual: customVisual,
-                  kind: f.kind,
-                };
-              }),
-            ].map((opt) => {
-              const isSelected =
-                activeFolder === opt.key ||
-                (activeFolder === null && opt.key === "all");
-              return (
-                <Pressable
-                  key={opt.key}
-                  onPress={() => {
-                    if (opt.key === "all") {
-                      clearFilters();
-                    } else {
-                      if (opt.kind !== undefined) {
-                        setKinds([opt.kind]);
-                        setRecentOnly(false);
-                      } else {
-                        setKinds([]);
-                        setRecentOnly(true);
-                      }
-                    }
-                    setFolderDropdownOpen(false);
-                  }}
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    padding: spacing.md - 4,
-                    borderRadius: 12,
-                    backgroundColor: isSelected
-                      ? colors.surfaceMuted
-                      : pressed
-                        ? colors.surfaceMuted
-                        : "transparent",
-                  })}
-                >
-                  <View
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      backgroundColor: opt.visual.bg,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: spacing.md,
-                    }}
-                  >
-                    {React.createElement(opt.icon, {
-                      size: 13,
-                      color: opt.visual.fg,
-                      strokeWidth: 2.5,
-                    })}
-                  </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
                   <AppText
                     style={{
-                      fontSize: 14.5,
-                      fontWeight: isSelected ? "800" : "600",
-                      color: isSelected ? colors.primary : colors.text,
-                      fontFamily: isSelected
-                        ? fontFamily.bodyBold
-                        : fontFamily.bodySemibold,
+                      fontSize: 17,
+                      fontWeight: "800",
+                      color: colors.text,
+                      fontFamily: fontFamily.bodyBold,
+                      letterSpacing: -0.2,
                     }}
                   >
-                    {opt.label}
+                    Your records
                   </AppText>
                   <View
                     style={{
-                      marginLeft: "auto",
                       paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 8,
-                      backgroundColor: isSelected
-                        ? colors.surface
-                        : colors.surfaceMuted,
+                      paddingVertical: 3,
+                      borderRadius: 999,
+                      backgroundColor: colors.primarySoft,
                     }}
                   >
                     <AppText
                       style={{
-                        fontSize: 11,
-                        fontWeight: "700",
-                        color: isSelected ? colors.primary : colors.textMuted,
+                        fontSize: 11.5,
+                        fontWeight: "800",
+                        color: colors.primary,
                         fontFamily: fontFamily.bodyBold,
                       }}
                     >
-                      {opt.count}
+                      {filteredRecords.length}
                     </AppText>
                   </View>
+                </View>
+
+                <Pressable
+                  onPress={() =>
+                    setSortOrder((prev) => (prev === "newest" ? "oldest" : "newest"))
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    sortOrder === "newest" ? "Sort oldest first" : "Sort newest first"
+                  }
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                    paddingHorizontal: 10,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                    backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceMuted,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    opacity: pressed ? 0.85 : 1,
+                  })}
+                >
+                  <ChevronsUpDown size={13} color={colors.primary} strokeWidth={2.5} />
+                  <AppText
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: colors.primary,
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    {sortOrder === "newest" ? "Newest" : "Oldest"}
+                  </AppText>
                 </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
+              </View>
 
-        {/* ─── Tab segmented control ───────────────────────────────────── */}
-        <View
-          style={{
-            paddingHorizontal: spacing.lg,
-            marginTop: spacing.xxl,
-            marginBottom: spacing.md,
-          }}
-        >
-          <SlidingTabs tab={tab} onChange={setTab} />
-        </View>
-
-        {/* ─── Tab content ─────────────────────────────────────────────── */}
-        {tab === "all" ? (
-          <View style={{ gap: spacing.md }}>
-            {/* Custom section header */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                paddingHorizontal: spacing.lg,
-                marginTop: spacing.sm,
-              }}
-            >
-              <AppText
-                style={{
-                  fontSize: 22,
-                  fontWeight: "800",
-                  color: colors.text,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                Your Records
-              </AppText>
-              <AppText
-                style={{
-                  fontSize: 14,
-                  color: colors.textMuted,
-                  fontWeight: "600",
-                  fontFamily: fontFamily.bodySemibold,
-                }}
-              >
-                {filteredRecords.length} total
-              </AppText>
-            </View>
-
-            {/* Premium search bar */}
-            <View style={{ paddingHorizontal: spacing.lg }}>
               <PremiumSearchBar
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Search records, labs, images..."
               />
-            </View>
 
-            {/* Category pills with counts */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{
-                paddingHorizontal: spacing.lg,
-                gap: spacing.sm,
-                paddingVertical: spacing.xs,
-              }}
-            >
-              {(() => {
-                const categories = [
-                  { label: "All", count: timeFilteredRecords.length, key: "all", kinds: [] },
-                  { label: "Lab", count: timeFilteredRecords.filter(r => (r.kind ?? r.recordType) === "lab_report").length, key: "lab", kinds: ["lab_report"] },
-                  { label: "Rx", count: timeFilteredRecords.filter(r => (r.kind ?? r.recordType) === "prescription").length, key: "rx", kinds: ["prescription"] },
-                  { label: "Imaging", count: timeFilteredRecords.filter(r => (r.kind ?? r.recordType) === "imaging").length, key: "imaging", kinds: ["imaging"] },
-                  { label: "Vaccines", count: timeFilteredRecords.filter(r => (r.kind ?? r.recordType) === "vaccination").length, key: "vaccines", kinds: ["vaccination"] },
-                ];
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+              >
+                {(() => {
+                  const categories = [
+                    {
+                      label: "All",
+                      count: timeFilteredRecords.length,
+                      key: "all",
+                      kinds: [] as RecordKind[],
+                      tint: colors.primary,
+                      soft: colors.primarySoft,
+                    },
+                    {
+                      label: "Lab",
+                      count: timeFilteredRecords.filter(
+                        (r) => (r.kind ?? r.recordType) === "lab_report",
+                      ).length,
+                      key: "lab",
+                      kinds: ["lab_report"] as RecordKind[],
+                      tint: "#D97706",
+                      soft: "#FEF3C7",
+                    },
+                    {
+                      label: "Rx",
+                      count: timeFilteredRecords.filter(
+                        (r) => (r.kind ?? r.recordType) === "prescription",
+                      ).length,
+                      key: "rx",
+                      kinds: ["prescription"] as RecordKind[],
+                      tint: "#7C3AED",
+                      soft: "#F3E8FF",
+                    },
+                    {
+                      label: "Imaging",
+                      count: timeFilteredRecords.filter(
+                        (r) => (r.kind ?? r.recordType) === "imaging",
+                      ).length,
+                      key: "imaging",
+                      kinds: ["imaging"] as RecordKind[],
+                      tint: "#4F46E5",
+                      soft: "#E0E7FF",
+                    },
+                    {
+                      label: "Vaccines",
+                      count: timeFilteredRecords.filter(
+                        (r) => (r.kind ?? r.recordType) === "vaccination",
+                      ).length,
+                      key: "vaccines",
+                      kinds: ["vaccination"] as RecordKind[],
+                      tint: "#0D9488",
+                      soft: "#CCFBF1",
+                    },
+                    {
+                      label: "Allergy",
+                      count: timeFilteredRecords.filter(
+                        (r) => (r.kind ?? r.recordType) === "allergy",
+                      ).length,
+                      key: "allergy",
+                      kinds: ["allergy"] as RecordKind[],
+                      tint: "#DC2626",
+                      soft: "#FEE2E2",
+                    },
+                  ];
 
-                return categories.map((cat) => {
-                  const isActive = cat.key === "all" ? kinds.length === 0 : (kinds.length === 1 && kinds[0] === cat.kinds[0]);
-                  return (
-                    <Pressable
-                      key={cat.key}
-                      onPress={() => setKinds(cat.kinds as RecordKind[])}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
-                        borderRadius: 20,
-                        borderWidth: 1,
-                        borderColor: isActive ? "transparent" : colors.border,
-                        backgroundColor: isActive ? colors.primary : colors.surface,
-                        flexDirection: "row",
-                        alignItems: "center",
-                      }}
-                    >
-                      <AppText
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "700",
-                          color: isActive ? "#FFFFFF" : colors.text,
-                          fontFamily: fontFamily.bodyBold,
+                  return categories.map((cat) => {
+                    const isActive =
+                      cat.key === "all"
+                        ? kinds.length === 0 && !recentOnly
+                        : kinds.length === 1 && kinds[0] === cat.kinds[0] && !recentOnly;
+                    return (
+                      <Pressable
+                        key={cat.key}
+                        onPress={() => {
+                          setRecentOnly(false);
+                          setKinds(cat.kinds);
                         }}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isActive }}
+                        style={({ pressed }) => ({
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 999,
+                          borderWidth: 1,
+                          borderColor: isActive ? "transparent" : colors.border,
+                          backgroundColor: isActive
+                            ? cat.tint
+                            : pressed
+                              ? cat.soft
+                              : colors.surfaceMuted,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          minHeight: 36,
+                        })}
                       >
-                        {cat.label}
-                      </AppText>
-                      <AppText
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "600",
-                          color: isActive ? "rgba(255, 255, 255, 0.75)" : colors.textMuted,
-                          marginLeft: 6,
-                          fontFamily: fontFamily.bodySemibold,
-                        }}
-                      >
-                        {cat.count}
-                      </AppText>
-                    </Pressable>
-                  );
-                });
-              })()}
-            </ScrollView>
+                        <AppText
+                          style={{
+                            fontSize: 13,
+                            fontWeight: "700",
+                            color: isActive ? "#FFFFFF" : colors.text,
+                            fontFamily: fontFamily.bodyBold,
+                          }}
+                        >
+                          {cat.label}
+                        </AppText>
+                        <AppText
+                          style={{
+                            fontSize: 11,
+                            fontWeight: "700",
+                            color: isActive
+                              ? "rgba(255,255,255,0.8)"
+                              : colors.textMuted,
+                            marginLeft: 5,
+                            fontFamily: fontFamily.bodyBold,
+                          }}
+                        >
+                          {cat.count}
+                        </AppText>
+                      </Pressable>
+                    );
+                  });
+                })()}
+              </ScrollView>
 
-            {/* Time & Sort filter row */}
-            <View
-              style={{
-                flexDirection: "row",
-                paddingHorizontal: spacing.lg,
-                alignItems: "center",
-                gap: 8,
-                marginTop: spacing.xs,
-              }}
-            >
-              {[
-                { label: "All time", key: "all" },
-                { label: "Past year", key: "year" },
-                { label: "Past 30 days", key: "30days" },
-              ].map((opt) => {
-                const isActive = timeFilter === opt.key;
-                return (
-                  <Pressable
-                    key={opt.key}
-                    onPress={() => setTimeFilter(opt.key as any)}
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                      backgroundColor: isActive ? colors.primarySoft : "transparent",
-                    }}
-                  >
-                    <AppText
-                      style={{
-                        fontSize: 13,
-                        fontWeight: isActive ? "700" : "500",
-                        color: isActive ? colors.primary : colors.textMuted,
-                        fontFamily: isActive ? fontFamily.bodyBold : fontFamily.body,
-                      }}
-                    >
-                      {opt.label}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-
-              {/* New/Old Sort toggle */}
-              <Pressable
-                onPress={() => setSortOrder((prev) => (prev === "newest" ? "oldest" : "newest"))}
+              <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  marginLeft: "auto",
-                  gap: 4,
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
+                  backgroundColor: colors.surfaceMuted,
+                  borderRadius: 12,
+                  padding: 3,
+                  gap: 2,
                 }}
               >
-                <ChevronsUpDown size={14} color={colors.primary} strokeWidth={2.5} />
-                <AppText
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "700",
-                    color: colors.primary,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
-                  New/Old
-                </AppText>
-              </Pressable>
-            </View>
+                {[
+                  { label: "All time", key: "all" },
+                  { label: "Year", key: "year" },
+                  { label: "30 days", key: "30days" },
+                ].map((opt) => {
+                  const isActive = timeFilter === opt.key;
+                  return (
+                    <Pressable
+                      key={opt.key}
+                      onPress={() => setTimeFilter(opt.key as any)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isActive }}
+                      style={({ pressed }) => ({
+                        flex: 1,
+                        paddingVertical: 8,
+                        borderRadius: 10,
+                        alignItems: "center",
+                        backgroundColor: isActive
+                          ? colors.surface
+                          : pressed
+                            ? "rgba(255,255,255,0.5)"
+                            : "transparent",
+                        borderWidth: isActive ? 1 : 0,
+                        borderColor: isActive ? colors.border : "transparent",
+                      })}
+                    >
+                      <AppText
+                        style={{
+                          fontSize: 12,
+                          fontWeight: isActive ? "800" : "600",
+                          color: isActive ? colors.text : colors.textMuted,
+                          fontFamily: isActive
+                            ? fontFamily.bodyBold
+                            : fontFamily.bodySemibold,
+                        }}
+                      >
+                        {opt.label}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
+              {(kinds.length > 0 || recentOnly || timeFilter !== "all" || query.trim()) ? (
+                <Pressable
+                  onPress={() => {
+                    clearFilters();
+                    setTimeFilter("all");
+                    setQuery("");
+                  }}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear filters"
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  <AppText
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: "700",
+                      color: colors.primary,
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    Clear filters
+                  </AppText>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+
+        {/* ─── Tab content ─────────────────────────────────────────────── */}
+        {tab === "all" ? (
+          <View style={{ gap: spacing.md, marginTop: spacing.md }}>
             {/* List */}
             {recordsLoading ? (
               <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm, marginTop: spacing.sm }}>
@@ -2253,12 +2029,17 @@ function SlidingTabs({
     <View
       style={{
         flexDirection: "row",
-        backgroundColor: colors.surfaceMuted,
-        borderRadius: 12,
-        padding: 3,
+        backgroundColor: colors.surface,
+        borderRadius: 14,
+        padding: 4,
         borderWidth: 1,
         borderColor: colors.border,
         width: "100%",
+        shadowColor: "#0F172A",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 10,
+        elevation: 1,
       }}
     >
       {tabs.map((tt) => {
@@ -2272,8 +2053,8 @@ function SlidingTabs({
             accessibilityLabel={tt.label}
             style={({ pressed }) => ({
               flex: 1,
-              paddingVertical: 8,
-              borderRadius: 9,
+              paddingVertical: 10,
+              borderRadius: 11,
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
@@ -2290,10 +2071,10 @@ function SlidingTabs({
             ) : null}
             <TextMuted
               color={active ? "#FFFFFF" : colors.textMuted}
-              size={12.5}
+              size={13}
               weight="800"
               fontFamily={active ? fontFamily.bodyBold : fontFamily.bodySemibold}
-              style={{ letterSpacing: 0.2 }}
+              style={{ letterSpacing: 0.15 }}
             >
               {tt.label}
             </TextMuted>
@@ -2317,7 +2098,7 @@ function PremiumSearchBar({
   onChangeText: (v: string) => void;
   placeholder: string;
 }) {
-  const { colors, spacing, shadow: themeShadow, fontFamily } = useTheme();
+  const { colors, spacing, fontFamily } = useTheme();
   return (
     <View
       style={{
@@ -2326,11 +2107,11 @@ function PremiumSearchBar({
         gap: spacing.xs,
         paddingHorizontal: spacing.md,
         paddingVertical: 2,
-        borderRadius: 12,
-        backgroundColor: colors.surface,
+        borderRadius: 14,
+        backgroundColor: colors.surfaceMuted,
         borderWidth: 1,
         borderColor: colors.border,
-        ...themeShadow.sm,
+        minHeight: 44,
       }}
     >
       <Search size={16} color={colors.textMuted} strokeWidth={2.25} />
@@ -2345,7 +2126,7 @@ function PremiumSearchBar({
           fontSize: 14,
           color: colors.text,
           fontFamily: fontFamily.body,
-          paddingVertical: 8,
+          paddingVertical: 10,
           paddingHorizontal: 4,
         }}
         placeholderTextColor={colors.textMuted}
@@ -2359,12 +2140,14 @@ function PremiumSearchBar({
         >
           <View
             style={{
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              backgroundColor: colors.surfaceMuted,
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: colors.surface,
               alignItems: "center",
               justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
             }}
           >
             <X size={12} color={colors.textMuted} strokeWidth={2.5} />

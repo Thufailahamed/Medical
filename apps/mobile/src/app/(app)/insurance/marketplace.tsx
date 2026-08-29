@@ -24,6 +24,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Search,
   SlidersHorizontal,
@@ -52,7 +53,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 import {
   Screen,
   ScreenHeader,
-  Hero,
   Card,
   EmptyState,
   Skeleton,
@@ -771,33 +771,88 @@ export default function Marketplace() {
         style={{ paddingBottom: spacing.xs }}
       />
 
-      <Hero
-        eyebrow={t("insurance.tab")}
-        title={t("insurance.browseMarketplace")}
-        subtitle={marketplaceStats}
-        height={292}
+      <LinearGradient
+        colors={["#0B4F6C", "#0D9488", "#14B8A6"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={{
-          borderRadius: radius.xl,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-          borderBottomLeftRadius: radius.xl,
-          borderBottomRightRadius: radius.xl,
+          borderRadius: 24,
           marginHorizontal: spacing.lg,
           marginTop: spacing.xs,
           overflow: "hidden",
+          padding: spacing.lg,
         }}
       >
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: -50,
+            right: -40,
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: "rgba(255,255,255,0.12)",
+          }}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            bottom: -60,
+            left: -30,
+            width: 140,
+            height: 140,
+            borderRadius: 70,
+            backgroundColor: "rgba(255,255,255,0.08)",
+          }}
+        />
+
+        <Text
+          style={{
+            color: "rgba(255,255,255,0.85)",
+            fontSize: 11,
+            fontWeight: "800",
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            marginBottom: 8,
+          }}
+        >
+          {t("insurance.tab")}
+        </Text>
+        <Text
+          style={{
+            color: "#FFFFFF",
+            fontSize: 24,
+            fontWeight: "800",
+            letterSpacing: -0.5,
+            lineHeight: 30,
+          }}
+        >
+          {t("insurance.browseMarketplace")}
+        </Text>
+        <Text
+          style={{
+            color: "rgba(255,255,255,0.88)",
+            fontSize: 13.5,
+            lineHeight: 19,
+            marginTop: 6,
+            fontWeight: "500",
+          }}
+        >
+          {marketplaceStats}
+        </Text>
+
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             gap: 10,
             backgroundColor: "#FFFFFF",
-            borderRadius: radius.lg,
+            borderRadius: 14,
             paddingHorizontal: 14,
             minHeight: 48,
             marginTop: spacing.md,
-            ...shadow.sm,
           }}
         >
           <Search size={18} color={colors.textMuted} strokeWidth={2.25} />
@@ -833,12 +888,12 @@ export default function Marketplace() {
             justifyContent: "center",
             gap: 8,
             marginTop: spacing.sm,
-            backgroundColor: "rgba(255,255,255,0.2)",
+            backgroundColor: "rgba(255,255,255,0.18)",
             paddingVertical: 12,
             paddingHorizontal: 16,
-            borderRadius: radius.lg,
+            borderRadius: 14,
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.34)",
+            borderColor: "rgba(255,255,255,0.28)",
           }}
         >
           <Sparkles size={15} color="#FFFFFF" strokeWidth={2.5} />
@@ -863,7 +918,7 @@ export default function Marketplace() {
             label={t("insurance.trust.claims", "No-claim bonus")}
           />
         </ScrollView>
-      </Hero>
+      </LinearGradient>
 
       {/* ─── Categories: horizontal scroller ─── */}
       <View style={{ marginTop: spacing.lg }}>

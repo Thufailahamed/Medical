@@ -1,7 +1,7 @@
 // @ts-nocheck
 // My claims list. Status pills + amounts.
 
-import { View, FlatList } from "react-native";
+import { View, Text, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { FilePlus } from "lucide-react-native";
@@ -9,108 +9,138 @@ import { useMyInsuranceClaims } from "@/hooks/useApi";
 import {
   Screen,
   ScreenHeader,
-  Card,
   Pill,
   EmptyState,
   Skeleton,
   Button,
   SectionHeader,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { Pressable } from "@/components/ui/Pressable";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function ClaimsList() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, spacing, fontFamily } = useTheme();
   const { data, isLoading } = useMyInsuranceClaims();
 
   const claims = data?.claims ?? [];
 
   return (
-    <Screen>
+    <Screen padded={false} edges={["top"]}>
       <ScreenHeader
         title={t("insurance.claim.list")}
-        subtitle=""
-        kicker={t("insurance.claim.kicker")}
+        subtitle={t("insurance.claim.listSubtitle", "Track submissions and payouts")}
+        back
       />
 
-      <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
         <SectionHeader title={t("insurance.claim.recent")} />
       </View>
 
       {isLoading ? (
-        <View style={{ padding: 16, gap: 10 }}>
-          <Skeleton height={84} radius={16} />
-          <Skeleton height={84} radius={16} />
+        <View style={{ padding: spacing.lg, gap: 10 }}>
+          <Skeleton height={96} radius={16} />
+          <Skeleton height={96} radius={16} />
         </View>
       ) : claims.length === 0 ? (
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: spacing.lg }}>
           <EmptyState
-            icon={<FilePlus size={28} color={colors.textSubtle} />}
+            icon={FilePlus}
             title={t("insurance.claim.empty")}
-            ctaLabel={t("insurance.submitClaim")}
-            onCtaPress={() => router.push("/insurance/claims/new")}
+            actionLabel={t("insurance.submitClaim")}
+            onAction={() => router.push("/insurance/claims/new")}
+            tone="neutral"
           />
         </View>
       ) : (
         <FlatList
           data={claims}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-          scrollEnabled={false}
+          contentContainerStyle={{
+            padding: spacing.lg,
+            gap: 10,
+            paddingBottom: 100,
+          }}
           renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/insurance/claims/${item.id}`)}>
-              <Card style={{ padding: 14, gap: 6 }}>
-                <View
+            <Pressable
+              onPress={() => router.push(`/insurance/claims/${item.id}`)}
+              haptic="light"
+              style={({ pressed }) => ({
+                padding: 14,
+                gap: 8,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+              })}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Text
                   style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    gap: 8,
+                    fontWeight: "800",
+                    fontSize: 14,
+                    color: colors.text,
+                    flex: 1,
+                    fontFamily: fontFamily.bodyBold,
                   }}
+                  numberOfLines={1}
                 >
-                  <AppText weight="700">
-                    {item.treatmentType
-                      ? t(`insurance.claim.treatments.${item.treatmentType}`)
-                      : t("insurance.claim.treatment")}
-                  </AppText>
-                  <Pill
-                    tone={
-                      item.status === "approved"
-                        ? "accent"
-                        : item.status === "rejected"
-                          ? "danger"
-                          : "neutral"
-                    }
-                  >
-                    {t(`insurance.claim.statuses.${item.status}`)}
-                  </Pill>
-                </View>
-                <AppText size="sm" color="muted">
-                  LKR {item.amountRequestedLkr.toLocaleString()}
-                  {item.amountApprovedLkr
-                    ? ` · ${t("insurance.claim.approved", { amount: item.amountApprovedLkr.toLocaleString() })}`
-                    : ""}
-                </AppText>
-                {item.submittedAt ? (
-                  <AppText size="xs" color="muted">
-                    {new Date(item.submittedAt).toLocaleDateString()}
-                  </AppText>
-                ) : null}
-              </Card>
+                  {item.treatmentType
+                    ? t(`insurance.claim.treatments.${item.treatmentType}`)
+                    : t("insurance.claim.treatment")}
+                </Text>
+                <Pill
+                  tone={
+                    item.status === "approved" || item.status === "paid"
+                      ? "success"
+                      : item.status === "rejected"
+                        ? "danger"
+                        : "warning"
+                  }
+                  label={t(`insurance.claim.statuses.${item.status}`)}
+                />
+              </View>
+              <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600" }}>
+                LKR {(item.amountRequestedLkr ?? 0).toLocaleString()}
+                {item.amountApprovedLkr
+                  ? ` · ${t("insurance.claim.approved", {
+                      amount: item.amountApprovedLkr.toLocaleString(),
+                    })}`
+                  : ""}
+              </Text>
             </Pressable>
           )}
         />
       )}
 
-      <View style={{ padding: 16 }}>
-        <Button
-          label={t("insurance.submitClaim")}
-          leftIcon={<FilePlus size={14} />}
-          onPress={() => router.push("/insurance/claims/new")}
-        />
-      </View>
+      {claims.length > 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: spacing.lg,
+            paddingBottom: 28,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            backgroundColor: colors.surface,
+          }}
+        >
+          <Button
+            title={t("insurance.submitClaim")}
+            onPress={() => router.push("/insurance/claims/new")}
+          />
+        </View>
+      ) : null}
     </Screen>
   );
 }

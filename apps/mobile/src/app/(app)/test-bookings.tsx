@@ -3,7 +3,6 @@
 import { useState, useCallback } from "react";
 import { View, Text, FlatList, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
 import {
   TestTube2,
   Package,
@@ -24,7 +23,6 @@ import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
-  Card,
   EmptyState,
   Skeleton,
 } from "@/components/ui";
@@ -33,68 +31,23 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; icon: any }
 > = {
-  pending: {
-    label: "Pending",
-    color: "#D97706",
-    bg: "#FEF3C7",
-    icon: Clock,
-  },
-  confirmed: {
-    label: "Confirmed",
-    color: "#3B82F6",
-    bg: "#EFF6FF",
-    icon: CheckCircle2,
-  },
-  phlebotomist_assigned: {
-    label: "Phlebotomist Assigned",
-    color: "#8B5CF6",
-    bg: "#F5F3FF",
-    icon: Home,
-  },
-  sample_collection_en_route: {
-    label: "En Route",
-    color: "#F97316",
-    bg: "#FFF7ED",
-    icon: Truck,
-  },
-  sample_collected: {
-    label: "Sample Collected",
-    color: "#06B6D4",
-    bg: "#ECFEFF",
-    icon: FlaskConical,
-  },
-  in_progress: {
-    label: "In Progress",
-    color: "#8B5CF6",
-    bg: "#F5F3FF",
-    icon: Loader2,
-  },
-  completed: {
-    label: "Completed",
-    color: "#059669",
-    bg: "#ECFDF5",
-    icon: CheckCircle2,
-  },
-  cancelled: {
-    label: "Cancelled",
-    color: "#EF4444",
-    bg: "#FEF2F2",
-    icon: XCircle,
-  },
-  rescheduled: {
-    label: "Rescheduled",
-    color: "#6B7280",
-    bg: "#F9FAFB",
-    icon: Calendar,
-  },
+  pending: { label: "Pending", color: "#D97706", bg: "#FEF3C7", icon: Clock },
+  confirmed: { label: "Confirmed", color: "#2563EB", bg: "#DBEAFE", icon: CheckCircle2 },
+  phlebotomist_assigned: { label: "Assigned", color: "#7C3AED", bg: "#EDE9FE", icon: Home },
+  sample_collection_en_route: { label: "En Route", color: "#EA580C", bg: "#FFEDD5", icon: Truck },
+  sample_collected: { label: "Collected", color: "#0891B2", bg: "#CFFAFE", icon: FlaskConical },
+  in_progress: { label: "In Progress", color: "#7C3AED", bg: "#EDE9FE", icon: Loader2 },
+  completed: { label: "Completed", color: "#059669", bg: "#ECFDF5", icon: CheckCircle2 },
+  cancelled: { label: "Cancelled", color: "#DC2626", bg: "#FEE2E2", icon: XCircle },
+  rescheduled: { label: "Rescheduled", color: "#64748B", bg: "#F1F5F9", icon: Calendar },
 };
 
 function getStatusConfig(status: string) {
   return (
     STATUS_CONFIG[status] || {
       label: status,
-      color: "#6B7280",
-      bg: "#F9FAFB",
+      color: "#64748B",
+      bg: "#F1F5F9",
       icon: Clock,
     }
   );
@@ -120,8 +73,7 @@ const TABS = [
 ];
 
 export default function TestBookingsScreen() {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, spacing, fontFamily } = useTheme();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("active");
 
@@ -135,196 +87,175 @@ export default function TestBookingsScreen() {
       return (
         <Pressable
           onPress={() => router.push(`/test-booking-detail/${item.id}`)}
+          accessibilityRole="button"
           style={({ pressed }) => ({
-            opacity: pressed ? 0.7 : 1,
+            marginHorizontal: spacing.lg,
+            marginBottom: spacing.sm,
+            borderRadius: 18,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: pressed ? colors.primary : colors.border,
+            padding: spacing.md,
+            gap: 12,
+            transform: [{ scale: pressed ? 0.985 : 1 }],
           })}
         >
-          <Card
+          <View
             style={{
-              marginHorizontal: 16,
-              marginBottom: 12,
-              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
             }}
           >
-            {/* Status Badge */}
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 12,
+                backgroundColor: statusCfg.bg,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 999,
+                gap: 6,
               }}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: statusCfg.bg,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 8,
-                }}
-              >
-                <StatusIcon size={14} color={statusCfg.color} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: statusCfg.color,
-                    marginLeft: 6,
-                  }}
-                >
-                  {statusCfg.label}
-                </Text>
-              </View>
-
+              <StatusIcon size={13} color={statusCfg.color} strokeWidth={2.4} />
               <Text
                 style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: colors.text,
+                  fontSize: 12,
+                  fontWeight: "800",
+                  color: statusCfg.color,
+                  fontFamily: fontFamily.bodyBold,
                 }}
               >
-                {formatPrice(item.totalPrice)}
+                {statusCfg.label}
               </Text>
             </View>
 
-            {/* Test/Package Name */}
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "800",
+                color: colors.text,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              {formatPrice(item.totalPrice)}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View
               style={{
-                flexDirection: "row",
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: colors.primarySoft,
                 alignItems: "center",
-                marginBottom: 10,
+                justifyContent: "center",
               }}
             >
               {item.bookingType === "single_test" ? (
-                <TestTube2 size={18} color={colors.primary} />
+                <TestTube2 size={18} color={colors.primary} strokeWidth={2.3} />
               ) : (
-                <Package size={18} color={colors.primary} />
+                <Package size={18} color={colors.primary} strokeWidth={2.3} />
               )}
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginLeft: 10,
-                  flex: 1,
-                }}
-              >
-                {item.itemName || "Test Booking"}
-              </Text>
             </View>
-
-            {/* Date & Time */}
-            <View
+            <Text
+              numberOfLines={2}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: 6,
+                fontSize: 15,
+                fontWeight: "800",
+                color: colors.text,
+                fontFamily: fontFamily.bodyBold,
+                flex: 1,
+                letterSpacing: -0.2,
               }}
             >
-              <Calendar size={14} color={colors.textSecondary} />
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textSecondary,
-                  marginLeft: 8,
-                }}
-              >
-                {formatDisplayDate(item.scheduledDate)} •{" "}
-                {item.scheduledTimeSlot}
+              {item.itemName || "Test Booking"}
+            </Text>
+          </View>
+
+          <View style={{ gap: 6 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Calendar size={14} color={colors.textMuted} strokeWidth={2.3} />
+              <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600", flex: 1 }}>
+                {formatDisplayDate(item.scheduledDate)} · {item.scheduledTimeSlot}
               </Text>
             </View>
-
-            {/* Address */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <MapPin size={14} color={colors.textSecondary} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <MapPin size={14} color={colors.textMuted} strokeWidth={2.3} />
               <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textSecondary,
-                  marginLeft: 8,
-                  flex: 1,
-                }}
+                style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600", flex: 1 }}
                 numberOfLines={1}
               >
-                {item.collectionAddress?.line1},{" "}
-                {item.collectionAddress?.city}
+                {item.collectionAddress?.line1}, {item.collectionAddress?.city}
               </Text>
-              <ChevronRight size={16} color={colors.textSecondary} />
+              <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
             </View>
-          </Card>
+          </View>
         </Pressable>
       );
     },
-    [colors, router]
+    [colors, fontFamily, router, spacing]
   );
 
   return (
-    <Screen padded={false} bottomInset={false}>
+    <Screen padded={false} bottomInset={false} edges={["top"]}>
       <ScreenHeader title="My Test Bookings" back />
 
-      {/* Tabs */}
       <View
         style={{
           flexDirection: "row",
-          marginHorizontal: 16,
-          marginBottom: 16,
-          backgroundColor: colors.card,
-          borderRadius: 12,
+          marginHorizontal: spacing.lg,
+          marginBottom: spacing.md,
+          backgroundColor: colors.surface,
+          borderRadius: 14,
           padding: 4,
+          borderWidth: 1,
+          borderColor: colors.border,
         }}
       >
-        {TABS.map((tab) => (
-          <Pressable
-            key={tab.key}
-            onPress={() => setActiveTab(tab.key)}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              borderRadius: 10,
-              backgroundColor:
-                activeTab === tab.key ? colors.primary : "transparent",
-              alignItems: "center",
-            }}
-          >
-            <Text
+        {TABS.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
               style={{
-                fontSize: 14,
-                fontWeight: activeTab === tab.key ? "600" : "400",
-                color: activeTab === tab.key ? "#fff" : colors.textSecondary,
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 11,
+                backgroundColor: active ? colors.primary : "transparent",
+                alignItems: "center",
               }}
             >
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: active ? "800" : "600",
+                  color: active ? colors.onPrimary : colors.textMuted,
+                  fontFamily: active ? fontFamily.bodyBold : fontFamily.bodySemibold,
+                }}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
-      {/* Bookings List */}
       {isLoading ? (
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: spacing.lg, gap: spacing.sm }}>
           {[1, 2, 3].map((i) => (
-            <Skeleton
-              key={i}
-              style={{
-                height: 140,
-                borderRadius: 16,
-                marginBottom: 12,
-              }}
-            />
+            <Skeleton key={i} height={130} radius={18} />
           ))}
         </View>
       ) : error ? (
         <EmptyState
           icon={AlertCircle}
           title="Failed to load bookings"
-          description="Please check your connection and try again."
+          message="Please check your connection and try again."
         />
       ) : data?.bookings.length === 0 ? (
         <EmptyState
@@ -333,12 +264,12 @@ export default function TestBookingsScreen() {
             activeTab === "active"
               ? "No upcoming bookings"
               : activeTab === "completed"
-              ? "No completed bookings"
-              : "No cancelled bookings"
+                ? "No completed bookings"
+                : "No cancelled bookings"
           }
-          description={
+          message={
             activeTab === "active"
-              ? "Book a diagnostic test and we'll come to your home!"
+              ? "Book a diagnostic test and we'll come to your home."
               : undefined
           }
           actionLabel={activeTab === "active" ? "Browse Tests" : undefined}
@@ -353,7 +284,7 @@ export default function TestBookingsScreen() {
           data={data?.bookings || []}
           keyExtractor={(item) => item.id}
           renderItem={renderBookingCard}
-          contentContainerStyle={{ paddingTop: 4, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
         />
       )}

@@ -804,78 +804,113 @@ export default function HomeScreen() {
           }}
         >
           {/* Quick Actions */}
-          <View style={{ gap: spacing.sm }}>
+          <View style={{ gap: spacing.md }}>
             <SectionLabel title={t("home.sectionQuickActions")} />
-            <View style={{ flexDirection: "row", gap: spacing.md }}>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <QuickTile
                 icon={Pill}
                 label={t("home.medicines")}
+                hint={t("home.medicinesHint")}
                 tone="primary"
                 onPress={() => router.push("/(app)/medicines")}
               />
               <QuickTile
                 icon={ClipboardList}
                 label={t("home.records")}
-                tone="neutral"
+                hint={t("home.recordsHint")}
+                tone="info"
                 onPress={() => router.push("/(app)/records")}
               />
             </View>
-            <View style={{ flexDirection: "row", gap: spacing.md }}>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <QuickTile
                 icon={CalendarPlus}
                 label={t("home.bookVisit")}
+                hint={t("home.bookVisitHint")}
                 tone="warning"
                 onPress={() => router.push("/(app)/book-appointment")}
               />
               <QuickTile
                 icon={AlertTriangle}
                 label={t("home.emergency")}
+                hint={t("home.emergencyHint")}
                 tone="danger"
                 onPress={() => router.push("/(app)/emergency")}
               />
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.sm }}
+            <View
+              style={{
+                marginTop: spacing.xs,
+                borderRadius: 20,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                paddingVertical: spacing.sm,
+                paddingLeft: spacing.sm,
+                ...shadow.sm,
+              }}
             >
-              <SmallAction
-                icon={FlaskConical}
-                label={t("home.bookTest", "Book a Test")}
-                tone="info"
-                onPress={() => router.push("/(app)/test-catalog")}
-              />
-              <SmallAction
-                icon={FileSearch}
-                label={t("home.testBookings", "Test Bookings")}
-                tone="neutral"
-                onPress={() => router.push("/(app)/test-bookings")}
-              />
-              <SmallAction
-                icon={Shield}
-                label={t("home.insurance", "Insurance")}
-                tone="primary"
-                onPress={() => router.push("/(app)/insurance")}
-              />
-              <SmallAction
-                icon={FileText}
-                label={t("home.healthSummary", "Health Summary")}
-                tone="info"
-                onPress={() => router.push("/(app)/health-summary")}
-              />
-              <SmallAction
-                icon={StickyNote}
-                label={t("home.notes", "Notes")}
-                tone="warning"
-                onPress={() => router.push("/(app)/notes")}
-              />
-              <SmallAction
-                icon={Heart}
-                label={t("home.vitalsShort", "Vitals")}
-                tone="danger"
-                onPress={() => router.push("/(app)/vitals")}
-              />
-            </ScrollView>
+              <Text
+                style={[
+                  typography.overline,
+                  {
+                    color: colors.textSubtle,
+                    letterSpacing: 1.2,
+                    fontWeight: "700",
+                    paddingHorizontal: spacing.sm,
+                    marginBottom: spacing.xs,
+                  },
+                ]}
+              >
+                {t("home.moreActions").toUpperCase()}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                  gap: spacing.sm,
+                  paddingRight: spacing.md,
+                  paddingBottom: 2,
+                }}
+              >
+                <SmallAction
+                  icon={FlaskConical}
+                  label={t("home.bookTest", "Book a Test")}
+                  tone="info"
+                  onPress={() => router.push("/(app)/test-catalog")}
+                />
+                <SmallAction
+                  icon={FileSearch}
+                  label={t("home.testBookings", "Test Bookings")}
+                  tone="neutral"
+                  onPress={() => router.push("/(app)/test-bookings")}
+                />
+                <SmallAction
+                  icon={Shield}
+                  label={t("home.insurance", "Insurance")}
+                  tone="primary"
+                  onPress={() => router.push("/(app)/insurance")}
+                />
+                <SmallAction
+                  icon={FileText}
+                  label={t("home.healthSummary", "Health Summary")}
+                  tone="info"
+                  onPress={() => router.push("/(app)/health-summary")}
+                />
+                <SmallAction
+                  icon={StickyNote}
+                  label={t("home.notes", "Notes")}
+                  tone="warning"
+                  onPress={() => router.push("/(app)/notes")}
+                />
+                <SmallAction
+                  icon={Heart}
+                  label={t("home.vitalsShort", "Vitals")}
+                  tone="danger"
+                  onPress={() => router.push("/(app)/vitals")}
+                />
+              </ScrollView>
+            </View>
           </View>
 
           {/* AI Section (premium dark) */}
@@ -1444,92 +1479,127 @@ function SectionLabel({
 function QuickTile({
   icon: Icon,
   label,
+  hint,
   tone,
   onPress,
 }: {
   icon: React.ComponentType<any>;
   label: string;
+  hint?: string;
   tone: Tone;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius, typography, shadow: themeShadow } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const palette = useTone(tone);
-
   const isEmergency = tone === "danger";
-  const labelColor = isEmergency ? palette.fg : colors.text;
-  const chevronColor = isEmergency ? palette.fg : colors.textSubtle;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={hint ? `${label}. ${hint}` : label}
       style={({ pressed }) => ({
         flexBasis: "48%",
         flexGrow: 1,
         padding: spacing.md,
         borderRadius: 22,
-        backgroundColor: palette.bg,
-        opacity: pressed ? 0.85 : 1,
-        minHeight: 108,
+        backgroundColor: isEmergency ? palette.bg : colors.surface,
+        opacity: pressed ? 0.92 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
+        minHeight: 118,
         justifyContent: "space-between",
-        gap: spacing.md,
+        gap: spacing.sm,
         borderWidth: 1,
-        borderColor: palette.bg === colors.surfaceMuted ? colors.border : "transparent",
+        borderColor: isEmergency ? "transparent" : colors.border,
         overflow: "hidden",
         position: "relative",
-        ...themeShadow.sm,
+        shadowColor: palette.fg,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: isEmergency ? 0.14 : 0.08,
+        shadowRadius: 12,
+        elevation: 3,
       })}
     >
-      {/* Subtle inner highlight — gives the tile a 3D feel */}
+      {/* Soft tone wash in the corner */}
       <View
+        pointerEvents="none"
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 1,
-          backgroundColor: "rgba(255,255,255,0.5)",
+          top: -28,
+          right: -24,
+          width: 96,
+          height: 96,
+          borderRadius: 48,
+          backgroundColor: isEmergency
+            ? "rgba(255,255,255,0.35)"
+            : palette.bg,
+          opacity: isEmergency ? 1 : 0.9,
         }}
       />
 
       <View
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 13,
+          width: 44,
+          height: 44,
+          borderRadius: 14,
           alignItems: "center",
           justifyContent: "center",
           alignSelf: "flex-start",
-          backgroundColor: "#FFFFFF",
+          backgroundColor: palette.bgStrong,
+          shadowColor: palette.fg,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.28,
+          shadowRadius: 8,
+          elevation: 3,
         }}
       >
-        <Icon size={18} color={palette.fg} strokeWidth={2.5} />
+        <Icon size={20} color={palette.onBgStrong} strokeWidth={2.4} />
       </View>
 
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: spacing.xs,
-        }}
-      >
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.title.sm,
-            {
-              color: labelColor,
-              fontWeight: "700",
-              flex: 1,
-              letterSpacing: -0.1,
-            },
-          ]}
+      <View style={{ gap: 2, paddingRight: spacing.xs }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: spacing.xs,
+          }}
         >
-          {label}
-        </Text>
-        <ChevronRight size={14} color={chevronColor} strokeWidth={2.5} />
+          <Text
+            numberOfLines={1}
+            style={[
+              typography.title.sm,
+              {
+                color: isEmergency ? palette.fg : colors.text,
+                fontWeight: "700",
+                flex: 1,
+                letterSpacing: -0.2,
+              },
+            ]}
+          >
+            {label}
+          </Text>
+          <ChevronRight
+            size={15}
+            color={isEmergency ? palette.fg : colors.textSubtle}
+            strokeWidth={2.5}
+          />
+        </View>
+        {hint ? (
+          <Text
+            numberOfLines={1}
+            style={[
+              typography.body.sm,
+              {
+                color: isEmergency ? palette.fg : colors.textMuted,
+                opacity: isEmergency ? 0.75 : 1,
+                fontWeight: "500",
+              },
+            ]}
+          >
+            {hint}
+          </Text>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -1612,7 +1682,7 @@ function SmallAction({
   tone: Tone;
   onPress: () => void;
 }) {
-  const { colors, typography } = useTheme();
+  const { colors } = useTheme();
   const palette = useTone(tone);
   return (
     <Pressable
@@ -1623,33 +1693,34 @@ function SmallAction({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        paddingLeft: 6,
+        paddingLeft: 5,
         paddingRight: 14,
-        paddingVertical: 6,
+        paddingVertical: 5,
         borderRadius: 999,
-        backgroundColor: pressed ? colors.surfaceMuted : palette.bg,
+        backgroundColor: pressed ? palette.bg : colors.surfaceMuted,
         borderWidth: 1,
-        borderColor: pressed ? colors.borderStrong : "transparent",
+        borderColor: pressed ? palette.border : colors.border,
+        minHeight: 40,
       })}
     >
       <View
         style={{
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: "#FFFFFF",
+          width: 30,
+          height: 30,
+          borderRadius: 15,
+          backgroundColor: palette.bgStrong,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={14} color={palette.fg} strokeWidth={2.5} />
+        <Icon size={14} color={palette.onBgStrong} strokeWidth={2.5} />
       </View>
       <Text
         numberOfLines={1}
         style={{
           fontSize: 12.5,
           fontWeight: "700",
-          color: palette.fg,
+          color: colors.text,
           letterSpacing: -0.1,
         }}
       >

@@ -81,8 +81,6 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
-  useProtectedRoute();
-  useAppLockGate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userRole = useAuthStore((s) => s.user?.role ?? null);
   const [fontsLoaded, fontError] = useFonts({
@@ -123,6 +121,9 @@ export default function RootLayout() {
   // Never block forever on fonts — release builds can fail asset resolution.
   const fontsReady = fontsLoaded || !!fontError;
   const ready = hasLocaleHydrated && fontsReady;
+
+  useProtectedRoute(ready);
+  useAppLockGate(ready);
 
 
 

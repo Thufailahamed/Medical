@@ -2,7 +2,6 @@
 
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
 import {
   TestTube2,
   Clock,
@@ -12,13 +11,13 @@ import {
   Package,
   ChevronRight,
   Info,
+  Home,
 } from "lucide-react-native";
 import { useTestDetail } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
-  Card,
   Button,
   Skeleton,
   EmptyState,
@@ -30,20 +29,19 @@ function formatPrice(price: number) {
 
 export default function TestDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, spacing, fontFamily } = useTheme();
   const router = useRouter();
 
   const { data, isLoading, error } = useTestDetail(slug);
 
   if (isLoading) {
     return (
-      <Screen padded={false} bottomInset={false}>
+      <Screen padded={false} bottomInset={false} edges={["top"]}>
         <ScreenHeader title="Test Details" back />
-        <View style={{ padding: 16 }}>
-          <Skeleton style={{ height: 200, borderRadius: 16, marginBottom: 16 }} />
-          <Skeleton style={{ height: 120, borderRadius: 12, marginBottom: 16 }} />
-          <Skeleton style={{ height: 80, borderRadius: 12 }} />
+        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <Skeleton height={180} radius={20} />
+          <Skeleton height={100} radius={16} />
+          <Skeleton height={80} radius={16} />
         </View>
       </Screen>
     );
@@ -51,56 +49,67 @@ export default function TestDetailScreen() {
 
   if (error || !data?.test) {
     return (
-      <Screen padded={false} bottomInset={false}>
+      <Screen padded={false} bottomInset={false} edges={["top"]}>
         <ScreenHeader title="Test Details" back />
         <EmptyState
           icon={AlertCircle}
           title="Test not found"
-          description="This test may no longer be available."
+          message="This test may no longer be available."
         />
       </Screen>
     );
   }
 
   const { test, packages } = data;
+  const price = test.discountPrice ?? test.price;
 
   return (
-    <Screen padded={false} bottomInset={false}>
-      <ScreenHeader title={test.name} back />
+    <Screen padded={false} bottomInset={false} edges={["top"]}>
+      <ScreenHeader title="Test details" back />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140, paddingTop: spacing.sm }}
       >
-        {/* Header Card */}
-        <Card style={{ marginHorizontal: 16, marginTop: 8, padding: 20 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
+        {/* Hero summary */}
+        <View
+          style={{
+            marginHorizontal: spacing.lg,
+            borderRadius: 22,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+            padding: spacing.lg,
+            gap: spacing.md,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
             <View
               style={{
                 width: 56,
                 height: 56,
                 borderRadius: 16,
-                backgroundColor: colors.primary + "15",
+                backgroundColor: colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
-                marginRight: 14,
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.28,
+                shadowRadius: 10,
+                elevation: 4,
               }}
             >
-              <TestTube2 size={28} color={colors.primary} />
+              <TestTube2 size={26} color={colors.onPrimary} strokeWidth={2.3} />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 style={{
                   fontSize: 20,
-                  fontWeight: "700",
+                  fontWeight: "800",
                   color: colors.text,
-                  marginBottom: 4,
+                  fontFamily: fontFamily.bodyBold,
+                  letterSpacing: -0.4,
+                  lineHeight: 26,
                 }}
               >
                 {test.name}
@@ -108,200 +117,157 @@ export default function TestDetailScreen() {
               <Text
                 style={{
                   fontSize: 13,
-                  color: colors.textSecondary,
+                  color: colors.textMuted,
+                  marginTop: 4,
+                  fontWeight: "600",
                   textTransform: "capitalize",
                 }}
               >
-                {test.category.replace(/_/g, " ")} • {test.sampleType} sample
+                {test.category.replace(/_/g, " ")} · {test.sampleType} sample
               </Text>
             </View>
           </View>
 
-          {/* Price */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "baseline",
-              marginBottom: 16,
-            }}
-          >
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
             {test.discountPrice ? (
-              <>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: colors.textSecondary,
-                    textDecorationLine: "line-through",
-                    marginRight: 8,
-                  }}
-                >
-                  {formatPrice(test.price)}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 28,
-                    fontWeight: "800",
-                    color: "#059669",
-                  }}
-                >
-                  {formatPrice(test.discountPrice)}
-                </Text>
-              </>
-            ) : (
               <Text
                 style={{
-                  fontSize: 28,
-                  fontWeight: "800",
-                  color: colors.text,
+                  fontSize: 14,
+                  color: colors.textMuted,
+                  textDecorationLine: "line-through",
+                  fontWeight: "600",
                 }}
               >
                 {formatPrice(test.price)}
               </Text>
-            )}
-          </View>
-
-          {/* Info Grid */}
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            <InfoPill
-              icon={<Clock size={16} color="#3B82F6" />}
-              label={`Results in ${test.turnaroundHours}h`}
-              bgColor="#EFF6FF"
-            />
-            <InfoPill
-              icon={<Droplets size={16} color="#8B5CF6" />}
-              label={`${test.sampleType} sample`}
-              bgColor="#F5F3FF"
-            />
-            {test.fastingRequired && (
-              <InfoPill
-                icon={<AlertCircle size={16} color="#D97706" />}
-                label={`Fasting ${test.fastingHours}h required`}
-                bgColor="#FEF3C7"
-              />
-            )}
-            {test.homeCollectionAvailable && (
-              <InfoPill
-                icon={<CheckCircle2 size={16} color="#059669" />}
-                label="Home Collection"
-                bgColor="#ECFDF5"
-              />
-            )}
-          </View>
-        </Card>
-
-        {/* Description */}
-        {test.description && (
-          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 16 }}>
+            ) : null}
             <Text
               style={{
-                fontSize: 14,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 8,
+                fontSize: 28,
+                fontWeight: "800",
+                color: test.discountPrice ? "#059669" : colors.text,
+                fontFamily: fontFamily.bodyBold,
+                letterSpacing: -0.5,
               }}
             >
-              About this test
+              {formatPrice(price)}
             </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <InfoPill
+              icon={<Clock size={14} color="#2563EB" strokeWidth={2.4} />}
+              label={`Results in ${test.turnaroundHours}h`}
+              bg="#EFF6FF"
+              fg="#1D4ED8"
+            />
+            <InfoPill
+              icon={<Droplets size={14} color="#7C3AED" strokeWidth={2.4} />}
+              label={`${test.sampleType} sample`}
+              bg="#F5F3FF"
+              fg="#6D28D9"
+            />
+            {test.fastingRequired ? (
+              <InfoPill
+                icon={<AlertCircle size={14} color="#B45309" strokeWidth={2.4} />}
+                label={`Fasting ${test.fastingHours}h`}
+                bg="#FEF3C7"
+                fg="#92400E"
+              />
+            ) : null}
+            {test.homeCollectionAvailable ? (
+              <InfoPill
+                icon={<Home size={14} color="#059669" strokeWidth={2.4} />}
+                label="Home collection"
+                bg="#ECFDF5"
+                fg="#047857"
+              />
+            ) : null}
+          </View>
+        </View>
+
+        {test.description ? (
+          <SectionCard title="About this test" colors={colors} spacing={spacing} fontFamily={fontFamily}>
             <Text
               style={{
                 fontSize: 14,
-                color: colors.textSecondary,
+                color: colors.textMuted,
                 lineHeight: 22,
+                fontWeight: "500",
               }}
             >
               {test.description}
             </Text>
-          </Card>
-        )}
+          </SectionCard>
+        ) : null}
 
-        {/* Pre-test Instructions */}
-        {test.instructions && (
-          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 16 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: 8,
-              }}
-            >
-              <Info size={16} color="#3B82F6" />
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginLeft: 6,
-                }}
-              >
-                Pre-test Instructions
-              </Text>
-            </View>
+        {test.instructions ? (
+          <SectionCard title="Pre-test instructions" colors={colors} spacing={spacing} fontFamily={fontFamily} icon>
             <Text
               style={{
                 fontSize: 14,
-                color: colors.textSecondary,
+                color: colors.textMuted,
                 lineHeight: 22,
+                fontWeight: "500",
               }}
             >
               {test.instructions}
             </Text>
-          </Card>
-        )}
+          </SectionCard>
+        ) : null}
 
-        {/* Packages containing this test */}
-        {packages && packages.length > 0 && (
-          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 16 }}>
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 12,
-              }}
-            >
-              Available in packages
-            </Text>
-            {packages.map((pkg) => (
-              <Pressable
-                key={pkg.id}
-                onPress={() => router.push(`/test-package-detail/${pkg.slug}`)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 10,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
-                }}
-              >
-                <Package size={18} color={colors.primary} />
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text
+        {packages && packages.length > 0 ? (
+          <SectionCard title="Available in packages" colors={colors} spacing={spacing} fontFamily={fontFamily}>
+            <View style={{ gap: 4 }}>
+              {packages.map((pkg, idx) => (
+                <Pressable
+                  key={pkg.id}
+                  onPress={() => router.push(`/test-package-detail/${pkg.slug}`)}
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    borderTopWidth: idx === 0 ? 0 : 1,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.85 : 1,
+                    gap: 10,
+                  })}
+                >
+                  <View
                     style={{
-                      fontSize: 14,
-                      fontWeight: "500",
-                      color: colors.text,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 11,
+                      backgroundColor: colors.primarySoft,
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {pkg.name}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                    {formatPrice(pkg.discountPrice ?? pkg.price)}
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={colors.textSecondary} />
-              </Pressable>
-            ))}
-          </Card>
-        )}
+                    <Package size={16} color={colors.primary} strokeWidth={2.3} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "700",
+                        color: colors.text,
+                        fontFamily: fontFamily.bodyBold,
+                      }}
+                    >
+                      {pkg.name}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2, fontWeight: "600" }}>
+                      {formatPrice(pkg.discountPrice ?? pkg.price)}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+                </Pressable>
+              ))}
+            </View>
+          </SectionCard>
+        ) : null}
       </ScrollView>
 
-      {/* Bottom CTA */}
       <View
         style={{
           position: "absolute",
@@ -309,15 +275,15 @@ export default function TestDetailScreen() {
           left: 0,
           right: 0,
           backgroundColor: colors.surface,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          paddingBottom: 32,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+          paddingBottom: 28,
           borderTopWidth: 1,
           borderTopColor: colors.border,
         }}
       >
         <Button
-          title={`Book Now — ${formatPrice(test.discountPrice ?? test.price)}`}
+          title={`Book now — ${formatPrice(price)}`}
           onPress={() =>
             router.push({
               pathname: "/book-test",
@@ -325,41 +291,89 @@ export default function TestDetailScreen() {
                 bookingType: "single_test",
                 testId: test.id,
                 testName: test.name,
-                testPrice: test.discountPrice ?? test.price,
+                testPrice: String(price),
                 fastingRequired: test.fastingRequired ? "1" : "0",
                 fastingHours: String(test.fastingHours),
               },
             })
           }
-          style={{ width: "100%" }}
         />
       </View>
     </Screen>
   );
 }
 
+function SectionCard({
+  title,
+  children,
+  colors,
+  spacing,
+  fontFamily,
+  icon,
+}: {
+  title: string;
+  children: React.ReactNode;
+  colors: any;
+  spacing: any;
+  fontFamily: any;
+  icon?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        marginHorizontal: spacing.lg,
+        marginTop: spacing.md,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.md,
+        gap: spacing.sm,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        {icon ? <Info size={15} color={colors.primary} strokeWidth={2.4} /> : null}
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "800",
+            color: colors.text,
+            fontFamily: fontFamily.bodyBold,
+          }}
+        >
+          {title}
+        </Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
 function InfoPill({
   icon,
   label,
-  bgColor,
+  bg,
+  fg,
 }: {
   icon: React.ReactNode;
   label: string;
-  bgColor: string;
+  bg: string;
+  fg: string;
 }) {
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: bgColor,
+        backgroundColor: bg,
         paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
+        paddingVertical: 7,
+        borderRadius: 10,
+        gap: 6,
       }}
     >
       {icon}
-      <Text style={{ fontSize: 12, marginLeft: 6, color: "#374151" }}>
+      <Text style={{ fontSize: 12, fontWeight: "700", color: fg, textTransform: "capitalize" }}>
         {label}
       </Text>
     </View>

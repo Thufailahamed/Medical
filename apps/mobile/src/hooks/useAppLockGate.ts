@@ -17,7 +17,7 @@ import { useRouter, useSegments } from "expo-router";
 import { useAuthStore } from "@/stores/auth";
 import { useAppLockStore } from "@/stores/appLock";
 
-export function useAppLockGate() {
+export function useAppLockGate(isReady: boolean = true) {
   const router = useRouter();
   const segments = useSegments();
 
@@ -49,13 +49,13 @@ export function useAppLockGate() {
   // verifyAndUnlock sets isLocked=false and immediately re-locks.
   const coldStartLockedRef = useRef(false);
   useEffect(() => {
-    if (!hasHydrated) return;
+    if (!isReady || !hasHydrated) return;
     if (coldStartLockedRef.current) return;
     if (pinHash && !isLocked) {
       coldStartLockedRef.current = true;
       lock();
     }
-  }, [hasHydrated, pinHash, isLocked, lock]);
+  }, [isReady, hasHydrated, pinHash, isLocked, lock]);
 
   // ---- Background-timeout gating ----------------------------------------
   // `Date.now() - lockedAt` measures wall-time since the last lock event.
@@ -95,7 +95,7 @@ export function useAppLockGate() {
   //   - otherwise                         → let the regular group
   //                                          router handle it
   useEffect(() => {
-    if (!hasHydrated) return;
+    if (!isReady || !hasHydrated) return;
 
     const timeout = setTimeout(() => {
       const inLockGroup = segments[0] === "lock";
@@ -123,6 +123,7 @@ export function useAppLockGate() {
 
     return () => clearTimeout(timeout);
   }, [
+    isReady,
     hasHydrated,
     isAuthenticated,
     pinHash,

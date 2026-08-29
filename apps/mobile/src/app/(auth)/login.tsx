@@ -73,8 +73,22 @@ export default function LoginScreen() {
         body: { phone },
       });
 
-      if (!res.otpSent || !res.devCode) {
-        toast.show("Could not get dev verification code", "danger");
+      if (!res.otpSent) {
+        toast.show("Could not send verification code", "danger");
+        return;
+      }
+
+      if (!res.devCode) {
+        router.push({
+          pathname: "/(auth)/verify-otp",
+          params: {
+            userId: res.userId,
+            channel: "mobile",
+            target: res.target,
+            mode: "login",
+            preSent: "true",
+          },
+        } as any);
         return;
       }
 

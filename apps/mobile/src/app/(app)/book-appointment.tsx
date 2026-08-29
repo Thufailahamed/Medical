@@ -1,7 +1,8 @@
 // @ts-nocheck
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,12 +47,10 @@ import {
   TextInput,
   Button,
   DateField,
-  Card,
   Avatar,
   Pill,
   Stepper,
   TimeSlots,
-  NextActionCard,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -73,6 +72,20 @@ function getSpecialtyIcon(name: string) {
   if (norm.includes("emerg") || norm.includes("urgent")) return AlertCircle;
   if (norm.includes("general") || norm.includes("practice") || norm.includes("physician") || norm.includes("family")) return Stethoscope;
   return Activity;
+}
+
+// Accent color for specialty icon wells (solid, high contrast on soft tint).
+function getSpecialtyAccent(name: string): string {
+  const norm = name.trim().toLowerCase();
+  if (norm.includes("cardio")) return "#DC2626";
+  if (norm.includes("neuro") || norm.includes("psych") || norm.includes("mental")) return "#7C3AED";
+  if (norm.includes("pediatr") || norm.includes("child") || norm.includes("baby")) return "#D97706";
+  if (norm.includes("ortho") || norm.includes("bone") || norm.includes("joint")) return "#0284C7";
+  if (norm.includes("ophthalm") || norm.includes("eye") || norm.includes("vision")) return "#0891B2";
+  if (norm.includes("derm") || norm.includes("skin")) return "#DB2777";
+  if (norm.includes("emerg") || norm.includes("urgent")) return "#EA580C";
+  if (norm.includes("general") || norm.includes("practice") || norm.includes("physician") || norm.includes("family")) return "#0D9488";
+  return "#0284C7";
 }
 
 const TIME_SLOTS = [
@@ -375,7 +388,7 @@ export default function BookAppointmentScreen() {
         title={t("bookAppointment.title")}
       />
 
-      <View style={{ paddingTop: spacing.md, paddingBottom: spacing.xl }}>
+      <View style={{ paddingTop: spacing.sm, paddingBottom: spacing.md }}>
         <Stepper
           steps={[
             t("bookAppointment.stepDoctor"),
@@ -386,261 +399,236 @@ export default function BookAppointmentScreen() {
         />
       </View>
 
-      <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg }}>
+      <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, paddingBottom: spacing.md }}>
         {step === 1 ? (
           <View style={{ gap: spacing.md }}>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.title.md, { color: colors.text }]}>
-                {step1View === "doctors" && specialtyFilter
-                  ? t("bookAppointment.step1DoctorsTitle", {
-                      specialty: specialtyFilter,
-                    })
-                  : t(
-                      "bookAppointment.step1SpecialtiesTitle",
-                      "Choose a specialty"
-                    )}
-              </Text>
-              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                {step1View === "doctors"
-                  ? t(
-                      "bookAppointment.step1DoctorsSubtitle",
-                      "Tap a doctor to pick a time slot"
-                    )
-                  : t(
-                      "bookAppointment.step1SpecialtiesSubtitle",
-                      "Browse doctors by what they treat. Tap a category to see who is available."
-                    )}
-              </Text>
-            </View>
-
-            <TextInput
-              placeholder={t("bookAppointment.searchPlaceholder")}
-              value={query}
-              onChangeText={setQuery}
-              leadingIcon={Search}
-              tone="soft"
-              autoCapitalize="none"
-            />
-
-            {/* SPECIALTIES GRID — default step 1 view */}
-            {step1View === "specialties" ? (
-              filteredSpecialties.length === 0 ? (
-                <EmptyState
-                  icon={Stethoscope}
-                  title={t("bookAppointment.emptyTitle")}
-                  message={t("bookAppointment.emptyBodyEmpty")}
-                  tone="neutral"
-                />
-              ) : (
-                <View
-                  style={{
-                    flexDirection: "column",
-                    gap: spacing.sm,
-                  }}
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: spacing.md,
+                gap: spacing.md,
+              }}
+            >
+              <View style={{ gap: 4 }}>
+                <Text
+                  style={[
+                    typography.title.md,
+                    {
+                      color: colors.text,
+                      fontWeight: "800",
+                      letterSpacing: -0.3,
+                    },
+                  ]}
                 >
-                  {filteredSpecialties.map((s, i) => (
-                    <Pressable
-                      key={`${s.name}-${i}`}
-                      onPress={() => {
-                        setSpecialtyFilter(s.name);
-                        setStep1View("doctors");
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel={t(
-                        "bookAppointment.specialtyA11y",
-                        {
-                          specialty: s.name,
-                          count: s.count,
-                        }
+                  {step1View === "doctors" && specialtyFilter
+                    ? t("bookAppointment.step1DoctorsTitle", {
+                        specialty: specialtyFilter,
+                      })
+                    : t(
+                        "bookAppointment.step1SpecialtiesTitle",
+                        "Choose a specialty"
                       )}
-                      testID={`specialty-${s.name}`}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        padding: spacing.md,
-                        borderRadius: 16,
-                        backgroundColor: colors.surface,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        gap: spacing.md,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 12,
-                          backgroundColor: colors.primarySoft,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {(() => {
-                          const IconComponent = getSpecialtyIcon(s.name);
-                          return (
-                            <IconComponent
-                              size={22}
-                              color={colors.primary}
-                              strokeWidth={2.2}
-                            />
-                          );
-                        })()}
-                      </View>
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <Text
-                          style={[
-                            typography.title.sm,
-                            { color: colors.text, fontWeight: "700" },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {s.name}
-                        </Text>
-                        <Text
-                          style={[
-                            typography.caption,
-                            { color: colors.textMuted },
-                          ]}
-                        >
-                          {s.count > 0
-                            ? t("bookAppointment.specialtyCount", {
-                                count: s.count,
-                              })
-                            : t("bookAppointment.tapToChoose", "Tap to browse")}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 14,
-                          backgroundColor: colors.surfaceMuted,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <ChevronRight
-                          size={16}
-                          color={colors.textMuted}
-                          strokeWidth={2.5}
-                        />
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              )
-            ) : null}
-
-            {/* DOCTORS VIEW — drilled into from the specialties grid */}
-            {step1View === "doctors" ? (
-              <View style={{ gap: spacing.md }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: spacing.xs,
-                    alignItems: "center",
-                  }}
+                </Text>
+                <Text
+                  style={[
+                    typography.body.sm,
+                    { color: colors.textMuted, lineHeight: 19 },
+                  ]}
                 >
-                  <Pill
-                    label={t(
-                      "bookAppointment.changeSpecialty",
-                      "Change specialty"
-                    )}
-                    tone="neutral"
-                    icon={ChevronLeft}
-                    onPress={() => {
-                      setSpecialtyFilter(null);
-                      setStep1View("specialties");
-                    }}
-                    testID="change-specialty"
-                  />
-                  {specialtyFilter ? (
-                    <Pill
-                      label={specialtyFilter}
-                      tone="primary"
-                      testID="active-specialty"
-                    />
-                  ) : null}
-                  <Pill
-                    label={t("bookAppointment.telemedicineToggle")}
-                    tone={telemedicineOnly ? "primary" : "neutral"}
-                    onPress={() => setTelemedicineOnly((v) => !v)}
-                    icon={Video}
-                    testID="telemedicine-toggle"
-                  />
-                </View>
+                  {step1View === "doctors"
+                    ? t(
+                        "bookAppointment.step1DoctorsSubtitle",
+                        "Tap a doctor to pick a time slot"
+                      )
+                    : t(
+                        "bookAppointment.step1SpecialtiesSubtitle",
+                        "Browse doctors by what they treat. Tap a category to see who is available."
+                      )}
+                </Text>
+              </View>
 
-                {doctorsLoading ? (
-                  <View style={{ gap: spacing.sm }}>
-                    <Skeleton height={84} radius={16} />
-                    <Skeleton height={84} radius={16} />
-                    <Skeleton height={84} radius={16} />
-                  </View>
-                ) : isError ? (
-                  <ErrorState
-                    title={t(
-                      "recordDetail.errorTitle",
-                      "Couldn't load doctors"
-                    )}
-                    message={t(
-                      "recordDetail.errorBody",
-                      "Check your connection and try again."
-                    )}
-                    actionLabel={t("common.retry")}
-                    onAction={() => refetch()}
-                  />
-                ) : filteredDoctors.length === 0 ? (
+              <TextInput
+                placeholder={t("bookAppointment.searchPlaceholder")}
+                value={query}
+                onChangeText={setQuery}
+                leadingIcon={Search}
+                tone="soft"
+                autoCapitalize="none"
+                containerStyle={{
+                  minHeight: 48,
+                  borderRadius: 14,
+                  backgroundColor: colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              />
+
+              {/* SPECIALTIES — 2-column grid */}
+              {step1View === "specialties" ? (
+                filteredSpecialties.length === 0 ? (
                   <EmptyState
                     icon={Stethoscope}
                     title={t("bookAppointment.emptyTitle")}
-                    message={t("bookAppointment.emptyBodyFiltered")}
+                    message={t("bookAppointment.emptyBodyEmpty")}
                     tone="neutral"
                   />
                 ) : (
-                  <View style={{ gap: spacing.sm }}>
-                    {filteredDoctors.map((d, i) => (
-                      <DoctorRow
-                        key={`${d.doctorId}-${i}`}
-                        doctor={d}
-                        selected={values.doctorId === d.doctorId}
-                        t={t}
-                        colors={colors}
-                        typography={typography}
-                        spacing={spacing}
-                        onPick={() => {
-                          setValue("doctorId", d.doctorId, {
-                            shouldValidate: true,
-                          });
-                          setValue("hospitalId", d.hospitalId || "", {
-                            shouldValidate: true,
-                          });
-                          setStep(2);
-                        }}
-                      />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: spacing.sm,
+                    }}
+                  >
+                    {filteredSpecialties.map((s, i) => (
+                      <View
+                        key={`${s.name}-${i}`}
+                        style={{ width: "48%", flexGrow: 1, maxWidth: "48.5%" }}
+                      >
+                        <SpecialtyCard
+                          name={s.name}
+                          count={s.count}
+                          onPress={() => {
+                            setSpecialtyFilter(s.name);
+                            setStep1View("doctors");
+                          }}
+                          t={t}
+                        />
+                      </View>
                     ))}
                   </View>
-                )}
+                )
+              ) : null}
 
-                {errors.doctorId ? (
-                  <Text
-                    style={[
-                      typography.caption,
-                      { color: colors.danger },
-                    ]}
+              {/* DOCTORS VIEW */}
+              {step1View === "doctors" ? (
+                <View style={{ gap: spacing.md }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: spacing.xs,
+                      alignItems: "center",
+                    }}
                   >
-                    {errors.doctorId.message}
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
+                    <Pill
+                      label={t(
+                        "bookAppointment.changeSpecialty",
+                        "Change specialty"
+                      )}
+                      tone="neutral"
+                      icon={ChevronLeft}
+                      onPress={() => {
+                        setSpecialtyFilter(null);
+                        setStep1View("specialties");
+                      }}
+                      testID="change-specialty"
+                    />
+                    {specialtyFilter ? (
+                      <Pill
+                        label={specialtyFilter}
+                        tone="primary"
+                        testID="active-specialty"
+                      />
+                    ) : null}
+                    <Pill
+                      label={t("bookAppointment.telemedicineToggle")}
+                      tone={telemedicineOnly ? "primary" : "neutral"}
+                      onPress={() => setTelemedicineOnly((v) => !v)}
+                      icon={Video}
+                      testID="telemedicine-toggle"
+                    />
+                  </View>
+
+                  {doctorsLoading ? (
+                    <View style={{ gap: spacing.sm }}>
+                      <Skeleton height={88} radius={16} />
+                      <Skeleton height={88} radius={16} />
+                      <Skeleton height={88} radius={16} />
+                    </View>
+                  ) : isError ? (
+                    <ErrorState
+                      title={t(
+                        "recordDetail.errorTitle",
+                        "Couldn't load doctors"
+                      )}
+                      message={t(
+                        "recordDetail.errorBody",
+                        "Check your connection and try again."
+                      )}
+                      actionLabel={t("common.retry")}
+                      onAction={() => refetch()}
+                    />
+                  ) : filteredDoctors.length === 0 ? (
+                    <EmptyState
+                      icon={Stethoscope}
+                      title={t("bookAppointment.emptyTitle")}
+                      message={t("bookAppointment.emptyBodyFiltered")}
+                      tone="neutral"
+                    />
+                  ) : (
+                    <View style={{ gap: spacing.sm }}>
+                      {filteredDoctors.map((d, i) => (
+                        <DoctorRow
+                          key={`${d.doctorId}-${i}`}
+                          doctor={d}
+                          selected={values.doctorId === d.doctorId}
+                          t={t}
+                          colors={colors}
+                          typography={typography}
+                          spacing={spacing}
+                          onPick={() => {
+                            setValue("doctorId", d.doctorId, {
+                              shouldValidate: true,
+                            });
+                            setValue("hospitalId", d.hospitalId || "", {
+                              shouldValidate: true,
+                            });
+                            setStep(2);
+                          }}
+                        />
+                      ))}
+                    </View>
+                  )}
+
+                  {errors.doctorId ? (
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.danger },
+                      ]}
+                    >
+                      {errors.doctorId.message}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
           </View>
         ) : null}
 
         {step === 2 ? (
           <View style={{ gap: spacing.md }}>
             {selectedDoctor ? (
-              <Card padded tone="primary">
+              <View
+                style={{
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  padding: spacing.md,
+                  overflow: "hidden",
+                }}
+              >
+                <LinearGradient
+                  colors={[colors.primarySoft, "transparent"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
                 <View
                   style={{
                     flexDirection: "row",
@@ -657,7 +645,7 @@ export default function BookAppointmentScreen() {
                     <Text
                       style={[
                         typography.title.sm,
-                        { color: colors.text },
+                        { color: colors.text, fontWeight: "800" },
                       ]}
                     >
                       {selectedDoctor.name}
@@ -665,7 +653,7 @@ export default function BookAppointmentScreen() {
                     <Text
                       style={[
                         typography.body.sm,
-                        { color: colors.textMuted },
+                        { color: colors.textMuted, marginTop: 2 },
                       ]}
                     >
                       {selectedDoctor.specialization}
@@ -687,82 +675,115 @@ export default function BookAppointmentScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 4,
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.xs,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7,
                       borderRadius: 999,
                       backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.border,
                     }}
                   >
                     <Info size={14} color={colors.primary} strokeWidth={2.2} />
                     <Text
-                      style={[typography.caption, { color: colors.primary }]}
+                      style={[
+                        typography.caption,
+                        { color: colors.primary, fontWeight: "700" },
+                      ]}
                     >
-                      {t("bookAppointment.viewDetails", "View details")}
+                      {t("bookAppointment.viewDetails", "Details")}
                     </Text>
                   </Pressable>
                 </View>
-              </Card>
+              </View>
             ) : null}
 
-            <FormField
-              label={t("bookAppointment.step2DateLabel")}
-              required
-              error={errors.date?.message}
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: spacing.md,
+                gap: spacing.md,
+              }}
             >
-              <Controller
-                control={control}
-                name="date"
-                render={({ field: { value, onChange } }) => (
-                  <DateField
-                    value={value}
-                    onChange={(d) => onChange(d)}
-                    placeholder={t("bookAppointment.step2DatePlaceholder")}
-                    minimumDate={new Date()}
-                  />
-                )}
-              />
-            </FormField>
-
-            <FormField label={t("bookAppointment.step2PeriodLabel")}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: spacing.sm,
-                  flexWrap: "wrap",
-                }}
+              <Text
+                style={[
+                  typography.title.sm,
+                  { color: colors.text, fontWeight: "800" },
+                ]}
               >
-                {PERIOD_VALUES.map((p, i) => (
-                  <FilterPill
-                    key={`${p}-${i}`}
-                    label={t(`bookAppointment.periods.${p}`)}
-                    active={period === p}
-                    onPress={() => setPeriod(p)}
-                  />
-                ))}
-              </View>
-            </FormField>
+                {t("bookAppointment.step2Title", "Pick a time")}
+              </Text>
 
-            <FormField
-              label={t("bookAppointment.step2TimeLabel")}
-              required
-              error={errors.time?.message}
-            >
-              <TimeSlots
-                slots={slots.map((t) => ({ value: t, label: t }))}
-                value={values.time}
-                onChange={(v) =>
-                  setValue("time", v, { shouldValidate: true })
-                }
-                columns={4}
-              />
-            </FormField>
+              <FormField
+                label={t("bookAppointment.step2DateLabel")}
+                required
+                error={errors.date?.message}
+              >
+                <Controller
+                  control={control}
+                  name="date"
+                  render={({ field: { value, onChange } }) => (
+                    <DateField
+                      value={value}
+                      onChange={(d) => onChange(d)}
+                      placeholder={t("bookAppointment.step2DatePlaceholder")}
+                      minimumDate={new Date()}
+                    />
+                  )}
+                />
+              </FormField>
+
+              <FormField label={t("bookAppointment.step2PeriodLabel")}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    backgroundColor: colors.surfaceMuted,
+                    borderRadius: 12,
+                    padding: 3,
+                    gap: 2,
+                  }}
+                >
+                  {PERIOD_VALUES.map((p) => (
+                    <FilterPill
+                      key={p}
+                      label={t(`bookAppointment.periods.${p}`)}
+                      active={period === p}
+                      onPress={() => setPeriod(p)}
+                      flex
+                    />
+                  ))}
+                </View>
+              </FormField>
+
+              <FormField
+                label={t("bookAppointment.step2TimeLabel")}
+                required
+                error={errors.time?.message}
+              >
+                <TimeSlots
+                  slots={slots.map((t) => ({ value: t, label: t }))}
+                  value={values.time}
+                  onChange={(v) =>
+                    setValue("time", v, { shouldValidate: true })
+                  }
+                  columns={4}
+                />
+              </FormField>
+            </View>
           </View>
         ) : null}
 
         {step === 3 ? (
           <View style={{ gap: spacing.md }}>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.title.md, { color: colors.text }]}>
+            <View style={{ gap: 4 }}>
+              <Text
+                style={[
+                  typography.title.md,
+                  { color: colors.text, fontWeight: "800", letterSpacing: -0.3 },
+                ]}
+              >
                 {t("bookAppointment.step3Title")}
               </Text>
               <Text style={[typography.body.sm, { color: colors.textMuted }]}>
@@ -770,41 +791,55 @@ export default function BookAppointmentScreen() {
               </Text>
             </View>
 
-            <Card>
-              <View style={{ gap: spacing.md }}>
-                <SummaryRow
-                  icon={Stethoscope}
-                  label={t("bookAppointment.summaryDoctor")}
-                  value={selectedDoctor?.name || values.doctorId || "—"}
-                />
-                <SummaryRow
-                  icon={Building2}
-                  label={t("bookAppointment.summaryHospital")}
-                  value={
-                    selectedDoctor?.hospitalName ||
-                    selectedDoctor?.hospitalId ||
-                    "—"
-                  }
-                />
-                <SummaryRow
-                  icon={CalendarIcon}
-                  label={t("bookAppointment.summaryDate")}
-                  value={values.date ? values.date.toDateString() : "—"}
-                />
-                <SummaryRow
-                  icon={Clock}
-                  label={t("bookAppointment.summaryTime")}
-                  value={values.time || "—"}
-                />
-                {selectedDoctor?.consultationFee ? (
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: spacing.md,
+                gap: 0,
+                overflow: "hidden",
+              }}
+            >
+              <SummaryRow
+                icon={Stethoscope}
+                label={t("bookAppointment.summaryDoctor")}
+                value={selectedDoctor?.name || values.doctorId || "—"}
+              />
+              <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
+              <SummaryRow
+                icon={Building2}
+                label={t("bookAppointment.summaryHospital")}
+                value={
+                  selectedDoctor?.hospitalName ||
+                  selectedDoctor?.hospitalId ||
+                  "—"
+                }
+              />
+              <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
+              <SummaryRow
+                icon={CalendarIcon}
+                label={t("bookAppointment.summaryDate")}
+                value={values.date ? values.date.toDateString() : "—"}
+              />
+              <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
+              <SummaryRow
+                icon={Clock}
+                label={t("bookAppointment.summaryTime")}
+                value={values.time || "—"}
+              />
+              {selectedDoctor?.consultationFee ? (
+                <>
+                  <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
                   <SummaryRow
                     icon={Wallet}
                     label={t("bookAppointment.summaryFee")}
                     value={`LKR ${Number(selectedDoctor.consultationFee).toLocaleString()}`}
                   />
-                ) : null}
-              </View>
-            </Card>
+                </>
+              ) : null}
+            </View>
 
             <FormField
               label={t("bookAppointment.step3ReasonLabel")}
@@ -828,13 +863,8 @@ export default function BookAppointmentScreen() {
               />
             </FormField>
 
-            {/* Round 5: video vs in-person selector. Two cards side-by-side
-                (stacked on narrow screens); selected card highlights with
-                primary tint + check icon. Persisted as `mode` on the
-                appointment row so the doctor's queue can filter + the
-                patient's "Join video visit" CTA can fire earlier. */}
             <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.label.md, { color: colors.text }]}>
+              <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
                 {t("bookAppointment.step3ModeTitle")}
               </Text>
               <Text
@@ -849,12 +879,6 @@ export default function BookAppointmentScreen() {
                 name="mode"
                 render={({ field: { value, onChange } }) => (
                   <>
-                    {/* Doctor Booking (Round 6): video card is hidden
-                        when the selected doctor hasn't opted in to
-                        telemedicine. The useEffect above also forces
-                        `mode` back to "in_person" if the doctor changes
-                        under us — this is the user-visible part of that
-                        contract. */}
                     {selectedDoctor?.telemedicineEnabled ? (
                       <ModeOptionCard
                         active={value === "video"}
@@ -874,13 +898,14 @@ export default function BookAppointmentScreen() {
                           borderRadius: 16,
                           borderWidth: 1,
                           borderColor: colors.border,
-                          backgroundColor: colors.surface,
+                          backgroundColor: colors.surfaceMuted,
+                          opacity: 0.85,
                         }}
                       >
                         <View
                           style={{
-                            width: 40,
-                            height: 40,
+                            width: 42,
+                            height: 42,
                             borderRadius: 14,
                             backgroundColor: colors.surface,
                             alignItems: "center",
@@ -932,8 +957,14 @@ export default function BookAppointmentScreen() {
       <View
         style={{
           flexDirection: "row",
-          gap: spacing.md,
-          padding: spacing.lg,
+          gap: spacing.sm,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+          paddingBottom: spacing.lg,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          backgroundColor: colors.surface,
+          marginTop: spacing.sm,
         }}
       >
         {step > 1 ? (
@@ -944,24 +975,45 @@ export default function BookAppointmentScreen() {
             fullWidth={false}
             icon={ChevronLeft}
           />
-        ) : (
-          <View style={{ flex: 0 }} />
-        )}
+        ) : null}
         <View style={{ flex: 1 }}>
-          {step < 3 ? (
+          {step === 1 ? (
+            <View
+              style={{
+                minHeight: 48,
+                borderRadius: 14,
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: spacing.md,
+              }}
+            >
+              <Text
+                style={[
+                  typography.label.md,
+                  { color: colors.primary, fontWeight: "700", textAlign: "center" },
+                ]}
+              >
+                {step1View === "specialties"
+                  ? t(
+                      "bookAppointment.hintPickSpecialty",
+                      "Select a specialty to continue"
+                    )
+                  : t(
+                      "bookAppointment.hintPickDoctor",
+                      "Select a doctor to continue"
+                    )}
+              </Text>
+            </View>
+          ) : step < 3 ? (
             <Button
               title={t("bookAppointment.continue")}
               onPress={() => setStep((s) => s + 1)}
               disabled={
-                (step === 1 &&
-                  (!values.doctorId ||
-                    !!errors.doctorId ||
-                    !!errors.hospitalId)) ||
-                (step === 2 &&
-                  (!values.date ||
-                    !values.time ||
-                    !!errors.date ||
-                    !!errors.time))
+                !values.date ||
+                !values.time ||
+                !!errors.date ||
+                !!errors.time
               }
               iconRight={ChevronRight}
             />
@@ -1050,7 +1102,7 @@ function SummaryRow({
         style={{
           width: 40,
           height: 40,
-          borderRadius: 999,
+          borderRadius: 12,
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: colors.primarySoft,
@@ -1061,13 +1113,18 @@ function SummaryRow({
       <View style={{ flex: 1 }}>
         <Text
           style={[
-            typography.overline,
-            { color: colors.textMuted, marginBottom: 2 },
+            typography.caption,
+            { color: colors.textMuted, marginBottom: 2, fontWeight: "600" },
           ]}
         >
           {label}
         </Text>
-        <Text style={[typography.title.sm, { color: colors.text }]}>
+        <Text
+          style={[
+            typography.title.sm,
+            { color: colors.text, fontWeight: "700" },
+          ]}
+        >
           {value}
         </Text>
       </View>
@@ -1075,49 +1132,130 @@ function SummaryRow({
   );
 }
 
+// Specialty tile — compact card for the 2-column grid.
+function SpecialtyCard({
+  name,
+  count,
+  onPress,
+  t,
+}: {
+  name: string;
+  count: number;
+  onPress: () => void;
+  t: (k: string, opts?: any) => string;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  const IconComponent = getSpecialtyIcon(name);
+  const accent = getSpecialtyAccent(name);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t("bookAppointment.specialtyA11y", {
+        specialty: name,
+        count,
+      })}
+      testID={`specialty-${name}`}
+      style={({ pressed }) => ({
+        padding: spacing.md,
+        borderRadius: 18,
+        backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceMuted,
+        borderWidth: 1,
+        borderColor: colors.border,
+        gap: spacing.sm,
+        minHeight: 118,
+        justifyContent: "space-between",
+        transform: [{ scale: pressed ? 0.98 : 1 }],
+      })}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          backgroundColor: accent,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: accent,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.28,
+          shadowRadius: 8,
+          elevation: 3,
+        }}
+      >
+        <IconComponent size={22} color="#FFFFFF" strokeWidth={2.3} />
+      </View>
+      <View style={{ gap: 2 }}>
+        <Text
+          style={[
+            typography.title.sm,
+            { color: colors.text, fontWeight: "800", letterSpacing: -0.2 },
+          ]}
+          numberOfLines={2}
+        >
+          {name}
+        </Text>
+        <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600" }]}>
+          {count > 0
+            ? t("bookAppointment.specialtyCount", { count })
+            : t("bookAppointment.tapToChoose", "Tap to browse")}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 function FilterPill({
   label,
   active,
   onPress,
+  flex,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  flex?: boolean;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, typography } = useTheme();
   return (
-    <View
+    <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
-      onTouchEnd={onPress}
-      style={{
-        paddingHorizontal: spacing.md,
-        paddingVertical: 8,
-        borderRadius: 999,
-        backgroundColor: active ? colors.primary : colors.surface,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : colors.border,
-      }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: flex ? 1 : undefined,
+        paddingHorizontal: flex ? 8 : 14,
+        paddingVertical: 9,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: active
+          ? colors.surface
+          : pressed
+            ? "rgba(255,255,255,0.5)"
+            : "transparent",
+        borderWidth: active ? 1 : 0,
+        borderColor: active ? colors.border : "transparent",
+      })}
     >
       <Text
         style={[
           typography.label.md,
           {
-            color: active ? colors.onPrimary : colors.text,
-            fontWeight: "700",
+            color: active ? colors.text : colors.textMuted,
+            fontWeight: active ? "800" : "600",
+            fontSize: 12.5,
           },
         ]}
       >
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
-// Mode-option card used in step 3 of the booking form. Selected card
-// highlights with primary tint + check icon. Tapping sets `mode` on the
-// form via react-hook-form's Controller.
 function ModeOptionCard({
   active,
   onPress,
@@ -1138,31 +1276,39 @@ function ModeOptionCard({
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
-      style={{
+      style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.md,
         padding: spacing.md,
         borderRadius: 16,
-        borderWidth: 2,
+        borderWidth: active ? 2 : 1,
         borderColor: active ? colors.primary : colors.border,
-        backgroundColor: active ? colors.primarySoft : colors.surface,
-      }}
+        backgroundColor: active
+          ? colors.primarySoft
+          : pressed
+            ? colors.surfaceMuted
+            : colors.surface,
+      })}
     >
       <View
         style={{
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           borderRadius: 14,
-          backgroundColor: colors.surface,
+          backgroundColor: active ? colors.primary : colors.surfaceMuted,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={20} color={colors.primary} strokeWidth={2.2} />
+        <Icon
+          size={20}
+          color={active ? colors.onPrimary : colors.primary}
+          strokeWidth={2.2}
+        />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
           {label}
         </Text>
         <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
@@ -1182,16 +1328,21 @@ function ModeOptionCard({
         >
           <Check size={14} color={colors.onPrimary} strokeWidth={3} />
         </View>
-      ) : null}
+      ) : (
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 999,
+            borderWidth: 1.5,
+            borderColor: colors.borderStrong,
+          }}
+        />
+      )}
     </Pressable>
   );
 }
 
-// Doctor row used in step 1's "doctors" and "search" views. Extracted
-// from the main component so the new 3-view structure doesn't duplicate
-// the NextActionCard wiring. Each row quick-selects on tap and advances
-// the stepper to step 2; full profile review lives on step 2's summary
-// card or the dedicated /doctor/[id] screen.
 function DoctorRow({
   doctor: d,
   selected,
@@ -1209,39 +1360,67 @@ function DoctorRow({
   spacing: any;
   onPick: () => void;
 }) {
-  const ratingStr = d.rating
-    ? t("bookAppointment.rating", { rating: d.rating.toFixed(1) })
-    : "";
+  const accent = getSpecialtyAccent(d.specialization || "");
+  const Icon = getSpecialtyIcon(d.specialization || "");
   const feeStr =
     d.consultationFee != null
       ? t("bookAppointment.lkrFee", { fee: d.consultationFee })
-      : "";
-  const context =
-    ratingStr && feeStr
-      ? t("bookAppointment.contextRich", {
-          rating: d.rating.toFixed(1),
-          fee: d.consultationFee,
-          years: d.experience || 0,
-        })
-      : feeStr
-      ? t("bookAppointment.contextFee", {
-          fee: d.consultationFee,
-          years: d.experience || 0,
-        })
-      : t("bookAppointment.tapToChoose");
+      : null;
+  const ratingStr = d.rating ? d.rating.toFixed(1) : null;
 
   return (
-    <NextActionCard
-      subject={d.name || t("bookAppointment.doctorFallback")}
-      verb={d.specialization || ""}
-      context={context}
-      icon={getSpecialtyIcon(d.specialization || "")}
-      iconTone="primary"
-      meta={
-        d.slmcVerifiedAt || d.responseTime || d.telemedicineEnabled ? (
-          <View
-            style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}
-          >
+    <Pressable
+      onPress={onPick}
+      accessibilityRole="button"
+      accessibilityLabel={d.name}
+      accessibilityState={{ selected }}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        padding: spacing.md,
+        borderRadius: 16,
+        backgroundColor: selected
+          ? colors.primarySoft
+          : pressed
+            ? colors.surfaceMuted
+            : colors.surface,
+        borderWidth: selected ? 2 : 1,
+        borderColor: selected ? colors.primary : colors.border,
+      })}
+    >
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 16,
+          backgroundColor: accent,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={22} color="#FFFFFF" strokeWidth={2.3} />
+      </View>
+      <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={[
+            typography.title.sm,
+            { color: colors.text, fontWeight: "800", letterSpacing: -0.2 },
+          ]}
+        >
+          {d.name || t("bookAppointment.doctorFallback")}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[typography.body.sm, { color: colors.textMuted }]}
+        >
+          {d.specialization || ""}
+          {feeStr ? ` · ${feeStr}` : ""}
+          {ratingStr ? ` · ★ ${ratingStr}` : ""}
+        </Text>
+        {(d.slmcVerifiedAt || d.telemedicineEnabled || d.responseTime) ? (
+          <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
             {d.slmcVerifiedAt ? (
               <VerifiedBadge
                 verified={!!d.slmcVerifiedAt}
@@ -1263,31 +1442,25 @@ function DoctorRow({
                 {t("bookAppointment.responseQuick")}
               </Pill>
             ) : null}
-            {d.responseTime === "normal" ? (
-              <Pill tone="muted" testID="rt-normal">
-                {t("bookAppointment.responseNormal")}
-              </Pill>
-            ) : null}
           </View>
-        ) : undefined
-      }
-      trailing={
-        selected ? (
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 999,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.primary,
-            }}
-          >
-            <Check size={18} color={colors.onPrimary} strokeWidth={3} />
-          </View>
-        ) : undefined
-      }
-      onPress={onPick}
-    />
+        ) : null}
+      </View>
+      {selected ? (
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primary,
+          }}
+        >
+          <Check size={16} color={colors.onPrimary} strokeWidth={3} />
+        </View>
+      ) : (
+        <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.25} />
+      )}
+    </Pressable>
   );
 }

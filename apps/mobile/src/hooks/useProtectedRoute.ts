@@ -20,7 +20,7 @@ const DEV_USER = {
   updatedAt: new Date().toISOString(),
 };
 
-export function useProtectedRoute() {
+export function useProtectedRoute(isReady: boolean = true) {
   const { isAuthenticated, isLoading, setUser, setLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
@@ -66,7 +66,7 @@ export function useProtectedRoute() {
 
   // Route guarding based on authentication status
   useEffect(() => {
-    if (isLoading) return;
+    if (!isReady || isLoading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
 
@@ -88,5 +88,5 @@ export function useProtectedRoute() {
       }, 0);
       return () => clearTimeout(t);
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isReady, isAuthenticated, isLoading, segments]);
 }

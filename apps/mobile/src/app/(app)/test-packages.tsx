@@ -133,7 +133,7 @@ export default function TestPackagesScreen() {
                     <Text
                       style={{
                         fontSize: 13,
-                        color: colors.textSecondary,
+                        color: colors.textMuted,
                         marginBottom: 8,
                         lineHeight: 18,
                       }}
@@ -157,11 +157,11 @@ export default function TestPackagesScreen() {
                           alignItems: "center",
                         }}
                       >
-                        <TestTube2 size={14} color={colors.textSecondary} />
+                        <TestTube2 size={14} color={colors.textMuted} />
                         <Text
                           style={{
                             fontSize: 12,
-                            color: colors.textSecondary,
+                            color: colors.textMuted,
                             marginLeft: 4,
                           }}
                         >
@@ -176,11 +176,11 @@ export default function TestPackagesScreen() {
                         alignItems: "center",
                       }}
                     >
-                      <Clock size={14} color={colors.textSecondary} />
+                      <Clock size={14} color={colors.textMuted} />
                       <Text
                         style={{
                           fontSize: 12,
-                          color: colors.textSecondary,
+                          color: colors.textMuted,
                           marginLeft: 4,
                         }}
                       >
@@ -202,7 +202,7 @@ export default function TestPackagesScreen() {
                       <Text
                         style={{
                           fontSize: 11,
-                          color: colors.textSecondary,
+                          color: colors.textMuted,
                           textDecorationLine: "line-through",
                         }}
                       >
@@ -231,7 +231,7 @@ export default function TestPackagesScreen() {
                   )}
                   <ChevronRight
                     size={16}
-                    color={colors.textSecondary}
+                    color={colors.textMuted}
                     style={{ marginTop: 4 }}
                   />
                 </View>
@@ -245,7 +245,7 @@ export default function TestPackagesScreen() {
   );
 
   return (
-    <Screen padded={false} bottomInset={false}>
+    <Screen padded={false} bottomInset={false} edges={["top"]}>
       <ScreenHeader
         title="Health Packages"
         subtitle="Comprehensive test bundles"
@@ -259,7 +259,7 @@ export default function TestPackagesScreen() {
           marginBottom: 16,
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: colors.card,
+          backgroundColor: colors.surface,
           borderRadius: 12,
           paddingHorizontal: 14,
           paddingVertical: 10,
@@ -267,10 +267,10 @@ export default function TestPackagesScreen() {
           borderColor: colors.border,
         }}
       >
-        <Search size={18} color={colors.textSecondary} />
+        <Search size={18} color={colors.textMuted} />
         <TextInput
           placeholder="Search packages..."
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}
           style={{
@@ -282,7 +282,7 @@ export default function TestPackagesScreen() {
         />
         {search.length > 0 && (
           <Pressable onPress={() => setSearch("")}>
-            <X size={18} color={colors.textSecondary} />
+            <X size={18} color={colors.textMuted} />
           </Pressable>
         )}
       </View>
@@ -305,13 +305,13 @@ export default function TestPackagesScreen() {
         <EmptyState
           icon={AlertCircle}
           title="Failed to load packages"
-          description="Please check your connection and try again."
+          message="Please check your connection and try again."
         />
       ) : data?.packages.length === 0 ? (
         <EmptyState
           icon={Package}
           title="No packages found"
-          description={
+          message={
             search
               ? `No results for "${search}"`
               : "No health packages available yet."
