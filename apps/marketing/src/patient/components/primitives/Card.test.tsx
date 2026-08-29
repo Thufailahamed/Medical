@@ -13,27 +13,20 @@ describe("Card", () => {
     expect(container.querySelector("[data-testid='child']")).toBeTruthy();
   });
 
-  it("uses the card radius and shadow tokens", () => {
+  it("uses the patient-card surface class", () => {
     const { container } = render(<Card>x</Card>);
     const el = container.firstChild as HTMLElement;
-    const style = (el as HTMLDivElement).style;
-    // Inline styles set from CSS variables come through as the literal
-    // `var(--radius-card)` etc — not the computed value — because the
-    // browser hasn't resolved them in jsdom without layout.
-    expect(style.borderRadius).toBe("var(--radius-card)");
-    expect(style.boxShadow).toBe("var(--shadow-card)");
+    expect(el.className).toMatch(/patient-card/);
   });
 
   it("pads by default and omits padding when padded=false", () => {
     const { container: c1, rerender } = render(<Card>x</Card>);
     expect(c1.firstChild).toBeTruthy();
-    expect((c1.firstChild as HTMLElement).className).toMatch(/\bp-6\b/);
+    expect((c1.firstChild as HTMLElement).className).toMatch(/\bp-5\b/);
 
-    rerender(
-      <Card padded={false}>y</Card>
-    );
-    const el = (c1.firstChild as HTMLElement);
-    expect(el.className).not.toMatch(/\bp-6\b/);
+    rerender(<Card padded={false}>y</Card>);
+    const el = c1.firstChild as HTMLElement;
+    expect(el.className).not.toMatch(/\bp-5\b/);
   });
 
   it("honours the `as` prop so the element can be a section or article", () => {
@@ -43,5 +36,10 @@ describe("Card", () => {
       </Card>
     );
     expect(container.querySelector("section")).toBeTruthy();
+  });
+
+  it("renders a pastel corner blob by default", () => {
+    const { container } = render(<Card>x</Card>);
+    expect(container.querySelector(".patient-card-blob")).toBeTruthy();
   });
 });

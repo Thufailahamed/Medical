@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Pill as PillIcon } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { RadialGauge } from "@/patient/components/charts/RadialGauge";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useMedicationStats, useMedicationsToday } from "@/patient/hooks";
@@ -19,22 +19,14 @@ export function MedicationsToday({ className }: { className?: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   return (
-    <Card className={cn("anim-rise anim-rise-delay-2", className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <p className="t-label">Medications</p>
-            <Sparkles size={12} className="text-brand" aria-hidden />
-          </div>
-          <p className="t-card-title mt-1">Today&apos;s plan</p>
-        </div>
-        <Link
-          href="/patient/medications"
-          className="text-xs font-semibold text-brand hover:text-brand-strong"
-        >
-          View all
-        </Link>
-      </div>
+    <Card accent="rose" className={cn("anim-rise anim-rise-delay-2", className)}>
+      <CardHeader
+        title="Today's plan"
+        caption="Medications"
+        icon={<PillIcon size={15} />}
+        href="/patient/medications"
+        linkLabel="View all"
+      />
 
       <QueryBoundary
         query={query as any}

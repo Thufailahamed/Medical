@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useHealthSummary } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
+import { CalendarRange } from "lucide-react";
 
 function buildWeekDays(anchor = new Date()) {
   const start = new Date(anchor);
@@ -29,9 +31,13 @@ export function WeekStrip({ className }: { className?: string }) {
   const [selected, setSelected] = useState(todayKey);
 
   return (
-    <Card className={cn("anim-rise anim-rise-delay-1", className)} padded={false}>
+    <Card accent="amber" className={cn("anim-rise anim-rise-delay-1", className)} padded={false}>
       <div className="px-5 pb-2 pt-5">
-        <p className="t-label">This week</p>
+        <CardHeader
+          title="This week"
+          caption="Pick a day"
+          icon={<CalendarRange size={15} />}
+        />
       </div>
       <div className="flex gap-1.5 overflow-x-auto px-4 pb-4">
         {days.map((d) => {

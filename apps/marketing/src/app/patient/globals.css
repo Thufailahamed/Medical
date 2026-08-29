@@ -27,6 +27,10 @@
   --color-brand-strong: #2a58d9;
   --color-ink: #132044;
 
+  /* Borders — doctor-portal style cards */
+  --color-border: rgba(59, 111, 245, 0.12);
+  --color-border-strong: rgba(59, 111, 245, 0.28);
+
   /* Semantic */
   --color-success: #1fad74;
   --color-success-soft: #e6f8ef;
@@ -35,15 +39,17 @@
   --color-danger: #e0464b;
   --color-danger-soft: #fdecec;
 
-  /* Geometry */
+  /* Geometry — slightly tighter like doctor portal cards */
   --radius-plate: 36px;
-  --radius-card: 28px;
-  --radius-inner: 16px;
+  --radius-card: 20px;
+  --radius-inner: 14px;
   --radius-pill: 999px;
 
   /* Depth — soft, wide, blue-tinted */
-  --shadow-card: 0 2px 4px rgba(30, 64, 160, 0.04),
-    0 12px 32px rgba(30, 64, 160, 0.08);
+  --shadow-card: 0 1px 2px rgba(30, 64, 160, 0.04),
+    0 4px 16px rgba(30, 64, 160, 0.05);
+  --shadow-md: 0 4px 12px rgba(30, 64, 160, 0.08),
+    0 12px 28px rgba(30, 64, 160, 0.1);
   --shadow-float: 0 8px 24px rgba(30, 64, 160, 0.1),
     0 24px 48px rgba(30, 64, 160, 0.12);
   --shadow-brand: 0 10px 28px rgba(59, 111, 245, 0.35);
@@ -186,4 +192,46 @@
     radial-gradient(ellipse 80% 60% at 85% 50%, rgba(77, 93, 251, 0.45), transparent 60%),
     radial-gradient(ellipse 50% 40% at 70% 80%, rgba(99, 140, 255, 0.25), transparent 55%),
     var(--color-ink-card);
+}
+
+/* Content cards — bordered, soft hover like doctor portal */
+[data-app="patient"] .patient-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+[data-app="patient"] .patient-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-strong);
+}
+[data-app="patient"] .patient-card-blob {
+  pointer-events: none;
+  position: absolute;
+  top: -1.5rem;
+  right: -1.5rem;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 999px;
+  opacity: 0.08;
+  transition: opacity 0.25s ease;
+}
+[data-app="patient"] .patient-card:hover .patient-card-blob {
+  opacity: 0.14;
+}
+[data-app="patient"] .patient-card-shine {
+  pointer-events: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+[data-app="patient"] .patient-card:hover .patient-card-shine {
+  opacity: 1;
 }

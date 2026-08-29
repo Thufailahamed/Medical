@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { FileText } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useRecords } from "@/patient/hooks";
@@ -12,16 +13,14 @@ import { cn } from "@/portal/lib/utils";
 export function RecentRecords({ className }: { className?: string }) {
   const query = useRecords({ limit: 5 });
   return (
-    <Card className={cn("anim-rise", className)}>
-      <div className="flex items-end justify-between">
-        <p className="t-label">Recent records</p>
-        <Link
-          href="/patient/records"
-          className="text-xs font-medium text-text-soft hover:text-text"
-        >
-          See all
-        </Link>
-      </div>
+    <Card accent="violet" className={cn("anim-rise", className)}>
+      <CardHeader
+        title="Recent records"
+        caption="Latest from your file"
+        icon={<FileText size={15} />}
+        href="/patient/records"
+        linkLabel="See all"
+      />
 
       <QueryBoundary
         query={query as any}
@@ -30,11 +29,11 @@ export function RecentRecords({ className }: { className?: string }) {
         className="mt-4 flex flex-col gap-2"
       >
         {(data) => (
-          <ul className="flex flex-col gap-2">
+          <ul className="mt-4 flex flex-col gap-2">
             {data.records.slice(0, 5).map((r) => (
               <li
                 key={r.id}
-                className="flex items-center gap-3 rounded-inner bg-surface-2 px-3 py-2"
+                className="flex items-center gap-3 rounded-inner border border-[color:var(--color-border)] bg-surface-2/80 px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-text">

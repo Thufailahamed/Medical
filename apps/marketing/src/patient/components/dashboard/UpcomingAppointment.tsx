@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useAppointments } from "@/patient/hooks";
@@ -13,25 +13,14 @@ import { cn } from "@/portal/lib/utils";
 export function UpcomingAppointment({ className }: { className?: string }) {
   const query = useAppointments();
   return (
-    <Card className={cn("anim-rise", className)}>
-      <div className="flex items-end justify-between">
-        <div className="flex items-center gap-2">
-          <span
-            className="grid h-8 w-8 place-items-center bg-brand-soft text-brand"
-            style={{ borderRadius: 12 }}
-            aria-hidden
-          >
-            <CalendarDays size={16} />
-          </span>
-          <p className="t-label">Next up</p>
-        </div>
-        <Link
-          href="/patient/appointments"
-          className="text-xs font-semibold text-brand hover:text-brand-strong"
-        >
-          All appointments
-        </Link>
-      </div>
+    <Card accent="sky" className={cn("anim-rise", className)}>
+      <CardHeader
+        title="Next up"
+        caption="Upcoming visit"
+        icon={<CalendarDays size={15} />}
+        href="/patient/appointments"
+        linkLabel="All appointments"
+      />
 
       <QueryBoundary
         query={query as any}
@@ -45,11 +34,11 @@ export function UpcomingAppointment({ className }: { className?: string }) {
             .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
           if (!next) {
             return (
-              <p className="text-sm text-text-soft">No upcoming appointments</p>
+              <p className="mt-4 text-sm text-text-soft">No upcoming appointments</p>
             );
           }
           return (
-            <div className="mt-1 flex flex-col gap-3">
+            <div className="mt-4 flex flex-col gap-3">
               <div>
                 <p className="t-card-title">
                   {formatDayLabel(next.date)}{" "}

@@ -32,6 +32,7 @@ export function BodyOverview({ className }: { className?: string }) {
 
   return (
     <Card
+      accent="brand"
       className={cn(
         "anim-rise anim-rise-delay-1 flex h-full min-h-[420px] flex-col",
         className

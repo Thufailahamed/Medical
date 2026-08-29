@@ -327,9 +327,15 @@ const DEV_PATIENT_EMAIL = "dev-patient@healthhub.local";
 function canUseDevSeedLogin(
   env: { DEV_MODE?: string; ALLOW_DEV_SEED?: string },
   email: string | undefined,
+  phone: string | undefined,
   password: string | undefined
 ): boolean {
-  if (email !== DEV_SEED_EMAIL && email !== DEV_PATIENT_EMAIL) return false;
+  const isDevDoctor = email === DEV_SEED_EMAIL;
+  const isDevPatient =
+    email === DEV_PATIENT_EMAIL ||
+    phone === "0771234567" ||
+    phone === "+94771234567";
+  if (!isDevDoctor && !isDevPatient) return false;
   if (env.DEV_MODE === "true") return true;
   return env.ALLOW_DEV_SEED === "true" && password === "dev";
 }
@@ -350,30 +356,31 @@ auth.post("/login", async (c) => {
   let dbUser = null;
 
   // Dev auto-seed login (portal Dev Test Login button)
-  if (canUseDevSeedLogin(c.env, email, password)) {
-    if (email === DEV_PATIENT_EMAIL) {
+  if (canUseDevSeedLogin(c.env, email, phone, password)) {
+    if (email === DEV_PATIENT_EMAIL || phone === "0771234567" || phone === "+94771234567") {
       const DEV_PATIENT_USER_ID = "dev-patient-user-001";
       [dbUser] = await db
         .select()
         .from(users)
-        .where(or(eq(users.id, DEV_PATIENT_USER_ID), eq(users.email, DEV_PATIENT_EMAIL)))
+        .where(
+          or(
+            eq(users.phone, "0771234567"),
+            eq(users.phone, "+94771234567"),
+            eq(users.email, DEV_PATIENT_EMAIL),
+            eq(users.id, DEV_PATIENT_USER_ID)
+          )
+        )
         .limit(1);
 
       if (!dbUser) {
-        const [existingPhone] = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(eq(users.phone, "0771234567"))
-          .limit(1);
-
         [dbUser] = await db
           .insert(users)
           .values({
             id: DEV_PATIENT_USER_ID,
             supabaseId: DEV_PATIENT_USER_ID,
             email: DEV_PATIENT_EMAIL,
-            phone: existingPhone ? null : "0771234567",
-            name: "Dev Patient",
+            phone: "0771234567",
+            name: "Thufail",
             role: "patient",
             status: "active",
             dateOfBirth: "1990-01-01",

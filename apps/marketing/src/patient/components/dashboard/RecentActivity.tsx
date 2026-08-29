@@ -1,6 +1,9 @@
 "use client";
 
+import { Activity } from "lucide-react";
+
 import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useTimeline } from "@/patient/hooks";
 import { formatRelative } from "@/patient/lib/format";
@@ -9,8 +12,12 @@ import { cn } from "@/portal/lib/utils";
 export function RecentActivity({ className }: { className?: string }) {
   const query = useTimeline({ limit: 8 });
   return (
-    <Card className={cn("anim-rise", className)}>
-      <p className="t-label">Recent activity</p>
+    <Card accent="green" className={cn("anim-rise", className)}>
+      <CardHeader
+        title="Recent activity"
+        caption="Your care timeline"
+        icon={<Activity size={15} />}
+      />
       <QueryBoundary
         query={query as any}
         emptyTitle="No recent activity"
@@ -18,11 +25,11 @@ export function RecentActivity({ className }: { className?: string }) {
         className="mt-4"
       >
         {(data) => (
-          <ol className="flex flex-col gap-3">
+          <ol className="mt-4 flex flex-col gap-3">
             {data.events.map((e) => (
               <li key={e.id} className="flex items-start gap-3">
                 <span
-                  className="mt-1 block h-2 w-2 rounded-full bg-brand"
+                  className="mt-1.5 block h-2 w-2 rounded-full bg-brand"
                   aria-hidden
                 />
                 <div className="min-w-0 flex-1">

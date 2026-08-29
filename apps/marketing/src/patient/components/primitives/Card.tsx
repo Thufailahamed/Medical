@@ -2,39 +2,79 @@
 
 import { cn } from "@/portal/lib/utils";
 
+export type CardAccent =
+  | "brand"
+  | "sky"
+  | "violet"
+  | "amber"
+  | "green"
+  | "rose"
+  | "none";
+
+const ACCENT: Record<
+  Exclude<CardAccent, "none">,
+  { blob: string; shine: string }
+> = {
+  brand: {
+    blob: "bg-gradient-to-br from-blue-500 to-indigo-600",
+    shine: "bg-gradient-to-r from-blue-500 to-indigo-600",
+  },
+  sky: {
+    blob: "bg-gradient-to-br from-sky-400 to-blue-600",
+    shine: "bg-gradient-to-r from-sky-400 to-blue-600",
+  },
+  violet: {
+    blob: "bg-gradient-to-br from-violet-400 to-purple-600",
+    shine: "bg-gradient-to-r from-violet-400 to-purple-600",
+  },
+  amber: {
+    blob: "bg-gradient-to-br from-amber-400 to-orange-500",
+    shine: "bg-gradient-to-r from-amber-400 to-orange-500",
+  },
+  green: {
+    blob: "bg-gradient-to-br from-emerald-400 to-teal-600",
+    shine: "bg-gradient-to-r from-emerald-400 to-teal-600",
+  },
+  rose: {
+    blob: "bg-gradient-to-br from-rose-400 to-pink-600",
+    shine: "bg-gradient-to-r from-rose-400 to-pink-600",
+  },
+};
+
 /**
- * White rounded card. The single primitive every dashboard tile,
- * section, and chrome element is built from — the spec calls for
- * "large white rounded cards" and this is the only Card the project
- * needs.
- *
- * The `padded` prop defaults to true; opt out for tightly-packed grid
- * tiles (RadialGauge, StatTile) that want to control their own padding.
+ * Doctor-portal-style white card: thin border, pastel corner blob,
+ * soft hover lift. Keeps the patient blue theme via CSS tokens.
  */
 export function Card({
   className,
   padded = true,
   as: As = "div",
+  accent = "brand",
   children,
 }: {
   className?: string;
   padded?: boolean;
   as?: keyof React.JSX.IntrinsicElements;
+  accent?: CardAccent;
   children?: React.ReactNode;
 }) {
+  const palette = accent === "none" ? null : ACCENT[accent];
+
   return (
     <As
       className={cn(
-        "bg-surface",
-        padded && "p-6",
+        "patient-card group",
+        padded && "p-5 md:p-6",
         className
       )}
-      style={{
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-      }}
     >
-      {children}
+      {palette ? (
+        <>
+          <div className={cn("patient-card-blob", palette.blob)} aria-hidden />
+          <div className={cn("patient-card-shine", palette.shine)} aria-hidden />
+        </>
+      ) : null}
+      <div className="relative z-10">{children}</div>
     </As>
   );
 }

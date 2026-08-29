@@ -1,9 +1,11 @@
 "use client";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useWellness } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
+import { HeartPulse } from "lucide-react";
 
 const SEGMENT_COLORS = [
   "var(--color-brand)",
@@ -18,8 +20,12 @@ const SEGMENT_COLORS = [
 export function WellnessScore({ className }: { className?: string }) {
   const query = useWellness();
   return (
-    <Card className={cn("anim-rise anim-rise-delay-3", className)}>
-      <p className="t-label">Life quality</p>
+    <Card accent="violet" className={cn("anim-rise anim-rise-delay-3", className)}>
+      <CardHeader
+        title="Life quality"
+        caption="Wellness score"
+        icon={<HeartPulse size={15} />}
+      />
       <QueryBoundary
         query={query as any}
         emptyTitle="Wellness unavailable"

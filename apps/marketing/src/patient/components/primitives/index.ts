@@ -1,9 +1,11 @@
 export { Card } from "./Card";
+export type { CardAccent } from "./Card";
 export { StatTile } from "./StatTile";
 export { Pill } from "./Pill";
 export type { PillTone } from "./Pill";
 export { EmptyState } from "./EmptyState";
 export { Skeleton } from "./Skeleton";
 export { SectionHeader } from "./SectionHeader";
+export { CardHeader } from "./CardHeader";
 export { Sheet } from "./Sheet";
 export { QueryBoundary } from "./QueryBoundary";

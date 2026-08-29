@@ -34,7 +34,7 @@ export function VitalsTrend({ className }: { className?: string }) {
         : null;
 
   return (
-    <Card className={cn("anim-rise relative overflow-hidden", className)}>
+    <Card className={cn("anim-rise relative overflow-hidden", className)} accent="sky">
       <div className="flex flex-wrap items-center gap-2">
         {DASHBOARD_VITALS.map((v) => (
           <button
