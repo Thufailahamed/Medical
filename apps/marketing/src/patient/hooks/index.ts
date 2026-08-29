@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/portal/lib/api";
 import {
@@ -10,18 +10,27 @@ import {
   rangeToFrom,
 } from "@/patient/lib/query";
 import type {
+  AllergyRow,
   AppointmentRow,
   Conversation,
   HealthSummary,
+  LabResultRow,
   MedicineRow,
   MedicineStats,
   Message,
+  NoteRow,
   RecordRow,
   RecordStats,
+  RefillCandidate,
+  SymptomRow,
   TimelineEvent,
+  VaccinationAdministeredRow,
+  VaccinationSlot,
   VitalAlert,
+  VitalContext,
   VitalSeriesResponse,
   VitalType,
+  VitalsDerived,
   WellnessResponse,
 } from "@/patient/types/patient";
 import type { AuthUser } from "@/portal/stores/auth";
@@ -209,6 +218,235 @@ export function useUnreadNotificationsCount() {
     queryKey: patientKeys.unreadCount(),
     queryFn: () =>
       api<{ count: number }>("/patient-notifications/unread-count"),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+// ─── Allergies ─────────────────────────────────────────────
+export function useAllergies() {
+  return useQuery<{ allergies: AllergyRow[] }>({
+    queryKey: patientKeys.allergies(),
+    queryFn: () => api<{ allergies: AllergyRow[] }>("/allergies/me"),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useAddAllergy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      substance: string;
+      severity?: AllergyRow["severity"];
+      reaction?: string | null;
+      onsetDate?: string | null;
+      notes?: string | null;
+    }) =>
+      api<{ allergy: AllergyRow }>("/allergies/me", { method: "POST", json: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.allergies() }),
+  });
+}
+
+export function useEditAllergy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: Partial<Omit<AllergyRow, "id" | "recordedAt">> & { id: string }) =>
+      api<{ allergy: AllergyRow }>(`/allergies/${id}`, { method: "PATCH", json: patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.allergies() }),
+  });
+}
+
+export function useDeleteAllergy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<{ message: string }>(`/allergies/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.allergies() }),
+  });
+}
+
+// ─── Vaccinations ──────────────────────────────────────────
+export function useVaccinations() {
+  return useQuery<{ administered: VaccinationAdministeredRow[]; catalog: unknown[] }>({
+    queryKey: patientKeys.vaccinations(),
+    queryFn: () =>
+      api<{ administered: VaccinationAdministeredRow[]; catalog: unknown[] }>(
+        "/vaccinations/me"
+      ),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useVaccinationsDue() {
+  return useQuery<{ due: VaccinationSlot[]; overdue: VaccinationSlot[]; upcoming: VaccinationSlot[] }>({
+    queryKey: patientKeys.vaccinationsDue(),
+    queryFn: () =>
+      api<{
+        due: VaccinationSlot[];
+        overdue: VaccinationSlot[];
+        upcoming: VaccinationSlot[];
+      }>("/vaccinations/me/due"),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useAddVaccination() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      vaccineName: string;
+      vaccineId?: string;
+      dose?: string | null;
+      administeredAt?: string;
+      recordDate?: string;
+      provider?: string | null;
+      notes?: string | null;
+    }) =>
+      api<{ vaccination: VaccinationAdministeredRow }>("/vaccinations/me", {
+        method: "POST",
+        json: input,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.vaccinations() });
+      qc.invalidateQueries({ queryKey: patientKeys.vaccinationsDue() });
+    },
+  });
+}
+
+// ─── Vitals + Symptoms ─────────────────────────────────────
+export function useVitalsDerived() {
+  return useQuery<{ derived: VitalsDerived }>({
+    queryKey: patientKeys.vitalsDerived(),
+    queryFn: () => api<{ derived: VitalsDerived }>("/vitals/me/derived"),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useVitalsSeriesRaw(type: VitalType, days: number) {
+  const from = new Date(Date.now() - days * 86400_000).toISOString();
+  return useQuery<VitalSeriesResponse>({
+    queryKey: [...patientKeys.vitalsSeries(type, "week"), "raw", days] as const,
+    queryFn: () =>
+      api<VitalSeriesResponse>(
+        `/vitals/me/series?type=${encodeURIComponent(type)}&from=${encodeURIComponent(from)}`
+      ),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useSymptoms() {
+  return useQuery<{ symptoms: SymptomRow[] }>({
+    queryKey: patientKeys.symptoms(),
+    queryFn: () => api<{ symptoms: SymptomRow[] }>("/vitals/symptoms/me"),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useAddVital() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      type: VitalType;
+      value: number;
+      secondaryValue?: number | null;
+      context?: VitalContext | null;
+      recordedAt?: string;
+      notes?: string | null;
+    }) =>
+      api<{ vital: { id: string } }>("/vitals", { method: "POST", json: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patient", "vitals"] });
+    },
+  });
+}
+
+export function useDeleteVital() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<{ message: string }>(`/vitals/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patient", "vitals"] });
+    },
+  });
+}
+
+export function useAddSymptom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      symptom: string;
+      severity?: SymptomRow["severity"];
+      startedAt?: string;
+      notes?: string | null;
+    }) =>
+      api<{ symptom: SymptomRow }>("/vitals/symptoms", { method: "POST", json: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.symptoms() }),
+  });
+}
+
+export function useDeleteSymptom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ message: string }>(`/vitals/symptoms/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.symptoms() }),
+  });
+}
+
+// ─── Notes ─────────────────────────────────────────────────
+export function useNotes() {
+  return useQuery<{ notes: NoteRow[] }>({
+    queryKey: patientKeys.notes(),
+    queryFn: () => api<{ notes: NoteRow[] }>("/notes/me"),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useAddNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { title?: string | null; body: string; pinned?: boolean }) =>
+      api<{ note: NoteRow }>("/notes", { method: "POST", json: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.notes() }),
+  });
+}
+
+export function useEditNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: Partial<Omit<NoteRow, "id" | "createdAt" | "updatedAt">> & { id: string }) =>
+      api<{ note: NoteRow }>(`/notes/${id}`, { method: "PUT", json: patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.notes() }),
+  });
+}
+
+export function useDeleteNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<{ message: string }>(`/notes/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.notes() }),
+  });
+}
+
+// ─── Lab Results ───────────────────────────────────────────
+export function useLabResults(params: { months?: number; test?: string } = {}) {
+  const qs = new URLSearchParams();
+  if (params.months) qs.set("months", String(params.months));
+  if (params.test) qs.set("test", params.test);
+  return useQuery<{ items: LabResultRow[] }>({
+    queryKey: patientKeys.labResults(params),
+    queryFn: () =>
+      api<{ items: LabResultRow[] }>(
+        `/medical-records/me/lab-results${qs.size ? "?" + qs.toString() : ""}`
+      ),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+// ─── Refill-due ────────────────────────────────────────────
+export function useRefillDue(days = 14) {
+  return useQuery<{ refills: RefillCandidate[]; count: number }>({
+    queryKey: [...patientKeys.medicineRefills(), days] as const,
+    queryFn: () =>
+      api<{ refills: RefillCandidate[]; count: number }>(`/medicines/refill-due?days=${days}`),
     ...PATIENT_QUERY_DEFAULTS,
   });
 }
