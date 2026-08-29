@@ -39,6 +39,14 @@ vi.mock("@/patient/hooks", () => ({
     isLoading: false,
     isError: false,
   }),
+  useTodayDoses: () => ({
+    data: { doses: [] },
+    isLoading: false,
+    isError: false,
+  }),
+  useMarkDoseTaken: () => ({ mutate: vi.fn(), isPending: false }),
+  useSkipDose: () => ({ mutate: vi.fn(), isPending: false }),
+  useUntakeDose: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 import MedicationsPage from "./page";

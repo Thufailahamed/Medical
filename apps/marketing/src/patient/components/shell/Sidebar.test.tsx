@@ -14,6 +14,18 @@ vi.mock("@/portal/lib/auth", () => ({
   logout: vi.fn(),
 }));
 
+vi.mock("@/portal/stores/ui", () => ({
+  useUiStore: (selector: any) =>
+    selector({
+      sidebarCollapsed: false,
+      toggleSidebar: vi.fn(),
+    }),
+}));
+
+vi.mock("@/patient/hooks/useNotifications", () => ({
+  useUnreadNotificationsCount: () => 0,
+}));
+
 beforeEach(() => {
   useAuthStore.setState({
     token: "tok",

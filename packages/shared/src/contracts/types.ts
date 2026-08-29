@@ -338,3 +338,158 @@ export interface Message {
   body: string;
   createdAt: string;
 }
+
+/** GET /medical-records/me/prescriptions */
+export interface PrescriptionRow {
+  id: string;
+  diagnosis: string | null;
+  notes: string | null;
+  date: string;
+  status: "draft" | "active" | "completed" | "cancelled";
+  signedAt: string | null;
+  createdAt: string;
+  doctorName: string | null;
+  doctorSpecialization: string | null;
+  medicines: Array<{
+    id: string;
+    name: string;
+    dosage: string;
+    frequency: string | null;
+    timing: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    instructions: string | null;
+  }>;
+  medicineCount: number;
+}
+
+/** GET /doctors for the book-appointment picker. */
+export interface DoctorRow {
+  id: string;
+  name: string;
+  specialization: string | null;
+  hospitalName: string | null;
+  consultationFee: number | null;
+  rating: number | null;
+  available: boolean;
+  photoUrl: string | null;
+  bio: string | null;
+}
+
+/** A slot from GET /doctors/:id/slots */
+export interface DoctorSlot {
+  date: string;
+  time: string;
+  available: boolean;
+  mode: "in_person" | "video";
+}
+
+/** GET /notifications/preferences/me */
+export interface NotificationPreferences {
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  appointments: boolean;
+  prescriptions: boolean;
+  labResults: boolean;
+  reminders: boolean;
+  marketing: boolean;
+  quietHours: { start: string | null; end: string | null } | null;
+}
+
+/** Care team member */
+export interface CareTeamMember {
+  id: string;
+  name: string;
+  role: "primary_doctor" | "specialist" | "pharmacist" | "nurse" | "other";
+  specialty: string | null;
+  organization: string | null;
+  phone: string | null;
+  email: string | null;
+  addedAt: string;
+  notes: string | null;
+}
+
+/** Marketplace caretaker listing */
+export interface CaretakerListing {
+  id: string;
+  name: string;
+  bio: string | null;
+  services: string[];
+  hourlyRate: number | null;
+  rating: number | null;
+  reviewCount: number;
+  verified: boolean;
+  city: string | null;
+  photoUrl: string | null;
+  availability: string | null;
+}
+
+/** Caretaker inquiry */
+export interface CaretakerInquiry {
+  id: string;
+  caretakerId: string;
+  caretakerName: string | null;
+  message: string;
+  status: "pending" | "responded" | "closed";
+  createdAt: string;
+  response: string | null;
+}
+
+/** Tenant (hospital/clinic) summary for the switcher */
+export interface TenantSummary {
+  id: string;
+  name: string;
+  type: "hospital" | "clinic" | "lab";
+  role: string;
+  logoUrl: string | null;
+  isActive: boolean;
+}
+
+/** Diagnostic test package */
+export interface TestPackage {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  tests: string[];
+  price: number;
+  originalPrice: number | null;
+  preparation: string | null;
+  reportTimeHours: number | null;
+}
+
+/** Diagnostic test booking */
+export interface TestBooking {
+  id: string;
+  packageId: string;
+  packageName: string;
+  patientId: string;
+  scheduledAt: string;
+  status: "scheduled" | "sample_collected" | "processing" | "completed" | "cancelled";
+  labName: string | null;
+  totalAmount: number;
+  paymentStatus: "pending" | "paid" | "refunded";
+  notes: string | null;
+  resultUrl: string | null;
+  resultSummary: string | null;
+  createdAt: string;
+}
+
+/** Activity feed entry */
+export interface ActivityEntry {
+  id: string;
+  actor: string;
+  action: string;
+  target: string;
+  targetType: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  ipAddress: string | null;
+}
+
+/** Timeline event extended for the new timeline page */
+export interface TimelineDay {
+  date: string;
+  events: TimelineEvent[];
+}

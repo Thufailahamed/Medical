@@ -62,3 +62,33 @@ export function useMarkAllNotificationsRead() {
     },
   });
 }
+
+export function useNotificationPreferences() {
+  return useQuery<{
+    pushEnabled: boolean;
+    emailEnabled: boolean;
+    smsEnabled: boolean;
+    appointments: boolean;
+    prescriptions: boolean;
+    labResults: boolean;
+    reminders: boolean;
+    marketing: boolean;
+    quietHours: { start: string | null; end: string | null } | null;
+  }>({
+    queryKey: patientKeys.notificationPrefs(),
+    queryFn: () => api(patientPaths.notificationsPrefs.mine()),
+    ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) =>
+      api(patientPaths.notificationsPrefs.update(), {
+        method: "PATCH",
+        json: input,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: patientKeys.notificationPrefs() }),
+  });
+}

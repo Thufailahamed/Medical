@@ -10,6 +10,27 @@ vi.mock("@/patient/hooks/useNotifications", () => ({
   useUnreadNotificationsCount: () => 0,
 }));
 
+vi.mock("@/patient/hooks/useActiveFamilyMember", () => ({
+  useActiveFamilyMember: () => ({
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useFamilyMembers: () => ({
+    data: { family: [] },
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@/portal/hooks/useRealtime", () => ({
+  useRealtime: () => undefined,
+}));
+
+vi.mock("@/patient/hooks", () => ({
+  useWellness: () => ({ data: null }),
+  useMedicationStats: () => ({ data: null }),
+}));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/patient",
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
@@ -45,37 +66,22 @@ describe("PatientShell", () => {
         <div data-testid="child">hello</div>
       </PatientShell>
     );
-    expect(screen.getByLabelText("Primary")).toBeTruthy();
+    expect(screen.getByLabelText("Primary navigation")).toBeTruthy();
     expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
     expect(screen.getByTestId("child")).toBeTruthy();
   });
 
-  it("renders inside the rounded plate container (data-app=patient lives higher up)", () => {
-    const { container } = renderWithClient(
-      <PatientShell>
-        <span>x</span>
-      </PatientShell>
-    );
-    // The shell begins with an outer padding div, then the plate.
-    const plate = container.querySelector<HTMLElement>(
-      "div[style*='--radius-plate']"
-    ) ?? container.querySelector("div[style*='radius-plate']");
-    expect(plate).toBeTruthy();
-    expect(plate!.style.borderRadius).not.toBe("");
-  });
-
-  it("falls back to a time-based greeting when no user is logged in", () => {
+  it("renders the main column with the topbar greeting when no user is logged in", () => {
     renderWithClient(
       <PatientShell>
         <span>x</span>
       </PatientShell>
     );
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: /Good (morning|afternoon|evening)/,
-      })
-    ).toBeTruthy();
+    // Topbar greets with one of: Up late / Good morning / Good afternoon / Good evening / Good night
+    const heading = screen.queryByRole("heading", { level: 1 });
+    expect(heading?.textContent ?? "").toMatch(
+      /Up late|Good (morning|afternoon|evening|night)/
+    );
   });
 
   it("greets the user by first name when present", () => {
@@ -87,11 +93,7 @@ describe("PatientShell", () => {
         <span>x</span>
       </PatientShell>
     );
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: /Good (morning|afternoon|evening), Nimal/,
-      })
-    ).toBeTruthy();
+    const heading = screen.queryByRole("heading", { level: 1 });
+    expect(heading?.textContent ?? "").toMatch(/Nimal/);
   });
 });

@@ -140,4 +140,92 @@ export const patientPaths = {
     mine: (q: TimelineQuery = {}) =>
       `/timeline/me${qs({ limit: q.limit, kinds: q.kinds?.length ? q.kinds.join(",") : undefined })}`,
   },
+
+  prescriptions: {
+    mine: () => "/medical-records/me/prescriptions",
+    detail: (id: string) => `/medical-records/me/prescriptions/${id}`,
+    pdf: (id: string) => `/medical-records/me/prescriptions/${id}/pdf`,
+  },
+
+  appointmentsBook: {
+    doctors: (q: {
+      search?: string;
+      specialization?: string;
+      hospitalId?: string;
+      telemedicine?: boolean;
+    } = {}) =>
+      `/doctor/search${qs({
+        query: q.search,
+        specialization: q.specialization,
+        hospitalId: q.hospitalId,
+        telemedicine: q.telemedicine ? "1" : undefined,
+      })}`,
+    specialties: () => "/doctor/specialties",
+    doctorDetail: (id: string) => `/doctor/${id}`,
+    availability: (doctorId: string, date?: string) =>
+      `/doctor/${doctorId}/availability${qs({ date })}`,
+    rate: (appointmentId: string) => `/appointments/${appointmentId}/rating`,
+  },
+
+  notificationsPrefs: {
+    mine: () => "/notifications/preferences/me",
+    update: () => "/notifications/preferences/me",
+  },
+
+  careTeam: {
+    mine: () => "/care-team/me",
+    add: () => "/care-team",
+    detail: (id: string) => `/care-team/${id}`,
+    remove: (id: string) => `/care-team/${id}`,
+  },
+
+  marketplace: {
+    caretakers: (q: { search?: string; service?: string } = {}) =>
+      `/marketplace/caretakers${qs({ search: q.search, service: q.service })}`,
+    caretakerDetail: (id: string) => `/marketplace/caretakers/${id}`,
+    inquiries: () => "/marketplace/caretakers/inquiries",
+    inquire: (id: string) => `/marketplace/caretakers/${id}/inquire`,
+  },
+
+  tenants: {
+    mine: () => "/tenants/me",
+    switch: (id: string) => `/tenants/me/switch/${id}`,
+  },
+
+  diagnostic: {
+    packages: () => "/diagnostic-tests/packages",
+    packageDetail: (slug: string) => `/diagnostic-tests/packages/${slug}`,
+    bookings: () => "/diagnostic-tests/me/bookings",
+    bookingDetail: (id: string) => `/diagnostic-tests/me/bookings/${id}`,
+    bookPackage: (slug: string) => `/diagnostic-tests/packages/${slug}/book`,
+    rateTest: (id: string) => `/diagnostic-tests/me/bookings/${id}/rating`,
+  },
+
+  activity: {
+    mine: (limit?: number) => `/activity/me${qs({ limit })}`,
+  },
+
+  support: {
+    contact: () => "/support/contact",
+  },
+
+  emailImport: {
+    trigger: () => "/email-import/trigger",
+  },
+
+  teleconsult: {
+    room: (roomId: string) => `/teleconsult/${roomId}`,
+    join: (roomId: string) => `/teleconsult/${roomId}/join`,
+  },
+
+  auth: {
+    forgot: () => "/auth/forgot-password",
+    reset: () => "/auth/reset-password",
+    register: () => "/auth/register",
+    verifyOtp: () => "/auth/verify-otp",
+    mfaSetup: () => "/auth/mfa/setup",
+    mfaChallenge: () => "/auth/mfa/challenge",
+    mfaDisable: () => "/auth/mfa/disable",
+    changePassword: () => "/auth/change-password",
+  },
 } as const;

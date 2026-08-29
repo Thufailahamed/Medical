@@ -20,3 +20,8 @@ export * from "./notifications-feed";
 export * from "./allergies";
 export * from "./vaccinations";
 export * from "./notes";
+export * from "./prescriptions";
+export * from "./doctors";
+export * from "./care-team";
+export * from "./marketplace";
+export * from "./diagnostic";

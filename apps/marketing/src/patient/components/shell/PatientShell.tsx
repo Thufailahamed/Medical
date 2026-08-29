@@ -40,21 +40,15 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-[100dvh] p-4 sm:p-6 lg:p-8">
-      <div
-        className="mx-auto flex max-w-[1400px] gap-5 p-3 sm:p-4 lg:gap-6 lg:p-5"
-        style={{
-          background: "var(--color-bg)",
-          borderRadius: "var(--radius-plate)",
-          minHeight: "calc(100dvh - 3rem)",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
-        <Sidebar />
+    <div className="h-screen flex bg-bg overflow-hidden">
+      <Sidebar />
 
-        <div className="flex min-w-0 flex-1 flex-col gap-5">
-          <Topbar user={user} />
-          <main className="flex-1 pb-2">{children}</main>
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-y-auto px-4 md:px-8 py-6">
+          <div className="max-w-[1560px] w-full mx-auto flex flex-col gap-6">
+            <Topbar user={user} />
+            <main className="flex-1 pb-8">{children}</main>
+          </div>
         </div>
       </div>
     </div>

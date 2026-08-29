@@ -74,6 +74,36 @@ export const patientKeys = {
   family: () => ["patient", "family"] as const,
   familyActive: () => ["patient", "family", "active"] as const,
   notes: () => ["patient", "notes"] as const,
+
+  prescriptions: () => ["patient", "prescriptions"] as const,
+  prescription: (id: string) => ["patient", "prescriptions", id] as const,
+
+  doctors: (params: Record<string, unknown>) =>
+    ["patient", "doctors", params] as const,
+  doctor: (id: string) => ["patient", "doctors", id] as const,
+  doctorSlots: (id: string, date?: string) =>
+    ["patient", "doctors", id, "slots", date ?? "any"] as const,
+
+  notificationPrefs: () => ["patient", "notification-prefs"] as const,
+
+  careTeam: () => ["patient", "care-team"] as const,
+
+  marketplace: (params: Record<string, unknown>) =>
+    ["patient", "marketplace", params] as const,
+  marketplaceCaretaker: (id: string) => ["patient", "marketplace", id] as const,
+  marketplaceInquiries: () => ["patient", "marketplace", "inquiries"] as const,
+
+  tenants: () => ["patient", "tenants"] as const,
+  activeTenant: () => ["patient", "tenants", "active"] as const,
+
+  diagnosticPackages: () => ["patient", "diagnostic", "packages"] as const,
+  diagnosticPackage: (slug: string) =>
+    ["patient", "diagnostic", "packages", slug] as const,
+  diagnosticBookings: () => ["patient", "diagnostic", "bookings"] as const,
+  diagnosticBooking: (id: string) =>
+    ["patient", "diagnostic", "bookings", id] as const,
+
+  activity: (limit?: number) => ["patient", "activity", limit ?? 50] as const,
 };
 
 /** Range key → an ISO `from` bound. `to` is always "now" (omitted). */
