@@ -39,7 +39,7 @@ the `(app)` route group and the bare path.
 | `(app)/refill` | `/patient/medications` | done | 0 | refill-due sheet on the medications page |
 | `(app)/prescriptions` | `/patient/prescriptions` | planned | 3 | |
 | `(app)/prescription-detail` | `/patient/prescriptions/[id]` | planned | 3 | |
-| `(app)/verify/[id]` | `/portal/verify/[id]` | planned | 3 | exists on web outside /patient; consolidate |
+| `(app)/verify/[id]` | `/portal/verify/[id]` | done | 1 | Public route, ungated; mobile's verify is login-gated and separate |
 | `(app)/appointments` | `/patient/appointments` | done | 0 | |
 | `(app)/appointment-detail` | `/patient/appointments/[id]` | done | 0 | |
 | `(app)/book-appointment` | `/patient/appointments/book` | planned | 4 | |
@@ -81,18 +81,18 @@ the `(app)` route group and the bare path.
 | `(app)/test-result/[bookingId]` | `/patient/diagnostic-tests/bookings/[id]/result` | planned | 7 | |
 | `(app)/rate-test/[bookingId]` | `/patient/diagnostic-tests/bookings/[id]/rate` | planned | 7 | |
 | `(app)/insurance/index` | `/patient/insurance` | done | 1 | |
-| `(app)/insurance/marketplace` | `/patient/insurance/marketplace` | planned | 1 | consolidate under /patient |
-| `(app)/insurance/marketplace/[providerId]` | `/patient/insurance/marketplace/[providerId]` | planned | 1 | |
-| `(app)/insurance/plans/[planId]` | `/patient/insurance/plans/[planId]` | planned | 1 | |
-| `(app)/insurance/quote` | `/patient/insurance/quote` | planned | 1 | |
-| `(app)/insurance/enroll/[planId]` | `/patient/insurance/enroll/[planId]` | planned | 1 | |
-| `(app)/insurance/payment/[enrollmentId]` | `/patient/insurance/payment/[enrollmentId]` | planned | 1 | |
-| `(app)/insurance/policy/[id]` | `/patient/insurance/policy/[id]` | planned | 1 | |
-| `(app)/insurance/ecard/[id]` | `/patient/insurance/ecard/[id]` | planned | 1 | |
-| `(app)/insurance/coverage-check` | `/patient/insurance/coverage-check` | planned | 1 | |
-| `(app)/insurance/claims/index` | `/patient/insurance/claims` | planned | 1 | |
-| `(app)/insurance/claims/new` | `/patient/insurance/claims/new` | planned | 1 | |
-| `(app)/insurance/claims/[id]` | `/patient/insurance/claims/[id]` | planned | 1 | |
+| `(app)/insurance/marketplace` | `/patient/insurance/marketplace` | done | 1 | consolidate under /patient |
+| `(app)/insurance/marketplace/[providerId]` | `/patient/insurance/marketplace/[providerId]` | done | 1 | |
+| `(app)/insurance/plans/[planId]` | `/patient/insurance/plans/[planId]` | done | 1 | |
+| `(app)/insurance/quote` | `/patient/insurance/quote` | done | 1 | |
+| `(app)/insurance/enroll/[planId]` | `/patient/insurance/enroll/[planId]` | done | 1 | |
+| `(app)/insurance/payment/[enrollmentId]` | `/patient/insurance/payment/[enrollmentId]` | done | 1 | |
+| `(app)/insurance/policy/[id]` | `/patient/insurance/policy/[id]` | done | 1 | |
+| `(app)/insurance/ecard/[id]` | `/patient/insurance/ecard/[id]` | done | 1 | |
+| `(app)/insurance/coverage-check` | `/patient/insurance/coverage-check` | done | 1 | |
+| `(app)/insurance/claims/index` | `/patient/insurance/claims` | done | 1 | |
+| `(app)/insurance/claims/new` | `/patient/insurance/claims/new` | done | 1 | |
+| `(app)/insurance/claims/[id]` | `/patient/insurance/claims/[id]` | done | 1 | |
 | `(app)/tenants/index` | `/patient/tenants` | planned | 9 | |
 | `(app)/tenants/[id]` | `/patient/tenants` | planned | 9 | switcher, not a page per tenant |
 | `(app)/family` | `/patient/family` | done | 0 | invites and lock in 8 |
