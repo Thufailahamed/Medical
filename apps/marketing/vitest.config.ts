@@ -20,6 +20,9 @@ export default defineConfig({
     include: [
       "src/**/*.test.{ts,tsx}",
       "src/portal/**/*.test.{ts,tsx}",
+      // Shared contracts are consumed by both apps; tested through this
+      // runner so one command covers web + shared invariants.
+      "../../packages/shared/src/**/*.test.ts",
     ],
     exclude: ["node_modules", ".next", "dist"],
     css: false,
