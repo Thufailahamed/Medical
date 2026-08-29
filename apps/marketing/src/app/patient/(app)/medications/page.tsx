@@ -41,13 +41,16 @@ export default function MedicationsPage() {
       <Card>
         <QueryBoundary
           query={list as any}
+          isEmpty={(d) => !d || !d.medicines || d.medicines.length === 0}
           loadingCount={3}
           emptyTitle="No medications yet"
           emptyDescription="When your doctor prescribes a medication, it lands here."
         >
-          {(data) => (
-            <ul className="flex flex-col gap-3">
-              {data.medicines.map((m) => (
+          {(data) => {
+            const medicines = data?.medicines ?? [];
+            return (
+              <ul className="flex flex-col gap-3">
+                {medicines.map((m) => (
                 <li
                   key={m.id}
                   className={cn(
@@ -69,8 +72,9 @@ export default function MedicationsPage() {
                   </Pill>
                 </li>
               ))}
-            </ul>
-          )}
+              </ul>
+            );
+          }}
         </QueryBoundary>
       </Card>
     </div>

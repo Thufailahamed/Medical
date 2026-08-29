@@ -67,10 +67,16 @@ export function useVitalsSeries(type: VitalType, range: RangeKey) {
 export function useVitalsAlerts(days = 7) {
   return useQuery<{ items: VitalAlert[]; count: number }>({
     queryKey: patientKeys.vitalsAlerts(days),
-    queryFn: () =>
-      api<{ items: VitalAlert[]; count: number }>(
+    queryFn: async () => {
+      const res = await api<{ alerts?: VitalAlert[]; items?: VitalAlert[]; count?: number }>(
         `/vitals/me/alerts?days=${days}`
-      ),
+      );
+      const items = res.items ?? res.alerts ?? [];
+      return {
+        items,
+        count: res.count ?? items.length,
+      };
+    },
     ...PATIENT_QUERY_DEFAULTS,
   });
 }

@@ -91,39 +91,51 @@ export default function HealthPage() {
             <p className="t-label">Recent alerts</p>
             <QueryBoundary
               query={alerts as any}
+              isEmpty={(d) => {
+                const list = d?.items ?? (d as any)?.alerts;
+                return !list || list.length === 0;
+              }}
               emptyTitle="No alerts"
               emptyDescription="Your vitals are within healthy range."
               className="mt-4"
             >
-              {(data) => (
-                <ul className="flex flex-col gap-2">
-                  {data.items.slice(0, 5).map((a, i) => (
-                    <li
-                      key={i}
-                      className={cn(
-                        "flex items-start gap-3 rounded-inner px-3 py-2",
-                        a.classification?.toLowerCase().includes("low") ||
-                          a.classification?.toLowerCase().includes("critical")
-                          ? "bg-danger-soft"
-                          : "bg-surface-2"
-                      )}
-                    >
-                      <span
-                        className="mt-1 block h-2 w-2 rounded-full bg-danger"
-                        aria-hidden
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text">
-                          {VITAL_REGISTRY[a.type].label}:{" "}
-                          {a.value}
-                          {VITAL_REGISTRY[a.type].unit}
-                        </p>
-                        <p className="t-micro">{a.classification}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {(data) => {
+                const items = data?.items ?? (data as any)?.alerts ?? [];
+                if (items.length === 0) {
+                  return (
+                    <p className="text-sm text-text-soft">Your vitals are within healthy range.</p>
+                  );
+                }
+                return (
+                  <ul className="flex flex-col gap-2">
+                    {items.slice(0, 5).map((a, i) => (
+                      <li
+                        key={i}
+                        className={cn(
+                          "flex items-start gap-3 rounded-inner px-3 py-2",
+                          a.classification?.toLowerCase().includes("low") ||
+                            a.classification?.toLowerCase().includes("critical")
+                            ? "bg-danger-soft"
+                            : "bg-surface-2"
+                        )}
+                      >
+                        <span
+                          className="mt-1 block h-2 w-2 rounded-full bg-danger"
+                          aria-hidden
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-text">
+                            {VITAL_REGISTRY[a.type]?.label ?? a.type}:{" "}
+                            {a.value}
+                            {VITAL_REGISTRY[a.type]?.unit ?? ""}
+                          </p>
+                          <p className="t-micro">{a.classification}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              }}
             </QueryBoundary>
           </Card>
         </div>

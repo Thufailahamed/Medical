@@ -200,7 +200,7 @@ vitalsRouter.get("/me/derived", authMiddleware, async (c) => {
 vitalsRouter.get("/me/alerts", authMiddleware, async (c) => {
   const db = c.get("db");
   const patient = await resolvePatientContext(c);
-  if (!patient) return c.json({ alerts: [], count: 0 });
+  if (!patient) return c.json({ alerts: [], items: [], count: 0 });
 
   const days = Math.min(parseInt(c.req.query("days") || "30", 10), 365);
   const since = new Date();
@@ -214,7 +214,7 @@ vitalsRouter.get("/me/alerts", authMiddleware, async (c) => {
     .limit(500);
 
   const alerts = classifyAlerts(rows, { patient });
-  return c.json({ alerts, count: alerts.length, days });
+  return c.json({ alerts, items: alerts, count: alerts.length, days });
 });
 
 vitalsRouter.get("/symptoms/me", authMiddleware, async (c) => {

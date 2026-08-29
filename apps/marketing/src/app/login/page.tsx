@@ -2,25 +2,23 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   ArrowRight,
   Building2,
-  FlaskConical,
-  Truck,
-  Heart,
-  Mail,
-  Lock,
+  Check,
   Eye,
   EyeOff,
-  ShieldCheck,
-  Sparkles,
-  Check,
+  FlaskConical,
+  Heart,
+  Lock,
+  Mail,
   MessageCircle,
-  Globe,
+  ShieldCheck,
+  Truck,
 } from "lucide-react";
 
 import { Input } from "@/portal/components/ui/Form";
@@ -28,11 +26,6 @@ import { login } from "@/portal/lib/auth";
 import { useAuthStore } from "@/portal/stores/auth";
 import { friendlyError } from "@/portal/lib/errors";
 import { cn } from "@/portal/lib/utils";
-
-/**
- * Unified sign-in. User picks an account type; after /auth/login the
- * server role is checked and they are routed to the matching surface.
- */
 
 type Port = "patient" | "facility" | "doctor" | "operator";
 
@@ -79,7 +72,7 @@ const PORTS: PortSpec[] = [
       super_admin: "/admin/dashboard",
     },
     description: "Hospitals, labs, and pharmacies",
-    hint: "Admin & operations",
+    hint: "Admin & ops",
     group: "staff",
     placeholder: "admin@hospital.lk",
   },
@@ -110,48 +103,52 @@ const PORTS: PortSpec[] = [
   },
 ];
 
-const LEFT_COPY: Record<Port, { eyebrow: string; title: ReactNode; lede: string }> = {
+const LEFT_COPY: Record<Port, { index: string; eyebrow: string; title: ReactNode; lede: string }> = {
   patient: {
-    eyebrow: "Personal health",
+    index: "01 — personal",
+    eyebrow: "Private beta · Colombo",
     title: (
       <>
         Your health,<br />finally <em>together.</em>
       </>
     ),
-    lede: "Records, medicines, vitals, and AI insights — privately organised for you and the people you look after.",
+    lede: "Records, medicines, vitals, and quiet AI insights — organised for you and the people you look after.",
   },
   facility: {
-    eyebrow: "Facility access",
+    index: "02 — facility",
+    eyebrow: "Operations access",
     title: (
       <>
-        Your team&rsquo;s <em>calm, private</em> place to work.
+        One place for the <em>whole floor.</em>
       </>
     ),
-    lede: "Operations, records, and care coordination for hospitals, labs, and pharmacies — quietly in one place.",
+    lede: "Records, coordination, and day-to-day operations for hospitals, labs, and pharmacies.",
   },
   doctor: {
+    index: "03 — clinician",
     eyebrow: "Clinical workspace",
     title: (
       <>
-        Care that starts with the <em>whole picture.</em>
+        Start with the <em>whole picture.</em>
       </>
     ),
-    lede: "Prescriptions, notes, and patient history ready before the visit — built for practising clinicians.",
+    lede: "History, notes, and prescriptions ready before the consult — built for practising clinicians.",
   },
   operator: {
+    index: "04 — partner",
     eyebrow: "Partner access",
     title: (
       <>
-        Claims and coverage, <em>without the chase.</em>
+        Claims without the <em>chase.</em>
       </>
     ),
-    lede: "Insurance and ambulance partners sign in here to manage claims, coverage, and dispatch.",
+    lede: "Insurance and ambulance partners manage coverage, claims, and dispatch from here.",
   },
 };
 
 export default function UnifiedLoginPage() {
   return (
-    <Suspense fallback={<div className="vh-login" />}>
+    <Suspense fallback={<div className="hh-login" aria-busy="true" />}>
       <UnifiedLoginForm />
     </Suspense>
   );
@@ -168,11 +165,12 @@ function UnifiedLoginForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [ready, setReady] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    setMounted(true);
+    const frame = window.requestAnimationFrame(() => setReady(true));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const selected = PORTS.find((p) => p.value === port)!;
@@ -217,8 +215,7 @@ function UnifiedLoginForm() {
         setSubmitting(false);
         return;
       }
-      const landing = spec.landingFor[role] ?? "/";
-      router.replace(landing);
+      router.replace(spec.landingFor[role] ?? "/");
     } catch (err: unknown) {
       const code = (err as { details?: { code?: string }; code?: string })?.details?.code
         || (err as { code?: string })?.code;
@@ -238,7 +235,7 @@ function UnifiedLoginForm() {
   }
 
   function renderTab(p: PortSpec, featured = false) {
-    const PIcon = p.icon;
+    const Icon = p.icon;
     const active = port === p.value;
     return (
       <button
@@ -247,227 +244,197 @@ function UnifiedLoginForm() {
         role="tab"
         aria-selected={active}
         onClick={() => switchPort(p.value)}
-        className={cn(
-          "vh-login__tab",
-          featured && "vh-login__tab--featured",
-          active && "is-active",
-        )}
+        className={cn("hh-login__tab", featured && "hh-login__tab--featured", active && "is-active")}
       >
-        <span className="vh-login__tab-icon" aria-hidden="true">
-          <PIcon size={featured ? 18 : 15} strokeWidth={2.25} />
-        </span>
-        <span className="vh-login__tab-text">
-          <span className="vh-login__tab-label">{p.label}</span>
-          <span className="vh-login__tab-hint">{p.hint}</span>
+        <Icon size={featured ? 18 : 15} strokeWidth={1.85} aria-hidden="true" />
+        <span>
+          <strong>{p.label}</strong>
+          <em>{p.hint}</em>
         </span>
       </button>
     );
   }
 
   return (
-    <div className={cn("vh-login", mounted && "is-ready")}>
-      <div className="vh-login__noise" aria-hidden="true" />
+    <div className={cn("hh-login", ready && "is-ready")}>
+      <div className="hh-login__grid" aria-hidden="true" />
+      <div className="hh-login__grain" aria-hidden="true" />
 
-      <div className="vh-login__shell">
-        <aside className="vh-login__visual">
-          <div className="vh-login__visual-bg" aria-hidden="true" />
-          <div className="vh-login__visual-orb vh-login__visual-orb--a" aria-hidden="true" />
-          <div className="vh-login__visual-orb vh-login__visual-orb--b" aria-hidden="true" />
+      <div className="hh-login__shell">
+        <aside className="hh-login__visual">
+          <Link href="/" className="hh-login__brand" aria-label="HealthHub home">
+            <img className="hh-login__mark" src="/assets/logo.svg" alt="" />
+            <span>HealthHub</span>
+          </Link>
 
-          <div className="vh-login__brand">
-            <Link href="/" className="vh-login__brand-link" aria-label="HealthHub home">
-              <span className="vh-login__brand-mark">H</span>
-              <span className="vh-login__brand-name">HealthHub</span>
-            </Link>
-          </div>
-
-          <div className="vh-login__copy" key={port}>
-            <span className="vh-login__eyebrow">
-              <span className="vh-login__eyebrow-dot" />
+          <div className="hh-login__copy" key={port}>
+            <p className="hh-login__masthead">
+              <span>{left.index}</span>
+              <span>Vol. 01</span>
+              <span>2026</span>
+            </p>
+            <p className="hh-login__eyebrow">
+              <span className="hh-login__dot" />
               {left.eyebrow}
-            </span>
-            <h1 className="vh-login__title">{left.title}</h1>
-            <p className="vh-login__lede">{left.lede}</p>
-
-            <div className="vh-login__trust">
-              <span className="vh-login__trust-pill">
-                <ShieldCheck size={13} />
-                End-to-end encrypted
-              </span>
-              <span className="vh-login__trust-pill">
-                <Sparkles size={13} />
-                Built in Sri Lanka
-              </span>
-              <span className="vh-login__trust-pill">
-                <Globe size={13} />
-                EN · සිං · த
-              </span>
-            </div>
+            </p>
+            <h1 className="hh-login__title">{left.title}</h1>
+            <p className="hh-login__lede">{left.lede}</p>
+            <ul className="hh-login__meta">
+              <li><ShieldCheck size={14} /> Private by default</li>
+              <li>EN · සිං · த</li>
+              <li>Encrypted at rest</li>
+            </ul>
           </div>
+
+          <p className="hh-login__rail" aria-hidden="true">
+            <span>Fig. 00</span>
+            <i />
+            <span>Sign in</span>
+          </p>
         </aside>
 
-        <main className="vh-login__form-wrap">
-          <div className="vh-login__form">
-            <Link href="/" className="vh-login__brand-link vh-login__brand-link--mobile" aria-label="HealthHub home">
-              <span className="vh-login__brand-mark">H</span>
-              <span className="vh-login__brand-name">HealthHub</span>
+        <main className="hh-login__panel">
+          <div className="hh-login__panel-inner">
+            <Link href="/" className="hh-login__brand hh-login__brand--mobile" aria-label="HealthHub home">
+              <img className="hh-login__mark" src="/assets/logo.svg" alt="" />
+              <span>HealthHub</span>
             </Link>
 
-            <div className="vh-login__form-head">
-              <span className="vh-login__form-eyebrow">// secure access</span>
-              <h2 className="vh-login__form-title">
+            <header className="hh-login__head">
+              <span className="hh-login__kicker">Secure access</span>
+              <h2 className="hh-login__heading">
                 Sign <em>in</em>
               </h2>
-              <p className="vh-login__form-sub">
-                Choose how you use HealthHub, then enter your details.
-              </p>
-            </div>
+              <p className="hh-login__sub">Choose your portal, then enter your details.</p>
+            </header>
 
-            <div className="vh-login__ports">
-              <div className="vh-login__ports-label">Personal</div>
-              <div className="vh-login__tabs vh-login__tabs--personal" role="tablist" aria-label="Personal access">
+            <div className="hh-login__ports">
+              <div className="hh-login__ports-label">Personal</div>
+              <div className="hh-login__tabs hh-login__tabs--personal" role="tablist" aria-label="Personal access">
                 {personalPorts.map((p) => renderTab(p, true))}
               </div>
-
-              <div className="vh-login__ports-label">Staff &amp; partners</div>
-              <div className="vh-login__tabs vh-login__tabs--staff" role="tablist" aria-label="Staff and partner access">
+              <div className="hh-login__ports-label">Staff &amp; partners</div>
+              <div className="hh-login__tabs hh-login__tabs--staff" role="tablist" aria-label="Staff and partner access">
                 {staffPorts.map((p) => renderTab(p))}
               </div>
             </div>
 
-            <p className="vh-login__port-desc">
-              <selected.icon size={13} />
+            <p className="hh-login__desc">
+              <selected.icon size={13} strokeWidth={1.85} />
               {selected.description}
             </p>
 
             {error ? (
-              <div className="vh-login__error" role="alert">
-                <ShieldCheck size={15} />
-                <span>{error}</span>
+              <div className="hh-login__error" role="alert">
+                {error}
               </div>
             ) : null}
 
-            <form className="vh-login__fields" onSubmit={handleSubmit(onSubmit)} noValidate>
-              <div className="vh-login__field">
-                <label htmlFor="identifier" className="vh-login__label">
-                  Email or phone
-                </label>
-                <div className="vh-login__input-wrap">
-                  <Mail size={15} className="vh-login__input-icon" />
+            <form className="hh-login__form" onSubmit={handleSubmit(onSubmit)} noValidate>
+              <div className="hh-login__field">
+                <label htmlFor="identifier">Email or phone</label>
+                <div className="hh-login__control">
+                  <Mail size={15} aria-hidden="true" />
                   <Input
                     id="identifier"
                     autoComplete="username"
                     placeholder={selected.placeholder}
-                    className="vh-login__input"
+                    className="hh-login__input"
                     {...register("identifier")}
                   />
                 </div>
                 {errors.identifier?.message ? (
-                  <span className="vh-login__field-error">{errors.identifier.message}</span>
+                  <span className="hh-login__field-error">{errors.identifier.message}</span>
                 ) : null}
               </div>
 
-              <div className="vh-login__field">
-                <div className="vh-login__label-row">
-                  <label htmlFor="password" className="vh-login__label">
-                    Password
-                  </label>
-                  <a href="mailto:support@healthhub.app?subject=Password%20reset" className="vh-login__forgot">
-                    Forgot?
-                  </a>
+              <div className="hh-login__field">
+                <div className="hh-login__label-row">
+                  <label htmlFor="password">Password</label>
+                  <a href="mailto:support@healthhub.app?subject=Password%20reset">Forgot?</a>
                 </div>
-                <div className="vh-login__input-wrap">
-                  <Lock size={15} className="vh-login__input-icon" />
+                <div className="hh-login__control">
+                  <Lock size={15} aria-hidden="true" />
                   <Input
                     id="password"
                     type={showPw ? "text" : "password"}
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className="vh-login__input vh-login__input--with-suffix"
+                    className="hh-login__input hh-login__input--suffix"
                     {...register("password")}
                   />
                   <button
                     type="button"
+                    className="hh-login__reveal"
                     onClick={() => setShowPw((s) => !s)}
-                    className="vh-login__input-suffix"
                     aria-label={showPw ? "Hide password" : "Show password"}
                   >
                     {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
                 {errors.password?.message ? (
-                  <span className="vh-login__field-error">{errors.password.message}</span>
+                  <span className="hh-login__field-error">{errors.password.message}</span>
                 ) : null}
               </div>
 
-              <label className="vh-login__remember">
+              <label className="hh-login__remember">
                 <input type="checkbox" defaultChecked />
-                <span className="vh-login__remember-box">
-                  <Check size={11} strokeWidth={3} />
-                </span>
+                <span className="hh-login__check" aria-hidden="true"><Check size={11} strokeWidth={3} /></span>
                 <span>Keep me signed in for 30 days</span>
               </label>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="vh-login__submit"
-              >
+              <button type="submit" className="hh-login__submit" disabled={submitting}>
                 {submitting ? (
                   <>
-                    <span className="vh-login__submit-spinner" />
-                    <span>Signing you in&hellip;</span>
+                    <span className="hh-login__spinner" />
+                    Signing you in…
                   </>
                 ) : (
                   <>
-                    <span>Sign in to {selected.label}</span>
-                    <ArrowRight size={16} strokeWidth={2.5} />
+                    Sign in to {selected.label}
+                    <ArrowRight size={16} strokeWidth={2.25} />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="vh-login__divider">
-              <span>or</span>
-            </div>
+            <div className="hh-login__rule"><span>or</span></div>
 
-            <div className="vh-login__alts">
-              <a
-                href={
-                  process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE
-                    ? `https://wa.me/${process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE}?text=${encodeURIComponent("Hi HealthHub, I need help signing in.")}`
-                    : "mailto:support@healthhub.app"
-                }
-                target="_blank"
-                rel="noopener"
-                className="vh-login__alt vh-login__alt--whatsapp"
-              >
-                <MessageCircle size={15} />
-                <span>Chat on WhatsApp</span>
-              </a>
-            </div>
+            <a
+              className="hh-login__whatsapp"
+              href={
+                process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE
+                  ? `https://wa.me/${process.env.NEXT_PUBLIC_WA_SUPPORT_PHONE}?text=${encodeURIComponent("Hi HealthHub, I need help signing in.")}`
+                  : "mailto:support@healthhub.app"
+              }
+              target="_blank"
+              rel="noopener"
+            >
+              <MessageCircle size={15} />
+              Chat on WhatsApp
+            </a>
 
             {port === "patient" ? (
-              <a href="/account/signup" className="vh-login__request">
-                New here? <strong>Join HealthHub &rarr;</strong>
+              <a className="hh-login__cta" href="/account/signup">
+                New here? <strong>Join HealthHub →</strong>
               </a>
             ) : (
-              <a href="mailto:support@healthhub.app?subject=Access%20request" className="vh-login__request">
-                Need a staff account? <strong>Request access &rarr;</strong>
+              <a className="hh-login__cta" href="mailto:support@healthhub.app?subject=Access%20request">
+                Need a staff account? <strong>Request access →</strong>
               </a>
             )}
           </div>
 
-          <div className="vh-login__footer">
-            <span>&copy; {new Date().getFullYear()} Healthhub (Pvt) Ltd.</span>
-            <span className="vh-login__footer-links">
+          <footer className="hh-login__footer">
+            <span>© {new Date().getFullYear()} Healthhub (Pvt) Ltd.</span>
+            <span>
               <Link href="/privacy">Privacy</Link>
-              <span aria-hidden="true">·</span>
+              <i aria-hidden="true">·</i>
               <Link href="/terms">Terms</Link>
-              <span aria-hidden="true">·</span>
+              <i aria-hidden="true">·</i>
               <a href="mailto:support@healthhub.app">Support</a>
             </span>
-          </div>
+          </footer>
         </main>
       </div>
     </div>
