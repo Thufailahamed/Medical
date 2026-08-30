@@ -4512,9 +4512,12 @@ export const diagnosticTestCatalog = sqliteTable(
       .notNull(),
     price: real("price").notNull(),
     discountPrice: real("discount_price"),
-    labPartnerId: text("lab_partner_id")
-      .notNull()
-      .references(() => users.id),
+    // Phase: lab-diagnostics-foundation (migration 0076). Catalog
+    // becomes a global template; per-lab availability moves to the
+    // `labDiagnosticTests` join table, so `labPartnerId` is now
+    // nullable. Existing rows from 0062 still have this set; only new
+    // template rows (without a partner) leave it NULL.
+    labPartnerId: text("lab_partner_id").references(() => users.id),
     turnaroundHours: integer("turnaround_hours").default(24).notNull(),
     instructions: text("instructions"),
     isActive: integer("is_active", { mode: "boolean" })
@@ -4526,6 +4529,33 @@ export const diagnosticTestCatalog = sqliteTable(
     updatedAt: text("updated_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    // v2 enrichment (migration 0076)
+    shortName: text("short_name"),
+    code: text("code"),
+    categoryId: text("category_id").references(
+      (): any => labDiagnosticTestCategories.id,
+      { onDelete: "set null" }
+    ),
+    resultInterpretation: text("result_interpretation"),
+    referenceInfo: text("reference_info"),
+    currency: text("currency").notNull().default("LKR"),
+    visibility: text("visibility", { enum: ["public", "internal"] })
+      .notNull()
+      .default("public"),
+    isBookable: integer("is_bookable", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    isDoctorOrderable: integer("is_doctor_orderable", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    labCollectionAvailable: integer("lab_collection_available", {
+      mode: "boolean",
+    })
+      .default(true)
+      .notNull(),
+    // JSON array of alternative test names (e.g. ["Complete Blood Count", "CBC"]).
+    synonyms: text("synonyms"),
+    displayOrder: integer("display_order").default(0).notNull(),
   },
   (t) => ({
     categoryIdx: index("idx_diagnostic_test_catalog_category").on(
@@ -4535,6 +4565,104 @@ export const diagnosticTestCatalog = sqliteTable(
     labPartnerIdx: index("idx_diagnostic_test_catalog_lab_partner").on(
       t.labPartnerId,
       t.isActive
+    ),
+    categoryIdIdx: index("idx_diag_test_catalog_category_id").on(
+      t.categoryId
+    ),
+  })
+);
+
+// ─── Lab Diagnostic Test Categories ─────────────────────
+//
+// Phase: lab-diagnostics-foundation (migration 0076). Replaces the
+// legacy `diagnostic_test_catalog.category` TEXT with a normalised
+// category table. Seed values are inserted by migration 0076; new
+// categories are added by admins via /admin/lab-categories. i18n
+// names (`nameSi` / `nameTa`) cover Sinhala + Tamil; `icon` is a
+// slug that maps to a bundled asset in `apps/mobile/assets/lab/`.
+
+export const labDiagnosticTestCategories = sqliteTable(
+  "lab_diagnostic_test_categories",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    nameSi: text("name_si"),
+    nameTa: text("name_ta"),
+    icon: text("icon"),
+    displayOrder: integer("display_order").default(0).notNull(),
+    isActive: integer("is_active", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    activeIdx: index("idx_lab_diag_cat_active").on(
+      t.isActive,
+      t.displayOrder
+    ),
+  })
+);
+
+// ─── Lab Diagnostic Tests (per-laboratory availability) ───────
+//
+// Phase: lab-diagnostics-foundation (migration 0076). M:N-style join
+// between a lab-partner user and a catalog test, carrying per-lab
+// pricing/turnaround/collection overrides. The same catalog test
+// can be offered by multiple labs at different prices; patients see
+// one row per (lab, test) on the catalog browse page, sorted by
+// price + rating. UNIQUE (lab_partner_id, test_id) keeps the join
+// idempotent — re-publish from a lab upserts a row instead of
+// duplicating.
+
+export const labDiagnosticTests = sqliteTable(
+  "lab_diagnostic_tests",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    labPartnerId: text("lab_partner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    testId: text("test_id")
+      .notNull()
+      .references(() => diagnosticTestCatalog.id, { onDelete: "cascade" }),
+    price: real("price").notNull(),
+    discountPrice: real("discount_price"),
+    currency: text("currency").notNull().default("LKR"),
+    homeCollectionAvailable: integer("home_collection_available", {
+      mode: "boolean",
+    })
+      .default(true)
+      .notNull(),
+    labCollectionAvailable: integer("lab_collection_available", {
+      mode: "boolean",
+    })
+      .default(true)
+      .notNull(),
+    turnaroundHours: integer("turnaround_hours"),
+    specialInstructions: text("special_instructions"),
+    isActive: integer("is_active", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: text("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    testIdx: index("idx_lab_diag_tests_test").on(t.testId, t.isActive),
+    labIdx: index("idx_lab_diag_tests_lab").on(
+      t.labPartnerId,
+      t.isActive
+    ),
+    // Unique (lab, test) pair — duplicate INSERTs are silently
+    // rejected at the DB layer. App-layer upsert re-uses the same id.
+    labTestUnique: uniqueIndex("lab_diagnostic_tests_lab_test_unique").on(
+      t.labPartnerId,
+      t.testId
     ),
   })
 );
@@ -4572,12 +4700,57 @@ export const testPackages = sqliteTable(
     updatedAt: text("updated_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    // v2 enrichment (migration 0076)
+    categoryId: text("category_id").references(
+      (): any => labDiagnosticTestCategories.id,
+      { onDelete: "set null" }
+    ),
+    preparation: text("preparation"),
+    fastingRequired: integer("fasting_required", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    sampleType: text("sample_type"),
+    imageUrl: text("image_url"),
+    popular: integer("popular", { mode: "boolean" }).default(false).notNull(),
+    featured: integer("featured", { mode: "boolean" }).default(false).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+    discountPercent: real("discount_percent"),
   },
   (t) => ({
     labPartnerIdx: index("idx_test_packages_lab_partner").on(
       t.labPartnerId,
       t.isActive
     ),
+    featuredIdx: index("idx_test_packages_featured").on(
+      t.featured,
+      t.isActive
+    ),
+    categoryIdx: index("idx_test_packages_category").on(t.categoryId),
+  })
+);
+
+// ─── Test Package Images ─────────────────────────────────
+//
+// Phase: lab-diagnostics-foundation (migration 0076). One package
+// can have multiple gallery images (hero, lifestyle, lab shot).
+// `imageUrl` is a CDN URL (R2 / S3) — uploads go through the
+// existing files pipeline (`/files/presigned` + worker upload).
+
+export const testPackageImages = sqliteTable(
+  "test_package_images",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    packageId: text("package_id")
+      .notNull()
+      .references(() => testPackages.id, { onDelete: "cascade" }),
+    imageUrl: text("image_url").notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    packageIdx: index("idx_pkg_img").on(t.packageId, t.displayOrder),
   })
 );
 
@@ -4700,3 +4873,24 @@ export const testBookings = sqliteTable(
     ),
   })
 );
+
+// ─── Inferred types — lab/diagnostics v2 (migration 0076) ──────────
+//
+// Re-export the InferSelectModel / InferInsertModel pairs for the new
+// tables so downstream routes (Tasks 3-5) can do:
+//   import type { LabDiagnosticTest } from "@healthcare/db";
+// without re-declaring the row shape. The New* variants are the
+// insert shapes (optional id / timestamps), per Drizzle convention.
+
+import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+
+export type LabDiagnosticTestCategory = InferSelectModel<
+  typeof labDiagnosticTestCategories
+>;
+export type NewLabDiagnosticTestCategory = InferInsertModel<
+  typeof labDiagnosticTestCategories
+>;
+export type LabDiagnosticTest = InferSelectModel<typeof labDiagnosticTests>;
+export type NewLabDiagnosticTest = InferInsertModel<typeof labDiagnosticTests>;
+export type TestPackageImage = InferSelectModel<typeof testPackageImages>;
+export type NewTestPackageImage = InferInsertModel<typeof testPackageImages>;
