@@ -1,6 +1,6 @@
 // tests/seed-diagnostics.test.ts
 //
-// Phase: lab-diagnostics-foundation (Task 2 — seed script).
+// Phase: lab-diagnostics-foundation (Task 2 — seed script + fix round).
 //
 // Verifies the seed script in `apps/api/scripts/seed-diagnostics.ts`
 // against the MockD1 harness used by the rest of the test suite. The
@@ -18,13 +18,23 @@
 //   * Image ingestion: at least one package has its `image_url` set to
 //     the public asset path, and packages without a matching entry get
 //     the fallback `default-package.jpg`
+//   * C1 fix: the `default-package.jpg` placeholder exists on disk and
+//     is a non-empty valid JPG
+//   * I1 fix: `loadImageManifest` iterates every line in urls.json;
+//     non-lab entries emit a `console.warn` (not a silent skip)
+//   * I2 fix: `LAB_IMAGE_SLUG_OVERRIDES` env var is parsed and merged
+//     into the filename → package-slug map
 //
 // All assertions read through MockD1's `tables` accessor (camelCase
 // keys) — see `tests/_mockDb.ts` notes about row storage.
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { MockD1 } from "./_mockDb";
-import { seedDiagnostics } from "../scripts/seed-diagnostics";
+import { seedDiagnostics, loadImageManifest } from "../scripts/seed-diagnostics";
 
 const FALLBACK_URL = "/assets/lab/packages/default-package.jpg";
 
@@ -191,5 +201,191 @@ describe("seedDiagnostics", () => {
     // And the warning was logged.
     const labWarn = warnings.find((w) => /laboratory/i.test(w));
     expect(labWarn).toBeDefined();
+  });
+});
+
+// ─── C1 fix: default-package.jpg placeholder ───────────────────
+//
+// After ingesting images into a fresh temp dir, the script must
+// also ensure `default-package.jpg` is present at the destination so
+// the fallback path always resolves to a real asset.
+describe("seedDiagnostics — image ingestion hardening", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "seed-img-"));
+  });
+
+  afterEach(() => {
+    if (tmpDir && existsSync(tmpDir)) {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("C1: writes default-package.jpg placeholder when missing", async () => {
+    const db = new MockD1();
+    db.seed("users", [
+      {
+        id: "lab-user-001",
+        supabaseId: "supabase-lab1",
+        role: "laboratory",
+        name: "Test Lab",
+        email: "lab@test.local",
+      },
+    ]);
+    await seedDiagnostics(db, {
+      imageMap: {},
+      imageOutputDir: tmpDir,
+      skipNetworkFetch: true,
+    });
+    const placeholder = join(tmpDir, "default-package.jpg");
+    expect(existsSync(placeholder)).toBe(true);
+    const bytes = readFileSync(placeholder);
+    expect(bytes.length).toBeGreaterThan(0);
+    // First 3 bytes of any valid JPEG: 0xFF 0xD8 0xFF.
+    expect(bytes[0]).toBe(0xff);
+    expect(bytes[1]).toBe(0xd8);
+    expect(bytes[2]).toBe(0xff);
+  });
+
+  it("C1: also creates the destination directory defensively", async () => {
+    const db = new MockD1();
+    const nested = join(tmpDir, "deeply", "nested", "packages");
+    expect(existsSync(nested)).toBe(false);
+    await seedDiagnostics(db, {
+      imageMap: {},
+      imageOutputDir: nested,
+      skipNetworkFetch: true,
+    });
+    expect(existsSync(nested)).toBe(true);
+    expect(existsSync(join(nested, "default-package.jpg"))).toBe(true);
+  });
+});
+
+// ─── I1 fix: iterate all urls.json entries ─────────────────────
+//
+// The brief requires the loader to attempt every line in urls.json
+// and `console.warn` for non-lab entries (rather than silently
+// skipping).
+describe("loadImageManifest — iterates every entry", () => {
+  let tmpDir: string;
+  let urlsFile: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "seed-urls-"));
+    urlsFile = join(tmpDir, "urls.json");
+  });
+
+  afterEach(() => {
+    if (tmpDir && existsSync(tmpDir)) {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("I1: iterates every line; non-lab entries produce a console.warn", async () => {
+    // 9-line urls.json shaped exactly like the real one — 7 insurance +
+    // 2 lab. The loader must attempt every line; lab entries land in
+    // the returned map; insurance entries trigger console.warn.
+    const lines = [
+      JSON.stringify({ node_id: "n1", download_url: "https://x.test/insurance-individual.png?e=1" }),
+      JSON.stringify({ node_id: "n2", download_url: "https://x.test/insurance-family.jpg?e=1" }),
+      JSON.stringify({ node_id: "n3", download_url: "https://x.test/insurance-senior.jpg?e=1" }),
+      JSON.stringify({ node_id: "n4", download_url: "https://x.test/insurance-critical-illness.jpg?e=1" }),
+      JSON.stringify({ node_id: "n5", download_url: "https://x.test/insurance-cancer.jpg?e=1" }),
+      JSON.stringify({ node_id: "n6", download_url: "https://x.test/insurance-dental.jpg?e=1" }),
+      JSON.stringify({ node_id: "n7", download_url: "https://x.test/insurance-maternity.jpg?e=1" }),
+      JSON.stringify({ node_id: "n8", download_url: "https://x.test/lab-full-body.jpg?e=1" }),
+      JSON.stringify({ node_id: "n9", download_url: "https://x.test/lab-diabetic.jpg?e=1" }),
+    ];
+    writeFileSync(urlsFile, lines.join("\n"));
+
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args.map(String).join(" "));
+    };
+    let map: Record<string, string> = {};
+    try {
+      map = await loadImageManifest(urlsFile);
+    } finally {
+      console.warn = origWarn;
+    }
+
+    // The 2 lab entries land in the map keyed by their filename slug.
+    expect(map["full-body"]).toContain("lab-full-body.jpg");
+    expect(map["diabetic"]).toContain("lab-diabetic.jpg");
+    // No insurance entries leak in.
+    expect(Object.keys(map)).not.toContain("insurance-individual");
+    expect(Object.keys(map)).not.toContain("insurance-family");
+
+    // Every one of the 7 insurance filenames produced a warn line.
+    const fnameWarns = warnings.filter((w) => /Skipping non-lab image:/i.test(w));
+    expect(fnameWarns.length).toBeGreaterThanOrEqual(7);
+    for (const fname of [
+      "insurance-individual.png",
+      "insurance-family.jpg",
+      "insurance-senior.jpg",
+      "insurance-critical-illness.jpg",
+      "insurance-cancer.jpg",
+      "insurance-dental.jpg",
+      "insurance-maternity.jpg",
+    ]) {
+      expect(fnameWarns.some((w) => w.includes(fname))).toBe(true);
+    }
+  });
+
+  it("I1: returns an empty map + warns if urls.json is missing", async () => {
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args.map(String).join(" "));
+    };
+    let map: Record<string, string> = {};
+    try {
+      map = await loadImageManifest(join(tmpDir, "does-not-exist.json"));
+    } finally {
+      console.warn = origWarn;
+    }
+    expect(Object.keys(map)).toHaveLength(0);
+    expect(warnings.some((w) => /not found/i.test(w))).toBe(true);
+  });
+});
+
+// ─── I2 fix: LAB_IMAGE_SLUG_OVERRIDES env var ──────────────────
+//
+// The loader / ingest pipeline must honour operator-supplied
+// filename→package-slug overrides via an env var so that adding a new
+// `lab-XYZ.jpg` to the OSS bucket doesn't require a code change.
+describe("seedDiagnostics — LAB_IMAGE_SLUG_OVERRIDES", () => {
+  let tmpDir: string;
+  let origEnv: string | undefined;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "seed-overrides-"));
+    origEnv = process.env.LAB_IMAGE_SLUG_OVERRIDES;
+  });
+
+  afterEach(() => {
+    if (origEnv === undefined) delete process.env.LAB_IMAGE_SLUG_OVERRIDES;
+    else process.env.LAB_IMAGE_SLUG_OVERRIDES = origEnv;
+    if (tmpDir && existsSync(tmpDir)) {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("I2: env var overrides are parsed and merged into the imageMap slug map", async () => {
+    // Set an env var that points the lab-full-body filename slug at a
+    // synthetic package slug. The ingest step should land the bytes
+    // at <slug>.jpg, not at <lab-full-body>.jpg.
+    process.env.LAB_IMAGE_SLUG_OVERRIDES =
+      "lab-full-body:full-body-health-checkup,foo:bar-package";
+    const { ingestImages } = await import("../scripts/seed-diagnostics");
+    const map = { "full-body": "https://example.test/lab-full-body.jpg" };
+    const out = await ingestImages(map, tmpDir, { skipNetworkFetch: true });
+    // Override routed full-body → full-body-health-checkup.
+    expect(out["full-body-health-checkup"]).toBe(
+      "/assets/lab/packages/full-body-health-checkup.jpg",
+    );
+    expect(out["full-body"]).toBeUndefined();
   });
 });
