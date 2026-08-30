@@ -254,6 +254,7 @@
       "visits": "Visits",
       "messages": "Messages",
       "vaccinations": "Vaccinations",
+      "imaging": "Imaging & PACS",
       "share": "Share"
     },
     "backToList": "Back to patients",

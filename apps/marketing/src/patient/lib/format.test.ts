@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { formatMetric, formatRelative, formatTime } from "./format";
+import {
+  formatMetric,
+  formatRecordType,
+  formatRelative,
+  formatTime,
+} from "./format";
 
 describe("formatMetric", () => {
   it("rounds to the registry's decimal count", () => {
@@ -40,5 +45,17 @@ describe("formatTime", () => {
 
   it("returns an em dash for a missing time", () => {
     expect(formatTime(null)).toBe("—");
+  });
+});
+
+describe("formatRecordType", () => {
+  it("maps known API enums to readable labels", () => {
+    expect(formatRecordType("CLINICAL_NOTE")).toBe("Clinical note");
+    expect(formatRecordType("lab_report")).toBe("Lab report");
+    expect(formatRecordType("prescription")).toBe("Prescription");
+  });
+
+  it("humanizes unknown kinds", () => {
+    expect(formatRecordType("custom_kind")).toBe("Custom kind");
   });
 });

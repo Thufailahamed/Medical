@@ -20,9 +20,15 @@ function withClient(ui: React.ReactNode) {
 describe("VitalsTrend", () => {
   it("renders all four dashboard vital tabs by name", () => {
     withClient(<VitalsTrend />);
-    expect(screen.getByRole("button", { name: "Heart Check" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Saturation" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Pressure" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Temperature" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Heart Check" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Saturation" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Pressure" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Temperature" })).toBeTruthy();
+  });
+
+  it("shows an empty state when there are no readings", () => {
+    withClient(<VitalsTrend />);
+    expect(screen.getByText(/No heart rate yet/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Add first reading/i })).toBeTruthy();
   });
 });

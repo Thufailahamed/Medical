@@ -27,7 +27,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ListOrdered,
   RefreshCw,
-  User as UserIcon,
   CalendarCheck,
   DoorOpen,
   Play,
@@ -38,21 +37,22 @@ import {
   Hash,
   Clock,
   Video,
+  Users,
+  Plus,
+  CalendarPlus,
+  Stethoscope,
+  CheckCircle2,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 
 import { api, qk, teleconsultApi } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Avatar } from "@/portal/components/ui/Avatar";
 import { Button } from "@/portal/components/ui/Button";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
 import {
   ChartList,
   ChartRow,
-  FilterPills,
   type FilterOption,
 } from "@/portal/components/chart";
 import { useT } from "@/portal/i18n";
@@ -60,12 +60,6 @@ import { formatTime, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 
 // ─── Status vocabulary ──────────────────────────────────────────────────
-//
-// Two domains — appointments use {scheduled, confirmed, in_progress, ...}
-// walk-ins use {waiting, in_consultation, ...}. The page maps both
-// onto one logical UX (active / completed / no-show) without leaking
-// the divergence into the UI.
-
 type ApptStatus =
   | "scheduled"
   | "confirmed"
@@ -85,7 +79,6 @@ type AnyStatus = ApptStatus | WalkInStatus;
 type QueueFilter = "all" | "walkins" | "appointments" | "active" | "completed";
 
 // ─── Transition tables ──────────────────────────────────────────────────
-
 const APPT_TRANSITIONS: Record<ApptStatus, ApptStatus[]> = {
   scheduled: ["confirmed", "in_progress", "cancelled", "no_show"],
   confirmed: ["in_progress", "cancelled", "no_show"],
@@ -103,7 +96,6 @@ const WALKIN_TRANSITIONS: Record<WalkInStatus, WalkInStatus[]> = {
 };
 
 // ─── Status visual config ───────────────────────────────────────────────
-
 type StatusTone = "neutral" | "brand" | "success" | "warn" | "danger";
 
 const STATUS_TONE: Record<AnyStatus, StatusTone> = {
@@ -129,7 +121,6 @@ const STATUS_LABEL_KEY: Record<AnyStatus, string> = {
 };
 
 // ─── Shape of /doctor-portal/queue response item ────────────────────────
-
 interface QueueItem {
   kind: "appointment" | "walkin";
   appointmentId?: string;
@@ -151,8 +142,6 @@ interface QueueItem {
   arrivedAt?: string | null;
   hospitalId?: string | null;
   hospitalName?: string | null;
-  // Round 5: patient-requested video vs in-person mode. Appointment rows
-  // carry it; walk-ins (which have no `mode` column) leave it undefined.
   mode?: "in_person" | "video" | null;
 }
 
@@ -163,19 +152,12 @@ interface QueueResp {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
-
 const ACTIVE_STATUSES: Set<AnyStatus> = new Set([
   "scheduled",
   "confirmed",
   "in_progress",
   "waiting",
   "in_consultation",
-]);
-
-const DONE_STATUSES: Set<AnyStatus> = new Set([
-  "completed",
-  "cancelled",
-  "no_show",
 ]);
 
 function itemMatchesFilter(item: QueueItem, filter: QueueFilter): boolean {
@@ -197,8 +179,6 @@ function todayIso(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-// ─── Main page ──────────────────────────────────────────────────────────
-
 export default function QueuePage() {
   const t = useT();
   const qc = useQueryClient();
@@ -206,10 +186,6 @@ export default function QueuePage() {
   const searchParams = useSearchParams();
   const date = useMemo(todayIso, []);
   const [filter, setFilter] = useState<QueueFilter>("active");
-  // Round 6 P2: server-driven mode filter via URL param so deep-links
-  // work (e.g. `?mode=video` from a notification or sidebar link). The
-  // API returns only video-mode appointments when present; "all" or
-  // "in_person" leaves the response mixed.
   const modeFilter = searchParams.get("mode");
 
   const { data, isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
@@ -226,7 +202,6 @@ export default function QueuePage() {
   });
 
   // ─── Mutations ──────────────────────────────────────────────────────
-
   const apptMutation = useMutation({
     mutationFn: ({
       id,
@@ -282,11 +257,6 @@ export default function QueuePage() {
     },
   });
 
-  // Round 4 — In-App Video Teleconsultation. Doctor taps the icon
-  // button on a row to spin up a Teleconsult session and jump to the
-  // video page. The mutation creates a row in `teleconsult_sessions`
-  // and returns the roomId we navigate to. (router is hoisted to the
-  // page top so the mode-filter chips can also navigate.)
   const startVideoVisit = useMutation({
     mutationFn: (appointmentId: string) =>
       teleconsultApi.createSession(appointmentId),
@@ -301,7 +271,6 @@ export default function QueuePage() {
   });
 
   // ─── Derived counts ─────────────────────────────────────────────────
-
   const items = data?.queue ?? [];
 
   const counts = useMemo(() => {
@@ -332,107 +301,266 @@ export default function QueuePage() {
     { value: "all", label: t("queue.filter.all"), count: items.length },
   ];
 
-  // ─── Render ─────────────────────────────────────────────────────────
-
   const activeCount = counts.waiting + counts.inProgress;
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader
-        title={t("queue.title")}
-        subtitle={
-          dataUpdatedAt
-            ? t("queue.lastUpdated", {
-                time: relativeTime(new Date(dataUpdatedAt).toISOString()),
-              })
-            : t("queue.subtitle")
-        }
-        icon={<ListOrdered size={16} />}
-        badge={
-          activeCount > 0 ? (
-            <Pill tone="warn">{activeCount} {t("queue.filter.active").toLowerCase()}</Pill>
-          ) : null
-        }
-        actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            leftIcon={<RefreshCw size={12} className={cn(isFetching && "animate-spin")} />}
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            {t("queue.action.refresh")}
-          </Button>
-        }
-      />
+    <div className="flex flex-col gap-6 pb-12">
+      {/* ── 1. Signature Oceanic Doctor Queue Hero ─────────────────────────── */}
+      <header
+        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
+        style={{
+          background:
+            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
+          boxShadow:
+            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+        }}
+      >
+        {/* Glow Orbs */}
+        <div
+          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
+          }}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
+          }}
+          aria-hidden
+        />
 
-      {/* ─── Hero stat strip ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        <div className="relative z-10 flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
+                <ListOrdered size={12} className="text-sky-300" />
+                Live Encounter Stream
+              </div>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                Today&apos;s Clinical Queue
+              </h1>
+              <p className="text-sm text-white/80 mt-1 leading-relaxed">
+                {dataUpdatedAt
+                  ? `Updated ${relativeTime(new Date(dataUpdatedAt).toISOString())} · `
+                  : ""}
+                Real-time patient flow combining scheduled clinic appointments, walk-in arrivals, and video teleconsultations.
+              </p>
+            </div>
+
+            {/* Header Actions */}
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02] cursor-pointer"
+              >
+                <RefreshCw size={12} className={cn(isFetching && "animate-spin")} />
+                <span>Refresh Stream</span>
+              </button>
+              <Link
+                href="/portal/walk-ins"
+                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
+                style={{ color: "#0c4a6e" }}
+              >
+                <DoorOpen size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
+                <span style={{ color: "#0c4a6e" }}>+ Check-In Walk-In</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Quick Metrics Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
+                <Users size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                  Active Patients
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {activeCount} In Stream
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
+                <Clock size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
+                  Waiting Lounge
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {counts.waiting} Waiting
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
+                <Play size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-emerald-200 truncate">
+                  In Consultation
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {counts.inProgress} In Room
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
+                <CheckCircle2 size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                  Completed Today
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {counts.completed} Discharged
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ── 2. Four High-Contrast Telemetry Tiles ──────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <StatMini
-          icon={<Clock size={14} />}
-          label={t("queue.stat.waiting")}
+          icon={<Clock size={18} />}
+          label="Waiting Room"
           value={counts.waiting}
-          tone="brand"
-        />
-        <StatMini
-          icon={<Play size={14} />}
-          label={t("queue.stat.inProgress")}
-          value={counts.inProgress}
           tone="warn"
+          sub="Patients queued in reception"
         />
         <StatMini
-          icon={<Check size={14} />}
-          label={t("queue.stat.completed")}
+          icon={<Play size={18} />}
+          label="In Consultation"
+          value={counts.inProgress}
+          tone="brand"
+          sub="Encounter currently in room"
+        />
+        <StatMini
+          icon={<Check size={18} />}
+          label="Discharged / Done"
           value={counts.completed}
           tone="success"
+          sub="Completed clinical visits"
         />
         <StatMini
-          icon={<X size={14} />}
-          label={t("queue.stat.noShow")}
+          icon={<X size={18} />}
+          label="No-Show / Cancelled"
           value={counts.noShow}
           tone="danger"
+          sub="Absences & cancellations"
         />
       </div>
 
-      {/* ─── Filters + list ─────────────────────────────────────────── */}
-      <Card padding={false}>
-        <div className="px-3 md:px-4 py-3 border-b border-border/60 bg-surface-2/30 flex flex-col gap-2.5">
-          <FilterPills
-            value={filter}
-            onChange={setFilter}
-            options={filterOptions}
-            size="sm"
+      {/* ── 3. Unified Queue Stage with Categorized Filter Controls ────────── */}
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col">
+        {/* Filter Controls Header */}
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {filterOptions.map((opt) => {
+              const active = filter === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFilter(opt.value)}
+                  style={{
+                    backgroundColor: active ? "#0284c7" : "#ffffff",
+                    borderColor: active ? "#0284c7" : "#cbd5e1",
+                    color: active ? "#ffffff" : "#475569",
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs"
+                >
+                  <span>{opt.label}</span>
+                  <span
+                    style={{
+                      backgroundColor: active ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                      color: active ? "#ffffff" : "#64748b",
+                    }}
+                    className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold"
+                  >
+                    {opt.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Mode Filter: All / Video / In-person */}
+          <ModeFilterChips
+            value={modeFilter}
+            onChange={(m) => {
+              const params = new URLSearchParams(searchParams.toString());
+              if (m) params.set("mode", m);
+              else params.delete("mode");
+              const qs = params.toString();
+              router.replace(qs ? `?${qs}` : "?", { scroll: false });
+            }}
+            t={t}
           />
-          {/* Round 6 P2: mode filter — server-driven via ?mode=. */}
-          <ModeFilterChips value={modeFilter} onChange={(m) => {
-            const params = new URLSearchParams(searchParams.toString());
-            if (m) params.set("mode", m);
-            else params.delete("mode");
-            const qs = params.toString();
-            router.replace(qs ? `?${qs}` : "?", { scroll: false });
-          }} t={t} />
         </div>
 
+        {/* Content Body */}
         {isLoading ? (
-          <div className="px-3 md:px-4 py-3 flex flex-col gap-2">
+          <div className="p-6 flex flex-col gap-3">
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-3/4" />
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="px-3 md:px-4 py-12">
-            <Empty
-              icon={<ListOrdered size={28} />}
-              title={t("queue.empty.title")}
-              description={t("queue.empty.description")}
-            />
+          /* Rich Clinical Empty State */
+          <div className="p-10 sm:p-14 flex flex-col items-center justify-center text-center gap-4">
+            <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-xs">
+              <ListOrdered size={26} />
+            </div>
+            <div className="max-w-md">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                Nothing in the Queue for Current Filter
+              </h3>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                No patients match the selected queue filter. As patients check in at reception, scan their Health ID QR at clinic kiosks, or start scheduled video appointments, they will appear here.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2 flex-wrap justify-center">
+              <Link
+                href="/portal/walk-ins"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                }}
+              >
+                <Plus size={14} strokeWidth={3} />
+                <span>+ Check-In Walk-In</span>
+              </Link>
+              <Link
+                href="/portal/schedule"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <CalendarPlus size={14} />
+                <span>Schedule Appointment</span>
+              </Link>
+            </div>
           </div>
         ) : (
           <ChartList
             items={filteredItems}
             isLoading={false}
             isEmpty={false}
-            emptyState={<Empty title={t("queue.empty.title")} />}
+            emptyState={<div />}
             renderRow={(item) => (
               <QueueRow
                 key={`${item.kind}-${item.appointmentId ?? item.walkInId}`}
@@ -456,15 +584,12 @@ export default function QueuePage() {
             skeletonCount={3}
           />
         )}
-      </Card>
+      </section>
     </div>
   );
 }
 
 // ─── Mode filter chips (server-driven ?mode=) ─────────────────────────
-// Three segmented chips above the list filter: All / Video / In-person.
-// Each click rewrites the URL — the page re-queries with the new mode
-// and React Query re-keys on `modeFilter` so polling restarts cleanly.
 function ModeFilterChips({
   value,
   onChange,
@@ -474,16 +599,16 @@ function ModeFilterChips({
   onChange: (next: string | null) => void;
   t: (k: string) => string;
 }) {
-  const opts: Array<{ key: string | null; label: string }> = [
-    { key: null, label: t("queue.modeFilter.all") },
-    { key: "video", label: t("queue.modeFilter.video") },
-    { key: "in_person", label: t("queue.modeFilter.inPerson") },
+  const opts: Array<{ key: string | null; label: string; icon?: React.ReactNode }> = [
+    { key: null, label: "All Modes" },
+    { key: "video", label: "Video", icon: <Video size={11} className="mr-1 inline" /> },
+    { key: "in_person", label: "In-person", icon: <Stethoscope size={11} className="mr-1 inline" /> },
   ];
   return (
     <div
-      className="inline-flex rounded-xl border border-border/60 bg-surface-1 p-0.5 self-start"
+      className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5 self-start shadow-2xs"
       role="group"
-      aria-label={t("queue.modeFilter.label")}
+      aria-label="Encounter mode"
     >
       {opts.map((o) => {
         const active = (o.key ?? null) === (value ?? null);
@@ -493,13 +618,13 @@ function ModeFilterChips({
             type="button"
             onClick={() => onChange(o.key)}
             aria-pressed={active}
-            className={cn(
-              "px-3 py-1 text-xs font-semibold rounded-lg transition-colors",
-              active
-                ? "bg-brand text-white shadow-sm"
-                : "text-text-soft hover:text-text hover:bg-surface-2"
-            )}
+            style={{
+              backgroundColor: active ? "#0c4a6e" : "transparent",
+              color: active ? "#ffffff" : "#64748b",
+            }}
+            className="px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center"
           >
+            {o.icon}
             {o.label}
           </button>
         );
@@ -509,53 +634,66 @@ function ModeFilterChips({
 }
 
 // ─── Stat mini (count tile) ─────────────────────────────────────────────
-
 function StatMini({
   icon,
   label,
   value,
   tone,
+  sub,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
   tone: "brand" | "warn" | "success" | "danger";
+  sub: string;
 }) {
-  const toneBg = {
-    brand: "border-brand/30 bg-brand-soft/40",
-    warn: "border-warn/30 bg-warn-soft/40",
-    success: "border-emerald-200 bg-emerald-50/50",
-    danger: "border-danger/30 bg-danger-soft/40",
-  }[tone];
-
-  const iconBg = {
-    brand: "bg-brand text-white",
-    warn: "bg-warn text-white",
-    success: "bg-emerald-600 text-white",
-    danger: "bg-danger text-white",
+  const cfg = {
+    brand: {
+      border: "border-sky-200 bg-sky-50/50",
+      iconBg: "bg-sky-100 text-sky-700 border-sky-200",
+      accent: "text-sky-700",
+    },
+    warn: {
+      border: "border-amber-200 bg-amber-50/50",
+      iconBg: "bg-amber-100 text-amber-700 border-amber-200",
+      accent: "text-amber-700",
+    },
+    success: {
+      border: "border-emerald-200 bg-emerald-50/50",
+      iconBg: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      accent: "text-emerald-700",
+    },
+    danger: {
+      border: "border-rose-200 bg-rose-50/50",
+      iconBg: "bg-rose-100 text-rose-700 border-rose-200",
+      accent: "text-rose-700",
+    },
   }[tone];
 
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border px-3 py-2.5",
-        toneBg
+        "flex items-center gap-3.5 rounded-2xl border p-3.5 sm:p-4 shadow-2xs bg-white",
+        cfg.border,
       )}
     >
       <div
         className={cn(
-          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-          iconBg
+          "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs",
+          cfg.iconBg,
         )}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <div className="text-lg font-bold tabular-nums leading-tight text-text">
+        <div className="text-2xl font-black tabular-nums leading-none text-slate-900">
           {value}
         </div>
-        <div className="text-[10px] uppercase tracking-wide font-semibold text-text-soft truncate">
+        <div className="text-[11px] font-bold text-slate-700 mt-1 uppercase tracking-wide truncate">
           {label}
+        </div>
+        <div className="text-[10px] text-slate-400 mt-0.5 truncate hidden sm:block">
+          {sub}
         </div>
       </div>
     </div>
@@ -563,7 +701,6 @@ function StatMini({
 }
 
 // ─── Single queue row ───────────────────────────────────────────────────
-
 function QueueRow({
   item,
   isPending,
@@ -583,10 +720,6 @@ function QueueRow({
   const isWalkIn = item.kind === "walkin";
   const id = item.appointmentId ?? item.walkInId ?? "";
 
-  const transitions = isWalkIn
-    ? (WALKIN_TRANSITIONS[item.status as WalkInStatus] ?? [])
-    : (APPT_TRANSITIONS[item.status as ApptStatus] ?? []);
-
   const canStart =
     item.status === "waiting" || item.status === "scheduled" || item.status === "confirmed";
   const canComplete =
@@ -605,7 +738,6 @@ function QueueRow({
 
   const statusLabel = t(STATUS_LABEL_KEY[item.status] ?? item.status);
 
-  // Map transition to friendly action label.
   function transitionAction(next: AnyStatus): {
     label: string;
     variant: "primary" | "secondary" | "ghost" | "danger";
@@ -636,18 +768,17 @@ function QueueRow({
     };
   }
 
-  // Determine the "primary action" — the most important next step.
   let primary: ReturnType<typeof transitionAction> | null = null;
   let secondary: ReturnType<typeof transitionAction> | null = null;
   if (canStart) {
     primary = transitionAction(isWalkIn ? "in_consultation" : "in_progress");
     if (item.status === "scheduled" && !isWalkIn) {
-      // appointments can confirm first
       primary = transitionAction("in_progress");
     }
   } else if (canComplete) {
     primary = transitionAction("completed");
   }
+
   if (canNoShow && !isWalkIn && (item.status === "scheduled" || item.status === "confirmed")) {
     secondary = transitionAction("no_show");
   } else if (canNoShow && isWalkIn && item.status === "waiting") {
@@ -659,42 +790,42 @@ function QueueRow({
       icon={
         <div className="relative">
           {isWalkIn ? (
-            <DoorOpen size={14} className="text-violet-700" />
+            <DoorOpen size={15} className="text-violet-700" />
           ) : (
-            <CalendarCheck size={14} className="text-brand" />
+            <CalendarCheck size={15} className="text-sky-700" />
           )}
           {item.priority === "urgent" ? (
-            <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-danger animate-pulse" />
+            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse" />
           ) : null}
         </div>
       }
       iconTone={isWalkIn ? "violet" : "brand"}
       title={
         <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate font-semibold">{item.patientName}</span>
+          <span className="truncate font-bold text-slate-900 text-sm">{item.patientName}</span>
           {item.kind === "walkin" ? (
-            <Pill tone="violet" className="text-[9px]">
-              {t("queue.row.walkIn")}
-            </Pill>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
+              Walk-In
+            </span>
           ) : (
-            <Pill tone="brand" className="text-[9px]">
-              {t("queue.row.appointment")}
-            </Pill>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+              Booked
+            </span>
           )}
           {item.queueNumber != null ? (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-text-muted shrink-0">
-              <Hash size={9} />
+            <span className="inline-flex items-center gap-0.5 text-xs font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+              <Hash size={10} />
               {item.queueNumber}
             </span>
           ) : null}
         </div>
       }
       subtitle={
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 text-xs text-slate-500">
           {item.reason ? (
             <span className="truncate">{item.reason}</span>
           ) : (
-            <span className="text-text-muted italic">—</span>
+            <span className="text-slate-400 italic">—</span>
           )}
         </div>
       }
@@ -705,11 +836,11 @@ function QueueRow({
         item.mode === "video" ? (
           <Pill key="mode" tone="brand">
             <Video size={11} className="mr-1" />
-            {t("appointments.mode.video")}
+            Video Consultation
           </Pill>
         ) : item.mode === "in_person" ? (
           <Pill key="mode" tone="neutral">
-            {t("appointments.mode.inPerson")}
+            In-Person Visit
           </Pill>
         ) : null,
         item.bloodGroup ? (
@@ -725,19 +856,19 @@ function QueueRow({
       ].filter(Boolean)}
       meta={
         <div className="text-right">
-          <div className="text-sm font-semibold tabular-nums text-text">
+          <div className="text-sm font-bold tabular-nums text-slate-900">
             {timeLabel}
           </div>
           {item.priority === "urgent" ? (
-            <div className="inline-flex items-center gap-0.5 text-[9px] font-bold text-danger uppercase">
-              <AlertTriangle size={9} />
-              {t("queue.row.urgent")}
+            <div className="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-rose-600 uppercase">
+              <AlertTriangle size={10} />
+              Urgent
             </div>
           ) : null}
         </div>
       }
       actions={
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {primary ? (
             <Button
               size="sm"
@@ -760,11 +891,6 @@ function QueueRow({
               {secondary.label}
             </Button>
           ) : null}
-          {/* Round 4: "Start video visit" icon button — only on
-              appointments (not walk-ins), status confirmed | in_progress
-              so the doctor doesn't try to start a call on a no-show
-              or completed row. Disabled while another mutation is in
-              flight so we don't double-create sessions. */}
           {!isWalkIn &&
           item.appointmentId &&
           (item.status === "confirmed" || item.status === "in_progress") ? (
@@ -772,10 +898,10 @@ function QueueRow({
               type="button"
               onClick={() => onStartVideoVisit(item.appointmentId!)}
               disabled={isPending}
-              title={t("consult.startVideoVisit")}
-              className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-semibold text-white bg-brand hover:bg-brand/90 transition-colors disabled:opacity-50"
+              title="Start Video Teleconsultation"
+              className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition-colors disabled:opacity-50 cursor-pointer"
             >
-              <Video size={11} />
+              <Video size={13} />
             </button>
           ) : null}
           <button
@@ -784,10 +910,10 @@ function QueueRow({
               e.stopPropagation();
               router.push(`/portal/patients/${item.patientId}/overview`);
             }}
-            className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-semibold text-text-soft hover:text-text hover:bg-surface-2 transition-colors"
-            title={t("queue.action.openChart")}
+            className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+            title="Open Patient Chart"
           >
-            <ExternalLink size={11} />
+            <ExternalLink size={13} />
           </button>
         </div>
       }

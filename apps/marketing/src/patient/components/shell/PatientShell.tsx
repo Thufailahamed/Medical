@@ -1,7 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/portal/stores/auth";
 import { useActiveFamilyMember } from "@/patient/hooks/useActiveFamilyMember";
+import { cn } from "@/portal/lib/utils";
 
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -13,6 +15,8 @@ import { Topbar } from "./Topbar";
 export function PatientShell({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const activeFamily = useActiveFamilyMember();
+  const pathname = usePathname();
+  const fullBleed = pathname?.startsWith("/patient/ai/chat") ?? false;
 
   if (activeFamily.isLoading) {
     return (
@@ -44,11 +48,23 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
-        <div className="flex-1 min-w-0 overflow-y-auto px-4 md:px-8 py-6">
-          <div className="max-w-[1560px] w-full mx-auto flex flex-col gap-6">
-            <Topbar user={user} />
-            <main className="flex-1 pb-8">{children}</main>
-          </div>
+        <Topbar user={user} />
+        <div
+          className={cn(
+            "flex-1 min-w-0",
+            fullBleed ? "overflow-hidden" : "overflow-y-auto",
+          )}
+        >
+          <main
+            className={cn(
+              "w-full",
+              fullBleed
+                ? "h-full max-w-none p-0"
+                : "min-h-full px-4 md:px-8 py-6 max-w-[1560px] mx-auto",
+            )}
+          >
+            {children}
+          </main>
         </div>
       </div>
     </div>

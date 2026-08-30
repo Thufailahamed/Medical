@@ -19,6 +19,7 @@ interface ToastState {
   toasts: Toast[];
   push: (t: Omit<Toast, "id" | "ttl"> & { ttl?: number }) => string;
   dismiss: (id: string) => void;
+  dismissAll: () => void;
 }
 
 const useToastStore = create<ToastState>((set) => ({
@@ -26,10 +27,15 @@ const useToastStore = create<ToastState>((set) => ({
   push: ({ tone, title, body, ttl }) => {
     const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const toast: Toast = { id, tone, title, body, ttl: ttl ?? 4000 };
-    set((s) => ({ toasts: [...s.toasts, toast] }));
+    set((s) => {
+      // Cap at 3 visible toasts to avoid viewport obstruction
+      const next = [...s.toasts, toast];
+      return { toasts: next.slice(-3) };
+    });
     return id;
   },
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  dismissAll: () => set({ toasts: [] }),
 }));
 
 /** Imperative toast helpers — usable from any client component. */
@@ -40,6 +46,7 @@ export const toast = {
     useToastStore.getState().push({ tone: "error", title, body }),
   info: (title: string, body?: string) =>
     useToastStore.getState().push({ tone: "info", title, body }),
+  dismissAll: () => useToastStore.getState().dismissAll(),
 };
 
 const toneConfig = {
@@ -66,15 +73,29 @@ const toneConfig = {
 /** Mount this once near the top of the tree. */
 export function ToastHost() {
   const toasts = useToastStore((s) => s.toasts);
+  const dismissAll = useToastStore((s) => s.dismissAll);
+  if (toasts.length === 0) return null;
+  const visible = toasts.slice(-3);
   return (
     <div
       className="portal-toast-host pointer-events-none fixed bottom-5 right-5 z-[210] flex w-[min(22rem,calc(100vw-2.5rem))] flex-col-reverse gap-2"
       aria-live="polite"
       aria-relevant="additions"
     >
-      {toasts.map((t) => (
+      {visible.map((t) => (
         <ToastCard key={t.id} toast={t} />
       ))}
+      {visible.length > 1 && (
+        <div className="flex justify-end pointer-events-auto">
+          <button
+            type="button"
+            onClick={dismissAll}
+            className="text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-200 shadow-xs transition-all cursor-pointer"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
     </div>
   );
 }

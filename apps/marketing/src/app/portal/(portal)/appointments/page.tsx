@@ -8,30 +8,31 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarCheck,
-  UserPlus,
   Clock,
   AlertTriangle,
   ChevronRight as ChevronRightIcon,
   Video,
+  ListOrdered,
+  DoorOpen,
+  CalendarPlus,
+  Stethoscope,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { addDays, format, parseISO } from "date-fns";
 
 import { api, teleconsultApi, qk } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
 import { Input } from "@/portal/components/ui/Form";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { toast } from "@/portal/components/ui/Toast";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useT } from "@/portal/i18n";
 import { formatTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────
-
 interface QueueRow {
   kind: "appointment" | "walkin";
   appointmentId?: string;
@@ -45,9 +46,6 @@ interface QueueRow {
   queueNumber?: number | null;
   reason?: string | null;
   hospitalName?: string | null;
-  // Round 5: video/in_person mode. Present on appointment rows; walk-ins
-  // (which have no `mode` column on the `walk_ins` table) leave this
-  // undefined so the pill is suppressed.
   mode?: "in_person" | "video" | null;
 }
 
@@ -58,15 +56,21 @@ interface QueueResp {
 }
 
 // ─── Constants ──────────────────────────────────────────
-
-const STATUS_CONFIG: Record<string, { tone: "neutral" | "brand" | "success" | "warn" | "danger" | "violet"; icon: typeof Calendar }> = {
-  scheduled:    { tone: "brand",   icon: Calendar },
-  confirmed:    { tone: "brand",   icon: Calendar },
-  in_progress:  { tone: "brand",   icon: Clock },
-  in_consultation: { tone: "brand", icon: Clock },
-  completed:    { tone: "success", icon: CalendarCheck },
-  cancelled:    { tone: "danger",  icon: AlertTriangle },
-  no_show:      { tone: "danger",  icon: AlertTriangle },
+const STATUS_CONFIG: Record<
+  string,
+  {
+    tone: "neutral" | "brand" | "success" | "warn" | "danger" | "violet";
+    icon: typeof Calendar;
+    label: string;
+  }
+> = {
+  scheduled: { tone: "brand", icon: Calendar, label: "Scheduled" },
+  confirmed: { tone: "brand", icon: Calendar, label: "Confirmed" },
+  in_progress: { tone: "warn", icon: Clock, label: "In Progress" },
+  in_consultation: { tone: "warn", icon: Clock, label: "In Consult" },
+  completed: { tone: "success", icon: CalendarCheck, label: "Completed" },
+  cancelled: { tone: "danger", icon: AlertTriangle, label: "Cancelled" },
+  no_show: { tone: "danger", icon: AlertTriangle, label: "No Show" },
 };
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -78,7 +82,6 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 };
 
 // ─── Appointment Detail Drawer ──────────────────────────
-
 function AppointmentDetail({
   row,
   date,
@@ -95,8 +98,6 @@ function AppointmentDetail({
   const [newTime, setNewTime] = useState(row.time || "");
   const [showPreVisit, setShowPreVisit] = useState(false);
 
-  // Tier 1 records PR3: pre-visit summary. Fetch on demand; the cache
-  // is shared with the cron + email payload so this stays in sync.
   const preVisit = useQuery({
     queryKey: ["pre-visit-summary", row.appointmentId],
     queryFn: () =>
@@ -116,6 +117,7 @@ function AppointmentDetail({
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pre-visit-summary", row.appointmentId] });
+      toast.success("Pre-visit clinical summary sent to patient");
     },
   });
 
@@ -129,7 +131,7 @@ function AppointmentDetail({
         json: { status },
       }),
     onSuccess: () => {
-      toast.success(t("appointments.cancelled"));
+      toast.success("Appointment updated");
       qc.invalidateQueries({ queryKey: ["doctor-portal", "queue", date] });
       onClose();
     },
@@ -143,7 +145,7 @@ function AppointmentDetail({
         json: { date: newDate, time: newTime },
       }),
     onSuccess: () => {
-      toast.success(t("appointments.rescheduled"));
+      toast.success("Appointment rescheduled");
       qc.invalidateQueries({ queryKey: ["doctor-portal", "queue", date] });
       qc.invalidateQueries({ queryKey: ["doctor-portal", "queue", newDate] });
       onClose();
@@ -151,11 +153,6 @@ function AppointmentDetail({
     onError: (err: any) => toast.error("Failed", err?.message),
   });
 
-  // Round 4 — In-App Video Teleconsultation. The "Start video visit"
-  // button is only available on confirmed | in_progress appointments
-  // (the same gate as the queue row button). Creates a session row
-  // and navigates to /portal/teleconsult/[roomId] where the doctor
-  // joins the WebRTC room.
   const router = useRouter();
   const startVideoVisit = useMutation({
     mutationFn: (appointmentId: string) =>
@@ -171,179 +168,214 @@ function AppointmentDetail({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Patient info */}
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-2/60 border border-border/50">
-        <div className="h-11 w-11 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
+      {/* Patient info card */}
+      <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80">
+        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-700 text-white flex items-center justify-center text-sm font-extrabold shadow-sm">
           {(row.patientName ?? "?").slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-text truncate">
-            {row.patientName ?? t("walkins.unknownPatient")}
+          <div className="text-base font-bold text-slate-900 truncate">
+            {row.patientName ?? "Consultation Patient"}
           </div>
-          <div className="text-xs text-text-muted mt-0.5">
+          <div className="text-xs text-slate-500 mt-0.5">
             {row.time ? formatTime(`1970-01-01T${row.time}`) : "—"}
-            {row.queueNumber ? ` · Queue #${row.queueNumber}` : ""}
+            {row.queueNumber ? ` · Token #${row.queueNumber}` : ""}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex flex-col items-end gap-1 shrink-0">
           <Pill tone={cfg.tone}>{row.status.replace("_", " ")}</Pill>
           {row.mode === "video" ? (
-            <Pill tone="brand">{t("appointments.mode.video")}</Pill>
-          ) : row.mode === "in_person" ? (
-            <Pill tone="neutral">{t("appointments.mode.inPerson")}</Pill>
-          ) : null}
+            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-100 text-sky-800 flex items-center gap-1">
+              <Video size={10} /> Video Call
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700">
+              In-Person
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Details */}
+      {/* Date & Time Grid */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="p-3 rounded-xl bg-surface-2/40 border border-border/40">
-          <div className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">{t("common.date")}</div>
-          <div className="text-sm font-medium text-text mt-1">{format(parseISO(date), "EEE, MMM d, yyyy")}</div>
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400">Date</div>
+          <div className="text-sm font-bold text-slate-900 mt-1">
+            {format(parseISO(date), "EEE, MMM d, yyyy")}
+          </div>
         </div>
-        <div className="p-3 rounded-xl bg-surface-2/40 border border-border/40">
-          <div className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">{t("common.time")}</div>
-          <div className="text-sm font-medium text-text mt-1">{row.time ? formatTime(`1970-01-01T${row.time}`) : "—"}</div>
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400">Scheduled Time</div>
+          <div className="text-sm font-bold text-slate-900 mt-1">
+            {row.time ? formatTime(`1970-01-01T${row.time}`) : "Not specified"}
+          </div>
         </div>
       </div>
 
       {row.reason && (
-        <div className="p-3 rounded-xl bg-surface-2/40 border border-border/40">
-          <div className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">{t("appointments.reason")}</div>
-          <div className="text-sm text-text mt-1">{row.reason}</div>
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400">Reason for Visit</div>
+          <div className="text-sm text-slate-800 mt-1">{row.reason}</div>
         </div>
       )}
 
-      {/* Tier 1 records PR3: pre-visit summary quick-action. Doctor
-          opens the drawer, sees a brief AI briefing (severe allergies,
-          chronic, active meds), can re-trigger the email send, and
-          download the PDF. */}
-      <Card className="border-brand/30 bg-brand-soft/10">
+      {/* Pre-visit AI Briefing */}
+      <div className="p-4 rounded-2xl border border-sky-200 bg-sky-50/40 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="text-sm font-bold text-text">Pre-visit summary</div>
-            <div className="text-xs text-text-soft mt-0.5">
-              AI briefing for this appointment — allergies, meds, recent diagnosis.
+            <div className="text-sm font-bold text-slate-900">Pre-Visit Clinical Briefing</div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              AI summary of allergies, active meds, and recent lab telemetry.
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="secondary"
+          <button
+            type="button"
             onClick={() => setShowPreVisit((s) => !s)}
+            className="px-3 py-1 rounded-xl text-xs font-bold text-sky-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
           >
             {showPreVisit ? "Hide" : "View"}
-          </Button>
+          </button>
         </div>
-        {showPreVisit ? (
-          <div className="mt-3 flex flex-col gap-2">
+
+        {showPreVisit && (
+          <div className="pt-2 border-t border-sky-200/60 flex flex-col gap-2.5">
             {preVisit.isLoading ? (
-              <div className="text-xs text-text-muted">Loading summary…</div>
+              <div className="text-xs text-slate-400">Synthesizing clinical summary…</div>
             ) : preVisit.data ? (
               <>
-                <div className="text-xs text-text-muted">
-                  Generated {new Date(preVisit.data.generatedAt).toLocaleString()}
-                  {preVisit.data.cached ? " · cached" : ""}
-                </div>
-                <div className="text-sm text-text whitespace-pre-wrap">
+                <div className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
                   {preVisit.data.summary}
                 </div>
-                {preVisit.data.snapshot?.redBanner?.length > 0 ? (
-                  <div className="p-2 rounded-md bg-red-50 border border-red-200 text-xs text-red-900">
-                    <strong>Severe allergies:</strong>{" "}
-                    {preVisit.data.snapshot.redBanner
-                      .map((a: any) => a.substance)
-                      .join(", ")}
+                {preVisit.data.snapshot?.redBanner?.length > 0 && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-900">
+                    <strong>Critical Allergies:</strong>{" "}
+                    {preVisit.data.snapshot.redBanner.map((a: any) => a.substance).join(", ")}
                   </div>
-                ) : null}
-                {preVisit.data.snapshot?.chronicConditions?.length > 0 ? (
-                  <div className="text-xs text-text">
-                    <strong>Chronic:</strong>{" "}
-                    {preVisit.data.snapshot.chronicConditions
-                      .map((c: any) => c.title)
-                      .join(", ")}
+                )}
+                {preVisit.data.snapshot?.chronicConditions?.length > 0 && (
+                  <div className="text-xs text-slate-600">
+                    <strong>Chronic Conditions:</strong>{" "}
+                    {preVisit.data.snapshot.chronicConditions.map((c: any) => c.title).join(", ")}
                   </div>
-                ) : null}
-                {preVisit.data.snapshot?.activeMedicines?.length > 0 ? (
-                  <div className="text-xs text-text">
-                    <strong>Active meds:</strong>{" "}
-                    {preVisit.data.snapshot.activeMedicines
-                      .map((m: any) => m.name)
-                      .join(", ")}
+                )}
+                {preVisit.data.snapshot?.activeMedicines?.length > 0 && (
+                  <div className="text-xs text-slate-600">
+                    <strong>Active Medications:</strong>{" "}
+                    {preVisit.data.snapshot.activeMedicines.map((m: any) => m.name).join(", ")}
                   </div>
-                ) : null}
-                <div className="flex gap-2 mt-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    loading={sendPreVisit.isPending}
+                )}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={sendPreVisit.isPending}
                     onClick={() => sendPreVisit.mutate()}
+                    className="text-xs font-bold text-sky-700 hover:underline"
                   >
-                    Re-send email
-                  </Button>
-                  {sendPreVisit.isSuccess ? (
-                    <span className="text-xs text-emerald-700 self-center">
-                      Email queued
-                    </span>
-                  ) : null}
+                    {sendPreVisit.isPending ? "Sending…" : "Re-send Patient Briefing Email"}
+                  </button>
                 </div>
               </>
             ) : (
-              <div className="text-xs text-text-muted">
-                No summary yet. Re-send to generate one.
-              </div>
+              <div className="text-xs text-slate-400">No briefing available yet.</div>
             )}
           </div>
-        ) : null}
-      </Card>
+        )}
+      </div>
 
-      {/* Reschedule form */}
+      {/* Reschedule Box */}
       {showReschedule && (
-        <Card className="border-brand/30 bg-brand-soft/20">
-          <div className="flex flex-col gap-3">
-            <div className="text-sm font-bold text-text">{t("appointments.reschedule")}</div>
-            <Input type="date" label={t("appointments.newDate")} value={newDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setNewDate(e.target.value)} />
-            <Input type="time" label={t("appointments.newTime")} value={newTime} onChange={(e) => setNewTime(e.target.value)} />
-            <div className="flex gap-2 justify-end">
-              <Button size="sm" variant="ghost" onClick={() => setShowReschedule(false)}>{t("common.cancel")}</Button>
-              <Button size="sm" loading={reschedule.isPending} disabled={reschedule.isPending || !newDate || !newTime || (newDate === date && newTime === row.time)} onClick={() => reschedule.mutate()}>{t("appointments.reschedule")}</Button>
-            </div>
+        <div className="p-4 rounded-2xl border border-sky-300 bg-sky-50/60 flex flex-col gap-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900">Reschedule Consultation</h4>
+          <Input
+            type="date"
+            label="New Date"
+            value={newDate}
+            min={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setNewDate(e.target.value)}
+          />
+          <Input
+            type="time"
+            label="New Time"
+            value={newTime}
+            onChange={(e) => setNewTime(e.target.value)}
+          />
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowReschedule(false)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={reschedule.isPending || !newDate || !newTime}
+              onClick={() => reschedule.mutate()}
+              className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition-colors shadow-2xs"
+            >
+              Confirm Reschedule
+            </button>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 pt-3 border-t border-border/60">
-        <Link href={`/portal/patients/${row.patientId}`} className="text-sm text-brand font-medium hover:underline flex items-center gap-1">
-          {t("appointments.openChart")} <ChevronRightIcon size={14} />
+      <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
+        <Link
+          href={`/portal/patients/${row.patientId}/overview`}
+          className="text-xs font-bold text-sky-700 hover:underline flex items-center gap-1"
+        >
+          <span>Open Full Patient Electronic Chart</span>
+          <ChevronRightIcon size={14} />
         </Link>
+
         {isActive &&
           row.appointmentId &&
           (row.status === "confirmed" || row.status === "in_progress") && (
-            <Button
-              size="sm"
-              variant="primary"
-              leftIcon={<Video size={14} />}
-              loading={startVideoVisit.isPending}
+            <button
+              type="button"
               disabled={startVideoVisit.isPending}
               onClick={() => startVideoVisit.mutate(row.appointmentId!)}
+              className="w-full h-10 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+              style={{
+                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+              }}
             >
-              {t("consult.startVideoVisit")}
-            </Button>
+              <Video size={15} />
+              <span>Launch Teleconsultation Session</span>
+            </button>
           )}
+
         {canReschedule && !showReschedule && (
-          <Button size="sm" variant="secondary" leftIcon={<Clock size={14} />} onClick={() => setShowReschedule(true)}>{t("appointments.reschedule")}</Button>
+          <button
+            type="button"
+            onClick={() => setShowReschedule(true)}
+            className="w-full h-10 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Clock size={14} />
+            <span>Reschedule Appointment</span>
+          </button>
         )}
+
         {isActive && row.appointmentId && (
-          <Button size="sm" variant="danger" leftIcon={<AlertTriangle size={14} />} loading={updateStatus.isPending} disabled={updateStatus.isPending} onClick={() => { if (confirm(t("appointments.cancelConfirm"))) updateStatus.mutate("cancelled"); }}>
-            {t("appointments.cancelAppointment")}
-          </Button>
+          <button
+            type="button"
+            disabled={updateStatus.isPending}
+            onClick={() => {
+              if (confirm("Are you sure you want to cancel this appointment?")) {
+                updateStatus.mutate("cancelled");
+              }
+            }}
+            className="w-full h-10 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <AlertTriangle size={14} />
+            <span>Cancel Appointment</span>
+          </button>
         )}
       </div>
     </div>
   );
 }
-
-// ─── Main Page ──────────────────────────────────────────
 
 export default function AppointmentsPage() {
   const t = useT();
@@ -364,13 +396,15 @@ export default function AppointmentsPage() {
         json: { status: vars.status },
       }),
     onSuccess: (_d, vars) => {
-      toast.success(`Marked ${vars.status.replace("_", " ")}`);
+      toast.success(`Marked as ${vars.status.replace("_", " ")}`);
       qc.invalidateQueries({ queryKey: ["doctor-portal", "queue", date] });
     },
     onError: (err: any) => toast.error("Failed", err?.message),
   });
 
   const rows = data?.queue ?? [];
+  const videoRows = rows.filter((r) => r.mode === "video");
+  const inPersonRows = rows.filter((r) => r.mode !== "video");
 
   const startVideoVisit = useMutation({
     mutationFn: (appointmentId: string) =>
@@ -383,131 +417,358 @@ export default function AppointmentsPage() {
   });
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={t("appointments.title")}
-        subtitle={`${format(parseISO(date), "EEEE, MMM d, yyyy")} · ${rows.length} entries`}
-        icon={<Calendar size={18} className="text-brand" />}
-        actions={
-          <>
-            <Link href="/portal/book-appointment">
-              <Button size="sm" leftIcon={<UserPlus size={14} />}>{t("appointments.bookForPatient")}</Button>
-            </Link>
-            <div className="flex items-center gap-1.5 ml-2">
-              <Button size="sm" variant="secondary" leftIcon={<ChevronLeft size={14} />} onClick={() => setDate((d) => addDays(parseISO(d), -1).toISOString().slice(0, 10))} />
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 px-2 rounded-lg border border-border/80 bg-surface text-sm text-text focus-ring focus:border-brand/40" />
-              <Button size="sm" variant="secondary" leftIcon={<ChevronRight size={14} />} onClick={() => setDate((d) => addDays(parseISO(d), 1).toISOString().slice(0, 10))} />
-              <Button size="sm" variant="secondary" onClick={() => setDate(new Date().toISOString().slice(0, 10))}>{t("common.today")}</Button>
+    <div className="flex flex-col gap-6 pb-12">
+      {/* ── 1. Signature Oceanic Doctor Appointments Hero ─────────────────── */}
+      <header
+        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
+        style={{
+          background:
+            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
+          boxShadow:
+            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+        }}
+      >
+        {/* Glow Orbs */}
+        <div
+          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
+          }}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
+          }}
+          aria-hidden
+        />
+
+        <div className="relative z-10 flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
+                <Calendar size={12} className="text-sky-300" />
+                Scheduled Encounters &amp; Telehealth
+              </div>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                Patient Appointments
+              </h1>
+              <p className="text-sm text-white/80 mt-1 leading-relaxed">
+                {format(parseISO(date), "EEEE, MMMM d, yyyy")} · Manage booked consultations, launch encrypted video visits, and review AI pre-visit clinical summaries.
+              </p>
             </div>
-          </>
-        }
-      />
 
-      <Card padding={false}>
-        {isLoading ? (
-          <div className="p-4 flex flex-col gap-2">
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-14 w-full" />
+            {/* Header Actions */}
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              {/* Date Controls */}
+              <div className="flex items-center gap-1 bg-white/15 border border-white/25 rounded-xl p-1 backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => setDate((d) => addDays(parseISO(d), -1).toISOString().slice(0, 10))}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg text-white hover:bg-white/20 transition-all cursor-pointer"
+                  title="Previous Day"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="h-8 px-2.5 rounded-lg bg-white/20 text-xs font-bold text-white border-0 focus:outline-none cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => setDate((d) => addDays(parseISO(d), 1).toISOString().slice(0, 10))}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg text-white hover:bg-white/20 transition-all cursor-pointer"
+                  title="Next Day"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDate(new Date().toISOString().slice(0, 10))}
+                  className="px-2.5 py-1 text-xs font-bold text-white hover:bg-white/20 rounded-lg transition-all cursor-pointer ml-0.5"
+                >
+                  Today
+                </button>
+              </div>
+
+              <Link
+                href="/portal/schedule"
+                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
+                style={{ color: "#0c4a6e" }}
+              >
+                <CalendarPlus size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
+                <span style={{ color: "#0c4a6e" }}>Manage Slots</span>
+              </Link>
+            </div>
           </div>
-        ) : rows.length === 0 ? (
-          <Empty title={t("appointments.empty")} icon={<Calendar size={20} className="text-text-muted" />} className="py-12" />
-        ) : (
-          <ul className="flex flex-col">
-            {rows.map((r, i) => {
-              const acting = update.isPending && update.variables?.id === (r.appointmentId ?? r.walkInId);
-              const nextStatuses: string[] = r.appointmentId ? ALLOWED_TRANSITIONS[r.status] ?? [] : [];
-              const cfg = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.scheduled;
-              const isVideoActive =
-                r.mode === "video" &&
-                (r.status === "scheduled" || r.status === "confirmed" || r.status === "in_progress");
 
-              return (
-                <li key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`} className="flex items-center gap-4 px-5 py-4 border-b border-border/40 last:border-0 hover:bg-surface-2/10 transition-all group">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm shrink-0">
-                    {(r.patientName ?? "?").slice(0, 2).toUpperCase()}
-                  </div>
+          {/* Quick Metrics Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
+                <CalendarCheck size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                  Total Bookings
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {rows.length} Scheduled
+                </p>
+              </div>
+            </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2.5">
-                      <button type="button" onClick={() => setSelectedRow(r)} className="text-sm font-bold text-text truncate hover:text-brand hover:underline text-left">
-                        {r.patientName ?? t("walkins.unknownPatient")}
-                      </button>
-                      {r.queueNumber && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-3 border border-border/80 text-text-soft">
-                          Q#{r.queueNumber}
-                        </span>
-                      )}
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
+                <Video size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-purple-200 truncate">
+                  Telehealth HD
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {videoRows.length} Video Visit{videoRows.length === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
+                <Stethoscope size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-emerald-200 truncate">
+                  In-Person Clinic
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {inPersonRows.length} At Hospital
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
+                <DoorOpen size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
+                  Live Queue
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  Realtime Synced
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ── 2. Appointments List Stage ─────────────────────────────────────── */}
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-900">
+              Encounter Roster ({rows.length})
+            </span>
+            <span className="text-xs text-slate-400">·</span>
+            <span className="text-xs text-slate-500">
+              {format(parseISO(date), "EEEE, MMMM d")}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/portal/queue"
+              className="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/60 transition-colors flex items-center gap-1"
+            >
+              <ListOrdered size={13} />
+              <span>Combined Queue</span>
+            </Link>
+          </div>
+        </div>
+
+        <div>
+          {isLoading ? (
+            <div className="p-5 flex flex-col gap-3">
+              <Skeleton className="h-16 w-full rounded-2xl" />
+              <Skeleton className="h-16 w-full rounded-2xl" />
+              <Skeleton className="h-16 w-full rounded-2xl" />
+            </div>
+          ) : rows.length === 0 ? (
+            /* Rich Clinical Empty State */
+            <div className="py-14 px-4 flex flex-col items-center justify-center text-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-xs">
+                <CalendarCheck size={26} />
+              </div>
+              <div className="max-w-md">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  No Appointments for This Date
+                </h3>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  {format(parseISO(date), "EEEE, MMMM d, yyyy")} · Your consultation calendar is clear. You can open booking slots on your schedule, check in arriving walk-in patients, or review the combined queue.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                <Link
+                  href="/portal/schedule"
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                  style={{
+                    background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                  }}
+                >
+                  <CalendarPlus size={14} />
+                  <span>Open Schedule Slots</span>
+                </Link>
+                <Link
+                  href="/portal/walk-ins"
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <DoorOpen size={14} />
+                  <span>Check-In Walk-In</span>
+                </Link>
+                <Link
+                  href="/portal/queue"
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ListOrdered size={14} />
+                  <span>Live Queue</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {rows.map((r, i) => {
+                const acting =
+                  update.isPending &&
+                  update.variables?.id === (r.appointmentId ?? r.walkInId);
+                const nextStatuses: string[] = r.appointmentId
+                  ? ALLOWED_TRANSITIONS[r.status] ?? []
+                  : [];
+                const cfg = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.scheduled;
+                const isVideoActive =
+                  r.mode === "video" &&
+                  (r.status === "scheduled" ||
+                    r.status === "confirmed" ||
+                    r.status === "in_progress");
+
+                return (
+                  <li
+                    key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`}
+                    className="flex items-center gap-4 px-5 py-4 hover:bg-sky-50/30 transition-all group"
+                  >
+                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-700 text-white flex items-center justify-center text-sm font-extrabold shadow-2xs shrink-0">
+                      {(r.patientName ?? "?").slice(0, 2).toUpperCase()}
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-text-muted">
-                      <span className="font-mono tabular-nums font-semibold bg-surface-2 px-1.5 py-0.5 rounded text-text-soft">
-                        {r.time ? formatTime(`1970-01-01T${r.time}`) : "—"}
-                      </span>
-                      <span>·</span>
-                      <span className="truncate">{r.reason ?? "—"}</span>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
-                    
-                    {r.mode === "video" ? (
-                      <Pill tone="brand" className="flex items-center gap-1">
-                        <Video size={10} />
-                        <span>{t("appointments.mode.video")}</span>
-                      </Pill>
-                    ) : r.mode === "in_person" ? (
-                      <Pill tone="neutral">{t("appointments.mode.inPerson")}</Pill>
-                    ) : null}
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0 ml-4">
-                    <Link href={`/portal/patients/${r.patientId}`} className="text-xs text-brand font-semibold hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
-                      {t("common.open")}
-                    </Link>
-
-                    {isVideoActive && r.appointmentId && (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        leftIcon={<Video size={12} />}
-                        loading={startVideoVisit.isPending && startVideoVisit.variables === r.appointmentId}
-                        disabled={startVideoVisit.isPending}
-                        onClick={() => startVideoVisit.mutate(r.appointmentId!)}
-                        className="shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
-                      >
-                        {t("consult.startVideoVisit")}
-                      </Button>
-                    )}
-
-                    {r.appointmentId && nextStatuses.length > 0 && (
-                      <select 
-                        value="" 
-                        onChange={(e) => { 
-                          if (e.target.value && r.appointmentId) {
-                            update.mutate({ id: r.appointmentId, status: e.target.value }); 
-                          }
-                        }} 
-                        disabled={acting} 
-                        className={cn(
-                          "h-8 px-2.5 rounded-lg border border-border/80 bg-surface text-xs text-text focus-ring font-medium hover:border-border-hover cursor-pointer transition-all", 
-                          acting && "opacity-50"
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRow(r)}
+                          className="text-sm font-bold text-slate-900 truncate hover:text-sky-700 hover:underline text-left cursor-pointer"
+                        >
+                          {r.patientName ?? "Walk-In Patient"}
+                        </button>
+                        {r.queueNumber != null && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            Token #{r.queueNumber}
+                          </span>
                         )}
-                      >
-                        <option value="">{t("common.actions")}…</option>
-                        {nextStatuses.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
-                      </select>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                        <span className="font-mono tabular-nums font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {r.time ? formatTime(`1970-01-01T${r.time}`) : "Time not set"}
+                        </span>
+                        <span>·</span>
+                        <span className="truncate">{r.reason ?? "General clinical encounter"}</span>
+                      </div>
+                    </div>
 
-      <Drawer open={!!selectedRow} onClose={() => setSelectedRow(null)} title={t("appointments.details")} subtitle={selectedRow?.patientName ?? undefined} size="md">
-        {selectedRow && <AppointmentDetail row={selectedRow} date={date} onClose={() => setSelectedRow(null)} />}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
+
+                      {r.mode === "video" ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-100 text-sky-800 flex items-center gap-1">
+                          <Video size={10} /> Video Telehealth
+                        </span>
+                      ) : r.mode === "in_person" ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700">
+                          In-Person
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      {isVideoActive && r.appointmentId && (
+                        <button
+                          type="button"
+                          disabled={startVideoVisit.isPending}
+                          onClick={() => startVideoVisit.mutate(r.appointmentId!)}
+                          className="h-8 px-3 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                          style={{
+                            background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                          }}
+                        >
+                          <Video size={12} />
+                          <span>Video Visit</span>
+                        </button>
+                      )}
+
+                      {r.appointmentId && nextStatuses.length > 0 && (
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value && r.appointmentId) {
+                              update.mutate({ id: r.appointmentId, status: e.target.value });
+                            }
+                          }}
+                          disabled={acting}
+                          className="h-8 px-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:border-sky-300 cursor-pointer focus:outline-none"
+                        >
+                          <option value="">Actions…</option>
+                          {nextStatuses.map((s) => (
+                            <option key={s} value={s}>
+                              {s.replace("_", " ")}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      <Link
+                        href={`/portal/patients/${r.patientId}/overview`}
+                        className="h-8 px-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1"
+                        title="Open Patient Chart"
+                      >
+                        <ExternalLink size={13} />
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <Drawer
+        open={!!selectedRow}
+        onClose={() => setSelectedRow(null)}
+        title="Appointment Details"
+        subtitle={selectedRow?.patientName ?? undefined}
+        size="md"
+      >
+        {selectedRow && (
+          <AppointmentDetail
+            row={selectedRow}
+            date={date}
+            onClose={() => setSelectedRow(null)}
+          />
+        )}
       </Drawer>
     </div>
   );

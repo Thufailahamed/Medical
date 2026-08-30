@@ -17,16 +17,16 @@ import {
   List as ListIcon,
   ArrowUpDown,
   Stethoscope,
+  CalendarPlus,
+  DoorOpen,
+  HeartPulse,
+  ExternalLink,
+  X,
 } from "lucide-react";
 
 import { api, qk } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
-import { Pill } from "@/portal/components/ui/Pill";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Avatar } from "@/portal/components/ui/Avatar";
-import { Input } from "@/portal/components/ui/Form";
-import { Button } from "@/portal/components/ui/Button";
-import { useT } from "@/portal/i18n";
 import { ageFrom, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 
@@ -52,7 +52,6 @@ type ViewMode = "list" | "grid";
 type SortMode = "recent" | "name";
 
 export default function PatientsPage() {
-  const t = useT();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
   const [q, setQ] = useState(initialQ);
@@ -65,7 +64,6 @@ export default function PatientsPage() {
     return () => clearTimeout(id);
   }, [q]);
 
-  // Search results — only when user has typed ≥2 chars
   const { data: searchData, isLoading: searchLoading, isFetching } = useQuery({
     queryKey: qk.patientSearch({ q: debounced }),
     queryFn: () =>
@@ -76,7 +74,6 @@ export default function PatientsPage() {
     staleTime: 30_000,
   });
 
-  // Recent / full list — shown when no search query
   const { data: recentData, isLoading: recentLoading } = useQuery({
     queryKey: [...qk.recentPatients, sort],
     queryFn: () =>
@@ -117,191 +114,329 @@ export default function PatientsPage() {
   }, [rawRows]);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6 pb-12">
+      {/* ── 1. Signature Oceanic Doctor Patients Hero ──────────────────────── */}
+      <header
+        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
+        style={{
+          background:
+            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
+          boxShadow:
+            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+        }}
+      >
+        {/* Glow Orbs */}
+        <div
+          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
+          }}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
+          }}
+          aria-hidden
+        />
 
-      {/* Stats strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        <div className="relative z-10 flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
+                <Users size={12} className="text-sky-300" />
+                Master Patient Index (MPI)
+              </div>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                Patient Registry &amp; Charts
+              </h1>
+              <p className="text-sm text-white/80 mt-1 leading-relaxed">
+                Search your clinical panel by name, National Identity Card (NIC), phone, or HealthHub ID. Access longitudinal health records, prescriptions, and lab panels.
+              </p>
+            </div>
+
+            {/* Header Actions */}
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <Link
+                href="/portal/schedule"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
+              >
+                <CalendarPlus size={13} />
+                <span>My Schedule</span>
+              </Link>
+              <Link
+                href="/portal/walk-ins"
+                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
+                style={{ color: "#0c4a6e" }}
+              >
+                <DoorOpen size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
+                <span style={{ color: "#0c4a6e" }}>+ Check In Walk-In</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Quick Metrics Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
+                <Users size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                  Panel Size
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {stats.total} Patients
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
+                <CalendarClock size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                  Active (30d)
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {stats.recent} Visited
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
+                <HeartPulse size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
+                  Blood Group
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {stats.withBlood} Verified
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
+              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
+                <Stethoscope size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                  Demographics
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {stats.female}F · {stats.total - stats.female}M
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ── 2. Four Telemetry KPI Tiles ────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <StatTile
-          icon={<Users size={14} />}
-          label={t("patients.stat.total")}
+          icon={<Users size={18} />}
+          label="Total Clinical Panel"
           value={stats.total}
           tone="brand"
+          sub="Registered under your care"
         />
         <StatTile
-          icon={<CalendarClock size={14} />}
-          label={t("patients.stat.thisMonth")}
+          icon={<CalendarClock size={18} />}
+          label="Active Encounters (30d)"
           value={stats.recent}
           tone="success"
           sub={
             stats.total > 0
-              ? t("patients.stat.percentOfTotal", {
-                  pct: Math.round((stats.recent / stats.total) * 100),
-                })
-              : undefined
+              ? `${Math.round((stats.recent / stats.total) * 100)}% of panel seen`
+              : "No encounters"
           }
         />
         <StatTile
-          icon={<Hash size={14} />}
-          label={t("patients.stat.withBlood")}
+          icon={<HeartPulse size={18} />}
+          label="Blood Group Recorded"
           value={stats.withBlood}
           tone="info"
+          sub="ABO/Rh typing confirmed"
         />
         <StatTile
-          icon={<Stethoscope size={14} />}
-          label={t("patients.stat.female")}
-          value={stats.female}
+          icon={<Stethoscope size={18} />}
+          label="Female / Male Patients"
+          value={`${stats.female} / ${stats.total - stats.female}`}
           tone="violet"
+          sub="Gender demographic split"
         />
       </div>
 
-      {/* Search header + controls */}
-      <Card padding={false} className="overflow-hidden">
-        <div className="p-4 border-b border-border/60 bg-gradient-to-r from-brand-soft/30 to-transparent">
-          <div className="flex items-center gap-2 mb-2.5">
-            <div className="h-7 w-7 rounded-lg bg-brand text-white flex items-center justify-center shrink-0">
-              <Search size={13} />
-            </div>
-            <div className="text-xs font-semibold text-text uppercase tracking-wider">
-              {t("patients.find")}
-            </div>
-            {isFetching ? (
-              <span className="text-[10px] text-text-muted ml-auto inline-flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
-                {t("patients.searching")}
+      {/* ── 3. Search & Patient Records Stage ───────────────────────────────── */}
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col">
+        {/* Search Header */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <Search size={13} className="text-sky-600" />
+              <span>Find a Patient</span>
+            </span>
+            {isFetching && (
+              <span className="text-[11px] font-semibold text-sky-700 inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-sky-600 animate-ping" />
+                Searching clinical registry…
               </span>
-            ) : null}
+            )}
           </div>
-          <div className="portal-input-search-wrap">
-            <Search size={15} className="portal-input-search-icon" aria-hidden="true" />
-            <Input
+
+          <div className="relative">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={t("patients.searchPlaceholder")}
-              className={cn("portal-input-icon-left h-11 text-sm font-medium", q.length > 0 && "portal-input-clearable")}
-              aria-label="Search patients"
-              autoComplete="off"
-              spellCheck={false}
+              placeholder="Search by legal name, National Identity Card (NIC), phone number…"
+              className="w-full h-12 pl-10 pr-10 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all shadow-2xs"
             />
-            {q.length > 0 ? (
+            {q.length > 0 && (
               <button
                 type="button"
                 onClick={() => setQ("")}
-                className="portal-input-clear-btn"
-                aria-label={t("patients.clearSearch")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
               >
-                ×
+                <X size={13} />
               </button>
-            ) : null}
+            )}
           </div>
-          <div className="flex items-center gap-3 mt-2.5 text-[11px] text-text-muted">
+
+          <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-500 flex-wrap">
             <span className="inline-flex items-center gap-1">
-              <Hash size={10} /> {t("patients.searchHint.nic")}
+              <Hash size={11} className="text-slate-400" /> NIC e.g. 199012345678
             </span>
             <span className="inline-flex items-center gap-1">
-              <Phone size={10} /> {t("patients.searchHint.phone")}
+              <Phone size={11} className="text-slate-400" /> Phone e.g. 0771234567
             </span>
             <span className="inline-flex items-center gap-1">
-              <Sparkles size={10} /> {t("patients.searchHint.name")}
+              <Sparkles size={11} className="text-slate-400" /> Full or partial legal name
             </span>
           </div>
         </div>
 
         {/* Toolbar */}
-        <div className="px-4 py-2.5 flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-text">
-              {isSearching
-                ? t("patients.resultsTitle", {
-                    count: searchData?.count ?? rows.length,
-                  })
-                : t("patients.recentTitle")}
+        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-900">
+              {isSearching ? `Search Results (${searchData?.count ?? rows.length})` : "Recent Patients"}
             </span>
-            <span className="text-xs text-text-muted">
-              {rows.length} {t("patients.shown")}
-            </span>
+            <span className="text-xs text-slate-400">·</span>
+            <span className="text-xs text-slate-500">{rows.length} shown</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="inline-flex items-center gap-1 rounded-lg border border-border/70 bg-surface-2/40 p-0.5">
-              <SortChip
-                active={sort === "recent"}
+
+          <div className="flex items-center gap-2">
+            {/* Sort chips */}
+            <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
+              <button
+                type="button"
                 onClick={() => setSort("recent")}
+                style={{
+                  backgroundColor: sort === "recent" ? "#0284c7" : "transparent",
+                  color: sort === "recent" ? "#ffffff" : "#475569",
+                }}
+                className="h-7 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
               >
-                {t("patients.sort.recent")}
-              </SortChip>
-              <SortChip
-                active={sort === "name"}
+                <ArrowUpDown size={11} />
+                <span>Recent</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setSort("name")}
+                style={{
+                  backgroundColor: sort === "name" ? "#0284c7" : "transparent",
+                  color: sort === "name" ? "#ffffff" : "#475569",
+                }}
+                className="h-7 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
               >
-                A → Z
-              </SortChip>
+                <span>A → Z</span>
+              </button>
             </div>
-            <div className="inline-flex items-center gap-1 rounded-lg border border-border/70 bg-surface-2/40 p-0.5">
-              <ViewChip
-                active={view === "list"}
+
+            {/* View chips */}
+            <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
+              <button
+                type="button"
                 onClick={() => setView("list")}
-                aria-label={t("patients.view.list")}
+                style={{
+                  backgroundColor: view === "list" ? "#0c4a6e" : "transparent",
+                  color: view === "list" ? "#ffffff" : "#64748b",
+                }}
+                className="h-7 w-7 rounded-lg inline-flex items-center justify-center transition-all cursor-pointer"
+                title="List View"
               >
-                <ListIcon size={13} />
-              </ViewChip>
-              <ViewChip
-                active={view === "grid"}
+                <ListIcon size={14} />
+              </button>
+              <button
+                type="button"
                 onClick={() => setView("grid")}
-                aria-label={t("patients.view.grid")}
+                style={{
+                  backgroundColor: view === "grid" ? "#0c4a6e" : "transparent",
+                  color: view === "grid" ? "#ffffff" : "#64748b",
+                }}
+                className="h-7 w-7 rounded-lg inline-flex items-center justify-center transition-all cursor-pointer"
+                title="Grid View"
               >
-                <LayoutGrid size={13} />
-              </ViewChip>
+                <LayoutGrid size={14} />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Body */}
-        {loading ? (
-          <div className="p-4 flex flex-col gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <Skeleton className="h-3 w-2/5" />
-                  <Skeleton className="h-2.5 w-1/3" />
+        {/* Content */}
+        <div>
+          {loading ? (
+            <div className="p-5 flex flex-col gap-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-11 w-11 rounded-2xl" />
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <Skeleton className="h-3.5 w-1/3" />
+                    <Skeleton className="h-3 w-1/4" />
+                  </div>
                 </div>
+              ))}
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-xs">
+                <Users size={26} />
               </div>
-            ))}
-          </div>
-        ) : rows.length === 0 ? (
-          <Empty
-            icon={
-              isSearching ? (
-                <Search size={22} />
-              ) : (
-                <Users size={22} />
-              )
-            }
-            title={
-              isSearching
-                ? t("patients.noResults", { q: debounced })
-                : t("patients.noRecent")
-            }
-            description={
-              isSearching
-                ? t("patients.noResultsBody")
-                : t("patients.noRecentBody")
-            }
-            className="py-10"
-          />
-        ) : view === "list" ? (
-          <ul className="divide-y divide-border/60">
-            {rows.map((p) => (
-              <PatientListRow key={p.patient.id} row={p} />
-            ))}
-          </ul>
-        ) : (
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {rows.map((p) => (
-              <PatientCard key={p.patient.id} row={p} />
-            ))}
-          </div>
-        )}
-      </Card>
+              <div className="max-w-md">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  {isSearching ? `No patients match "${debounced}"` : "No Patients on Record"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  {isSearching
+                    ? "Try adjusting your search by entering a different phone number, NIC, or partial name."
+                    : "When patients are registered or checked in for appointments, they will appear here in your master patient index."}
+                </p>
+              </div>
+            </div>
+          ) : view === "list" ? (
+            <ul className="divide-y divide-slate-100">
+              {rows.map((p) => (
+                <PatientListRow key={p.patient.id} row={p} />
+              ))}
+            </ul>
+          ) : (
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {rows.map((p) => (
+                <PatientCard key={p.patient.id} row={p} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
@@ -319,178 +454,142 @@ function StatTile({
   sub?: string;
   tone?: "neutral" | "brand" | "success" | "warn" | "danger" | "info" | "violet";
 }) {
+  const cfg = {
+    brand: {
+      border: "border-sky-200 bg-sky-50/40",
+      iconBg: "bg-sky-100 text-sky-700 border-sky-200",
+      text: "text-slate-900",
+    },
+    success: {
+      border: "border-emerald-200 bg-emerald-50/40",
+      iconBg: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      text: "text-slate-900",
+    },
+    info: {
+      border: "border-blue-200 bg-blue-50/40",
+      iconBg: "bg-blue-100 text-blue-700 border-blue-200",
+      text: "text-slate-900",
+    },
+    violet: {
+      border: "border-purple-200 bg-purple-50/40",
+      iconBg: "bg-purple-100 text-purple-700 border-purple-200",
+      text: "text-slate-900",
+    },
+    neutral: {
+      border: "border-slate-200 bg-slate-50/40",
+      iconBg: "bg-slate-100 text-slate-700 border-slate-200",
+      text: "text-slate-900",
+    },
+    warn: {
+      border: "border-amber-200 bg-amber-50/40",
+      iconBg: "bg-amber-100 text-amber-700 border-amber-200",
+      text: "text-slate-900",
+    },
+    danger: {
+      border: "border-rose-200 bg-rose-50/40",
+      iconBg: "bg-rose-100 text-rose-700 border-rose-200",
+      text: "text-slate-900",
+    },
+  }[tone];
+
   return (
     <div
       className={cn(
-        "rounded-xl border px-3 py-2.5 flex items-center gap-3 transition-all",
-        tone === "brand" && "border-brand/30 bg-brand-soft/40",
-        tone === "success" && "border-emerald-200/70 bg-emerald-50/60",
-        tone === "info" && "border-sky-200/70 bg-sky-50/60",
-        tone === "violet" && "border-violet-200/70 bg-violet-50/60",
-        tone === "neutral" && "border-border/60 bg-surface-2/30",
-        tone === "warn" && "border-warn/30 bg-warn-soft/30",
-        tone === "danger" && "border-danger/30 bg-danger-soft/40"
+        "rounded-2xl border p-3.5 sm:p-4 flex items-center gap-3.5 bg-white shadow-2xs transition-all",
+        cfg.border,
       )}
     >
       <div
         className={cn(
-          "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
-          tone === "brand" && "bg-brand text-white",
-          tone === "success" && "bg-emerald-500 text-white",
-          tone === "info" && "bg-sky-500 text-white",
-          tone === "violet" && "bg-violet-500 text-white",
-          tone === "neutral" && "bg-surface text-text-soft",
-          tone === "warn" && "bg-warn text-white",
-          tone === "danger" && "bg-danger text-white"
+          "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs",
+          cfg.iconBg,
         )}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <div
-          className={cn(
-            "text-xl font-bold tabular-nums leading-tight",
-            tone === "brand" && "text-brand",
-            tone === "success" && "text-emerald-700",
-            tone === "info" && "text-sky-700",
-            tone === "violet" && "text-violet-700",
-            tone === "danger" && "text-danger",
-            tone === "warn" && "text-amber-700",
-            tone === "neutral" && "text-text"
-          )}
-        >
+        <div className="text-2xl font-black tabular-nums leading-none text-slate-900">
           {value}
         </div>
-        <div className="text-[10px] uppercase font-bold tracking-wider text-text-soft">
+        <div className="text-[11px] font-bold text-slate-600 mt-1 uppercase tracking-wide truncate">
           {label}
         </div>
-        {sub ? (
-          <div className="text-[10px] text-text-muted mt-0.5">{sub}</div>
-        ) : null}
+        {sub && (
+          <div className="text-[10px] text-slate-400 mt-0.5 truncate hidden sm:block">
+            {sub}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function SortChip({
-  children,
-  active,
-  onClick,
-}: {
-  children: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors inline-flex items-center gap-1",
-        active
-          ? "bg-brand text-white shadow-sm"
-          : "text-text-soft hover:text-text hover:bg-surface"
-      )}
-    >
-      <ArrowUpDown size={10} />
-      {children}
-    </button>
-  );
-}
-
-function ViewChip({
-  children,
-  active,
-  onClick,
-  ...rest
-}: {
-  children: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-} & React.HTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      {...rest}
-      className={cn(
-        "h-7 w-7 rounded-md inline-flex items-center justify-center transition-colors",
-        active
-          ? "bg-brand text-white shadow-sm"
-          : "text-text-soft hover:text-text hover:bg-surface"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 function PatientListRow({ row }: { row: PatientRow }) {
-  const t = useT();
   const p = row.patient;
   const u = row.user;
   const age = p.dob ? ageFrom(p.dob) : null;
   const lastVisit = row.lastVisitAt ? relativeTime(row.lastVisitAt) : null;
+
   return (
     <li>
       <Link
-        href={`/portal/patients/${p.id}`}
-        className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2/50 transition-colors group"
+        href={`/portal/patients/${p.id}/overview`}
+        className="flex items-center gap-4 px-5 py-4 hover:bg-sky-50/40 transition-colors group"
       >
-        <Avatar name={u.name} src={p.photo ?? undefined} />
+        <Avatar name={u.name} src={p.photo ?? undefined} size="md" />
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-text truncate">
+            <span className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate">
               {u.name}
             </span>
-            {age != null ? (
-              <span className="text-[11px] text-text-muted font-medium">
+            {age != null && (
+              <span className="text-xs text-slate-500 font-medium">
                 {age}y · {p.sex ?? "—"}
               </span>
-            ) : null}
-            {p.bloodGroup ? (
-              <Pill tone="neutral">{p.bloodGroup}</Pill>
-            ) : null}
+            )}
+            {p.bloodGroup && (
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
+                {p.bloodGroup}
+              </span>
+            )}
           </div>
-          <div className="text-xs text-text-soft truncate mt-0.5">
-            {p.nic ? (
-              <span className="inline-flex items-center gap-1 mr-2">
-                <Hash size={10} className="text-text-muted" />
+          <div className="text-xs text-slate-500 truncate mt-0.5 flex items-center gap-3">
+            {p.nic && (
+              <span className="inline-flex items-center gap-1">
+                <Hash size={11} className="text-slate-400" />
                 {p.nic}
               </span>
-            ) : null}
-            {u.phone ? (
+            )}
+            {u.phone && (
               <span className="inline-flex items-center gap-1">
-                <Phone size={10} className="text-text-muted" />
+                <Phone size={11} className="text-slate-400" />
                 {u.phone}
               </span>
-            ) : u.email ? (
+            )}
+            {u.email && !u.phone && (
               <span className="inline-flex items-center gap-1">
-                <Mail size={10} className="text-text-muted" />
+                <Mail size={11} className="text-slate-400" />
                 {u.email}
               </span>
-            ) : null}
+            )}
           </div>
         </div>
-        {lastVisit ? (
+
+        {lastVisit && (
           <div className="hidden md:flex flex-col items-end shrink-0">
-            <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider">
-              {t("patients.lastVisit")}
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+              Last Encounter
             </span>
-            <span className="text-[11px] text-text-soft font-medium">
+            <span className="text-xs text-slate-700 font-semibold mt-0.5">
               {lastVisit}
             </span>
           </div>
-        ) : null}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="hidden sm:inline-flex items-center gap-0.5 text-[11px] font-semibold text-brand opacity-0 group-hover:opacity-100 transition-opacity">
-            {t("patients.openChart")}
-            <ChevronRight size={11} />
-          </span>
-          <ChevronRight
-            size={14}
-            className="text-text-muted/40 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          />
+        )}
+
+        <div className="flex items-center gap-1 shrink-0 text-sky-700 font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+          <span>Open Chart</span>
+          <ChevronRight size={14} />
         </div>
       </Link>
     </li>
@@ -498,66 +597,57 @@ function PatientListRow({ row }: { row: PatientRow }) {
 }
 
 function PatientCard({ row }: { row: PatientRow }) {
-  const t = useT();
   const p = row.patient;
   const u = row.user;
   const age = p.dob ? ageFrom(p.dob) : null;
   const lastVisit = row.lastVisitAt ? relativeTime(row.lastVisitAt) : null;
+
   return (
-    <Link href={`/portal/patients/${p.id}`} className="block group">
-      <Card className="hover:border-brand/40 hover:shadow-md transition-all group-hover:-translate-y-0.5 h-full">
-        <div className="flex items-start gap-3">
-          <Avatar
-            name={u.name}
-            src={p.photo ?? undefined}
-            size="lg"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-sm font-bold text-text truncate">
-                {u.name}
+    <Link href={`/portal/patients/${p.id}/overview`} className="block group">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 hover:border-sky-300 hover:shadow-xs transition-all h-full flex flex-col justify-between shadow-2xs">
+        <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar name={u.name} src={p.photo ?? undefined} size="md" />
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-700 transition-colors">
+                  {u.name}
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {age != null ? `${age} yrs · ${p.sex ?? "—"}` : p.sex ?? "—"}
+                </p>
+              </div>
+            </div>
+            {p.bloodGroup && (
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-50 text-sky-800 border border-sky-200 shrink-0">
+                {p.bloodGroup}
               </span>
-              {p.bloodGroup ? (
-                <Pill tone="neutral">{p.bloodGroup}</Pill>
-              ) : null}
-            </div>
-            <div className="text-xs text-text-muted mt-0.5">
-              {age != null ? `${age}y · ${p.sex ?? "—"}` : p.sex ?? "—"}
-            </div>
+            )}
           </div>
-          <ChevronRight
-            size={14}
-            className="text-text-muted/40 shrink-0 transition-transform group-hover:translate-x-0.5"
-          />
+
+          <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-col gap-1.5 text-xs text-slate-500">
+            {p.nic && (
+              <div className="flex items-center gap-1.5 truncate">
+                <Hash size={11} className="text-slate-400 shrink-0" />
+                <span className="truncate">{p.nic}</span>
+              </div>
+            )}
+            {u.phone && (
+              <div className="flex items-center gap-1.5 truncate">
+                <Phone size={11} className="text-slate-400 shrink-0" />
+                <span className="truncate">{u.phone}</span>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-border/60 flex flex-col gap-1.5 text-[11px]">
-          {p.nic ? (
-            <div className="flex items-center gap-1.5 text-text-soft truncate">
-              <Hash size={10} className="text-text-muted shrink-0" />
-              <span className="truncate">{p.nic}</span>
-            </div>
-          ) : null}
-          {u.phone ? (
-            <div className="flex items-center gap-1.5 text-text-soft truncate">
-              <Phone size={10} className="text-text-muted shrink-0" />
-              <span className="truncate">{u.phone}</span>
-            </div>
-          ) : u.email ? (
-            <div className="flex items-center gap-1.5 text-text-soft truncate">
-              <Mail size={10} className="text-text-muted shrink-0" />
-              <span className="truncate">{u.email}</span>
-            </div>
-          ) : null}
-          {lastVisit ? (
-            <div className="flex items-center gap-1.5 text-emerald-700">
-              <CalendarClock size={10} className="shrink-0" />
-              <span className="font-medium">
-                {t("patients.lastVisit")}: {lastVisit}
-              </span>
-            </div>
-          ) : null}
-        </div>
-      </Card>
+
+        {lastVisit && (
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-emerald-700 font-semibold">
+            <span>Last visit: {lastVisit}</span>
+            <ExternalLink size={12} className="text-slate-400 group-hover:text-sky-600" />
+          </div>
+        )}
+      </div>
     </Link>
   );
 }

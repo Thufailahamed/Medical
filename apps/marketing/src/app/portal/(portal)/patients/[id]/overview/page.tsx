@@ -573,89 +573,81 @@ function StatTile({
   tone?: SectionTone;
   trend?: "up" | "down" | "flat";
 }) {
+  const toneStyles = {
+    emerald: {
+      border: "border-emerald-200 bg-white hover:border-emerald-300",
+      iconBg: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+      valText: "text-emerald-700",
+    },
+    danger: {
+      border: "border-rose-200 bg-white hover:border-rose-300",
+      iconBg: "bg-rose-50 text-rose-700 border border-rose-200",
+      valText: "text-rose-700",
+    },
+    brand: {
+      border: "border-sky-200 bg-white hover:border-sky-300",
+      iconBg: "bg-sky-50 text-sky-700 border border-sky-200",
+      valText: "text-sky-700",
+    },
+    warn: {
+      border: "border-amber-200 bg-white hover:border-amber-300",
+      iconBg: "bg-amber-50 text-amber-700 border border-amber-200",
+      valText: "text-amber-700",
+    },
+    violet: {
+      border: "border-purple-200 bg-white hover:border-purple-300",
+      iconBg: "bg-purple-50 text-purple-700 border border-purple-200",
+      valText: "text-purple-700",
+    },
+    neutral: {
+      border: "border-slate-200 bg-white hover:border-slate-300",
+      iconBg: "bg-slate-50 text-slate-700 border border-slate-200",
+      valText: "text-slate-900",
+    },
+  }[tone as string] || {
+    border: "border-slate-200 bg-white hover:border-slate-300",
+    iconBg: "bg-slate-50 text-slate-700 border border-slate-200",
+    valText: "text-slate-900",
+  };
+
   return (
     <div
       className={cn(
-        "relative flex items-start gap-3 rounded-xl border px-3 py-2.5 transition-all hover:shadow-sm",
-        tone === "danger"
-          ? "border-danger/30 bg-danger-soft/30"
-          : tone === "warn"
-          ? "border-warn/30 bg-warn-soft/30"
-          : tone === "brand"
-          ? "border-brand/30 bg-brand-soft/40"
-          : tone === "success" || tone === "emerald"
-          ? "border-emerald-200 bg-emerald-50/50"
-          : tone === "rose"
-          ? "border-rose-200 bg-rose-50/40"
-          : tone === "violet"
-          ? "border-violet-200 bg-violet-50/40"
-          : tone === "amber"
-          ? "border-amber-200 bg-amber-50/40"
-          : tone === "teal"
-          ? "border-teal-200 bg-teal-50/40"
-          : tone === "cyan"
-          ? "border-cyan-200 bg-cyan-50/40"
-          : tone === "indigo"
-          ? "border-indigo-200 bg-indigo-50/40"
-          : "border-border/60 bg-surface-2/30 hover:border-border"
+        "relative flex items-center gap-3.5 rounded-2xl border p-3.5 sm:p-4 transition-all shadow-2xs hover:shadow-xs",
+        toneStyles.border,
       )}
     >
       <div
         className={cn(
-          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-          tone === "danger" && "bg-danger text-white",
-          tone === "warn" && "bg-warn text-white",
-          tone === "brand" && "bg-brand text-white",
-          (tone === "success" || tone === "emerald") && "bg-emerald-600 text-white",
-          tone === "rose" && "bg-rose-600 text-white",
-          tone === "violet" && "bg-violet-600 text-white",
-          tone === "amber" && "bg-amber-600 text-white",
-          tone === "teal" && "bg-teal-600 text-white",
-          tone === "cyan" && "bg-cyan-600 text-white",
-          tone === "indigo" && "bg-indigo-600 text-white",
-          tone === "neutral" && "bg-surface border border-border/60 text-text-soft"
+          "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs",
+          toneStyles.iconBg,
         )}
       >
         {icon}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-1.5">
-          <div
-            className={cn(
-              "text-lg font-bold tabular-nums leading-tight",
-              tone === "danger"
-                ? "text-danger"
-                : tone === "warn"
-                ? "text-amber-700"
-                : tone === "success" || tone === "emerald"
-                ? "text-emerald-700"
-                : tone === "rose"
-                ? "text-rose-700"
-                : tone === "violet"
-                ? "text-violet-700"
-                : "text-text"
-            )}
-          >
+          <div className={cn("text-xl font-black tabular-nums leading-tight", toneStyles.valText)}>
             {value}
           </div>
           {trend ? (
             <span
               className={cn(
-                "inline-flex items-center text-[9px] font-semibold",
+                "inline-flex items-center text-[10px] font-bold",
                 trend === "up" && "text-emerald-600",
                 trend === "down" && "text-rose-600",
-                trend === "flat" && "text-text-muted"
+                trend === "flat" && "text-slate-400"
               )}
             >
               {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}
             </span>
           ) : null}
         </div>
-        <div className="text-[10px] uppercase tracking-wide font-semibold text-text-soft truncate">
+        <div className="text-[10px] uppercase tracking-wide font-bold text-slate-600 truncate mt-0.5">
           {label}
         </div>
         {sub ? (
-          <div className="text-[10px] text-text-muted mt-0.5 truncate">
+          <div className="text-[10px] text-slate-400 mt-0.5 truncate">
             {sub}
           </div>
         ) : null}
@@ -731,11 +723,16 @@ function SafetyBanner({
 
       <div className="px-4 md:px-5 py-4">
         {sorted.length === 0 ? (
-          <div className="flex items-center gap-2 text-emerald-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="text-xs font-semibold">
-              {t("overview.allergiesBanner.none")}
+          <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-emerald-800">
+            <span className="h-6 w-6 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 text-xs font-bold shrink-0">
+              ✓
             </span>
+            <div>
+              <span className="text-xs font-bold block">No Known Allergies on Record</span>
+              <span className="text-[11px] text-emerald-700/80">
+                Patient has not reported any adverse drug, environmental, or food hypersensitivity.
+              </span>
+            </div>
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -935,63 +932,59 @@ export default function PatientOverviewTab({
       </div>
 
       {/* ─── Quick actions bar ─────────────────────────── */}
-      <Card padding={false}>
-        <div className="px-4 md:px-5 py-3 flex flex-wrap items-center gap-2">
-          <div className="text-[10px] uppercase tracking-wider font-bold text-text-muted mr-1 hidden md:block">
-            {t("overview.quickActions")}
-          </div>
-          <Link href={`${base}/prescriptions`} className="flex-1 min-w-[140px]">
-            <Button
-              variant="primary"
-              size="md"
-              block
-              leftIcon={<Pill size={14} />}
-            >
-              {t("overview.action.addPrescription")}
-            </Button>
-          </Link>
-          <Link href={`${base}/clinical-notes`} className="flex-1 min-w-[140px]">
-            <Button
-              variant="secondary"
-              size="md"
-              block
-              leftIcon={<Stethoscope size={14} />}
-            >
-              {t("overview.action.addNote")}
-            </Button>
-          </Link>
-          <Link href={`${base}/lab-orders`} className="flex-1 min-w-[140px]">
-            <Button
-              variant="secondary"
-              size="md"
-              block
-              leftIcon={<FlaskConical size={14} />}
-            >
-              {t("overview.action.addLabOrder")}
-            </Button>
-          </Link>
-          <Link href={`${base}/follow-ups`} className="flex-1 min-w-[140px]">
-            <Button
-              variant="secondary"
-              size="md"
-              block
-              leftIcon={<CalendarClock size={14} />}
-            >
-              {t("overview.action.addFollowUp")}
-            </Button>
-          </Link>
-          <Link href="/portal/book-appointment" className="flex-1 min-w-[140px]">
-            <Button
-              variant="secondary"
-              size="md"
-              block
-              leftIcon={<CalendarCheck size={14} />}
-            >
-              {t("overview.action.bookVisit")}
-            </Button>
-          </Link>
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs flex flex-wrap items-center gap-2.5">
+        <div className="text-[10.5px] uppercase tracking-wider font-extrabold text-slate-400 px-2 hidden lg:block">
+          {t("overview.quickActions")}
         </div>
-      </Card>
+        <Link href={`${base}/prescriptions`} className="flex-1 min-w-[140px]">
+          <button
+            type="button"
+            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
+          >
+            <Pill size={14} />
+            <span>{t("overview.action.addPrescription")}</span>
+          </button>
+        </Link>
+        <Link href={`${base}/clinical-notes`} className="flex-1 min-w-[140px]">
+          <button
+            type="button"
+            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Stethoscope size={14} className="text-slate-500" />
+            <span>{t("overview.action.addNote")}</span>
+          </button>
+        </Link>
+        <Link href={`${base}/lab-orders`} className="flex-1 min-w-[140px]">
+          <button
+            type="button"
+            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <FlaskConical size={14} className="text-slate-500" />
+            <span>{t("overview.action.addLabOrder")}</span>
+          </button>
+        </Link>
+        <Link href={`${base}/follow-ups`} className="flex-1 min-w-[140px]">
+          <button
+            type="button"
+            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <CalendarClock size={14} className="text-slate-500" />
+            <span>{t("overview.action.addFollowUp")}</span>
+          </button>
+        </Link>
+        <Link href="/portal/book-appointment" className="flex-1 min-w-[140px]">
+          <button
+            type="button"
+            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <CalendarCheck size={14} className="text-slate-500" />
+            <span>{t("overview.action.bookVisit")}</span>
+          </button>
+        </Link>
+      </div>
 
       {/* ─── Safety banner: allergies + chronic conditions ─────────── */}
       {data ? (
@@ -1011,66 +1004,78 @@ export default function PatientOverviewTab({
       {/* ─── Hero stat strip ─────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <StatTile
-          icon={<Pill size={14} />}
+          icon={<Pill size={18} />}
           label={t("overview.section.activeMeds")}
           value={activeMedsCount}
           tone="emerald"
         />
         <StatTile
-          icon={<Activity size={14} />}
+          icon={<Activity size={18} />}
           label={t("overview.section.vitals")}
           value={vitalsCount}
-          tone={data?.vitals.alerts?.length ? "danger" : "neutral"}
+          tone={data?.vitals.alerts?.length ? "danger" : "brand"}
         />
         <StatTile
-          icon={<FileText size={14} />}
+          icon={<FileText size={18} />}
           label={t("overview.section.prescriptions")}
           value={rxCount}
           tone="brand"
         />
         <StatTile
-          icon={<AlertOctagon size={14} />}
+          icon={<AlertOctagon size={18} />}
           label="Allergies"
           value={allergyCount}
-          tone={allergyCount > 0 ? "warn" : "success"}
-          sub={allergyCount === 0 ? t("overview.allergiesBanner.none") : undefined}
+          tone={allergyCount > 0 ? "danger" : "emerald"}
+          sub={allergyCount === 0 ? "No known allergies" : undefined}
         />
         <StatTile
-          icon={<ListChecks size={14} />}
+          icon={<ListChecks size={18} />}
           label={t("overview.section.recordsSummary")}
           value={recordsTotal}
-          tone="neutral"
+          tone="violet"
         />
         <StatTile
-          icon={<CalendarCheck size={14} />}
+          icon={<CalendarCheck size={18} />}
           label={t("overview.nextVisit")}
           value={nextVisit ? relativeTime(nextVisit.date) : "—"}
           sub={nextVisitSub}
-          tone={nextVisit ? "success" : "neutral"}
+          tone={nextVisit ? "warn" : "neutral"}
         />
       </div>
 
       {/* ─── Vitals alerts banner ─────────────────────────── */}
       {data?.vitals.alerts && data.vitals.alerts.length > 0 ? (
-        <div className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger-soft/60 px-4 py-3">
-          <div className="h-9 w-9 rounded-xl bg-danger text-white flex items-center justify-center shrink-0">
-            <AlertTriangle size={16} />
+        <div className="flex items-start gap-3.5 rounded-2xl border border-rose-200 bg-rose-50/75 p-4 shadow-2xs">
+          <div className="h-10 w-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <AlertTriangle size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-danger">
-              {t("overview.section.alerts")}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-rose-900">
+                {t("overview.section.alerts")}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200/80 text-rose-800 uppercase tracking-wide">
+                Critical Telemetry
+              </span>
             </div>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {data.vitals.alerts.slice(0, 6).map((al, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-danger/30 bg-surface px-2.5 py-1 text-[11px] font-semibold text-danger"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-danger" />
-                  {al.label}
-                  <PillBadge tone="danger">{al.classification}</PillBadge>
-                </span>
-              ))}
+            <div className="flex flex-wrap gap-2 mt-2">
+              {data.vitals.alerts.slice(0, 6).map((al, idx) => {
+                const title = al.label || vitalLabel(al.type);
+                const reading = al.value != null ? `${al.value} ${al.unit ?? ""}` : null;
+                return (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-900 shadow-2xs"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                    <span className="font-bold text-slate-800">{title}</span>
+                    {reading && <span className="font-bold text-rose-700 font-mono">{reading}</span>}
+                    <span className="px-2 py-0.5 rounded-md text-[10.5px] font-extrabold uppercase bg-rose-100 text-rose-800">
+                      {al.classification || "elevated"}
+                    </span>
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1106,12 +1111,17 @@ export default function PatientOverviewTab({
                         <Pill size={13} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-text truncate">
+                        <div className="text-sm font-bold text-slate-900 truncate">
                           {m.name}
                         </div>
-                        <div className="text-[11px] text-text-muted truncate">
-                          {[m.dosage, m.frequency].filter(Boolean).join(" · ")}
-                          {m.instructions ? ` · ${m.instructions}` : ""}
+                        <div className="text-xs text-slate-500 truncate mt-0.5">
+                          {[
+                            m.dosage,
+                            m.frequency ? m.frequency.replace(/_/g, " ") : null,
+                            m.instructions ? m.instructions.replace(/_/g, " ") : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </div>
                       </div>
                       {m.active ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import { Sheet } from "@/patient/components/primitives/Sheet";
@@ -26,9 +26,11 @@ export function AddVitalSheet({
   open,
   onClose,
   onSubmit,
+  initialType = "heart_rate",
 }: {
   open: boolean;
   onClose: () => void;
+  initialType?: VitalType;
   onSubmit: (input: {
     type: VitalType;
     value: number;
@@ -37,13 +39,23 @@ export function AddVitalSheet({
     notes?: string | null;
   }) => Promise<void>;
 }) {
-  const [type, setType] = useState<VitalType>("heart_rate");
+  const [type, setType] = useState<VitalType>(initialType);
   const [value, setValue] = useState("");
   const [secondary, setSecondary] = useState("");
   const [context, setContext] = useState<VitalContext | "">("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setType(initialType);
+      setValue("");
+      setSecondary("");
+      setNotes("");
+      setErr(null);
+    }
+  }, [open, initialType]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

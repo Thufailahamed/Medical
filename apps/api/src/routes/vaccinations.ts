@@ -43,58 +43,87 @@ function diseaseNameFor(v: any, locale: Locale): string | undefined {
 // Caretaker Profiles: getOwnPatient removed in favor of resolvePatientContext
 // which respects the active-principal header for caretakers.
 
-// ─── List my administered + catalog ──────────────────────
 vaccinationsRouter.get("/me", authMiddleware, requireRole("patient", "caretaker"), async (c) => {
-  const userId = c.get("userId");
-  const db = c.get("db");
-  const patient = await resolvePatientContext(c);
-  if (!patient) return c.json({ administered: [], catalog: [] });
+  try {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const patient = await resolvePatientContext(c);
+    if (!patient) return c.json({ administered: [], catalog: [] });
 
-  // Phase 2.3: family-context filter — when active FM is set, scope to
-  // that member's records. Without active FM, list the principal + family
-  // union (the historical default — keeps existing installs working).
-  const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
-  const fmFilter = activeFm ? eq(medicalRecords.familyMemberId, activeFm) : undefined;
+    // Phase 2.3: family-context filter — when active FM is set, scope to
+    // that member's records. Without active FM, list the principal + family
+    // union (the historical default — keeps existing installs working).
+    const activeFm = (c.get("activeFamilyMemberId") as string | null) || null;
+    const fmFilter = activeFm ? eq(medicalRecords.familyMemberId, activeFm) : undefined;
 
-  const administered = await db
-    .select()
-    .from(medicalRecords)
-    .where(
-      fmFilter
-        ? and(
-            eq(medicalRecords.patientId, patient.id),
-            eq(medicalRecords.recordType, "vaccination"),
-            fmFilter
-          )
-        : and(
-            eq(medicalRecords.patientId, patient.id),
-            eq(medicalRecords.recordType, "vaccination")
-          )
-    )
-    .orderBy(desc(medicalRecords.recordDate));
+    let administered: any[] = [];
+    try {
+      administered = await db
+        .select()
+        .from(medicalRecords)
+        .where(
+          fmFilter
+            ? and(
+                eq(medicalRecords.patientId, patient.id),
+                eq(medicalRecords.recordType, "vaccination"),
+                fmFilter
+              )
+            : and(
+                eq(medicalRecords.patientId, patient.id),
+                eq(medicalRecords.recordType, "vaccination")
+              )
+        )
+        .orderBy(desc(medicalRecords.date));
+    } catch (dbErr) {
+      console.error("[vaccinations] failed querying administered records:", dbErr);
+    }
 
-  // Catalog
-  const catalog = await db.select().from(vaccineCatalog);
+    // Catalog
+    let catalog: any[] = [];
+    try {
+      catalog = await db.select().from(vaccineCatalog);
+    } catch (catErr) {
+      console.error("[vaccinations] failed querying vaccineCatalog:", catErr);
+    }
 
-  // Phase 2.2.2: localize `name` + `targetDisease` projection for chips.
-  const acceptLocale = parseAcceptLanguage(c.req.header("Accept-Language"));
-  const [u] = await db
-    .select({ preferredLocale: users.preferredLocale })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  const locale: Locale =
-    (u?.preferredLocale === "si" || u?.preferredLocale === "ta")
-      ? (u.preferredLocale as Locale)
-      : acceptLocale;
+    // Phase 2.2.2: localize `name` + `targetDisease` projection for chips.
+    const acceptLocale = parseAcceptLanguage(c.req.header("Accept-Language"));
+    let locale: Locale = acceptLocale;
+    try {
+      const [u] = await db
+        .select({ preferredLocale: users.preferredLocale })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (u?.preferredLocale === "si" || u?.preferredLocale === "ta") {
+        locale = u.preferredLocale as Locale;
+      }
+    } catch (uErr) {
+      console.error("[vaccinations] failed querying user locale:", uErr);
+    }
 
-  const localizedCatalog = (catalog as any[]).map((v) => ({
-    ...v,
-    name: vaccineNameFor(v, locale),
-    targetDisease: diseaseNameFor(v, locale),
-  }));
+    const localizedCatalog = (catalog as any[]).map((v) => ({
+      ...v,
+      name: vaccineNameFor(v, locale),
+      targetDisease: diseaseNameFor(v, locale),
+    }));
 
-  return c.json({ administered, catalog: localizedCatalog });
+    const mappedAdministered = (administered as any[]).map((r) => ({
+      id: r.id,
+      vaccineName: r.title || "Vaccine",
+      dose: r.description || null,
+      administeredAt: r.date || r.createdAt,
+      provider: r.provider || null,
+      lotNumber: null,
+      notes: r.notes || null,
+      recordType: "vaccination" as const,
+    }));
+
+    return c.json({ administered: mappedAdministered, catalog: localizedCatalog });
+  } catch (err) {
+    console.error("[vaccinations] unexpected error in GET /vaccinations/me:", err);
+    return c.json({ administered: [], catalog: [] });
+  }
 });
 
 // ─── Due / overdue / upcoming ────────────────────────────
@@ -211,7 +240,7 @@ vaccinationsRouter.post("/me", authMiddleware, requireRole("patient", "caretaker
       recordType: "vaccination",
       title,
       description,
-      recordDate,
+      date: recordDate,
       provider: body.provider || null,
       notes:
         body.notes ||
@@ -290,7 +319,7 @@ vaccinationsRouter.post("/me/bulk", authMiddleware, requireRole("patient", "care
           recordType: "vaccination",
           title,
           description,
-          recordDate,
+          date: recordDate,
           provider: entry.provider || null,
           notes:
             entry.notes ||

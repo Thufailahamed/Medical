@@ -1,10 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mutateAsync = vi.fn();
 vi.mock("@/patient/hooks", () => ({
   useCreateRecord: () => ({ mutateAsync, isPending: false }),
   useUpdateRecord: () => ({ mutateAsync, isPending: false }),
+  useFamilyMembers: () => ({ data: { family: [] }, isLoading: false }),
 }));
 
 import { RecordForm } from "./RecordForm";
@@ -18,7 +19,7 @@ describe("RecordForm", () => {
     render(<RecordForm mode="create" onSuccess={() => {}} />);
     expect(screen.getByPlaceholderText(/CBC 2026-08-15/i)).toBeTruthy();
     expect(screen.getByTestId("kind-chips")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /lab_report/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Lab report/i })).toBeTruthy();
   });
 
   it("calls useCreateRecord with normalised tags on submit", async () => {
@@ -57,8 +58,7 @@ describe("RecordForm", () => {
     );
     const titleInput = screen.getByPlaceholderText(/CBC/i) as HTMLInputElement;
     expect(titleInput.value).toBe("MRI knee");
-    const chips = screen.getAllByRole("button").filter((b) => b.tagName === "BUTTON" && (b.textContent === "lab_report" || b.textContent === "imaging"));
-    const imagingChip = chips.find((c) => c.textContent === "imaging");
-    expect((imagingChip as HTMLButtonElement | undefined)?.getAttribute("aria-pressed")).toBe("true");
+    const imagingChip = screen.getByRole("button", { name: /^Imaging$/i });
+    expect(imagingChip.getAttribute("aria-pressed")).toBe("true");
   });
 });

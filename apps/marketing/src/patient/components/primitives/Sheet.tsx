@@ -43,7 +43,7 @@ export function Sheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex"
+      className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/60 backdrop-blur-xs transition-opacity"
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
@@ -52,15 +52,14 @@ export function Sheet({
         type="button"
         aria-label="Close panel"
         onClick={onClose}
-        className="flex-1 bg-black/40"
+        className="flex-1 cursor-default"
       />
       <div
         className={cn(
-          "anim-rise flex h-full w-full max-w-md flex-col gap-4 overflow-y-auto bg-surface p-6 shadow-float",
+          "relative flex h-full w-full max-w-md flex-col gap-4 overflow-y-auto bg-white p-6 shadow-2xl border-l border-slate-200 z-10",
           side === "right" ? "ml-auto" : "mr-auto",
           className
         )}
-        style={{ borderTopLeftRadius: "var(--radius-card)", borderTopRightRadius: "var(--radius-card)" }}
       >
         {children}
       </div>

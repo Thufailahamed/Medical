@@ -13,21 +13,15 @@ import {
   ReferenceArea,
   ReferenceLine,
 } from "recharts";
-import { Activity, Plus } from "lucide-react";
+import { Activity, Plus, HeartPulse } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 import { api } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Skeleton } from "@/portal/components/ui/Empty";
-import { Button } from "@/portal/components/ui/Button";
 import { Drawer } from "@/portal/components/ui/Modal";
-import { useT } from "@/portal/i18n";
 import { RecordVitalsForm } from "@/portal/components/vitals/RecordVitalsForm";
-import {
-  ChartTabHeader,
-  ChartEmpty,
-} from "@/portal/components/chart";
+import { ChartEmpty } from "@/portal/components/chart";
 import {
   vitalClassificationToTone,
   vitalLabel,
@@ -40,17 +34,24 @@ interface Vital {
   secondaryValue?: number | null;
   unit?: string | null;
   classification?: string | null;
-  recordedAt: string;
+  recordedAt?: string | null;
   notes?: string | null;
 }
 
 interface LatestVital {
   type: string;
-  value: number;
+  value?: number;
   secondaryValue?: number | null;
   unit?: string | null;
   classification?: string | null;
-  recordedAt: string;
+  recordedAt?: string | null;
+  latest?: {
+    value?: number;
+    secondary?: number | null;
+    unit?: string | null;
+    classification?: string | null;
+    recordedAt?: string | null;
+  };
 }
 
 interface PatientSummary {
@@ -69,15 +70,29 @@ const NORMAL_RANGES: Record<string, [number, number]> = {
 };
 
 const CLASSIFICATION_DOT: Record<string, string> = {
-  normal: "var(--success)",
-  abnormal: "var(--warn)",
-  warning: "var(--warn)",
-  critical: "var(--danger)",
+  normal: "#10b981",
+  abnormal: "#f59e0b",
+  warning: "#f59e0b",
+  critical: "#ef4444",
+  elevated: "#f59e0b",
+  low: "#0ea5e9",
+  high: "#f43f5e",
 };
 
 function classifyDot(classification?: string | null): string {
   const k = (classification ?? "").toLowerCase();
-  return CLASSIFICATION_DOT[k] ?? "var(--brand)";
+  return CLASSIFICATION_DOT[k] ?? "#0284c7";
+}
+
+function safeFormat(isoString?: string | null, fmt = "MMM d, HH:mm"): string {
+  if (!isoString) return "—";
+  try {
+    const d = parseISO(isoString);
+    if (isNaN(+d)) return "—";
+    return format(d, fmt);
+  } catch {
+    return "—";
+  }
 }
 
 export default function VitalsTab({
@@ -88,6 +103,7 @@ export default function VitalsTab({
   const { id } = use(params);
   const t = useT();
   const [open, setOpen] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "patient", id, "summary"],
     queryFn: () => api<PatientSummary>(`/doctor-portal/patients/${id}/summary`),
@@ -104,7 +120,11 @@ export default function VitalsTab({
       map.set(v.type, arr);
     }
     for (const arr of map.values()) {
-      arr.sort((a, b) => +parseISO(a.recordedAt) - +parseISO(b.recordedAt));
+      arr.sort((a, b) => {
+        const at = a.recordedAt ? +new Date(a.recordedAt) : 0;
+        const bt = b.recordedAt ? +new Date(b.recordedAt) : 0;
+        return at - bt;
+      });
     }
     return map;
   }, [vitals]);
@@ -112,74 +132,111 @@ export default function VitalsTab({
   const totalReadings = vitals.length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <ChartTabHeader
-        icon={<Activity size={18} />}
-        title={t("tab.vitals.title")}
-        subtitle={t("tab.vitals.subtitle", { count: totalReadings })}
-        badge={{ count: totalReadings, tone: "brand" }}
-        actions={
-          <Button
-            size="sm"
-            leftIcon={<Plus size={14} />}
-            onClick={() => setOpen(true)}
-          >
-            {t("tab.vitals.add")}
-          </Button>
-        }
-      />
+    <div className="flex flex-col gap-5">
+      {/* ── Tab Action Strip ──────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-200 shadow-2xs">
+            <HeartPulse size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900">
+                Patient Vitals Telemetry
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
+                {totalReadings} Readings
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Longitudinal physiological tracking, clinical reference bounds, and alert classifications.
+            </p>
+          </div>
+        </div>
 
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+          style={{
+            background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+          }}
+        >
+          <Plus size={14} />
+          <span>Record New Vitals</span>
+        </button>
+      </div>
+
+      {/* ── Latest Readings Matrix ─────────────────────────────────────────── */}
       {!isLoading && latest.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {latest.slice(0, 8).map((l) => (
-            <Card key={l.type} className="p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-[11px] text-text-soft uppercase tracking-wide font-bold">
-                  <Activity size={11} /> {vitalLabel(l.type)}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          {latest.slice(0, 8).map((l: any) => {
+            const val = l.value ?? l.latest?.value ?? 0;
+            const sec = l.secondaryValue ?? l.latest?.secondary ?? null;
+            const unit = l.unit ?? l.latest?.unit ?? "";
+            const cls = l.classification ?? l.latest?.classification ?? null;
+            const recAt = l.recordedAt ?? l.latest?.recordedAt;
+            const formattedDate = safeFormat(recAt, "MMM d, HH:mm");
+
+            return (
+              <div
+                key={l.type}
+                className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 truncate">
+                      {vitalLabel(l.type)}
+                    </span>
+                    {cls && (
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0 shadow-2xs"
+                        style={{ background: classifyDot(cls) }}
+                        title={cls}
+                      />
+                    )}
+                  </div>
+
+                  <div className="text-2xl font-black text-slate-900 tabular-nums mt-1.5 leading-none">
+                    {val}
+                    {sec != null ? `/${sec}` : ""}
+                    {unit && (
+                      <span className="text-xs font-semibold text-slate-400 ml-1">
+                        {unit}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {l.classification ? (
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ background: classifyDot(l.classification) }}
-                  />
-                ) : null}
+
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 gap-1 flex-wrap">
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {formattedDate}
+                  </span>
+                  {cls && (
+                    <Pill tone={vitalClassificationToTone(cls)}>
+                      {cls}
+                    </Pill>
+                  )}
+                </div>
               </div>
-              <div className="text-2xl font-semibold text-text tabular-nums mt-1">
-                {l.value}
-                {l.secondaryValue != null ? `/${l.secondaryValue}` : ""}
-                <span className="text-xs text-text-soft ml-1 font-normal">
-                  {l.unit ?? ""}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mt-1 gap-1">
-                <span className="text-[10px] text-text-muted">
-                  {format(parseISO(l.recordedAt), "MMM d, HH:mm")}
-                </span>
-                {l.classification ? (
-                  <Pill
-                    tone={vitalClassificationToTone(l.classification)}
-                  >
-                    {t(`status.${l.classification.toLowerCase()}`)}
-                  </Pill>
-                ) : null}
-              </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       ) : null}
 
+      {/* ── Charts / Empty States ──────────────────────────────────────────── */}
       {isLoading ? (
-        <Card>
-          <Skeleton className="h-40 w-full" />
-        </Card>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs">
+          <Skeleton className="h-44 w-full rounded-xl" />
+        </div>
       ) : byType.size === 0 ? (
-        <Card>
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xs">
           <ChartEmpty
             padded
-            icon={<Activity size={22} />}
-            title={t("tab.vitals.empty")}
+            icon={<Activity size={24} />}
+            title="No vitals recorded yet"
           />
-        </Card>
+        </div>
       ) : (
         Array.from(byType.entries()).map(([type, points]) => {
           const range = NORMAL_RANGES[type];
@@ -190,101 +247,132 @@ export default function VitalsTab({
           const yMax = range
             ? Math.max(range[1], ...values) + 5
             : Math.max(...values) + 5;
-          const data = points.map((p) => ({
-            t: +parseISO(p.recordedAt),
-            value: p.value,
-            secondary: p.secondaryValue ?? null,
-            classification: p.classification ?? "normal",
-            label: format(parseISO(p.recordedAt), "MMM d"),
-          }));
+
+          const chartData = points.map((p) => {
+            let tVal = Date.now();
+            let lbl = "—";
+            if (p.recordedAt) {
+              try {
+                const parsed = parseISO(p.recordedAt);
+                if (!isNaN(+parsed)) {
+                  tVal = +parsed;
+                  lbl = format(parsed, "MMM d");
+                }
+              } catch {}
+            }
+            return {
+              t: tVal,
+              value: p.value,
+              secondary: p.secondaryValue ?? null,
+              classification: p.classification ?? "normal",
+              label: lbl,
+            };
+          });
+
           return (
-            <Card key={type}>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <h3 className="text-sm font-semibold text-text">
-                  {vitalLabel(type)}
-                </h3>
+            <div
+              key={type}
+              className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs"
+            >
+              <div className="flex items-center justify-between gap-2 mb-3.5 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 capitalize">
+                    {vitalLabel(type)}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700">
+                    {points.length} reading{points.length === 1 ? "" : "s"}
+                  </span>
+                </div>
                 <div className="flex items-center gap-1.5">
-                  <Pill tone="neutral">{points.length} readings</Pill>
-                  {range ? (
-                    <Pill tone="success">
-                      {t("tab.vitals.normalRange", {
-                        min: range[0],
-                        max: range[1],
-                      })}
-                    </Pill>
-                  ) : null}
+                  {range && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      Normal Range: {range[0]} – {range[1]}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div style={{ height: 180 }}>
+
+              <div style={{ height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={data}
-                    margin={{ top: 5, right: 10, bottom: 0, left: -10 }}
+                    data={chartData}
+                    margin={{ top: 10, right: 15, bottom: 5, left: -10 }}
                   >
-                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                    <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
                     <XAxis
                       dataKey="t"
                       type="number"
                       domain={["dataMin", "dataMax"]}
-                      tickFormatter={(v) => format(new Date(v), "MMM d")}
-                      stroke="var(--text-muted)"
+                      tickFormatter={(v) => {
+                        try {
+                          return format(new Date(v), "MMM d");
+                        } catch {
+                          return "";
+                        }
+                      }}
+                      stroke="#94a3b8"
                       fontSize={11}
                     />
                     <YAxis
-                      stroke="var(--text-muted)"
+                      stroke="#94a3b8"
                       fontSize={11}
                       domain={[yMin, yMax]}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 6,
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                         fontSize: 12,
                       }}
-                      labelFormatter={(v) =>
-                        format(new Date(v as number), "MMM d, HH:mm")
-                      }
+                      labelFormatter={(v) => {
+                        try {
+                          return format(new Date(v as number), "MMM d, HH:mm");
+                        } catch {
+                          return "";
+                        }
+                      }}
                       formatter={(v: number) => [v, vitalLabel(type)]}
                     />
-                    {range ? (
+                    {range && (
                       <ReferenceArea
                         y1={range[0]}
                         y2={range[1]}
-                        fill="var(--success-soft)"
-                        fillOpacity={0.4}
+                        fill="#10b981"
+                        fillOpacity={0.06}
                       />
-                    ) : null}
-                    {range ? (
+                    )}
+                    {range && (
                       <ReferenceLine
                         y={range[1]}
-                        stroke="var(--warn)"
-                        strokeDasharray="2 2"
+                        stroke="#f59e0b"
+                        strokeDasharray="3 3"
                         strokeOpacity={0.5}
                       />
-                    ) : null}
+                    )}
                     <Line
                       type="monotone"
                       dataKey="value"
-                      stroke="var(--brand)"
-                      strokeWidth={2}
+                      stroke="#0284c7"
+                      strokeWidth={2.5}
                       dot={({ cx, cy, payload }) => (
                         <circle
                           key={`${cx}-${cy}`}
                           cx={cx}
                           cy={cy}
-                          r={3}
+                          r={3.5}
                           fill={classifyDot(payload.classification)}
-                          stroke="var(--surface)"
+                          stroke="#ffffff"
                           strokeWidth={1.5}
                         />
                       )}
-                      activeDot={{ r: 5 }}
+                      activeDot={{ r: 5.5 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </Card>
+            </div>
           );
         })
       )}
@@ -292,7 +380,7 @@ export default function VitalsTab({
       <Drawer
         open={open}
         onClose={() => setOpen(false)}
-        title={t("tab.vitals.add")}
+        title="Record Patient Vitals"
         size="lg"
       >
         <RecordVitalsForm

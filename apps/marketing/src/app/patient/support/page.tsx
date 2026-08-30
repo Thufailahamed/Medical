@@ -71,10 +71,10 @@ export default function SupportPage() {
   return (
     <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
       <Link
-        href="/patient/more"
+        href="/patient/dashboard"
         className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft transition-colors hover:text-brand"
       >
-        <ChevronLeft size={14} aria-hidden /> Back
+        <ChevronLeft size={14} aria-hidden /> Back to Dashboard
       </Link>
 
       <SectionHeader

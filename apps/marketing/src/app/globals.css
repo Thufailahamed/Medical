@@ -1505,3 +1505,13 @@ h1, h2, h3, p { margin: 0; }
   background-color: rgba(239, 68, 68, 0.15) !important;
   border-color: rgba(239, 68, 68, 0.2) !important;
 }
+
+/* Hero banner gradient (Doctor & Patient portals) */
+.dashboard-hero {
+  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%);
+  box-shadow:
+    0 8px 32px rgba(3, 105, 161, 0.22),
+    0 2px 8px rgba(14, 116, 144, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+

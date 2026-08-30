@@ -54,28 +54,28 @@ export function QuickActions({ className }: { className?: string }) {
           <h2 className="t-card-title mt-0.5 text-text">Quick actions</h2>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {ACTIONS.map((action) => {
           const Icon = action.icon;
           return (
             <Link
               key={action.href}
               href={action.href}
-              className="group flex items-center gap-3 rounded-[var(--radius-inner)] border border-border bg-surface px-3.5 py-3.5 shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[var(--shadow-md)]"
+              className="group flex items-center gap-3.5 rounded-xl border border-border bg-white px-4 py-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
             >
               <span
                 className={cn(
-                  "grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105",
+                  "grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105 shadow-xs",
                   action.accent,
                 )}
               >
-                <Icon size={18} aria-hidden />
+                <Icon size={19} aria-hidden />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-text">
+                <span className="block truncate text-sm font-bold text-text group-hover:text-brand transition-colors">
                   {action.label}
                 </span>
-                <span className="block truncate text-[11px] text-text-muted">
+                <span className="block truncate text-xs text-text-muted mt-0.5">
                   {action.hint}
                 </span>
               </span>

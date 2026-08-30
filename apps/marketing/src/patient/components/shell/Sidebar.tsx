@@ -29,7 +29,6 @@ import {
   Share2,
   Download,
   Clock3,
-  MoreHorizontal,
   ChevronLeft,
   Settings,
   LogOut,
@@ -109,7 +108,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/patient/dsar", label: "Data Requests", icon: ClipboardList, testId: "nav-dsar" },
       { href: "/patient/audit", label: "Activity Audit", icon: Clock3, testId: "nav-audit" },
       { href: "/patient/profile", label: "Profile", icon: User, testId: "nav-profile" },
-      { href: "/patient/more", label: "More Features", icon: MoreHorizontal, testId: "nav-more" },
     ],
   },
 ];

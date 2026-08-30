@@ -222,9 +222,9 @@ export default function VaccinationsScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {a.title}
+                      {a.vaccineName}
                     </Text>
-                    {!!a.description && (
+                    {!!a.dose && (
                       <Text
                         style={[
                           typography.body.sm,
@@ -232,7 +232,7 @@ export default function VaccinationsScreen() {
                         ]}
                         numberOfLines={2}
                       >
-                        {a.description}
+                        {a.dose}
                       </Text>
                     )}
                     <Text
@@ -241,7 +241,7 @@ export default function VaccinationsScreen() {
                         { color: colors.textSubtle, marginTop: 2 },
                       ]}
                     >
-                      {a.recordDate || a.createdAt}
+                      {String(a.administeredAt || "").slice(0, 10)}
                       {a.provider ? ` • ${a.provider}` : ""}
                     </Text>
                   </View>

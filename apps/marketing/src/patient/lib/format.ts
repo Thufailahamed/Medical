@@ -76,3 +76,35 @@ export function humanize(value: string | null | undefined): string {
   const spaced = value.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
+
+/** Friendly labels for medical record kinds (API enums → UI copy). */
+const RECORD_TYPE_LABELS: Record<string, string> = {
+  lab_report: "Lab report",
+  imaging: "Imaging",
+  prescription: "Prescription",
+  hospital_visit: "Hospital visit",
+  vaccination: "Vaccination",
+  surgery: "Surgery",
+  allergy: "Allergy",
+  insurance: "Insurance",
+  fitness: "Fitness",
+  discharge_summary: "Discharge summary",
+  medical_certificate: "Medical certificate",
+  operation_note: "Operation note",
+  invoice: "Invoice",
+  clinical_note: "Clinical note",
+  lab_order: "Lab order",
+  follow_up: "Follow-up",
+  other: "Other",
+  medication_order: "Medication order",
+  lab_subtest: "Lab subtest",
+  clinical_attachment: "Attachment",
+  imaging_series: "Imaging series",
+  wearable_metric: "Wearable",
+};
+
+export function formatRecordType(type: string | null | undefined): string {
+  if (!type) return EM_DASH;
+  const key = type.trim().toLowerCase();
+  return RECORD_TYPE_LABELS[key] ?? humanize(key);
+}

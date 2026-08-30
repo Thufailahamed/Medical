@@ -193,6 +193,11 @@ export function useRealtime({ token, userId, silent }: UseRealtimeArgs) {
         if (!url || cancelled) return;
         const es = new EventSource(url);
         esRef.current = es;
+        const connectedAt = Date.now();
+        let initialDumpFinished = false;
+        const dumpTimer = setTimeout(() => {
+          initialDumpFinished = true;
+        }, 1500);
 
         es.addEventListener("hello", () => {
           // Connection confirmed — could be used to flip a "live" badge.
@@ -202,7 +207,11 @@ export function useRealtime({ token, userId, silent }: UseRealtimeArgs) {
           try {
             const n = JSON.parse((ev as MessageEvent).data) as RealtimeNotification;
             invalidateFor(qc, n);
-            if (!silent) {
+            // Only display toast for notifications that occur live during this session,
+            // never replay old historical notifications from the database backlog.
+            const notifTime = n.createdAt ? new Date(n.createdAt).getTime() : 0;
+            const isFresh = notifTime > connectedAt - 30000;
+            if (!silent && initialDumpFinished && isFresh) {
               toast.info(n.title, n.body);
             }
           } catch {

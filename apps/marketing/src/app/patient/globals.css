@@ -235,3 +235,42 @@
 [data-app="patient"] .patient-card:hover .patient-card-shine {
   opacity: 1;
 }
+
+.dashboard-hero {
+  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%);
+  box-shadow:
+    0 8px 32px rgba(3, 105, 161, 0.22),
+    0 2px 8px rgba(14, 116, 144, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Ensure all white action buttons in oceanic hero headers have bold, high-contrast text */
+.dashboard-hero .bg-white,
+.hero-action-btn {
+  background-color: #ffffff !important;
+  color: #0c4a6e !important;
+  font-weight: 700 !important;
+}
+
+.dashboard-hero .bg-white:hover,
+.hero-action-btn:hover {
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+}
+
+.dashboard-hero .bg-white span,
+.hero-action-btn span {
+  color: #0c4a6e !important;
+}
+
+.dashboard-hero .bg-white:hover span,
+.hero-action-btn:hover span {
+  color: #0369a1 !important;
+}
+
+.dashboard-hero .bg-white svg,
+.hero-action-btn svg {
+  color: #0284c7 !important;
+}
+
+

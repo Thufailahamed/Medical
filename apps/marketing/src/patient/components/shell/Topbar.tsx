@@ -102,32 +102,13 @@ export function Topbar({ user }: { user: AuthUser | null }) {
 
   return (
     <header
-      className="anim-rise sticky top-3 z-30"
+      className="shrink-0 min-h-[64px] h-[64px] flex items-center px-4 md:px-8 bg-white border-b border-border shadow-xs z-30 transition-shadow"
       data-testid="patient-topbar"
       style={{
-        borderRadius: "var(--radius-card)",
-        background:
-          "linear-gradient(120deg, rgba(255,255,255,0.97) 0%, rgba(247,250,255,0.94) 100%)",
-        boxShadow: "var(--shadow-card)",
-        border: "1px solid var(--color-border)",
-        backdropFilter: "blur(10px)",
+        backgroundColor: "#ffffff",
       }}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{ borderRadius: "inherit" }}
-      >
-        <div
-          className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full"
-          style={{
-            background:
-              "radial-gradient(closest-side, rgba(24,84,255,0.12), transparent 70%)",
-          }}
-        />
-      </div>
-
-      <div className="relative z-10 flex items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
+      <div className="relative z-10 flex items-center justify-between w-full gap-3 sm:gap-4">
         {/* Page context */}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[15px] font-bold tracking-tight text-text sm:text-base">

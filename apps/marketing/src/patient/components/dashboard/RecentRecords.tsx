@@ -7,7 +7,7 @@ import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useRecords } from "@/patient/hooks";
-import { formatDayLabel } from "@/patient/lib/format";
+import { formatDayLabel, formatRecordType } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 
 export function RecentRecords({ className }: { className?: string }) {
@@ -41,7 +41,9 @@ export function RecentRecords({ className }: { className?: string }) {
                   </p>
                   <p className="t-micro">{formatDayLabel(r.date)}</p>
                 </div>
-                <Pill tone="info">{r.recordType}</Pill>
+                <Pill tone="info" className="normal-case tracking-normal">
+                  {formatRecordType(r.recordType)}
+                </Pill>
               </li>
             ))}
           </ul>
