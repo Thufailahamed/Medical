@@ -642,94 +642,6 @@ router.get("/packages/:slug", async (c) => {
   return c.json(dto);
 });
 
-// ─── GET /diagnostic-tests/:slug (test detail) ───────────────
-//
-// Catch-all — registered LAST so the more specific /packages,
-// /categories, /catalog/* paths win. Hits `/cbc`, `/lipid-profile`
-// etc.
-
-router.get("/:slug", async (c) => {
-  const db = c.get("db");
-  const slug = c.req.param("slug");
-
-  const [row] = (await db
-    .select({
-      id: diagnosticTestCatalog.id,
-      slug: diagnosticTestCatalog.slug,
-      name: diagnosticTestCatalog.name,
-      shortName: diagnosticTestCatalog.shortName,
-      code: diagnosticTestCatalog.code,
-      categoryId: diagnosticTestCatalog.categoryId,
-      description: diagnosticTestCatalog.description,
-      sampleType: diagnosticTestCatalog.sampleType,
-      fastingRequired: diagnosticTestCatalog.fastingRequired,
-      fastingHours: diagnosticTestCatalog.fastingHours,
-      homeCollectionAvailable: diagnosticTestCatalog.homeCollectionAvailable,
-      labCollectionAvailable: diagnosticTestCatalog.labCollectionAvailable,
-      price: diagnosticTestCatalog.price,
-      discountPrice: diagnosticTestCatalog.discountPrice,
-      turnaroundHours: diagnosticTestCatalog.turnaroundHours,
-      instructions: diagnosticTestCatalog.instructions,
-      resultInterpretation: diagnosticTestCatalog.resultInterpretation,
-      referenceInfo: diagnosticTestCatalog.referenceInfo,
-      visibility: diagnosticTestCatalog.visibility,
-      isBookable: diagnosticTestCatalog.isBookable,
-      isDoctorOrderable: diagnosticTestCatalog.isDoctorOrderable,
-      synonyms: diagnosticTestCatalog.synonyms,
-      displayOrder: diagnosticTestCatalog.displayOrder,
-      currency: diagnosticTestCatalog.currency,
-    })
-    .from(diagnosticTestCatalog)
-    .where(
-      and(
-        eq(diagnosticTestCatalog.slug, slug),
-        eq(diagnosticTestCatalog.visibility, "public"),
-      ),
-    )
-    .limit(1)) as Array<any>;
-
-  if (!row) return c.json({ error: "Test not found" }, 404);
-
-  const categorySlug = row.categoryId
-    ? (((await db
-        .select({ slug: labDiagnosticTestCategories.slug })
-        .from(labDiagnosticTestCategories)
-        .where(eq(labDiagnosticTestCategories.id, row.categoryId))
-        .limit(1)) as Array<{ slug: string }>)[0]?.slug ?? null)
-    : null;
-
-  const avail = await buildLabAvailability(db, row.id);
-
-  const dto: DiagnosticTestDTO = {
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    shortName: row.shortName,
-    code: row.code,
-    categorySlug,
-    description: row.description,
-    sampleType: row.sampleType,
-    fastingRequired: !!row.fastingRequired,
-    fastingHours: row.fastingHours,
-    homeCollectionAvailable: !!row.homeCollectionAvailable,
-    labCollectionAvailable: !!row.labCollectionAvailable,
-    turnaroundHours: row.turnaroundHours,
-    instructions: row.instructions,
-    resultInterpretation: row.resultInterpretation,
-    referenceInfo: row.referenceInfo,
-    visibility: row.visibility,
-    isBookable: !!row.isBookable,
-    isDoctorOrderable: !!row.isDoctorOrderable,
-    synonyms: parseSynonyms(row.synonyms),
-    minPrice: avail.minPrice > 0 ? avail.minPrice : row.discountPrice ?? row.price,
-    currency: row.currency ?? avail.currency,
-    availableAt: avail.availableAt,
-    laboratoryCount: avail.laboratoryCount,
-  };
-
-  return c.json(dto);
-});
-
 // ─── Book a test (patient) ───────────────────────────────
 router.post("/book", authMiddleware, async (c) => {
   const db = c.get("db");
@@ -1181,6 +1093,88 @@ router.get("/time-slots", (c) => {
   ];
 
   return c.json({ slots });
+});
+
+router.get("/:slug", async (c) => {
+  const db = c.get("db");
+  const slug = c.req.param("slug");
+
+  const [row] = (await db
+    .select({
+      id: diagnosticTestCatalog.id,
+      slug: diagnosticTestCatalog.slug,
+      name: diagnosticTestCatalog.name,
+      shortName: diagnosticTestCatalog.shortName,
+      code: diagnosticTestCatalog.code,
+      categoryId: diagnosticTestCatalog.categoryId,
+      description: diagnosticTestCatalog.description,
+      sampleType: diagnosticTestCatalog.sampleType,
+      fastingRequired: diagnosticTestCatalog.fastingRequired,
+      fastingHours: diagnosticTestCatalog.fastingHours,
+      homeCollectionAvailable: diagnosticTestCatalog.homeCollectionAvailable,
+      labCollectionAvailable: diagnosticTestCatalog.labCollectionAvailable,
+      price: diagnosticTestCatalog.price,
+      discountPrice: diagnosticTestCatalog.discountPrice,
+      turnaroundHours: diagnosticTestCatalog.turnaroundHours,
+      instructions: diagnosticTestCatalog.instructions,
+      resultInterpretation: diagnosticTestCatalog.resultInterpretation,
+      referenceInfo: diagnosticTestCatalog.referenceInfo,
+      visibility: diagnosticTestCatalog.visibility,
+      isBookable: diagnosticTestCatalog.isBookable,
+      isDoctorOrderable: diagnosticTestCatalog.isDoctorOrderable,
+      synonyms: diagnosticTestCatalog.synonyms,
+      displayOrder: diagnosticTestCatalog.displayOrder,
+      currency: diagnosticTestCatalog.currency,
+    })
+    .from(diagnosticTestCatalog)
+    .where(
+      and(
+        eq(diagnosticTestCatalog.slug, slug),
+        eq(diagnosticTestCatalog.visibility, "public"),
+      ),
+    )
+    .limit(1)) as Array<any>;
+
+  if (!row) return c.json({ error: "Test not found" }, 404);
+
+  const categorySlug = row.categoryId
+    ? (((await db
+        .select({ slug: labDiagnosticTestCategories.slug })
+        .from(labDiagnosticTestCategories)
+        .where(eq(labDiagnosticTestCategories.id, row.categoryId))
+        .limit(1)) as Array<{ slug: string }>)[0]?.slug ?? null)
+    : null;
+
+  const avail = await buildLabAvailability(db, row.id);
+
+  const dto: DiagnosticTestDTO = {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    shortName: row.shortName,
+    code: row.code,
+    categorySlug,
+    description: row.description,
+    sampleType: row.sampleType,
+    fastingRequired: !!row.fastingRequired,
+    fastingHours: row.fastingHours,
+    homeCollectionAvailable: !!row.homeCollectionAvailable,
+    labCollectionAvailable: !!row.labCollectionAvailable,
+    turnaroundHours: row.turnaroundHours,
+    instructions: row.instructions,
+    resultInterpretation: row.resultInterpretation,
+    referenceInfo: row.referenceInfo,
+    visibility: row.visibility,
+    isBookable: !!row.isBookable,
+    isDoctorOrderable: !!row.isDoctorOrderable,
+    synonyms: parseSynonyms(row.synonyms),
+    minPrice: avail.minPrice > 0 ? avail.minPrice : row.discountPrice ?? row.price,
+    currency: row.currency ?? avail.currency,
+    availableAt: avail.availableAt,
+    laboratoryCount: avail.laboratoryCount,
+  };
+
+  return c.json(dto);
 });
 
 export default router;
