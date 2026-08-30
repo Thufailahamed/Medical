@@ -20,7 +20,8 @@
     "test:coverage": "bun run --filter @healthcare/api test:coverage",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "i18n:check": "bun run scripts/check-i18n.ts"
+    "i18n:check": "bun run scripts/check-i18n.ts",
+    "seed:demo": "DRIZZLE_URL='file:./apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/$(ls apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/ | grep -v -- '-shm\\|-wal' | head -1)' bun run apps/api/scripts/seed-demo.ts"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
