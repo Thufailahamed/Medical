@@ -58,6 +58,7 @@ import {
   useToast,
   VerifiedBadge,
 } from "@/components/ui";
+import { DoctorChip } from "@/components/DoctorChip";
 import { api } from "@/lib/api";
 import { runPayHereCheckout } from "@/lib/payhere";
 
@@ -659,7 +660,22 @@ export default function BookAppointmentScreen() {
                       {selectedDoctor.specialization}
                     </Text>
                   </View>
-                  <Pressable
+                </View>
+                <View style={{ marginTop: spacing.sm }}>
+                  <DoctorChip
+                    d={{
+                      userId: selectedDoctor.doctorId ?? "",
+                      name: selectedDoctor.name ?? "",
+                      specialty: selectedDoctor.specialization ?? "",
+                      yearsExperience: selectedDoctor.yearsExperience ?? 0,
+                      feeLkr: selectedDoctor.consultationFee ?? 0,
+                      verifiedSlmc: !!selectedDoctor.slmcVerifiedAt,
+                      replyTimeMedianMinutes:
+                        selectedDoctor.replyTimeMedianMinutes ?? null,
+                    }}
+                  />
+                </View>
+                <Pressable
                     onPress={() =>
                       router.push({
                         pathname: "/(app)/doctor/[id]",
