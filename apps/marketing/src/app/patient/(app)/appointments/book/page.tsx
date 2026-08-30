@@ -32,6 +32,7 @@ import {
 } from "@/patient/hooks/doctors";
 import { humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { DoctorBadge } from "@/portal/components/doctor/DoctorBadge";
 
 type Step = "specialty" | "doctor" | "schedule" | "confirm";
 
@@ -494,6 +495,18 @@ export default function BookAppointmentPage() {
                         )}
                       </div>
                     </div>
+
+                    <DoctorBadge
+                      d={{
+                        userId: (d as any).userId ?? d.id,
+                        name: d.name,
+                        specialty: d.specialization ?? "",
+                        yearsExperience: (d as any).experience ?? 0,
+                        feeLkr: d.consultationFee ?? 0,
+                        verifiedSlmc: !!(d as any).slmcVerifiedAt,
+                        hospitalName: d.hospitalName ?? undefined,
+                      }}
+                    />
 
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       {d.rating ? (
