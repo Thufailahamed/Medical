@@ -2,9 +2,10 @@
 
 import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { api } from "@/hospital/lib/api";
 import Link from "next/link";
-import { ArrowRight, CircleDollarSign, Eye, FileText, Receipt, Send } from "lucide-react";
+import { ArrowRight, CircleDollarSign, CreditCard, Eye, FileText, Receipt, Send } from "lucide-react";
 import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
@@ -27,6 +28,7 @@ const STATUS_TONES: Record<string, any> = {
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useT();
+  const router = useRouter();
   const { id } = use(params);
   const qc = useQueryClient();
   const locale = useAuthStore((s) => s.locale);
@@ -63,6 +65,26 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
+  const payOnline = useMutation({
+    mutationFn: () =>
+      api<{ redirectUrl: string; merchantOrderId: string }>(`/payments/checkout`, {
+        method: "POST",
+        json: {
+          invoiceId: id,
+          method: "stripe",
+          returnUrl: `${window.location.origin}/hospital/billing/${id}/receipt`,
+        },
+      }),
+    onSuccess: (res) => {
+      if (res?.redirectUrl) {
+        window.location.href = res.redirectUrl;
+      } else {
+        toast.error("No redirect URL returned");
+      }
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to start checkout"),
+  });
+
   const data = inv.data;
   const totalPaid = data?.payments?.reduce((a: number, p: any) => a + p.amountLkr, 0) ?? 0;
   const balance = (data?.invoice?.totalLkr ?? 0) - totalPaid;
@@ -87,10 +109,20 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 {t("billing.issue")}
               </Button>
             ) : data?.invoice?.status !== "paid" && data?.invoice?.status !== "cancelled" ? (
-              <Button onClick={() => setPayOpen(true)} disabled={balance <= 0}>
-                <CircleDollarSign size={14} className="mr-1.5" />
-                {t("billing.recordPayment")}
-              </Button>
+              <>
+                <Button
+                  onClick={() => payOnline.mutate()}
+                  disabled={balance <= 0 || payOnline.isPending}
+                  variant="outline"
+                >
+                  <CreditCard size={14} className="mr-1.5" />
+                  {payOnline.isPending ? "..." : "Pay online"}
+                </Button>
+                <Button onClick={() => setPayOpen(true)} disabled={balance <= 0}>
+                  <CircleDollarSign size={14} className="mr-1.5" />
+                  {t("billing.recordPayment")}
+                </Button>
+              </>
             ) : null}
           </div>
         }
