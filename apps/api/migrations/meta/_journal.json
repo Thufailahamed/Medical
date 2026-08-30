@@ -169,6 +169,41 @@
       "when": 1785873506953,
       "tag": "0023_moaning_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1756574400000,
+      "tag": "0071_payments_provider",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1756574401000,
+      "tag": "0072_payment_webhook_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1756574402000,
+      "tag": "0073_notification_opt_outs",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1756574403000,
+      "tag": "0074_notification_prefs_sms",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1756574404000,
+      "tag": "0075_notification_push_status",
+      "breakpoints": true
     }
   ]
 }
