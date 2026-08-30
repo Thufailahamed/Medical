@@ -1142,6 +1142,7 @@ medicalRecordsRouter.get(
         doctorName: users.name,
         doctorSpecialization: doctors.specialization,
         doctorSlmcNo: doctors.slmcRegistrationNo,
+        doctorConsultationFee: doctors.consultationFee,
       })
       .from(prescriptions)
       .innerJoin(doctors, eq(doctors.id, prescriptions.doctorId))

@@ -175,6 +175,33 @@ export default function PatientPrescriptionDetailScreen() {
               </Text>
             </Card>
           ) : null}
+          {rx.doctorConsultationFee ? (
+            <Card>
+              <Text
+                style={[
+                  typography.overline,
+                  { color: colors.textMuted, marginBottom: spacing.xs },
+                ]}
+              >
+                {t("patientPrescriptionDetail.consultationFee", "CONSULTATION FEE")}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.sm }}>
+                <Text
+                  style={[
+                    typography.title.lg,
+                    { color: colors.text, fontWeight: "800" },
+                  ]}
+                >
+                  LKR {Number(rx.doctorConsultationFee).toLocaleString()}
+                </Text>
+                <Text
+                  style={[typography.caption, { color: colors.textMuted }]}
+                >
+                  {t("patientPrescriptionDetail.feePaidNote", "paid via appointment")}
+                </Text>
+              </View>
+            </Card>
+          ) : null}
 
           {rx.notes ? (
             <Card>
