@@ -69,6 +69,7 @@ import { handleInboundEmail } from "./email/inbound";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
 import { pushReceiptsRouter } from "./cron/push-receipts";
+import { replyTimeRouter } from "./routes/doctors-reply-time";
 import { refillRemindersRouter } from "./cron/refill-reminders";
 import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
@@ -395,6 +396,7 @@ app.route("/admin/caretaker-verifications", adminCaretakerVerificationsRouter);
 //   POST /__cron/insurance-grace-expiry       with x-cron-secret header.
 app.route("/", bookingRemindersRouter);
 app.route("/", pushReceiptsRouter);
+app.route("/doctors", replyTimeRouter);
 app.route("/", insurancePremiumRemindersRouter);
 app.route("/", insuranceBillingRouter);
 app.route("/", insuranceGraceExpiryRouter);
