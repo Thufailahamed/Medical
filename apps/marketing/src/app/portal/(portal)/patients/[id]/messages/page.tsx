@@ -53,10 +53,15 @@ export default function ChartMessagesTab({
         subtitle={t("tab.messages.subtitle", { count: rows.length })}
         badge={{ count: rows.length, tone: "info" }}
         actions={
-          <Link href="/portal/messages">
-            <Button size="sm" variant="ghost" leftIcon={<ArrowRight size={14} />}>
-              {t("tab.messages.openInbox")}
-            </Button>
+          <Link
+            href="/portal/messages"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
+          >
+            <ArrowRight size={14} />
+            <span>{t("tab.messages.openInbox")}</span>
           </Link>
         }
       />

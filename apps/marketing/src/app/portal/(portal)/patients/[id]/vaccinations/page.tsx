@@ -120,13 +120,17 @@ export default function VaccinationsTab({
         subtitle={t("tab.vaccinations.subtitle", { count: all.length })}
         badge={{ count: all.length, tone: "info" }}
         actions={
-          <Button
-            size="sm"
-            leftIcon={<Plus size={14} />}
+          <button
+            type="button"
             onClick={() => setCreateOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
           >
-            {t("tab.vaccinations.new")}
-          </Button>
+            <Plus size={14} />
+            <span>{t("tab.vaccinations.new")}</span>
+          </button>
         }
       />
 

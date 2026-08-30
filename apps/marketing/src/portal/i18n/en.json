@@ -285,6 +285,7 @@
     "newNote": "New clinical note",
     "newFollowUp": "New follow-up",
     "sendMessage": "Send message",
+    "recordsSubtitle": "{{count}} records on file",
     "recordsSubtitle_one": "{{count}} record on file",
     "recordsSubtitle_other": "{{count}} records on file",
     "recordsSearchPlaceholder": "Search records by title, diagnosis, notes…",
@@ -583,6 +584,9 @@
   },
   "messages": {
     "title": "Messages",
+    "subtitle": "Direct clinical consultations and patient conversations",
+    "search": "Search conversations by patient name or message…",
+    "new": "New Conversation",
     "inbox": "Inbox",
     "thread": "Conversation",
     "empty": "No conversations yet",

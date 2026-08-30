@@ -242,6 +242,7 @@
     "newNote": "புதிய மருத்துவ குறிப்பு",
     "newFollowUp": "புதிய பின்தொடர்தல்",
     "sendMessage": "செய்தி அனுப்பு",
+    "recordsSubtitle": "{{count}} பதிவுகள்",
     "recordsSubtitle_one": "{{count}} பதிவு",
     "recordsSubtitle_other": "{{count}} பதிவுகள்",
     "recordsSearchPlaceholder": "தலைப்பு, நோய் கண்டறிதல், குறிப்புகள் என தேடுங்கள்…",

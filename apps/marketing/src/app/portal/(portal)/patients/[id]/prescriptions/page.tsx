@@ -3,7 +3,6 @@
 import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pill as PillIcon, Plus, ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 import { api } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
@@ -83,13 +82,17 @@ export default function PrescriptionsTab({
         subtitle={t("tab.prescriptions.subtitle", { count: rows.length })}
         badge={{ count: rows.length, tone: "brand" }}
         actions={
-          <Button
-            size="sm"
-            leftIcon={<Plus size={14} />}
+          <button
+            type="button"
             onClick={() => setComposeOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
           >
-            {t("tab.prescriptions.new")}
-          </Button>
+            <Plus size={14} />
+            <span>{t("tab.prescriptions.new")}</span>
+          </button>
         }
       />
 
@@ -113,17 +116,21 @@ export default function PrescriptionsTab({
         }
         emptyState={
           <ChartEmpty
-            icon={<PillIcon size={20} />}
+            icon={<PillIcon size={22} />}
             title={t("tab.prescriptions.empty")}
             description={t("tab.prescriptions.emptyBody")}
             action={
-              <Button
-                size="sm"
-                leftIcon={<Plus size={14} />}
+              <button
+                type="button"
                 onClick={() => setComposeOpen(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                }}
               >
-                {t("tab.prescriptions.new")}
-              </Button>
+                <Plus size={14} />
+                <span>{t("tab.prescriptions.new")}</span>
+              </button>
             }
           />
         }
@@ -154,13 +161,10 @@ export default function PrescriptionsTab({
               ) : null
             }
             actions={
-              <Link
-                href={`/portal/patients/${id}/prescriptions/${r.id}`}
-                className="text-[11px] font-semibold text-brand hover:text-brand-strong inline-flex items-center gap-0.5"
-              >
+              <span className="text-xs font-bold text-sky-700 inline-flex items-center gap-1 group-hover:text-sky-800">
                 {t("tab.prescriptions.view")}
-                <ArrowRight size={11} />
-              </Link>
+                <ArrowRight size={12} />
+              </span>
             }
           />
         )}

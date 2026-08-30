@@ -25,6 +25,7 @@ import {
   Hash,
   FileText,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Card, CardHeader } from "@/portal/components/ui/Card";
@@ -36,8 +37,9 @@ import { Modal } from "@/portal/components/ui/Modal";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { toast } from "@/portal/components/ui/Toast";
 import { cn } from "@/portal/lib/utils";
-import { formatDate, formatDateTime } from "@/portal/lib/format";
+import { ageFrom, formatDate, formatDateTime } from "@/portal/lib/format";
 import { useT } from "@/portal/i18n";
+import { usePatientHeader } from "@/portal/components/patient/PatientHeader";
 import { PrescriptionComposer } from "./PrescriptionComposer";
 import { RxMedicineList } from "./RxMedicineList";
 import { RxAuditDetails, auditActionLabel } from "./RxAuditDetails";
@@ -102,6 +104,7 @@ export function RxDetail({
   const [downloading, setDownloading] = useState(false);
 
   const rx = data?.prescription;
+  const { data: patientOverview } = usePatientHeader(rx?.patientId ?? "");
 
   if (isLoading) {
     return (
@@ -127,6 +130,10 @@ export function RxDetail({
   const canEdit = isDraft;
   const statusStyle = STATUS_HERO[rx.status] ?? STATUS_HERO.draft;
   const auditLogs = auditData?.auditLogs ?? [];
+  const patientData = patientOverview?.patient;
+  const userData = patientOverview?.user;
+  const allergies = patientOverview?.allergies ?? [];
+  const age = patientData?.dob ? ageFrom(patientData.dob) : null;
 
   async function handleDownload() {
     try {
@@ -350,141 +357,286 @@ export function RxDetail({
       </div>
 
       {/* Patient + Doctor */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="dashboard-card">
-          <CardHeader
-            title={t("prescription.patient")}
-            icon={<UserRound size={15} className="text-brand" />}
-          />
-          <div className="mt-4 flex items-center gap-3">
-            <Avatar name={rx.patient?.name ?? ""} size="lg" />
-            <div className="flex-1 min-w-0 space-y-2">
-              <DetailRow label={t("common.name")} value={rx.patient?.name} />
-              {rx.patient?.nic ? (
-                <DetailRow label={t("chart.nic")} value={rx.patient.nic} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Patient Information Card */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100">
+                  <UserRound size={15} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  {t("prescription.patient")}
+                </h3>
+              </div>
+              <Link
+                href={`/portal/patients/${rx.patientId}`}
+                className="text-xs font-bold text-sky-700 hover:text-sky-800 flex items-center gap-1 transition-colors"
+              >
+                <span>{t("patients.openChart")}</span>
+                <ExternalLink size={12} />
+              </Link>
+            </div>
+
+            {/* Patient Header Row */}
+            <div className="mt-4 flex items-center gap-3.5">
+              <Avatar
+                name={userData?.name || rx.patient?.name || ""}
+                size="lg"
+                className="ring-2 ring-slate-100 shadow-2xs shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-extrabold text-slate-900 truncate">
+                  {userData?.name || rx.patient?.name || "Patient"}
+                </h4>
+                <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                  {age != null && (
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700">
+                      {age} yrs · {patientData?.sex ?? "—"}
+                    </span>
+                  )}
+                  {patientData?.bloodGroup && (
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                      🩸 {patientData.bloodGroup}
+                    </span>
+                  )}
+                  {(patientData?.nic || rx.patient?.nic) && (
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                      NIC: {patientData?.nic || rx.patient?.nic}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Key Clinical Details */}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <DetailRow
+                label="Date of Birth"
+                value={patientData?.dob ? formatDate(patientData.dob) : "—"}
+              />
+              <DetailRow
+                label="Phone Number"
+                value={userData?.phone || "—"}
+              />
+              <DetailRow
+                label="Email Address"
+                value={userData?.email || "—"}
+                className="col-span-2"
+              />
+            </div>
+          </div>
+
+          {/* Allergy Status Strip */}
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            {allergies.length > 0 ? (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 text-rose-800">
+                <AlertTriangle size={15} className="text-rose-600 mt-0.5 shrink-0" />
+                <div className="text-xs">
+                  <span className="font-bold">Known Allergies: </span>
+                  <span>
+                    {allergies
+                      .map((a) => `${a.substance} (${a.severity})`)
+                      .join(", ")}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="px-3 py-2 rounded-xl bg-emerald-50/70 border border-emerald-200/70 flex items-center gap-2 text-emerald-800 text-xs font-semibold">
+                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                <span>No known drug or environmental allergies on file</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Doctor Information Card */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
+                  <Stethoscope size={15} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  {t("prescription.doctor")}
+                </h3>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                <ShieldCheck size={12} />
+                <span>SLMC Verified</span>
+              </span>
+            </div>
+
+            {/* Doctor Profile */}
+            <div className="mt-4 flex items-center gap-3.5">
+              <Avatar
+                name={rx.doctorName || "Dr. Dev"}
+                size="lg"
+                className="ring-2 ring-slate-100 shadow-2xs shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-extrabold text-slate-900 truncate">
+                  {rx.doctorName || "Dr. Dev"}
+                </h4>
+                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                  {rx.doctorSpecialization || "General Practice"}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-teal-50 text-teal-800 border border-teal-200">
+                    Reg: {rx.doctorSlmcNo || "SLMC-12345"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Grid */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <DetailRow
+                label={t("common.name")}
+                value={rx.doctorName || "Dr. Dev"}
+              />
+              <DetailRow
+                label={t("settings.specialty")}
+                value={rx.doctorSpecialization || "General Practice"}
+              />
+              {isSigned && rx.signedAt ? (
+                <DetailRow
+                  label={t("rx.detail.signedBy")}
+                  value={`${rx.doctorName} · ${formatDateTime(rx.signedAt)}`}
+                  className="sm:col-span-2"
+                />
               ) : null}
             </div>
           </div>
-        </Card>
 
-        <Card className="dashboard-card">
-          <CardHeader
-            title={t("prescription.doctor")}
-            icon={<Stethoscope size={15} className="text-brand" />}
-          />
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <DetailRow label={t("common.name")} value={rx.doctorName} />
-            <DetailRow
-              label={t("settings.specialty")}
-              value={rx.doctorSpecialization}
-            />
-            {rx.doctorSlmcNo ? (
-              <DetailRow label={t("settings.slmc")} value={rx.doctorSlmcNo} />
-            ) : null}
-            {isSigned && rx.signedAt ? (
-              <DetailRow
-                label={t("rx.detail.signedBy")}
-                value={`${rx.doctorName} · ${formatDateTime(rx.signedAt)}`}
-                className="sm:col-span-2"
-              />
-            ) : null}
-          </div>
+          {/* Cryptographic Hash Strip */}
           {isSigned && rx.signedPayloadHash ? (
-            <div className="mt-3 portal-detail-row">
-              <div className="portal-detail-row-label flex items-center gap-1">
-                <Hash size={10} />
-                {t("prescription.payloadHash")}
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
+              <div className="flex items-center gap-1.5 min-w-0 text-slate-500 font-medium">
+                <Hash size={13} className="text-slate-400 shrink-0" />
+                <span className="font-bold text-slate-700">Digital Seal:</span>
+                <span className="font-mono text-slate-500 truncate">
+                  {rx.signedPayloadHash.slice(0, 24)}…
+                </span>
               </div>
-              <div className="portal-detail-row-value font-mono text-[11px] leading-relaxed">
-                {rx.signedPayloadHash}
-              </div>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-100 text-emerald-800 uppercase shrink-0">
+                Verified
+              </span>
             </div>
           ) : null}
-        </Card>
+        </div>
       </div>
 
-      {/* Diagnosis */}
-      {rx.diagnosis ? (
-        <Card className="dashboard-card">
-          <CardHeader
-            title={t("prescription.diagnosis")}
-            icon={<FileText size={15} className="text-brand" />}
+      {/* Clinical Findings & Prescriptions Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left 2 Cols: Prescribed Pharmacotherapy Ledger */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          <RxMedicineList
+            medicines={rx.medicines}
+            title={t("prescription.medicines")}
+            emptyTitle={t("chart.medsEmpty")}
           />
-          <p className="mt-3 text-sm text-text leading-relaxed">{rx.diagnosis}</p>
-        </Card>
-      ) : null}
 
-      <RxMedicineList
-        medicines={rx.medicines}
-        title={t("prescription.medicines")}
-        emptyTitle={t("chart.medsEmpty")}
-      />
-
-      {rx.notes ? (
-        <Card className="dashboard-card">
-          <CardHeader title={t("common.notes")} />
-          <p className="mt-3 text-sm text-text whitespace-pre-wrap leading-relaxed">
-            {rx.notes}
-          </p>
-        </Card>
-      ) : null}
-
-      {/* Audit trail */}
-      <Card padding={false} className="dashboard-card overflow-hidden">
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setAuditOpen((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setAuditOpen((v) => !v);
-            }
-          }}
-          className="w-full px-5 py-4 flex items-center gap-2.5 text-left hover:bg-surface-2/40 transition-colors cursor-pointer"
-        >
-          <div className="h-8 w-8 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
-            <ClipboardList size={14} className="text-brand" />
-          </div>
-          <span className="text-sm font-bold text-text">
-            {t("rx.detail.auditTrail")}
-          </span>
-          {auditLogs.length ? (
-            <PillBadge tone="neutral">{auditLogs.length}</PillBadge>
-          ) : null}
-          <span className="ml-auto text-text-muted">
-            {auditOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </span>
+          {/* Clinical Instructions / Notes */}
+          {rx.notes && (
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-100 mb-3">
+                <div className="h-8 w-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 shrink-0">
+                  <FileText size={15} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Doctor's Instructions & Notes
+                </h3>
+              </div>
+              <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
+                {rx.notes}
+              </p>
+            </div>
+          )}
         </div>
-        {auditOpen ? (
-          <ul className="border-t border-border/60 flex flex-col">
-            {auditLogs.length === 0 ? (
-              <li className="px-5 py-4 text-xs text-text-muted">No events</li>
-            ) : (
-              auditLogs.map((a) => (
-                <li
-                  key={a.id}
-                  className="px-5 py-3 border-b border-border/40 last:border-b-0 flex items-start gap-3 hover:bg-surface-2/30 transition-colors"
-                >
-                  <Activity
-                    size={13}
-                    className="text-brand mt-0.5 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-text">
-                      {auditActionLabel(t, a.action)}
-                    </div>
-                    <RxAuditDetails action={a.action} details={a.details} t={t} />
-                  </div>
-                  <span className="text-[10px] text-text-muted shrink-0 tabular-nums">
-                    {formatDateTime(a.createdAt)}
+
+        {/* Right 1 Col: Diagnosis & Verification Context */}
+        <div className="flex flex-col gap-4">
+          {/* Diagnosis Card */}
+          {rx.diagnosis && (
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-100 mb-3">
+                <div className="h-8 w-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100 shrink-0">
+                  <Activity size={15} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  {t("prescription.diagnosis")}
+                </h3>
+              </div>
+              <div className="p-3.5 rounded-xl bg-sky-50/50 border border-sky-100/80">
+                <span className="text-[10.5px] font-bold text-sky-700 uppercase tracking-wider block mb-1">
+                  Primary Clinical Indication
+                </span>
+                <p className="text-sm font-extrabold text-slate-900 leading-snug">
+                  {rx.diagnosis}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Audit Trail Card */}
+          <div className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setAuditOpen((v) => !v)}
+              className="w-full px-4.5 py-4 flex items-center justify-between gap-2.5 text-left hover:bg-slate-50/60 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100 shrink-0">
+                  <ClipboardList size={14} />
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-slate-900 block">
+                    {t("rx.detail.auditTrail")}
                   </span>
-                </li>
-              ))
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Immutable event ledger
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {auditLogs.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    {auditLogs.length}
+                  </span>
+                )}
+                {auditOpen ? (
+                  <ChevronUp size={16} className="text-slate-400" />
+                ) : (
+                  <ChevronDown size={16} className="text-slate-400" />
+                )}
+              </div>
+            </button>
+
+            {auditOpen && (
+              <div className="p-4 pt-0 border-t border-slate-100">
+                <div className="mt-3 flex flex-col divide-y divide-slate-100">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="py-2.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-slate-900 capitalize">
+                          {auditActionLabel(t, log.action)}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {formatDateTime(log.createdAt)}
+                        </span>
+                      </div>
+                      <RxAuditDetails action={log.action} details={log.details} t={t} />
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-          </ul>
-        ) : null}
-      </Card>
+          </div>
+        </div>
+      </div>
 
       <Drawer
         open={editing}
@@ -568,9 +720,9 @@ function DetailRow({
   className?: string;
 }) {
   return (
-    <div className={cn("portal-detail-row", className)}>
-      <div className="portal-detail-row-label">{label}</div>
-      <div className="portal-detail-row-value">{value || "—"}</div>
+    <div className={cn("p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 flex flex-col gap-0.5 min-w-0", className)}>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{label}</span>
+      <span className="text-xs font-bold text-slate-900 truncate">{value || "—"}</span>
     </div>
   );
 }

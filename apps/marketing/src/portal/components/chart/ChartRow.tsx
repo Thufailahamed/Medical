@@ -34,20 +34,16 @@ export interface ChartRowProps {
 }
 
 const TONE_BG: Record<IconTone, string> = {
-  neutral: "bg-surface-2 text-text-soft",
-  brand: "bg-brand-soft text-brand",
-  success: "bg-success-soft text-emerald-700",
-  warn: "bg-warn-soft text-amber-700",
-  danger: "bg-danger-soft text-red-700",
-  info: "bg-info-soft text-sky-700",
-  violet: "bg-violet-50 text-violet-700",
-  accent: "bg-accent-soft text-emerald-700",
+  neutral: "bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs",
+  brand: "bg-sky-50 text-sky-700 border border-sky-200 shadow-2xs",
+  success: "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs",
+  warn: "bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs",
+  danger: "bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs",
+  info: "bg-sky-50 text-sky-700 border border-sky-200 shadow-2xs",
+  violet: "bg-purple-50 text-purple-700 border border-purple-200 shadow-2xs",
+  accent: "bg-teal-50 text-teal-700 border border-teal-200 shadow-2xs",
 };
 
-/**
- * Single row in a chart list. Layout:
- * [icon]  [title / subtitle / pills]  [meta]  [actions]  [chevron]
- */
 export function ChartRow({
   icon,
   iconTone = "brand",
@@ -69,7 +65,7 @@ export function ChartRow({
       {icon ? (
         <div
           className={cn(
-            "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
             TONE_BG[iconTone]
           )}
         >
@@ -77,9 +73,11 @@ export function ChartRow({
         </div>
       ) : null}
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-text truncate">{title}</div>
+        <div className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-700 transition-colors">
+          {title}
+        </div>
         {subtitle ? (
-          <div className="text-[11px] text-text-soft truncate mt-0.5">
+          <div className="text-xs text-slate-500 truncate mt-0.5">
             {subtitle}
           </div>
         ) : null}
@@ -90,7 +88,7 @@ export function ChartRow({
         ) : null}
       </div>
       {meta ? (
-        <div className="text-right shrink-0 hidden md:flex flex-col items-end gap-0.5">
+        <div className="text-right shrink-0 hidden md:flex flex-col items-end gap-0.5 text-xs text-slate-500 font-medium">
           {meta}
         </div>
       ) : null}
@@ -99,16 +97,16 @@ export function ChartRow({
       ) : null}
       {(isLink || onClick) && !hideChevron ? (
         <ChevronRight
-          size={14}
-          className="text-text-muted shrink-0 transition-transform group-hover:translate-x-0.5"
+          size={16}
+          className="text-slate-400 shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-sky-600"
         />
       ) : null}
     </>
   );
 
   const baseClass = cn(
-    "group flex items-center gap-3 px-4 py-3 transition-colors",
-    isClickable && "hover:bg-surface-2/50 cursor-pointer",
+    "group flex items-center gap-3.5 px-4 py-3.5 transition-all border-b border-slate-100 last:border-0",
+    isClickable && "hover:bg-sky-50/40 cursor-pointer",
     className
   );
 

@@ -89,13 +89,17 @@ export default function LabOrdersTab({
         subtitle={t("tab.labs.subtitle", { count: rows.length })}
         badge={{ count: rows.length, tone: "violet" }}
         actions={
-          <Button
-            size="sm"
-            leftIcon={<Plus size={14} />}
+          <button
+            type="button"
             onClick={() => setOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
           >
-            {t("tab.labs.new")}
-          </Button>
+            <Plus size={14} />
+            <span>{t("tab.labs.new")}</span>
+          </button>
         }
       />
 
@@ -115,17 +119,21 @@ export default function LabOrdersTab({
         }
         emptyState={
           <ChartEmpty
-            icon={<FlaskConical size={20} />}
+            icon={<FlaskConical size={22} />}
             title={t("tab.labs.empty")}
             description={t("tab.labs.emptyBody")}
             action={
-              <Button
-                size="sm"
-                leftIcon={<Plus size={14} />}
+              <button
+                type="button"
                 onClick={() => setOpen(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                }}
               >
-                {t("tab.labs.new")}
-              </Button>
+                <Plus size={14} />
+                <span>{t("tab.labs.new")}</span>
+              </button>
             }
           />
         }

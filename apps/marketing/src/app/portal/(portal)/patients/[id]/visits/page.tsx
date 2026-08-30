@@ -109,15 +109,22 @@ export default function VisitsTab({
         badge={{ count: merged.length, tone: "brand" }}
         actions={
           <div className="flex items-center gap-2">
-            <Link href="/portal/book-appointment">
-              <Button size="sm" variant="ghost" leftIcon={<CalendarPlus size={14} />}>
-                {t("tab.visits.bookAppointment")}
-              </Button>
+            <Link
+              href="/portal/book-appointment"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <CalendarPlus size={14} />
+              <span>{t("tab.visits.bookAppointment")}</span>
             </Link>
-            <Link href="/portal/walk-ins">
-              <Button size="sm" leftIcon={<UserPlus size={14} />}>
-                {t("tab.visits.addWalkin")}
-              </Button>
+            <Link
+              href="/portal/walk-ins"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              style={{
+                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+              }}
+            >
+              <UserPlus size={14} />
+              <span>{t("tab.visits.addWalkin")}</span>
             </Link>
           </div>
         }
@@ -139,20 +146,27 @@ export default function VisitsTab({
         }
         emptyState={
           <ChartEmpty
-            icon={<Calendar size={20} />}
+            icon={<Calendar size={22} />}
             title={t("tab.visits.empty")}
             description={t("tab.visits.emptyBody")}
             action={
-              <div className="flex items-center gap-2">
-                <Link href="/portal/book-appointment">
-                  <Button size="sm" leftIcon={<CalendarPlus size={14} />}>
-                    {t("tab.visits.bookAppointment")}
-                  </Button>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <Link
+                  href="/portal/book-appointment"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center gap-1.5"
+                >
+                  <CalendarPlus size={14} />
+                  <span>{t("tab.visits.bookAppointment")}</span>
                 </Link>
-                <Link href="/portal/walk-ins">
-                  <Button size="sm" variant="ghost" leftIcon={<UserPlus size={14} />}>
-                    {t("tab.visits.addWalkin")}
-                  </Button>
+                <Link
+                  href="/portal/walk-ins"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5"
+                  style={{
+                    background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                  }}
+                >
+                  <UserPlus size={14} />
+                  <span>{t("tab.visits.addWalkin")}</span>
                 </Link>
               </div>
             }

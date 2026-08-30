@@ -101,7 +101,6 @@ export default function VitalsTab({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const t = useT();
   const [open, setOpen] = useState(false);
 
   const { data, isLoading } = useQuery({

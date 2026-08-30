@@ -67,10 +67,15 @@ export default function MedicationsTab({
         subtitle={t("tab.medications.subtitle", { count: activeCount })}
         badge={{ count: activeCount, tone: "brand" }}
         actions={
-          <Link href={`/portal/patients/${id}/prescriptions`}>
-            <Button size="sm" leftIcon={<ArrowRight size={14} />}>
-              {t("tab.medications.new")}
-            </Button>
+          <Link
+            href={`/portal/patients/${id}/prescriptions`}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
+          >
+            <ArrowRight size={14} />
+            <span>{t("tab.medications.new")}</span>
           </Link>
         }
       />
@@ -99,14 +104,19 @@ export default function MedicationsTab({
         }
         emptyState={
           <ChartEmpty
-            icon={<PillIcon size={20} />}
+            icon={<PillIcon size={22} />}
             title={t("tab.medications.empty")}
             description={t("tab.medications.emptyBody")}
             action={
-              <Link href={`/portal/patients/${id}/prescriptions`}>
-                <Button size="sm" leftIcon={<ArrowRight size={14} />}>
-                  {t("tab.medications.new")}
-                </Button>
+              <Link
+                href={`/portal/patients/${id}/prescriptions`}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5"
+                style={{
+                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                }}
+              >
+                <ArrowRight size={14} />
+                <span>{t("tab.medications.new")}</span>
               </Link>
             }
           />
@@ -114,10 +124,16 @@ export default function MedicationsTab({
         renderRow={(m) => (
           <ChartRow
             icon={<PillIcon size={16} />}
-            iconTone="brand"
+            iconTone="success"
             title={m.name}
             subtitle={
-              [m.dosage, m.frequency].filter(Boolean).join(" · ") || undefined
+              [
+                m.dosage,
+                m.frequency ? m.frequency.replace(/_/g, " ") : null,
+                m.instructions ? m.instructions.replace(/_/g, " ") : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || undefined
             }
             pills={[
               m.active !== false ? (
@@ -129,11 +145,11 @@ export default function MedicationsTab({
             meta={
               m.startDate ? (
                 <>
-                  <div className="text-[11px] text-text-muted">
+                  <div className="text-xs text-slate-500 font-medium">
                     {t("meds.started")} {formatDate(m.startDate)}
                   </div>
                   {m.endDate ? (
-                    <div className="text-[11px] text-text-muted">
+                    <div className="text-xs text-slate-400">
                       {t("meds.ends")} {formatDate(m.endDate)}
                     </div>
                   ) : null}

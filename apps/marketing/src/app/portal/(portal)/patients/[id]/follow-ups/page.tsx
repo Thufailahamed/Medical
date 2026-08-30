@@ -83,13 +83,17 @@ export default function FollowUpsTab({
         subtitle={t("tab.followups.subtitle", { count: upcomingCount })}
         badge={{ count: rows.length, tone: "brand" }}
         actions={
-          <Button
-            size="sm"
-            leftIcon={<Plus size={14} />}
+          <button
+            type="button"
             onClick={() => setOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
           >
-            {t("tab.followups.new")}
-          </Button>
+            <Plus size={14} />
+            <span>{t("tab.followups.new")}</span>
+          </button>
         }
       />
 
@@ -109,17 +113,21 @@ export default function FollowUpsTab({
         }
         emptyState={
           <ChartEmpty
-            icon={<CalendarCheck size={20} />}
+            icon={<CalendarCheck size={22} />}
             title={t("tab.followups.empty")}
             description={t("tab.followups.emptyBody")}
             action={
-              <Button
-                size="sm"
-                leftIcon={<Plus size={14} />}
+              <button
+                type="button"
                 onClick={() => setOpen(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                }}
               >
-                {t("tab.followups.new")}
-              </Button>
+                <Plus size={14} />
+                <span>{t("tab.followups.new")}</span>
+              </button>
             }
           />
         }

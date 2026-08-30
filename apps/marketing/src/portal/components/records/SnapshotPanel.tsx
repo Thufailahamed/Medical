@@ -1,12 +1,5 @@
 "use client";
 
-// SnapshotPanel — Tier 1 records: portal-side rendering of the
-// Patient Health Snapshot.
-//
-// Renders the same fields as the mobile HealthSnapshotCard.tsx but in
-// Recharts/HTML for the web portal. Both patient-portal and
-// doctor-portal records pages mount this above their main list.
-
 import { useQuery } from "@tanstack/react-query";
 import { ShieldAlert, AlertTriangle, Pill as PillIcon, Calendar, Activity } from "lucide-react";
 import {
@@ -17,7 +10,6 @@ import {
 } from "recharts";
 
 import { api } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Skeleton } from "@/portal/components/ui/Empty";
 
@@ -47,7 +39,6 @@ export interface SnapshotResponse {
 }
 
 interface Props {
-  /** When set, hits the doctor-portal endpoint. When null, hits the patient endpoint. */
   patientId?: string | null;
   compact?: boolean;
 }
@@ -65,9 +56,9 @@ export function SnapshotPanel({ patientId, compact }: Props) {
 
   if (isLoading) {
     return (
-      <Card className="p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
         <Skeleton className="h-24 w-full" />
-      </Card>
+      </div>
     );
   }
   if (!data) return null;
@@ -82,14 +73,14 @@ export function SnapshotPanel({ patientId, compact }: Props) {
   if (empty) return null;
 
   return (
-    <Card className="p-4 space-y-3">
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-4">
       {/* Red banner */}
       {data.redBanner.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 border border-red-200">
-          <ShieldAlert size={18} className="text-red-600 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-bold text-red-800">Severe allergies</p>
-            <p className="text-xs text-red-700">
+        <div className="flex items-start gap-2.5 rounded-xl bg-rose-50 px-3.5 py-2.5 border border-rose-200 text-rose-900 shadow-2xs">
+          <ShieldAlert size={18} className="text-rose-600 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-rose-900 uppercase tracking-wide">Severe Allergies</p>
+            <p className="text-xs text-rose-800 mt-0.5">
               {data.redBanner
                 .map((a) => a.substance + (a.reaction ? ` — ${a.reaction}` : ""))
                 .join(" • ")}
@@ -100,9 +91,9 @@ export function SnapshotPanel({ patientId, compact }: Props) {
 
       {/* Drug allergy warnings */}
       {data.drugAllergyWarnings.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 border border-amber-200">
-          <AlertTriangle size={16} className="text-amber-700 mt-0.5" />
-          <p className="text-xs text-amber-800 flex-1">
+        <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 px-3.5 py-2.5 border border-amber-200 text-amber-900 shadow-2xs">
+          <AlertTriangle size={16} className="text-amber-700 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800 flex-1 font-medium">
             Drug-allergy match: {data.drugAllergyWarnings[0].medicine} ↔ {data.drugAllergyWarnings[0].allergen}
             {data.drugAllergyWarnings.length > 1 && ` +${data.drugAllergyWarnings.length - 1}`}
           </p>
@@ -112,10 +103,10 @@ export function SnapshotPanel({ patientId, compact }: Props) {
       {/* Chronic conditions */}
       {data.chronicConditions.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
             Chronic conditions
           </p>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {data.chronicConditions.slice(0, compact ? 4 : 8).map((c) => (
               <Pill key={c.id} tone="info">
                 {c.title}
@@ -128,16 +119,21 @@ export function SnapshotPanel({ patientId, compact }: Props) {
       {/* Active medicines */}
       {data.activeMedicines.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
-            <PillIcon size={12} />
-            {data.activeMedicines.length} active medicines
+          <p className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <PillIcon size={13} className="text-emerald-600" />
+            <span>{data.activeMedicines.length} Active Medicines</span>
           </p>
-          <ul className="space-y-1">
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 overflow-hidden bg-slate-50/50">
             {data.activeMedicines.slice(0, 3).map((m) => (
-              <li key={m.id} className="flex items-center justify-between text-xs">
-                <span className="font-semibold">{m.name}</span>
-                <span className="text-text-soft">
-                  {[m.dosage, m.frequency].filter(Boolean).join(" • ") || "—"}
+              <li key={m.id} className="flex items-center justify-between p-2.5 text-xs">
+                <span className="font-bold text-slate-900">{m.name}</span>
+                <span className="text-slate-500 text-[11px]">
+                  {[
+                    m.dosage,
+                    m.frequency ? m.frequency.replace(/_/g, " ") : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" • ") || "—"}
                 </span>
               </li>
             ))}
@@ -147,11 +143,11 @@ export function SnapshotPanel({ patientId, compact }: Props) {
 
       {/* Recent vitals (mini charts) */}
       <div>
-        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
-          <Activity size={12} />
-          Trends
+        <p className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Activity size={13} className="text-sky-600" />
+          <span>Vitals Trends</span>
         </p>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <VitalTile label="BP" arr={data.recentVitals.bp} unit="mmHg" color="#DC2626" />
           <VitalTile label="HR" arr={data.recentVitals.hr} unit="bpm" color="#EF4444" />
           <VitalTile label="Glucose" arr={data.recentVitals.glucose} unit="mg/dL" color="#7C3AED" />
@@ -162,21 +158,21 @@ export function SnapshotPanel({ patientId, compact }: Props) {
       {/* Upcoming follow-ups */}
       {data.upcomingFollowUps.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
-            <Calendar size={12} />
-            Upcoming follow-ups
+          <p className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <Calendar size={13} className="text-amber-600" />
+            <span>Upcoming Follow-Ups</span>
           </p>
-          <ul className="space-y-1">
+          <ul className="space-y-1.5">
             {data.upcomingFollowUps.slice(0, 3).map((f) => (
-              <li key={f.id} className="flex items-center justify-between text-xs">
+              <li key={f.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-amber-50/60 border border-amber-200/60">
                 <div>
-                  <span className="font-semibold">{f.title}</span>
+                  <span className="font-bold text-slate-900">{f.title}</span>
                   {f.doctorName && (
-                    <span className="text-text-soft ml-1">· {f.doctorName}</span>
+                    <span className="text-slate-500 ml-1">· {f.doctorName}</span>
                   )}
                 </div>
                 {f.date && (
-                  <span className="text-text-muted">
+                  <span className="text-slate-500 font-medium text-[11px]">
                     {new Date(f.date).toLocaleDateString()}
                   </span>
                 )}
@@ -185,7 +181,7 @@ export function SnapshotPanel({ patientId, compact }: Props) {
           </ul>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -203,12 +199,12 @@ function VitalTile({
   const last = arr[0];
   const sorted = [...arr].reverse();
   return (
-    <div className="rounded-lg border border-border bg-surface-2 p-2">
-      <p className="text-[10px] font-bold text-text-muted">{label}</p>
+    <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-2.5 shadow-2xs">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
       {last ? (
         <>
-          <p className="text-sm font-bold">
-            {Math.round(last.value)} <span className="text-[10px] text-text-soft">{unit}</span>
+          <p className="text-sm font-extrabold text-slate-900 tabular-nums mt-0.5">
+            {Math.round(last.value)} <span className="text-[10px] font-medium text-slate-400">{unit}</span>
           </p>
           {sorted.length > 1 && (
             <ResponsiveContainer width="100%" height={24}>
@@ -226,7 +222,7 @@ function VitalTile({
           )}
         </>
       ) : (
-        <p className="text-xs text-text-soft">—</p>
+        <p className="text-xs text-slate-400 mt-0.5">—</p>
       )}
     </div>
   );

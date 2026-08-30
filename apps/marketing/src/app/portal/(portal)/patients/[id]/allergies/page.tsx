@@ -63,12 +63,12 @@ export default function AllergiesTab({
       />
 
       {hasCritical && !isLoading ? (
-        <div className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger-soft px-3.5 py-2.5">
+        <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-3 shadow-2xs">
           <AlertTriangle
-            size={14}
-            className="text-danger shrink-0 mt-0.5"
+            size={16}
+            className="text-rose-600 shrink-0 mt-0.5"
           />
-          <div className="text-xs text-danger font-semibold leading-relaxed">
+          <div className="text-xs text-rose-900 font-bold leading-relaxed">
             {rows.length === 1
               ? t("allergies.singleCritical")
               : t("allergies.banner", { count: rows.length })}

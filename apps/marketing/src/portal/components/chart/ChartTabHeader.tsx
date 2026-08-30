@@ -20,13 +20,6 @@ interface ChartTabHeaderProps {
   className?: string;
 }
 
-/**
- * Header for any patient-chart drill-down tab. Title, optional icon,
- * count badge, subtitle, and a right-aligned action slot.
- *
- * `backHref` is optional; when set, shows a small "back to patient" link
- * above the title (used by some tabs that are reached via deep links).
- */
 export function ChartTabHeader({
   title,
   subtitle,
@@ -43,13 +36,13 @@ export function ChartTabHeader({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-4 flex-wrap rounded-2xl border border-border/70 bg-surface p-4 md:p-5 shadow-sm",
+        "flex items-start justify-between gap-4 flex-wrap rounded-2xl border border-slate-200/90 bg-white p-4 md:p-5 shadow-2xs",
         className
       )}
     >
-      <div className="flex items-start gap-3 min-w-0">
+      <div className="flex items-start gap-3.5 min-w-0">
         {icon ? (
-          <div className="h-11 w-11 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
+          <div className="h-11 w-11 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 shadow-2xs flex items-center justify-center shrink-0">
             {icon}
           </div>
         ) : null}
@@ -57,34 +50,34 @@ export function ChartTabHeader({
           {backHref ? (
             <Link
               href={backHref}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-muted hover:text-text mb-1 transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-800 mb-1 transition-colors"
             >
-              <ChevronLeft size={11} />
-              {backLabel ?? t("chart.backToList")}
+              <ChevronLeft size={12} />
+              <span>{backLabel ?? t("chart.backToList")}</span>
             </Link>
           ) : null}
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-lg md:text-xl font-bold text-text tracking-tight">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">
               {title}
             </h1>
             {badge && badge.count > 0 ? (
               <span
                 className={cn(
-                  "inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold border",
+                  "inline-flex items-center justify-center min-w-[22px] h-[22px] px-2 rounded-full text-[11px] font-extrabold border shadow-2xs",
                   badgeTone === "brand" &&
-                    "bg-brand-soft text-brand border-brand/20",
+                    "bg-sky-50 text-sky-800 border-sky-200",
                   badgeTone === "success" &&
-                    "bg-success-soft text-emerald-700 border-emerald-200/50",
+                    "bg-emerald-50 text-emerald-800 border-emerald-200",
                   badgeTone === "warn" &&
-                    "bg-warn-soft text-amber-700 border-amber-200/50",
+                    "bg-amber-50 text-amber-800 border-amber-200",
                   badgeTone === "danger" &&
-                    "bg-danger-soft text-red-700 border-red-200/50",
+                    "bg-rose-50 text-rose-800 border-rose-200",
                   badgeTone === "info" &&
-                    "bg-info-soft text-sky-700 border-sky-200/50",
+                    "bg-sky-50 text-sky-800 border-sky-200",
                   badgeTone === "neutral" &&
-                    "bg-surface-2 text-text-soft border-border/50",
+                    "bg-slate-100 text-slate-700 border-slate-200",
                   badgeTone === "violet" &&
-                    "bg-violet-50 text-violet-700 border-violet-200/50"
+                    "bg-purple-50 text-purple-800 border-purple-200"
                 )}
               >
                 {badge.count}
@@ -92,7 +85,7 @@ export function ChartTabHeader({
             ) : null}
           </div>
           {subtitle ? (
-            <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-2xl">
               {subtitle}
             </p>
           ) : null}

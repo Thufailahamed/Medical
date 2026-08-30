@@ -2,11 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileText, Loader2, Check, AlertCircle } from "lucide-react";
+import { Upload, FileText, Loader2, Check, AlertCircle, CloudUpload } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
-import { Button } from "@/portal/components/ui/Button";
-import { Pill } from "@/portal/components/ui/Pill";
 import { cn } from "@/portal/lib/utils";
 
 interface UploadResult {
@@ -25,21 +23,11 @@ const MAX_BYTES = 50 * 1024 * 1024;
 
 interface Props {
   patientId: string;
-  /** Default record kind when uploading. */
   defaultKind?: string;
-  /** Called when a record is successfully created. */
   onUploaded?: (result: UploadResult) => void;
   className?: string;
 }
 
-/**
- * Minimal upload component for the doctor records tab. Wraps the
- * /files/upload-with-record endpoint so a single drag-drop or click
- * creates a new medical record + R2 attachment in one round-trip.
- *
- * Use the existing /files/upload-with-record flow rather than a
- * two-step create-then-upload to keep the doctor's flow fast.
- */
 export function RecordUploader({
   patientId,
   defaultKind = "other",
@@ -73,7 +61,7 @@ export function RecordUploader({
         queryKey: ["doctor-portal", "patient", patientId, "records"],
       });
       qc.invalidateQueries({ queryKey: ["medical-records"] });
-      setLastSuccess(`Uploaded ${result.file.fileName}`);
+      setLastSuccess(`Successfully uploaded ${result.file.fileName}`);
       setLastError(null);
       onUploaded?.(result);
       setTimeout(() => setLastSuccess(null), 4000);
@@ -91,7 +79,7 @@ export function RecordUploader({
       return;
     }
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setLastError("Unsupported file type. Use PDF, JPEG, PNG, or WebP.");
+      setLastError("Unsupported file type. Please use PDF, JPEG, PNG, or WebP.");
       return;
     }
     upload.mutate(file);
@@ -115,10 +103,10 @@ export function RecordUploader({
         if (file) validateAndStart(file);
       }}
       className={cn(
-        "rounded-2xl border-2 border-dashed p-6 text-center transition-colors",
+        "rounded-2xl border-2 border-dashed p-6 text-center transition-all shadow-2xs",
         drag
-          ? "border-primary bg-primary-soft/40"
-          : "border-border bg-surface-1",
+          ? "border-sky-500 bg-sky-100/60"
+          : "border-sky-200/90 bg-sky-50/35 hover:bg-sky-50/60 hover:border-sky-300",
         className
       )}
     >
@@ -133,39 +121,50 @@ export function RecordUploader({
           e.target.value = "";
         }}
       />
-      <div className="flex flex-col items-center gap-2">
-        {upload.isPending ? (
-          <Loader2 size={20} className="text-primary animate-spin" />
-        ) : (
-          <Upload size={20} className="text-text-muted" />
-        )}
-        <p className="text-sm text-text">
-          {upload.isPending
-            ? "Uploading…"
-            : "Drop a record here, or click to browse"}
-        </p>
-        <p className="text-xs text-text-soft">PDF, JPEG, PNG, WebP · up to 50 MB</p>
-        <Button
-          variant="secondary"
-          size="sm"
-          leftIcon={<FileText size={13} />}
+      <div className="flex flex-col items-center gap-2.5">
+        <div className="h-12 w-12 rounded-2xl bg-white border border-sky-100 text-sky-600 shadow-2xs flex items-center justify-center">
+          {upload.isPending ? (
+            <Loader2 size={22} className="animate-spin text-sky-600" />
+          ) : (
+            <CloudUpload size={22} />
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-bold text-slate-900">
+            {upload.isPending
+              ? "Encrypting and Uploading Medical Record…"
+              : "Drop patient documents here, or browse files"}
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Diagnostic reports, lab results, discharge summaries, or clinical charts · PDF, JPEG, PNG up to 50 MB
+          </p>
+        </div>
+
+        <button
+          type="button"
           onClick={() => inputRef.current?.click()}
           disabled={upload.isPending}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 mt-1"
+          style={{
+            background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+          }}
         >
-          Choose file
-        </Button>
-        {lastSuccess ? (
-          <Pill tone="success" className="mt-2">
-            <Check size={11} className="inline mr-1" />
-            {lastSuccess}
-          </Pill>
-        ) : null}
-        {lastError ? (
-          <Pill tone="danger" className="mt-2">
-            <AlertCircle size={11} className="inline mr-1" />
-            {lastError}
-          </Pill>
-        ) : null}
+          <FileText size={14} />
+          <span>Choose Medical File</span>
+        </button>
+
+        {lastSuccess && (
+          <div className="mt-1 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
+            <Check size={13} strokeWidth={3} className="text-emerald-600" />
+            <span>{lastSuccess}</span>
+          </div>
+        )}
+        {lastError && (
+          <div className="mt-1 px-3 py-1 rounded-xl text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 flex items-center gap-1.5 shadow-2xs">
+            <AlertCircle size={13} className="text-rose-600" />
+            <span>{lastError}</span>
+          </div>
+        )}
       </div>
     </div>
   );

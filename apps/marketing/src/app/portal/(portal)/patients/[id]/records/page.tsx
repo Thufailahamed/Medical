@@ -1,18 +1,13 @@
 "use client";
 
-// Patient record list tab — surfaces the cross-patient records hub
-// filtered to this patient (V4 doctor-portal scope). Same payload as
-// `/portal/records` (the global doctor records page).
-
 import { use, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Search, Sparkles, ScanLine } from "lucide-react";
+import { FileText, Search, Sparkles, ScanLine, X } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Button } from "@/portal/components/ui/Button";
-import { Card } from "@/portal/components/ui/Card";
 import { Skeleton } from "@/portal/components/ui/Empty";
 import { AiExplainLabDrawer } from "@/portal/components/ai/AiExplainLabDrawer";
 import { RecordUploader } from "@/portal/components/upload/RecordUploader";
@@ -21,7 +16,6 @@ import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
 import {
   ChartTabHeader,
-  ChartList,
   ChartRow,
   ChartEmpty,
   FilterPills,
@@ -48,9 +42,7 @@ const TYPE_TONE: Record<string, "info" | "success" | "warn" | "violet" | "neutra
 interface MedicalRecord {
   id: string;
   title?: string | null;
-  /** Canonical record-type field (v3). Falls back to `recordType` for older rows. */
   kind?: string | null;
-  /** Legacy record-type enum. */
   recordType: string;
   diagnosis?: string | null;
   date?: string | null;
@@ -68,9 +60,6 @@ export default function PatientRecordsTab({
   const t = useT();
   const [search, setSearch] = useState("");
   const [type, setType] = useState<string>("all");
-  // Synthetic lab order built from a lab_report medical record. Used
-  // by the AI explain drawer when the doctor clicks the sparkles
-  // button on a lab_report row in the records list.
   const [explainFor, setExplainFor] = useState<{
     id: string;
     patientId: string;
@@ -83,14 +72,14 @@ export default function PatientRecordsTab({
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "patient", id, "records", { type, q: search }],
     queryFn: () => {
-      const params = new URLSearchParams({
+      const p = new URLSearchParams({
         patientId: id,
         limit: "100",
       });
-      if (type !== "all") params.set("type", type);
-      if (search.trim()) params.set("q", search.trim());
+      if (type !== "all") p.set("type", type);
+      if (search.trim()) p.set("q", search.trim());
       return api<{ records: MedicalRecord[]; total: number }>(
-        `/doctor-portal/records?${params.toString()}`
+        `/doctor-portal/records?${p.toString()}`
       );
     },
   });
@@ -103,66 +92,74 @@ export default function PatientRecordsTab({
       <ChartTabHeader
         title={t("chart.tab.records")}
         subtitle={t("chart.recordsSubtitle", { count: total })}
-        icon={<FileText size={18} className="text-sky-600" />}
+        icon={<FileText size={18} />}
+        badge={{ count: total, tone: "brand" }}
       />
 
-      {/* Tier 1 records: doctor-side patient snapshot panel. */}
+      {/* Doctor-side patient snapshot panel */}
       <SnapshotPanel patientId={id} compact />
 
+      {/* Record Uploader Dropzone */}
       <RecordUploader patientId={id} />
 
-      <Card padding={false} className="rounded-2xl border-border/50">
-        <div className="px-3 py-2 flex items-center gap-2">
-          <Search size={16} className="text-text-muted shrink-0" />
+      {/* High-Contrast Search & Filters */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100 transition-all">
+          <Search size={16} className="text-slate-400 shrink-0" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("chart.recordsSearchPlaceholder")}
-            className="flex-1 bg-transparent text-sm text-text placeholder:text-text-muted outline-none"
+            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="text-xs text-text-muted hover:text-text transition-colors"
+              className="h-6 w-6 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
             >
-              {t("common.clear")}
+              <X size={13} />
             </button>
           )}
         </div>
-      </Card>
 
-      <FilterPills
-        options={TYPE_FILTERS.map((f) => ({
-          value: f.value,
-          label: t(f.labelKey),
-        }))}
-        value={type}
-        onChange={(v) => setType(v)}
-      />
+        <FilterPills
+          options={TYPE_FILTERS.map((f) => ({
+            value: f.value,
+            label: t(f.labelKey),
+          }))}
+          value={type}
+          onChange={(v) => setType(v)}
+        />
+      </div>
 
+      {/* Records Listing */}
       {isLoading ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+            <div key={i} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </div>
           ))}
         </div>
       ) : records.length === 0 ? (
-        <ChartEmpty
-          title={t("chart.recordsEmpty")}
-          description={t("chart.recordsEmptyBody")}
-          action={
-            search ? (
-              <Button variant="secondary" onClick={() => setSearch("")}>
-                {t("common.clear")}
-              </Button>
-            ) : undefined
-          }
-        />
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xs">
+          <ChartEmpty
+            title={t("chart.recordsEmpty")}
+            description={t("chart.recordsEmptyBody")}
+            action={
+              search ? (
+                <Button variant="secondary" onClick={() => setSearch("")}>
+                  {t("common.clear")}
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
       ) : (
-        <Card padding={false} className="rounded-2xl border-border/50">
-          <ul className="flex flex-col">
+        <div className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <ul className="divide-y divide-slate-100">
             {records.map((r) => {
               const meta = [
                 r.diagnosis,
@@ -172,24 +169,19 @@ export default function PatientRecordsTab({
               ]
                 .filter(Boolean)
                 .join(" · ");
-              // Canonical kind (v3) > legacy recordType.
               const recordKind = r.kind || r.recordType;
               return (
-                <li
-                  key={r.id}
-                  className="flex items-start gap-3 p-4 border-b border-border/50 last:border-0 hover:bg-surface-2/40 transition-colors"
-                >
+                <li key={r.id}>
                   <ChartRow
                     icon={<FileText size={18} />}
                     iconTone={TYPE_TONE[recordKind] ?? "neutral"}
                     title={r.title || t("chart.recordsUntitled")}
                     meta={meta}
                     actions={
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         {recordKind === "lab_report" ? (
-                          <Button
-                            variant="ghost"
-                            size="icon"
+                          <button
+                            type="button"
                             aria-label={t("ai.labExplain.title")}
                             title={t("ai.labExplain.title")}
                             onClick={() =>
@@ -204,19 +196,19 @@ export default function PatientRecordsTab({
                                 resultSummary: r.diagnosis ?? null,
                               })
                             }
+                            className="p-1.5 rounded-lg text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors cursor-pointer"
                           >
                             <Sparkles size={14} />
-                          </Button>
+                          </button>
                         ) : null}
                         {recordKind === "imaging" ? (
                           <Link
                             href={`/portal/imaging?patientId=${id}`}
                             aria-label={t("imaging.openViewer")}
                             title={t("imaging.openViewer")}
+                            className="p-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
                           >
-                            <Button variant="ghost" size="icon">
-                              <ScanLine size={14} />
-                            </Button>
+                            <ScanLine size={14} />
                           </Link>
                         ) : null}
                         <Pill tone="neutral">
@@ -230,7 +222,7 @@ export default function PatientRecordsTab({
               );
             })}
           </ul>
-        </Card>
+        </div>
       )}
 
       {explainFor ? (

@@ -242,6 +242,7 @@
     "newNote": "නව සායනික සටහන",
     "newFollowUp": "නව පසු විපරමක්",
     "sendMessage": "පණිවිඩයක් යවන්න",
+    "recordsSubtitle": "වාර්තා {{count}}ක්",
     "recordsSubtitle_one": "වාර්තා {{count}}ක්",
     "recordsSubtitle_other": "වාර්තා {{count}}ක්",
     "recordsSearchPlaceholder": "මාතෘකාව, රෝග විනිශ්චය, සටහන් අනුව සොයන්න…",

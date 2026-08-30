@@ -20,13 +20,6 @@ export interface FilterPillsProps<T extends string> {
   size?: "sm" | "md";
 }
 
-/**
- * Row of pill-shaped toggle buttons. Single-select. Used for status /
- * period filters on chart tabs.
- *
- * Uses div toggles + portal-filter-pill CSS (not <button>) because the
- * marketing site's global button reset strips Tailwind backgrounds/borders.
- */
 export function FilterPills<T extends string>({
   options,
   value,
@@ -45,7 +38,7 @@ export function FilterPills<T extends string>({
     <div
       className={cn(
         "inline-flex flex-wrap items-center gap-1.5",
-        size === "md" && "[&_.portal-filter-pill]:h-8 [&_.portal-filter-pill]:px-3 [&_.portal-filter-pill]:text-sm",
+        size === "md" && "[&_.portal-filter-pill]:h-8 [&_.portal-filter-pill]:px-3.5 [&_.portal-filter-pill]:text-sm",
         className
       )}
       role="tablist"
@@ -59,13 +52,26 @@ export function FilterPills<T extends string>({
             aria-selected={active}
             tabIndex={active ? 0 : -1}
             data-active={active ? "true" : "false"}
-            className="portal-filter-pill"
+            style={{
+              backgroundColor: active ? "#0284c7" : "#ffffff",
+              borderColor: active ? "#0284c7" : "#cbd5e1",
+              color: active ? "#ffffff" : "#475569",
+            }}
+            className="portal-filter-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none"
             onClick={() => onChange(opt.value)}
             onKeyDown={(e) => onKeyDown(e, opt.value)}
           >
-            {opt.label}
+            <span>{opt.label}</span>
             {typeof opt.count === "number" ? (
-              <span className="portal-filter-pill-count">{opt.count}</span>
+              <span
+                style={{
+                  backgroundColor: active ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                  color: active ? "#ffffff" : "#64748b",
+                }}
+                className="portal-filter-pill-count px-1.5 py-0.2 rounded-full text-[10px] font-extrabold"
+              >
+                {opt.count}
+              </span>
             ) : null}
           </div>
         );

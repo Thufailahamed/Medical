@@ -53,9 +53,17 @@ export default function ClinicalNotesTab({
         subtitle={t("tab.notes.subtitle", { count: rows.length })}
         badge={{ count: rows.length, tone: "brand" }}
         actions={
-          <Button size="sm" leftIcon={<Plus size={14} />} onClick={() => setOpen(true)}>
-            {t("tab.notes.new")}
-          </Button>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+            }}
+          >
+            <Plus size={14} />
+            <span>{t("tab.notes.new")}</span>
+          </button>
         }
       />
 
@@ -64,26 +72,34 @@ export default function ClinicalNotesTab({
         isLoading={isLoading}
         isEmpty={!isLoading && rows.length === 0}
         toolbar={
-          <div className="portal-input-search-wrap flex-1 min-w-[180px] max-w-xs">
-            <Search size={13} className="portal-input-icon-left text-text-muted" />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs max-w-xs flex-1">
+            <Search size={14} className="text-slate-400 shrink-0" />
             <input
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("tab.notes.searchPlaceholder")}
-              className="portal-input w-full text-xs"
+              className="w-full bg-transparent text-xs text-slate-900 placeholder:text-slate-400 outline-none"
             />
           </div>
         }
         emptyState={
           <ChartEmpty
-            icon={<Stethoscope size={20} />}
+            icon={<Stethoscope size={22} />}
             title={t("tab.notes.empty")}
             description={t("tab.notes.emptyBody")}
             action={
-              <Button size="sm" leftIcon={<Plus size={14} />} onClick={() => setOpen(true)}>
-                {t("tab.notes.new")}
-              </Button>
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+                }}
+              >
+                <Plus size={14} />
+                <span>{t("tab.notes.new")}</span>
+              </button>
             }
           />
         }
