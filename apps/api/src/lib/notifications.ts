@@ -146,3 +146,58 @@ async function sendExpoPush(messages: any[]): Promise<void> {
     }
   }
 }
+
+/**
+ * Poll Expo Push receipt tickets and update notification status.
+ * Also cleans up push_tokens on DeviceNotRegistered.
+ *
+ * Run from cron (apps/api/src/cron/push-receipts.ts) every 5 minutes.
+ *
+ * Requires migration 0075 (notifications.expo_ticket + status columns).
+ */
+export async function pollReceipts(
+  db: any,
+  _env: any,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ processed: number }> {
+  const rows = await db
+    .prepare(
+      "SELECT id, expo_ticket, user_id FROM notifications WHERE expo_ticket IS NOT NULL AND status IN ('sent','queued') AND created_at > datetime('now','-1 day') LIMIT 100"
+    )
+    .all();
+  if (!rows.results?.length) return { processed: 0 };
+  const tickets = rows.results.map((r: any) => r.expo_ticket);
+  const res = await fetchImpl("https://exp.host/--/api/v2/push/getReceipts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids: tickets }),
+  });
+  const json = (await res.json()) as {
+    data: Record<string, { status: "ok" | "error"; details?: { error?: string } }>;
+  };
+  for (const r of rows.results as any[]) {
+    const ticket = json.data[r.expo_ticket];
+    if (!ticket) continue;
+    if (ticket.status === "ok") {
+      await db
+        .prepare("UPDATE notifications SET status = 'delivered', delivered_at = datetime('now') WHERE id = ?")
+        .bind(r.id)
+        .run();
+    } else if (ticket.details?.error === "DeviceNotRegistered") {
+      await db
+        .prepare("DELETE FROM push_tokens WHERE user_id = ?")
+        .bind(r.user_id)
+        .run();
+      await db
+        .prepare("UPDATE notifications SET status = 'failed' WHERE id = ?")
+        .bind(r.id)
+        .run();
+    } else {
+      await db
+        .prepare("UPDATE notifications SET status = 'failed' WHERE id = ?")
+        .bind(r.id)
+        .run();
+    }
+  }
+  return { processed: rows.results.length };
+}

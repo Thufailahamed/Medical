@@ -68,6 +68,7 @@ import meTenantsRouter from "./routes/me-tenants";
 import { handleInboundEmail } from "./email/inbound";
 import { bookingRemindersRouter } from "./cron/booking-reminders";
 import { doseRemindersRouter } from "./cron/dose-reminders";
+import { pushReceiptsRouter } from "./cron/push-receipts";
 import { refillRemindersRouter } from "./cron/refill-reminders";
 import { reclassifyRouter } from "./cron/reclassify";
 import { vaccinationRemindersRouter } from "./cron/vaccination-reminders";
@@ -393,6 +394,7 @@ app.route("/admin/caretaker-verifications", adminCaretakerVerificationsRouter);
 //   POST /__cron/insurance-billing            with x-cron-secret header.
 //   POST /__cron/insurance-grace-expiry       with x-cron-secret header.
 app.route("/", bookingRemindersRouter);
+app.route("/", pushReceiptsRouter);
 app.route("/", insurancePremiumRemindersRouter);
 app.route("/", insuranceBillingRouter);
 app.route("/", insuranceGraceExpiryRouter);
@@ -438,6 +440,8 @@ export default {
 
     // 1. Dose reminders: run every 5 minutes (every trigger)
     paths.push("/__cron/dose-reminders");
+    // Push receipts: poll Expo every 5 minutes too.
+    paths.push("/__cron/push-receipts");
     // Tier 1 records PR3: pre-visit summary sweeps every 5 minutes too.
     // The 50–70 minute lookahead window in the cron body is what
     // guarantees one fire per appointment — tighter than this and we
