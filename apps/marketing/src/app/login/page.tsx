@@ -22,7 +22,7 @@ import {
   User,
 } from "lucide-react";
 
-import { login, loginWithPhone } from "@/portal/lib/auth";
+import { login, loginWithPhone, MfaRequiredError } from "@/portal/lib/auth";
 import { useAuthStore } from "@/portal/stores/auth";
 import { friendlyError } from "@/portal/lib/errors";
 import { cn } from "@/portal/lib/utils";
@@ -266,6 +266,18 @@ function UnifiedLoginForm() {
       });
       land(String(user.role));
     } catch (err: unknown) {
+      // Doctor accounts with MFA enrolled come back with an mfaToken
+      // instead of a session. Route to the challenge page; the caller
+      // is already authenticated at the credentials layer.
+      if (err instanceof MfaRequiredError) {
+        const qs = new URLSearchParams({
+          mfaToken: err.payload.mfaToken,
+          mfaRequired: err.payload.mfaRequired,
+        });
+        if (nextPath) qs.set("next", nextPath);
+        router.push(`/portal/mfa-challenge?${qs.toString()}`);
+        return;
+      }
       const code =
         (err as { details?: { code?: string }; code?: string })?.details
           ?.code || (err as { code?: string })?.code;
@@ -347,15 +359,35 @@ function UnifiedLoginForm() {
         password: "dev",
       });
       land(String(user.role));
-    } catch {
+    } catch (err: unknown) {
+      // The dev doctor can have MFA enrolled too — route to challenge
+      // rather than dumping the error inline.
+      if (err instanceof MfaRequiredError) {
+        const qs = new URLSearchParams({
+          mfaToken: err.payload.mfaToken,
+          mfaRequired: err.payload.mfaRequired,
+        });
+        if (nextPath) qs.set("next", nextPath);
+        router.push(`/portal/mfa-challenge?${qs.toString()}`);
+        return;
+      }
       try {
         const user = await login({
           email: "doctor@healthhub.local",
           password: "dev",
         });
         land(String(user.role));
-      } catch (err: unknown) {
-        setError(friendlyError(err));
+      } catch (err2: unknown) {
+        if (err2 instanceof MfaRequiredError) {
+          const qs = new URLSearchParams({
+            mfaToken: err2.payload.mfaToken,
+            mfaRequired: err2.payload.mfaRequired,
+          });
+          if (nextPath) qs.set("next", nextPath);
+          router.push(`/portal/mfa-challenge?${qs.toString()}`);
+          return;
+        }
+        setError(friendlyError(err2));
         setSubmitting(false);
       }
     }

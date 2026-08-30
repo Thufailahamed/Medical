@@ -24,6 +24,34 @@ export interface LoginResponse {
   session: { access_token: string; refresh_token: string };
 }
 
+/**
+ * Server response shape when the doctor's credentials are valid but
+ * their account still has MFA pending (`enroll`) or enrolled (`verify`).
+ * The caller must post `{ mfaToken, code }` to /mfa/challenge to mint
+ * a real session. Non-doctor logins never hit this branch.
+ */
+export interface MfaRequiredResponse {
+  mfaRequired: "enroll" | "verify";
+  mfaToken: string;
+  expiresAt: number;
+  user: AuthUser;
+}
+
+/**
+ * Thrown by `login()` when the doctor must complete MFA. The login
+ * page catches this, stashes `mfaToken` in the URL, and routes to
+ * /portal/mfa-challenge for the second factor.
+ */
+export class MfaRequiredError extends Error {
+  status = 200;
+  payload: MfaRequiredResponse;
+  constructor(payload: MfaRequiredResponse) {
+    super("MFA required");
+    this.name = "MfaRequiredError";
+    this.payload = payload;
+  }
+}
+
 export interface PhoneOtpStartResponse {
   otpSent: boolean;
   userId: string;
@@ -35,15 +63,48 @@ export interface PhoneOtpStartResponse {
 }
 
 export async function login(input: LoginInput): Promise<AuthUser> {
-  // The /auth/login endpoint accepts {email} OR {phone}.
-  const res = await api<LoginResponse>(patientPaths.auth.login(), {
+  // The /auth/login endpoint accepts {email} OR {phone}. Doctors with
+  // MFA enabled (or still pending enrollment) get an MFA branch back
+  // instead of a session — we surface that as MfaRequiredError so the
+  // login page can route to /portal/mfa-challenge.
+  const res = await api<LoginResponse | MfaRequiredResponse>(
+    patientPaths.auth.login(),
+    {
+      method: "POST",
+      json: input,
+    },
+  );
+  if ((res as MfaRequiredResponse).mfaRequired) {
+    throw new MfaRequiredError(res as MfaRequiredResponse);
+  }
+  const ok = res as LoginResponse;
+  useAuthStore.getState().setSession({
+    token: ok.session.access_token,
+    user: ok.user,
+    refreshToken: ok.session.refresh_token,
+  });
+  return ok.user;
+}
+
+/**
+ * Complete MFA after the credentials step. Posts the short-lived
+ * `mfaToken` (returned by /auth/login when mfaRequired=true) plus a
+ * 6-digit TOTP code OR a recovery code to /mfa/challenge. On success
+ * the route mints a real session JWT; we persist it the same way
+ * `login()` does for non-MFA users.
+ */
+export async function verifyMfaChallenge(input: {
+  mfaToken: string;
+  code: string;
+}): Promise<AuthUser> {
+  const res = await api<{ token: string; user: AuthUser }>("/mfa/challenge", {
     method: "POST",
     json: input,
   });
   useAuthStore.getState().setSession({
-    token: res.session.access_token,
+    token: res.token,
     user: res.user,
-    refreshToken: res.session.refresh_token,
+    refreshToken: null,
   });
   return res.user;
 }

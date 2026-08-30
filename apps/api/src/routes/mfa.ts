@@ -173,8 +173,7 @@ mfaRouter.post(
       })
       .where(eq(doctors.id, d.id));
 
-    await audit({
-      db,
+    await audit(db, {
       userId,
       action: "mfa.enabled",
       resource: "doctor",
@@ -252,8 +251,7 @@ mfaRouter.post(
       })
       .where(eq(doctors.id, d.id));
 
-    await audit({
-      db,
+    await audit(db, {
       userId,
       action: "mfa.disabled",
       resource: "doctor",
@@ -332,8 +330,7 @@ mfaRouter.post("/challenge", async (c) => {
     doctorId: d.id,
   });
 
-  await audit({
-    db,
+  await audit(db, {
     userId,
     action: "mfa.challenge.passed",
     resource: "doctor",

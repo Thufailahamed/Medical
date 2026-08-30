@@ -130,14 +130,15 @@ export async function decryptSecret(env: Record<string, unknown>, enc: string): 
 
 /**
  * Issue a fresh batch of recovery codes. Format `XXXX-XXXX-XXXX` —
- * 12 chars, ~62 bits of entropy each. Stored as SHA-256(pepper + code)
- * hex, comma-separated. Codes are single-use; consumed codes move
- * into the `used` list.
+ * 12 chars, ~62 bits of entropy each (12 random bytes drawn from a
+ * 32-char alphabet → 5 bits/char × 12 = 60 bits). Stored as
+ * SHA-256(pepper + code) hex, comma-separated. Codes are single-use;
+ * consumed codes move into the `used` list.
  */
 export function generateRecoveryCodes(count = RECOVERY_COUNT): string[] {
   const out: string[] = [];
   for (let i = 0; i < count; i++) {
-    const bytes = new Uint8Array(8);
+    const bytes = new Uint8Array(12);
     crypto.getRandomValues(bytes);
     out.push(formatRecovery(bytes));
   }
