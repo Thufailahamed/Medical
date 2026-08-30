@@ -116,7 +116,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   variant="outline"
                 >
                   <CreditCard size={14} className="mr-1.5" />
-                  {payOnline.isPending ? "..." : "Pay online"}
+                  {payOnline.isPending ? "..." : t("billing.payOnline", "Pay online")}
                 </Button>
                 <Button onClick={() => setPayOpen(true)} disabled={balance <= 0}>
                   <CircleDollarSign size={14} className="mr-1.5" />

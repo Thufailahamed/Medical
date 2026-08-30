@@ -2745,7 +2745,8 @@
     "videoUnavailableTitle": "Video not available",
     "videoUnavailableBody": "Choose in-person below.",
     "telemedicineOnly": "Online only",
-    "telemedicineAvailable": "Video available"
+    "telemedicineAvailable": "Video available",
+    "summaryTotal": "Total"
   },
   "doctorDetail": {
     "title": "Doctor profile",
@@ -3739,7 +3740,9 @@
     "cancelError": "Could not cancel prescription",
     "dispense": "Mark dispensed",
     "dispensedToast": "Prescription marked as dispensed",
-    "dispenseError": "Could not mark as dispensed"
+    "dispenseError": "Could not mark as dispensed",
+    "consultationFee": "Consultation fee",
+    "feePaidNote": "paid via appointment"
   },
   "myPrescriptions": {
     "title": "My prescriptions",
@@ -3778,7 +3781,9 @@
     "shareLinkCreated": "Link created — tap to copy",
     "shareCopied": "Link copied",
     "shareCreated": "Share link ready",
-    "shareLabel": "Prescription share"
+    "shareLabel": "Prescription share",
+    "consultationFee": "Consultation fee",
+    "feePaidNote": "paid via appointment"
   },
   "rateVisit": {
     "title": "Rate your visit",

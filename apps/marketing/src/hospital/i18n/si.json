@@ -272,7 +272,8 @@
     "discount": "වට්ටම",
     "thankYou": "ඔබේ ව්‍යාපාරයට ස්තුතියි",
     "viewReceipt": "රිසිට්පත බලන්න",
-    "print": "මුද්‍රණය කරන්න"
+    "print": "මුද්‍රණය කරන්න",
+    "payOnline": "Pay online"
   },
   "reports": {
     "subtitle": "ආයතනය පුරා විශ්ලේෂණ",
@@ -458,8 +459,20 @@
         "ttl168": "දින 7",
         "submit": "ඉල්ලීම යවන්න"
       },
-      "status": { "pending": "ඉතිරි", "approved": "අනුමත", "declined": "ප්‍රතික්ෂිකා", "expired": "කල් ඉකුත්", "revoked": "අවලංගු කළ" },
-      "actions": { "viewBundle": "වාර්තාව බලන්න", "revoke": "ප්‍රවේශය අවලංගු කරන්න", "approve": "අනුමත කරන්න", "decline": "ප්‍රතික්ෂේප කරන්න", "cancel": "අවලංගු කරන්න" },
+      "status": {
+        "pending": "ඉතිරි",
+        "approved": "අනුමත",
+        "declined": "ප්‍රතික්ෂිකා",
+        "expired": "කල් ඉකුත්",
+        "revoked": "අවලංගු කළ"
+      },
+      "actions": {
+        "viewBundle": "වාර්තාව බලන්න",
+        "revoke": "ප්‍රවේශය අවලංගු කරන්න",
+        "approve": "අනුමත කරන්න",
+        "decline": "ප්‍රතික්ෂේප කරන්න",
+        "cancel": "අවලංගු කරන්න"
+      },
       "banner": "බෙදාගැනීමේ ඉල්ලීමක් හරහා වාර්තාව බලමින්. {{when}} ඉකුත් වේ.",
       "declinedReason": "ප්‍රතික්ෂේප හේතුව"
     },
@@ -482,7 +495,13 @@
         "summary": "සායනික සාරාංශය",
         "submit": "යොමු කිරීම යවන්න"
       },
-      "status": { "pending": "පිළිගැනීම ඉතිරි", "accepted": "පිළිගත්", "declined": "ප්‍රතික්ෂිකා", "completed": "සම්පූර්ණ", "cancelled": "අවලංගු කළ" }
+      "status": {
+        "pending": "පිළිගැනීම ඉතිරි",
+        "accepted": "පිළිගත්",
+        "declined": "ප්‍රතික්ෂිකා",
+        "completed": "සම්පූර්ණ",
+        "cancelled": "අවලංගු කළ"
+      }
     },
     "labRouting": {
       "title": "රසායනාගාර ඇණවුම් යොමු කිරීම",
@@ -497,7 +516,12 @@
         "reason": "යොමු හේතුව",
         "submit": "ඇණවුම යොමු කරන්න"
       },
-      "status": { "pending": "පිළිගැනීම ඉතිරි", "accepted": "පිළිගත්", "completed": "සම්පූර්ණ", "cancelled": "අවලංගු කළ" }
+      "status": {
+        "pending": "පිළිගැනීම ඉතිරි",
+        "accepted": "පිළිගත්",
+        "completed": "සම්පූර්ණ",
+        "cancelled": "අවලංගු කළ"
+      }
     },
     "consults": {
       "title": "වෛද්‍ය උපදේශන",

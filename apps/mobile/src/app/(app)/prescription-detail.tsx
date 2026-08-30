@@ -183,7 +183,7 @@ export default function PatientPrescriptionDetailScreen() {
                   { color: colors.textMuted, marginBottom: spacing.xs },
                 ]}
               >
-                {t("patientPrescriptionDetail.consultationFee", "CONSULTATION FEE")}
+                {t("patientPrescriptionDetail.consultationFee")}
               </Text>
               <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.sm }}>
                 <Text
@@ -197,7 +197,7 @@ export default function PatientPrescriptionDetailScreen() {
                 <Text
                   style={[typography.caption, { color: colors.textMuted }]}
                 >
-                  {t("patientPrescriptionDetail.feePaidNote", "paid via appointment")}
+                  {t("patientPrescriptionDetail.feePaidNote")}
                 </Text>
               </View>
             </Card>

@@ -868,7 +868,7 @@ export default function BookAppointmentScreen() {
                         { color: colors.text, fontWeight: "800" },
                       ]}
                     >
-                      {t("bookAppointment.summaryTotal", "Total")}
+                      {t("bookAppointment.summaryTotal")}
                     </Text>
                     <Text
                       style={[

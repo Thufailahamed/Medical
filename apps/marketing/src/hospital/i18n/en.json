@@ -259,6 +259,7 @@
     "visitType": "Visit type",
     "issue": "Issue invoice",
     "recordPayment": "Record payment",
+    "payOnline": "Pay online",
     "method": "Method",
     "reference": "Reference",
     "payments": "Payments",
