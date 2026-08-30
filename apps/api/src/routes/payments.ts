@@ -9,7 +9,7 @@
 
 import { Hono } from "hono";
 import { eq, and, desc } from "drizzle-orm";
-import { appointments, appointmentPayments, doctors, users, patients } from "@healthcare/db";
+import { appointments, appointmentPayments, doctors, users, patients, invoices, payments as paymentsTable } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
@@ -29,7 +29,12 @@ import {
   handleInsurancePremiumPaid,
   handleInsurancePremiumFailed,
 } from "./insurance-marketplace";
+import { StripeAdapter } from "../lib/payments/stripe";
+import { PaymentError, PaymentErrorCode } from "../lib/payments/errors";
+import { tryRecordWebhook, markWebhookProcessed } from "../lib/payments/webhook-idempotency";
 import type { AppEnvironment } from "../types";
+
+const stripeAdapter = new StripeAdapter();
 
 const paymentsRouter = new Hono<AppEnvironment>();
 
@@ -406,3 +411,152 @@ paymentsRouter.get(
 // matching the pattern in cron handlers.
 
 export default paymentsRouter;
+
+// ─────────────────────────────────────────────────────────────────────
+// Generic gateway-agnostic payment routes (added in Block A).
+// Coexists with the appointment-specific /initiate + /notify above.
+// Uses `payments` (hospital-billing) table for any invoice — not
+// appointment-bound. PayHere appointment flow stays in /initiate.
+// ─────────────────────────────────────────────────────────────────────
+
+paymentsRouter.post("/checkout", authMiddleware, requireRole("patient"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const { invoiceId, method, returnUrl, cancelUrl } = body as {
+    invoiceId?: string;
+    method?: "payhere" | "stripe";
+    returnUrl?: string;
+    cancelUrl?: string;
+  };
+  if (!invoiceId || !method || !returnUrl) {
+    return c.json({ error: "invoiceId, method, returnUrl required" }, 400);
+  }
+
+  const [invoice] = await db
+    .select({ id: schema.invoices.id, totalLkr: schema.invoices.totalLkr })
+    .from(invoices)
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.patientId, userId)))
+    .limit(1);
+  if (!invoice) {
+    return c.json({ error: "invoice not found" }, 404);
+  }
+
+  if (method === "stripe") {
+    const result = await stripeAdapter.createCheckout(
+      { invoiceId, method, returnUrl, cancelUrl },
+      c.env as any
+    );
+    await db.insert(paymentsTable).values({
+      id: crypto.randomUUID(),
+      invoiceId: invoice.id,
+      amountLkr: invoice.totalLkr,
+      method: "card",
+      reference: result.merchantOrderId,
+      receivedByUserId: userId,
+      paidAt: new Date().toISOString(),
+      provider: result.provider,
+      providerChargeId: result.merchantOrderId,
+    });
+    await audit(db, { userId, action: "payments.checkout", resource: "payment", resourceId: result.merchantOrderId });
+    return c.json(result);
+  }
+
+  return c.json({ error: "PayHere checkout for non-appointment invoices not yet wired — use /payments/initiate for appointments" }, 501);
+});
+
+paymentsRouter.post("/webhook/stripe", async (c) => {
+  const raw = await c.req.text();
+  const sig = c.req.header("stripe-signature") ?? "";
+  let event;
+  try {
+    event = stripeAdapter.verifyWebhook(raw, sig, c.env as any);
+  } catch (e) {
+    if (e instanceof PaymentError) {
+      return c.json({ ok: false, code: e.code }, 401);
+    }
+    throw e;
+  }
+
+  const db = c.env.DB;
+  const rec = await tryRecordWebhook(db as any, event.provider, event.eventId, event.raw);
+  if (!rec.isNew) {
+    return c.json({ ok: true, idempotent: true });
+  }
+
+  if (event.statusCode === 2) {
+    await db
+      .prepare(
+        "UPDATE payments SET paid_at = datetime('now'), webhook_received_at = datetime('now') WHERE provider_charge_id = ?"
+      )
+      .bind(event.merchantOrderId)
+      .run();
+  }
+  await markWebhookProcessed(db as any, rec.id, String(event.statusCode));
+  await audit(db as any, {
+    action: "payments.webhook",
+    resource: "payment",
+    resourceId: event.merchantOrderId,
+    details: { provider: event.provider, statusCode: event.statusCode },
+  });
+  return c.json({ ok: true });
+});
+
+paymentsRouter.post("/refund", authMiddleware, requireRole("patient", "super_admin"), async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const { paymentId, amountMinor, reason } = body as {
+    paymentId?: string;
+    amountMinor?: number;
+    reason?: string;
+  };
+  if (!paymentId) return c.json({ error: "paymentId required" }, 400);
+
+  const [payment] = await db
+    .select({
+      id: schema.payments.id,
+      provider: schema.payments.provider,
+      providerChargeId: schema.payments.providerChargeId,
+      patientId: invoices.patientId,
+    })
+    .from(paymentsTable)
+    .innerJoin(invoices, eq(paymentsTable.invoiceId, invoices.id))
+    .where(eq(schema.payments.id, paymentId))
+    .limit(1);
+
+  if (!payment) {
+    return c.json({ error: "payment not found" }, 404);
+  }
+
+  if (payment.provider === "stripe" && payment.providerChargeId) {
+    const result = await stripeAdapter.refund(
+      { paymentId: payment.providerChargeId, amountMinor, reason },
+      c.env as any
+    );
+    await audit(db, { userId, action: "payments.refund", resource: "payment", resourceId: paymentId, details: { provider: payment.provider } });
+    return c.json(result);
+  }
+
+  return c.json({ error: "refund not supported for this provider" }, 501);
+});
+
+paymentsRouter.get("/me", authMiddleware, async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const rows = await db
+    .select({
+      id: schema.payments.id,
+      invoiceId: schema.payments.invoiceId,
+      amountLkr: schema.payments.amountLkr,
+      provider: schema.payments.provider,
+      paidAt: schema.payments.paidAt,
+      createdAt: schema.payments.createdAt,
+    })
+    .from(paymentsTable)
+    .innerJoin(invoices, eq(paymentsTable.invoiceId, invoices.id))
+    .where(eq(invoices.patientId, userId))
+    .orderBy(desc(paymentsTable.createdAt))
+    .limit(50);
+  return c.json({ payments: rows });
+});
