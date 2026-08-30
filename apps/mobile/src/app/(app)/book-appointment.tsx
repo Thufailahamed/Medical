@@ -853,6 +853,32 @@ export default function BookAppointmentScreen() {
                     label={t("bookAppointment.summaryFee")}
                     value={`LKR ${Number(selectedDoctor.consultationFee).toLocaleString()}`}
                   />
+                  <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingTop: 4,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.label.md,
+                        { color: colors.text, fontWeight: "800" },
+                      ]}
+                    >
+                      {t("bookAppointment.summaryTotal", "Total")}
+                    </Text>
+                    <Text
+                      style={[
+                        typography.title.md,
+                        { color: colors.primary, fontWeight: "800" },
+                      ]}
+                    >
+                      {`LKR ${Number(selectedDoctor.consultationFee).toLocaleString()}`}
+                    </Text>
+                  </View>
                 </>
               ) : null}
             </View>
