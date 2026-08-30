@@ -295,7 +295,12 @@
     "emptyGlobal": "No prescriptions found",
     "untitled": "Untitled prescription",
     "new": "New prescription",
-    "status": {}
+    "status": {
+      "all": "All",
+      "signed": "Signed",
+      "draft": "Draft",
+      "cancelled": "Cancelled"
+    }
   },
   "rx": {
     "status": {
@@ -402,7 +407,10 @@
     "typeMessage": "செய்தியை எழுது…",
     "send": "அனுப்பு",
     "open": "திற",
-    "closeThread": "உரையாடலை மூடு"
+    "closeThread": "உரையாடலை மூடு",
+    "subtitle": "Direct clinical consultations and patient conversations",
+    "search": "Search conversations by patient name or message…",
+    "new": "New Conversation"
   },
   "walkins": {
     "title": "நேரடி வருகை வரிசை",
@@ -930,7 +938,8 @@
     "dispensed": "வழங்கப்பட்டது",
     "elevated": "Elevated",
     "high": "High",
-    "low": "Low"
+    "low": "Low",
+    "sample_collected": "Sample collected"
   },
   "severity": {
     "mild": "லேசான",
@@ -997,7 +1006,8 @@
       "notifications": "ஒலிபரப்பு",
       "settings": "அமைப்புகள்",
       "admins": "நிர்வாகிகள்",
-      "systemHealth": "கணினி ஆரோக்கியம்"
+      "systemHealth": "கணினி ஆரோக்கியம்",
+      "inbox": "Inbox"
     }
   },
   "clinicalNotes": {
@@ -1008,7 +1018,15 @@
     "soapSection": "SOAP குறிப்பு",
     "soapHint": "நிலையான SOAP கட்டமைப்பைப் பயன்படுத்தி சந்திப்பை பதிவு செய்யுங்கள்.",
     "fields": {
-      "patient": "நோயாளி"
+      "patient": "நோயாளி",
+      "title": "Title",
+      "titlePlaceholder": "e.g. Visit — Jul 07, 2026",
+      "diagnosis": "Diagnosis (optional)",
+      "diagnosisPlaceholder": "e.g. Acute pharyngitis",
+      "subjectivePlaceholder": "Patient's reported symptoms and history",
+      "objectivePlaceholder": "Exam findings, vitals, labs reviewed",
+      "assessmentPlaceholder": "Clinical impression",
+      "planPlaceholder": "Treatment plan, prescriptions, follow-up"
     },
     "title": "Clinical Notes",
     "subtitle": "{{count}} notes on file",
@@ -1016,28 +1034,34 @@
     "empty": "No clinical notes yet",
     "emptySearch": "No notes match your search",
     "untitled": "Untitled note",
-    "unknownPatient": "Unknown patient"
+    "unknownPatient": "Unknown patient",
+    "save": "Save note",
+    "savedToast": "Note saved",
+    "detail": {
+      "diagnosis": "Diagnosis",
+      "noBody": "No note body recorded.",
+      "openChart": "Open patient chart"
+    }
   },
   "patientCombobox": {
     "placeholder": "பெயர், தொலைபேசி அல்லது NIC மூலம் தேடுங்கள்…",
     "noMatches": "நோயாளிகள் இல்லை",
     "minChars": "தேட குறைந்தது 2 எழுத்துகள் தட்டச்சு செய்யுங்கள்"
   },
-    "new": "புதிய ஆய்வக ஆர்டர்",
-    "newTitle": "ஆய்வக சோதனைகளை ஆர்டர் செய்யுங்கள்",
-    "newSubtitle": "ஆர்டர் செய்ய நோயாளியைத் தேர்ந்தெடுக்கவும்",
-    "fields": {
-      "patient": "நோயாளி"
-    },
-    "title": "Lab orders",
-    "subtitle": "All lab orders you've placed",
-    "emptyGlobal": "No lab orders yet",
-    "filterAll": "All",
-    "actions": {
-      "viewChart": "Open chart",
-      "explain": "Explain this report"
-    }
-  ,
+  "new": "புதிய ஆய்வக ஆர்டர்",
+  "newTitle": "ஆய்வக சோதனைகளை ஆர்டர் செய்யுங்கள்",
+  "newSubtitle": "ஆர்டர் செய்ய நோயாளியைத் தேர்ந்தெடுக்கவும்",
+  "fields": {
+    "patient": "நோயாளி"
+  },
+  "title": "Lab orders",
+  "subtitle": "All lab orders you've placed",
+  "emptyGlobal": "No lab orders yet",
+  "filterAll": "All",
+  "actions": {
+    "viewChart": "Open chart",
+    "explain": "Explain this report"
+  },
   "followUps": {
     "new": "புதிய பின்தொடர்தல்",
     "newTitle": "பின்தொடர்தலை திட்டமிடுங்கள்",
@@ -1412,6 +1436,18 @@
       "expiry24h": "24 மணி நேரம்",
       "expiry1w": "1 வாரம்",
       "expiry30d": "30 நாட்கள்"
+    },
+    "insurance": {
+      "title": "Insurance",
+      "tagline": "Browse plans, file claims, check coverage — all in one place.",
+      "viewAll": "View all insurance",
+      "noActive": "No active policies",
+      "noActiveBody": "Browse the marketplace to get coverage in minutes.",
+      "browse": "Browse plans",
+      "submitClaim": "Submit a claim",
+      "activePolicies": "Active policies",
+      "pendingClaims": "Pending claims",
+      "nextPremiumDue": "Next premium due {{date}}"
     }
   },
   "visitSummary": {
@@ -1538,5 +1574,26 @@
       "prescriptions": "மருந்துச் சீட்டுகள்",
       "clinicalNote": "குறிப்புகள்"
     }
+  },
+  "labOrders": {
+    "title": "Lab orders",
+    "subtitle": "All lab orders you've placed",
+    "emptyGlobal": "No lab orders yet",
+    "new": "New lab order",
+    "filterAll": "All",
+    "actions": {
+      "viewChart": "Open chart",
+      "explain": "Explain this report"
+    },
+    "newTitle": "Order lab tests",
+    "newSubtitle": "Pick a patient to place the order",
+    "fields": {
+      "patient": "Patient"
+    }
+  },
+  "priority": {
+    "routine": "Routine",
+    "urgent": "Urgent",
+    "stat": "STAT"
   }
 }

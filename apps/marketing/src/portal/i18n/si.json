@@ -295,7 +295,12 @@
     "emptyGlobal": "No prescriptions found",
     "untitled": "Untitled prescription",
     "new": "New prescription",
-    "status": {}
+    "status": {
+      "all": "All",
+      "signed": "Signed",
+      "draft": "Draft",
+      "cancelled": "Cancelled"
+    }
   },
   "rx": {
     "status": {
@@ -402,7 +407,10 @@
     "typeMessage": "පණිවිඩයක් ලියන්න…",
     "send": "යවන්න",
     "open": "විවෘත කරන්න",
-    "closeThread": "කතාබහ වසන්න"
+    "closeThread": "කතාබහ වසන්න",
+    "subtitle": "Direct clinical consultations and patient conversations",
+    "search": "Search conversations by patient name or message…",
+    "new": "New Conversation"
   },
   "walkins": {
     "title": "ඇතුළු වීම් පෙළ",
@@ -930,7 +938,8 @@
     "dispensed": "බෙදා දුන්",
     "elevated": "Elevated",
     "high": "High",
-    "low": "Low"
+    "low": "Low",
+    "sample_collected": "Sample collected"
   },
   "severity": {
     "mild": "මඳ",
@@ -997,7 +1006,8 @@
       "notifications": "ප්‍රචාරණ",
       "settings": "සැකසුම්",
       "admins": "පරිපාලකයින්",
-      "systemHealth": "පද්ධති සෞඛ්‍යය"
+      "systemHealth": "පද්ධති සෞඛ්‍යය",
+      "inbox": "Inbox"
     }
   },
   "clinicalNotes": {
@@ -1008,7 +1018,15 @@
     "soapSection": "SOAP සටහන",
     "soapHint": "සම්මත SOAP ව්‍යුහය භාවිතයෙන් හමුවීම ලියා තබන්න.",
     "fields": {
-      "patient": "රෝගියා"
+      "patient": "රෝගියා",
+      "title": "Title",
+      "titlePlaceholder": "e.g. Visit — Jul 07, 2026",
+      "diagnosis": "Diagnosis (optional)",
+      "diagnosisPlaceholder": "e.g. Acute pharyngitis",
+      "subjectivePlaceholder": "Patient's reported symptoms and history",
+      "objectivePlaceholder": "Exam findings, vitals, labs reviewed",
+      "assessmentPlaceholder": "Clinical impression",
+      "planPlaceholder": "Treatment plan, prescriptions, follow-up"
     },
     "title": "Clinical Notes",
     "subtitle": "{{count}} notes on file",
@@ -1016,28 +1034,34 @@
     "empty": "No clinical notes yet",
     "emptySearch": "No notes match your search",
     "untitled": "Untitled note",
-    "unknownPatient": "Unknown patient"
+    "unknownPatient": "Unknown patient",
+    "save": "Save note",
+    "savedToast": "Note saved",
+    "detail": {
+      "diagnosis": "Diagnosis",
+      "noBody": "No note body recorded.",
+      "openChart": "Open patient chart"
+    }
   },
   "patientCombobox": {
     "placeholder": "නම, දුරකථනය, හෝ ජා.හැ.අංකයෙන් සොයන්න…",
     "noMatches": "රෝගීන් හමු නොවීය",
     "minChars": "සෙවීමට අක්ෂර 2 ක්වත් ටයිප් කරන්න"
   },
-    "new": "නව රසායනාගාර ඇණවුම",
-    "newTitle": "රසායනාගාර පරීක්ෂණ ඇණවුම් කරන්න",
-    "newSubtitle": "ඇණවුම තැබීමට රෝගියෙකු තෝරන්න",
-    "fields": {
-      "patient": "රෝගියා"
-    },
-    "title": "Lab orders",
-    "subtitle": "All lab orders you've placed",
-    "emptyGlobal": "No lab orders yet",
-    "filterAll": "All",
-    "actions": {
-      "viewChart": "Open chart",
-      "explain": "Explain this report"
-    }
-  ,
+  "new": "නව රසායනාගාර ඇණවුම",
+  "newTitle": "රසායනාගාර පරීක්ෂණ ඇණවුම් කරන්න",
+  "newSubtitle": "ඇණවුම තැබීමට රෝගියෙකු තෝරන්න",
+  "fields": {
+    "patient": "රෝගියා"
+  },
+  "title": "Lab orders",
+  "subtitle": "All lab orders you've placed",
+  "emptyGlobal": "No lab orders yet",
+  "filterAll": "All",
+  "actions": {
+    "viewChart": "Open chart",
+    "explain": "Explain this report"
+  },
   "followUps": {
     "new": "නව පසු විපරම",
     "newTitle": "පසු විපරමක් කාල නියම කරන්න",
@@ -1412,6 +1436,18 @@
       "expiry24h": "පැය 24",
       "expiry1w": "සතියක්",
       "expiry30d": "දින 30"
+    },
+    "insurance": {
+      "title": "Insurance",
+      "tagline": "Browse plans, file claims, check coverage — all in one place.",
+      "viewAll": "View all insurance",
+      "noActive": "No active policies",
+      "noActiveBody": "Browse the marketplace to get coverage in minutes.",
+      "browse": "Browse plans",
+      "submitClaim": "Submit a claim",
+      "activePolicies": "Active policies",
+      "pendingClaims": "Pending claims",
+      "nextPremiumDue": "Next premium due {{date}}"
     }
   },
   "visitSummary": {
@@ -1538,5 +1574,26 @@
       "prescriptions": "බෙහෙත් වට්ටෝරු",
       "clinicalNote": "සටහන්"
     }
+  },
+  "labOrders": {
+    "title": "Lab orders",
+    "subtitle": "All lab orders you've placed",
+    "emptyGlobal": "No lab orders yet",
+    "new": "New lab order",
+    "filterAll": "All",
+    "actions": {
+      "viewChart": "Open chart",
+      "explain": "Explain this report"
+    },
+    "newTitle": "Order lab tests",
+    "newSubtitle": "Pick a patient to place the order",
+    "fields": {
+      "patient": "Patient"
+    }
+  },
+  "priority": {
+    "routine": "Routine",
+    "urgent": "Urgent",
+    "stat": "STAT"
   }
 }
