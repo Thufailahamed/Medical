@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+.DS_Store
+
+# Push notification secrets (see docs/PUSH-SETUP.md)
+secrets/
+*.p8
+*.p12
