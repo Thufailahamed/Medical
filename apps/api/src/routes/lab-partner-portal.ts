@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
 import {
   diagnosticTestCatalog,
+  labDiagnosticTests,
   testPackages,
   testPackageItems,
   testBookings,
@@ -18,6 +19,11 @@ import {
   completeTestBookingSchema,
 } from "../lib/validators";
 import { flattenTranslated } from "../lib/validation-error";
+import {
+  enableTestSchema,
+  updateCatalogSchema,
+  bulkToggleSchema,
+} from "@healthcare/shared";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import type { AppEnvironment } from "../types";
@@ -937,6 +943,331 @@ router.get("/stats", async (c) => {
       activeTests: activeTests.count,
     },
   });
+});
+
+// ─── Manage Diagnostic Test Availability (Phase 4 / Task 4) ─────
+//
+// Per-lab availability against the canonical diagnostic_test_catalog.
+// Lives in `lab_diagnostic_tests` (0076 migration). Distinct from
+// the legacy `/catalog` routes above, which mutate `diagnostic_test_catalog`
+// directly. The new path-prefixed routes (`/diagnostic-tests-availability`)
+// keep both flows runnable side-by-side; legacy routes can be retired
+// in a later cleanup pass.
+
+router.get("/diagnostic-tests-availability", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const includeInactive = c.req.query("includeInactive") === "true";
+
+  const rows = await db
+    .select({
+      id: labDiagnosticTests.id,
+      testId: labDiagnosticTests.testId,
+      price: labDiagnosticTests.price,
+      discountPrice: labDiagnosticTests.discountPrice,
+      currency: labDiagnosticTests.currency,
+      homeCollectionAvailable: labDiagnosticTests.homeCollectionAvailable,
+      labCollectionAvailable: labDiagnosticTests.labCollectionAvailable,
+      turnaroundHours: labDiagnosticTests.turnaroundHours,
+      specialInstructions: labDiagnosticTests.specialInstructions,
+      isActive: labDiagnosticTests.isActive,
+      updatedAt: labDiagnosticTests.updatedAt,
+      testSlug: diagnosticTestCatalog.slug,
+      testName: diagnosticTestCatalog.name,
+      testCode: diagnosticTestCatalog.code,
+    })
+    .from(labDiagnosticTests)
+    .innerJoin(
+      diagnosticTestCatalog,
+      eq(labDiagnosticTests.testId, diagnosticTestCatalog.id)
+    )
+    .where(
+      and(
+        eq(labDiagnosticTests.labPartnerId, labId),
+        includeInactive
+          ? sql`1=1`
+          : eq(labDiagnosticTests.isActive, true)
+      )
+    )
+    .orderBy(asc(diagnosticTestCatalog.name));
+
+  // Map rows to LabCatalogRowDTO shape (joined with lab name).
+  const labRow = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, labId))
+    .limit(1);
+  const labName = labRow[0]?.name ?? "Lab";
+
+  const items = rows.map((r) => ({
+    labId,
+    labName,
+    labPartnerId: labId,
+    price: r.price,
+    discountPrice: r.discountPrice ?? null,
+    currency: r.currency,
+    homeCollectionAvailable: r.homeCollectionAvailable,
+    labCollectionAvailable: r.labCollectionAvailable,
+    turnaroundHours: r.turnaroundHours ?? null,
+    testSlug: r.testSlug,
+    testName: r.testName,
+    testCode: r.testCode ?? null,
+    lastToggledAt: r.updatedAt,
+  }));
+
+  return c.json({ items });
+});
+
+router.post("/diagnostic-tests-availability", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = enableTestSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400
+    );
+  }
+  const data = parsed.data;
+
+  // Validate testId exists in canonical catalog.
+  const [catalogTest] = await db
+    .select({ id: diagnosticTestCatalog.id })
+    .from(diagnosticTestCatalog)
+    .where(eq(diagnosticTestCatalog.id, data.testId))
+    .limit(1);
+  if (!catalogTest) return c.json({ error: "Test not found" }, 404);
+
+  if (data.discountPrice !== undefined && data.discountPrice >= data.price) {
+    return c.json(
+      { error: "discountPrice must be less than price" },
+      400
+    );
+  }
+
+  // Reject if (labPartnerId, testId) already enabled.
+  const [conflict] = await db
+    .select({ id: labDiagnosticTests.id })
+    .from(labDiagnosticTests)
+    .where(
+      and(
+        eq(labDiagnosticTests.labPartnerId, labId),
+        eq(labDiagnosticTests.testId, data.testId)
+      )
+    )
+    .limit(1);
+  if (conflict) {
+    return c.json(
+      { error: "Test already enabled. Use PATCH to update." },
+      409
+    );
+  }
+
+  const [row] = await db
+    .insert(labDiagnosticTests)
+    .values({
+      labPartnerId: labId,
+      testId: data.testId,
+      price: data.price,
+      discountPrice: data.discountPrice ?? null,
+      currency: data.currency ?? "LKR",
+      homeCollectionAvailable: data.homeCollectionAvailable ?? true,
+      labCollectionAvailable: data.labCollectionAvailable ?? true,
+      turnaroundHours: data.turnaroundHours ?? null,
+      specialInstructions: data.specialInstructions ?? null,
+      isActive: true,
+    })
+    .returning();
+
+  audit(db, labId, {
+    action: "create",
+    resource: "lab_diagnostic_test",
+    resourceId: row.id,
+    details: { testId: data.testId, price: data.price },
+  }).catch(() => {});
+
+  return c.json({ row }, 201);
+});
+
+router.patch("/diagnostic-tests-availability/:id", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const id = c.req.param("id");
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = updateCatalogSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400
+    );
+  }
+  const data = parsed.data;
+
+  const [existing] = await db
+    .select()
+    .from(labDiagnosticTests)
+    .where(
+      and(
+        eq(labDiagnosticTests.id, id),
+        eq(labDiagnosticTests.labPartnerId, labId)
+      )
+    )
+    .limit(1);
+  if (!existing) return c.json({ error: "Not found" }, 404);
+
+  const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (data.price !== undefined) updates.price = data.price;
+  if (data.discountPrice !== undefined)
+    updates.discountPrice = data.discountPrice;
+  if (data.homeCollectionAvailable !== undefined)
+    updates.homeCollectionAvailable = data.homeCollectionAvailable;
+  if (data.labCollectionAvailable !== undefined)
+    updates.labCollectionAvailable = data.labCollectionAvailable;
+  if (data.turnaroundHours !== undefined)
+    updates.turnaroundHours = data.turnaroundHours;
+  if (data.specialInstructions !== undefined)
+    updates.specialInstructions = data.specialInstructions;
+  if (data.isActive !== undefined) updates.isActive = data.isActive;
+
+  const [updated] = await db
+    .update(labDiagnosticTests)
+    .set(updates)
+    .where(eq(labDiagnosticTests.id, id))
+    .returning();
+
+  audit(db, labId, {
+    action: "update",
+    resource: "lab_diagnostic_test",
+    resourceId: id,
+    details: Object.keys(updates),
+  }).catch(() => {});
+
+  return c.json({ row: updated });
+});
+
+router.delete("/diagnostic-tests-availability/:id", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const id = c.req.param("id");
+
+  const [existing] = await db
+    .select()
+    .from(labDiagnosticTests)
+    .where(
+      and(
+        eq(labDiagnosticTests.id, id),
+        eq(labDiagnosticTests.labPartnerId, labId)
+      )
+    )
+    .limit(1);
+  if (!existing) return c.json({ error: "Not found" }, 404);
+
+  await db
+    .update(labDiagnosticTests)
+    .set({ isActive: false, updatedAt: new Date().toISOString() })
+    .where(eq(labDiagnosticTests.id, id));
+
+  audit(db, labId, {
+    action: "deactivate",
+    resource: "lab_diagnostic_test",
+    resourceId: id,
+  }).catch(() => {});
+
+  return c.body(null, 204);
+});
+
+router.post("/diagnostic-tests-availability/bulk-toggle", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = bulkToggleSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400
+    );
+  }
+  const data = parsed.data;
+
+  if (data.enabled) {
+    if (data.price === undefined) {
+      return c.json(
+        { error: "price is required when enabling tests" },
+        400
+      );
+    }
+    // Resolve canonical tests exist; collect existing rows.
+    const existingRows = await db
+      .select({ id: labDiagnosticTests.id, testId: labDiagnosticTests.testId })
+      .from(labDiagnosticTests)
+      .where(
+        and(
+          eq(labDiagnosticTests.labPartnerId, labId),
+          inArray(labDiagnosticTests.testId, data.testIds)
+        )
+      );
+    const existingByTest = new Map(existingRows.map((r) => [r.testId, r.id]));
+    let enabledCount = 0;
+    for (const testId of data.testIds) {
+      if (existingByTest.has(testId)) {
+        await db
+          .update(labDiagnosticTests)
+          .set({ isActive: true, updatedAt: new Date().toISOString() })
+          .where(eq(labDiagnosticTests.id, existingByTest.get(testId)!));
+      } else {
+        await db.insert(labDiagnosticTests).values({
+          labPartnerId: labId,
+          testId,
+          price: data.price!,
+          currency: data.currency ?? "LKR",
+          homeCollectionAvailable: true,
+          labCollectionAvailable: true,
+          isActive: true,
+        });
+      }
+      enabledCount++;
+    }
+    audit(db, labId, {
+      action: "bulk-toggle",
+      resource: "lab_diagnostic_test",
+      details: { enabled: true, count: enabledCount },
+    }).catch(() => {});
+    return c.json({ enabledCount, disabledCount: 0 });
+  } else {
+    let disabledCount = 0;
+    for (const testId of data.testIds) {
+      const result = await db
+        .update(labDiagnosticTests)
+        .set({ isActive: false, updatedAt: new Date().toISOString() })
+        .where(
+          and(
+            eq(labDiagnosticTests.labPartnerId, labId),
+            eq(labDiagnosticTests.testId, testId)
+          )
+        )
+        .returning({ id: labDiagnosticTests.id });
+      disabledCount += result.length;
+    }
+    audit(db, labId, {
+      action: "bulk-toggle",
+      resource: "lab_diagnostic_test",
+      details: { enabled: false, count: disabledCount },
+    }).catch(() => {});
+    return c.json({ enabledCount: 0, disabledCount });
+  }
 });
 
 export default router;

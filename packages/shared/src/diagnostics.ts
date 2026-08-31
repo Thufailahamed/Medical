@@ -145,3 +145,79 @@ export interface PackageListResponse {
   items: TestPackageDTO[];
   nextCursor: string | null;
 }
+
+// ─── Lab-side catalog management (Phase 4 / Task 4) ─────
+//
+// Body shapes that the lab partner portal accepts when enabling,
+// updating, bulk-toggling tests against the canonical catalog.
+
+export interface EnableTestInput {
+  testId: string;
+  price: number;
+  discountPrice?: number;
+  currency?: string;
+  homeCollectionAvailable?: boolean;
+  labCollectionAvailable?: boolean;
+  turnaroundHours?: number;
+  specialInstructions?: string;
+}
+
+export interface UpdateCatalogInput {
+  price?: number;
+  discountPrice?: number | null;
+  homeCollectionAvailable?: boolean;
+  labCollectionAvailable?: boolean;
+  turnaroundHours?: number | null;
+  specialInstructions?: string | null;
+  isActive?: boolean;
+}
+
+export interface BulkToggleInput {
+  testIds: string[];
+  enabled: boolean;
+  price?: number;
+  currency?: string;
+}
+
+export interface LabCatalogRowDTO extends LabAvailabilityDTO {
+  testSlug: string;
+  testName: string;
+  testCode: string | null;
+  lastToggledAt: string;
+}
+
+export interface LabCatalogListResponse {
+  items: LabCatalogRowDTO[];
+}
+
+export const enableTestSchema = z.object({
+  testId: z.string().min(1).max(80),
+  price: z.number().positive(),
+  discountPrice: z.number().nonnegative().optional(),
+  currency: z.string().length(3).optional(),
+  homeCollectionAvailable: z.boolean().optional(),
+  labCollectionAvailable: z.boolean().optional(),
+  turnaroundHours: z.number().int().positive().optional(),
+  specialInstructions: z.string().max(1000).optional(),
+});
+
+export const updateCatalogSchema = z.object({
+  price: z.number().positive().optional(),
+  discountPrice: z.number().nonnegative().nullable().optional(),
+  homeCollectionAvailable: z.boolean().optional(),
+  labCollectionAvailable: z.boolean().optional(),
+  turnaroundHours: z.number().int().positive().nullable().optional(),
+  specialInstructions: z.string().max(1000).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const bulkToggleSchema = z.object({
+  testIds: z.array(z.string().min(1).max(80)).min(1).max(500),
+  enabled: z.boolean(),
+  price: z.number().positive().optional(),
+  currency: z.string().length(3).optional(),
+});
+
+export type EnableTestBody = z.infer<typeof enableTestSchema>;
+export type UpdateCatalogBody = z.infer<typeof updateCatalogSchema>;
+export type BulkToggleBody = z.infer<typeof bulkToggleSchema>;
