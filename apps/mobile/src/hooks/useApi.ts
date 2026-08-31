@@ -4193,10 +4193,43 @@ export type DiagnosticTest = {
   homeCollectionAvailable: boolean;
   price: number;
   discountPrice: number | null;
-  labPartnerId: string;
+  labPartnerId: string | null;
   turnaroundHours: number;
   instructions: string | null;
   isActive: boolean;
+  // v2 (Task 3 — catalog API rewrite)
+  shortName?: string | null;
+  code?: string | null;
+  categorySlug?: string | null;
+  resultInterpretation?: string | null;
+  referenceInfo?: string | null;
+  currency?: string;
+  visibility?: "public" | "internal";
+  isBookable?: boolean;
+  isDoctorOrderable?: boolean;
+  synonyms?: string[];
+  minPrice?: number;
+  laboratoryCount?: number;
+  availableAt?: Array<{
+    labId: string;
+    labName: string;
+    price: number;
+    discountPrice: number | null;
+    currency: string;
+    homeCollectionAvailable: boolean;
+    labCollectionAvailable: boolean;
+    turnaroundHours: number | null;
+  }>;
+};
+
+export type DiagnosticCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  name_si?: string | null;
+  name_ta?: string | null;
+  icon?: string | null;
+  displayOrder: number;
 };
 
 export type TestPackage = {
@@ -4276,24 +4309,22 @@ export function useTestCatalog(filters?: {
   category?: string;
   search?: string;
   labId?: string;
-  page?: number;
+  cursor?: string;
   limit?: number;
 }) {
   const params = new URLSearchParams();
   if (filters?.category) params.set("category", filters.category);
   if (filters?.search) params.set("search", filters.search);
   if (filters?.labId) params.set("labId", filters.labId);
-  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.cursor) params.set("cursor", filters.cursor);
   if (filters?.limit) params.set("limit", String(filters.limit));
 
   return useQuery({
     queryKey: ["test-catalog", filters],
     queryFn: () =>
       api<{
-        tests: DiagnosticTest[];
-        total: number;
-        page: number;
-        limit: number;
+        items: DiagnosticTest[];
+        nextCursor: string | null;
       }>(`/diagnostic-tests/catalog?${params.toString()}`),
     staleTime: 5 * 60 * 1000,
   });
@@ -4304,16 +4335,7 @@ export function useTestDetail(slug: string | null | undefined) {
   return useQuery({
     queryKey: ["test-detail", slug],
     queryFn: () =>
-      api<{
-        test: DiagnosticTest;
-        packages: Array<{
-          id: string;
-          name: string;
-          slug: string;
-          price: number;
-          discountPrice: number | null;
-        }>;
-      }>(`/diagnostic-tests/catalog/${slug}`),
+      api<DiagnosticTest>(`/diagnostic-tests/${encodeURIComponent(slug ?? "")}`),
     enabled: Boolean(slug),
     staleTime: 5 * 60 * 1000,
   });
@@ -4328,7 +4350,7 @@ export function useTestPackages(filters?: { labId?: string; search?: string }) {
   return useQuery({
     queryKey: ["test-packages", filters],
     queryFn: () =>
-      api<{ packages: TestPackage[] }>(
+      api<{ items: TestPackage[]; nextCursor: string | null }>(
         `/diagnostic-tests/packages?${params.toString()}`
       ),
     staleTime: 5 * 60 * 1000,
@@ -4340,20 +4362,18 @@ export function useTestPackageDetail(slug: string | null | undefined) {
   return useQuery({
     queryKey: ["test-package-detail", slug],
     queryFn: () =>
-      api<{ package: TestPackage }>(`/diagnostic-tests/packages/${slug}`),
+      api<TestPackage>(`/diagnostic-tests/packages/${encodeURIComponent(slug ?? "")}`),
     enabled: Boolean(slug),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-/** Get test categories with counts. */
+/** Get test categories (flat list ordered). */
 export function useTestCategories() {
   return useQuery({
     queryKey: ["test-categories"],
     queryFn: () =>
-      api<{
-        categories: Array<{ category: string; count: number }>;
-      }>("/diagnostic-tests/categories"),
+      api<{ categories: DiagnosticCategory[] }>("/diagnostic-tests/categories"),
     staleTime: 10 * 60 * 1000,
   });
 }
