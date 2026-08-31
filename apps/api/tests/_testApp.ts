@@ -91,6 +91,14 @@ export async function patchJson(app: Hono<AppEnvironment>, path: string, body: a
   });
 }
 
+export async function putJson(app: Hono<AppEnvironment>, path: string, body: any) {
+  return app.request(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export async function getJson(app: Hono<AppEnvironment>, path: string) {
   return app.request(path, { method: "GET" });
 }
