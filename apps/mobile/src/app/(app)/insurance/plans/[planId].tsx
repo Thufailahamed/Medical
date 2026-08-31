@@ -3,7 +3,8 @@
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, Image } from "react-native";
+import { insurancePlanImage } from "@/components/insurance/PlanCard";
 import { useTranslation } from "react-i18next";
 import {
   Check,
@@ -117,22 +118,47 @@ export default function PlanDetail() {
         showsVerticalScrollIndicator={false}
       >
         <Card style={{ margin: 16, padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-            <Pill tone="primary">{t(`insurance.planTypes.${plan.planType}`)}</Pill>
-            {plan.isFeatured ? <Pill tone="accent">Featured</Pill> : null}
-          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                <Pill tone="primary">{t(`insurance.planTypes.${plan.planType}`)}</Pill>
+                {plan.isFeatured ? <Pill tone="accent">Featured</Pill> : null}
+              </View>
 
-          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-            <AppText weight="700" size="xl" style={{ color: colors.primary }}>
-              LKR{" "}
-              {(cycle === "monthly"
-                ? plan.monthlyPremiumLkr
-                : plan.annualPremiumLkr
-              ).toLocaleString()}
-            </AppText>
-            <AppText size="sm" color="muted" style={{ paddingBottom: 4 }}>
-              / {cycle === "monthly" ? "month" : "year"}
-            </AppText>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+                <AppText weight="700" size="xl" style={{ color: colors.primary }}>
+                  LKR{" "}
+                  {(cycle === "monthly"
+                    ? plan.monthlyPremiumLkr
+                    : plan.annualPremiumLkr
+                  ).toLocaleString()}
+                </AppText>
+                <AppText size="sm" color="muted" style={{ paddingBottom: 4 }}>
+                  / {cycle === "monthly" ? "month" : "year"}
+                </AppText>
+              </View>
+            </View>
+
+            {insurancePlanImage(plan.planType) ? (
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 18,
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surfaceMuted,
+                  flexShrink: 0,
+                }}
+              >
+                <Image
+                  source={insurancePlanImage(plan.planType)}
+                  resizeMode="cover"
+                  style={{ width: "100%", height: "100%" }}
+                />
+              </View>
+            ) : null}
           </View>
 
           {plan.annualDiscountPct > 0 ? (

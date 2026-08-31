@@ -7,6 +7,7 @@ import {
   FlatList,
   Pressable,
   TextInput,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -37,6 +38,7 @@ import {
   type DiagnosticTest,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { PackageThumbnail } from "./test-packages";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   Screen,
@@ -268,18 +270,7 @@ export default function TestCatalogScreen() {
           gap: 12,
         })}
       >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: colors.primary,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Package size={18} color={colors.onPrimary} strokeWidth={2.3} />
-        </View>
+        <PackageThumbnail item={{ slug: "full-body-health-checkup" }} size={46} borderRadius={14} />
         <View style={{ flex: 1 }}>
           <Text
             style={{

@@ -1,5 +1,11 @@
 import React, { useCallback } from "react";
-import { Pressable as RNPressable, type PressableProps, type ViewStyle, type StyleProp } from "react-native";
+import {
+  Pressable as RNPressable,
+  StyleSheet,
+  type PressableProps,
+  type ViewStyle,
+  type StyleProp,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,11 +15,10 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useMotionEnabled } from "@/hooks/useMotionEnabled";
-import { motion } from "@/constants/theme";
 
 type Props = Omit<PressableProps, "style" | "children"> & {
   children: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle> | ((state: { pressed: boolean }) => StyleProp<ViewStyle>);
   pressedScale?: number;
   pressedOpacity?: number;
   haptic?: "none" | "light" | "medium" | "heavy" | "soft";
@@ -26,6 +31,32 @@ const HapticMap: Record<string, Haptics.ImpactFeedbackStyle | "soft"> = {
   heavy: Haptics.ImpactFeedbackStyle.Heavy,
   soft: "soft",
 };
+
+/** Layout props that must live on the outer wrapper so flex children expand correctly. */
+function extractLayoutStyle(style: StyleProp<ViewStyle> | undefined): ViewStyle {
+  const flat = StyleSheet.flatten(style) as ViewStyle | undefined;
+  if (!flat) return {};
+  const out: ViewStyle = {};
+  if (flat.flex != null) out.flex = flat.flex;
+  if (flat.flexGrow != null) out.flexGrow = flat.flexGrow;
+  if (flat.flexShrink != null) out.flexShrink = flat.flexShrink;
+  if (flat.flexBasis != null) out.flexBasis = flat.flexBasis;
+  if (flat.alignSelf != null) out.alignSelf = flat.alignSelf;
+  if (flat.width != null) out.width = flat.width;
+  if (flat.height != null) out.height = flat.height;
+  if (flat.minWidth != null) out.minWidth = flat.minWidth;
+  if (flat.minHeight != null) out.minHeight = flat.minHeight;
+  if (flat.maxWidth != null) out.maxWidth = flat.maxWidth;
+  if (flat.maxHeight != null) out.maxHeight = flat.maxHeight;
+  if (flat.margin != null) out.margin = flat.margin;
+  if (flat.marginTop != null) out.marginTop = flat.marginTop;
+  if (flat.marginBottom != null) out.marginBottom = flat.marginBottom;
+  if (flat.marginLeft != null) out.marginLeft = flat.marginLeft;
+  if (flat.marginRight != null) out.marginRight = flat.marginRight;
+  if (flat.marginHorizontal != null) out.marginHorizontal = flat.marginHorizontal;
+  if (flat.marginVertical != null) out.marginVertical = flat.marginVertical;
+  return out;
+}
 
 export function Pressable({
   children,
@@ -48,8 +79,12 @@ export function Pressable({
   const handlePressIn = useCallback(
     (e: any) => {
       if (motionEnabled) {
-        scale.value = withTiming(pressedScale, { duration: motionTokens.duration.fast });
-        opacity.value = withTiming(pressedOpacity, { duration: motionTokens.duration.fast });
+        scale.value = withTiming(pressedScale, {
+          duration: motionTokens.duration.fast,
+        });
+        opacity.value = withTiming(pressedOpacity, {
+          duration: motionTokens.duration.fast,
+        });
       }
       if (haptic !== "none" && !disabled) {
         const v = HapticMap[haptic];
@@ -61,7 +96,17 @@ export function Pressable({
       }
       onPressIn?.(e);
     },
-    [motionEnabled, pressedScale, pressedOpacity, haptic, disabled, scale, opacity, motionTokens.duration.fast, onPressIn]
+    [
+      motionEnabled,
+      pressedScale,
+      pressedOpacity,
+      haptic,
+      disabled,
+      scale,
+      opacity,
+      motionTokens.duration.fast,
+      onPressIn,
+    ],
   );
 
   const handlePressOut = useCallback(
@@ -70,7 +115,7 @@ export function Pressable({
       opacity.value = withTiming(1, { duration: motionTokens.duration.fast });
       onPressOut?.(e);
     },
-    [scale, opacity, motionTokens.duration.fast, onPressOut]
+    [scale, opacity, motionTokens.duration.fast, onPressOut],
   );
 
   const handlePress = useCallback(
@@ -80,7 +125,7 @@ export function Pressable({
       }
       onPress?.(e);
     },
-    [onPress, hapticOnPress]
+    [onPress, hapticOnPress],
   );
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -88,15 +133,18 @@ export function Pressable({
     opacity: opacity.value,
   }));
 
+  const staticStyle = typeof style === "function" ? undefined : style;
+  const layoutStyle = extractLayoutStyle(staticStyle);
+
   return (
-    <Animated.View style={animatedStyle}>
+    <Animated.View style={[layoutStyle, animatedStyle]}>
       <RNPressable
         {...rest}
         disabled={disabled}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
-        style={style}
+        style={style as any}
       >
         {children}
       </RNPressable>
@@ -104,5 +152,4 @@ export function Pressable({
   );
 }
 
-// Re-export interpolate helper for downstream components
 export { interpolate };

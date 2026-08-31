@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   ArrowRight,
+  Calendar,
   CheckCircle2,
   Clock,
   Droplets,
@@ -177,6 +178,36 @@ const CATEGORIES = [
   { id: "thyroid", label: "Thyroid & Hormones", icon: Sparkles },
 ];
 
+// Slug → illustration. Falls back to a category-based image for unknown
+// packages so the marketplace still looks consistent for new SKUs.
+
+const PACKAGE_IMAGE: Record<string, string> = {
+  "full-body-health-checkup": "/assets/lab/packages/lab-full-body.jpg?v=2",
+  "comprehensive-diabetic-screen": "/assets/lab/packages/lab-diabetic.jpg?v=2",
+  "cardiac-wellness-profile": "/assets/lab/packages/lab-cardiac.jpg?v=2",
+  "senior-citizen-wellness": "/assets/lab/packages/lab-senior.jpg?v=2",
+  "essential-health-checkup": "/assets/lab/packages/lab-essential.jpg?v=2",
+};
+
+const CATEGORY_FALLBACK_IMAGE: Record<string, string> = {
+  full_body: "/assets/lab/packages/lab-full-body.jpg?v=2",
+  blood: "/assets/lab/packages/lab-essential.jpg?v=2",
+  diabetes: "/assets/lab/packages/lab-diabetic.jpg?v=2",
+  cardiac: "/assets/lab/packages/lab-cardiac.jpg?v=2",
+  kidney: "/assets/lab/packages/lab-essential.jpg?v=2",
+  thyroid: "/assets/lab/packages/lab-senior.jpg?v=2",
+};
+
+function packageImage(pkg: { slug: string; name?: string; description?: string }): string {
+  if (PACKAGE_IMAGE[pkg.slug]) return PACKAGE_IMAGE[pkg.slug];
+  const text = `${pkg.name ?? ""} ${pkg.description ?? ""}`.toLowerCase();
+  if (text.includes("diabet") || text.includes("sugar")) return CATEGORY_FALLBACK_IMAGE.diabetes;
+  if (text.includes("cardiac") || text.includes("heart")) return CATEGORY_FALLBACK_IMAGE.cardiac;
+  if (text.includes("senior")) return CATEGORY_FALLBACK_IMAGE.thyroid;
+  if (text.includes("essential")) return CATEGORY_FALLBACK_IMAGE.blood;
+  return CATEGORY_FALLBACK_IMAGE.full_body;
+}
+
 function effectivePrice(price: number, discountPrice: number | null): number {
   if (discountPrice != null && discountPrice > 0 && discountPrice < price) {
     return discountPrice;
@@ -214,6 +245,7 @@ export default function DiagnosticTestsPage() {
     name: string;
     price: number;
     savings?: number;
+    image?: string;
   } | null>(null);
 
   const [scheduledDate, setScheduledDate] = useState(() => {
@@ -397,71 +429,94 @@ export default function DiagnosticTestsPage() {
     <div className="flex flex-col gap-4 pb-14">
       {/* ── 1. Compact Luxury Hero Banner ─────────────────────────────────── */}
       <header
-        className="relative overflow-hidden rounded-2xl p-5 sm:p-6 text-white shadow-lg"
+        className="relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white shadow-xl"
         style={{
           background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 42%, #0E7490 75%, #0C8B8C 100%)",
-          boxShadow:
-            "0 10px 30px rgba(3, 105, 161, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+            "linear-gradient(135deg, #082F49 0%, #0369A1 45%, #0284C7 80%, #0EA5E9 100%)",
         }}
       >
+        {/* Decorative ambient background glows */}
         <div
-          className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full"
+          className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full"
           style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.4) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(56,189,248,0.25) 0%, transparent 70%)",
           }}
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-52 h-52 rounded-full"
+          className="pointer-events-none absolute -bottom-24 -left-16 w-80 h-80 rounded-full"
           style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
+            background: "radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%)",
           }}
           aria-hidden
         />
 
-        <div className="relative z-10 flex flex-col gap-3">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Sparkles size={11} className="text-sky-300" />
-                Diagnostic &amp; Health Marketplace
-              </div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Certified Health Packages &amp; Lab Tests
-              </h1>
-              <p className="text-xs sm:text-sm text-white/80 mt-1 leading-relaxed">
-                Book comprehensive checkup bundles or single pathology tests with sterile home sample collection and verified digital reports.
-              </p>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          {/* Left Column: Title, Subtitle & Value Props */}
+          <div className="min-w-0 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-white/10 border border-white/15 text-sky-200 backdrop-blur-md mb-3">
+              <Sparkles size={13} className="text-sky-300" />
+              <span>Certified Diagnostic &amp; Pathology Marketplace</span>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
-              <Link
-                href="/patient/insurance"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-sky-950 hover:bg-sky-50 transition-all shadow-sm hover:shadow-md hover:scale-[1.02]"
-              >
-                <ShieldCheck size={14} className="text-sky-700" />
-                <span>Insurance Marketplace</span>
-                <ArrowRight size={12} />
-              </Link>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
+              Certified Health Packages &amp; Lab Tests
+            </h1>
+
+            <p className="text-sm sm:text-base text-sky-100/90 mt-2 leading-relaxed max-w-xl font-normal">
+              Book curated health checkup bundles or routine pathology tests with sterile doorstep sample collection, ISO-accredited lab processing, and verified digital reports.
+            </p>
+
+            {/* Value Props Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-5 mt-5 border-t border-white/15">
+              <div className="flex items-center gap-2 text-xs font-semibold text-white/95">
+                <div className="w-7 h-7 rounded-lg bg-sky-400/20 flex items-center justify-center text-sky-200 shrink-0">
+                  <Home size={14} />
+                </div>
+                <span>Free Home Sample Collection</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-white/95">
+                <div className="w-7 h-7 rounded-lg bg-emerald-400/20 flex items-center justify-center text-emerald-200 shrink-0">
+                  <Clock size={14} />
+                </div>
+                <span>Digital Reports in 12–24h</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-white/95">
+                <div className="w-7 h-7 rounded-lg bg-amber-400/20 flex items-center justify-center text-amber-200 shrink-0">
+                  <ShieldCheck size={14} />
+                </div>
+                <span>100% SLMC &amp; ISO Accredited</span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/15 text-[11px] font-medium text-white/90">
-            <div className="flex items-center gap-1.5">
-              <Home size={13} className="text-sky-300 shrink-0" />
-              <span className="truncate">Free Home Sample Collection</span>
+          {/* Right Column: Sleek Quick-Action / Trust Card */}
+          <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3">
+            {/* Quick Home Visit Highlight Card */}
+            <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-4 flex items-center gap-4 text-white shadow-inner">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0 shadow-xs">
+                <FlaskConical size={24} className="text-sky-200" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-emerald-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Doorstep Phlebotomy Available
+                </div>
+                <p className="text-xs text-white/80 mt-0.5 font-medium">
+                  Verified medical personnel at your home
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Clock size={13} className="text-emerald-300 shrink-0" />
-              <span className="truncate">Digital Reports in 12–24h</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-amber-300 shrink-0" />
-              <span className="truncate">100% SLMC &amp; ISO Labs</span>
-            </div>
+
+            {/* Quick View My Bookings Button */}
+            <Link
+              href="/patient/appointments"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-white text-sky-950 hover:bg-sky-50 transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <Calendar size={14} className="text-sky-700" />
+              <span>View My Appointments &amp; Bookings</span>
+              <ArrowRight size={13} className="text-sky-600" />
+            </Link>
           </div>
         </div>
       </header>
@@ -617,6 +672,7 @@ export default function DiagnosticTestsPage() {
                 const pct = discountPct(pkg.price, pkg.discountPrice);
                 const price = effectivePrice(pkg.price, pkg.discountPrice);
                 const { stars, reviews } = ratingFromId(pkg.id);
+                const img = packageImage(pkg);
 
                 return (
                   <article
@@ -630,44 +686,58 @@ export default function DiagnosticTestsPage() {
                           "linear-gradient(90deg, #0284C7 0%, #38BDF8 50%, #10B981 100%)",
                       }}
                     />
-
                     <div>
                       {/* Badge Header Row */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200/60">
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200/60">
                             <Sparkles size={10} />
                             {pkg.tag ?? "PACKAGE"}
                           </span>
                           {pct > 0 ? (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                            <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
                               <TrendingDown size={10} />
                               {pct}% OFF
                             </span>
                           ) : null}
                         </div>
 
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">
                           <Layers size={11} className="text-slate-500" />
                           {pkg.testCount} Tests Included
                         </span>
                       </div>
 
-                      {/* Title & Star Rating */}
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-800 transition-colors leading-snug">
-                          {pkg.name}
-                        </h3>
-                        <div className="flex items-center gap-1 text-xs shrink-0 pt-0.5">
-                          <Star size={12} className="fill-amber-500 text-amber-500" />
-                          <span className="font-bold text-slate-800">{stars}</span>
-                          <span className="text-[10.5px] text-slate-400">({reviews})</span>
+                      {/* Title, Rating & Thumbnail Row */}
+                      <div className="flex items-start gap-4 justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-800 transition-colors leading-snug">
+                            {pkg.name}
+                          </h3>
+
+                          {/* Star Rating cleanly placed under title */}
+                          <div className="flex items-center gap-1.5 text-xs mt-1.5 mb-2">
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70">
+                              <Star size={11} className="fill-amber-500 text-amber-500" />
+                              <span className="font-extrabold text-amber-900 text-[11px]">{stars}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-medium">({reviews} reviews)</span>
+                          </div>
+
+                          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                            {pkg.description}
+                          </p>
+                        </div>
+
+                        {/* Dedicated Crisp Thumbnail */}
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 bg-sky-50/50">
+                          <img
+                            src={img}
+                            alt={pkg.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
                         </div>
                       </div>
-
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                        {pkg.description}
-                      </p>
 
                       {/* Inclusions Badges (Compact 2-col pills) */}
                       {pkg.includedParameters ? (
@@ -741,6 +811,7 @@ export default function DiagnosticTestsPage() {
                               name: pkg.name,
                               price,
                               savings: pkg.savings,
+                              image: img,
                             })
                           }
                           className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -883,23 +954,34 @@ export default function DiagnosticTestsPage() {
                 background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 100%)",
               }}
             >
-              <div>
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-sky-200 flex items-center gap-1">
-                  <Home size={12} />
-                  Home Sample Collection Booking
-                </span>
-                <h3 className="text-lg font-bold text-white mt-0.5">
-                  {bookingItem.name}
-                </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm font-black text-white">
-                    Total: {formatLkr(bookingItem.price)}
+              <div className="flex items-center gap-3 min-w-0">
+                {bookingItem.image && (
+                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/20 shadow-xs shrink-0 bg-white/10">
+                    <img
+                      src={bookingItem.image}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-sky-200 flex items-center gap-1">
+                    <Home size={12} />
+                    Home Sample Collection Booking
                   </span>
-                  {bookingItem.savings ? (
-                    <span className="text-[11px] font-bold text-emerald-300 bg-emerald-900/40 px-2 py-0.5 rounded-full">
-                      Saving {formatLkr(bookingItem.savings)}
+                  <h3 className="text-lg font-bold text-white mt-0.5 truncate">
+                    {bookingItem.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm font-black text-white">
+                      Total: {formatLkr(bookingItem.price)}
                     </span>
-                  ) : null}
+                    {bookingItem.savings ? (
+                      <span className="text-[11px] font-bold text-emerald-300 bg-emerald-900/40 px-2 py-0.5 rounded-full">
+                        Saving {formatLkr(bookingItem.savings)}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
               <button

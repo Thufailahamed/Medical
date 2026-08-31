@@ -78,6 +78,21 @@ const TYPE_LABEL: Record<string, string> = {
   maternity: "Maternity",
 };
 
+// Map plan type → on-brand illustration used in hero & plan cards.
+const PLAN_TYPE_IMAGE: Record<string, string> = {
+  individual: "/assets/insurance/plan-types/insurance-individual.jpg?v=2",
+  family_floater: "/assets/insurance/plan-types/insurance-family.jpg?v=2",
+  senior: "/assets/insurance/plan-types/insurance-senior.jpg?v=2",
+  critical_illness: "/assets/insurance/plan-types/insurance-critical-illness.jpg?v=2",
+  cancer: "/assets/insurance/plan-types/insurance-cancer.jpg?v=2",
+  dental: "/assets/insurance/plan-types/insurance-dental.jpg?v=2",
+  maternity: "/assets/insurance/plan-types/insurance-maternity.jpg?v=2",
+};
+
+function planImageFor(planType: string): string | undefined {
+  return PLAN_TYPE_IMAGE[planType];
+}
+
 export default function PatientMarketplace() {
   const [planType, setPlanType] = useState<string>("");
   const [q, setQ] = useState("");
@@ -116,70 +131,68 @@ export default function PatientMarketplace() {
     <div className="flex flex-col gap-6 pb-16">
       {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
       <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
+        className="relative rounded-3xl p-6 md:p-8 text-white overflow-hidden shadow-xl"
         style={{
           background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+            "linear-gradient(135deg, #082F49 0%, #0369A1 45%, #0284C7 80%, #0EA5E9 100%)",
         }}
       >
         {/* Glow Orbs */}
         <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
+          className="pointer-events-none absolute -top-20 -right-20 w-80 h-80 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
+              "radial-gradient(circle, rgba(56,189,248,0.3) 0%, transparent 70%)",
           }}
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
+          className="pointer-events-none absolute -bottom-24 -left-16 w-72 h-72 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
+              "radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%)",
           }}
           aria-hidden
         />
 
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="relative z-10 flex flex-col gap-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="min-w-0 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Sparkles size={12} className="text-sky-300" />
-                Insurance Marketplace · Certified Coverage
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-white/10 border border-white/15 text-sky-200 backdrop-blur-md mb-3">
+                <Sparkles size={13} className="text-sky-300" />
+                <span>Insurance Marketplace · Certified Coverage</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
                 Compare &amp; Buy Health Insurance Plans
               </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
+              <p className="text-sm sm:text-base text-sky-100/90 mt-2 leading-relaxed max-w-xl font-normal">
                 Discover comprehensive individual, family floater, and critical illness plans from Sri Lanka&apos;s leading insurers. Cashless hospital admissions and instant digital policy issuance.
               </p>
             </div>
 
             {/* Quick Link to Policy Hub */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
               <Link
                 href="/patient/insurance"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-white/15 hover:bg-white/25 border border-white/20 transition-all backdrop-blur-md hover:scale-[1.02] shadow-sm"
               >
-                <ShieldCheck size={13} />
+                <ShieldCheck size={15} />
                 <span>My Policies</span>
               </Link>
               <Link
                 href="/patient/insurance/coverage-check"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
               >
-                <Activity size={14} className="text-sky-700" />
+                <Activity size={15} className="text-sky-700" />
                 <span>Coverage Estimator</span>
               </Link>
             </div>
           </div>
 
           {/* Integrated Search Bar inside Hero */}
-          <div className="relative max-w-xl mt-1">
+          <div className="relative max-w-2xl">
             <Search
-              size={16}
+              size={18}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
             />
             <input
@@ -201,13 +214,13 @@ export default function PatientMarketplace() {
           </div>
 
           {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Building2 size={16} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-white/15 text-white">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm">
+              <div className="h-9 w-9 rounded-lg bg-sky-400/25 flex items-center justify-center text-sky-200 shrink-0">
+                <Building2 size={18} />
               </div>
               <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                <p className="text-[10px] uppercase font-bold text-sky-200 truncate">
                   Insurers
                 </p>
                 <p className="text-base font-extrabold text-white">
@@ -485,13 +498,14 @@ function FeaturedPlanCard({
   settlementRatio?: number | null;
 }) {
   const hasDiscount = plan.annualDiscountPct > 0;
+  const planImage = planImageFor(plan.planType);
 
   return (
-    <div className="rounded-2xl border-2 border-sky-300 bg-gradient-to-br from-sky-50/50 via-white to-white p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-4">
+    <div className="relative rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50/40 via-white to-white p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col justify-between gap-4">
       <div>
-        {/* Top Badges */}
-        <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
-          <div className="flex items-center gap-1.5">
+        {/* Top Badges & Settlement Ratio */}
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
               <Sparkles size={11} className="text-amber-600" />
               Top Pick
@@ -505,24 +519,38 @@ function FeaturedPlanCard({
           </div>
 
           {settlementRatio ? (
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full">
               {settlementRatio}% Settlement
             </span>
           ) : null}
         </div>
 
-        {/* Title and Provider */}
-        <h3 className="text-base font-extrabold text-slate-900 leading-snug">
-          {plan.name}
-        </h3>
-        <p className="text-xs text-slate-500 mt-0.5 font-medium">
-          by {providerName}
-        </p>
+        {/* Title, Provider and Dedicated Crisp Photo Thumbnail */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-extrabold text-slate-900 leading-snug">
+              {plan.name}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">
+              by {providerName}
+            </p>
+          </div>
+
+          {planImage ? (
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden border border-slate-200 shadow-xs shrink-0 bg-slate-50">
+              <img
+                src={planImage}
+                alt={plan.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : null}
+        </div>
 
         {/* Coverage & Features Strip */}
-        <div className="mt-3.5 p-2.5 rounded-xl bg-white border border-slate-200/80 flex flex-col gap-1.5 shadow-2xs">
+        <div className="mt-3.5 p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/80 flex flex-col gap-1.5 shadow-2xs">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-            <ShieldCheck size={14} className="text-emerald-600" />
+            <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
             <span>Up to {formatLkr(plan.coverageSummaryLkr)} Sum Insured</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500 font-medium">
@@ -549,7 +577,7 @@ function FeaturedPlanCard({
 
         <Link
           href={`/patient/insurance/plans/${plan.id}`}
-          className="inline-flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all shrink-0"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all shrink-0 hover:scale-[1.02]"
           style={{
             background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
           }}
@@ -572,12 +600,13 @@ function PlanCard({
   settlementRatio?: number | null;
 }) {
   const hasDiscount = plan.annualDiscountPct > 0;
+  const planImage = planImageFor(plan.planType);
 
   return (
-    <div className="group rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col justify-between gap-4">
+    <div className="group relative rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col justify-between gap-4">
       <div>
         {/* Top Header */}
-        <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-8 w-8 rounded-lg bg-sky-50 border border-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0">
               {providerName.slice(0, 2).toUpperCase()}
@@ -592,7 +621,7 @@ function PlanCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {plan.isFeatured ? (
               <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                 Featured
@@ -606,15 +635,27 @@ function PlanCard({
           </div>
         </div>
 
-        {/* Plan Name */}
-        <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-sky-700 transition-colors leading-snug">
-          {plan.name}
-        </h3>
+        {/* Plan Name & Dedicated Thumbnail */}
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-sky-700 transition-colors leading-snug flex-1">
+            {plan.name}
+          </h3>
+
+          {planImage ? (
+            <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shadow-2xs shrink-0 bg-slate-50">
+              <img
+                src={planImage}
+                alt={plan.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : null}
+        </div>
 
         {/* Coverage highlight */}
         <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-1 text-xs">
           <div className="flex items-center gap-1.5 font-bold text-slate-800">
-            <ShieldCheck size={13} className="text-emerald-600" />
+            <ShieldCheck size={13} className="text-emerald-600 shrink-0" />
             <span>Up to {formatLkr(plan.coverageSummaryLkr)} coverage</span>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
@@ -645,10 +686,10 @@ function PlanCard({
 
         <Link
           href={`/patient/insurance/plans/${plan.id}`}
-          className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200/80 transition-colors"
+          className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors"
         >
-          <span>View Plan</span>
-          <ChevronRight size={13} />
+          <span>View</span>
+          <ArrowRight size={12} />
         </Link>
       </div>
     </div>

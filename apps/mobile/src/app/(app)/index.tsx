@@ -45,6 +45,7 @@ import {
   Heart,
   Scale,
   Shield,
+  ShieldCheck,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
@@ -69,6 +70,8 @@ import { useTone, type Tone } from "@/theme/tone";
 import { Sparkline } from "@/components/vitals";
 import { HealthSnapshotCard } from "@/components/records";
 import { VITAL_REGISTRY, type VitalType } from "@healthcare/shared/vitals";
+import { CURATED_PACKAGES, packageImage } from "./test-packages";
+import { CURATED_INSURANCE_PLANS, insurancePlanImage } from "@/components/insurance/PlanCard";
 import {
   Screen,
   Card,
@@ -911,6 +914,387 @@ export default function HomeScreen() {
                 />
               </ScrollView>
             </View>
+          </View>
+
+          {/* Featured Health Checkup Packages (with real images) */}
+          <View style={{ gap: spacing.sm }}>
+            <SectionLabel
+              title={t("home.healthPackages", "Health Packages")}
+              action={{
+                label: (t("home.seeAll", "See All") || "See All") + " →",
+                onPress: () => router.push("/(app)/test-packages"),
+              }}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: spacing.md,
+                paddingRight: spacing.lg,
+                paddingBottom: 4,
+              }}
+            >
+              {CURATED_PACKAGES.map((pkg) => {
+                const effectivePrice = pkg.discountPrice ?? pkg.price;
+                const pct = Math.round(((pkg.price - effectivePrice) / pkg.price) * 100);
+
+                return (
+                  <Pressable
+                    key={pkg.id}
+                    onPress={() => router.push(`/(app)/test-package-detail/${pkg.slug}`)}
+                    style={({ pressed }) => ({
+                      width: 240,
+                      borderRadius: 20,
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      overflow: "hidden",
+                      opacity: pressed ? 0.85 : 1,
+                      ...shadow.sm,
+                    })}
+                  >
+                    {/* Image Banner */}
+                    <View style={{ height: 115, width: "100%", position: "relative", backgroundColor: "#E0F2FE", alignItems: "center", justifyContent: "center" }}>
+                      <FlaskConical size={36} color="#0284C7" />
+                      <Image
+                        source={packageImage(pkg)}
+                        resizeMode="cover"
+                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 115 }}
+                      />
+                      {/* Badge */}
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          left: 8,
+                          backgroundColor: "#0284C7",
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 8,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Sparkles size={10} color="#FFFFFF" />
+                        <Text style={{ fontSize: 10, fontWeight: "800", color: "#FFFFFF", letterSpacing: 0.5 }}>
+                          {pkg.tag}
+                        </Text>
+                      </View>
+
+                      {pct > 0 && (
+                        <View
+                          style={{
+                            position: "absolute",
+                            bottom: 8,
+                            right: 8,
+                            backgroundColor: "#059669",
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                            borderRadius: 6,
+                          }}
+                        >
+                          <Text style={{ fontSize: 10, fontWeight: "800", color: "#FFFFFF" }}>
+                            {pct}% OFF
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Card Content */}
+                    <View style={{ padding: 12, gap: 4 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "700",
+                          color: colors.text,
+                        }}
+                      >
+                        {pkg.name}
+                      </Text>
+                      <Text
+                        numberOfLines={2}
+                        style={{
+                          fontSize: 11,
+                          color: colors.textMuted,
+                          lineHeight: 15,
+                        }}
+                      >
+                        {pkg.description}
+                      </Text>
+
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginTop: 8,
+                          paddingTop: 8,
+                          borderTopWidth: 1,
+                          borderTopColor: colors.border,
+                        }}
+                      >
+                        <View>
+                          <Text style={{ fontSize: 15, fontWeight: "800", color: colors.text }}>
+                            Rs. {effectivePrice.toLocaleString("en-LK")}
+                          </Text>
+                          {pkg.discountPrice ? (
+                            <Text style={{ fontSize: 10, color: colors.textMuted, textDecorationLine: "line-through" }}>
+                              Rs. {pkg.price.toLocaleString("en-LK")}
+                            </Text>
+                          ) : null}
+                        </View>
+
+                        <View
+                          style={{
+                            backgroundColor: colors.primary + "15",
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
+                            borderRadius: 8,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, fontWeight: "700", color: colors.primary }}>
+                            View
+                          </Text>
+                          <ChevronRight size={12} color={colors.primary} />
+                        </View>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Featured Health Insurance Plans (with real images) */}
+          <View style={{ gap: spacing.sm }}>
+            <SectionLabel
+              title={t("home.insurancePlans", "Health Insurance Plans")}
+              action={{
+                label: (t("home.seeAll", "See All") || "See All") + " →",
+                onPress: () => router.push("/insurance/marketplace"),
+              }}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: spacing.md,
+                paddingRight: spacing.lg,
+                paddingBottom: 4,
+              }}
+            >
+              {CURATED_INSURANCE_PLANS.map((plan) => {
+                const planImg = insurancePlanImage(plan.planType);
+
+                return (
+                  <Pressable
+                    key={plan.id}
+                    onPress={() => router.push(`/insurance/plans/${plan.id}`)}
+                    style={({ pressed }) => ({
+                      width: 240,
+                      borderRadius: 20,
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      overflow: "hidden",
+                      opacity: pressed ? 0.85 : 1,
+                      ...shadow.sm,
+                    })}
+                  >
+                    {/* Image Banner */}
+                    <View
+                      style={{
+                        height: 115,
+                        width: "100%",
+                        position: "relative",
+                        backgroundColor: "#F0FDF4",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ShieldCheck size={36} color="#059669" />
+                      {planImg ? (
+                        <Image
+                          source={planImg}
+                          resizeMode="cover"
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: 115,
+                          }}
+                        />
+                      ) : null}
+                      {/* Badge */}
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          left: 8,
+                          backgroundColor: "#0369A1",
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 8,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <ShieldCheck size={10} color="#FFFFFF" />
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            fontWeight: "800",
+                            color: "#FFFFFF",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          {plan.tag}
+                        </Text>
+                      </View>
+
+                      {plan.annualDiscountPct > 0 && (
+                        <View
+                          style={{
+                            position: "absolute",
+                            bottom: 8,
+                            right: 8,
+                            backgroundColor: "#059669",
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                            borderRadius: 6,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "800",
+                              color: "#FFFFFF",
+                            }}
+                          >
+                            SAVE {plan.annualDiscountPct}%
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Card Content */}
+                    <View style={{ padding: 12, gap: 4 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "700",
+                          color: colors.text,
+                        }}
+                      >
+                        {plan.name}
+                      </Text>
+                      <Text
+                        numberOfLines={2}
+                        style={{
+                          fontSize: 11,
+                          color: colors.textMuted,
+                          lineHeight: 15,
+                        }}
+                      >
+                        {plan.description}
+                      </Text>
+
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          marginTop: 4,
+                        }}
+                      >
+                        <ShieldCheck size={12} color="#059669" />
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: "700",
+                            color: colors.text,
+                          }}
+                        >
+                          Cover up to LKR {plan.coverageSummaryLkr.toLocaleString("en-LK")}
+                        </Text>
+                      </View>
+
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginTop: 6,
+                          paddingTop: 8,
+                          borderTopWidth: 1,
+                          borderTopColor: colors.border,
+                        }}
+                      >
+                        <View>
+                          <Text
+                            style={{
+                              fontSize: 15,
+                              fontWeight: "800",
+                              color: colors.primary,
+                            }}
+                          >
+                            Rs. {plan.monthlyPremiumLkr.toLocaleString("en-LK")}
+                            <Text
+                              style={{
+                                fontSize: 10,
+                                fontWeight: "600",
+                                color: colors.textMuted,
+                              }}
+                            >
+                              /mo
+                            </Text>
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: colors.textMuted,
+                            }}
+                          >
+                            Rs. {plan.annualPremiumLkr.toLocaleString("en-LK")}/yr
+                          </Text>
+                        </View>
+
+                        <View
+                          style={{
+                            backgroundColor: colors.primary + "15",
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
+                            borderRadius: 8,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "700",
+                              color: colors.primary,
+                            }}
+                          >
+                            View
+                          </Text>
+                          <ChevronRight size={12} color={colors.primary} />
+                        </View>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
 
           {/* AI Section (premium dark) */}

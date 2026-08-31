@@ -710,7 +710,6 @@ export default function BookAppointmentScreen() {
                     </Text>
                   </Pressable>
                 </View>
-              </View>
             ) : null}
 
             <View

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Image } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +15,7 @@ import {
 } from "lucide-react-native";
 import { useTestPackageDetail } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { CURATED_PACKAGES, PackageThumbnail } from "../test-packages";
 import {
   Screen,
   ScreenHeader,
@@ -65,7 +66,10 @@ export default function TestPackageDetailScreen() {
     );
   }
 
-  if (error || !data?.package) {
+  const fallbackPkg = CURATED_PACKAGES.find((c) => c.slug === slug);
+  const pkg = data?.package ?? fallbackPkg;
+
+  if (!pkg) {
     return (
       <Screen padded={false} bottomInset={false}>
         <ScreenHeader title="Package Details" back />
@@ -77,8 +81,6 @@ export default function TestPackageDetailScreen() {
       </Screen>
     );
   }
-
-  const pkg = data.package;
   const effectivePrice = pkg.discountPrice ?? pkg.price;
   const savings = pkg.savings || pkg.price - effectivePrice;
   const hasSavings = savings > 0;
@@ -126,18 +128,8 @@ export default function TestPackageDetailScreen() {
                 marginBottom: 16,
               }}
             >
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 16,
-                  backgroundColor: colors.primary + "15",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginRight: 14,
-                }}
-              >
-                <Package size={28} color={colors.primary} />
+              <View style={{ marginRight: 14 }}>
+                <PackageThumbnail item={{ ...pkg, slug }} size={72} borderRadius={18} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text
@@ -316,74 +308,88 @@ export default function TestPackageDetailScreen() {
               Individual total: {formatPrice(pkg.totalIndividualPrice || 0)}
             </Text>
 
-            {pkg.tests.map((test, index) => (
-              <Pressable
-                key={test.id}
-                onPress={() => router.push(`/test-detail/${test.testSlug}`)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 12,
-                  borderBottomWidth: index < pkg.tests.length - 1 ? 1 : 0,
-                  borderBottomColor: colors.border,
-                }}
-              >
-                <View
+            {pkg.tests.map((testItem, index) => {
+              const isString = typeof testItem === "string";
+              const testName = isString ? testItem : testItem.testName || testItem.name || "Diagnostic Test";
+              const testCategory = (!isString && testItem.testCategory) ? testItem.testCategory : "blood";
+              const categoryColor = CATEGORY_COLORS[testCategory] || "#0284C7";
+              const testSlug = !isString ? testItem.testSlug : undefined;
+              const hasPrice = !isString && (testItem.testDiscountPrice != null || testItem.testPrice != null);
+              const fasting = !isString ? testItem.fastingRequired : false;
+
+              return (
+                <Pressable
+                  key={isString ? `${testItem}-${index}` : testItem.id || index}
+                  onPress={() => testSlug ? router.push(`/test-detail/${testSlug}`) : undefined}
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor:
-                      (CATEGORY_COLORS[test.testCategory] || "#6B7280") + "15",
+                    flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 12,
+                    paddingVertical: 12,
+                    borderBottomWidth: index < pkg.tests.length - 1 ? 1 : 0,
+                    borderBottomColor: colors.border,
                   }}
                 >
-                  <Check
-                    size={16}
-                    color={CATEGORY_COLORS[test.testCategory] || "#6B7280"}
-                  />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text
+                  <View
                     style={{
-                      fontSize: 14,
-                      fontWeight: "500",
-                      color: colors.text,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      backgroundColor: categoryColor + "18",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
                     }}
                   >
-                    {test.testName}
-                  </Text>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
+                    <Check
+                      size={16}
+                      color={categoryColor}
+                    />
+                  </View>
+
+                  <View style={{ flex: 1 }}>
                     <Text
                       style={{
-                        fontSize: 11,
-                        color: colors.textSecondary,
-                        textTransform: "capitalize",
+                        fontSize: 14,
+                        fontWeight: "600",
+                        color: colors.text,
                       }}
                     >
-                      {test.testCategory.replace(/_/g, " ")}
+                      {testName}
                     </Text>
-                    {test.fastingRequired && (
-                      <Text style={{ fontSize: 11, color: "#D97706" }}>
-                        Fasting required
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.textSecondary,
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {testCategory.replace(/_/g, " ")}
                       </Text>
-                    )}
+                      {fasting && (
+                        <Text style={{ fontSize: 11, color: "#D97706", fontWeight: "500" }}>
+                          Fasting required
+                        </Text>
+                      )}
+                    </View>
                   </View>
-                </View>
 
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: colors.textSecondary,
-                  }}
-                >
-                  {formatPrice(test.testDiscountPrice ?? test.testPrice)}
-                </Text>
-              </Pressable>
-            ))}
+                  {hasPrice && (
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: colors.textSecondary,
+                      }}
+                    >
+                      {formatPrice(testItem.testDiscountPrice ?? testItem.testPrice)}
+                    </Text>
+                  )}
+                  {testSlug && (
+                    <ChevronRight size={16} color={colors.textSecondary} style={{ marginLeft: 6 }} />
+                  )}
+                </Pressable>
+              );
+            })}
           </Card>
         )}
       </ScrollView>

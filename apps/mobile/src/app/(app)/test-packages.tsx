@@ -1,12 +1,13 @@
 // @ts-nocheck
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
   FlatList,
   Pressable,
   TextInput,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -20,6 +21,7 @@ import {
   X,
   Sparkles,
   AlertCircle,
+  FlaskConical,
 } from "lucide-react-native";
 import { useTestPackages, type TestPackage } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -32,9 +34,205 @@ import {
   Skeleton,
 } from "@/components/ui";
 
+import { LAB_PACKAGE_BASE64 } from "@/constants/package-assets";
+
 function formatPrice(price: number) {
   return `Rs. ${price.toLocaleString("en-LK")}`;
 }
+
+export function packageImage(pkg: { slug?: string; name?: string; description?: string } | string): any {
+  const slug = typeof pkg === "string" ? pkg : pkg?.slug || "";
+  if (LAB_PACKAGE_BASE64[slug]) {
+    return { uri: LAB_PACKAGE_BASE64[slug] };
+  }
+  const text = typeof pkg === "string" ? pkg.toLowerCase() : `${pkg?.name ?? ""} ${pkg?.description ?? ""}`.toLowerCase();
+  if (text.includes("diabet") || text.includes("sugar")) return { uri: LAB_PACKAGE_BASE64["comprehensive-diabetic-screen"] };
+  if (text.includes("cardiac") || text.includes("heart")) return { uri: LAB_PACKAGE_BASE64["cardiac-wellness-profile"] };
+  if (text.includes("senior")) return { uri: LAB_PACKAGE_BASE64["senior-citizen-wellness"] };
+  if (text.includes("essential")) return { uri: LAB_PACKAGE_BASE64["essential-health-checkup"] };
+  return { uri: LAB_PACKAGE_BASE64["full-body-health-checkup"] };
+}
+
+export function PackageThumbnail({
+  item,
+  size = 72,
+  borderRadius = 18,
+}: {
+  item: any;
+  size?: number;
+  borderRadius?: number;
+}) {
+  const slug = item?.slug || "";
+  const name = (item?.name || "").toLowerCase();
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [slug]);
+
+  let bg = "#F0F9FF";
+  let border = "#BAE6FD";
+  let iconColor = "#0284C7";
+
+  if (slug.includes("diabet") || name.includes("diabet")) {
+    bg = "#ECFDF5";
+    border = "#A7F3D0";
+    iconColor = "#059669";
+  } else if (slug.includes("cardiac") || name.includes("cardiac") || name.includes("heart")) {
+    bg = "#FFF1F2";
+    border = "#FECDD3";
+    iconColor = "#E11D48";
+  } else if (slug.includes("senior") || name.includes("senior")) {
+    bg = "#FAF5FF";
+    border = "#E9D5FF";
+    iconColor = "#9333EA";
+  } else if (slug.includes("essential") || name.includes("essential")) {
+    bg = "#FFFBEB";
+    border = "#FDE68A";
+    iconColor = "#D97706";
+  }
+
+  const src = packageImage(item);
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius,
+        overflow: "hidden",
+        backgroundColor: bg,
+        borderWidth: 1,
+        borderColor: border,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <FlaskConical size={Math.round(size * 0.44)} color={iconColor} />
+      {!failed && src ? (
+        <Image
+          source={src}
+          resizeMode="cover"
+          onError={() => setFailed(true)}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: size,
+            height: size,
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+export const CURATED_PACKAGES = [
+  {
+    id: "pkg-full-body",
+    slug: "full-body-health-checkup",
+    name: "Full Body Executive Health Checkup",
+    price: 8500,
+    discountPrice: 5900,
+    testCount: 68,
+    savings: 2600,
+    tag: "BEST VALUE",
+    description:
+      "Comprehensive diagnostic screening covering vital organs, blood profile, metabolic markers, and liver/kidney functions.",
+    tests: [
+      "Complete Blood Count (CBC)",
+      "Lipid & Cholesterol Ratio",
+      "Liver Function (SGPT/SGOT)",
+      "Renal Function (Creatinine)",
+      "Fasting Blood Sugar",
+      "Urine Full Report (UFR)",
+      "Thyroid Screening (TSH)",
+    ],
+    reportTimeHours: 12,
+    fastingHours: 10,
+  },
+  {
+    id: "pkg-senior",
+    slug: "senior-citizen-wellness",
+    name: "Senior Citizen Wellness & Vitality",
+    price: 9200,
+    discountPrice: 6500,
+    testCount: 45,
+    savings: 2700,
+    tag: "SENIOR CARE",
+    description:
+      "Designed for age 55+ to track bone health, vital organ functions, vitamin levels, and joint inflammation markers.",
+    tests: [
+      "Calcium & Vitamin D3 Total",
+      "Vitamin B12 Vitality Assay",
+      "Uric Acid & Bone Health",
+      "Full Kidney & Liver Panel",
+      "HbA1c Glycated Hemoglobin",
+    ],
+    reportTimeHours: 18,
+    fastingHours: 8,
+  },
+  {
+    id: "pkg-cardiac",
+    slug: "cardiac-wellness-profile",
+    name: "Advanced Cardiac & Vascular Profile",
+    price: 7800,
+    discountPrice: 5400,
+    testCount: 32,
+    savings: 2400,
+    tag: "CARDIO HEALTH",
+    description:
+      "Heart-health risk assessment detecting silent arterial plaque indicators, systemic inflammation, and lipid abnormalities.",
+    tests: [
+      "High-Sensitivity CRP (hs-CRP)",
+      "Extended Lipid Profile (HDL/LDL)",
+      "Apolipoprotein A1 & B Ratio",
+      "Electrolytes (Na, K, Cl)",
+    ],
+    reportTimeHours: 16,
+    fastingHours: 12,
+  },
+  {
+    id: "pkg-diabetic",
+    slug: "comprehensive-diabetic-screen",
+    name: "Comprehensive Diabetic Care Package",
+    price: 5200,
+    discountPrice: 3800,
+    testCount: 28,
+    savings: 1400,
+    tag: "POPULAR",
+    description:
+      "Essential periodic monitoring for pre-diabetic and diabetic management, including 3-month glycemic averages.",
+    tests: [
+      "HbA1c Glycated Hemoglobin",
+      "Fasting & Post-Prandial Sugar",
+      "Microalbumin / Creatinine",
+      "Serum Creatinine & eGFR",
+    ],
+    reportTimeHours: 8,
+    fastingHours: 10,
+  },
+  {
+    id: "pkg-essential",
+    slug: "essential-health-checkup",
+    name: "Essential Health Checkup",
+    price: 3500,
+    discountPrice: 2800,
+    testCount: 18,
+    savings: 700,
+    tag: "BASIC CARE",
+    description:
+      "Vital baseline diagnostic assessment for routine annual wellness checks and basic metabolic evaluation.",
+    tests: [
+      "Complete Blood Count (CBC)",
+      "Routine Urine Analysis",
+      "Blood Glucose Level",
+      "Total Cholesterol Screening",
+    ],
+    reportTimeHours: 6,
+    fastingHours: 8,
+  },
+];
 
 export default function TestPackagesScreen() {
   const { t } = useTranslation();
@@ -47,6 +245,24 @@ export default function TestPackagesScreen() {
   const { data, isLoading, error } = useTestPackages({
     search: debouncedSearch || undefined,
   });
+
+  const packagesList = useMemo(() => {
+    const bySlug = new Map<string, any>();
+    for (const c of CURATED_PACKAGES) bySlug.set(c.slug, c);
+    const apiPackages = data?.packages ?? [];
+    for (const p of apiPackages) {
+      const found = bySlug.get(p.slug);
+      bySlug.set(p.slug, { ...p, ...found, ...p });
+    }
+    const all = Array.from(bySlug.values());
+    if (!debouncedSearch.trim()) return all;
+    const q = debouncedSearch.toLowerCase();
+    return all.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description && p.description.toLowerCase().includes(q))
+    );
+  }, [data?.packages, debouncedSearch]);
 
   const renderPackageCard = useCallback(
     ({ item }: { item: TestPackage }) => {
@@ -101,19 +317,9 @@ export default function TestPackagesScreen() {
                   alignItems: "flex-start",
                 }}
               >
-                {/* Package Icon */}
-                <View
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 14,
-                    backgroundColor: colors.primary + "15",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 14,
-                  }}
-                >
-                  <Package size={24} color={colors.primary} />
+                {/* Package Illustration */}
+                <View style={{ marginRight: 14 }}>
+                  <PackageThumbnail item={item} size={72} borderRadius={18} />
                 </View>
 
                 {/* Package Info */}
@@ -301,13 +507,13 @@ export default function TestPackagesScreen() {
             />
           ))}
         </View>
-      ) : error ? (
+      ) : error && packagesList.length === 0 ? (
         <EmptyState
           icon={AlertCircle}
           title="Failed to load packages"
           message="Please check your connection and try again."
         />
-      ) : data?.packages.length === 0 ? (
+      ) : packagesList.length === 0 ? (
         <EmptyState
           icon={Package}
           title="No packages found"
@@ -319,7 +525,7 @@ export default function TestPackagesScreen() {
         />
       ) : (
         <FlatList
-          data={data?.packages || []}
+          data={packagesList}
           keyExtractor={(item) => item.id}
           renderItem={renderPackageCard}
           contentContainerStyle={{ paddingTop: 4, paddingBottom: 24 }}

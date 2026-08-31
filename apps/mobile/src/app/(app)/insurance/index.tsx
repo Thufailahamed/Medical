@@ -1,8 +1,8 @@
 // @ts-nocheck
-// Insurance tab home — redesigned hero, stats, quick actions, policies & claims.
+// Insurance home — dense marketplace hub. Stats flex fixed via Pressable layout.
 
-import { useMemo } from "react";
-import { View, Text } from "react-native";
+import { useMemo, useRef } from "react";
+import { View, Text, type ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,7 +16,7 @@ import {
   Building2,
   ShieldCheck,
   Sparkles,
-  ArrowUpRight,
+  ChevronRight,
 } from "lucide-react-native";
 import {
   useMyInsuranceEnrollments,
@@ -40,10 +40,13 @@ export default function InsuranceHome() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors, spacing, fontFamily } = useTheme();
+  const scrollRef = useRef<ScrollView>(null);
+  const policiesY = useRef(0);
+
   const { data, isLoading } = useMyInsuranceEnrollments();
-  const { data: claimsData } = useMyInsuranceClaims();
+  const { data: claimsData, isLoading: claimsLoading } = useMyInsuranceClaims();
   const { data: catalogData, isLoading: catalogLoading } =
-    useInsuranceMarketplaceCatalog();
+    useInsuranceMarketplaceCatalog({ sort: "rating" });
 
   const enrollments = data?.enrollments ?? [];
   const active = useMemo(
@@ -58,7 +61,7 @@ export default function InsuranceHome() {
           (new Date(e.nextPremiumDueAt).getTime() - Date.now()) /
             (1000 * 60 * 60 * 24),
         );
-        return d <= 7;
+        return d >= 0 && d <= 7;
       }).length,
     [active],
   );
@@ -67,55 +70,53 @@ export default function InsuranceHome() {
     ["submitted", "under_review", "more_info_needed"].includes(c.status),
   ).length;
   const availablePlans = catalogData?.plans ?? [];
+  const featuredPlans = useMemo(() => {
+    const featured = availablePlans.filter((p) => p.isFeatured);
+    const rest = availablePlans.filter((p) => !p.isFeatured);
+    return [...featured, ...rest].slice(0, 3);
+  }, [availablePlans]);
+
+  function scrollToPolicies() {
+    if (enrollments.length === 0) {
+      router.push("/insurance/marketplace");
+      return;
+    }
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, policiesY.current - 12),
+      animated: true,
+    });
+  }
 
   return (
-    <Screen scroll padded={false} edges={["top"]}>
+    <Screen scroll padded={false} edges={["top"]} ref={scrollRef}>
       <ScreenHeader
-        title={t("insurance.tab")}
+        title={t("insurance.tab", "Insurance")}
         subtitle={t(
           "insurance.tabSubtitle",
-          "Manage your active policies, file claims, or search plans.",
+          "Policies, claims, and plan discovery in one place.",
         )}
         back
         onBack={() => router.replace("/(app)")}
       />
 
-      {/* ─── Hero ─── */}
-      <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.md }}>
+      {/* Hero */}
+      <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.xs }}>
         <LinearGradient
-          colors={["#0B4F6C", "#0D9488", "#14B8A6"]}
+          colors={["#0B4F6C", "#0E7490", "#0D9488"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 24,
-            padding: spacing.lg,
-            overflow: "hidden",
-            minHeight: 168,
-          }}
+          style={{ borderRadius: 20, padding: 14, overflow: "hidden" }}
         >
-          {/* Decorative orbs */}
           <View
             pointerEvents="none"
             style={{
               position: "absolute",
-              top: -40,
-              right: -30,
-              width: 140,
-              height: 140,
-              borderRadius: 70,
+              top: -30,
+              right: -20,
+              width: 100,
+              height: 100,
+              borderRadius: 50,
               backgroundColor: "rgba(255,255,255,0.12)",
-            }}
-          />
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              bottom: -50,
-              left: -20,
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: "rgba(255,255,255,0.08)",
             }}
           />
 
@@ -123,28 +124,17 @@ export default function InsuranceHome() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
-              marginBottom: 10,
+              gap: 6,
+              marginBottom: 6,
             }}
           >
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                backgroundColor: "rgba(255,255,255,0.2)",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <ShieldCheck size={16} color="#FFFFFF" strokeWidth={2.4} />
-            </View>
+            <ShieldCheck size={13} color="#FFFFFF" strokeWidth={2.4} />
             <Text
               style={{
-                color: "rgba(255,255,255,0.85)",
-                fontSize: 11,
+                color: "rgba(255,255,255,0.9)",
+                fontSize: 10,
                 fontWeight: "800",
-                letterSpacing: 1.2,
+                letterSpacing: 1.1,
                 textTransform: "uppercase",
               }}
             >
@@ -155,53 +145,45 @@ export default function InsuranceHome() {
           <Text
             style={{
               color: "#FFFFFF",
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: "800",
               fontFamily: fontFamily.bodyBold,
-              letterSpacing: -0.5,
-              lineHeight: 30,
+              letterSpacing: -0.4,
             }}
           >
-            {t("insurance.browseMarketplace", "Browse plans")}
+            {t("insurance.homeHeadline", "Find cover that fits")}
           </Text>
           <Text
             style={{
               color: "rgba(255,255,255,0.88)",
-              fontSize: 13.5,
-              lineHeight: 19,
-              marginTop: 6,
+              fontSize: 12.5,
+              lineHeight: 17,
+              marginTop: 3,
               fontWeight: "500",
-              maxWidth: "92%",
             }}
+            numberOfLines={2}
           >
             {t(
-              "insurance.homeTitle",
-              "Protect your family for less than your monthly coffee",
+              "insurance.homeSubtitleShort",
+              "Compare premiums and buy cover in minutes.",
             )}
           </Text>
 
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 16,
-              gap: 8,
-              flexWrap: "wrap",
-            }}
-          >
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
             <Pressable
               onPress={() => router.push("/insurance/marketplace")}
               haptic="light"
               accessibilityRole="button"
-              accessibilityLabel={t("insurance.search", "Search plans")}
               style={{
+                flex: 1,
                 flexDirection: "row",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 6,
                 backgroundColor: "#FFFFFF",
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 999,
+                paddingVertical: 11,
+                borderRadius: 12,
+                minHeight: 44,
               }}
             >
               <Search size={14} color="#0B4F6C" strokeWidth={2.5} />
@@ -213,29 +195,31 @@ export default function InsuranceHome() {
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                {t("insurance.search", "Search plans")}
+                {t("insurance.browseMarketplace", "Browse plans")}
               </Text>
-              <ArrowUpRight size={14} color="#0B4F6C" strokeWidth={2.5} />
             </Pressable>
             <Pressable
               onPress={() => router.push("/insurance/quote")}
               haptic="light"
               accessibilityRole="button"
-              accessibilityLabel={t("insurance.quote.short", "Get quote")}
               style={{
+                flex: 1,
                 flexDirection: "row",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 5,
-                backgroundColor: "#FFFFFF",
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 999,
+                backgroundColor: "rgba(255,255,255,0.16)",
+                borderWidth: 1.5,
+                borderColor: "rgba(255,255,255,0.45)",
+                paddingVertical: 11,
+                borderRadius: 12,
+                minHeight: 44,
               }}
             >
-              <Sparkles size={13} color="#0B4F6C" strokeWidth={2.4} />
+              <Sparkles size={13} color="#FFFFFF" strokeWidth={2.4} />
               <Text
                 style={{
-                  color: "#0B4F6C",
+                  color: "#FFFFFF",
                   fontWeight: "800",
                   fontSize: 13,
                   fontFamily: fontFamily.bodyBold,
@@ -248,27 +232,33 @@ export default function InsuranceHome() {
         </LinearGradient>
       </View>
 
-      {/* ─── Stats ─── */}
+      {/* Full-width stats */}
       <View
         style={{
           flexDirection: "row",
-          gap: spacing.sm,
+          gap: 8,
           paddingHorizontal: spacing.lg,
-          marginTop: spacing.lg,
+          marginTop: 12,
         }}
       >
         <StatTile
           icon={Shield}
           value={String(active.length)}
-          label={t("insurance.myPolicies")}
+          label={t("insurance.myPolicies", "My policies")}
           tint="#0284C7"
           soft="#E0F2FE"
-          onPress={() => {}}
+          onPress={scrollToPolicies}
         />
         <StatTile
           icon={FilePlus}
-          value={String(pendingClaims)}
-          label={t("insurance.myClaims")}
+          value={String(claims.length)}
+          label={
+            pendingClaims > 0
+              ? t("insurance.claimsPendingStat", "{{count}} pending", {
+                  count: pendingClaims,
+                })
+              : t("insurance.myClaims", "My claims")
+          }
           tint="#059669"
           soft="#D1FAE5"
           onPress={() => router.push("/insurance/claims")}
@@ -280,154 +270,125 @@ export default function InsuranceHome() {
             label={t("insurance.dueSoon", "Due ≤ 7d")}
             tint="#D97706"
             soft="#FEF3C7"
-            onPress={() => {}}
+            onPress={scrollToPolicies}
           />
         ) : null}
       </View>
 
-      {/* ─── Quick Actions ─── */}
+      {/* Secondary actions only — browse/quote stay in hero */}
       <View
         style={{
+          flexDirection: "row",
+          gap: 8,
           paddingHorizontal: spacing.lg,
-          marginTop: spacing.lg,
-          gap: spacing.sm,
+          marginTop: 12,
         }}
       >
-        <SectionHeader title={t("insurance.quickActions", "Quick actions")} />
-        <View style={{ gap: spacing.sm }}>
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <QuickTile
-              icon={Search}
-              label={t("insurance.actionBrowse", "Browse plans")}
-              hint={t("insurance.browseHint", "Compare plans")}
-              color="#0284C7"
-              soft="#E0F2FE"
-              onPress={() => router.push("/insurance/marketplace")}
-            />
-            <QuickTile
-              icon={Activity}
-              label={t("insurance.actionCoverage", "Coverage")}
-              hint={t("insurance.coverageHint", "What's covered")}
-              color="#059669"
-              soft="#D1FAE5"
-              onPress={() => router.push("/insurance/coverage-check")}
-            />
-          </View>
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <QuickTile
-              icon={FileText}
-              label={t("insurance.actionClaim", "File a claim")}
-              hint={t("insurance.claimHint", "Submit online")}
-              color="#D97706"
-              soft="#FEF3C7"
-              onPress={() => router.push("/insurance/claims/new")}
-            />
-            <QuickTile
-              icon={Sparkles}
-              label={t("insurance.actionQuote", "Get a quote")}
-              hint={t("insurance.quoteHint", "Takes ~60s")}
-              color="#0D9488"
-              soft="#CCFBF1"
-              onPress={() => router.push("/insurance/quote")}
-            />
-          </View>
-        </View>
+        <ActionChip
+          icon={Activity}
+          label={t("insurance.actionCoverage", "Coverage")}
+          color="#059669"
+          soft="#D1FAE5"
+          onPress={() => router.push("/insurance/coverage-check")}
+        />
+        <ActionChip
+          icon={FileText}
+          label={t("insurance.actionClaim", "File claim")}
+          color="#D97706"
+          soft="#FEF3C7"
+          onPress={() => router.push("/insurance/claims/new")}
+        />
       </View>
 
-      {/* ─── My Policies ─── */}
-      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
+      {/* Policies — immediately after actions so empty state is on-screen */}
+      <View
+        style={{ paddingHorizontal: spacing.lg, marginTop: 18 }}
+        onLayout={(e) => {
+          policiesY.current = e.nativeEvent.layout.y;
+        }}
+      >
         <SectionHeader
-          title={t("insurance.myPolicies")}
-          action={
-            enrollments.length > 0
-              ? {
-                  label: t("insurance.buyAnother"),
-                  onPress: () => router.push("/insurance/marketplace"),
-                }
-              : undefined
-          }
+          title={t("insurance.myPolicies", "My policies")}
+          action={{
+            label: t("insurance.browseMarketplace", "Browse plans"),
+            onPress: () => router.push("/insurance/marketplace"),
+          }}
         />
       </View>
 
       {isLoading ? (
-        <View style={{ padding: spacing.lg, gap: spacing.sm }}>
-          <Skeleton height={112} radius={18} />
-          <Skeleton height={112} radius={18} />
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            gap: 8,
+            marginTop: 8,
+          }}
+        >
+          <Skeleton height={100} radius={16} />
         </View>
       ) : enrollments.length === 0 ? (
-        <View style={{ gap: spacing.lg }}>
-          <View style={{ paddingHorizontal: spacing.lg }}>
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
+          <View
+            style={{
+              padding: 16,
+              alignItems: "center",
+              gap: 8,
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
             <View
               style={{
-                padding: spacing.lg,
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                backgroundColor: colors.primarySoft,
                 alignItems: "center",
-                gap: spacing.sm,
-                backgroundColor: colors.surface,
-                borderRadius: 18,
-                borderWidth: 1,
-                borderColor: colors.border,
+                justifyContent: "center",
               }}
             >
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Shield size={22} color={colors.primary} strokeWidth={2.3} />
-              </View>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: colors.text,
-                  textAlign: "center",
-                }}
-              >
-                {t("insurance.noPolicies")}
-              </Text>
-              <Button
-                title={t("insurance.browseMarketplace")}
-                onPress={() => router.push("/insurance/marketplace")}
-                fullWidth={false}
-              />
+              <Shield size={20} color={colors.primary} strokeWidth={2.3} />
             </View>
-          </View>
-
-          <View style={{ paddingHorizontal: spacing.lg }}>
-            <SectionHeader
-              title={t("insurance.policiesToBuy", "Policies You Can Buy")}
-            />
-            <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
-              {catalogLoading ? (
-                <View style={{ gap: spacing.sm }}>
-                  <Skeleton height={112} radius={18} />
-                  <Skeleton height={112} radius={18} />
-                </View>
-              ) : availablePlans.length === 0 ? (
-                <EmptyState title={t("insurance.provider.noPlans")} />
-              ) : (
-                availablePlans.slice(0, 3).map((plan) => (
-                  <InsurancePlanCard
-                    key={plan.id}
-                    plan={plan}
-                    onPress={() => router.push(`/insurance/plans/${plan.id}`)}
-                  />
-                ))
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "800",
+                color: colors.text,
+                textAlign: "center",
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              {t("insurance.noPolicies", "No active policies yet")}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12.5,
+                color: colors.textMuted,
+                textAlign: "center",
+                lineHeight: 17,
+                fontWeight: "500",
+              }}
+            >
+              {t(
+                "insurance.noPoliciesHint",
+                "Browse the marketplace to get coverage in minutes.",
               )}
-            </View>
+            </Text>
+            <Button
+              title={t("insurance.browseMarketplace", "Browse plans")}
+              onPress={() => router.push("/insurance/marketplace")}
+              fullWidth={false}
+            />
           </View>
         </View>
       ) : (
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            gap: spacing.sm,
-            marginTop: spacing.sm,
+            gap: 8,
+            marginTop: 8,
           }}
         >
           {enrollments.map((item) => (
@@ -440,37 +401,68 @@ export default function InsuranceHome() {
         </View>
       )}
 
-      {/* ─── My Claims ─── */}
-      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
+      {/* Featured plans */}
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: 20 }}>
         <SectionHeader
-          title={t("insurance.myClaims")}
-          action={
-            claims.length > 0
-              ? {
-                  label: t("insurance.submitClaim"),
-                  onPress: () => router.push("/insurance/claims/new"),
-                }
-              : undefined
-          }
+          title={t("insurance.policiesToBuy", "Plans you can buy")}
+          action={{
+            label: t("common.seeAll", "See all"),
+            onPress: () => router.push("/insurance/marketplace"),
+          }}
+        />
+        <View style={{ gap: 8, marginTop: 8 }}>
+          {catalogLoading ? (
+            <>
+              <Skeleton height={100} radius={16} />
+              <Skeleton height={100} radius={16} />
+            </>
+          ) : featuredPlans.length === 0 ? (
+            <EmptyState
+              title={t("insurance.provider.noPlans", "No plans available")}
+            />
+          ) : (
+            featuredPlans.map((plan) => (
+              <InsurancePlanCard
+                key={plan.id}
+                plan={plan}
+                onPress={() => router.push(`/insurance/plans/${plan.id}`)}
+              />
+            ))
+          )}
+        </View>
+      </View>
+
+      {/* Claims */}
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: 20 }}>
+        <SectionHeader
+          title={t("insurance.myClaims", "My claims")}
+          action={{
+            label: t("insurance.submitClaim", "File claim"),
+            onPress: () => router.push("/insurance/claims/new"),
+          }}
         />
       </View>
 
-      {claims.length === 0 && !isLoading ? (
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
+      {claimsLoading && claims.length === 0 ? (
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
+          <Skeleton height={80} radius={14} />
+        </View>
+      ) : claims.length === 0 ? (
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
           <EmptyState
             icon={FilePlus}
-            title={t("insurance.claim.noClaims", "No claims submitted yet.")}
-            actionLabel={t("insurance.submitClaim")}
+            title={t("insurance.claim.noClaims", "No claims submitted yet")}
+            actionLabel={t("insurance.submitClaim", "File a claim")}
             onAction={() => router.push("/insurance/claims/new")}
             tone="neutral"
           />
         </View>
-      ) : claims.length > 0 ? (
+      ) : (
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            gap: spacing.sm,
-            marginTop: spacing.sm,
+            gap: 8,
+            marginTop: 8,
           }}
         >
           {claims.slice(0, 5).map((claim) => (
@@ -478,14 +470,14 @@ export default function InsuranceHome() {
               key={claim.id}
               onPress={() => router.push(`/insurance/claims/${claim.id}`)}
               haptic="light"
-              style={({ pressed }) => ({
-                borderRadius: 16,
+              style={{
+                borderRadius: 14,
                 borderWidth: 1,
                 borderColor: colors.border,
-                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                backgroundColor: colors.surface,
                 padding: 14,
-                gap: 8,
-              })}
+                gap: 6,
+              }}
             >
               <View
                 style={{
@@ -506,7 +498,7 @@ export default function InsuranceHome() {
                   numberOfLines={1}
                 >
                   {claim.claimNumber ??
-                    `Claim #${claim.id.slice(0, 8).toUpperCase()}`}
+                    `Claim #${String(claim.id).slice(0, 8).toUpperCase()}`}
                 </Text>
                 <Pill
                   tone={
@@ -518,30 +510,49 @@ export default function InsuranceHome() {
                   }
                   label={t(
                     `insurance.claim.statuses.${claim.status}`,
-                    claim.status,
+                    String(claim.status).replace(/_/g, " "),
                   )}
                 />
               </View>
-              <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600" }}>
-                LKR {(claim.amountRequestedLkr ?? 0).toLocaleString()} ·{" "}
-                {claim.providerName ?? t("insurance.provider.label")}
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  fontWeight: "600",
+                }}
+              >
+                LKR {Number(claim.amountRequestedLkr ?? 0).toLocaleString()} ·{" "}
+                {claim.providerName ?? t("insurance.provider.label", "Insurer")}
               </Text>
-              {claim.createdAt ? (
-                <Text style={{ fontSize: 11, color: colors.textSubtle, fontWeight: "600" }}>
-                  {new Date(claim.createdAt).toLocaleDateString()}
-                </Text>
-              ) : null}
             </Pressable>
           ))}
           {claims.length > 5 ? (
-            <Button
-              title={t("insurance.claim.viewAll", "View all claims")}
-              variant="outline"
+            <Pressable
               onPress={() => router.push("/insurance/claims")}
-            />
+              haptic="light"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingVertical: 10,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "800",
+                  color: colors.primary,
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {t("insurance.claim.viewAll", "View all claims")}
+              </Text>
+              <ChevronRight size={14} color={colors.primary} strokeWidth={2.5} />
+            </Pressable>
           ) : null}
         </View>
-      ) : null}
+      )}
 
       <View style={{ height: spacing.xxxl }} />
     </Screen>
@@ -568,46 +579,43 @@ function StatTile({
     <Pressable
       onPress={onPress}
       haptic="light"
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
       style={{
         flex: 1,
         backgroundColor: soft,
-        borderRadius: 18,
-        padding: 14,
-        gap: 8,
-        borderWidth: 1,
-        borderColor: "transparent",
-        minHeight: 96,
+        borderRadius: 14,
+        padding: 12,
+        gap: 4,
+        minHeight: 84,
       }}
     >
       <View
         style={{
-          width: 34,
-          height: 34,
-          borderRadius: 11,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
           backgroundColor: "#FFFFFF",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={16} color={tint} strokeWidth={2.4} />
+        <Icon size={14} color={tint} strokeWidth={2.4} />
       </View>
       <Text
         style={{
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: "800",
           color: colors.text,
           fontFamily: fontFamily.bodyBold,
           letterSpacing: -0.4,
+          marginTop: 2,
         }}
       >
         {value}
       </Text>
       <Text
-        style={{
-          fontSize: 11.5,
-          fontWeight: "700",
-          color: colors.textMuted,
-        }}
+        style={{ fontSize: 11, fontWeight: "700", color: colors.textMuted }}
         numberOfLines={1}
       >
         {label}
@@ -616,17 +624,15 @@ function StatTile({
   );
 }
 
-function QuickTile({
+function ActionChip({
   icon: Icon,
   label,
-  hint,
   color,
   soft,
   onPress,
 }: {
   icon: any;
   label: string;
-  hint: string;
   color: string;
   soft: string;
   onPress: () => void;
@@ -637,57 +643,46 @@ function QuickTile({
       onPress={onPress}
       haptic="light"
       accessibilityRole="button"
-      accessibilityLabel={`${label}. ${hint}`}
-      style={({ pressed }) => ({
+      accessibilityLabel={label}
+      style={{
         flex: 1,
-        backgroundColor: pressed ? soft : colors.surface,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: pressed ? color : colors.border,
-        padding: 14,
+        flexDirection: "row",
+        alignItems: "center",
         gap: 10,
-        minHeight: 104,
-        justifyContent: "space-between",
-      })}
+        backgroundColor: colors.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        minHeight: 48,
+      }}
     >
       <View
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
+          width: 34,
+          height: 34,
+          borderRadius: 10,
           backgroundColor: soft,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={18} color={color} strokeWidth={2.4} />
+        <Icon size={16} color={color} strokeWidth={2.4} />
       </View>
-      <View style={{ gap: 3 }}>
-        <Text
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={{
-            fontSize: 14,
-            fontWeight: "800",
-            color: colors.text,
-            fontFamily: fontFamily.bodyBold,
-            letterSpacing: -0.2,
-          }}
-        >
-          {label}
-        </Text>
-        <Text
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={{
-            fontSize: 12,
-            color: colors.textMuted,
-            fontWeight: "600",
-          }}
-        >
-          {hint}
-        </Text>
-      </View>
+      <Text
+        style={{
+          flex: 1,
+          fontSize: 13,
+          fontWeight: "800",
+          color: colors.text,
+          fontFamily: fontFamily.bodyBold,
+        }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <ChevronRight size={14} color={colors.textSubtle} strokeWidth={2.4} />
     </Pressable>
   );
 }
@@ -704,12 +699,14 @@ function PolicyCard({
   const statusTone: "success" | "warning" | "danger" | "neutral" =
     item.status === "active"
       ? "success"
-      : item.status === "grace"
+      : item.status === "grace" || item.status === "grace_period"
         ? "warning"
         : item.status === "lapsed" || item.status === "expired"
           ? "danger"
           : "neutral";
 
+  const coverage = Number(item.coverageAmountLkr ?? 0);
+  const premium = Number(item.premiumAmountLkr ?? 0);
   const daysToDue = item.nextPremiumDueAt
     ? Math.ceil(
         (new Date(item.nextPremiumDueAt).getTime() - Date.now()) /
@@ -720,10 +717,10 @@ function PolicyCard({
   const overdue = daysToDue !== null && daysToDue < 0;
 
   return (
-    <Pressable onPress={onPress} haptic="light">
+    <Pressable onPress={onPress} haptic="light" accessibilityRole="button">
       <View
         style={{
-          borderRadius: 18,
+          borderRadius: 16,
           borderWidth: 1,
           borderColor: overdue
             ? colors.danger
@@ -769,27 +766,43 @@ function PolicyCard({
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                {item.planName ?? item.policyNumber}
+                {item.planName ?? item.policyNumber ?? "Policy"}
               </Text>
               <Text
                 numberOfLines={1}
-                style={{ fontSize: 12, color: colors.textMuted, marginTop: 2, fontWeight: "600" }}
+                style={{
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  marginTop: 2,
+                  fontWeight: "600",
+                }}
               >
                 {item.providerName ??
                   item.policyNumber ??
-                  t("insurance.provider.label")}
+                  t("insurance.provider.label", "Insurer")}
               </Text>
             </View>
             <Pill
               tone={statusTone}
-              label={t(`insurance.status.${item.status}`)}
+              label={t(
+                `insurance.status.${item.status}`,
+                String(item.status ?? "unknown").replace(/_/g, " "),
+              )}
             />
           </View>
 
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
             <View>
-              <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: "600" }}>
-                {t("insurance.policy.coverage")}
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: colors.textMuted,
+                  fontWeight: "600",
+                }}
+              >
+                {t("insurance.policy.coverage", "Coverage")}
               </Text>
               <Text
                 style={{
@@ -800,12 +813,18 @@ function PolicyCard({
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                LKR {item.coverageAmountLkr.toLocaleString()}
+                LKR {coverage.toLocaleString()}
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: "600" }}>
-                {t("insurance.policy.premium")}
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: colors.textMuted,
+                  fontWeight: "600",
+                }}
+              >
+                {t("insurance.policy.premium", "Premium")}
               </Text>
               <Text
                 style={{
@@ -816,7 +835,7 @@ function PolicyCard({
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
-                LKR {item.premiumAmountLkr.toLocaleString()}
+                LKR {premium.toLocaleString()}
               </Text>
             </View>
           </View>
@@ -842,9 +861,10 @@ function PolicyCard({
                     : dueSoon
                       ? colors.warning
                       : colors.textMuted,
+                  flex: 1,
                 }}
               >
-                {t("insurance.policy.nextPremium")}:{" "}
+                {t("insurance.policy.nextPremium", "Next premium")}:{" "}
                 {new Date(item.nextPremiumDueAt).toLocaleDateString()}
                 {daysToDue !== null
                   ? ` · ${overdue ? `${-daysToDue}d overdue` : `${daysToDue}d`}`

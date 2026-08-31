@@ -21,6 +21,7 @@ import {
   ActionSheetIOS,
   Platform,
   Modal,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -60,6 +61,7 @@ import {
   Pill,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
+import { insurancePlanImage } from "@/components/insurance/PlanCard";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -88,6 +90,13 @@ const PLAN_TYPE_META: Record<
   dental: { icon: Smile, bg: "#CFFAFE", fg: "#0891B2" },
   maternity: { icon: Baby, bg: "#DCFCE7", fg: "#16A34A" },
 };
+
+// Plan type → bundled illustration. `require()` keeps the assets baked
+function planImageFor(planType: string): any | undefined {
+  return insurancePlanImage(planType);
+}
+
+const HERO_IMAGE = require("../../../../assets/insurance/hero.jpg");
 
 const SORT_OPTIONS: Array<{ value: "rating" | "premium" | "premium-desc"; i18nKey: string }> = [
   { value: "rating", i18nKey: "insurance.sort.rating" },
@@ -292,6 +301,7 @@ function PlanRichCard({
   const hasDiscount = plan.annualDiscountPct > 0;
   const meta = PLAN_TYPE_META[plan.planType] ?? PLAN_TYPE_META.individual;
   const PlanIcon = meta.icon;
+  const planImage = planImageFor(plan.planType);
 
   return (
     <Pressable
@@ -307,6 +317,7 @@ function PlanRichCard({
           borderRadius: radius.xl,
           borderWidth: compareSelected ? 2 : 0,
           borderColor: compareSelected ? colors.primary : "transparent",
+          overflow: "hidden",
         }}
       >
         {/* Provider row */}
@@ -376,37 +387,63 @@ function PlanRichCard({
           <ChevronRight size={16} color={colors.textSubtle} />
         </View>
 
-        {/* Plan name + badges */}
-        <Text
-          style={{
-            fontSize: 15,
-            fontWeight: "700",
-            color: colors.text,
-            lineHeight: 20,
-          }}
-          numberOfLines={2}
-        >
-          {plan.name}
-        </Text>
-        <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-          {plan.isFeatured ? (
-            <Pill tone="accent" icon={<Sparkles size={11} />}>
-              Featured
-            </Pill>
-          ) : null}
-          {hasDiscount ? (
-            <Pill tone="success" icon={<TrendingDown size={11} />}>
-              Save {plan.annualDiscountPct.toFixed(0)}%
-            </Pill>
-          ) : null}
-        </View>
+        {/* Plan details row with dedicated thumbnail */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "700",
+                color: colors.text,
+                lineHeight: 20,
+              }}
+              numberOfLines={2}
+            >
+              {plan.name}
+            </Text>
 
-        {/* Coverage */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <ShieldCheck size={13} color={colors.accent ?? colors.primary} />
-          <Text style={{ fontSize: 12, color: colors.text, fontWeight: "600" }}>
-            Up to LKR {plan.coverageSummaryLkr.toLocaleString()}
-          </Text>
+            <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+              {plan.isFeatured ? (
+                <Pill tone="accent" icon={<Sparkles size={11} />}>
+                  Featured
+                </Pill>
+              ) : null}
+              {hasDiscount ? (
+                <Pill tone="success" icon={<TrendingDown size={11} />}>
+                  Save {plan.annualDiscountPct.toFixed(0)}%
+                </Pill>
+              ) : null}
+            </View>
+
+            {/* Coverage */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <ShieldCheck size={13} color={colors.accent ?? colors.primary} />
+              <Text style={{ fontSize: 12, color: colors.text, fontWeight: "600" }}>
+                Up to LKR {plan.coverageSummaryLkr.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+
+          {planImage ? (
+            <View
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 14,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.surfaceMuted,
+                flexShrink: 0,
+              }}
+            >
+              <Image
+                source={planImage}
+                resizeMode="cover"
+                style={{ width: "100%", height: "100%" }}
+              />
+            </View>
+          ) : null}
         </View>
 
         {/* Premium block */}
@@ -474,6 +511,7 @@ function FeaturedPlanCard({
   onPress: () => void;
 }) {
   const { colors, spacing, radius } = useTheme();
+  const planImage = planImageFor(plan.planType);
   return (
     <Pressable onPress={onPress} haptic="light">
       <Card
@@ -485,9 +523,32 @@ function FeaturedPlanCard({
           backgroundColor: colors.surface,
           borderWidth: 1,
           borderColor: colors.primary,
+          overflow: "hidden",
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        {planImage ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              width: 72,
+              height: 72,
+              borderRadius: 16,
+              overflow: "hidden",
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surfaceMuted,
+            }}
+          >
+            <Image
+              source={planImage}
+              resizeMode="cover"
+              style={{ width: "100%", height: "100%" }}
+            />
+          </View>
+        ) : null}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingRight: 72 }}>
           <Pill tone="primary" icon={<Sparkles size={11} />}>
             Top Pick
           </Pill>
@@ -519,6 +580,7 @@ function FeaturedPlanCard({
             fontWeight: "800",
             color: colors.text,
             lineHeight: 20,
+            paddingRight: 72,
           }}
           numberOfLines={2}
         >
@@ -805,6 +867,23 @@ export default function Marketplace() {
             height: 140,
             borderRadius: 70,
             backgroundColor: "rgba(255,255,255,0.08)",
+          }}
+        />
+
+        {/* Hero illustration overlay — decorative, on the right side */}
+        <Image
+          source={HERO_IMAGE}
+          resizeMode="cover"
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            right: -spacing.md,
+            top: "30%",
+            width: 180,
+            height: 110,
+            borderRadius: 16,
+            opacity: 0.55,
+            transform: [{ rotate: "6deg" }],
           }}
         />
 

@@ -61,6 +61,16 @@ const TYPE_LABEL: Record<string, string> = {
   maternity: "Maternity & Newborn",
 };
 
+const PLAN_TYPE_IMAGE: Record<string, string> = {
+  individual: "/assets/insurance/plan-types/insurance-individual.jpg?v=2",
+  family_floater: "/assets/insurance/plan-types/insurance-family.jpg?v=2",
+  senior: "/assets/insurance/plan-types/insurance-senior.jpg?v=2",
+  critical_illness: "/assets/insurance/plan-types/insurance-critical-illness.jpg?v=2",
+  cancer: "/assets/insurance/plan-types/insurance-cancer.jpg?v=2",
+  dental: "/assets/insurance/plan-types/insurance-dental.jpg?v=2",
+  maternity: "/assets/insurance/plan-types/insurance-maternity.jpg?v=2",
+};
+
 export default function PlanDetailPage({
   params,
 }: {
@@ -115,12 +125,10 @@ export default function PlanDetailPage({
     <div className="flex flex-col gap-6 pb-16">
       {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
       <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
+        className="relative rounded-3xl p-6 md:p-8 text-white overflow-hidden shadow-xl"
         style={{
           background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+            "linear-gradient(135deg, #082F49 0%, #0369A1 45%, #0284C7 80%, #0EA5E9 100%)",
         }}
       >
         {/* Glow Orbs */}
@@ -143,17 +151,28 @@ export default function PlanDetailPage({
 
         <div className="relative z-10 flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Building2 size={12} className="text-sky-300" />
-                {plan.providerName ?? "Accredited Health Insurer"}
+            <div className="flex items-start gap-4 min-w-0 max-w-xl">
+              {PLAN_TYPE_IMAGE[plan.planType] ? (
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-white/20 bg-white/10 shrink-0 shadow-md">
+                  <img
+                    src={PLAN_TYPE_IMAGE[plan.planType]}
+                    alt={plan.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : null}
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
+                  <Building2 size={12} className="text-sky-300" />
+                  {plan.providerName ?? "Accredited Health Insurer"}
+                </div>
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                  {plan.name}
+                </h1>
+                <p className="text-sm text-white/80 mt-1 leading-relaxed">
+                  Comprehensive {TYPE_LABEL[plan.planType] ?? "Health"} plan offering up to {formatLkr(plan.coverageSummaryLkr)} in cashless hospital benefits across {plan.networkHospitalCount}+ accredited medical centers.
+                </p>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                {plan.name}
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Comprehensive {TYPE_LABEL[plan.planType] ?? "Health"} plan offering up to {formatLkr(plan.coverageSummaryLkr)} in cashless hospital benefits across {plan.networkHospitalCount}+ accredited medical centers.
-              </p>
             </div>
 
             {/* Header Actions */}
