@@ -755,6 +755,28 @@ router.post("/book", authMiddleware, async (c) => {
     );
   }
 
+  // Lab Task 3: minimal slot capacity — max 20 active bookings per
+  // lab + date + slot. Rejects with 409 when full (keeps 9-state enum,
+  // no schema drops).
+  const slotBookings = await db
+    .select({ id: testBookings.id })
+    .from(testBookings)
+    .where(
+      and(
+        eq(testBookings.labPartnerId, labPartnerId),
+        eq(testBookings.scheduledDate, data.scheduledDate),
+        eq(testBookings.scheduledTimeSlot, data.scheduledTimeSlot),
+        inArray(testBookings.status, BOOKING_ACTIVE_STATUSES)
+      )
+    )
+    .limit(21);
+  if (slotBookings.length >= 20) {
+    return c.json(
+      { error: "This time slot is fully booked. Please choose another slot." },
+      409
+    );
+  }
+
   // Determine payment status based on method
   const paymentStatus =
     data.paymentMethod === "cash" ? "cash_on_collection" : "pending";

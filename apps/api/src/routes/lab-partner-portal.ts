@@ -38,6 +38,33 @@ function getLabId(c: any): string {
   return c.get("userId");
 }
 
+// Lab Task 3: R2 result URL validation.
+// Canonical upload is POST /files/upload → `/files/download/<key>`.
+// Accept:
+//   - relative `/files...` (canonical same-origin R2 URL), or
+//   - `https://<R2_PUBLIC_URL domain>/...` when R2_PUBLIC_URL /
+//     R2_PUBLIC_BASE_URL is configured.
+// Fallback (no R2 domain configured): allow any `https://` URL but the
+// canonical store remains the `/files` upload (documented on complete).
+function isValidResultPdfUrl(url: string, env: any): boolean {
+  if (typeof url !== "string" || url.length === 0) return false;
+  if (url.startsWith("/files")) return true;
+  if (url.startsWith("https://")) {
+    const base =
+      env?.R2_PUBLIC_URL || env?.R2_PUBLIC_BASE_URL || env?.R2_PUBLIC_DOMAIN
+        ? String(
+            env?.R2_PUBLIC_URL ||
+              env?.R2_PUBLIC_BASE_URL ||
+              `https://${env?.R2_PUBLIC_DOMAIN}`
+          )
+        : null;
+    if (base) return url.startsWith(base);
+    // No R2 domain configured: allow any https URL (canonical is /files).
+    return true;
+  }
+  return false;
+}
+
 // ─── List incoming bookings ──────────────────────────────
 router.get("/bookings", async (c) => {
   const db = c.get("db");
@@ -299,6 +326,59 @@ router.patch("/bookings/:id/assign-phlebotomist", async (c) => {
   return c.json({ booking: updated });
 });
 
+// ─── Mark phlebotomist en-route ──────────────────────────
+// Lab Task 3: missing `en-route` writer for the 9-state enum.
+// Transition: phlebotomist_assigned → sample_collection_en_route.
+// Scoped to owning labPartnerId; notifies patient via lab_ready.
+router.patch("/bookings/:id/en-route", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const id = c.req.param("id");
+
+  const [booking] = await db
+    .select()
+    .from(testBookings)
+    .where(
+      and(eq(testBookings.id, id), eq(testBookings.labPartnerId, labId))
+    )
+    .limit(1);
+
+  if (!booking) return c.json({ error: "Booking not found" }, 404);
+  if (booking.status !== "phlebotomist_assigned") {
+    return c.json(
+      { error: `Cannot mark en-route in '${booking.status}' status` },
+      400
+    );
+  }
+
+  const [updated] = await db
+    .update(testBookings)
+    .set({
+      status: "sample_collection_en_route",
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(testBookings.id, id))
+    .returning();
+
+  notify({
+    db,
+    env: c.env,
+    userId: booking.patientId,
+    type: "lab_ready",
+    title: "Phlebotomist En Route",
+    body: "Your phlebotomist is on the way for sample collection.",
+    data: { bookingId: id, kind: "test_booking_en_route" },
+  }).catch(() => {});
+
+  audit(db, labId, {
+    action: "en_route",
+    resource: "test_booking",
+    resourceId: id,
+  }).catch(() => {});
+
+  return c.json({ booking: updated });
+});
+
 // ─── Mark sample collected ───────────────────────────────
 router.patch("/bookings/:id/collect-sample", async (c) => {
   const db = c.get("db");
@@ -397,6 +477,14 @@ router.patch("/bookings/:id/in-progress", async (c) => {
 });
 
 // ─── Complete booking (upload results) ───────────────────
+//
+// Canonical result store (Lab Task 3):
+//   - `test_bookings.resultPdfUrl / resultSummary / resultReadyAt` is the
+//     canonical patient-visible result for D2C lab bookings.
+//   - `lab_reports` is only linked for doctor-ordered tests (physician
+//     workflow); D2C fulfillment must not write `lab_reports` rows.
+//   - `resultPdfUrl` must be the canonical `/files` R2 URL from
+//     POST /files/upload (or the configured https:// R2 domain).
 router.patch("/bookings/:id/complete", async (c) => {
   const db = c.get("db");
   const labId = getLabId(c);
@@ -410,6 +498,20 @@ router.patch("/bookings/:id/complete", async (c) => {
         error: "Validation failed",
         details: flattenTranslated(parsed.error, c.get("locale")),
       },
+      400
+    );
+  }
+
+  // Lab Task 3: require R2/file URL (canonical POST /files/upload).
+  if (!parsed.data.resultPdfUrl) {
+    return c.json(
+      { error: "resultPdfUrl is required (upload via POST /files/upload)" },
+      400
+    );
+  }
+  if (!isValidResultPdfUrl(parsed.data.resultPdfUrl, c.env)) {
+    return c.json(
+      { error: "resultPdfUrl must be a /files R2 URL (upload via POST /files/upload)" },
       400
     );
   }

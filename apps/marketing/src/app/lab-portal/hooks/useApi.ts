@@ -165,6 +165,20 @@ export function useCollectSample() {
   });
 }
 
+export function useMarkEnRoute() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ booking: LabBooking }>(`/lab-portal/bookings/${id}/en-route`, {
+        method: "PATCH",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lab-bookings"] });
+      qc.invalidateQueries({ queryKey: ["lab-booking"] });
+    },
+  });
+}
+
 export function useCompleteBooking() {
   const qc = useQueryClient();
   return useMutation({

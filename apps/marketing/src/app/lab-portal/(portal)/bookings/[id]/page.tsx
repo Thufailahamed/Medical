@@ -7,15 +7,18 @@ import {
   useConfirmBooking,
   useAssignPhlebotomist,
   useCollectSample,
+  useMarkEnRoute,
   useCompleteBooking,
   useCancelLabBooking,
   usePhlebotomists,
 } from "../../../hooks/useApi";
+import { uploadFile } from "../../../lib/api";
 
 const STATUS_STEPS = [
   { key: "pending", label: "Pending" },
   { key: "confirmed", label: "Confirmed" },
   { key: "phlebotomist_assigned", label: "Phlebotomist Assigned" },
+  { key: "sample_collection_en_route", label: "En Route" },
   { key: "sample_collected", label: "Sample Collected" },
   { key: "in_progress", label: "In Progress" },
   { key: "completed", label: "Completed" },
@@ -29,6 +32,7 @@ export default function BookingDetailPage() {
   const confirmBooking = useConfirmBooking();
   const assignPhleb = useAssignPhlebotomist();
   const collectSample = useCollectSample();
+  const markEnRoute = useMarkEnRoute();
   const completeBooking = useCompleteBooking();
   const cancelBooking = useCancelLabBooking();
 
@@ -37,6 +41,11 @@ export default function BookingDetailPage() {
   const [selectedPhleb, setSelectedPhleb] = useState("");
   const [resultSummary, setResultSummary] = useState("");
   const [resultPdfUrl, setResultPdfUrl] = useState("");
+  // Lab Task 3: R2 result upload — pick a PDF, upload via POST
+  // /files/upload, then complete with the returned /files key.
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -202,6 +211,16 @@ export default function BookingDetailPage() {
 
           {booking.status === "phlebotomist_assigned" && (
             <button
+              onClick={() => markEnRoute.mutate(id)}
+              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition"
+            >
+              Mark En Route
+            </button>
+          )}
+
+          {(booking.status === "phlebotomist_assigned" ||
+            booking.status === "sample_collection_en_route") && (
+            <button
               onClick={() => collectSample.mutate(id)}
               className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition"
             >
@@ -287,13 +306,31 @@ export default function BookingDetailPage() {
               placeholder="Result summary (AI will use this)..."
               className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-3 h-32 resize-none"
             />
+            {/* Lab Task 3: file picker uploads via POST /files/upload,
+                then complete uses the returned /files key. */}
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              onChange={(e) => {
+                setSelectedFile(e.target.files?.[0] ?? null);
+                setUploadError(null);
+              }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-3"
+            />
             <input
               type="url"
               value={resultPdfUrl}
               onChange={(e) => setResultPdfUrl(e.target.value)}
-              placeholder="PDF URL (optional)"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4"
+              placeholder="/files/download/... (auto-filled after upload)"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-2"
             />
+            <p className="text-xs text-gray-500 mb-4">
+              Canonical: upload a PDF via POST /files/upload — the /files URL
+              is required to complete.
+            </p>
+            {uploadError && (
+              <p className="text-xs text-red-600 mb-3">{uploadError}</p>
+            )}
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowResultModal(false)}
@@ -302,17 +339,40 @@ export default function BookingDetailPage() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  completeBooking.mutate({
-                    id,
-                    resultSummary: resultSummary || undefined,
-                    resultPdfUrl: resultPdfUrl || undefined,
-                  });
-                  setShowResultModal(false);
+                onClick={async () => {
+                  try {
+                    setUploading(true);
+                    setUploadError(null);
+                    let pdfUrl = resultPdfUrl;
+                    if (selectedFile && !pdfUrl) {
+                      const uploaded = await uploadFile(selectedFile);
+                      pdfUrl = uploaded.url;
+                      setResultPdfUrl(pdfUrl);
+                    }
+                    if (!pdfUrl) {
+                      setUploadError(
+                        "Please choose a result PDF (upload via POST /files/upload)."
+                      );
+                      return;
+                    }
+                    completeBooking.mutate({
+                      id,
+                      resultSummary: resultSummary || undefined,
+                      resultPdfUrl: pdfUrl,
+                    });
+                    setShowResultModal(false);
+                  } catch (err) {
+                    setUploadError(
+                      err instanceof Error ? err.message : "Upload failed"
+                    );
+                  } finally {
+                    setUploading(false);
+                  }
                 }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                disabled={uploading}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
               >
-                Submit & Complete
+                {uploading ? "Uploading…" : "Submit & Complete"}
               </button>
             </div>
           </div>

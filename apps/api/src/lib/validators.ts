@@ -678,7 +678,9 @@ export const assignPhlebotomistSchema = z.object({
 });
 
 export const completeTestBookingSchema = z.object({
-  resultPdfUrl: z.string().url().optional(),
+  // Lab Task 3: allow canonical relative `/files/...` R2 URLs (not only
+  // absolute https). Route-level `isValidResultPdfUrl` enforces the R2 shape.
+  resultPdfUrl: z.string().min(1).optional(),
   resultSummary: z.string().max(5000).optional(),
   notes: z.string().max(1000).optional(),
 });
