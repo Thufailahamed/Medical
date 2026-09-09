@@ -54,7 +54,10 @@ export default function TestPackageDetailScreen() {
 
   const { data, isLoading, error } = useTestPackageDetail(slug);
 
-  if (isLoading) {
+  const fallbackPkg = CURATED_PACKAGES.find((c) => c.slug === slug);
+  const pkg = (data as any)?.id ? data : (data as any)?.package ?? fallbackPkg;
+
+  if (isLoading && !pkg) {
     return (
       <Screen padded={false} bottomInset={false}>
         <ScreenHeader title="Package Details" back />
@@ -65,9 +68,6 @@ export default function TestPackageDetailScreen() {
       </Screen>
     );
   }
-
-  const fallbackPkg = CURATED_PACKAGES.find((c) => c.slug === slug);
-  const pkg = data?.package ?? fallbackPkg;
 
   if (!pkg) {
     return (

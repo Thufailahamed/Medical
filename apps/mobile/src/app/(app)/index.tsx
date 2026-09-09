@@ -72,6 +72,7 @@ import { HealthSnapshotCard } from "@/components/records";
 import { VITAL_REGISTRY, type VitalType } from "@healthcare/shared/vitals";
 import { CURATED_PACKAGES, packageImage } from "./test-packages";
 import { CURATED_INSURANCE_PLANS, insurancePlanImage } from "@/components/insurance/PlanCard";
+import { HOME_ASSETS } from "@/constants/home-assets";
 import {
   Screen,
   Card,
@@ -348,31 +349,16 @@ export default function HomeScreen() {
               </View>
             ) : (
               <View>
-                <LinearGradient
-                  colors={["#38BDF8", "#0284C7"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                <Image
+                  source={HOME_ASSETS.avatar}
                   style={{
                     width: 44,
                     height: 44,
                     borderRadius: 22,
-                    alignItems: "center",
-                    justifyContent: "center",
                     borderWidth: 2,
                     borderColor: colors.surface,
                   }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "800",
-                      color: "#FFFFFF",
-                      letterSpacing: -0.3,
-                    }}
-                  >
-                    {(userName || "?")[0]?.toUpperCase()}
-                  </Text>
-                </LinearGradient>
+                />
                 <View
                   style={{
                     position: "absolute",
@@ -520,6 +506,18 @@ export default function HomeScreen() {
               backgroundColor: "rgba(255, 255, 255, 0.25)",
             }}
           />
+          {/* Subtle medical heartbeat watermark */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              right: -15,
+              bottom: -15,
+              opacity: 0.08,
+            }}
+          >
+            <HeartPulse size={180} color="#FFFFFF" strokeWidth={1.5} />
+          </View>
 
           <View style={{ padding: spacing.xl }}>
             <View
@@ -811,6 +809,7 @@ export default function HomeScreen() {
             <SectionLabel title={t("home.sectionQuickActions")} />
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <QuickTile
+                image={HOME_ASSETS.medicines}
                 icon={Pill}
                 label={t("home.medicines")}
                 hint={t("home.medicinesHint")}
@@ -818,6 +817,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(app)/medicines")}
               />
               <QuickTile
+                image={HOME_ASSETS.records}
                 icon={ClipboardList}
                 label={t("home.records")}
                 hint={t("home.recordsHint")}
@@ -827,6 +827,7 @@ export default function HomeScreen() {
             </View>
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <QuickTile
+                image={HOME_ASSETS.doctor}
                 icon={CalendarPlus}
                 label={t("home.bookVisit")}
                 hint={t("home.bookVisitHint")}
@@ -834,6 +835,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(app)/book-appointment")}
               />
               <QuickTile
+                image={HOME_ASSETS.emergency}
                 icon={AlertTriangle}
                 label={t("home.emergency")}
                 hint={t("home.emergencyHint")}
@@ -1859,18 +1861,22 @@ function SectionLabel({
   );
 }
 
-// ─── Quick action tile (premium) ────────────────────────────────────────
+// ─── Quick action tile (premium with 3D illustration) ───────────────────
 function QuickTile({
   icon: Icon,
+  image,
   label,
   hint,
   tone,
+  badge,
   onPress,
 }: {
   icon: React.ComponentType<any>;
+  image?: any;
   label: string;
   hint?: string;
   tone: Tone;
+  badge?: string;
   onPress: () => void;
 }) {
   const { colors, spacing, typography } = useTheme();
@@ -1890,11 +1896,11 @@ function QuickTile({
         backgroundColor: isEmergency ? palette.bg : colors.surface,
         opacity: pressed ? 0.92 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
-        minHeight: 118,
+        minHeight: 124,
         justifyContent: "space-between",
         gap: spacing.sm,
         borderWidth: 1,
-        borderColor: isEmergency ? "transparent" : colors.border,
+        borderColor: isEmergency ? "rgba(239, 68, 68, 0.25)" : colors.border,
         overflow: "hidden",
         position: "relative",
         shadowColor: palette.fg,
@@ -1904,22 +1910,55 @@ function QuickTile({
         elevation: 3,
       })}
     >
-      {/* Soft tone wash in the corner */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: -28,
-          right: -24,
-          width: 96,
-          height: 96,
-          borderRadius: 48,
-          backgroundColor: isEmergency
-            ? "rgba(255,255,255,0.35)"
-            : palette.bg,
-          opacity: isEmergency ? 1 : 0.9,
-        }}
-      />
+      {/* 3D Illustration / Visual Image in top-right */}
+      {image ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            width: 56,
+            height: 56,
+            borderRadius: 16,
+            overflow: "hidden",
+            backgroundColor: isEmergency
+              ? "rgba(255,255,255,0.4)"
+              : palette.bg,
+            borderWidth: 1,
+            borderColor: isEmergency
+              ? "rgba(255,255,255,0.6)"
+              : palette.border || "rgba(0,0,0,0.05)",
+            shadowColor: palette.fg,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.18,
+            shadowRadius: 6,
+            elevation: 2,
+          }}
+        >
+          <Image
+            source={image}
+            resizeMode="cover"
+            style={{ width: "100%", height: "100%", borderRadius: 16 }}
+          />
+        </View>
+      ) : (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: -28,
+            right: -24,
+            width: 96,
+            height: 96,
+            borderRadius: 48,
+            backgroundColor: isEmergency
+              ? "rgba(255,255,255,0.35)"
+              : palette.bg,
+            opacity: isEmergency ? 1 : 0.9,
+          }}
+        />
+      )}
 
       <View
         style={{
@@ -1976,7 +2015,7 @@ function QuickTile({
               typography.body.sm,
               {
                 color: isEmergency ? palette.fg : colors.textMuted,
-                opacity: isEmergency ? 0.75 : 1,
+                opacity: isEmergency ? 0.85 : 1,
                 fontWeight: "500",
               },
             ]}

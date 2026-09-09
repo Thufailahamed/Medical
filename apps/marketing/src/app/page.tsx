@@ -1,81 +1,349 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUpRight, Check, ChevronDown, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
-import { LivingTimeline } from "../components/living-timeline";
-import { AssayFigure, ContentsLedger, DayStrip, PulseTrace, VitalsTape } from "../components/journal-pieces";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BellRing,
+  CalendarCheck,
+  Check,
+  ChevronDown,
+  FileSearch,
+  HeartPulse,
+  Menu,
+  Pill,
+  ShieldCheck,
+  Stethoscope,
+  X,
+} from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Product", href: "#product" },
+  { label: "The record", href: "#record" },
   { label: "How it works", href: "#how" },
+  { label: "Health AI", href: "#ai" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Security", href: "#security" },
+];
+
+const HOSPITALS = ["Asiri Health", "Nawaloka", "Durdans", "Lanka Hospitals", "Hemas Labs", "Ninewells", "Lanka Hospitals Diagnostics"];
+
+const TAPE = [
+  ["HbA1c", "6.1%", "in range"],
+  ["Blood pressure", "122/78", "this morning"],
+  ["Next dose", "8:00 PM", "after rice"],
+  ["Visit", "Tue 09:30", "Dr. Perera"],
+  ["Records", "148", "indexed"],
+  ["Family", "5 profiles", "shared on purpose"],
+];
+
+const FILM = [
+  { src: "/assets/insurance/plan-types/insurance-family.jpg", cap: "Sunday with the boys" },
+  { src: "/assets/brand/harbor-hands.png", cap: "Amma’s reports, read together" },
+  { src: "/assets/insurance/plan-types/insurance-senior.jpg", cap: "The appointment, prepared" },
+  { src: "/assets/brand/harbor-still-life.png", cap: "What used to live in a drawer" },
+  { src: "/assets/insurance/plan-types/insurance-maternity.jpg", cap: "The first file that matters" },
+  { src: "/assets/insurance/hero.jpg", cap: "Private by construction" },
 ];
 
 const FEATURES = [
   {
-    number: "01",
-    kicker: "The record",
-    title: "A living history, not a pile of files.",
-    body: "Bring lab reports, prescriptions, discharge summaries, and vaccination cards into one private timeline. HealthHub makes the details findable when they matter.",
-    tone: "paper",
+    id: "timeline",
+    k: "01",
+    title: "A record that reads like a letter",
+    body: "Labs, prescriptions and visits land in date order — searchable in English, Sinhala or Tamil. No more hunting through WhatsApp.",
+    mock: "timeline" as const,
   },
   {
-    number: "02",
-    kicker: "The routine",
-    title: "Care that fits around real life.",
-    body: "Quiet reminders follow your day, refill alerts arrive before the last tablet, and family profiles keep the people you care about close without the nagging.",
-    tone: "ember",
+    id: "meds",
+    k: "02",
+    title: "The nudge before the last tablet",
+    body: "Doses slide into breakfast, lunch, bedtime. Refill alerts arrive while the bottle still has weight. Never a siren. Never a nag.",
+    mock: "meds" as const,
   },
   {
-    number: "03",
-    kicker: "The conversation",
-    title: "Answers with your context attached.",
-    body: "Ask about a result in plain language. Health AI reads your records and shows its work, so you can have a better conversation with your clinician.",
-    tone: "ink",
+    id: "family",
+    k: "03",
+    title: "Look after everyone from one login",
+    body: "Five profiles. Granular sharing. Watch over elders from London or Dehiwala — with permission, always, and a revoke that actually works.",
+    mock: "family" as const,
   },
-];
-
-const JOBS = [
-  ["Stay on top of medicines", "Reminders meet you at breakfast, after lunch, or before bed. Refill alerts arrive with enough time to act."],
-  ["See the change over time", "A single number rarely tells the whole story. HealthHub places results beside the history that gives them meaning."],
-  ["Arrive prepared", "Create a structured, one-time share link with the records and summary your clinician needs for a better visit."],
+  {
+    id: "share",
+    k: "04",
+    title: "Walk in with the story already written",
+    body: "One tap makes an expiring doctor link: summary, selected records, nothing extra. You see when it was opened.",
+    mock: "share" as const,
+  },
 ];
 
 const FAQS = [
-  ["Is my data really private?", "Your records are encrypted at rest, scoped per account, and never sold or used to train AI models. You can export or delete everything from settings."],
-  ["Do I need a Sri Lankan phone number?", "No. HealthHub works anywhere. We started in Sri Lanka because that is where we first saw the problem, but the app is built for anyone caring for a complicated health history."],
-  ["How does the lab explainer work?", "Health AI uses your recorded values and a medical reference to explain patterns in plain language. It is not a doctor, and it clearly tells you when to speak with one."],
-  ["Can my family see my records?", "Only when you invite them. Sharing is opt-in and you decide which profile or records are visible. Access can be revoked at any time."],
-  ["Do you support Sinhala and Tamil?", "Yes. The app, reminders, and summaries are available in English, සිංහල, and தமிழ்."],
+  ["Is my data really private?", "Yes. Records are encrypted in transit and at rest, scoped strictly to your account, and never sold. AI never trains on your data. Export or delete everything from Settings."],
+  ["Do I need a Sri Lankan number?", "No. HealthHub works worldwide. We started in Colombo — so Sinhala, Tamil and English are first-class — but anyone with a complex health history can use it."],
+  ["What does Health AI actually do?", "It reads your uploaded labs, prescriptions and vitals, explains trends in plain language, cites the exact record it used, and drafts questions for your doctor. It never diagnoses — and it tells you when to see a clinician."],
+  ["Can my family use it with me?", "Yes. Invite parents, kids or a caregiver, choose exactly what each person sees, and revoke access in one tap. Built for looking after elders from abroad."],
+  ["Can I share with my doctor?", "One tap creates a secure, expiring link with a clean summary and selected records. No login needed for your doctor. You see when it was opened."],
 ];
 
 const TIERS = [
-  { name: "Personal", price: "Free", detail: "For your own health history", items: ["Two profiles", "Unlimited records & medicines", "14-day medicine reminders", "10 AI summaries each month"], href: "/account/signup" },
-  { name: "Plus", price: "LKR 1,500", detail: "For families who look after each other", items: ["Everything in Personal", "Unlimited profiles", "Caregiver & family sharing", "Unlimited AI summaries", "Doctor-ready share links"], href: "/account/signup?plan=plus", featured: true },
-  { name: "Clinic", price: "Custom", detail: "For practices and labs", items: ["Everything in Plus", "Direct result push & API", "Bulk seat management", "Audit log & SSO", "Dedicated success manager"], href: "mailto:hello@healthhub.app" },
+  { name: "Personal", price: "Free", per: "forever", detail: "Your own health, kept properly.", items: ["2 profiles", "Unlimited records & medicines", "Smart reminders (14-day)", "10 AI summaries / month"], href: "/account/signup", cta: "Get started" },
+  { name: "Plus", price: "LKR 1,500", per: "per year", detail: "For families who share the work.", items: ["Everything in Personal", "Unlimited profiles + sharing", "Unlimited AI summaries", "Doctor-ready share links", "Priority support"], href: "/account/signup?plan=plus", cta: "Start Plus", featured: true },
+  { name: "Clinic", price: "Custom", per: "for practices & labs", detail: "Push results straight to patients.", items: ["Everything in Plus", "Direct result push + API", "Seats, audit log & SSO", "Dedicated success manager"], href: "mailto:hello@healthhub.app", cta: "Talk to us" },
 ];
 
-function Mark({ small = false }: { small?: boolean }) {
-  return <img className={`brand-mark ${small ? "brand-mark--small" : ""}`} src="/assets/logo.svg" alt="" />;
+function useReveal() {
+  useEffect(() => {
+    const els = () => document.querySelectorAll("[data-reveal]");
+    const show = (e: Element) => e.classList.add("is-in");
+    const visible = (e: Element) => {
+      const r = e.getBoundingClientRect();
+      return r.top < window.innerHeight * 0.96 && r.bottom > 24;
+    };
+    const sweep = () => els().forEach((e) => { if (visible(e)) show(e); });
+
+    if (!("IntersectionObserver" in window)) {
+      els().forEach(show);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((en) => {
+          if (en.isIntersecting) {
+            show(en.target);
+            io.unobserve(en.target);
+          }
+        }),
+      { threshold: 0.02, rootMargin: "0px 0px 18% 0px" },
+    );
+    els().forEach((e) => (visible(e) ? show(e) : io.observe(e)));
+    sweep();
+    window.addEventListener("scroll", sweep, { passive: true });
+    window.addEventListener("hashchange", sweep);
+    return () => {
+      io.disconnect();
+      window.removeEventListener("scroll", sweep);
+      window.removeEventListener("hashchange", sweep);
+    };
+  }, []);
+}
+
+function useCount(target: number, active: boolean) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      const raf = requestAnimationFrame(() => setN(target));
+      return () => cancelAnimationFrame(raf);
+    }
+    const start = performance.now();
+    const dur = 1100;
+    let raf = 0;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setN(target * eased);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, target]);
+  return n;
+}
+
+function Stat({ value, suffix, label }: { value: number; suffix: string; label: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(false);
+  const n = useCount(value, on);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) setOn(true); }, { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const shown = suffix === "%" || suffix === "×" ? n.toFixed(suffix === "×" ? 1 : 0) : Math.round(n).toString();
+  return (
+    <div className="stat" ref={ref}>
+      <strong>{suffix === "−" ? `−${shown}` : shown}{suffix === "−" ? "%" : suffix}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function PhoneMock({ kind }: { kind: "timeline" | "meds" | "family" | "share" }) {
+  return (
+    <div className="mock" aria-hidden="true">
+      <div className="mock__bar">
+        <b>HealthHub</b>
+        <small>Colombo · 19:42</small>
+      </div>
+      {kind === "timeline" && (
+        <>
+          <span className="mock__chip"><HeartPulse size={11} /> Timeline</span>
+          <div className="mock__card mock__card--navy">
+            <div className="mock__k">HbA1c · Asiri Central</div>
+            <div className="mock__v">6.1% — in range</div>
+            <div className="mock__s">12 Mar · down from 6.4</div>
+            <svg className="mock__ecg" viewBox="0 0 200 36">
+              <path className="draw" d="M0 22h28l6-12 8 24 6-16 8 8H200" />
+            </svg>
+          </div>
+          <div className="mock__card">
+            <div className="mock__k">Prescription · Dr. Perera</div>
+            <div className="mock__v">Metformin 500mg</div>
+            <div className="mock__s">After dinner · 14 days left</div>
+          </div>
+          <div className="mock__card">
+            <div className="mock__k">Vaccine · Ninewells</div>
+            <div className="mock__v">Influenza 2026</div>
+            <div className="mock__s">Logged from the paper card</div>
+          </div>
+        </>
+      )}
+      {kind === "meds" && (
+        <>
+          <span className="mock__chip"><BellRing size={11} /> Tonight</span>
+          <div className="mock__card mock__card--navy">
+            <div className="mock__k">8:00 PM · after food</div>
+            <div className="mock__v">Paracetamol 500</div>
+            <div className="mock__s">2 of 3 doses on track</div>
+          </div>
+          <div className="mock__row">
+            <div className="mock__pill"><div className="mock__k">Breakfast</div><div className="mock__v">Done</div></div>
+            <div className="mock__pill"><div className="mock__k">Lunch</div><div className="mock__v">Done</div></div>
+          </div>
+          <div className="mock__card">
+            <div className="mock__k">Refill</div>
+            <div className="mock__v">Metformin · 5 days</div>
+            <div className="mock__s">We’ll remind you Thursday</div>
+          </div>
+        </>
+      )}
+      {kind === "family" && (
+        <>
+          <span className="mock__chip">Family · 5</span>
+          {[["Amma", "BP 128/82", "Shared: labs + meds"], ["Appa", "HbA1c 6.8", "Shared: all"], ["Nimal", "Vaccines", "Paediatric"]].map(([n, v, s]) => (
+            <div className="mock__card" key={n}>
+              <div className="mock__k">{s}</div>
+              <div className="mock__v">{n}</div>
+              <div className="mock__s">{v}</div>
+            </div>
+          ))}
+        </>
+      )}
+      {kind === "share" && (
+        <>
+          <span className="mock__chip"><ShieldCheck size={11} /> Share link</span>
+          <div className="mock__card mock__card--navy">
+            <div className="mock__k">Expires in 48 hours</div>
+            <div className="mock__v">Dr. Perera pack</div>
+            <div className="mock__s">Opened 14:03 · Durdans</div>
+          </div>
+          <div className="mock__card">
+            <div className="mock__k">Included</div>
+            <div className="mock__v">3 labs · 1 Rx</div>
+            <div className="mock__s">AI questions attached</div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function finePointer() {
+  return typeof window !== "undefined"
+    && window.matchMedia("(pointer: fine)").matches
+    && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function magnetic(e: MouseEvent<HTMLAnchorElement>) {
+  const el = e.currentTarget;
+  const r = el.getBoundingClientRect();
+  el.style.setProperty("--mx", `${(e.clientX - r.left - r.width / 2) * 0.2}px`);
+  el.style.setProperty("--my", `${(e.clientY - r.top - r.height / 2) * 0.26}px`);
+  el.style.setProperty("--gx", `${((e.clientX - r.left) / r.width) * 100}%`);
+}
+function magneticOut(e: MouseEvent<HTMLAnchorElement>) {
+  e.currentTarget.style.setProperty("--mx", "0px");
+  e.currentTarget.style.setProperty("--my", "0px");
+}
+
+function tiltMove(e: MouseEvent<HTMLElement>) {
+  if (!finePointer()) return;
+  const el = e.currentTarget;
+  const r = el.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  const y = (e.clientY - r.top) / r.height;
+  el.style.setProperty("--rx", `${(0.5 - y) * 7}deg`);
+  el.style.setProperty("--ry", `${(x - 0.5) * 9}deg`);
+  el.style.setProperty("--px", `${x * 100}%`);
+  el.style.setProperty("--py", `${y * 100}%`);
+  el.classList.add("is-tilting");
+}
+function tiltOut(e: MouseEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  el.style.setProperty("--rx", "0deg");
+  el.style.setProperty("--ry", "0deg");
+  el.classList.remove("is-tilting");
+}
+
+function Btn({
+  href,
+  variant = "primary",
+  size,
+  children,
+  icon,
+}: {
+  href: string;
+  variant?: "primary" | "ghost" | "light";
+  size?: "sm";
+  children: ReactNode;
+  icon?: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      className={`btn btn--${variant}${size ? ` btn--${size}` : ""}`}
+      onMouseMove={magnetic}
+      onMouseLeave={magneticOut}
+    >
+      <span className="btn__shine" aria-hidden="true" />
+      <span className="btn__label">{children}</span>
+      <span className="btn__glyph">{icon ?? <ArrowRight size={16} />}</span>
+    </a>
+  );
+}
+
+function FeatureMock({ kind }: { kind: (typeof FEATURES)[number]["mock"] }) {
+  return (
+    <div className="switcher__glass">
+      <PhoneMock kind={kind} />
+    </div>
+  );
 }
 
 export default function HomePage() {
   const [ready, setReady] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openJob, setOpenJob] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const heroRef = useRef<HTMLElement | null>(null);
+  const [feature, setFeature] = useState(0);
+  const pauseFeatures = useRef(false);
+  const heroRef = useRef<HTMLElement>(null);
+  useReveal();
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setReady(true));
-    return () => window.cancelAnimationFrame(frame);
+    const f = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(f);
   }, []);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(h > 0 ? Math.min(1, window.scrollY / h) : 0);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -87,171 +355,456 @@ export default function HomePage() {
   }, [menuOpen]);
 
   useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let frame = 0;
-    let pointerX = 0;
-    let pointerY = 0;
-
-    const paint = () => {
-      const rect = hero.getBoundingClientRect();
-      const travel = Math.max(rect.height - window.innerHeight, 1);
-      const progress = reduce ? 0 : Math.max(0, Math.min(1, -rect.top / travel));
-      hero.style.setProperty("--hero-x", `${pointerX}px`);
-      hero.style.setProperty("--hero-y", `${pointerY}px`);
-      hero.style.setProperty("--hero-progress", `${progress}`);
-      frame = 0;
-    };
-    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(paint); };
-    const onPointerMove = (event: PointerEvent) => {
-      if (reduce || window.matchMedia("(pointer: coarse)").matches) return;
-      pointerX = (event.clientX / window.innerWidth - 0.5) * 16;
-      pointerY = (event.clientY / window.innerHeight - 0.5) * 12;
-      schedule();
-    };
-    const onPointerLeave = () => { pointerX = 0; pointerY = 0; schedule(); };
-    hero.addEventListener("pointermove", onPointerMove, { passive: true });
-    hero.addEventListener("pointerleave", onPointerLeave);
-    window.addEventListener("scroll", schedule, { passive: true });
-    schedule();
-    return () => {
-      hero.removeEventListener("pointermove", onPointerMove);
-      hero.removeEventListener("pointerleave", onPointerLeave);
-      window.removeEventListener("scroll", schedule);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
+    const id = window.setInterval(() => {
+      if (pauseFeatures.current) return;
+      setFeature((i) => (i + 1) % FEATURES.length);
+    }, 5200);
+    return () => window.clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    const elements = document.querySelectorAll("[data-reveal]");
-    if (!("IntersectionObserver" in window)) {
-      elements.forEach((element) => element.classList.add("is-in"));
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-in");
-          observer.unobserve(entry.target);
-        }
-      }),
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.05 },
-    );
-    elements.forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, []);
+  const onHeroMove = (e: MouseEvent<HTMLElement>) => {
+    const root = heroRef.current;
+    if (!root) return;
+    const r = root.getBoundingClientRect();
+    root.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`);
+    root.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`);
+  };
 
   return (
     <div className={`root ${ready ? "is-ready" : ""}`}>
-      <a className="skip" href="#hero-title">Skip to content</a>
+      <a className="skip" href="#main">Skip to content</a>
+
+      <div className="announce">
+        <div className="announce__inner">
+          <span className="announce__pill">Private beta · Colombo</span>
+          <span><b>500 families</b> this season — free for personal use · <a href="#cta">Claim a place</a></span>
+        </div>
+      </div>
+
       <header className={`nav ${scrolled ? "is-scrolled" : ""}`}>
+        <div className="nav__progress" style={{ transform: `scaleX(${progress})` }} />
         <div className="nav__inner">
-          <Link href="/" className="nav__brand" onClick={() => setMenuOpen(false)}><Mark /><span>HealthHub</span></Link>
-          <nav className="nav__links" aria-label="Primary navigation">
-            {NAV_LINKS.map((link) => <a key={link.href} href={link.href} className="nav__link">{link.label}</a>)}
+          <Link href="/" className="nav__brand" onClick={() => setMenuOpen(false)}>
+            <img className="brand-mark" src="/assets/logo.svg" alt="HealthHub" />
+            <span>HealthHub</span>
+            <span className="nav__badge">Beta</span>
+          </Link>
+          <nav className="nav__links" aria-label="Primary">
+            {NAV_LINKS.map((l) => <a key={l.href} className="nav__link" href={l.href}>{l.label}</a>)}
           </nav>
           <div className="nav__actions">
             <a href="/login" className="nav__signin">Log in</a>
-            <a href="#cta" className="nav__cta">Join the beta <ArrowUpRight size={15} /></a>
-            <button className="nav__menu" type="button" aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMenuOpen(!menuOpen)}>
+            <Btn href="#cta" variant="primary" size="sm" icon={<ArrowUpRight size={15} />}>Join the beta</Btn>
+            <button className="nav__menu" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
-        {menuOpen && <nav id="mobile-navigation" className="nav__mobile" aria-label="Mobile navigation">
-          {NAV_LINKS.map((link) => <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}<ArrowUpRight size={16} /></a>)}
-          <a href="/login" onClick={() => setMenuOpen(false)}>Log in<ArrowUpRight size={16} /></a>
-        </nav>}
+        {menuOpen && (
+          <nav className="nav__mobile" aria-label="Mobile">
+            {NAV_LINKS.map((l) => <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)}>{l.label}<ArrowUpRight size={16} /></a>)}
+            <a href="/login" onClick={() => setMenuOpen(false)}>Log in<ArrowUpRight size={16} /></a>
+          </nav>
+        )}
       </header>
 
-      <main>
-        <section ref={heroRef} className="hero" aria-labelledby="hero-title">
-          <div className="hero__stage">
-            <div className="hero__grid" aria-hidden="true" />
-            <div className="hero__grain" aria-hidden="true" />
-            <div className="hero__rail" aria-hidden="true"><span>Vol. 01</span><i /><span>Personal health journal</span><i /><span>2026</span></div>
-            <div className="container hero__inner">
-              <div className="hero__copy">
-                <p className="masthead"><span>Vol. 01</span><span>Issue 08</span><span>Colombo</span><span>ISSN-HH 2026</span></p>
-                <p className="eyebrow"><span className="eyebrow__dot" /> Private beta · built in Colombo</p>
-                <h1 id="hero-title">Your health,<br />finally <em>together.</em></h1>
-                <p className="hero__lede">HealthHub gathers the small things that shape your care, then gives them back in the right order: what happened, what matters today, and what to ask next.</p>
-                <div className="hero__actions">
-                  <a href="/account/signup" className="button button--ember">Join the private beta <ArrowUpRight size={17} /></a>
-                  <a href="#product" className="button button--text">Enter the record <ArrowDown size={16} /></a>
+      <main id="main">
+        <section className="hero hero--editorial" aria-labelledby="hero-title" ref={heroRef} onMouseMove={onHeroMove}>
+          <div className="hero__spot" aria-hidden="true" />
+          <div className="container hero__inner">
+            <div className="hero__copy rise">
+              <p className="eyebrow"><span className="eyebrow__dot" /> Colombo · EN · සිංහල · தமிழ்</p>
+              <h1 id="hero-title">Your health has<br />a history. <em>Keep it close.</em></h1>
+              <p className="hero__lede">
+                The prescription in your drawer. The scan on an old phone. The things you remember only when someone asks.
+                HealthHub gives every piece a place — private, readable, and yours to carry.
+              </p>
+              <div className="hero__actions">
+                <Btn href="/account/signup">Start your record</Btn>
+                <Btn href="#record" variant="ghost" icon={<ArrowRight size={16} />}>See how it works</Btn>
+              </div>
+              <div className="hero__note">
+                <span className="hero__note-number">01</span>
+                <p><b>Made for the people who keep the family story.</b> Built in Colombo, for records that have travelled farther than they should have to.</p>
+              </div>
+            </div>
+
+            <div className="hero-journal" aria-label="HealthHub keeps the story of care together">
+              <div className="hero-journal__photo">
+                <img src="/assets/brand/harbor-hands.png" alt="A family reviewing a health report together" />
+                <span className="hero-journal__caption">Colombo · the kitchen table</span>
+              </div>
+              <div className="hero-journal__paper" aria-hidden="true" />
+              <article className="hero-journal__card">
+                <span className="hero-journal__eyebrow">A living health record</span>
+                <h2>Less collecting.<br /><em>More knowing.</em></h2>
+                <p>A private place for every result, prescription and small thing worth remembering.</p>
+                <div className="hero-journal__rule" />
+                <div className="hero-journal__footer"><span>Private by default</span><span>01 / 01</span></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <div className="logos" aria-label="Hospitals and labs">
+          <div className="container logos__inner">
+            <span className="label">Reports we already read</span>
+            <div className="logos__track" aria-hidden="true">
+              {[0, 1].map((c) => (
+                <span key={c} style={{ display: "flex", gap: 40 }}>
+                  {HOSPITALS.map((h) => <b key={`${c}-${h}`}><i>◆</i>{h}</b>)}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="signal" aria-label="Live health values">
+          <div className="tape">
+            <div className="tape__track">
+              {[0, 1].map((c) => (
+                <div className="tape__set" key={c} aria-hidden={c === 1}>
+                  {TAPE.map(([k, v, n]) => <span className="tape__item" key={`${c}-${k}`}><small>{k}</small><strong>{v}</strong><em>{n}</em></span>)}
                 </div>
-                <div className="hero__meta"><span><ShieldCheck size={15} /> Private by default</span><span>Free for personal use</span></div>
-              </div>
-              <LivingTimeline />
-            </div>
-            <div className="hero__foot container">
-              <PulseTrace />
-              <span>Scroll to enter the timeline <ArrowDown size={14} /></span>
+              ))}
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="signal" aria-label="Current health values">
-          <VitalsTape />
-        </section>
+        <div className="film" aria-hidden="true">
+          <div className="film__track">
+            {[0, 1].map((c) => (
+              <span key={c} style={{ display: "flex", gap: 14 }}>
+                {FILM.map((f) => (
+                  <div className="film__card" key={`${c}-${f.cap}`}>
+                    <img src={f.src} alt="" />
+                    <span>{f.cap}</span>
+                  </div>
+                ))}
+              </span>
+            ))}
+          </div>
+        </div>
 
-        <section className="section atlas" id="product">
+        <section className="care-brief" aria-labelledby="care-brief-title">
           <div className="container">
-            <div className="section__intro" data-reveal><p className="eyebrow">A personal health atlas</p><h2>Nothing important<br /><em>gets lost.</em></h2><p>Health is a collection of small details. HealthHub gives each one a place, then connects the dots quietly in the background.</p></div>
-            <div className="atlas__feature" data-reveal>
-              <div className="atlas__copy"><span className="section__index">01 — records</span><h3>Your history has a shape.</h3><p>Lab results, prescriptions, hospital visits, and vaccinations become one searchable timeline. The next appointment starts with the whole picture, not a blank page.</p><a href="#how" className="inline-link">See the simple rhythm <ArrowUpRight size={15} /></a></div>
-              <div className="atlas__image">
-                <AssayFigure />
-                <span>Fig. 02<br />the assay</span>
+            <div className="care-brief__shell" data-reveal>
+              <div className="care-brief__photo">
+                <img src="/assets/lab/hero.jpg" alt="A patient receiving thoughtful, prepared care" />
+                <span className="care-brief__location"><i /> Durdans · Tuesday morning</span>
+                <div className="care-brief__seal" aria-hidden="true"><span>Care</span><b>∞</b><span>continues</span></div>
+              </div>
+              <div className="care-brief__copy">
+                <p className="eyebrow eyebrow--dark"><span className="eyebrow__dot" /> The appointment brief</p>
+                <h2 id="care-brief-title">The calmest part of a visit should be <em>before you arrive.</em></h2>
+                <p className="care-brief__lede">HealthHub turns a drawer of reports into a quiet, doctor-ready handoff. The context lands first; the conversation can start somewhere better.</p>
+                <div className="care-brief__timeline" aria-label="A care brief comes together in three steps">
+                  <div><span>08:41</span><p><b>Lab trend surfaced</b><small>HbA1c · 3 readings · 14 months</small></p></div>
+                  <div><span>08:43</span><p><b>Questions prepared</b><small>Written against the exact records</small></p></div>
+                  <div><span>08:45</span><p><b>Doctor link secured</b><small>Expires after the visit · open history shown</small></p></div>
+                </div>
+                <a className="care-brief__link" href="#how">See how the handoff works <ArrowUpRight size={16} /></a>
+              </div>
+              <aside className="care-brief__document tilt" aria-label="Sample secure appointment brief" onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <div className="care-brief__document-top"><span>HealthHub</span><small>Prepared · 08:45</small></div>
+                <div className="care-brief__patient"><span>NP</span><p><b>Nadeesha Perera</b><small>Dr. Perera · 09:30 today</small></p></div>
+                <div className="care-brief__finding"><small>One thing to discuss</small><b>HbA1c rose from 6.1% to 6.8%</b><p>Three readings, with prescription changes in context.</p></div>
+                <div className="care-brief__document-foot"><span><ShieldCheck size={13} /> Expiring share</span><span>01 / 03</span></div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section className="section" id="record">
+          <div className="container">
+            <div className="chapter" data-reveal>
+              <div className="chapter__photo">
+                <img src="/assets/brand/harbor-hands.png" alt="A younger hand holding an elder’s, papers between them" />
+                <span className="chapter__stamp">Colombo · the kitchen table</span>
+              </div>
+              <div>
+                <p className="section__kicker">01 — The record</p>
+                <h3>Health is a pile of paper until someone <em>keeps it.</em></h3>
+                <p>
+                  The bypass file from 2019. Last month’s HbA1c. The prescription you photographed in a car park.
+                  HealthHub reads them, files them, and hands them back as a timeline you can actually finish.
+                </p>
+                <ul className="chapter__list">
+                  <li><span className="chapter__n">01</span><span>OCR in English, Sinhala and Tamil — including the messy ones.</span></li>
+                  <li><span className="chapter__n">02</span><span>PDF to structured values. Dates, doses, units. Searchable.</span></li>
+                  <li><span className="chapter__n">03</span><span>Offline-ready on your phone. The story travels with you.</span></li>
+                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="section medicine" aria-labelledby="medicine-title">
-          <div className="container medicine__inner" data-reveal>
-            <div className="medicine__image">
-              <div className="dose-sheet">
-                <div className="dose-sheet__top"><span>Daily routine</span><span>Thu 04 Aug</span></div>
-                <h3>Evening</h3>
-                <DayStrip />
-                <div className="dose-sheet__dose dose-sheet__dose--done"><span className="dose-sheet__check">✓</span><div><strong>Vitamin D3</strong><small>1 tablet · after breakfast</small></div><time>08:00</time></div>
-                <div className="dose-sheet__dose dose-sheet__dose--next"><span className="dose-sheet__check">○</span><div><strong>Paracetamol 500mg</strong><small>1 tablet · after food</small></div><time>20:00</time></div>
-                <div className="dose-sheet__dose"><span className="dose-sheet__check">○</span><div><strong>Metformin 500mg</strong><small>1 tablet · with water</small></div><time>22:00</time></div>
-                <div className="dose-sheet__footer"><span>2 of 3 doses</span><div><i /></div><span>on track</span></div>
+        <section className="section" id="product" style={{ paddingTop: 0 }}>
+          <div className="container">
+            <div className="section__head" data-reveal>
+              <p className="eyebrow"><span className="eyebrow__dot" /> The product</p>
+              <h2>Four things, done with <em>unreasonable care.</em></h2>
+              <p>Not a dashboard of everything. The four jobs a family actually has, every week.</p>
+            </div>
+            <div
+              className="switcher"
+              data-reveal
+              onMouseEnter={() => { pauseFeatures.current = true; }}
+              onMouseLeave={() => { pauseFeatures.current = false; }}
+            >
+              <div className="switcher__list" role="tablist" aria-label="Product">
+                {FEATURES.map((f, i) => (
+                  <button
+                    key={f.id}
+                    className={`switcher__item ${feature === i ? "is-on" : ""}`}
+                    role="tab"
+                    aria-selected={feature === i}
+                    onClick={() => setFeature(i)}
+                    onMouseEnter={() => setFeature(i)}
+                  >
+                    <small>{f.k}</small>
+                    <b>{f.title}</b>
+                    <p>{f.body}</p>
+                  </button>
+                ))}
+              </div>
+              <div className="switcher__stage">
+                <img src="/assets/brand/harbor-still-life.png" alt="" />
+                <FeatureMock key={FEATURES[feature].id} kind={FEATURES[feature].mock} />
               </div>
             </div>
-            <div className="medicine__copy"><span className="section__index">02 — medicines</span><h2 id="medicine-title">The right nudge.<br /><em>Never the noise.</em></h2><p>Medication is part of a day, not the whole day. HealthHub learns the rhythm you already have and places a gentle reminder inside it.</p><div className="medicine__note"><span className="medicine__note-mark">✓</span><div><strong>Tonight, 8:00 PM</strong><span>Paracetamol · after food</span></div></div><a href="/account/signup" className="inline-link">Make room for the important things <ArrowUpRight size={15} /></a></div>
           </div>
         </section>
 
         <section className="section workflow" id="how">
-          <div className="container"><div className="section__intro section__intro--wide" data-reveal><p className="eyebrow">The rhythm</p><h2>Capture. Understand. <em>Move forward.</em></h2><p>A calmer health system is not another thing to manage. It is the thing that gives you back some attention.</p></div><ContentsLedger /></div>
-        </section>
-
-        <section className="section features" aria-labelledby="features-title">
-          <div className="container"><div className="features__heading" data-reveal><p className="eyebrow eyebrow--light">The useful parts</p><h2 id="features-title">Small moments,<br /><em>handled well.</em></h2></div><div className="features__grid" data-reveal data-stagger>{FEATURES.map((feature) => <article className={`feature feature--${feature.tone}`} key={feature.number}><span className="feature__number">{feature.number}</span><span className="feature__kicker">{feature.kicker}</span><h3>{feature.title}</h3><p>{feature.body}</p><div className="feature__mark"><span /><span /><span /></div></article>)}</div></div>
+          <div className="container">
+            <div className="section__head" data-reveal>
+              <p className="eyebrow"><span className="eyebrow__dot" /> How it works</p>
+              <h2>Capture. Understand. <em>Walk in ready.</em></h2>
+              <p>Three steps, under five minutes. Written with Colombo doctors and busy daughters in mind.</p>
+            </div>
+            <div className="steps">
+              <article className="step tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <div className="step__img"><img src="/assets/brand/harbor-still-life.png" alt="Paper records and medicines on a table" /></div>
+                <div className="step__body">
+                  <span className="step__num">01 — Gather</span>
+                  <h3>Snap. Forward. Done.</h3>
+                  <p>Photograph a prescription or forward a lab PDF. Dates, values and doses are pulled out for you.</p>
+                </div>
+              </article>
+              <article className="step tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <div className="step__img"><img src="/assets/brand/harbor-hands.png" alt="Hands reviewing a report together" /></div>
+                <div className="step__body">
+                  <span className="step__num">02 — Make sense</span>
+                  <h3>Trends, translated.</h3>
+                  <p>See HbA1c, pressure and weight beside the history that gives them meaning — in plain language.</p>
+                </div>
+              </article>
+              <article className="step tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <div className="step__img"><img src="/assets/insurance/plan-types/insurance-senior.jpg" alt="A clinician with a patient" /></div>
+                <div className="step__body">
+                  <span className="step__num">03 — Arrive prepared</span>
+                  <h3>One link. No folder.</h3>
+                  <p>Send a one-time doctor pack. Walk in with answers, not a plastic bag of printouts.</p>
+                </div>
+              </article>
+            </div>
+          </div>
         </section>
 
         <section className="section ai" id="ai">
-          <div className="container ai__inner" data-reveal><div className="ai__copy"><p className="eyebrow eyebrow--light">Health AI</p><h2>A second pair of eyes, <em>with your records open.</em></h2><p>Ask about a trend, a result, or what to bring to your next appointment. Health AI answers from your history, cites the relevant record, and tells you when a clinician should take over.</p><a href="/account/signup" className="button button--light">Explore Health AI <ArrowUpRight size={17} /></a></div><div className="ai__conversation"><div className="conversation__bar"><span>Health AI</span><span>Grounded in your data</span></div><div className="conversation__question">My HbA1c has been creeping up. What should I ask my doctor?</div><div className="conversation__answer"><span className="conversation__avatar">AI</span><div><p>Your last three readings are 6.1 → 6.4 → <strong>6.8%</strong>.</p><p>That is a pattern worth discussing with your GP. I can prepare a short summary of the dates, results, and medicines around each test.</p><small>Sources: 3 lab records · 1 medicine record</small></div></div></div></div>
+          <img className="ai__bg" src="/assets/brand/harbor-ecg.png" alt="" />
+          <div className="ai__veil" aria-hidden="true" />
+          <div className="container ai__inner">
+            <div className="ai__copy" data-reveal>
+              <p className="eyebrow eyebrow--dark"><span className="eyebrow__dot" /> Health AI · grounded</p>
+              <h2>A second pair of eyes, <em>with the file open.</em></h2>
+              <p className="lead">Ask in English, Sinhala or Tamil. Every answer cites the exact lab or prescription it came from — and says clearly when a clinician should take over.</p>
+              <ul className="ai__bullets">
+                <li><span className="ai__check"><Check size={13} /></span>Explains “creeping up” with dates and values, not vibes</li>
+                <li><span className="ai__check"><Check size={13} /></span>Drafts three sharp questions for the next visit</li>
+                <li><span className="ai__check"><Check size={13} /></span>Never trains on your data. Sources always shown</li>
+              </ul>
+              <Btn href="/account/signup" variant="light" icon={<ArrowUpRight size={16} />}>Try Health AI free</Btn>
+            </div>
+            <div className="chat tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+              <div className="chat__bar"><span>Health AI · grounded</span><span className="chat__live"><i /> Live</span></div>
+              <div className="chat__q">Amma’s HbA1c has been creeping. What should I actually ask on Tuesday?</div>
+              <div className="chat__a">
+                <span className="chat__avatar">AI</span>
+                <div>
+                  <p>The last three readings are <b>6.1 → 6.4 → 6.8%</b>. That slope is worth a conversation — not a panic. I’ve drafted three questions and attached the labs plus the metformin changes around each date.</p>
+                  <span className="chat__src">Sources: 3 lab records · 1 prescription · cited inline</span>
+                </div>
+              </div>
+              <div className="chat__cite">
+                <img src="/assets/insurance/plan-types/insurance-senior.jpg" alt="" />
+                <p>Prepared for Dr. Perera · Tuesday 09:30 · Durdans</p>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section className="section jobs" aria-labelledby="jobs-title">
-          <div className="container jobs__inner"><div className="jobs__heading" data-reveal><p className="eyebrow">For real life</p><h2 id="jobs-title">You keep living.<br /><em>We keep the thread.</em></h2></div><div className="jobs__content" data-reveal><div className="jobs__tabs" role="tablist" aria-label="HealthHub benefits">{JOBS.map(([title], i) => <button key={title} id={`job-tab-${i}`} role="tab" aria-selected={openJob === i} aria-controls={`job-panel-${i}`} className={openJob === i ? "is-active" : ""} onClick={() => setOpenJob(i)}><span>0{i + 1}</span>{title}</button>)}</div><div className="jobs__panel" id={`job-panel-${openJob}`} role="tabpanel" aria-labelledby={`job-tab-${openJob}`} key={openJob}><Sparkles size={21} /><h3>{JOBS[openJob][0]}</h3><p>{JOBS[openJob][1]}</p><a href="#cta" className="inline-link">Start with your own history <ArrowUpRight size={15} /></a></div></div></div>
+        <section className="section outcomes">
+          <div className="container">
+            <div className="section__head section__head--center" data-reveal>
+              <p className="eyebrow"><span className="eyebrow__dot" /> From the beta</p>
+              <h2>Calmer days, <em>measured.</em></h2>
+              <p>2,400 patients across Colombo, Kandy and the diaspora. 2026 private beta.</p>
+            </div>
+            <div className="stats-grid" data-reveal>
+              <Stat value={62} suffix="−" label="Less time hunting for old reports before appointments" />
+              <Stat value={4.2} suffix="×" label="More consistent evening doses with gentle reminders" />
+              <Stat value={89} suffix="%" label="Said the doctor visit felt more prepared with a share link" />
+              <Stat value={100} suffix="%" label="Data exportable and deletable — no lock-in, ever" />
+            </div>
+          </div>
         </section>
 
-        <section className="section security" id="security"><div className="container security__inner"><div data-reveal><p className="eyebrow eyebrow--invert">Trust, by design</p><h2>Private enough<br /><em>for your real life.</em></h2></div><div className="security__list" data-reveal data-stagger><div><ShieldCheck size={21} /><h3>Encrypted by default</h3><p>Your records are protected at rest and in transit.</p></div><div><Check size={21} /><h3>Sharing is yours</h3><p>Invite someone, choose what they see, revoke access whenever you want.</p></div><div><ArrowDown size={21} /><h3>Take it with you</h3><p>Export or delete your information from your account settings.</p></div></div></div></section>
+        <section className="section letters">
+          <div className="container">
+            <div className="section__head" data-reveal>
+              <p className="eyebrow eyebrow--dark"><span className="eyebrow__dot" /> Letters from the beta</p>
+              <h2 style={{ color: "#fff" }}>Families feel the <em style={{ color: "#b7ccff" }}>difference.</em></h2>
+            </div>
+            <div className="letters__grid">
+              <article className="letter letter--lead tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <span className="stars">★★★★★</span>
+                <p style={{ marginTop: 16 }}>“My father’s bypass files were scattered across three hospitals. Before his review, I sent one HealthHub link — the cardiologist said it was the clearest history he’d seen all week.”</p>
+                <div className="letter__who">
+                  <img src="/assets/insurance/plan-types/insurance-family.jpg" alt="Tharushi Fernando" />
+                  <div><b>Tharushi Fernando</b><small>Caregiver · Colombo</small></div>
+                </div>
+              </article>
+              <article className="letter tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <span className="stars">★★★★★</span>
+                <p style={{ marginTop: 14 }}>“It showed my HbA1c creeping 6.1 → 6.8 and wrote three questions for my GP. That ten-minute visit finally felt useful.”</p>
+                <div className="letter__who">
+                  <img src="/assets/insurance/plan-types/insurance-senior.jpg" alt="Mohamed Rizwan" />
+                  <div><b>Mohamed Rizwan</b><small>Plus · Kandy</small></div>
+                </div>
+              </article>
+              <article className="letter tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <span className="stars">★★★★★</span>
+                <p style={{ marginTop: 14 }}>“I haven’t missed my mother’s evening dose in four months. The app nudges. It never nags.”</p>
+                <div className="letter__who">
+                  <img src="/assets/brand/harbor-hands.png" alt="Anjali Perera" />
+                  <div><b>Anjali Perera</b><small>Plus · London</small></div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
 
-        <section className="section pricing" id="pricing"><div className="container"><div className="section__intro section__intro--center" data-reveal><p className="eyebrow">Simple pricing</p><h2>Care should not<br /><em>come with ads.</em></h2><p>Start free. Stay free if that is all you need. Plus is for the families who share the work.</p></div><div className="pricing__grid" data-reveal data-stagger>{TIERS.map((tier) => <article key={tier.name} className={`price ${tier.featured ? "price--featured" : ""}`}>{tier.featured && <span className="price__badge">Most popular</span>}<span className="price__name">{tier.name}</span><p>{tier.detail}</p><strong>{tier.price}</strong>{tier.name === "Plus" && <small>per year</small>}<ul>{tier.items.map((item) => <li key={item}><Check size={15} />{item}</li>)}</ul><a href={tier.href} className={`button ${tier.featured ? "button--ember" : "button--outline"}`}>{tier.name === "Clinic" ? "Talk to us" : tier.name === "Plus" ? "Start Plus" : "Get started"}<ArrowUpRight size={16} /></a></article>)}</div></div></section>
+        <section className="section trust" id="security">
+          <div className="container">
+            <div className="trust__row">
+              <div className="trust__item tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <span className="section__kicker"><ShieldCheck size={14} style={{ verticalAlign: -2 }} /> Encrypted</span>
+                <h3>Private enough for real life.</h3>
+                <p>At rest and in transit. Scoped per account. Never sold, never used to train a model on your file.</p>
+              </div>
+              <div className="trust__item tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <span className="section__kicker"><FileSearch size={14} style={{ verticalAlign: -2 }} /> You own sharing</span>
+                <h3>Invite. Limit. Revoke.</h3>
+                <p>Choose exactly what family or doctors see. Expiring links, a full audit, no dark patterns.</p>
+              </div>
+              <div className="trust__item tilt" data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                <span className="section__kicker"><CalendarCheck size={14} style={{ verticalAlign: -2 }} /> Take it with you</span>
+                <h3>Export anytime.</h3>
+                <p>Full PDF and data export, or one-tap delete. Your story is yours to keep or to leave.</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <section className="section faq" id="faq"><div className="container faq__inner"><div className="section__intro" data-reveal><p className="eyebrow">Questions, answered</p><h2>No mystery<br /><em>in the fine print.</em></h2></div><div className="faq__list" data-reveal>{FAQS.map(([question, answer], i) => { const open = openFaq === i; return <div className={`faq__item ${open ? "is-open" : ""}`} key={question}><button aria-expanded={open} aria-controls={`faq-answer-${i}`} onClick={() => setOpenFaq(open ? null : i)}><span>{question}</span><ChevronDown size={19} /></button><div className="faq__drawer" id={`faq-answer-${i}`} role="region" aria-hidden={!open}><div className="faq__answer"><p>{answer}</p></div></div></div>; })}</div></div></section>
+        <section className="section pricing" id="pricing">
+          <div className="container">
+            <div className="section__head section__head--center" data-reveal>
+              <p className="eyebrow"><span className="eyebrow__dot" /> Pricing</p>
+              <h2>Care shouldn’t <em>come with ads.</em></h2>
+              <p>Start free. Stay free if that’s all you need. Plus is for families who share the work.</p>
+            </div>
+            <div className="pricing__grid">
+              {TIERS.map((t) => (
+                <article key={t.name} className={`price tilt ${t.featured ? "price--featured" : ""}`} data-reveal onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+                  {t.featured && <span className="price__badge">Most families</span>}
+                  <span className="price__name">{t.name}</span>
+                  <strong className="cost">{t.price}</strong>
+                  <p className="desc">{t.per} · {t.detail}</p>
+                  <ul>{t.items.map((i) => <li key={i}><Check size={15} />{i}</li>)}</ul>
+                  <Btn href={t.href} variant={t.featured ? "light" : "ghost"} icon={<ArrowUpRight size={15} />}>{t.cta}</Btn>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
-        <section className="cta" id="cta"><div className="cta__orb" aria-hidden="true" /><div className="container cta__inner" data-reveal><div><p className="eyebrow eyebrow--light">Private beta · now welcoming new members</p><h2>Put the whole story<br />in <em>one place.</em></h2></div><div className="cta__action"><p>HealthHub is free for personal use. No ads, no credit card, no medical jargon between you and your own information.</p><a href="/account/signup" className="button button--light">Join HealthHub <ArrowUpRight size={17} /></a></div></div></section>
+        <section className="section faq" id="faq">
+          <div className="container faq__grid">
+            <div className="section__head" data-reveal>
+              <p className="eyebrow"><span className="eyebrow__dot" /> Questions</p>
+              <h2>No mystery in the <em>fine print.</em></h2>
+              <p>Still curious? Write to <a href="mailto:hello@healthhub.app" style={{ color: "var(--lapis)", fontWeight: 700 }}>hello@healthhub.app</a> — a human replies within a day.</p>
+              <div className="faq__portrait">
+                <img src="/assets/insurance/plan-types/insurance-maternity.jpg" alt="The kind of file families keep for years" />
+              </div>
+            </div>
+            <div className="faq__list" data-reveal>
+              {FAQS.map(([q, a], i) => {
+                const open = openFaq === i;
+                return (
+                  <div className={`faq__item ${open ? "is-open" : ""}`} key={q}>
+                    <button aria-expanded={open} onClick={() => setOpenFaq(open ? null : i)}>
+                      <span>{q}</span><ChevronDown size={18} />
+                    </button>
+                    <div className="faq__drawer" aria-hidden={!open}><div className="faq__answer"><p>{a}</p></div></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="cta" id="cta">
+          <img className="cta__photo" src="/assets/brand/harbor-still-life.png" alt="" />
+          <div className="cta__veil" aria-hidden="true" />
+          <div className="container cta__inner" data-reveal>
+            <div>
+              <p className="eyebrow eyebrow--dark"><span className="eyebrow__dot" /> Private beta · 500 places</p>
+              <h2>Put the whole story <em>in one place.</em></h2>
+            </div>
+            <div className="cta__card tilt" onMouseMove={tiltMove} onMouseLeave={tiltOut}>
+              <p><Stethoscope size={16} style={{ verticalAlign: -3 }} /> Free for personal use. No ads, no card. Bring one old prescription today — feel the calm by tonight’s dose.</p>
+              <Btn href="/account/signup" variant="light">Join HealthHub</Btn>
+              <p className="cta__tiny"><Pill size={11} style={{ verticalAlign: -1 }} /> EN · සිං · தமிழ் · Encrypted by default</p>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="footer"><div className="container footer__inner"><div className="footer__brand"><Link href="/" className="nav__brand"><Mark small /><span>HealthHub</span></Link><p>A private health companion, built quietly in Colombo for the way you actually look after the people you love.</p></div><div className="footer__links"><div><span>Explore</span><a href="#product">Product</a><a href="#how">How it works</a><a href="#pricing">Pricing</a></div><div><span>Company</span><a href="mailto:hello@healthhub.app">Contact</a><a href="/login">Log in</a></div><div><span>Legal</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#security">Security</a></div></div><div className="footer__bottom"><span>© 2026 HealthHub · Colombo, Sri Lanka</span><span>EN · සිං · த · Encrypted by default</span></div></div></footer>
+      <footer className="footer">
+        <div className="container">
+          <div className="footer__mark" aria-hidden="true">HealthHub</div>
+          <div className="footer__inner">
+            <div className="footer__brand">
+              <Link href="/" className="nav__brand" style={{ color: "#fff" }}>
+                <img className="brand-mark" src="/assets/logo.svg" alt="" /><span>HealthHub</span>
+              </Link>
+              <p>A private health companion, crafted in Colombo. Records, medicines, family and AI — designed to disappear into the day, so care feels human again.</p>
+            </div>
+            <div className="footer__links">
+              <div><span>Explore</span><a href="#record">The record</a><a href="#how">How it works</a><a href="#ai">Health AI</a><a href="#pricing">Pricing</a></div>
+              <div><span>Company</span><a href="mailto:hello@healthhub.app">Contact</a><a href="/login">Log in</a><a href="/account/signup">Join beta</a></div>
+              <div><span>Legal</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#security">Security</a></div>
+            </div>
+            <div className="footer__bottom">
+              <span>© 2026 HealthHub · Colombo, Sri Lanka</span>
+              <span>HARBOR LAPIS · FRAUNCES + BRICOLAGE · EN · සිං · த</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
