@@ -17,37 +17,44 @@ import {
 } from "@/components/ui";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useCoverageCheck } from "@/hooks/useApi";
+import { useCoverageCheck, useMyInsuranceEnrollments } from "@/hooks/useApi";
 
-const PROCEDURES = [
-  "consultation",
-  "lab_test",
-  "diagnostic_imaging",
-  "minor_surgery",
-  "major_surgery",
+const TREATMENT_TYPES = [
+  "hospitalization",
+  "day_care",
+  "opd",
   "dental",
+  "diagnostic",
   "maternity",
 ];
 
 export default function CoverageCheck() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const [procedure, setProcedure] = useState("consultation");
+  const [enrollmentId, setEnrollmentId] = useState("");
+  const [treatmentType, setTreatmentType] = useState("hospitalization");
   const [hospital, setHospital] = useState("");
   const [estimated, setEstimated] = useState("");
+
+  const enrollmentsQ = useMyInsuranceEnrollments();
+  const activeEnrollments =
+    enrollmentsQ.data?.enrollments?.filter((e) => e.status === "active") ?? [];
+  const effectiveEnrollmentId =
+    enrollmentId || activeEnrollments[0]?.id || "";
 
   const mut = useCoverageCheck();
 
   const onCheck = async () => {
-    if (!estimated) return;
+    if (!estimated || !effectiveEnrollmentId) return;
     await mut.mutateAsync({
-      procedure,
-      hospitalName: hospital || undefined,
+      enrollmentId: effectiveEnrollmentId,
+      treatmentType,
       estimatedAmountLkr: Number(estimated),
+      hospitalName: hospital || undefined,
     });
   };
 
-  const result = mut.data?.coverage;
+  const result = mut.data;
 
   return (
     <Screen>
@@ -62,15 +69,36 @@ export default function CoverageCheck() {
         <Card style={{ padding: 16, gap: 12 }}>
           <View style={{ gap: 6 }}>
             <AppText size="sm" color="muted">
+              {t("insurance.coverage.policy", "Policy")}
+            </AppText>
+            <ChipGroup>
+              {activeEnrollments.map((e) => (
+                <Chip
+                  key={e.id}
+                  label={e.planName || e.policyNumber || e.id.slice(0, 8)}
+                  selected={effectiveEnrollmentId === e.id}
+                  onPress={() => setEnrollmentId(e.id)}
+                />
+              ))}
+            </ChipGroup>
+            {activeEnrollments.length === 0 ? (
+              <AppText size="xs" color="muted">
+                {t("insurance.coverage.noPolicy", "No active policy found.")}
+              </AppText>
+            ) : null}
+          </View>
+
+          <View style={{ gap: 6 }}>
+            <AppText size="sm" color="muted">
               {t("insurance.coverage.procedure")}
             </AppText>
             <ChipGroup>
-              {PROCEDURES.map((p) => (
+              {TREATMENT_TYPES.map((p) => (
                 <Chip
                   key={p}
-                  label={t(`insurance.coverage.procedures.${p}`)}
-                  selected={procedure === p}
-                  onPress={() => setProcedure(p)}
+                  label={t(`insurance.coverage.procedures.${p}`, p)}
+                  selected={treatmentType === p}
+                  onPress={() => setTreatmentType(p)}
                 />
               ))}
             </ChipGroup>
@@ -118,7 +146,7 @@ export default function CoverageCheck() {
             leftIcon={<Activity size={14} />}
             onPress={onCheck}
             loading={mut.isPending}
-            disabled={!estimated}
+            disabled={!estimated || !effectiveEnrollmentId}
           />
         </Card>
 
@@ -145,34 +173,39 @@ export default function CoverageCheck() {
               </AppText>
             </View>
             <Pill tone={result.covered ? "accent" : "danger"}>
-              {t(`insurance.coverage.procedures.${procedure}`)}
+              {t(`insurance.coverage.procedures.${treatmentType}`, treatmentType)}
             </Pill>
+            {result.planName ? (
+              <AppText size="xs" color="muted">
+                {result.planName} · {result.coverageType ?? ""}
+              </AppText>
+            ) : null}
             <View style={{ flexDirection: "row", gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <AppText size="xs" color="muted">
-                  {t("insurance.coverage.eligible")}
-                </AppText>
-                <AppText weight="700" size="md" style={{ color: colors.accent }}>
-                  LKR {result.eligibleAmountLkr.toLocaleString()}
-                </AppText>
-              </View>
               <View style={{ flex: 1 }}>
                 <AppText size="xs" color="muted">
                   {t("insurance.coverage.outOfPocket")}
                 </AppText>
                 <AppText weight="700" size="md" style={{ color: colors.danger }}>
-                  LKR {result.outOfPocketLkr.toLocaleString()}
+                  LKR {result.estimatedOutOfPocketLkr.toLocaleString()}
+                </AppText>
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText size="xs" color="muted">
+                  Copay {result.copayPct}% · Deductible
+                </AppText>
+                <AppText weight="700" size="md" style={{ color: colors.accent }}>
+                  LKR {result.deductibleLkr.toLocaleString()}
                 </AppText>
               </View>
             </View>
-            {result.requiresPreAuth ? (
+            {!result.enrolled ? (
               <Pill tone="neutral">
-                {t("insurance.coverage.requiresPreAuth")}
+                {t("insurance.coverage.notEnrolled", "Not enrolled")}
               </Pill>
             ) : null}
-            {result.notes ? (
+            {result.notes?.length ? (
               <AppText size="sm" color="muted">
-                {result.notes}
+                {result.notes.join(" ")}
               </AppText>
             ) : null}
           </Card>

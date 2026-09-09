@@ -108,18 +108,18 @@ export default function InsurancePage() {
   const catalogQ = useQuery({
     queryKey: ["patient", "insurance", "catalog"],
     queryFn: () =>
-      api<{ providers: Provider[]; totalPlans: number }>("/insurance/catalog"),
+      api<{ providers: Provider[]; totalPlans: number }>("/insurance-marketplace/catalog"),
   });
 
   const enrollmentsQ = useQuery({
     queryKey: ["patient", "insurance", "enrollments"],
     queryFn: () =>
-      api<{ enrollments: Enrollment[] }>("/insurance/enrollments/mine"),
+      api<{ enrollments: Enrollment[] }>("/insurance-marketplace/enrollments/me"),
   });
 
   const claimsQ = useQuery({
     queryKey: ["patient", "insurance", "claims"],
-    queryFn: () => api<{ claims: Claim[] }>("/insurance/claims/mine"),
+    queryFn: () => api<{ claims: Claim[] }>("/insurance-marketplace/claims/me"),
   });
 
   const enrollments = enrollmentsQ.data?.enrollments ?? [];

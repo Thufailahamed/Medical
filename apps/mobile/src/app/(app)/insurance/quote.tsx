@@ -49,13 +49,21 @@ export default function Quote() {
   const [memberName, setMemberName] = useState("");
   const [memberAge, setMemberAge] = useState("");
 
-  const { data, isFetching } = useInsuranceQuote({
-    planId: quote.planId ?? "",
-    age: Number(age) || 30,
-    gender,
-    members: quote.members,
-    preExisting: quote.preExisting,
-  });
+  const quoteMut = useInsuranceQuote();
+  const data = quoteMut.data;
+  const isFetching = quoteMut.isPending;
+
+  const requestQuote = () => {
+    if (!quote.planId) return;
+    quoteMut.mutate({
+      planId: quote.planId,
+      billingCycle: quote.billingCycle ?? "annual",
+      memberAge: Number(age) || 30,
+      memberGender: gender,
+      members: quote.members.length ? quote.members : undefined,
+      preExisting: quote.preExisting.length ? quote.preExisting : undefined,
+    });
+  };
 
   const continueQuote = () => {
     setAge(Number(age) || 30);
@@ -64,11 +72,9 @@ export default function Quote() {
   };
 
   const addNewMember = () => {
-    if (!memberName || !memberAge) return;
+    if (!memberName) return;
     addMember({
-      id: `m_${Date.now()}`,
       name: memberName,
-      age: Number(memberAge) || 30,
       relation: "spouse",
     });
     setMemberName("");
@@ -162,9 +168,9 @@ export default function Quote() {
                 {t("insurance.quote.membersHelp")}
               </AppText>
 
-              {quote.members.map((m) => (
+              {quote.members.map((m, idx) => (
                 <View
-                  key={m.id}
+                  key={`${m.name}-${idx}`}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
@@ -175,13 +181,13 @@ export default function Quote() {
                   }}
                 >
                   <AppText size="sm">
-                    {m.name} · {m.age} · {m.relation}
+                    {m.name} · {m.relation}
                   </AppText>
                   <Button
                     variant="ghost"
                     label=""
                     leftIcon={<Trash2 size={14} color={colors.danger} />}
-                    onPress={() => removeMember(m.id)}
+                    onPress={() => removeMember(idx)}
                   />
                 </View>
               ))}
@@ -224,7 +230,10 @@ export default function Quote() {
 
               <Button
                 label={t("insurance.quote.next")}
-                onPress={() => setStep(3)}
+                onPress={() => {
+                  setStep(3);
+                  requestQuote();
+                }}
               />
             </Card>
           </>
@@ -265,26 +274,51 @@ export default function Quote() {
                 <AppText weight="700" size="lg">
                   {t("insurance.quote.calculating")}
                 </AppText>
-              ) : data?.quote ? (
+              ) : data?.adjustedPremiumLkr ? (
                 <>
                   <AppText weight="700" size="xl" style={{ color: colors.primary }}>
-                    LKR{" "}
-                    {quote.billingCycle === "monthly"
-                      ? data.quote.monthlyPremiumLkr.toLocaleString()
-                      : data.quote.annualPremiumLkr.toLocaleString()}
+                    LKR {data.adjustedPremiumLkr.toLocaleString()}
                   </AppText>
                   <AppText size="xs" color="muted">
-                    {t("insurance.quote.coverage", {
-                      amount: data.quote.coverageSummaryLkr.toLocaleString(),
-                    })}
+                    Base LKR {data.basePremiumLkr.toLocaleString()} · {data.billingCycle}
                   </AppText>
-                  {data.quote.appliedLoadingsPct > 0 ? (
+                  {data.notes?.length ? (
+                    <AppText size="xs" color="muted">
+                      {data.notes.join(" ")}
+                    </AppText>
+                  ) : null}
+                  {data.riders?.length ? (
+                    <AppText size="xs" color="muted">
+                      {data.riders.map((r) => `${r.name} (LKR ${r.priceLkr.toLocaleString()})`).join(" · ")}
+                    </AppText>
+                  ) : null}
+                  {(data.adjustedPremiumLkr - data.basePremiumLkr) > 0 ? (
                     <Pill tone="accent" icon={<HeartPulse size={12} />}>
                       {t("insurance.quote.loading", {
-                        pct: data.quote.appliedLoadingsPct.toFixed(0),
+                        pct: Math.round(
+                          ((data.adjustedPremiumLkr - data.basePremiumLkr) /
+                            data.basePremiumLkr) *
+                            100,
+                        ).toFixed(0),
                       })}
                     </Pill>
                   ) : null}
+                  <Button
+                    variant="outline"
+                    label={t("insurance.quote.recalculate", "Recalculate")}
+                    onPress={requestQuote}
+                  />
+                </>
+              ) : quoteMut.isError ? (
+                <>
+                  <AppText size="sm" color="muted">
+                    {t("insurance.quote.unavailable")}
+                  </AppText>
+                  <Button
+                    variant="outline"
+                    label={t("insurance.quote.retry", "Retry")}
+                    onPress={requestQuote}
+                  />
                 </>
               ) : (
                 <AppText size="sm" color="muted">

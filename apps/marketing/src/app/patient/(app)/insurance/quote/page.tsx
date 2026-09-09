@@ -29,11 +29,13 @@ const PRE_EXISTING = [
 ];
 
 interface QuoteResult {
-  monthlyPremiumLkr: number;
-  annualPremiumLkr: number;
-  basePremiumLkr: number;
-  adjustmentsLkr: number;
+  planId: string | null;
+  planName: string | null;
   billingCycle: string;
+  basePremiumLkr: number;
+  adjustedPremiumLkr: number;
+  notes: string[];
+  riders: { id: string; name: string; priceLkr: number }[];
 }
 
 export default function QuotePage() {
@@ -72,7 +74,7 @@ function QuotePageInner() {
 
   const quoteMut = useMutation({
     mutationFn: () =>
-      api<{ quote: QuoteResult }>("/insurance-marketplace/quote", {
+      api<QuoteResult>("/insurance-marketplace/quote", {
         method: "POST",
         json: {
           planId,
@@ -103,7 +105,7 @@ function QuotePageInner() {
   }
 
   const plan = planQ.data?.plan;
-  const quote = quoteMut.data?.quote;
+  const quote = quoteMut.data;
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -305,16 +307,12 @@ function QuotePageInner() {
                   {cycle === "annual" ? "Annual" : "Monthly"} premium
                 </div>
                 <div className="text-5xl font-bold text-brand-strong mt-2">
-                  {formatLkr(
-                    cycle === "annual"
-                      ? quote.annualPremiumLkr
-                      : quote.monthlyPremiumLkr,
-                  )}
+                  {formatLkr(quote.adjustedPremiumLkr)}
                 </div>
                 <div className="text-sm text-text-soft mt-1">
                   {cycle === "annual"
-                    ? `${formatLkr(quote.monthlyPremiumLkr)} / month equivalent`
-                    : `${formatLkr(quote.annualPremiumLkr)} / year equivalent`}
+                    ? `${formatLkr(quote.adjustedPremiumLkr / 12)} / month equivalent`
+                    : `${formatLkr(quote.adjustedPremiumLkr * 12)} / year equivalent`}
                 </div>
               </div>
               <div className="space-y-1.5 pt-4 border-t border-border/60">
@@ -328,13 +326,30 @@ function QuotePageInner() {
                   <span className="text-text-soft">Adjustments</span>
                   <span
                     className={`font-medium ${
-                      quote.adjustmentsLkr > 0 ? "text-amber-700" : "text-emerald-700"
+                      quote.adjustedPremiumLkr - quote.basePremiumLkr > 0 ? "text-amber-700" : "text-emerald-700"
                     }`}
                   >
-                    {quote.adjustmentsLkr > 0 ? "+" : ""}
-                    {formatLkr(quote.adjustmentsLkr)}
+                    {(quote.adjustedPremiumLkr - quote.basePremiumLkr) > 0 ? "+" : ""}
+                    {formatLkr(quote.adjustedPremiumLkr - quote.basePremiumLkr)}
                   </span>
                 </div>
+                {quote.notes?.length ? (
+                  <ul className="text-xs text-text-soft list-disc list-inside pt-1">
+                    {quote.notes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                {quote.riders?.length ? (
+                  <div className="pt-1 space-y-1">
+                    {quote.riders.map((r) => (
+                      <div key={r.id} className="flex justify-between text-xs">
+                        <span className="text-text-soft">{r.name}</span>
+                        <span className="text-text font-medium">{formatLkr(r.priceLkr)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <div className="flex justify-between pt-4 border-t border-border/60">
                 <Button variant="ghost" onClick={() => setStep(3)}>

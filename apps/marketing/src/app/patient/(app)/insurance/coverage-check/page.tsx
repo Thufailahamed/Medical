@@ -32,18 +32,18 @@ import { formatLkr } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 
 interface CoverageResult {
-  coverage: {
-    eligible: boolean;
-    coveredAmountLkr: number;
-    patientResponsibilityLkr: number;
-    notes: string[];
-    policyId?: string;
-    planName?: string;
-    providerName?: string;
-    remainingAnnualLimitLkr?: number;
-    waitingPeriods?: Array<{ condition: string; remainingDays: number }>;
-    exclusions?: string[];
-  };
+  enrolled: boolean;
+  planName: string | null;
+  coverageType: string | null;
+  covered: boolean;
+  copayPct: number;
+  estimatedOutOfPocketLkr: number;
+  deductibleLkr: number;
+  notes: string[];
+  providerName?: string | null;
+  remainingAnnualLimitLkr?: number | null;
+  waitingPeriods?: Array<{ condition: string; remainingDays: number }>;
+  exclusions?: string[];
 }
 
 const TREATMENTS = [
@@ -92,11 +92,10 @@ export default function CoverageCheckPage() {
       api<CoverageResult>("/insurance-marketplace/coverage-check", {
         method: "POST",
         json: {
-          enrollmentId: enrollmentId || undefined,
+          enrollmentId,
           treatmentType,
-          incurringFacility: facility.trim() || undefined,
-          diagnosis: diagnosis.trim() || undefined,
-          estimatedCostLkr: Number(estimatedCost) || undefined,
+          estimatedAmountLkr: Number(estimatedCost) || 0,
+          hospitalName: facility.trim() || undefined,
         },
       }),
   });
@@ -106,8 +105,11 @@ export default function CoverageCheckPage() {
     checkMut.mutate();
   };
 
-  const result = checkMut.data?.coverage;
+  const result = checkMut.data;
   const costNum = Number(estimatedCost) || 0;
+  const isEligible = !!result && result.enrolled && result.covered;
+  const coveredAmount = result ? Math.max(0, costNum - result.estimatedOutOfPocketLkr) : 0;
+  const patientOop = result?.estimatedOutOfPocketLkr ?? 0;
 
   return (
     <div className="flex flex-col gap-6 pb-16 max-w-4xl mx-auto">
@@ -482,7 +484,7 @@ export default function CoverageCheckPage() {
           <div
             className={cn(
               "rounded-2xl border p-5 flex items-start gap-4 shadow-xs",
-              result.eligible
+              isEligible
                 ? "border-emerald-200 bg-gradient-to-r from-emerald-50/80 via-emerald-50/40 to-white"
                 : "border-amber-200 bg-gradient-to-r from-amber-50/80 via-amber-50/40 to-white",
             )}
@@ -490,12 +492,12 @@ export default function CoverageCheckPage() {
             <div
               className={cn(
                 "h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs",
-                result.eligible
+                isEligible
                   ? "bg-emerald-100 text-emerald-700"
                   : "bg-amber-100 text-amber-700",
               )}
             >
-              {result.eligible ? (
+              {isEligible ? (
                 <CheckCircle2 size={24} />
               ) : (
                 <AlertTriangle size={24} />
@@ -507,36 +509,41 @@ export default function CoverageCheckPage() {
                 <h3
                   className={cn(
                     "text-lg font-black",
-                    result.eligible ? "text-emerald-950" : "text-amber-950",
+                    isEligible ? "text-emerald-950" : "text-amber-950",
                   )}
                 >
-                  {result.eligible
+                  {isEligible
                     ? "Procedure is Eligible for Coverage"
                     : "Limited or Conditional Coverage"}
                 </h3>
                 <span
                   className={cn(
                     "px-2.5 py-0.5 rounded-full text-xs font-bold border",
-                    result.eligible
+                    isEligible
                       ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                       : "bg-amber-100 text-amber-800 border-amber-300",
                   )}
                 >
-                  {result.eligible ? "Cashless Approved" : "Review Exclusions"}
+                  {isEligible ? "Cashless Approved" : "Review Exclusions"}
                 </span>
               </div>
 
               <p
                 className={cn(
                   "text-xs font-medium mt-1 leading-relaxed",
-                  result.eligible ? "text-emerald-800" : "text-amber-800",
+                  isEligible ? "text-emerald-800" : "text-amber-800",
                 )}
               >
                 {result.planName ? `${result.planName} · ` : ""}
-                {result.providerName ?? "Certified Underwriter"}
+                {result.coverageType ?? result.providerName ?? "Certified Underwriter"}
                 {" · "}Hospital: <span className="font-bold">{facility}</span>
                 {" · "}Procedure: <span className="font-bold">{diagnosis}</span>
               </p>
+              {!result.enrolled ? (
+                <p className="text-xs font-semibold mt-1 text-amber-800">
+                  No active enrollment found for this policy.
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -552,12 +559,12 @@ export default function CoverageCheckPage() {
                   </span>
                   <span className="bg-emerald-50 px-2 py-0.5 rounded-full">
                     {costNum > 0
-                      ? `${Math.round((result.coveredAmountLkr / costNum) * 100)}% Covered`
+                      ? `${Math.round((coveredAmount / costNum) * 100)}% Covered`
                       : "Direct Payout"}
                   </span>
                 </div>
                 <div className="text-3xl font-black text-emerald-800 mt-2">
-                  {formatLkr(result.coveredAmountLkr)}
+                  {formatLkr(coveredAmount)}
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Direct cashless settlement submitted to {facility}.
@@ -583,10 +590,10 @@ export default function CoverageCheckPage() {
                   </span>
                 </div>
                 <div className="text-3xl font-black text-slate-900 mt-2">
-                  {formatLkr(result.patientResponsibilityLkr)}
+                  {formatLkr(patientOop)}
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Remaining balance payable at hospital discharge.
+                  Copay {result.copayPct}% · deductible {formatLkr(result.deductibleLkr)}. Remaining balance payable at hospital discharge.
                 </p>
               </div>
 
@@ -617,8 +624,8 @@ export default function CoverageCheckPage() {
                       100,
                       Math.max(
                         15,
-                        (result.coveredAmountLkr /
-                          (result.remainingAnnualLimitLkr + result.coveredAmountLkr)) *
+                        (coveredAmount /
+                          ((result.remainingAnnualLimitLkr ?? costNum) + coveredAmount)) *
                           100,
                       ),
                     )}%`,
@@ -628,7 +635,7 @@ export default function CoverageCheckPage() {
               <p className="text-[11px] text-slate-400">
                 After this claim, you will have approximately{" "}
                 {formatLkr(
-                  Math.max(0, result.remainingAnnualLimitLkr - result.coveredAmountLkr),
+                  Math.max(0, (result.remainingAnnualLimitLkr ?? costNum) - coveredAmount),
                 )}{" "}
                 in remaining coverage for this policy cycle.
               </p>
