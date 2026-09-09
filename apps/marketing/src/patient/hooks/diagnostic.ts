@@ -36,12 +36,19 @@ export function useBookTestPackage() {
       slug,
       ...input
     }: {
-      slug: string;
-      scheduledAt: string;
+      slug?: string;
+      packageId?: string;
+      testId?: string;
+      bookingType?: "single_test" | "package";
+      scheduledDate?: string;
+      scheduledTimeSlot?: string;
+      scheduledAt?: string;
+      collectionAddress?: Record<string, unknown>;
+      paymentMethod?: string;
       labId?: string;
       notes?: string;
     }) =>
-      api<{ booking: TestBooking }>(patientPaths.diagnostic.bookPackage(slug), {
+      api<{ booking: TestBooking }>(patientPaths.diagnostic.book(), {
         method: "POST",
         json: input,
       }),

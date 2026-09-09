@@ -259,10 +259,11 @@ export const patientPaths = {
   diagnostic: {
     packages: () => "/diagnostic-tests/packages",
     packageDetail: (slug: string) => `/diagnostic-tests/packages/${slug}`,
-    bookings: () => "/diagnostic-tests/me/bookings",
-    bookingDetail: (id: string) => `/diagnostic-tests/me/bookings/${id}`,
-    bookPackage: (slug: string) => `/diagnostic-tests/packages/${slug}/book`,
-    rateTest: (id: string) => `/diagnostic-tests/me/bookings/${id}/rating`,
+    book: () => "/diagnostic-tests/book",
+    bookings: () => "/diagnostic-tests/bookings",
+    bookingDetail: (id: string) => `/diagnostic-tests/bookings/${id}`,
+    bookPackage: (_slug: string) => "/diagnostic-tests/book",
+    rateTest: (id: string) => `/diagnostic-tests/bookings/${id}/rating`,
   },
 
   activity: {

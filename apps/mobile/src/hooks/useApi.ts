@@ -4314,7 +4314,7 @@ export function useTestCatalog(filters?: {
 }) {
   const params = new URLSearchParams();
   if (filters?.category) params.set("category", filters.category);
-  if (filters?.search) params.set("search", filters.search);
+  if (filters?.search) params.set("q", filters.search);
   if (filters?.labId) params.set("labId", filters.labId);
   if (filters?.cursor) params.set("cursor", filters.cursor);
   if (filters?.limit) params.set("limit", String(filters.limit));
@@ -4350,10 +4350,11 @@ export function useTestPackages(filters?: { labId?: string; search?: string }) {
   return useQuery({
     queryKey: ["test-packages", filters],
     queryFn: () =>
-      api<{ items: TestPackage[]; nextCursor: string | null }>(
+      api<{ items: TestPackage[]; packages?: TestPackage[]; nextCursor: string | null }>(
         `/diagnostic-tests/packages?${params.toString()}`
       ),
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }
 
@@ -4365,6 +4366,7 @@ export function useTestPackageDetail(slug: string | null | undefined) {
       api<TestPackage>(`/diagnostic-tests/packages/${encodeURIComponent(slug ?? "")}`),
     enabled: Boolean(slug),
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }
 

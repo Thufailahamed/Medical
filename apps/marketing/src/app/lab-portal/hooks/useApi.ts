@@ -172,23 +172,16 @@ export function useCompleteBooking() {
       id,
       resultPdfUrl,
       resultSummary,
-      results,
+      notes,
     }: {
       id: string;
       resultPdfUrl?: string;
       resultSummary?: string;
-      results?: Array<{
-        testName: string;
-        value: number;
-        unit?: string;
-        referenceMin?: number;
-        referenceMax?: number;
-        isAbnormal?: boolean;
-      }>;
+      notes?: string;
     }) =>
-      api<{ ok: boolean }>(`/lab-portal/bookings/${id}/results`, {
-        method: "POST",
-        body: { resultPdfUrl, resultSummary, results },
+      api<{ booking: LabBooking }>(`/lab-portal/bookings/${id}/complete`, {
+        method: "PATCH",
+        body: { resultPdfUrl, resultSummary, notes },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lab-bookings"] });

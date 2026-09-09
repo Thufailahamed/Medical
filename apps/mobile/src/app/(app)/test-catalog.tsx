@@ -433,7 +433,7 @@ export default function TestCatalogScreen() {
         </View>
       ) : (
         <FlatList
-          data={testsData?.tests || []}
+          data={testsData?.items || []}
           keyExtractor={(item) => item.id}
           renderItem={renderTestCard}
           ListHeaderComponent={listHeader}

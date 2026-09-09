@@ -249,7 +249,7 @@ export default function TestPackagesScreen() {
   const packagesList = useMemo(() => {
     const bySlug = new Map<string, any>();
     for (const c of CURATED_PACKAGES) bySlug.set(c.slug, c);
-    const apiPackages = data?.packages ?? [];
+    const apiPackages = (data as any)?.items ?? [];
     for (const p of apiPackages) {
       const found = bySlug.get(p.slug);
       bySlug.set(p.slug, { ...p, ...found, ...p });
@@ -262,7 +262,7 @@ export default function TestPackagesScreen() {
         p.name.toLowerCase().includes(q) ||
         (p.description && p.description.toLowerCase().includes(q))
     );
-  }, [data?.packages, debouncedSearch]);
+  }, [data, debouncedSearch]);
 
   const renderPackageCard = useCallback(
     ({ item }: { item: TestPackage }) => {
@@ -494,7 +494,7 @@ export default function TestPackagesScreen() {
       </View>
 
       {/* Package List */}
-      {isLoading ? (
+      {isLoading && packagesList.length === 0 ? (
         <View style={{ padding: 16 }}>
           {[1, 2, 3].map((i) => (
             <Skeleton

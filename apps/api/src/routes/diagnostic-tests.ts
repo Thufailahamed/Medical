@@ -767,11 +767,14 @@ router.post("/book", authMiddleware, async (c) => {
     .returning();
 
   // Notify patient
-  notify(db, userId, {
-    type: "test_booking_created",
+  notify({
+    db,
+    env: c.env,
+    userId,
+    type: "lab_ready",
     title: "Test Booking Confirmed",
     body: `Your booking for ${testName} on ${data.scheduledDate} has been received.`,
-    data: { bookingId: booking.id },
+    data: { bookingId: booking.id, kind: "test_booking_created" },
   }).catch(() => {});
 
   audit(db, userId, {
@@ -985,11 +988,14 @@ router.patch("/bookings/:id/cancel", authMiddleware, async (c) => {
       .where(eq(testBookings.id, id));
   }
 
-  notify(db, userId, {
-    type: "test_booking_cancelled",
+  notify({
+    db,
+    env: c.env,
+    userId,
+    type: "lab_ready",
     title: "Test Booking Cancelled",
     body: `Your booking has been cancelled.`,
-    data: { bookingId: id },
+    data: { bookingId: id, kind: "test_booking_cancelled" },
   }).catch(() => {});
 
   audit(db, userId, {
@@ -1061,11 +1067,14 @@ router.patch("/bookings/:id/reschedule", authMiddleware, async (c) => {
     .where(eq(testBookings.id, id))
     .returning();
 
-  notify(db, userId, {
-    type: "test_booking_rescheduled",
+  notify({
+    db,
+    env: c.env,
+    userId,
+    type: "lab_ready",
     title: "Test Booking Rescheduled",
     body: `Your booking has been rescheduled to ${parsed.data.scheduledDate}.`,
-    data: { bookingId: id },
+    data: { bookingId: id, kind: "test_booking_rescheduled" },
   }).catch(() => {});
 
   audit(db, userId, {

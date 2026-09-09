@@ -47,7 +47,10 @@ export default function TestDetailScreen() {
     );
   }
 
-  if (error || !data?.test) {
+  const test = (data as any)?.test ?? data;
+  const packages = (data as any)?.packages ?? [];
+
+  if (error || !test?.id) {
     return (
       <Screen padded={false} bottomInset={false} edges={["top"]}>
         <ScreenHeader title="Test Details" back />
@@ -59,8 +62,6 @@ export default function TestDetailScreen() {
       </Screen>
     );
   }
-
-  const { test, packages } = data;
   const price = test.discountPrice ?? test.price;
 
   return (

@@ -211,11 +211,14 @@ router.patch("/bookings/:id/confirm", async (c) => {
     .returning();
 
   // Notify patient
-  notify(db, booking.patientId, {
-    type: "test_booking_confirmed",
+  notify({
+    db,
+    env: c.env,
+    userId: booking.patientId,
+    type: "lab_ready",
     title: "Booking Confirmed",
     body: "Your test booking has been confirmed by the lab.",
-    data: { bookingId: id },
+    data: { bookingId: id, kind: "test_booking_confirmed" },
   }).catch(() => {});
 
   audit(db, labId, {
@@ -276,11 +279,14 @@ router.patch("/bookings/:id/assign-phlebotomist", async (c) => {
     .returning();
 
   // Notify patient with phlebotomist details
-  notify(db, booking.patientId, {
-    type: "test_booking_phlebotomist_assigned",
+  notify({
+    db,
+    env: c.env,
+    userId: booking.patientId,
+    type: "lab_ready",
     title: "Phlebotomist Assigned",
     body: `${parsed.data.phlebotomistName} has been assigned for your sample collection.`,
-    data: { bookingId: id },
+    data: { bookingId: id, kind: "test_booking_phlebotomist_assigned" },
   }).catch(() => {});
 
   audit(db, labId, {
@@ -331,11 +337,14 @@ router.patch("/bookings/:id/collect-sample", async (c) => {
     .where(eq(testBookings.id, id))
     .returning();
 
-  notify(db, booking.patientId, {
-    type: "test_booking_sample_collected",
+  notify({
+    db,
+    env: c.env,
+    userId: booking.patientId,
+    type: "lab_ready",
     title: "Sample Collected",
     body: "Your sample has been collected. Results will be available soon.",
-    data: { bookingId: id },
+    data: { bookingId: id, kind: "test_booking_sample_collected" },
   }).catch(() => {});
 
   audit(db, labId, {
@@ -438,11 +447,14 @@ router.patch("/bookings/:id/complete", async (c) => {
     .returning();
 
   // Notify patient that results are ready
-  notify(db, booking.patientId, {
-    type: "test_booking_completed",
+  notify({
+    db,
+    env: c.env,
+    userId: booking.patientId,
+    type: "lab_ready",
     title: "Test Results Ready",
     body: "Your test results are now available. Tap to view.",
-    data: { bookingId: id },
+    data: { bookingId: id, kind: "test_booking_completed" },
   }).catch(() => {});
 
   audit(db, labId, {
@@ -495,11 +507,14 @@ router.patch("/bookings/:id/cancel", async (c) => {
     .where(eq(testBookings.id, id))
     .returning();
 
-  notify(db, booking.patientId, {
-    type: "test_booking_cancelled",
+  notify({
+    db,
+    env: c.env,
+    userId: booking.patientId,
+    type: "lab_ready",
     title: "Booking Cancelled",
     body: "Your test booking has been cancelled by the lab. Please contact support for details.",
-    data: { bookingId: id },
+    data: { bookingId: id, kind: "test_booking_cancelled" },
   }).catch(() => {});
 
   audit(db, labId, {
