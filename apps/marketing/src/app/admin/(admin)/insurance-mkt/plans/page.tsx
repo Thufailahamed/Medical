@@ -58,7 +58,7 @@ export default function AdminInsurancePlansPage() {
     queryKey: adminQk.insurancePlans({ providerFilter }),
     queryFn: () =>
       adminApi<{ plans: Plan[]; total: number }>(
-        `/admin/insurance-plans${providerFilter ? `?providerId=${providerFilter}` : ""}`,
+        `/admin/insurance-plans${providerFilter ? `?provider_id=${providerFilter}` : ""}`,
       ),
   });
 

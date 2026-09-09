@@ -116,12 +116,18 @@ operatorRouter.get("/enrollments", async (c) => {
   if (!providerIds.length) return c.json({ enrollments: [] });
 
   const rows = await db
-    .select()
+    .select({
+      enrollment: insuranceEnrollments,
+      userName: users.name,
+      planName: insurancePlans.name,
+    })
     .from(insuranceEnrollments)
+    .leftJoin(users, eq(users.id, insuranceEnrollments.userId))
+    .leftJoin(insurancePlans, eq(insurancePlans.id, insuranceEnrollments.planId))
     .where(inArray(insuranceEnrollments.providerId, providerIds))
     .orderBy(desc(insuranceEnrollments.createdAt));
 
-  const enrIds = rows.map((r) => r.id);
+  const enrIds = rows.map((r) => r.enrollment.id);
   const deps = enrIds.length
     ? await db
         .select()
@@ -137,25 +143,28 @@ operatorRouter.get("/enrollments", async (c) => {
 
   return c.json({
     enrollments: rows.map((r) => ({
-      id: r.id,
-      userId: r.userId,
-      planId: r.planId,
-      providerId: r.providerId,
-      policyNumber: r.policyNumber,
-      status: r.status,
-      billingCycle: r.billingCycle,
-      premiumAmountLkr: r.premiumAmountLkr,
-      coverageAmountLkr: r.coverageAmountLkr,
-      startDate: r.startDate,
-      endDate: r.endDate,
-      nomineeName: r.nomineeName,
-      dependents: (depByEnr.get(r.id) ?? []).map((d) => ({
+      id: r.enrollment.id,
+      userId: r.enrollment.userId,
+      userName: r.userName ?? "Unknown",
+      planId: r.enrollment.planId,
+      planName: r.planName ?? "Unknown plan",
+      providerId: r.enrollment.providerId,
+      policyNumber: r.enrollment.policyNumber,
+      status: r.enrollment.status,
+      billingCycle: r.enrollment.billingCycle,
+      premiumAmountLkr: r.enrollment.premiumAmountLkr,
+      coverageAmountLkr: r.enrollment.coverageAmountLkr,
+      startDate: r.enrollment.startDate,
+      endDate: r.enrollment.endDate,
+      nextPremiumDueAt: r.enrollment.nextPremiumDueAt,
+      nomineeName: r.enrollment.nomineeName,
+      dependents: (depByEnr.get(r.enrollment.id) ?? []).map((d) => ({
         id: d.id,
         name: d.name,
         relation: d.relation,
         dob: d.dob,
       })),
-      createdAt: r.createdAt,
+      createdAt: r.enrollment.createdAt,
     })),
   });
 });

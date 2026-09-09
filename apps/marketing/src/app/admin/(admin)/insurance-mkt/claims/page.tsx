@@ -46,7 +46,7 @@ export default function AdminInsuranceMarketplaceClaimsPage() {
     queryKey: adminQk.insuranceMarketplaceClaims(status),
     queryFn: () =>
       adminApi<{ claims: Claim[]; total: number }>(
-        `/admin/insurance-claims${status ? `?status=${status}` : ""}`,
+        `/admin/insurance-mkt-claims${status ? `?status=${status}` : ""}`,
       ),
   });
 

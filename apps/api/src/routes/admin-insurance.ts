@@ -14,6 +14,7 @@ import {
   insuranceEnrollments,
   insuranceMarketplaceClaims,
   operatorOrgs,
+  users,
 } from "@healthcare/db";
 import {
   insuranceProviderCreateSchema,
@@ -152,7 +153,8 @@ adminRouter.put("/insurance-providers/:id", async (c) => {
 
 adminRouter.get("/insurance-plans", async (c) => {
   const db = c.get("db");
-  const providerId = c.req.query("provider_id");
+  const providerId =
+    c.req.query("provider_id") ?? c.req.query("providerId");
   const where = providerId
     ? eq(insurancePlans.providerId, providerId)
     : undefined;
@@ -270,13 +272,56 @@ adminRouter.get("/insurance-enrollments", async (c) => {
   return c.json({ enrollments: rows });
 });
 
-adminRouter.get("/insurance-claims", async (c) => {
+adminRouter.get("/insurance-mkt-claims", async (c) => {
   const db = c.get("db");
+  const status = c.req.query("status");
   const rows = await db
-    .select()
+    .select({
+      id: insuranceMarketplaceClaims.id,
+      enrollmentId: insuranceMarketplaceClaims.enrollmentId,
+      userId: insuranceMarketplaceClaims.userId,
+      providerId: insuranceMarketplaceClaims.providerId,
+      treatmentType: insuranceMarketplaceClaims.treatmentType,
+      amountRequestedLkr: insuranceMarketplaceClaims.amountRequestedLkr,
+      amountApprovedLkr: insuranceMarketplaceClaims.amountApprovedLkr,
+      status: insuranceMarketplaceClaims.status,
+      createdAt: insuranceMarketplaceClaims.createdAt,
+      patientName: users.name,
+      providerName: insuranceProviders.name,
+      policyNumber: insuranceEnrollments.policyNumber,
+    })
     .from(insuranceMarketplaceClaims)
+    .leftJoin(users, eq(users.id, insuranceMarketplaceClaims.userId))
+    .leftJoin(
+      insuranceProviders,
+      eq(insuranceProviders.id, insuranceMarketplaceClaims.providerId),
+    )
+    .leftJoin(
+      insuranceEnrollments,
+      eq(insuranceEnrollments.id, insuranceMarketplaceClaims.enrollmentId),
+    )
+    .where(
+      status
+        ? eq(insuranceMarketplaceClaims.status, status as any)
+        : undefined,
+    )
     .orderBy(desc(insuranceMarketplaceClaims.createdAt));
-  return c.json({ claims: rows });
+  const claims = rows.map((r) => ({
+    id: r.id,
+    enrollmentId: r.enrollmentId,
+    userId: r.userId,
+    providerId: r.providerId,
+    patientName: r.patientName ?? "Unknown",
+    providerName: r.providerName ?? "Unknown",
+    policyNumber: r.policyNumber ?? "",
+    treatmentType: r.treatmentType,
+    amountRequestedLkr: r.amountRequestedLkr,
+    amountApprovedLkr: r.amountApprovedLkr,
+    status: r.status,
+    submittedAt: r.createdAt,
+    createdAt: r.createdAt,
+  }));
+  return c.json({ claims, total: claims.length });
 });
 
 export default adminRouter;
