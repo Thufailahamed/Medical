@@ -810,6 +810,17 @@ marketplaceRouter.delete(
       }
     }
     const body = await c.req.json().catch(() => ({}));
+    // Look up paid premium invoice for manual refund ledger (no auto-rail).
+    const [paidInvoice] = await db
+      .select()
+      .from(insurancePremiumInvoices)
+      .where(
+        and(
+          eq(insurancePremiumInvoices.enrollmentId, enrollment.id),
+          eq(insurancePremiumInvoices.status, "paid"),
+        ),
+      )
+      .limit(1);
     await db
       .update(insuranceEnrollments)
       .set({
@@ -826,6 +837,20 @@ marketplaceRouter.delete(
       resourceId: enrollment.id,
       details: { reason: body.reason || "free-look cancellation" },
     });
+    if (paidInvoice) {
+      await audit(db, {
+        userId,
+        action: "insurance.enrollment.refund_pending",
+        resource: "insurance_enrollment",
+        resourceId: enrollment.id,
+        details: {
+          invoiceId: paidInvoice.id,
+          amount: paidInvoice.amountLkr,
+          orderId: paidInvoice.paymentId,
+          note: "manual refund via original rail (no auto-rail)",
+        },
+      });
+    }
     return c.json({ message: "cancelled" });
   },
 );

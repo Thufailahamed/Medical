@@ -484,6 +484,43 @@ paymentsRouter.post("/webhook/stripe", async (c) => {
     return c.json({ ok: true, idempotent: true });
   }
 
+  const orderId = String(event.merchantOrderId ?? "");
+  // Dispatch insurance premium payments to their own handler (same as
+  // PayHere /notify). The orderId prefix INS- marks a Stripe order routed
+  // here for activation. Keep generic invoice path unchanged below.
+  if (orderId.startsWith("INS-")) {
+    try {
+      if (event.statusCode === 2) {
+        await handleInsurancePremiumPaid(
+          c.env as any,
+          orderId,
+          event.eventId ?? null,
+          "stripe",
+        );
+      } else {
+        await handleInsurancePremiumFailed(
+          c.env as any,
+          orderId,
+          String(event.statusCode),
+        );
+      }
+    } catch (err) {
+      logger.error("payments.webhook.stripe", "insurance dispatch failed", {
+        orderId,
+        err: String(err),
+      });
+      // Still mark processed so Stripe stops retrying.
+    }
+    await markWebhookProcessed(db as any, rec.id, String(event.statusCode));
+    await audit(db as any, {
+      action: "payments.webhook",
+      resource: "payment",
+      resourceId: orderId,
+      details: { provider: event.provider, statusCode: event.statusCode, orderId },
+    });
+    return c.json({ ok: true });
+  }
+
   if (event.statusCode === 2) {
     await db
       .prepare(

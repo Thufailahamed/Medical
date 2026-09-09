@@ -317,6 +317,84 @@ operatorRouter.post("/claims/:id/decision", async (c) => {
   });
 });
 
+// ─── Payout ────────────────────────────────────────────
+operatorRouter.post("/claims/:id/pay", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ error: "Forbidden" }, 403);
+  const providerIds = await resolveProviderIds(db, org.id);
+
+  const claimId = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const { amountApprovedLkr, transactionRef } = body as {
+    amountApprovedLkr?: number;
+    transactionRef?: string;
+  };
+  if (!transactionRef || typeof transactionRef !== "string" || !transactionRef.trim()) {
+    return c.json({ error: "transactionRef required" }, 400);
+  }
+  if (amountApprovedLkr != null && (typeof amountApprovedLkr !== "number" || amountApprovedLkr < 0)) {
+    return c.json({ error: "amountApprovedLkr must be a non-negative number" }, 400);
+  }
+
+  const [claim] = await db
+    .select()
+    .from(insuranceMarketplaceClaims)
+    .where(eq(insuranceMarketplaceClaims.id, claimId))
+    .limit(1);
+  if (!claim || !providerIds.includes(claim.providerId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  if (claim.status !== "approved") {
+    return c.json(
+      { error: `Cannot pay ${claim.status} claim (must be approved)` },
+      400,
+    );
+  }
+
+  const now = new Date().toISOString();
+  const amount = amountApprovedLkr ?? claim.amountApprovedLkr ?? claim.amountRequestedLkr;
+  await db
+    .update(insuranceMarketplaceClaims)
+    .set({
+      status: "paid",
+      amountApprovedLkr: amount,
+      paidAt: now,
+      transactionRef: transactionRef.trim(),
+      updatedAt: now,
+    })
+    .where(eq(insuranceMarketplaceClaims.id, claimId));
+
+  await notify({
+    db,
+    userId: claim.userId,
+    type: "insurance",
+    title: "Claim paid",
+    body: `Your claim payout of LKR ${Number(amount).toFixed(2)} was sent (ref ${transactionRef.trim()}).`,
+    data: { claimId, status: "paid", transactionRef: transactionRef.trim() },
+  });
+
+  await audit(db, {
+    userId,
+    action: "insurance.claim.paid",
+    resource: "insurance_claim",
+    resourceId: claimId,
+    details: { amount, transactionRef: transactionRef.trim() },
+  });
+
+  return c.json({
+    claim: {
+      ...claim,
+      status: "paid",
+      amountApprovedLkr: amount,
+      paidAt: now,
+      transactionRef: transactionRef.trim(),
+      updatedAt: now,
+    },
+  });
+});
+
 // Operator can reply to patient thread.
 operatorRouter.post("/claims/:id/messages", async (c) => {
   const db = c.get("db");
