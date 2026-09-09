@@ -1,15 +1,22 @@
 // @ts-nocheck
-// Phase 5: PayHere payment flow for appointments.
+// Phase 5: PayHere payment flow for appointments + Lab Task 2: test bookings.
 // Endpoints:
 //   POST /payments/initiate    → mint order, return checkout fields
+//     Body: { appointmentId } for consultations (HH- order, appointmentPayments)
+//     Body: { testBookingId } for lab bookings (TB- order, test_bookings.paymentRef)
 //   POST /payments/notify      → PayHere server-to-server callback
-//   GET  /payments/:appointmentId → patient polls status
+//     Dispatch: HH-* → appointmentPayments, TB-* → test_bookings, INS-* → insurance
+//   GET  /payments/:id → patient polls status
+//     :id accepts appointmentId, test bookingId, or TB-/HH- orderId
 //
 // All amounts in LKR. PayHere sandbox vs live controlled via env.
+// Stripe: TB- lab bookings are PayHere-only. Stripe uses the generic
+// POST /checkout (invoice-bound) path — see below. Keep generic /checkout
+// untouched for hospital-billing invoices.
 
 import { Hono } from "hono";
 import { eq, and, desc } from "drizzle-orm";
-import { appointments, appointmentPayments, doctors, users, patients, invoices, payments as paymentsTable } from "@healthcare/db";
+import { appointments, appointmentPayments, doctors, users, patients, testBookings, invoices, payments as paymentsTable } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
@@ -40,12 +47,20 @@ const paymentsRouter = new Hono<AppEnvironment>();
 
 /**
  * POST /payments/initiate
- * Body: { appointmentId }
+ * Body: { appointmentId } | { testBookingId }
  * Returns: { orderId, amount, currency, hash, checkoutUrl, fields }
  *
- * Patient must own the appointment. If a `pending` payment already exists
- * for this appointment, reuse it (avoids PayHere rejecting duplicate
- * order_ids). The mobile app posts these fields to PayHere.checkout().
+ * Appointment flow (HH- order, appointmentPayments) is unchanged.
+ * Lab flow (Task 2): { testBookingId } loads test_bookings.totalPrice,
+ * mints PayHere order `TB-` prefix via mintOrderId() + computeHash,
+ * stores paymentRef on booking (paymentStatus=pending), returns
+ * { orderId, checkoutUrl, hash, ... } following appointment pattern.
+ * Flow: POST /diagnostic-tests/book (card/online → pending + bookingId)
+ *   → POST /payments/initiate {testBookingId} → PayHere checkout
+ *   → POST /payments/notify (TB- → pending→paid) → GET /payments/:id polls.
+ * PayHere-only for TB-: Stripe uses generic POST /checkout (invoice-bound).
+ * Patient must own the appointment/booking. If a `pending` payment already
+ * exists, reuse it (avoids PayHere rejecting duplicate order_ids).
  */
 paymentsRouter.post(
   "/initiate",
@@ -55,10 +70,7 @@ paymentsRouter.post(
     const userId = c.get("userId");
     const db = c.get("db");
     const body = await c.req.json().catch(() => ({}));
-    const { appointmentId } = body;
-    if (!appointmentId || typeof appointmentId !== "string") {
-      return c.json({ error: "appointmentId required" }, 400);
-    }
+    const { appointmentId, testBookingId } = body;
 
     const env = c.env;
     const merchantId = env.PAYHERE_MERCHANT_ID;
@@ -71,6 +83,131 @@ paymentsRouter.post(
         },
         503
       );
+    }
+
+    // ─── Lab Task 2: test booking flow (TB- prefix) ─────────────
+    // PayHere-only. Reuses pending paymentRef if present.
+    if (testBookingId && typeof testBookingId === "string") {
+      const [booking] = await db
+        .select()
+        .from(testBookings)
+        .where(eq(testBookings.id, testBookingId))
+        .limit(1);
+      if (!booking) {
+        return c.json({ error: "Test booking not found" }, 404);
+      }
+
+      const [owner] = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.id, booking.patientId))
+        .limit(1);
+      if (!owner || owner.userId !== userId) {
+        return c.json({ error: "Not your booking" }, 403);
+      }
+
+      if (["cancelled", "completed", "rescheduled"].includes(booking.status)) {
+        return c.json(
+          { error: `Cannot pay for a ${booking.status} booking` },
+          400
+        );
+      }
+      if (booking.paymentStatus === "paid") {
+        return c.json({ error: "Booking already paid" }, 400);
+      }
+
+      const amount = booking.totalPrice;
+      if (!amount || amount <= 0) {
+        return c.json(
+          { error: "Booking has no fee. Skip payment." },
+          400
+        );
+      }
+
+      // Reuse pending TB- order if one already exists for this booking.
+      let orderId: string | null = null;
+      if (
+        booking.paymentRef &&
+        typeof booking.paymentRef === "string" &&
+        booking.paymentRef.startsWith("TB-") &&
+        booking.paymentStatus === "pending"
+      ) {
+        orderId = booking.paymentRef;
+      }
+      if (!orderId) {
+        orderId = `TB-${mintOrderId()}`;
+        await db
+          .update(testBookings)
+          .set({
+            paymentRef: orderId,
+            paymentStatus: "pending",
+            // Cash bookings moving online now charge via PayHere.
+            paymentMethod:
+              booking.paymentMethod === "cash" ? "online" : booking.paymentMethod,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(testBookings.id, testBookingId));
+      }
+
+      const hash = await computeHash(
+        merchantId,
+        orderId,
+        amount,
+        "LKR",
+        secret
+      );
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const fullName =
+        [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+        user?.name ||
+        user?.email?.split("@")[0] ||
+        "Patient";
+      const [firstName, ...rest] = fullName.split(" ");
+      const lastName = rest.join(" ") || "-";
+
+      const publicUrl = env.PUBLIC_URL || "https://app.healthhub.app";
+
+      const fields = {
+        merchant_id: merchantId,
+        return_url: `${publicUrl}/lab/payment/return?order=${orderId}`,
+        cancel_url: `${publicUrl}/lab/payment/cancel?order=${orderId}`,
+        notify_url: `${publicUrl}/api/payments/notify`,
+        order_id: orderId,
+        items: `Lab test booking ${booking.scheduledDate} ${booking.scheduledTimeSlot}`,
+        currency: "LKR",
+        amount: amount.toFixed(2),
+        first_name: firstName,
+        last_name: lastName,
+        email: user?.email || "noreply@healthhub.app",
+        phone: user?.phone || "+94770000000",
+        address: "Sri Lanka",
+        city: "Colombo",
+        country: "Sri Lanka",
+        hash,
+      };
+
+      return c.json({
+        orderId,
+        bookingId: testBookingId,
+        testBookingId,
+        paymentRef: orderId,
+        amount,
+        currency: "LKR",
+        hash,
+        checkoutUrl: checkoutUrl(env),
+        sandbox: isSandbox(env),
+        fields,
+      });
+    }
+
+    if (!appointmentId || typeof appointmentId !== "string") {
+      return c.json({ error: "appointmentId or testBookingId required" }, 400);
     }
 
     // Load appointment + verify ownership.
@@ -206,7 +343,8 @@ paymentsRouter.post(
 /**
  * POST /payments/notify
  * PayHere server-to-server callback (form-encoded).
- * Verifies md5sig, then updates payment row + appointment status.
+ * Verifies md5sig, then updates payment row + appointment/booking status.
+ * Dispatch: TB- → test_bookings, INS- → insurance, else appointmentPayments.
  *
  * NO auth middleware — PayHere calls this directly. We verify by signature.
  */
@@ -218,7 +356,8 @@ paymentsRouter.post("/notify", async (c) => {
     return c.text("payments not configured", 503);
   }
 
-  const db = createDb(env.DB);
+  // Prefer injected db (tests + request middleware) else create from D1 binding.
+  const db = c.get("db") ?? createDb(env.DB);
 
   const form = await c.req.parseBody();
   const merchant_id = String(form.merchant_id || "");
@@ -261,7 +400,100 @@ paymentsRouter.post("/notify", async (c) => {
   // a PayHere order routed here for activation. The handler flips the
   // premium_invoice, mints the policy_number, generates an E-card, and
   // notifies the patient.
+  // Lab Task 2: TB- prefix (set by /payments/initiate {testBookingId})
+  // marks a lab booking order. Flip test_bookings.pending→paid + paymentRef.
   if (!row) {
+    if (order_id.startsWith("TB-")) {
+      const [booking] = await db
+        .select()
+        .from(testBookings)
+        .where(eq(testBookings.paymentRef, order_id))
+        .limit(1);
+      if (!booking) {
+        logger.warn("payments.notify", "notify for unknown TB- order", {
+          orderId: order_id,
+        });
+        return c.text("ok", 200);
+      }
+      const mapped = mapStatusCode(status_code);
+      if (mapped === "paid") {
+        // Idempotent: already paid → ack.
+        if (booking.paymentStatus !== "paid") {
+          await db
+            .update(testBookings)
+            .set({
+              paymentStatus: "paid",
+              // Confirm pending bookings on successful online payment,
+              // mirroring appointment paid→confirmed.
+              status: booking.status === "pending" ? "confirmed" : booking.status,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(testBookings.id, booking.id));
+
+          // Resolve owner userId for notify/audit (booking stores patientId).
+          const [owner] = await db
+            .select()
+            .from(patients)
+            .where(eq(patients.id, booking.patientId))
+            .limit(1);
+          const ownerUserId = owner?.userId ?? booking.patientId;
+
+          await notify({
+            db,
+            env,
+            userId: ownerUserId,
+            type: "lab_ready",
+            title: "Payment confirmed",
+            body: `Your lab booking payment of LKR ${Number(booking.totalPrice).toFixed(2)} was successful.`,
+            data: { bookingId: booking.id, testBookingId: booking.id, paymentRef: order_id },
+          }).catch(() => {});
+
+          await audit(db, {
+            userId: ownerUserId,
+            action: "payment.paid",
+            resource: "test_booking",
+            resourceId: booking.id,
+            details: {
+              amountLkr: booking.totalPrice,
+              payhereOrderId: order_id,
+              payherePaymentId: payhere_payment_id,
+              method,
+            },
+          }).catch(() => {});
+        }
+      } else if (mapped === "failed" || mapped === "cancelled") {
+        const [owner] = await db
+          .select()
+          .from(patients)
+          .where(eq(patients.id, booking.patientId))
+          .limit(1);
+        await audit(db, {
+          userId: owner?.userId ?? booking.patientId,
+          action: "payment.failed",
+          resource: "test_booking",
+          resourceId: booking.id,
+          details: { statusCode: status_code, reason: mapped, payhereOrderId: order_id },
+        }).catch(() => {});
+      } else if (mapped === "chargeback") {
+        await db
+          .update(testBookings)
+          .set({ paymentStatus: "refunded", updatedAt: new Date().toISOString() })
+          .where(eq(testBookings.id, booking.id));
+        const [owner] = await db
+          .select()
+          .from(patients)
+          .where(eq(patients.id, booking.patientId))
+          .limit(1);
+        await audit(db, {
+          userId: owner?.userId ?? booking.patientId,
+          action: "payment.refunded",
+          resource: "test_booking",
+          resourceId: booking.id,
+          details: { payhereOrderId: order_id, reason: "chargeback" },
+        }).catch(() => {});
+      }
+      return c.text("ok", 200);
+    }
     if (order_id.startsWith("INS-")) {
       const mapped = mapStatusCode(status_code);
       try {
@@ -357,8 +589,10 @@ paymentsRouter.post("/notify", async (c) => {
 });
 
 /**
- * GET /payments/:appointmentId
+ * GET /payments/:id
  * Patient polls to check if notify has flipped status to `paid`.
+ * :id accepts appointmentId (HH- flow), test bookingId, or TB-/HH- orderId.
+ * Appointment flow untouched; booking fallback added for Lab Task 2.
  */
 paymentsRouter.get(
   "/:appointmentId",
@@ -373,7 +607,43 @@ paymentsRouter.get(
       .from(appointments)
       .where(eq(appointments.id, appointmentId))
       .limit(1);
-    if (!appt) return c.json({ error: "Not found" }, 404);
+    if (!appt) {
+      // Lab Task 2 fallback: booking lookup by bookingId or TB- paymentRef.
+      let [booking] = await db
+        .select()
+        .from(testBookings)
+        .where(eq(testBookings.id, appointmentId))
+        .limit(1);
+      if (!booking) {
+        [booking] = await db
+          .select()
+          .from(testBookings)
+          .where(eq(testBookings.paymentRef, appointmentId))
+          .limit(1);
+      }
+      if (!booking) return c.json({ error: "Not found" }, 404);
+
+      const [bPatient] = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.id, booking.patientId))
+        .limit(1);
+      if (!bPatient || bPatient.userId !== userId) {
+        return c.json({ error: "Forbidden" }, 403);
+      }
+
+      return c.json({
+        status: booking.paymentStatus,
+        bookingId: booking.id,
+        testBookingId: booking.id,
+        amountLkr: booking.totalPrice,
+        currency: "LKR",
+        method: booking.paymentMethod,
+        payhereOrderId: booking.paymentRef,
+        paymentRef: booking.paymentRef,
+        bookingStatus: booking.status,
+      });
+    }
 
     const [patient] = await db
       .select()
@@ -407,8 +677,8 @@ paymentsRouter.get(
   }
 );
 
-// Helper removed: notify handler now uses createDb(env.DB) directly,
-// matching the pattern in cron handlers.
+// Notify uses injected db (c.get("db")) with D1 fallback, so tests can
+// seed MockD1 while prod still matches cron-handler createDb pattern.
 
 export default paymentsRouter;
 

@@ -39,6 +39,8 @@ import {
   useTestTimeSlots,
   type TimeSlot,
 } from "@/hooks/useApi";
+import { api } from "@/lib/api";
+import { runPayHereCheckout } from "@/lib/payhere";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -219,7 +221,7 @@ export default function BookTestScreen() {
   const onSubmit = useCallback(
     async (data: any) => {
       try {
-        await bookTest.mutateAsync({
+        const res: any = await bookTest.mutateAsync({
           bookingType,
           testId: params.testId,
           packageId: params.packageId,
@@ -236,8 +238,46 @@ export default function BookTestScreen() {
           paymentMethod: data.paymentMethod,
         });
 
-        toast.show("Booking confirmed!", "success");
-        router.replace("/test-bookings");
+        const bookingId = res?.booking?.id;
+        const method = data.paymentMethod as "cash" | "card" | "online";
+
+        // Cash on collection: done (no online charge).
+        if (method === "cash" || !bookingId) {
+          toast.show("Booking confirmed!", "success");
+          router.replace("/test-bookings");
+          return;
+        }
+
+        // Lab Task 2: card/online now charged via PayHere TB- order.
+        // Book created pending + bookingId → initiate → checkout → pending
+        // polling to booking detail (GET /payments/:id → test_booking_detail).
+        try {
+          const init: any = await api("/payments/initiate", {
+            method: "POST",
+            body: { testBookingId: bookingId },
+          });
+          const result = await runPayHereCheckout({
+            appointmentId: bookingId,
+            fields: init.fields,
+            checkoutUrl: init.checkoutUrl,
+            pollStatus: async () => {
+              const s: any = await api(`/payments/${bookingId}`);
+              return { status: s.status };
+            },
+          });
+          if (result.status === "paid") {
+            toast.show("Payment confirmed!", "success");
+          } else if (result.status === "cancelled") {
+            toast.show("Booking created — payment pending.", "info");
+          } else {
+            toast.show("Booking created — payment pending.", "info");
+          }
+          router.replace(`/test-booking-detail/${bookingId}`);
+        } catch (payErr: any) {
+          // Booking exists; payment can be retried from booking detail.
+          toast.show("Booking created — payment pending.", "info");
+          router.replace(`/test-booking-detail/${bookingId}`);
+        }
       } catch (err: any) {
         toast.show(
           err?.message || "Failed to book. Please try again.",

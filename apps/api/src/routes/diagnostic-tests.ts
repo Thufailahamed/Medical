@@ -643,6 +643,18 @@ router.get("/packages/:slug", async (c) => {
 });
 
 // ─── Book a test (patient) ───────────────────────────────
+// Lab Task 2 online flow (documented):
+//   1. POST /diagnostic-tests/book {paymentMethod: cash} → paymentStatus
+//      cash_on_collection, done (pay on collection).
+//   2. POST /diagnostic-tests/book {paymentMethod: card|online} → paymentStatus
+//      pending + { booking } (bookingId for initiate step).
+//   3. POST /payments/initiate {testBookingId} → { orderId: TB-..., checkoutUrl,
+//      hash, fields } (PayHere-only, TB- prefix via mintOrderId+computeHash,
+//      stores paymentRef on booking, paymentStatus stays pending).
+//   4. Mobile opens PayHere checkout, then pending-polls GET /payments/:id
+//      (bookingId or TB- orderId) until notify flips test_bookings
+//      pending→paid (+ status pending→confirmed).
+//   5. Cancel paid→refunded flag + ledger audit (see cancel below).
 router.post("/book", authMiddleware, async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
@@ -980,12 +992,26 @@ router.patch("/bookings/:id/cancel", authMiddleware, async (c) => {
     .where(eq(testBookings.id, id))
     .returning();
 
-  // Handle refund for online/card payments
+  // Handle refund for online/card payments: paid→refunded flag + ledger audit.
+  // No schema drops; TB- PayHere orders refund via manual ledger (no auto-rail).
   if (booking.paymentStatus === "paid") {
     await db
       .update(testBookings)
-      .set({ paymentStatus: "refunded" })
+      .set({ paymentStatus: "refunded", updatedAt: new Date().toISOString() })
       .where(eq(testBookings.id, id));
+    audit(db, {
+      userId,
+      action: "refund",
+      resource: "test_booking",
+      resourceId: id,
+      details: {
+        amount: booking.totalPrice,
+        paymentRef: booking.paymentRef,
+        paymentMethod: booking.paymentMethod,
+        reason: parsed.data.cancellationReason || "patient_cancel",
+        orderPrefix: typeof booking.paymentRef === "string" && booking.paymentRef.startsWith("TB-") ? "TB-" : "other",
+      },
+    }).catch(() => {});
   }
 
   notify({
