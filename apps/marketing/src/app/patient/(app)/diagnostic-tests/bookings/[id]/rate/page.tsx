@@ -33,7 +33,8 @@ export default function RateTestPage({
     }
     setError(null);
     try {
-      await rate.mutateAsync({ id, rating, review: review || undefined });
+      // Real path: POST /diagnostic-tests/bookings/:id/rating {score, comment}.
+      await rate.mutateAsync({ id, score: rating, comment: review || undefined });
       setSubmitted(true);
       setTimeout(() => router.push(`/patient/diagnostic-tests/bookings/${id}`), 1500);
     } catch (err) {

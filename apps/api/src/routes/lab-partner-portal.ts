@@ -1334,6 +1334,8 @@ router.get("/diagnostic-tests-availability", async (c) => {
   const labName = labRow[0]?.name ?? "Lab";
 
   const items = rows.map((r) => ({
+    id: r.id,
+    testId: r.testId,
     labId,
     labName,
     labPartnerId: labId,

@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Ban,
   RefreshCw,
+  Star,
 } from "lucide-react-native";
 import {
   useTestBookingDetail,
@@ -624,6 +625,72 @@ export default function TestBookingDetailScreen() {
                 </View>
               </Button>
             )}
+          </Card>
+        )}
+
+        {/* Rating CTA (completed only, Lab Task 5) */}
+        {isCompleted && (
+          <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 4,
+                  }}
+                >
+                  <Star size={16} color="#F59E0B" />
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      fontWeight: "600",
+                      color: colors.text,
+                      marginLeft: 6,
+                    }}
+                  >
+                    Rate this experience
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+                  Your feedback helps other patients choose the right lab.
+                </Text>
+              </View>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/rate-test/[bookingId]",
+                    params: { bookingId: booking.id },
+                  })
+                }
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 20,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Star size={14} color="#fff" />
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: "600",
+                    marginLeft: 6,
+                  }}
+                >
+                  Rate
+                </Text>
+              </Pressable>
+            </View>
           </Card>
         )}
 

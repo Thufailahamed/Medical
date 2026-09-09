@@ -4488,6 +4488,60 @@ export function useRescheduleTestBooking() {
   });
 }
 
+/** Get my rating for a test booking (pre-fill on the rate screen). */
+export function useTestBookingRating(bookingId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["test-booking-rating", bookingId],
+    queryFn: () =>
+      api<{
+        rating: {
+          id: string;
+          bookingId: string;
+          score: number;
+          stars: number;
+          comment: string | null;
+        } | null;
+      }>(`/diagnostic-tests/bookings/${bookingId}/rating`),
+    enabled: Boolean(bookingId),
+  });
+}
+
+/** Rate a completed test booking (POST /diagnostic-tests/bookings/:id/rating). */
+export function useRateTestBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      stars,
+      score,
+      comment,
+    }: {
+      bookingId: string;
+      stars?: number;
+      score?: number;
+      comment?: string;
+    }) =>
+      api<{ rating: { score: number; stars: number; comment: string | null } }>(
+        `/diagnostic-tests/bookings/${bookingId}/rating`,
+        {
+          method: "POST",
+          body: {
+            score: score ?? stars,
+            stars: stars ?? score,
+            comment,
+          },
+        }
+      ),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: ["test-booking-rating", vars.bookingId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["test-booking-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["my-test-bookings"] });
+    },
+  });
+}
+
 // ─── Health Insurance Marketplace ─────────────────────
 //
 // Catalog (public), quote, enroll, pay, policies, claims, coverage-check.

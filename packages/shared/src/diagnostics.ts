@@ -32,6 +32,8 @@ export interface LabAvailabilityDTO {
   homeCollectionAvailable: boolean;
   labCollectionAvailable: boolean;
   turnaroundHours: number | null;
+  ratingAvg?: number;
+  ratingCount?: number;
 }
 
 // ─── Diagnostic test DTO ────────────────────────────────

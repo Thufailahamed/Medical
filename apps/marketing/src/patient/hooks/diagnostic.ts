@@ -82,16 +82,36 @@ export function useRateTest() {
   return useMutation({
     mutationFn: ({
       id,
+      score,
+      comment,
+      // Back-compat aliases (legacy callers send rating/review).
       rating,
       review,
     }: {
       id: string;
-      rating: number;
+      score?: number;
+      comment?: string;
+      rating?: number;
       review?: string;
     }) =>
       api<{ rating: unknown }>(patientPaths.diagnostic.rateTest(id), {
         method: "POST",
-        json: { rating, review },
+        json: {
+          score: score ?? rating,
+          comment: comment ?? review,
+        },
       }),
+  });
+}
+
+export function useTestBookingRating(id: string) {
+  return useQuery<{ rating: { score: number; stars: number; comment: string | null } | null }>({
+    queryKey: patientKeys.diagnosticBooking(id + ":rating"),
+    queryFn: () =>
+      api<{ rating: { score: number; stars: number; comment: string | null } | null }>(
+        patientPaths.diagnostic.rateTest(id),
+      ),
+    enabled: Boolean(id),
+    ...PATIENT_QUERY_DEFAULTS,
   });
 }

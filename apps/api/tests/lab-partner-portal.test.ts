@@ -58,7 +58,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("Role gating", () => {
     it("rejects non-laboratory users", async () => {
-      const app = buildTestApp(db, { id: "patient-001", role: "patient" });
+      const app = await buildTestApp(db, { id: "patient-001", role: "patient" });
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await getJson(app, "/lab-portal/bookings");
@@ -70,7 +70,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("GET /bookings", () => {
     it("lists lab's bookings", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await getJson(app, "/lab-portal/bookings");
@@ -80,7 +80,7 @@ describe("Lab Partner Portal API", () => {
     });
 
     it("filters by status", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await getJson(app, "/lab-portal/bookings?status=pending");
@@ -95,7 +95,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("PATCH /bookings/:id/confirm", () => {
     it("confirms a pending booking", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await patchJson(app, "/lab-portal/bookings/booking-001/confirm", {});
@@ -105,7 +105,7 @@ describe("Lab Partner Portal API", () => {
     });
 
     it("rejects confirming a non-pending booking", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await patchJson(app, "/lab-portal/bookings/booking-002/confirm", {});
@@ -117,7 +117,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("PATCH /bookings/:id/assign-phlebotomist", () => {
     it("assigns a phlebotomist to a confirmed booking", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await patchJson(app, "/lab-portal/bookings/booking-002/assign-phlebotomist", {
@@ -149,7 +149,7 @@ describe("Lab Partner Portal API", () => {
         },
       ]);
 
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await patchJson(app, "/lab-portal/bookings/booking-003/collect-sample", {});
@@ -164,7 +164,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("POST /catalog", () => {
     it("creates a new test", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await postJson(app, "/lab-portal/catalog", {
@@ -182,7 +182,7 @@ describe("Lab Partner Portal API", () => {
     });
 
     it("rejects duplicate slugs", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await postJson(app, "/lab-portal/catalog", {
@@ -199,7 +199,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("GET /catalog", () => {
     it("lists lab's own catalog", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await getJson(app, "/lab-portal/catalog");
@@ -213,7 +213,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("GET /phlebotomists", () => {
     it("lists phlebotomists", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await getJson(app, "/lab-portal/phlebotomists");
@@ -225,7 +225,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("POST /phlebotomists", () => {
     it("creates a phlebotomist", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await postJson(app, "/lab-portal/phlebotomists", {
@@ -243,7 +243,7 @@ describe("Lab Partner Portal API", () => {
 
   describe("GET /stats", () => {
     it("returns dashboard stats", async () => {
-      const app = buildTestApp(db, LAB_USER);
+      const app = await buildTestApp(db, LAB_USER);
       app.route("/lab-portal", labPartnerPortalRouter);
 
       const res = await getJson(app, "/lab-portal/stats");

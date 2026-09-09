@@ -136,6 +136,7 @@ adminRouter.post("/diagnostics/packages", async (c) => {
       discountPercent: data.discountPercent ?? null,
       turnaroundHours: data.turnaroundHours ?? 48,
       instructions: data.instructions ?? null,
+      isActive: true,
     })
     .returning();
 

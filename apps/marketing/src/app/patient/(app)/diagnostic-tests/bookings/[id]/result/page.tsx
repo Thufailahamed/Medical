@@ -29,10 +29,12 @@ export default function TestResultPage({
     setBusy(true);
     setError(null);
     try {
+      // Real path: explain by bookingId (not packageId — packageId is the
+      // catalog package, not the result report).
       const res = await api<{ explanation: string }>("/ai/explain/lab-report", {
         method: "POST",
         json: {
-          reportId: booking.data.booking.packageId,
+          reportId: id,
           patientId: profile.data?.patient.patients.id,
         },
       });

@@ -310,6 +310,29 @@ class SelectBuilder {
       rows = rows.map((r) => ({ ...r, [`_${this.q.table}`]: r }));
     }
     if (this.q.predicate) rows = rows.filter(this.q.predicate);
+    // COUNT(*) aggregate: real D1 returns a single row even when no
+    // matches (count 0). MockD1 filters to 0 rows, so emulate here.
+    if (this.spec && typeof this.spec === "object" && !Array.isArray(this.spec)) {
+      const keys = Object.keys(this.spec);
+      if (keys.length === 1 && keys[0] === "count") {
+        const v: any = (this.spec as any).count;
+        const chunks: any[] = v?.queryChunks ?? [];
+        const isCount = chunks.some((c) => {
+          if (typeof c === "string") return /count/i.test(c);
+          if (c?.value && Array.isArray(c.value)) return c.value.join("").toLowerCase().includes("count");
+          return false;
+        }) || String(v ?? "").toLowerCase().includes("count");
+        // Also treat bare `sql` count without chunks (defensive).
+        if (isCount || v !== undefined) {
+          // Only emulate when the spec looks like a count aggregate;
+          // plain column selects named `count` still flow through below.
+          // Heuristic: SQL wrapper has queryChunks.
+          if (Array.isArray(v?.queryChunks)) {
+            return [{ count: rows.length }];
+          }
+        }
+      }
+    }
     if (this.q.orderBy) {
       const { field, desc } = this.q.orderBy;
       rows.sort((a, b) => {
@@ -450,13 +473,54 @@ function parseEqCols(eqExpr: any): {
   if (!colA || !colB) return null;
   const metaA = resolveColumnMeta(colA);
   const metaB = resolveColumnMeta(colB);
-  if (!metaA || !metaB) return null;
-  return {
-    leftTable: metaA.tableName,
-    leftKey: metaA.rowKey,
-    rightTable: metaB.tableName,
-    rightKey: metaB.rowKey,
-  };
+  if (metaA && metaB) {
+    return {
+      leftTable: metaA.tableName,
+      leftKey: metaA.rowKey,
+      rightTable: metaB.tableName,
+      rightKey: metaB.rowKey,
+    };
+  }
+  // Fallback when the ESM registry is unavailable (vitest): resolve via
+  // column identity + table name (same logic as resolveColumnKey).
+  // Needed for INNER JOIN ... ON(colA = colB) matching in MockD1.
+  const keyA = rowKeyFromIdentity(colA);
+  const keyB = rowKeyFromIdentity(colB);
+  if (keyA && keyB && colA?.table && colB?.table) {
+    // Reuse _tableName logic via symbol lookup.
+    const tA = tableNameFromRef(colA.table);
+    const tB = tableNameFromRef(colB.table);
+    if (tA && tB) {
+      return { leftTable: tA, leftKey: keyA, rightTable: tB, rightKey: keyB };
+    }
+  }
+  return null;
+}
+
+function rowKeyFromIdentity(col: any): string | null {
+  const tbl = col?.table;
+  if (!col || !tbl || typeof tbl !== "object") return null;
+  const colsSym = Object.getOwnPropertySymbols(tbl).find((s) =>
+    String(s).includes("drizzle:Columns")
+  );
+  if (!colsSym) return null;
+  const colsMap = (tbl as any)[colsSym] as Record<string, any>;
+  for (const [key, c] of Object.entries(colsMap)) {
+    if (c === col) return key;
+  }
+  return null;
+}
+
+function tableNameFromRef(tableRef: any): string | null {
+  if (!tableRef || typeof tableRef !== "object") return null;
+  const syms = Object.getOwnPropertySymbols(tableRef);
+  for (const s of syms) {
+    if (String(s).includes("drizzle:Name")) {
+      return toCamel(String(tableRef[s]));
+    }
+  }
+  const raw = tableRef?._?.name ?? tableRef?.name ?? tableRef?.tableName;
+  return raw ? toCamel(String(raw)) : null;
 }
 
 // Apply the Drizzle select projection spec to a row. The spec is
@@ -498,6 +562,20 @@ function applySelectSpec(spec: any, row: any): any {
       const meta = resolveColumnMeta(val);
       if (meta) {
         out[alias] = row[meta.rowKey];
+        continue;
+      }
+      // Fallback when ESM registry is empty (vitest `require` fails):
+      // snake_case column name → camelCase row key. Rows are stored
+      // camelCase (see seedDiagnostics), columns expose snake_case.
+      const camel = toCamel(String(val.name));
+      if (camel in row) {
+        out[alias] = row[camel];
+        continue;
+      }
+      // Last resort: resolve via column identity (same as where parser).
+      const identKey = rowKeyFromIdentity(val);
+      if (identKey && identKey in row) {
+        out[alias] = row[identKey];
         continue;
       }
       out[alias] = row[val.name];
@@ -595,6 +673,13 @@ class InsertBuilder {
   }
   // Some callers do `await db.insert(...).values(...)` without
   // `.returning()`. Make that work too.
+  onConflictDoNothing(_opts: any = {}) {
+    // No-op for MockD1: rows were already inserted by `.values()`.
+    // Real D1 would silently skip conflicts (e.g. UNIQUE package/test).
+    // Keeping it as a no-op preserves idempotency for fresh inserts
+    // used in tests; duplicate-guarded paths use explicit SELECT checks.
+    return this;
+  }
   then<TResult1 = any[], TResult2 = never>(
     resolve?: ((value: any[]) => TResult1 | PromiseLike<TResult1>) | null,
     reject?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null

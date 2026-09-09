@@ -18,7 +18,9 @@
 // legacy /popular + /validate-promo aliases — all untouched here.
 
 import { Hono } from "hono";
+import { z } from "zod";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import {
   diagnosticTestCatalog,
   labDiagnosticTestCategories,
@@ -59,6 +61,35 @@ const BOOKING_ACTIVE_STATUSES = [
   "sample_collected",
   "in_progress",
 ];
+
+// ─── Test booking ratings (Lab Task 5) ──────────────────────
+// Local drizzle table mirroring migrations 0064/0078
+// `test_booking_ratings`. Kept local so the route works without a
+// shared-schema bump; table name matches the migration so MockD1 +
+// D1 resolve identically. No drops. Appointment ratings untouched.
+const testBookingRatings = sqliteTable("test_booking_ratings", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  bookingId: text("booking_id").notNull().unique(),
+  patientId: text("patient_id").notNull(),
+  userId: text("user_id"),
+  labPartnerId: text("lab_partner_id"),
+  score: integer("score"),
+  stars: integer("stars"),
+  comment: text("comment"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+const testBookingRatingInput = z.object({
+  score: z.number().int().min(1).max(5).optional(),
+  stars: z.number().int().min(1).max(5).optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+  comment: z.string().max(500).optional(),
+  review: z.string().max(500).optional(),
+});
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -335,7 +366,44 @@ async function buildLabAvailability(
     homeCollectionAvailable: !!r.homeCollectionAvailable,
     labCollectionAvailable: !!r.labCollectionAvailable,
     turnaroundHours: r.turnaroundHours,
+    ratingAvg: 0,
+    ratingCount: 0,
   }));
+
+  // Lab Task 5: aggregate ratingAvg/ratingCount per lab, computed on
+  // read (trivial). Reads test_booking_ratings and averages score/stars
+  // per labPartnerId. Cheap: ratings accumulate slowly, single query.
+  try {
+    const ratingRows = (await db.select().from(testBookingRatings)) as Array<any>;
+    if (Array.isArray(ratingRows) && ratingRows.length > 0) {
+      const byLab = new Map<string, { sum: number; count: number }>();
+      for (const rr of ratingRows) {
+        const labId: string | null =
+          rr.labPartnerId ?? rr.lab_partner_id ?? rr.labId ?? null;
+        if (!labId || !labIds.includes(labId)) continue;
+        const v: number | null =
+          typeof rr.score === "number"
+            ? rr.score
+            : typeof rr.stars === "number"
+              ? rr.stars
+              : null;
+        if (typeof v !== "number" || v < 1 || v > 5) continue;
+        const agg = byLab.get(labId) ?? { sum: 0, count: 0 };
+        agg.sum += v;
+        agg.count += 1;
+        byLab.set(labId, agg);
+      }
+      for (const offer of availableAt) {
+        const agg = byLab.get(offer.labId);
+        if (agg && agg.count > 0) {
+          offer.ratingAvg = Math.round((agg.sum / agg.count) * 10) / 10;
+          offer.ratingCount = agg.count;
+        }
+      }
+    }
+  } catch {
+    // Ratings table missing (pre-0078 DB): leave defaults 0.
+  }
 
   const minPrice = availableAt.reduce(
     (min, offer) => Math.min(min, offer.discountPrice ?? offer.price),
@@ -1136,6 +1204,162 @@ router.patch("/bookings/:id/reschedule", authMiddleware, async (c) => {
   }).catch(() => {});
 
   return c.json({ booking: updated });
+});
+
+// ─── Rate a booking (patient, Lab Task 5) ────────────────
+// POST /diagnostic-tests/bookings/:id/rating {score 1-5, comment?}
+// completed-only, patient owns booking, upsert into
+// test_booking_ratings (0078). Returns {rating}. Keeps appointment
+// ratings untouched (separate table/route).
+router.post("/bookings/:id/rating", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = testBookingRatingInput.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400
+    );
+  }
+  const score = parsed.data.score ?? parsed.data.stars ?? parsed.data.rating;
+  if (score === undefined) {
+    return c.json({ error: "score must be an integer 1..5" }, 400);
+  }
+  const rawComment = parsed.data.comment ?? parsed.data.review ?? null;
+  const comment =
+    typeof rawComment === "string" && rawComment.trim()
+      ? rawComment.trim().slice(0, 500)
+      : null;
+
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ error: "Patient profile not found" }, 404);
+
+  const [booking] = await db
+    .select()
+    .from(testBookings)
+    .where(eq(testBookings.id, id))
+    .limit(1);
+  if (!booking) return c.json({ error: "Booking not found" }, 404);
+  if (booking.patientId !== patient.id) {
+    return c.json({ error: "Not your booking" }, 403);
+  }
+  if (booking.status !== "completed") {
+    return c.json(
+      { error: "Booking is not yet completed", status: booking.status },
+      409
+    );
+  }
+
+  const now = new Date().toISOString();
+  const [existing] = await db
+    .select()
+    .from(testBookingRatings)
+    .where(eq(testBookingRatings.bookingId, id))
+    .limit(1);
+
+  if (existing) {
+    const [updated] = await db
+      .update(testBookingRatings)
+      .set({ score, stars: score, comment, labPartnerId: booking.labPartnerId })
+      .where(eq(testBookingRatings.bookingId, id))
+      .returning();
+    const row: any = updated ?? { ...existing, score, stars: score, comment };
+    audit(db, userId, {
+      action: "rate",
+      resource: "test_booking",
+      resourceId: id,
+      details: { score },
+    }).catch(() => {});
+    return c.json({
+      rating: {
+        id: row.id,
+        bookingId: id,
+        score: row.score ?? score,
+        stars: row.stars ?? score,
+        comment: row.comment ?? null,
+        createdAt: row.createdAt ?? row.created_at ?? now,
+      },
+    });
+  }
+
+  const [created] = await db
+    .insert(testBookingRatings)
+    .values({
+      id: crypto.randomUUID(),
+      bookingId: id,
+      patientId: patient.id,
+      userId,
+      labPartnerId: booking.labPartnerId,
+      score,
+      stars: score,
+      comment,
+      createdAt: now,
+    })
+    .returning();
+  const row: any = created ?? {
+    id: `mock-${Date.now()}`,
+    bookingId: id,
+    score,
+    stars: score,
+    comment,
+    createdAt: now,
+  };
+  audit(db, userId, {
+    action: "rate",
+    resource: "test_booking",
+    resourceId: id,
+    details: { score },
+  }).catch(() => {});
+  return c.json({
+    rating: {
+      id: row.id,
+      bookingId: id,
+      score: row.score ?? score,
+      stars: row.stars ?? score,
+      comment: row.comment ?? null,
+      createdAt: row.createdAt ?? row.created_at ?? now,
+    },
+  });
+});
+
+// ─── Get my rating for a booking (patient) ───────────────
+// Supports mobile rate screen pre-fill. Returns {rating} or
+// {rating:null} when none (mirrors GET /appointments/:id/rating).
+router.get("/bookings/:id/rating", authMiddleware, async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const patient = await resolvePatientContext(c);
+  if (!patient) return c.json({ rating: null });
+  const [booking] = await db
+    .select({ id: testBookings.id, patientId: testBookings.patientId })
+    .from(testBookings)
+    .where(eq(testBookings.id, id))
+    .limit(1);
+  if (!booking || (booking as any).id !== id) return c.json({ rating: null });
+  if ((booking as any).patientId !== patient.id) return c.json({ rating: null });
+  const [mine] = await db
+    .select()
+    .from(testBookingRatings)
+    .where(eq(testBookingRatings.bookingId, id))
+    .limit(1);
+  if (!mine) return c.json({ rating: null });
+  const m: any = mine;
+  return c.json({
+    rating: {
+      id: m.id,
+      bookingId: id,
+      score: m.score ?? m.stars ?? null,
+      stars: m.stars ?? m.score ?? null,
+      comment: m.comment ?? null,
+      createdAt: m.createdAt ?? m.created_at ?? null,
+    },
+  });
 });
 
 // ─── Available time slots (public) ───────────────────────
