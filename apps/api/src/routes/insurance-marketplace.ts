@@ -1476,7 +1476,11 @@ export async function handleInsurancePremiumPaid(
       endDate,
       lastPremiumPaidAt: now,
       nextPremiumDueAt: nextDue,
-      kycStatus: "verified",
+      // Do not auto-verify on payment: keep verified only if KYC already
+      // verified, else preserve manual KYC state (pending/rejected).
+      // Manual verify via POST /insurance-operator/enrollments/:id/kyc.
+      kycStatus:
+        enrollment.kycStatus === "verified" ? "verified" : enrollment.kycStatus,
       updatedAt: now,
     })
     .where(eq(insuranceEnrollments.id, enrollment.id));

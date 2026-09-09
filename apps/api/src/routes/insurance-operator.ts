@@ -18,7 +18,14 @@ import {
   operatorOrgs,
   users,
 } from "@healthcare/db";
-import { insuranceClaimDecisionSchema } from "@healthcare/shared/validators";
+import {
+  insuranceClaimDecisionSchema,
+  insuranceProviderCreateSchema,
+  insuranceProviderUpdateSchema,
+  insurancePlanCreateSchema,
+  insurancePlanUpdateSchema,
+} from "@healthcare/shared/validators";
+import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { notify } from "../lib/notifications";
@@ -27,7 +34,63 @@ import type { AppEnvironment } from "../types";
 
 const operatorRouter = new Hono<AppEnvironment>();
 
-operatorRouter.use("*", authMiddleware, requireRole("insurance"));
+const insuranceOperatorRegisterSchema = z.object({
+  orgName: z.string().min(1).max(160),
+  license: z.string().min(1).max(80),
+  contactEmail: z.string().email().max(160).optional(),
+  contactPhone: z.string().max(40).optional(),
+  licenseDocKey: z.string().max(500).optional(),
+});
+
+// Public registration — must be defined before auth middleware so new
+// providers without accounts can apply. The global auth guard below skips
+// POST /register (see bypass); defining here first also keeps Hono order safe.
+operatorRouter.post("/register", async (c) => {
+  const db = c.get("db");
+  const body = insuranceOperatorRegisterSchema.parse(await c.req.json());
+  const orgId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await db
+    .insert(operatorOrgs)
+    .values({
+      id: orgId,
+      name: body.orgName,
+      kind: "insurance",
+      status: "pending",
+      contactEmail: body.contactEmail || null,
+      contactPhone: body.contactPhone || null,
+      licenseDocKey: body.licenseDocKey || null,
+      createdAt: now,
+    } as any);
+  // Pending user linkage note: no user row yet — super_admin approves via
+  // existing account_pending_review flow, then links role=insurance user to orgId.
+  await audit(db, {
+    userId: null,
+    action: "insurance.operator.registered",
+    resource: "operator_org",
+    resourceId: orgId,
+    details: {
+      orgName: body.orgName,
+      license: body.license,
+      contactEmail: body.contactEmail || null,
+      contactPhone: body.contactPhone || null,
+    },
+  });
+  return c.json({ orgId, status: "pending" }, 201);
+});
+
+operatorRouter.use("*", async (c, next) => {
+  if (c.req.method === "POST" && c.req.path.endsWith("/register")) {
+    return next();
+  }
+  return authMiddleware(c, next);
+});
+operatorRouter.use("*", async (c, next) => {
+  if (c.req.method === "POST" && c.req.path.endsWith("/register")) {
+    return next();
+  }
+  return requireRole("insurance")(c, next);
+});
 
 // Resolve the operator org for the calling user (single-org binding).
 async function resolveOperatorOrg(db: any, userId: string) {
@@ -392,6 +455,282 @@ operatorRouter.post("/claims/:id/pay", async (c) => {
       transactionRef: transactionRef.trim(),
       updatedAt: now,
     },
+  });
+});
+
+// ─── Provider drafts (operator creates, super_admin publishes) ───
+// Mirrors admin-insurance.ts validation via same Zod schemas, but forces
+// isPublished=false and scopes operatorOrgId to caller's org.
+operatorRouter.post("/providers", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ error: "Forbidden" }, 403);
+  const raw = await c.req.json();
+  const body = insuranceProviderCreateSchema.parse({
+    ...raw,
+    operatorOrgId: org.id,
+    isPublished: false,
+  });
+  const id = crypto.randomUUID();
+  await db.insert(insuranceProviders).values({
+    id,
+    operatorOrgId: org.id,
+    slug: body.slug,
+    name: body.name,
+    logoUrl: body.logoUrl || null,
+    tagline: body.tagline || null,
+    description: body.description || null,
+    regulatorLicense: body.regulatorLicense || null,
+    claimSettlementRatioPct: body.claimSettlementRatioPct ?? null,
+    cashlessHospitalCount: body.cashlessHospitalCount ?? null,
+    websiteUrl: body.websiteUrl || null,
+    supportPhone: body.supportPhone || null,
+    isPublished: false,
+  } as any);
+  await audit(db, {
+    userId,
+    action: "insurance.operator_provider.drafted",
+    resource: "insurance_provider",
+    resourceId: id,
+    details: { operatorOrgId: org.id, slug: body.slug },
+  });
+  const [row] = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.id, id))
+    .limit(1);
+  return c.json({ provider: row }, 201);
+});
+
+operatorRouter.put("/providers/:id", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ error: "Forbidden" }, 403);
+  const id = c.req.param("id");
+  const [existing] = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.id, id))
+    .limit(1);
+  if (!existing || existing.operatorOrgId !== org.id) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  const body = insuranceProviderUpdateSchema.parse(await c.req.json());
+  const patch: Record<string, any> = {};
+  const map: Record<string, string> = {
+    name: "name",
+    slug: "slug",
+    logoUrl: "logo_url",
+    tagline: "tagline",
+    description: "description",
+    regulatorLicense: "regulator_license",
+    claimSettlementRatioPct: "claim_settlement_ratio_pct",
+    cashlessHospitalCount: "cashless_hospital_count",
+    websiteUrl: "website_url",
+    supportPhone: "support_phone",
+  };
+  for (const [k, v] of Object.entries(body)) {
+    if (v !== undefined && k !== "operatorOrgId" && k !== "isPublished") {
+      patch[map[k] ?? k] = v;
+    }
+  }
+  // Force draft: operator cannot publish.
+  patch.is_published = 0;
+  patch.updated_at = new Date().toISOString();
+  await db
+    .update(insuranceProviders)
+    .set(patch)
+    .where(eq(insuranceProviders.id, id));
+  await audit(db, {
+    userId,
+    action: "insurance.operator_provider.updated",
+    resource: "insurance_provider",
+    resourceId: id,
+    details: { operatorOrgId: org.id },
+  });
+  const [row] = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.id, id))
+    .limit(1);
+  return c.json({ provider: row });
+});
+
+// ─── Plan drafts ───
+operatorRouter.post("/plans", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ error: "Forbidden" }, 403);
+  const raw = await c.req.json();
+  const body = insurancePlanCreateSchema.parse({
+    ...raw,
+    isPublished: false,
+  });
+  const [provider] = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.id, body.providerId))
+    .limit(1);
+  if (!provider || provider.operatorOrgId !== org.id) {
+    return c.json({ error: "Provider not found in your org" }, 404);
+  }
+  const id = crypto.randomUUID();
+  await db.insert(insurancePlans).values({
+    id,
+    providerId: body.providerId,
+    slug: body.slug,
+    name: body.name,
+    planType: body.planType,
+    coverageSummaryLkr: body.coverageSummaryLkr,
+    coverageDetailsJson: body.coverageDetailsJson || null,
+    monthlyPremiumLkr: body.monthlyPremiumLkr,
+    annualPremiumLkr: body.annualPremiumLkr,
+    annualDiscountPct: body.annualDiscountPct ?? 10,
+    deductibleLkr: body.deductibleLkr ?? 0,
+    copayPct: body.copayPct ?? 10,
+    coPaymentCapLkr: body.coPaymentCapLkr ?? 0,
+    waitingPeriodDays: body.waitingPeriodDays ?? 30,
+    preExistingWaitingDays: body.preExistingWaitingDays ?? 365,
+    networkHospitalCount: body.networkHospitalCount ?? 0,
+    keyFeaturesJson: body.keyFeaturesJson || null,
+    exclusionsJson: body.exclusionsJson || null,
+    termMonths: body.termMonths ?? 12,
+    isPublished: false,
+    isFeatured: body.isFeatured ?? false,
+  } as any);
+  await audit(db, {
+    userId,
+    action: "insurance.operator_plan.drafted",
+    resource: "insurance_plan",
+    resourceId: id,
+    details: { providerId: body.providerId },
+  });
+  const [row] = await db
+    .select()
+    .from(insurancePlans)
+    .where(eq(insurancePlans.id, id))
+    .limit(1);
+  return c.json({ plan: row }, 201);
+});
+
+operatorRouter.put("/plans/:id", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ error: "Forbidden" }, 403);
+  const id = c.req.param("id");
+  const [existing] = await db
+    .select()
+    .from(insurancePlans)
+    .where(eq(insurancePlans.id, id))
+    .limit(1);
+  if (!existing) return c.json({ error: "Not found" }, 404);
+  const [provider] = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.id, existing.providerId))
+    .limit(1);
+  if (!provider || provider.operatorOrgId !== org.id) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  const body = insurancePlanUpdateSchema.parse(await c.req.json());
+  const camelToSnake: Record<string, string> = {
+    name: "name",
+    slug: "slug",
+    planType: "plan_type",
+    coverageSummaryLkr: "coverage_summary_lkr",
+    coverageDetailsJson: "coverage_details_json",
+    monthlyPremiumLkr: "monthly_premium_lkr",
+    annualPremiumLkr: "annual_premium_lkr",
+    annualDiscountPct: "annual_discount_pct",
+    deductibleLkr: "deductible_lkr",
+    copayPct: "copay_pct",
+    coPaymentCapLkr: "co_payment_cap_lkr",
+    waitingPeriodDays: "waiting_period_days",
+    preExistingWaitingDays: "pre_existing_waiting_days",
+    networkHospitalCount: "network_hospital_count",
+    keyFeaturesJson: "key_features_json",
+    exclusionsJson: "exclusions_json",
+    termMonths: "term_months",
+  };
+  const patch: Record<string, any> = { updated_at: new Date().toISOString() };
+  for (const [k, v] of Object.entries(body)) {
+    if (v !== undefined && k !== "isPublished" && k !== "providerId") {
+      patch[camelToSnake[k] ?? k] = v;
+    }
+  }
+  patch.is_published = 0;
+  if (typeof body.isFeatured === "boolean") {
+    patch.is_featured = body.isFeatured ? 1 : 0;
+  }
+  await db.update(insurancePlans).set(patch).where(eq(insurancePlans.id, id));
+  await audit(db, {
+    userId,
+    action: "insurance.operator_plan.updated",
+    resource: "insurance_plan",
+    resourceId: id,
+    details: { operatorOrgId: org.id },
+  });
+  const [row] = await db
+    .select()
+    .from(insurancePlans)
+    .where(eq(insurancePlans.id, id))
+    .limit(1);
+  return c.json({ plan: row });
+});
+
+// ─── KYC decision (manual verify, scoped to org providers) ───
+const insuranceKycDecisionSchema = z.object({
+  decision: z.enum(["verified", "rejected"]),
+});
+
+operatorRouter.post("/enrollments/:id/kyc", async (c) => {
+  const db = c.get("db");
+  const env = c.env;
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ error: "Forbidden" }, 403);
+  const providerIds = await resolveProviderIds(db, org.id);
+  const enrollmentId = c.req.param("id");
+  const body = insuranceKycDecisionSchema.parse(await c.req.json());
+  const [enrollment] = await db
+    .select()
+    .from(insuranceEnrollments)
+    .where(eq(insuranceEnrollments.id, enrollmentId))
+    .limit(1);
+  if (!enrollment || !providerIds.includes(enrollment.providerId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  const now = new Date().toISOString();
+  await db
+    .update(insuranceEnrollments)
+    .set({ kycStatus: body.decision, updatedAt: now })
+    .where(eq(insuranceEnrollments.id, enrollmentId));
+  await notify({
+    db,
+    env,
+    userId: enrollment.userId,
+    type: "insurance",
+    title:
+      body.decision === "verified" ? "KYC verified" : "KYC needs attention",
+    body:
+      body.decision === "verified"
+        ? "Your identity verification was approved. You can proceed to payment."
+        : "Your identity verification was rejected. Please re-upload a clear NIC via Files and contact support.",
+    data: { enrollmentId, kycStatus: body.decision },
+  });
+  await audit(db, {
+    userId,
+    action: `insurance.enrollment.kyc.${body.decision}`,
+    resource: "insurance_enrollment",
+    resourceId: enrollmentId,
+    details: { decision: body.decision, providerId: enrollment.providerId },
+  });
+  return c.json({
+    enrollment: { ...enrollment, kycStatus: body.decision, updatedAt: now },
   });
 });
 

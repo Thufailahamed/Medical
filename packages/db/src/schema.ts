@@ -3752,9 +3752,11 @@ export const operatorOrgs = sqliteTable("operator_orgs", {
   kind: text("kind", { enum: ["insurance", "ambulance"] }).notNull(),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
-  status: text("status", { enum: ["active", "suspended"] })
+  status: text("status", { enum: ["active", "suspended", "pending"] })
     .notNull()
     .default("active"),
+  licenseDocKey: text("license_doc_key"),
+  verifiedAt: text("verified_at"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
