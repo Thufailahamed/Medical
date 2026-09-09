@@ -353,6 +353,7 @@ operatorRouter.post("/claims/:id/decision", async (c) => {
   };
   await notify({
     db,
+    env: c.env,
     userId: claim.userId,
     type: "insurance",
     title: titles[nextStatus] ?? "Claim updated",
@@ -431,6 +432,7 @@ operatorRouter.post("/claims/:id/pay", async (c) => {
 
   await notify({
     db,
+    env: c.env,
     userId: claim.userId,
     type: "insurance",
     title: "Claim paid",
@@ -767,6 +769,7 @@ operatorRouter.post("/claims/:id/messages", async (c) => {
     .returning();
   await notify({
     db,
+    env: c.env,
     userId: claim.userId,
     type: "insurance",
     title: "Update on your claim",

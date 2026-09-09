@@ -1,13 +1,15 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, like, lte } from "drizzle-orm";
 import {
+  auditLogs,
   insuranceEnrollments,
   insurancePlans,
   insuranceProviders,
   users,
 } from "@healthcare/db";
 import { notify } from "../lib/notifications";
+import { audit } from "../lib/audit";
 import { createDb } from "../lib/db";
 import type { AppEnvironment } from "../types";
 
@@ -16,8 +18,11 @@ import type { AppEnvironment } from "../types";
  *
  * Fires daily around 09:00 UTC (14:30 IST). Sends a `premium.due_soon`
  * notification to policyholders whose `next_premium_due_at` is within
- * the next 7 days. Marks reminded via the `insurance_premium_invoices`
- * attempt_count > 0 to keep the SQL simple.
+ * the next 7 days.
+ *
+ * Dedup: in-memory notified set per run + audit lookup
+ * (`insurance.premium.reminded`) to skip if already notified today.
+ * Additive only — no schema migration.
  *
  * Manual invocation:
  *   POST /__cron/insurance-premium-reminders with x-cron-secret header.
@@ -73,12 +78,41 @@ insurancePremiumRemindersRouter.post(
       .limit(1000);
 
     let sent = 0;
+    let skipped = 0;
     const failed: string[] = [];
+    const notifiedThisRun = new Set<string>();
+    const todayIso = now.toISOString().slice(0, 10);
 
     for (const row of rows) {
+      // In-memory per-run guard: skip duplicates within this execution.
+      if (notifiedThisRun.has(row.enrollmentId)) {
+        skipped++;
+        continue;
+      }
+      // Skip if already notified today (audit lookup — avoids migration).
+      try {
+        const prior: any[] = await db
+          .select({ createdAt: auditLogs.createdAt })
+          .from(auditLogs)
+          .where(
+            and(
+              eq(auditLogs.action, "insurance.premium.reminded"),
+              eq(auditLogs.resourceId, row.enrollmentId),
+              like(auditLogs.createdAt, `${todayIso}%`),
+            ),
+          )
+          .limit(1);
+        if (prior.length > 0) {
+          skipped++;
+          continue;
+        }
+      } catch {
+        // Best-effort dedup — if audit lookup fails, fall through to notify.
+      }
       try {
         await notify({
           db,
+          env: c.env,
           userId: row.userId,
           type: "insurance",
           title: "Premium due soon",
@@ -87,6 +121,14 @@ insurancePremiumRemindersRouter.post(
             enrollmentId: row.enrollmentId,
             deepLink: `/insurance/policy/${row.enrollmentId}`,
           },
+        });
+        notifiedThisRun.add(row.enrollmentId);
+        await audit(db, {
+          userId: row.userId,
+          action: "insurance.premium.reminded",
+          resource: "insurance_enrollment",
+          resourceId: row.enrollmentId,
+          details: { nextPremiumDueAt: row.nextPremiumDueAt },
         });
         sent++;
       } catch (err: any) {
@@ -98,6 +140,7 @@ insurancePremiumRemindersRouter.post(
       ok: true,
       scanned: rows.length,
       sent,
+      skipped,
       failed: failed.length,
     });
   },

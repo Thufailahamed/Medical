@@ -5,6 +5,8 @@ import {
   insuranceEnrollments,
   insurancePremiumInvoices,
 } from "@healthcare/db";
+import { notify } from "../lib/notifications";
+import { audit } from "../lib/audit";
 import { createDb } from "../lib/db";
 import type { AppEnvironment } from "../types";
 
@@ -13,9 +15,11 @@ import type { AppEnvironment } from "../types";
  *
  * Fires daily around 09:15 UTC. For each `active` enrollment whose
  * `next_premium_due_at` is today or earlier, create a fresh
- * `insurance_premium_invoices` row (status=open). Does NOT charge —
+ * `insurance_premium_invoices` row (status=open) with per-day idempotency
+ * (skip if an open invoice already exists for today). Does NOT charge —
  * payment is initiated by the patient via the existing PayHere link
- * from the policy detail screen. This cron materialises the invoice.
+ * from the policy detail screen. This cron materialises the invoice,
+ * then notifies the policyholder (SMS via env).
  *
  * Manual invocation:
  *   POST /__cron/insurance-billing with x-cron-secret header.
@@ -38,6 +42,7 @@ insuranceBillingRouter.post("/__cron/insurance-billing", async (c) => {
   const due: any[] = await db
     .select({
       id: insuranceEnrollments.id,
+      userId: insuranceEnrollments.userId,
       billingCycle: insuranceEnrollments.billingCycle,
       premiumAmountLkr: insuranceEnrollments.premiumAmountLkr,
       nextPremiumDueAt: insuranceEnrollments.nextPremiumDueAt,
@@ -91,6 +96,32 @@ insuranceBillingRouter.post("/__cron/insurance-billing", async (c) => {
         status: "open",
       } as any);
       invoicesCreated++;
+      // Notify after invoice creation (SMS via env, best-effort).
+      try {
+        if (enr.userId) {
+          await notify({
+            db,
+            env: c.env,
+            userId: enr.userId,
+            type: "insurance",
+            title: "Premium invoice ready",
+            body: `Your premium invoice for LKR ${Number(enr.premiumAmountLkr).toLocaleString()} is ready. Due ${String(enr.nextPremiumDueAt ?? todayIso).slice(0, 10)}. Pay via the Insurance tab to keep coverage active.`,
+            data: {
+              enrollmentId: enr.id,
+              deepLink: `/insurance/policy/${enr.id}`,
+            },
+          });
+          await audit(db, {
+            userId: enr.userId,
+            action: "insurance.premium.invoiced",
+            resource: "insurance_enrollment",
+            resourceId: enr.id,
+            details: { amountLkr: enr.premiumAmountLkr, dueAt: enr.nextPremiumDueAt },
+          });
+        }
+      } catch {
+        // Notify is best-effort — invoice already created.
+      }
     } catch (err: any) {
       skipped.push(`${enr.id}: ${err?.message ?? "unknown"}`);
     }

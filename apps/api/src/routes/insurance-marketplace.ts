@@ -986,6 +986,79 @@ marketplaceRouter.post(
 );
 
 /**
+ * GET /insurance-marketplace/ecards/verify?token=
+ * Public for hospital front-desk scan — no auth.
+ * NOTE: rate-limit at edge/gateway (e.g. 60/min/IP) to prevent token
+ * enumeration. Checks insurance_ecards.qrToken=token join enrollment
+ * status=active + validUntil>=now, logs scan via audit.
+ */
+marketplaceRouter.get("/ecards/verify", async (c) => {
+  const db = c.get("db");
+  const token = (c.req.query("token") ?? "").trim();
+  if (!token) {
+    return c.json({ valid: false, error: "token required" }, 400);
+  }
+  const [card] = await db
+    .select()
+    .from(insuranceEcards)
+    .where(eq(insuranceEcards.qrToken, token))
+    .limit(1);
+  if (!card) {
+    return c.json({ valid: false }, 404);
+  }
+  const [enrollment] = await db
+    .select()
+    .from(insuranceEnrollments)
+    .where(eq(insuranceEnrollments.id, card.enrollmentId))
+    .limit(1);
+  const nowMs = Date.now();
+  const validUntilMs = card.validUntil ? new Date(card.validUntil).getTime() : NaN;
+  const isActive = enrollment?.status === "active";
+  const isFresh = Number.isFinite(validUntilMs) && validUntilMs >= nowMs;
+  if (!enrollment || !isActive || !isFresh) {
+    await audit(db, {
+      userId: enrollment?.userId ?? null,
+      action: "insurance.ecard.scan.invalid",
+      resource: "insurance_ecard",
+      resourceId: card.id,
+      details: { enrollmentId: card.enrollmentId },
+    });
+    return c.json({ valid: false }, 404);
+  }
+  const [provider] = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.id, enrollment.providerId))
+    .limit(1);
+  const [plan] = await db
+    .select()
+    .from(insurancePlans)
+    .where(eq(insurancePlans.id, enrollment.planId))
+    .limit(1);
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, enrollment.userId))
+    .limit(1);
+  await audit(db, {
+    userId: enrollment.userId,
+    action: "insurance.ecard.scan",
+    resource: "insurance_ecard",
+    resourceId: card.id,
+    details: { enrollmentId: card.enrollmentId },
+  });
+  return c.json({
+    valid: true,
+    holderName: user?.name ?? null,
+    providerName: provider?.name ?? null,
+    planName: plan?.name ?? null,
+    policyNumber: enrollment.policyNumber,
+    coverageAmountLkr: enrollment.coverageAmountLkr,
+    validUntil: card.validUntil,
+  });
+});
+
+/**
  * GET /insurance-marketplace/enrollments/:id/ecard
  */
 marketplaceRouter.get(
@@ -1163,6 +1236,7 @@ marketplaceRouter.post(
       for (const op of operatorUsers) {
         await notify({
           db,
+          env: c.env,
           userId: op.id,
           type: "insurance",
           title: "New claim submitted",
@@ -1518,6 +1592,7 @@ export async function handleInsurancePremiumPaid(
 
   await notify({
     db,
+    env,
     userId: enrollment.userId,
     type: "insurance",
     title: isFirstPremium ? "Policy activated" : "Premium paid",
@@ -1583,6 +1658,7 @@ export async function handleInsurancePremiumFailed(
       .where(eq(insuranceEnrollments.id, enrollment.id));
     await notify({
       db,
+      env,
       userId: enrollment.userId,
       type: "insurance",
       title: "Premium payment failed",

@@ -490,7 +490,7 @@ export default function PublicInsuranceLanding() {
         <div className="mt-10 max-w-3xl divide-y divide-slate-100 border-y border-slate-100">
           <Faq
             q="Is MedLocker an insurer?"
-            a="No. We're a licensed insurance broker. We help you compare, choose and buy from regulated insurers like Sri Lanka Insurance, Ceylinco, AIA and more. Your policy is with the insurer, not with us."
+            a="No. MedLocker is not an insurer or broker. Insurance onboarding is in progress — we're onboarding regulated insurer partners in Sri Lanka. Once live, you can compare and buy listed partner plans here. Your policy will be with the insurer, not with us, subject to their terms."
           />
           <Faq
             q="How is the premium calculated?"

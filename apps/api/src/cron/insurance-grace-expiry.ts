@@ -75,6 +75,7 @@ insuranceGraceExpiryRouter.post(
 
         await notify({
           db,
+          env: c.env,
           userId: enr.userId,
           type: "insurance",
           title: "Policy lapsed",
