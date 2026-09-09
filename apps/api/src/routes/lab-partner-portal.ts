@@ -1,7 +1,9 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
+import { z } from "zod";
 import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import {
   diagnosticTestCatalog,
   labDiagnosticTests,
@@ -32,6 +34,48 @@ const router = new Hono<AppEnvironment>();
 
 // All routes require laboratory role
 router.use("*", authMiddleware, requireRole("laboratory", "super_admin"));
+
+// ─── Phlebotomist roster (Lab Task 4) ───────────────────────
+// Local drizzle table mirroring migration 0066/0078 `phlebotomists`.
+// Kept local so the route works without a shared-schema bump; the
+// table name matches the migration so MockD1 + D1 resolve identically.
+const phlebotomists = sqliteTable("phlebotomists", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  labPartnerId: text("lab_partner_id").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+const createPhlebotomistSchema = z.object({
+  name: z.string().min(1).max(120),
+  phone: z.string().min(7).max(16),
+  email: z.string().email().max(254).optional(),
+});
+
+const updatePhlebotomistSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  phone: z.string().min(7).max(16).optional(),
+  email: z.string().email().max(254).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+
+// Back-compat assign input: phlebotomistId FK alone resolves the roster;
+// free-text name/phone still works when provided (legacy callers).
+const assignPhlebotomistInput = z.object({
+  phlebotomistId: z.string().min(1),
+  phlebotomistName: z.string().min(1).max(120).optional(),
+  phlebotomistPhone: z.string().min(7).max(16).optional(),
+});
 
 // Helper: get the lab partner's user ID
 function getLabId(c: any): string {
@@ -258,13 +302,17 @@ router.patch("/bookings/:id/confirm", async (c) => {
 });
 
 // ─── Assign phlebotomist ─────────────────────────────────
+// Lab Task 4: accepts `phlebotomistId` FK (roster lookup scoped to
+// labPartnerId) while keeping back-compat free-text name/phone.
+//   - { phlebotomistId, phlebotomistName, phlebotomistPhone } → legacy path.
+//   - { phlebotomistId } → roster lookup; 404 when unknown/other-lab.
 router.patch("/bookings/:id/assign-phlebotomist", async (c) => {
   const db = c.get("db");
   const labId = getLabId(c);
   const id = c.req.param("id");
 
   const body = await c.req.json().catch(() => ({}));
-  const parsed = assignPhlebotomistSchema.safeParse(body);
+  const parsed = assignPhlebotomistInput.safeParse(body);
   if (!parsed.success) {
     return c.json(
       {
@@ -293,13 +341,32 @@ router.patch("/bookings/:id/assign-phlebotomist", async (c) => {
     );
   }
 
+  // Resolve name/phone: free-text wins (back-compat); otherwise roster FK.
+  let resolvedName = parsed.data.phlebotomistName;
+  let resolvedPhone = parsed.data.phlebotomistPhone;
+  if (!resolvedName || !resolvedPhone) {
+    const [roster] = await db
+      .select()
+      .from(phlebotomists)
+      .where(
+        and(
+          eq(phlebotomists.id, parsed.data.phlebotomistId),
+          eq(phlebotomists.labPartnerId, labId)
+        )
+      )
+      .limit(1);
+    if (!roster) return c.json({ error: "Phlebotomist not found" }, 404);
+    resolvedName = resolvedName || (roster as any).name;
+    resolvedPhone = resolvedPhone || (roster as any).phone;
+  }
+
   const [updated] = await db
     .update(testBookings)
     .set({
       status: "phlebotomist_assigned",
       phlebotomistId: parsed.data.phlebotomistId,
-      phlebotomistName: parsed.data.phlebotomistName,
-      phlebotomistPhone: parsed.data.phlebotomistPhone,
+      phlebotomistName: resolvedName,
+      phlebotomistPhone: resolvedPhone,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(testBookings.id, id))
@@ -312,7 +379,7 @@ router.patch("/bookings/:id/assign-phlebotomist", async (c) => {
     userId: booking.patientId,
     type: "lab_ready",
     title: "Phlebotomist Assigned",
-    body: `${parsed.data.phlebotomistName} has been assigned for your sample collection.`,
+    body: `${resolvedName} has been assigned for your sample collection.`,
     data: { bookingId: id, kind: "test_booking_phlebotomist_assigned" },
   }).catch(() => {});
 
@@ -320,7 +387,7 @@ router.patch("/bookings/:id/assign-phlebotomist", async (c) => {
     action: "assign_phlebotomist",
     resource: "test_booking",
     resourceId: id,
-    details: { phlebotomistName: parsed.data.phlebotomistName },
+    details: { phlebotomistName: resolvedName },
   }).catch(() => {});
 
   return c.json({ booking: updated });
@@ -997,6 +1064,156 @@ router.get("/packages", async (c) => {
     .orderBy(asc(testPackages.name));
 
   return c.json({ packages: rows });
+});
+
+// ─── Phlebotomist roster CRUD (Lab Task 4) ────────────────
+// Scoped to labPartnerId. Soft deactivate on DELETE.
+
+router.get("/phlebotomists", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const rows = await db
+    .select()
+    .from(phlebotomists)
+    .where(eq(phlebotomists.labPartnerId, labId))
+    .orderBy(asc(phlebotomists.name));
+  const mapped = (rows as any[]).map((r: any) => ({
+    id: r.id,
+    labPartnerId: r.labPartnerId ?? r.lab_partner_id ?? labId,
+    name: r.name,
+    phone: r.phone,
+    email: r.email ?? null,
+    isActive: r.isActive ?? r.is_active ?? true,
+    createdAt: r.createdAt ?? r.created_at,
+    updatedAt: r.updatedAt ?? r.updated_at,
+  }));
+  return c.json({ phlebotomists: mapped });
+});
+
+router.post("/phlebotomists", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = createPhlebotomistSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400
+    );
+  }
+  const now = new Date().toISOString();
+  const [row] = await db
+    .insert(phlebotomists)
+    .values({
+      id: crypto.randomUUID(),
+      labPartnerId: labId,
+      name: parsed.data.name.trim(),
+      phone: parsed.data.phone.trim(),
+      email: parsed.data.email ?? null,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  audit(db, labId, {
+    action: "create",
+    resource: "phlebotomist",
+    resourceId: (row as any).id,
+    details: { name: parsed.data.name },
+  }).catch(() => {});
+  const mapped: any = {
+    id: (row as any).id,
+    labPartnerId: labId,
+    name: (row as any).name,
+    phone: (row as any).phone,
+    email: (row as any).email ?? null,
+    isActive: true,
+    createdAt: (row as any).createdAt ?? now,
+  };
+  return c.json({ phlebotomist: mapped }, 201);
+});
+
+router.put("/phlebotomists/:id", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = updatePhlebotomistSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "Validation failed",
+        details: flattenTranslated(parsed.error, c.get("locale")),
+      },
+      400
+    );
+  }
+  const [existing] = await db
+    .select()
+    .from(phlebotomists)
+    .where(
+      and(eq(phlebotomists.id, id), eq(phlebotomists.labPartnerId, labId))
+    )
+    .limit(1);
+  if (!existing) return c.json({ error: "Phlebotomist not found" }, 404);
+  const patch: Record<string, unknown> = {
+    updatedAt: new Date().toISOString(),
+  };
+  if (parsed.data.name !== undefined) patch.name = parsed.data.name.trim();
+  if (parsed.data.phone !== undefined) patch.phone = parsed.data.phone.trim();
+  if (parsed.data.email !== undefined) patch.email = parsed.data.email;
+  if (parsed.data.isActive !== undefined) patch.isActive = parsed.data.isActive;
+  const [updated] = await db
+    .update(phlebotomists)
+    .set(patch)
+    .where(eq(phlebotomists.id, id))
+    .returning();
+  audit(db, labId, {
+    action: "update",
+    resource: "phlebotomist",
+    resourceId: id,
+    details: parsed.data,
+  }).catch(() => {});
+  const u: any = (updated as any) ?? { ...existing, ...patch };
+  return c.json({
+    phlebotomist: {
+      id: u.id,
+      labPartnerId: labId,
+      name: u.name,
+      phone: u.phone,
+      email: u.email ?? null,
+      isActive: u.isActive ?? u.is_active ?? true,
+      createdAt: u.createdAt ?? u.created_at,
+      updatedAt: u.updatedAt ?? u.updated_at,
+    },
+  });
+});
+
+router.delete("/phlebotomists/:id", async (c) => {
+  const db = c.get("db");
+  const labId = getLabId(c);
+  const id = c.req.param("id");
+  const [existing] = await db
+    .select()
+    .from(phlebotomists)
+    .where(
+      and(eq(phlebotomists.id, id), eq(phlebotomists.labPartnerId, labId))
+    )
+    .limit(1);
+  if (!existing) return c.json({ error: "Phlebotomist not found" }, 404);
+  await db
+    .update(phlebotomists)
+    .set({ isActive: false, updatedAt: new Date().toISOString() })
+    .where(eq(phlebotomists.id, id));
+  audit(db, labId, {
+    action: "deactivate",
+    resource: "phlebotomist",
+    resourceId: id,
+  }).catch(() => {});
+  return c.json({ success: true });
 });
 
 // ─── Dashboard stats ─────────────────────────────────────
