@@ -62,6 +62,7 @@ export function CareAssistant({ className }: { className?: string }) {
       <div className="relative z-10 mt-6 flex flex-wrap gap-2">
         <Link
           href="/patient/ai/chat"
+          data-testid="ask-ai-cta"
           className="inline-flex items-center gap-1.5 bg-brand px-4 py-2.5 text-sm font-bold text-white transition-transform hover:scale-[1.02]"
           style={{
             borderRadius: "var(--radius-pill)",
