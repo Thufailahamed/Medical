@@ -34,7 +34,7 @@ const PAGE_TITLES: { match: string; title: string; subtitle?: string }[] = [
   { match: "/patient/medications", title: "Medications", subtitle: "Doses & refills" },
   { match: "/patient/prescriptions", title: "Prescriptions", subtitle: "Active scripts" },
   { match: "/patient/care-team", title: "Care Team", subtitle: "Your clinicians" },
-  { match: "/patient/ai", title: "AI Assistant", subtitle: "Ask with context" },
+  { match: "/patient/ai", title: "AI Assistant", subtitle: "Grounded in your record" },
   { match: "/patient/records", title: "Medical Records", subtitle: "Files & reports" },
   { match: "/patient/diagnostic-tests", title: "Lab Tests", subtitle: "Orders & results" },
   { match: "/patient/imaging", title: "Imaging", subtitle: "Scans & studies" },
