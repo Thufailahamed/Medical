@@ -61,15 +61,16 @@ export function QuickActions({ className }: { className?: string }) {
             <Link
               key={action.href}
               href={action.href}
-              className="group flex items-center gap-3.5 rounded-xl border border-border bg-white px-4 py-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
+              aria-label={action.label}
+              className="group flex items-center gap-3.5 rounded-2xl border border-border bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand min-h-[76px]"
             >
               <span
                 className={cn(
-                  "grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105 shadow-xs",
+                  "grid h-12 w-12 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105 shadow-xs",
                   action.accent,
                 )}
               >
-                <Icon size={19} aria-hidden />
+                <Icon size={20} aria-hidden />
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-bold text-text group-hover:text-brand transition-colors">
