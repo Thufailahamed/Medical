@@ -279,8 +279,8 @@ export const aiDrugInteractionSchema = z.object({
 
 export const aiChatSchema = z.object({
   message: z.string().min(1).max(4000),
-  sessionId: z.string().optional(),
-  patientId: z.string().optional(),
+  sessionId: z.string().nullish(),
+  patientId: z.string().nullish(),
 });
 
 export const aiOcrSchema = z.object({

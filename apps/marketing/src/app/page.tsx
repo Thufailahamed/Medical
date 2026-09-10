@@ -11,9 +11,11 @@ import {
   ChevronDown,
   FileSearch,
   HeartPulse,
+  Lock,
   Menu,
   Pill,
   ShieldCheck,
+  Sparkles,
   Stethoscope,
   X,
 } from "lucide-react";
@@ -362,6 +364,21 @@ export default function HomePage() {
     return () => window.clearInterval(id);
   }, []);
 
+  const [heroTab, setHeroTab] = useState<"trends" | "prescriptions" | "doctor">("trends");
+  const pauseHeroTabs = useRef(false);
+
+  useEffect(() => {
+    const tabs: ("trends" | "prescriptions" | "doctor")[] = ["trends", "prescriptions", "doctor"];
+    const id = window.setInterval(() => {
+      if (pauseHeroTabs.current) return;
+      setHeroTab((curr) => {
+        const nextIdx = (tabs.indexOf(curr) + 1) % tabs.length;
+        return tabs[nextIdx];
+      });
+    }, 4600);
+    return () => window.clearInterval(id);
+  }, []);
+
   const onHeroMove = (e: MouseEvent<HTMLElement>) => {
     const root = heroRef.current;
     if (!root) return;
@@ -413,15 +430,20 @@ export default function HomePage() {
           <div className="hero__spot" aria-hidden="true" />
           <div className="container hero__inner">
             <div className="hero__copy rise">
-              <p className="eyebrow"><span className="eyebrow__dot" /> Colombo · EN · සිංහල · தமிழ்</p>
+              <p className="eyebrow"><span className="eyebrow__dot" /> Colombo · EN · සිංහල · தமிழ் · Private Beta</p>
               <h1 id="hero-title">Your health has<br />a history. <em>Keep it close.</em></h1>
               <p className="hero__lede">
-                The prescription in your drawer. The scan on an old phone. The things you remember only when someone asks.
-                HealthHub gives every piece a place — private, readable, and yours to carry.
+                The prescription in your drawer. The scan on WhatsApp. The things you remember only when someone asks.
+                HealthHub gives every piece a place — private, readable, and doctor-ready in English, Sinhala, and Tamil.
               </p>
               <div className="hero__actions">
                 <Btn href="/account/signup">Start your record</Btn>
                 <Btn href="#record" variant="ghost" icon={<ArrowRight size={16} />}>See how it works</Btn>
+              </div>
+              <div className="hero__trust">
+                <span><ShieldCheck size={14} /> Bank-grade 256-bit encryption</span>
+                <span><Sparkles size={14} /> Reads handwritten prescriptions</span>
+                <span><HeartPulse size={14} /> Multi-profile family timeline</span>
               </div>
               <div className="hero__note">
                 <span className="hero__note-number">01</span>
@@ -429,18 +451,182 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="hero-journal" aria-label="HealthHub keeps the story of care together">
+            <div
+              className="hero-journal"
+              aria-label="HealthHub keeps the story of care together"
+              onMouseEnter={() => { pauseHeroTabs.current = true; }}
+              onMouseLeave={() => { pauseHeroTabs.current = false; }}
+            >
               <div className="hero-journal__photo">
                 <img src="/assets/brand/harbor-hands.png" alt="A family reviewing a health report together" />
                 <span className="hero-journal__caption">Colombo · the kitchen table</span>
+                <div className="hero-journal__photo-badge">
+                  <span className="live-dot" />
+                  <span>Paper to digital in 3.8s</span>
+                </div>
               </div>
-              <div className="hero-journal__paper" aria-hidden="true" />
-              <article className="hero-journal__card">
-                <span className="hero-journal__eyebrow">A living health record</span>
-                <h2>Less collecting.<br /><em>More knowing.</em></h2>
-                <p>A private place for every result, prescription and small thing worth remembering.</p>
-                <div className="hero-journal__rule" />
-                <div className="hero-journal__footer"><span>Private by default</span><span>01 / 01</span></div>
+
+              <div className="hero-journal__paper" aria-hidden="true">
+                <div className="paper-header">
+                  <span>DURDANS CLINICAL LABS</span>
+                  <small>REF 8820-C · COLOMBO 03</small>
+                </div>
+              </div>
+
+              <article className="hero-journal__card living-record">
+                {/* Patient Header */}
+                <div className="living-record__patient">
+                  <div className="living-record__user-info">
+                    <div className="living-record__avatar">AP</div>
+                    <div className="living-record__meta">
+                      <b>Amara Perera</b>
+                      <small>Colombo 07 · O+ · 52y</small>
+                    </div>
+                  </div>
+                  <div className="living-record__status">
+                    <span className="live-pulse" />
+                    <span>Live Record</span>
+                  </div>
+                </div>
+
+                {/* Interactive Tabs */}
+                <div className="living-record__tabs" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={heroTab === "trends"}
+                    className={`living-record__tab ${heroTab === "trends" ? "is-active" : ""}`}
+                    onClick={() => setHeroTab("trends")}
+                  >
+                    Lab Trends
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={heroTab === "prescriptions"}
+                    className={`living-record__tab ${heroTab === "prescriptions" ? "is-active" : ""}`}
+                    onClick={() => setHeroTab("prescriptions")}
+                  >
+                    Rx Scan
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={heroTab === "doctor"}
+                    className={`living-record__tab ${heroTab === "doctor" ? "is-active" : ""}`}
+                    onClick={() => setHeroTab("doctor")}
+                  >
+                    Doctor Brief
+                  </button>
+                </div>
+
+                {/* Dynamic Preview Body */}
+                <div className="living-record__body">
+                  {heroTab === "trends" && (
+                    <div className="living-record__content">
+                      <div className="living-record__source">
+                        <span className="tag-hospital">Durdans Hospital</span>
+                        <small>HbA1c · 3 tests / 14 mo</small>
+                      </div>
+                      <div className="living-record__metric">
+                        <div>
+                          <span className="metric-num">6.1<small>%</small></span>
+                          <span className="metric-delta">▼ 0.7% down</span>
+                        </div>
+                        <span className="metric-badge in-range">In optimal range</span>
+                      </div>
+                      <div className="living-record__chart">
+                        <svg viewBox="0 0 220 44" className="sparkline" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="gradHbA1c" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.4" />
+                              <stop offset="100%" stopColor="#38BDF8" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          <path
+                            d="M 10 38 Q 65 30, 110 22 T 210 8 L 210 44 L 10 44 Z"
+                            fill="url(#gradHbA1c)"
+                          />
+                          <path
+                            d="M 10 38 Q 65 30, 110 22 T 210 8"
+                            fill="none"
+                            stroke="#38BDF8"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <circle cx="10" cy="38" r="3.5" fill="#EF4444" />
+                          <circle cx="110" cy="22" r="3.5" fill="#F59E0B" />
+                          <circle cx="210" cy="8" r="4.5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1.5" />
+                        </svg>
+                        <div className="sparkline-labels">
+                          <span>Aug '25 (6.8%)</span>
+                          <span>Jan '26 (6.4%)</span>
+                          <span className="highlight">Jun '26 (6.1%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {heroTab === "prescriptions" && (
+                    <div className="living-record__content">
+                      <div className="living-record__source">
+                        <span className="tag-hospital">Nawaloka Hospital</span>
+                        <small>Dr. K. Perera · OCR Verified</small>
+                      </div>
+                      <div className="living-record__meds">
+                        <div className="med-row">
+                          <span className="med-icon">💊</span>
+                          <div className="med-info">
+                            <b>Metformin 500mg</b>
+                            <small>Morning after meal · මෙට්ෆෝමින්</small>
+                          </div>
+                          <span className="med-time">8:00 AM</span>
+                        </div>
+                        <div className="med-row">
+                          <span className="med-icon">💊</span>
+                          <div className="med-info">
+                            <b>Atorvastatin 20mg</b>
+                            <small>Nightly before bed · அட்டர்வாஸ்டாடின்</small>
+                          </div>
+                          <span className="med-time">9:30 PM</span>
+                        </div>
+                      </div>
+                      <div className="med-note">
+                        <Sparkles size={12} />
+                        <span>2 medicines auto-classified from handwritten scan</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {heroTab === "doctor" && (
+                    <div className="living-record__content">
+                      <div className="living-record__source">
+                        <span className="tag-hospital">Consultation Brief</span>
+                        <small>Dr. N. Silva · 09:30 AM</small>
+                      </div>
+                      <div className="doctor-card">
+                        <div className="doctor-card__item">
+                          <small>Key talking point</small>
+                          <b>HbA1c normalized to 6.1% on current Metformin plan</b>
+                        </div>
+                        <div className="doctor-card__item">
+                          <small>Questions prepared</small>
+                          <b>Review kidney panel & discuss dosage tapering</b>
+                        </div>
+                      </div>
+                      <div className="doctor-card__security">
+                        <ShieldCheck size={14} />
+                        <span>Expiring 24h secure link · 0 records stored by third-party</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="living-record__rule" />
+                <div className="living-record__footer">
+                  <span><ShieldCheck size={11} /> Private by default</span>
+                  <span>Asiri · Durdans · Nawaloka</span>
+                </div>
               </article>
             </div>
           </div>

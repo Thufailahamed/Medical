@@ -5,32 +5,30 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
+  ArrowUpRight,
   Calendar,
-  Check,
-  CheckCircle2,
-  ChevronRight,
   Clock,
+  Command,
   FilePlus2,
   FileText,
   FlaskConical,
   FolderInput,
+  ListFilter,
   Pill as PillIcon,
   RotateCcw,
   ScanLine,
   Search,
   Share2,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Syringe,
   Tag,
   Trash2,
-  User,
   X,
 } from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
-import { EmptyState } from "@/patient/components/primitives/EmptyState";
-import { Pill } from "@/patient/components/primitives/Pill";
+import type { RecordRow } from "@/patient/types/patient";
 import {
   useBulkArchiveRecords,
   useBulkDeleteRecords,
@@ -46,11 +44,11 @@ import { formatDayLabel, formatRecordType } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 
 const KIND_CHIPS = [
-  { id: "", label: "All Records" },
-  { id: "clinical_note", label: "Visit Notes", icon: FileText },
-  { id: "lab_report", label: "Lab Reports", icon: FlaskConical },
+  { id: "", label: "All records" },
+  { id: "clinical_note", label: "Visit notes", icon: FileText },
+  { id: "lab_report", label: "Lab reports", icon: FlaskConical },
   { id: "prescription", label: "Prescriptions", icon: PillIcon },
-  { id: "imaging", label: "Imaging & Scans", icon: ScanLine },
+  { id: "imaging", label: "Imaging & scans", icon: ScanLine },
   { id: "vaccination", label: "Vaccinations", icon: Syringe },
   { id: "allergy", label: "Allergies", icon: Sparkles },
 ] as const;
@@ -59,59 +57,89 @@ type TimeFilter = "all" | "30d" | "year";
 type SortMode = "newest" | "oldest";
 type ArchiveFilter = "active" | "all" | "only";
 
-function typeIcon(type: string | null | undefined) {
+function typeIcon(type: string | null | undefined, size = 18) {
   const key = (type ?? "").toLowerCase();
-  if (key.includes("lab")) return <FlaskConical size={18} />;
-  if (key.includes("prescription") || key.includes("medication"))
-    return <PillIcon size={18} />;
-  if (key.includes("imaging") || key.includes("scan"))
-    return <ScanLine size={18} />;
-  if (key.includes("vaccin")) return <Syringe size={18} />;
-  return <FileText size={18} />;
-}
-
-function typeBadgeColor(type: string | null | undefined) {
-  const key = (type ?? "").toLowerCase();
-  if (key.includes("lab"))
-    return "bg-sky-50 text-sky-700 border-sky-200/70";
-  if (key.includes("prescription") || key.includes("medication"))
-    return "bg-emerald-50 text-emerald-700 border-emerald-200/70";
-  if (key.includes("imaging"))
-    return "bg-violet-50 text-violet-700 border-violet-200/70";
-  if (key.includes("vaccin") || key.includes("allergy"))
-    return "bg-amber-50 text-amber-800 border-amber-200/70";
-  return "bg-blue-50 text-blue-700 border-blue-200/70";
+  if (key.includes("lab")) return <FlaskConical size={size} />;
+  if (key.includes("prescription") || key.includes("medication")) return <PillIcon size={size} />;
+  if (key.includes("imaging") || key.includes("scan")) return <ScanLine size={size} />;
+  if (key.includes("vaccin")) return <Syringe size={size} />;
+  if (key.includes("allerg")) return <Sparkles size={size} />;
+  return <FileText size={size} />;
 }
 
 function typeIconBg(type: string | null | undefined) {
   const key = (type ?? "").toLowerCase();
-  if (key.includes("lab"))
-    return "bg-sky-50 text-sky-600 border border-sky-100";
-  if (key.includes("prescription") || key.includes("medication"))
-    return "bg-emerald-50 text-emerald-600 border border-emerald-100";
-  if (key.includes("imaging"))
-    return "bg-violet-50 text-violet-600 border border-violet-100";
-  if (key.includes("vaccin") || key.includes("allergy"))
-    return "bg-amber-50 text-amber-700 border border-amber-100";
-  return "bg-blue-50 text-blue-600 border border-blue-100";
+  if (key.includes("lab")) return "bg-sky-50 text-sky-600 ring-sky-100";
+  if (key.includes("prescription") || key.includes("medication")) return "bg-emerald-50 text-emerald-600 ring-emerald-100";
+  if (key.includes("imaging")) return "bg-violet-50 text-violet-600 ring-violet-100";
+  if (key.includes("vaccin") || key.includes("allergy")) return "bg-amber-50 text-amber-700 ring-amber-100";
+  return "bg-blue-50 text-blue-600 ring-blue-100";
+}
+
+function typeBadgeColor(type: string | null | undefined) {
+  const key = (type ?? "").toLowerCase();
+  if (key.includes("lab")) return "bg-sky-50 text-sky-700 ring-sky-200";
+  if (key.includes("prescription") || key.includes("medication")) return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+  if (key.includes("imaging")) return "bg-violet-50 text-violet-700 ring-violet-200";
+  if (key.includes("vaccin") || key.includes("allergy")) return "bg-amber-50 text-amber-800 ring-amber-200";
+  return "bg-blue-50 text-blue-700 ring-blue-200";
+}
+
+function statusLabel(status: RecordRow["status"]) {
+  if (!status) return "Filed";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function MetricButton({ label, value, icon, active, onClick }: { label: string; value: number; icon: React.ReactNode; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn("group flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all", active ? "bg-white/16" : "hover:bg-white/10")}>
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/12 text-white ring-1 ring-white/15 transition-transform group-hover:scale-105">{icon}</span>
+      <span className="min-w-0"><span className="block truncate text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100/75">{label}</span><span className="mt-0.5 block text-xl font-extrabold tracking-tight text-white">{value}</span></span>
+    </button>
+  );
+}
+
+function RecordCard({ record, selectMode, checked, onToggle }: { record: RecordRow; selectMode: boolean; checked: boolean; onToggle: () => void }) {
+  const rawTags = record.tags as unknown;
+  const tags = (Array.isArray(rawTags)
+    ? rawTags.filter((tag): tag is string => typeof tag === "string")
+    : typeof rawTags === "string"
+      ? rawTags.split(",")
+      : []
+  ).map((tag) => tag.trim()).filter(Boolean).slice(0, 2);
+  return (
+    <li className="group relative">
+      {selectMode ? <input type="checkbox" checked={checked} onChange={onToggle} aria-label={`Select ${record.title}`} className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 rounded border-slate-300 text-sky-600 focus:ring-sky-500" /> : null}
+      <Link href={`/patient/records/${record.id}`} onClick={(event) => { if (selectMode) { event.preventDefault(); onToggle(); } }} className={cn("relative flex items-center gap-4 overflow-hidden rounded-[22px] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_2px_10px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_14px_30px_rgba(30,64,175,0.11)] sm:px-5", selectMode && "pl-11")}>
+        <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-sky-400 to-blue-600 opacity-0 transition-opacity group-hover:opacity-100" />
+        <span className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-1", typeIconBg(record.recordType))}>{typeIcon(record.recordType, 20)}</span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2"><span className="truncate text-[15px] font-bold tracking-[-0.015em] text-slate-900 transition-colors group-hover:text-sky-700">{record.title}</span><span className={cn("hidden rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ring-1 sm:inline-flex", typeBadgeColor(record.recordType))}>{formatRecordType(record.recordType)}</span></span>
+          <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] font-medium text-slate-500"><span className="inline-flex items-center gap-1.5 text-slate-600"><Clock size={12} className="text-slate-400" />{formatDayLabel(record.date)}</span>{record.diagnosis ? <><span className="text-slate-300">•</span><span className="truncate font-semibold text-slate-700">{record.diagnosis}</span></> : null}<span className="text-slate-300">•</span><span className="inline-flex items-center gap-1 text-emerald-600"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{statusLabel(record.status)}</span></span>
+          {record.summary ? <span className="mt-2 hidden max-w-2xl truncate text-xs leading-5 text-slate-500 md:block">{record.summary}</span> : null}
+          {tags?.length ? <span className="mt-2 hidden flex-wrap gap-1.5 md:flex">{tags.map((tag) => <span key={tag} className="rounded-md bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200/80">#{tag}</span>)}</span> : null}
+        </span>
+        <span className="flex shrink-0 items-center gap-2"><span className="hidden text-right sm:block"><span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Open record</span><span className="mt-1 block text-xs font-semibold text-slate-600 group-hover:text-sky-700">View details</span></span><span className="grid h-9 w-9 place-items-center rounded-xl text-slate-400 transition-all group-hover:bg-sky-50 group-hover:text-sky-600"><ArrowUpRight size={17} /></span></span>
+      </Link>
+    </li>
+  );
 }
 
 export default function RecordsListPage() {
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
-
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [kind, setKind] = useState(searchParams.get("type") ?? "");
   const [time, setTime] = useState<TimeFilter>("all");
   const [sort, setSort] = useState<SortMode>("newest");
   const [archived, setArchived] = useState<ArchiveFilter>("active");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [tagPrompt, setTagPrompt] = useState(false);
   const [tagValue, setTagValue] = useState("");
   const [moveOpen, setMoveOpen] = useState(false);
-
   const family = useFamilyMembers();
   const bulkArchive = useBulkArchiveRecords();
   const bulkRestore = useBulkRestoreRecords();
@@ -119,630 +147,62 @@ export default function RecordsListPage() {
   const bulkTag = useBulkTagRecords();
   const bulkMove = useBulkMoveRecords();
 
-  useEffect(() => {
-    if (searchParams.get("focus") === "search") {
-      searchInputRef.current?.focus();
-    }
-  }, [searchParams]);
+  useEffect(() => { if (searchParams.get("focus") === "search") searchInputRef.current?.focus(); }, [searchParams]);
+  useEffect(() => { function onShortcut(event: KeyboardEvent) { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); searchInputRef.current?.focus(); } } window.addEventListener("keydown", onShortcut); return () => window.removeEventListener("keydown", onShortcut); }, []);
 
-  const listParams = useMemo(() => {
-    const params: {
-      type?: string;
-      search?: string;
-      limit: number;
-      sort: SortMode;
-      archived?: "true" | "all" | "only";
-    } = {
-      limit: 100,
-      sort,
-      type: kind || undefined,
-      search: search.trim().length >= 2 ? search.trim() : undefined,
-    };
-    if (archived === "all") params.archived = "all";
-    else if (archived === "only") params.archived = "only";
-    return params;
-  }, [kind, search, sort, archived]);
-
+  const listParams = useMemo(() => { const params: { type?: string; search?: string; limit: number; sort: SortMode; archived?: "true" | "all" | "only" } = { limit: 100, sort, type: kind || undefined, search: search.trim().length >= 2 ? search.trim() : undefined }; if (archived === "all") params.archived = "all"; else if (archived === "only") params.archived = "only"; return params; }, [kind, search, sort, archived]);
   const query = useRecords(listParams);
   const fts = useRecordSearch(search, { limit: 50 });
   const stats = useRecordStats();
-
-  const records = useMemo(() => {
-    const base =
-      search.trim().length >= 2 && fts.data?.records
-        ? fts.data.records
-        : (query.data?.records ?? []);
-    if (time === "all") return base;
-    const cutoff = new Date();
-    if (time === "30d") cutoff.setDate(cutoff.getDate() - 30);
-    else cutoff.setFullYear(cutoff.getFullYear() - 1);
-    return base.filter((r) => {
-      const d = r.date ? new Date(r.date) : null;
-      return d ? d >= cutoff : true;
-    });
-  }, [query.data?.records, fts.data?.records, search, time]);
-
+  const records = useMemo(() => { const base = search.trim().length >= 2 && fts.data?.records ? fts.data.records : (query.data?.records ?? []); if (time === "all") return base; const cutoff = new Date(); if (time === "30d") cutoff.setDate(cutoff.getDate() - 30); else cutoff.setFullYear(cutoff.getFullYear() - 1); return base.filter((record) => { const date = record.date ? new Date(record.date) : null; return date ? date >= cutoff : true; }); }, [query.data, fts.data, search, time]);
   const ids = Array.from(selected);
-
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function clearSelection() {
-    setSelected(new Set());
-    setSelectMode(false);
-    setTagPrompt(false);
-    setMoveOpen(false);
-    setBulkError(null);
-  }
-
-  async function runBulk(action: () => Promise<unknown>, label: string) {
-    setBulkError(null);
-    try {
-      await action();
-      clearSelection();
-    } catch (cause) {
-      setBulkError(
-        cause instanceof Error ? cause.message : `Could not ${label}.`,
-      );
-    }
-  }
-
   const statData = stats.data;
   const totalCount = statData?.total ?? records.length;
   const labCount = statData?.byType?.lab_report ?? statData?.byType?.LAB_REPORT ?? 0;
   const rxCount = statData?.byType?.prescription ?? statData?.byType?.PRESCRIPTION ?? 0;
   const notesCount = statData?.byType?.clinical_note ?? statData?.byType?.CLINICAL_NOTE ?? 0;
+  const activeFilterCount = Number(Boolean(kind)) + Number(time !== "all") + Number(sort !== "newest") + Number(archived !== "active");
+
+  function toggle(id: string) { setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
+  function clearSelection() { setSelected(new Set()); setSelectMode(false); setTagPrompt(false); setMoveOpen(false); setBulkError(null); }
+  function clearFilters() { setKind(""); setTime("all"); setSort("newest"); setArchived("active"); }
+  async function runBulk(action: () => Promise<unknown>, label: string) { setBulkError(null); try { await action(); clearSelection(); } catch (cause) { setBulkError(cause instanceof Error ? cause.message : `Could not ${label}.`); } }
 
   return (
-    <div className="flex flex-col gap-5 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <ShieldCheck size={12} className="text-sky-300" />
-                Electronic Health Records
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Medical Records &amp; Diagnostic History
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Secure, longitudinal archive of your doctor visit notes, verified lab reports, electronic prescriptions, and diagnostic imaging.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <Link
-                href="/patient/consents"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <Share2 size={13} />
-                <span>Sharing Access</span>
-              </Link>
-              <Link
-                href="/patient/records/new"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-              >
-                <FilePlus2 size={14} className="text-sky-700" />
-                <span>Add Record</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <button
-              type="button"
-              onClick={() => setKind("")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                !kind
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
-                <FileText size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Total Records
-                </p>
-                <p className="text-base font-extrabold text-white">{totalCount}</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setKind("lab_report")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                kind === "lab_report"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <FlaskConical size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Lab Reports
-                </p>
-                <p className="text-base font-extrabold text-white">{labCount}</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setKind("prescription")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                kind === "prescription"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <PillIcon size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Prescriptions
-                </p>
-                <p className="text-base font-extrabold text-white">{rxCount}</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setKind("clinical_note")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                kind === "clinical_note"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Calendar size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Visit Notes
-                </p>
-                <p className="text-base font-extrabold text-white">{notesCount}</p>
-              </div>
-            </button>
-          </div>
+    <div className="flex flex-col gap-6 pb-16">
+      <section className="relative isolate overflow-hidden rounded-[28px] text-white shadow-[0_24px_70px_rgba(14,116,144,0.22)]" style={{ background: "linear-gradient(118deg, #082f49 0%, #075985 42%, #0e7490 75%, #0f766e 100%)" }}>
+        <div className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full opacity-70" style={{ background: "radial-gradient(circle, rgba(125,211,252,.38), transparent 66%)" }} aria-hidden />
+        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full opacity-60" style={{ background: "radial-gradient(circle, rgba(52,211,153,.32), transparent 66%)" }} aria-hidden />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:32px_32px]" aria-hidden />
+        <div className="relative grid gap-8 p-6 md:p-8 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-12">
+          <div className="max-w-2xl"><div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100 backdrop-blur-md"><ShieldCheck size={13} className="text-cyan-200" />Your care archive</div><h1 className="mt-5 max-w-xl text-3xl font-extrabold tracking-[-0.04em] text-white sm:text-4xl">Medical records,<span className="block text-cyan-200">organized for you.</span></h1><p className="mt-4 max-w-xl text-sm leading-6 text-cyan-50/75 sm:text-[15px]">One secure place for visit notes, lab results, prescriptions, scans, and the clinical details that help you stay in control.</p><div className="mt-7 flex flex-wrap items-center gap-3"><Link href="/patient/records/new" style={{ color: "#0c4a6e" }} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold shadow-lg shadow-sky-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-50"><FilePlus2 size={15} />Add record</Link><Link href="/patient/consents" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-bold text-white backdrop-blur-md transition hover:bg-white/20"><Share2 size={14} />Manage sharing</Link></div></div>
+          <aside className="rounded-2xl border border-white/15 bg-slate-950/15 p-4 backdrop-blur-md"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/65">Archive pulse</p><p className="mt-1 text-sm font-bold text-white">Everything in one view</p></div><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-300/15 text-emerald-200 ring-1 ring-emerald-200/20"><ShieldCheck size={17} /></span></div><div className="mt-5 space-y-3"><div className="flex items-center justify-between text-xs"><span className="text-cyan-50/65">Storage</span><span className="font-bold text-white">Encrypted</span></div><div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[82%] rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300" /></div><div className="grid grid-cols-2 gap-3 pt-2"><div className="rounded-xl border border-white/10 bg-white/8 p-3"><p className="text-[10px] text-cyan-100/60">Last updated</p><p className="mt-1 text-xs font-bold text-white">Just now</p></div><div className="rounded-xl border border-white/10 bg-white/8 p-3"><p className="text-[10px] text-cyan-100/60">Privacy</p><p className="mt-1 text-xs font-bold text-emerald-200">Protected</p></div></div></div></aside>
         </div>
-      </header>
+        <div className="relative grid grid-cols-2 border-t border-white/15 px-3 py-3 sm:grid-cols-4 sm:px-5"><MetricButton label="Total records" value={totalCount} icon={<FileText size={18} />} active={!kind} onClick={() => setKind("")} /><MetricButton label="Lab reports" value={labCount} icon={<FlaskConical size={18} />} active={kind === "lab_report"} onClick={() => setKind("lab_report")} /><MetricButton label="Prescriptions" value={rxCount} icon={<PillIcon size={18} />} active={kind === "prescription"} onClick={() => setKind("prescription")} /><MetricButton label="Visit notes" value={notesCount} icon={<Calendar size={18} />} active={kind === "clinical_note"} onClick={() => setKind("clinical_note")} /></div>
+      </section>
 
-      {/* ── 2. Unified Search & Filter Toolbar ─────────────────────────────── */}
-      <div className="flex flex-col gap-2.5">
-        {/* Search & Select Row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search
-              size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-            />
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search records by title, doctor, clinic, or diagnosis..."
-              className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500 transition-all"
-            />
-            {search ? (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X size={14} />
-              </button>
-            ) : null}
-          </div>
+      <section className="rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-[0_12px_35px_rgba(30,64,175,0.06)] md:p-4"><div className="flex flex-col gap-3 xl:flex-row xl:items-center"><div className="relative min-w-0 flex-1"><Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input ref={searchInputRef} type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by title, doctor, clinic, or diagnosis…" aria-label="Search medical records" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-24 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100" />{search ? <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Clear search"><X size={15} /></button> : <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-400 shadow-sm sm:inline-flex"><Command size={11} />K</span>}</div><div className="flex items-center gap-2"><button type="button" onClick={() => setFiltersOpen((open) => !open)} className={cn("inline-flex h-12 items-center gap-2 rounded-2xl border px-4 text-xs font-extrabold transition", filtersOpen || activeFilterCount ? "border-sky-200 bg-sky-50 text-sky-700" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50")} aria-expanded={filtersOpen}><SlidersHorizontal size={16} />Filters{activeFilterCount ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-sky-600 px-1 text-[10px] text-white">{activeFilterCount}</span> : null}</button><button type="button" onClick={() => { setSelectMode((value) => !value); if (selectMode) clearSelection(); }} className={cn("inline-flex h-12 items-center gap-2 rounded-2xl border px-4 text-xs font-extrabold transition", selectMode ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50")}><ListFilter size={16} />{selectMode ? "Done" : "Select"}</button></div></div>
+        {filtersOpen ? <div className="mt-3 grid gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/75 p-3 sm:grid-cols-3"><FilterSelect label="Date range" value={time} onChange={(value) => setTime(value as TimeFilter)} options={[["all", "All time"], ["30d", "Last 30 days"], ["year", "Last year"]]} /><FilterSelect label="Sort records" value={sort} onChange={(value) => setSort(value as SortMode)} options={[["newest", "Newest first"], ["oldest", "Oldest first"]]} /><FilterSelect label="Visibility" value={archived} onChange={(value) => setArchived(value as ArchiveFilter)} options={[["active", "Active only"], ["all", "Active + archived"], ["only", "Archived only"]]} />{activeFilterCount ? <button type="button" onClick={clearFilters} className="text-left text-xs font-bold text-sky-700 hover:text-sky-900 sm:col-span-3">Clear all filters</button> : null}</div> : null}
+          <div className="mt-4 flex items-center gap-2 overflow-x-auto border-t border-slate-100 pt-3 scrollbar-none" role="tablist" aria-label="Record categories">{KIND_CHIPS.map((chip) => { const active = kind === chip.id; const Icon = chip.id ? chip.icon : undefined; return <button key={chip.id || "all"} type="button" role="tab" aria-selected={active} onClick={() => setKind(chip.id)} className={cn("inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition", active ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800")}>{Icon ? <Icon size={14} className={active ? "text-cyan-200" : "text-slate-400"} /> : null}{chip.label}</button>; })}</div>
+      </section>
 
-          {/* Quick Dropdowns Strip */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <select
-              value={time}
-              onChange={(e) => setTime(e.target.value as TimeFilter)}
-              className="h-9 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
-            >
-              <option value="all">All time</option>
-              <option value="30d">Last 30 days</option>
-              <option value="year">Last year</option>
-            </select>
+      {selectMode && ids.length > 0 ? <div className="flex flex-col gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"><p className="text-xs font-extrabold text-sky-950">{ids.length} record{ids.length === 1 ? "" : "s"} selected</p><div className="flex flex-wrap gap-2"><BulkButton icon={<Archive size={14} />} label="Archive" disabled={bulkArchive.isPending} onClick={() => runBulk(() => bulkArchive.mutateAsync(ids), "archive")} /><BulkButton icon={<RotateCcw size={14} />} label="Restore" disabled={bulkRestore.isPending} onClick={() => runBulk(() => bulkRestore.mutateAsync(ids), "restore")} /><BulkButton icon={<Tag size={14} />} label="Tag" onClick={() => { setTagPrompt(true); setMoveOpen(false); }} /><BulkButton icon={<FolderInput size={14} />} label="Move" onClick={() => { setMoveOpen(true); setTagPrompt(false); }} /><BulkButton destructive icon={<Trash2 size={14} />} label="Delete" disabled={bulkDelete.isPending} onClick={() => { if (window.confirm(`Permanently delete ${ids.length} record(s)? This cannot be undone.`)) runBulk(() => bulkDelete.mutateAsync(ids), "delete"); }} /></div>{tagPrompt ? <form className="flex w-full gap-2 border-t border-sky-200 pt-3" onSubmit={(event) => { event.preventDefault(); const tag = tagValue.trim().toLowerCase(); if (!tag) return; runBulk(() => bulkTag.mutateAsync({ ids, add: [tag] }), "tag").then(() => setTagValue("")); }}><input value={tagValue} onChange={(event) => setTagValue(event.target.value)} placeholder="Enter a tag, e.g. Cardiology" className="h-9 min-w-0 flex-1 rounded-xl border border-sky-200 bg-white px-3 text-xs text-slate-900 outline-none focus:border-sky-500" /><button type="submit" className="rounded-xl bg-sky-700 px-3 text-xs font-bold text-white hover:bg-sky-800">Apply</button></form> : null}{moveOpen ? <div className="flex w-full flex-wrap items-center gap-2 border-t border-sky-200 pt-3"><span className="text-xs font-bold text-sky-900">Move to:</span><MoveButton label="My records" onClick={() => runBulk(() => bulkMove.mutateAsync({ ids, familyMemberId: null }), "move")} />{(family.data?.family ?? []).map((member) => <MoveButton key={member.id} label={member.name} onClick={() => runBulk(() => bulkMove.mutateAsync({ ids, familyMemberId: member.id }), "move")} />)}</div> : null}{bulkError ? <p role="alert" className="w-full text-xs font-semibold text-rose-600">{bulkError}</p> : null}</div> : null}
 
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortMode)}
-              className="h-9 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
-            >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-
-            <select
-              value={archived}
-              onChange={(e) => setArchived(e.target.value as ArchiveFilter)}
-              className="h-9 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
-            >
-              <option value="active">Active</option>
-              <option value="all">Active + archived</option>
-              <option value="only">Archived only</option>
-            </select>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSelectMode((v) => !v);
-                if (selectMode) clearSelection();
-              }}
-              className={cn(
-                "h-9 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer",
-                selectMode
-                  ? "border-sky-500 bg-sky-50 text-sky-700"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-              )}
-            >
-              {selectMode ? "Cancel" : "Select"}
-            </button>
-          </div>
-        </div>
-
-        {/* Category Pills Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-          {KIND_CHIPS.map((chip) => {
-            const active = kind === chip.id;
-            const Icon = chip.icon;
-            return (
-              <button
-                key={chip.id || "all"}
-                type="button"
-                onClick={() => setKind(chip.id)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all border cursor-pointer",
-                  active
-                    ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50",
-                )}
-              >
-                {Icon ? <Icon size={12} className={active ? "text-white" : "text-slate-400"} /> : null}
-                <span>{chip.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── 3. Bulk Action Bar (When in Multi-Select) ──────────────────────── */}
-      {selectMode && ids.length > 0 ? (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-sky-50 border border-sky-200 shadow-xs animate-in fade-in">
-          <p className="text-xs font-bold text-sky-900">
-            {ids.length} record{ids.length === 1 ? "" : "s"} selected
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={bulkArchive.isPending}
-              onClick={() => runBulk(() => bulkArchive.mutateAsync(ids), "archive")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-300 bg-white text-xs font-bold text-sky-800 hover:bg-sky-100 cursor-pointer"
-            >
-              <Archive size={13} />
-              Archive
-            </button>
-            <button
-              type="button"
-              disabled={bulkRestore.isPending}
-              onClick={() => runBulk(() => bulkRestore.mutateAsync(ids), "restore")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-300 bg-white text-xs font-bold text-sky-800 hover:bg-sky-100 cursor-pointer"
-            >
-              <RotateCcw size={13} />
-              Restore
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTagPrompt(true);
-                setMoveOpen(false);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-300 bg-white text-xs font-bold text-sky-800 hover:bg-sky-100 cursor-pointer"
-            >
-              <Tag size={13} />
-              Tag
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMoveOpen(true);
-                setTagPrompt(false);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-300 bg-white text-xs font-bold text-sky-800 hover:bg-sky-100 cursor-pointer"
-            >
-              <FolderInput size={13} />
-              Move
-            </button>
-            <button
-              type="button"
-              disabled={bulkDelete.isPending}
-              onClick={() => {
-                if (
-                  !window.confirm(
-                    `Permanently delete ${ids.length} record(s)? This cannot be undone.`,
-                  )
-                ) {
-                  return;
-                }
-                runBulk(() => bulkDelete.mutateAsync(ids), "delete");
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 hover:bg-rose-100 cursor-pointer"
-            >
-              <Trash2 size={13} />
-              Delete
-            </button>
-          </div>
-
-          {tagPrompt ? (
-            <form
-              className="flex items-center gap-2 w-full pt-2 border-t border-sky-200"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const tag = tagValue.trim().toLowerCase();
-                if (!tag) return;
-                runBulk(
-                  () => bulkTag.mutateAsync({ ids, add: [tag] }),
-                  "tag",
-                ).then(() => setTagValue(""));
-              }}
-            >
-              <input
-                value={tagValue}
-                onChange={(e) => setTagValue(e.target.value)}
-                placeholder="Enter tag name (e.g. Cardiology, Dental)..."
-                className="h-8 flex-1 rounded-lg border border-sky-300 bg-white px-2.5 text-xs text-slate-900"
-              />
-              <button
-                type="submit"
-                className="h-8 px-3 rounded-lg bg-sky-700 text-xs font-bold text-white hover:bg-sky-800 cursor-pointer"
-              >
-                Apply Tag
-              </button>
-            </form>
-          ) : null}
-
-          {moveOpen ? (
-            <div className="flex flex-wrap items-center gap-1.5 w-full pt-2 border-t border-sky-200">
-              <span className="text-xs font-semibold text-sky-900 mr-1">Move to:</span>
-              <button
-                type="button"
-                className="px-2.5 py-1 rounded-lg bg-white border border-sky-300 text-xs font-semibold text-sky-800 hover:bg-sky-100 cursor-pointer"
-                onClick={() =>
-                  runBulk(
-                    () => bulkMove.mutateAsync({ ids, familyMemberId: null }),
-                    "move",
-                  )
-                }
-              >
-                Myself
-              </button>
-              {(family.data?.family ?? []).map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="px-2.5 py-1 rounded-lg bg-white border border-sky-300 text-xs font-semibold text-sky-800 hover:bg-sky-100 cursor-pointer"
-                  onClick={() =>
-                    runBulk(
-                      () =>
-                        bulkMove.mutateAsync({
-                          ids,
-                          familyMemberId: m.id,
-                        }),
-                      "move",
-                    )
-                  }
-                >
-                  {m.name}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {bulkError ? (
-            <p role="alert" className="text-xs text-rose-600 font-medium">
-              {bulkError}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* ── 4. Records List Cards ─────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span>Documents &amp; Clinical Reports</span>
-            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700">
-              {records.length} Records
-            </span>
-          </h2>
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-            Encrypted &amp; HIPAA-compliant storage
-          </span>
-        </div>
-
-        {(search.trim().length >= 2 ? fts.isLoading : query.isLoading) ? (
-          <div className="flex flex-col gap-2.5">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="h-20 animate-pulse rounded-xl border border-slate-200 bg-slate-100"
-              />
-            ))}
-          </div>
-        ) : (search.trim().length >= 2 ? fts.isError : query.isError) ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-xs font-semibold text-rose-700">
-            Could not load medical records. Please refresh the page.
-          </div>
-        ) : records.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center flex flex-col items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
-              <FileText size={24} />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-800 text-sm">
-                No medical records found
-              </h3>
-              <p className="text-xs text-slate-500 max-w-sm mt-0.5">
-                {search
-                  ? `No documents match "${search}". Try searching another keyword or clear filters.`
-                  : "Prescriptions, lab results, and visit notes logged by your care team will appear here."}
-              </p>
-            </div>
-            <Link
-              href="/patient/records/new"
-              className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
-            >
-              <FilePlus2 size={14} />
-              <span>Add First Record</span>
-            </Link>
-          </div>
-        ) : (
-          <ul className="flex flex-col gap-2.5">
-            {records.map((r) => {
-              const checked = selected.has(r.id);
-
-              return (
-                <li key={r.id} className="flex items-center gap-2.5">
-                  {selectMode ? (
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggle(r.id)}
-                      aria-label={`Select ${r.title}`}
-                      className="h-4 w-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"
-                    />
-                  ) : null}
-
-                  <Link
-                    href={`/patient/records/${r.id}`}
-                    onClick={(e) => {
-                      if (selectMode) {
-                        e.preventDefault();
-                        toggle(r.id);
-                      }
-                    }}
-                    className="group flex-1 flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-200/90 bg-white shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all"
-                  >
-                    {/* Left: Icon & Details */}
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div
-                        className={cn(
-                          "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs",
-                          typeIconBg(r.recordType),
-                        )}
-                      >
-                        {typeIcon(r.recordType)}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate">
-                            {r.title}
-                          </h3>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11.5px] text-slate-500 font-medium">
-                          <span className="inline-flex items-center gap-1 text-slate-600">
-                            <Clock size={11} className="text-slate-400" />
-                            {formatDayLabel(r.date)}
-                          </span>
-
-                          {r.diagnosis ? (
-                            <>
-                              <span>·</span>
-                              <span className="text-slate-700 font-semibold truncate max-w-[200px]">
-                                {r.diagnosis}
-                              </span>
-                            </>
-                          ) : null}
-
-                          {r.facilityName ? (
-                            <>
-                              <span>·</span>
-                              <span className="text-slate-500 truncate max-w-[180px]">
-                                {r.facilityName}
-                              </span>
-                            </>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Badge & Chevron */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span
-                        className={cn(
-                          "px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider border",
-                          typeBadgeColor(r.recordType),
-                        )}
-                      >
-                        {formatRecordType(r.recordType)}
-                      </span>
-
-                      <div className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-sky-600 group-hover:bg-sky-50 transition-colors">
-                        <ChevronRight size={16} />
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+      <section className="flex flex-col gap-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><div className="flex items-center gap-2"><h2 className="text-xl font-extrabold tracking-[-0.03em] text-slate-900">Your records</h2><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-500">{records.length} shown</span></div><p className="mt-1 text-xs font-medium text-slate-500">A clear timeline of the documents behind your care.</p></div><span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400"><ShieldCheck size={14} className="text-emerald-500" />Encrypted &amp; private</span></div>
+        {(search.trim().length >= 2 ? fts.isLoading : query.isLoading) ? <div className="flex flex-col gap-3">{[1, 2, 3, 4].map((item) => <div key={item} className="h-[108px] animate-pulse rounded-[22px] border border-slate-200 bg-white" />)}</div> : (search.trim().length >= 2 ? fts.isError : query.isError) ? <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-8 text-center text-xs font-semibold text-rose-700">Could not load medical records. Please refresh the page.</div> : records.length === 0 ? <div className="flex flex-col items-center gap-3 rounded-[24px] border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm"><div className="grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400"><FileText size={26} /></div><div><h3 className="text-sm font-extrabold text-slate-800">No medical records found</h3><p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-slate-500">{search ? `No documents match “${search}”. Try another keyword or clear your filters.` : "Prescriptions, lab results, and visit notes logged by your care team will appear here."}</p></div><div className="flex flex-wrap justify-center gap-2">{activeFilterCount || search ? <button type="button" onClick={() => { clearFilters(); setSearch(""); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">Clear filters</button> : null}<Link href="/patient/records/new" className="inline-flex items-center gap-2 rounded-xl bg-sky-700 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-sky-800"><FilePlus2 size={14} />Add first record</Link></div></div> : <ul className="flex flex-col gap-3">{records.map((record) => <RecordCard key={record.id} record={record} selectMode={selectMode} checked={selected.has(record.id)} onToggle={() => toggle(record.id)} />)}</ul>}
       </section>
     </div>
   );
+}
+
+function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: readonly (readonly [string, string])[] }) {
+  return <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5"><span className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="max-w-[150px] cursor-pointer bg-transparent text-right text-xs font-bold text-slate-700 outline-none">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></label>;
+}
+
+function BulkButton({ icon, label, onClick, disabled, destructive }: { icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; destructive?: boolean }) {
+  return <button type="button" disabled={disabled} onClick={onClick} className={cn("inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50", destructive ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" : "border-sky-200 bg-white text-sky-800 hover:bg-sky-100")}>{icon}{label}</button>;
+}
+
+function MoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return <button type="button" onClick={onClick} className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100">{label}</button>;
 }

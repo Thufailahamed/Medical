@@ -10,6 +10,7 @@ import {
   FileText,
   Loader2,
   Pill,
+  RefreshCw,
   Search,
   ShieldCheck,
   Stethoscope,
@@ -98,62 +99,65 @@ export default function PrescriptionsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5 pb-16">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 pb-16">
       {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
       <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
+        className="dashboard-hero relative overflow-hidden rounded-3xl p-5 text-white shadow-xl sm:p-7"
         style={{
           background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
+            "linear-gradient(120deg, #082F49 0%, #075985 46%, #0F766E 100%)",
           boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+            "0 20px 50px rgba(3, 105, 161, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
         }}
       >
         {/* Ambient Glows */}
         <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
+          className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
+              "radial-gradient(circle, rgba(103,232,249,0.30) 0%, transparent 65%)",
           }}
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
+          className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
+              "radial-gradient(circle, rgba(45,212,191,0.2) 0%, transparent 62%)",
           }}
           aria-hidden
         />
 
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
+        <div className="relative z-10 flex flex-col gap-6">
+          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+            <div className="min-w-0 max-w-2xl">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-100 backdrop-blur-md">
                 <ShieldCheck size={12} className="text-sky-300" />
                 Verified e-Prescriptions
+              </span>
+              <span className="text-xs font-medium text-white/65">Secure patient record</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-white md:text-[32px]">
                 Medical Prescriptions &amp; Rx
               </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Doctor-certified prescriptions, administration instructions, dosage schedules, and official downloadable PDFs.
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75 md:text-[15px]">
+                A single, trusted place for signed prescriptions, dosage guidance, and official clinical documents.
               </p>
             </div>
 
             {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/patient/appointments/book"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-xs font-bold text-white backdrop-blur-md transition-all hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
               >
                 <Stethoscope size={13} />
                 <span>Consult Doctor</span>
               </Link>
               <Link
                 href="/patient/medications"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-xs font-extrabold text-sky-950 shadow-lg shadow-sky-950/15 transition-all hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-white/60"
               >
                 <Pill size={14} className="text-sky-700" />
                 <span>Dose Schedule</span>
@@ -162,7 +166,7 @@ export default function PrescriptionsPage() {
           </div>
 
           {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
+          <div className="grid grid-cols-2 gap-2 border-t border-white/15 pt-4 text-white lg:grid-cols-4">
             <button
               type="button"
               onClick={() => setActiveTab("all")}

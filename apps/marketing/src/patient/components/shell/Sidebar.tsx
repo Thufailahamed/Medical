@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   LayoutDashboard,
   HeartPulse,
@@ -30,9 +30,12 @@ import {
   Download,
   Clock3,
   ChevronLeft,
+  ChevronDown,
   Settings,
   LogOut,
   User,
+  Search,
+  X,
 } from "lucide-react";
 
 import { useUiStore } from "@/portal/stores/ui";
@@ -52,12 +55,14 @@ interface NavItem {
 }
 
 interface NavGroup {
+  id: string;
   label: string;
   items: NavItem[];
 }
 
 const NAV_GROUPS: NavGroup[] = [
   {
+    id: "health-care",
     label: "Health & Care",
     items: [
       { href: "/patient", label: "Dashboard", icon: LayoutDashboard, testId: "nav-dashboard" },
@@ -70,6 +75,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "records-labs",
     label: "Records & Labs",
     items: [
       { href: "/patient/records", label: "Medical Records", icon: FolderOpen, testId: "nav-records" },
@@ -80,6 +86,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "family-safety",
     label: "Family & Safety",
     items: [
       { href: "/patient/family", label: "Family Members", icon: UserPlus, testId: "nav-family" },
@@ -89,6 +96,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "insurance",
     label: "Insurance",
     items: [
       { href: "/patient/insurance", label: "Policies & Plans", icon: Shield, testId: "nav-insurance" },
@@ -97,6 +105,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "tools",
     label: "Communicate & Tools",
     items: [
       { href: "/patient/messages", label: "Messages", icon: MessageSquare, testId: "nav-messages" },
@@ -121,6 +130,8 @@ export function Sidebar() {
   const unreadNotifications = useUnreadNotificationsCount();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   const initials = user?.name
     ? user.name
@@ -142,370 +153,356 @@ export function Sidebar() {
     }
   }
 
+  const toggleGroup = (id: string) => {
+    setCollapsedGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Filter groups and items if user is searching
+  const filteredGroups = useMemo(() => {
+    if (!searchQuery.trim()) return NAV_GROUPS;
+    const query = searchQuery.toLowerCase().trim();
+    return NAV_GROUPS.map((g) => ({
+      ...g,
+      items: g.items.filter((i) => i.label.toLowerCase().includes(query)),
+    })).filter((g) => g.items.length > 0);
+  }, [searchQuery]);
+
   return (
     <aside
       className={cn(
-        "h-full flex flex-col shrink-0 relative overflow-hidden",
-        "transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-        collapsed ? "w-[76px]" : "w-[272px]"
+        "h-full flex flex-col shrink-0 relative overflow-hidden select-none",
+        "transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        collapsed ? "w-[72px]" : "w-[264px]"
       )}
       style={{
-        background:
-          "linear-gradient(180deg, #082B4E 0%, #0C3A6B 35%, #0A3D6E 65%, #0E4A7F 100%)",
+        background: "linear-gradient(180deg, #070d18 0%, #0a1628 55%, #07101d 100%)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "4px 0 24px rgba(0, 0, 0, 0.25)",
       }}
       aria-label="Primary navigation"
     >
-      {/* ── Decorative background orbs ──────────────────────────────────── */}
+      {/* ── Ambient Background Lighting ───────────────────────────────── */}
       <div
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
         aria-hidden="true"
       >
-        {/* Top-right glow */}
         <div
-          className="absolute -top-[30%] -right-[20%] w-[65%] aspect-square rounded-full opacity-20"
+          className="absolute -top-[20%] -right-[15%] w-[80%] aspect-square rounded-full opacity-20 pointer-events-none"
           style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.5) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, transparent 65%)",
           }}
         />
-        {/* Bottom-left glow */}
         <div
-          className="absolute -bottom-[25%] -left-[15%] w-[55%] aspect-square rounded-full opacity-15"
+          className="absolute -bottom-[20%] -left-[15%] w-[70%] aspect-square rounded-full opacity-15 pointer-events-none"
           style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.4) 0%, transparent 60%)",
+            background: "radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 65%)",
           }}
         />
-        {/* Subtle texture overlay */}
+        {/* Architectural subtle grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.02] pointer-events-none"
           style={{
             backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-            backgroundSize: "128px 128px",
+              "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
           }}
         />
       </div>
 
-      {/* ── Logo ─────────────────────────────────────────────────────────── */}
+      {/* ── Top Brand Header ────────────────────────────────────────────── */}
       <div
         className={cn(
-          "relative z-10 flex items-center gap-3 pt-4 pb-3 shrink-0",
-          collapsed ? "justify-center px-0" : "px-5"
+          "relative z-10 flex items-center gap-3 pt-4 pb-3.5 shrink-0 border-b border-white/[0.06]",
+          collapsed ? "justify-center px-0" : "px-4"
         )}
       >
-        {/* Logo icon with gradient + glow */}
-        <div className="relative flex-shrink-0">
-          <div
-            className="relative h-10 w-10 rounded-[13px] flex items-center justify-center shadow-lg"
-            style={{
-              background:
-                "linear-gradient(135deg, #38BDF8 0%, #0EA5E9 50%, #0284C7 100%)",
-              boxShadow:
-                "0 4px 16px rgba(14,165,233,0.35), 0 0 0 1px rgba(255,255,255,0.15)",
-            }}
-          >
-            <HeartPulse size={19} className="text-white" strokeWidth={2.2} />
-          </div>
-          {/* Pulse dot */}
-          <span
-            className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#082B4E]"
-            style={{
-              background: "linear-gradient(135deg, #34D399, #10B981)",
-              boxShadow: "0 0 8px rgba(52,211,153,0.6)",
-            }}
-          />
-        </div>
-
-        {/* Wordmark */}
-        {!collapsed && (
-          <div className="min-w-0 leading-none">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[14px] font-extrabold text-white tracking-wide">
-                HEALTHHUB
-              </span>
-              <Sparkles size={11} className="text-sky-300 opacity-70" />
-            </div>
+        <Link
+          href="/patient"
+          className="flex items-center gap-3 group focus-visible:outline-none"
+          title="HealthHub Patient Portal"
+        >
+          {/* Logo icon with glow */}
+          <div className="relative flex-shrink-0">
             <div
-              className="text-[10px] font-semibold mt-1 tracking-[0.2em] uppercase"
-              style={{ color: "rgba(125,211,252,0.7)" }}
+              className="relative h-9 w-9 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%)",
+                boxShadow: "0 4px 14px rgba(14,165,233,0.35), 0 0 0 1px rgba(255,255,255,0.2)",
+              }}
             >
-              Patient Portal
+              <HeartPulse size={18} className="text-white" strokeWidth={2.4} />
             </div>
+            {/* Live Security Pulse */}
+            <span
+              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#070d18] bg-emerald-400"
+              style={{ boxShadow: "0 0 8px #34d399" }}
+            />
           </div>
-        )}
+
+          {/* Wordmark & Portal Tag */}
+          {!collapsed && (
+            <div className="min-w-0 leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[14px] font-bold text-white tracking-tight">
+                  HealthHub
+                </span>
+                <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400 border border-sky-500/25">
+                  Patient
+                </span>
+              </div>
+              <div className="text-[10px] font-medium text-slate-400 mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                <span className="tracking-wide">Personal Care</span>
+              </div>
+            </div>
+          )}
+        </Link>
       </div>
 
-      {/* ── Thin gradient separator ──────────────────────────────────────── */}
-      <div
-        className="relative z-10 mx-4 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent 0%, rgba(125,211,252,0.25) 50%, transparent 100%)",
-        }}
-      />
+      {/* ── Quick Search / Filter (Expanded Only) ────────────────────────── */}
+      {!collapsed && (
+        <div className="relative z-10 px-3 pt-3 pb-1">
+          <div className="relative flex items-center">
+            <Search
+              size={13}
+              className="absolute left-2.5 text-slate-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Quick find..."
+              className="w-full h-8 pl-8 pr-7 bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] focus:border-sky-500/50 rounded-lg text-xs text-white placeholder:text-slate-500 outline-none transition-all duration-150"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 text-slate-400 hover:text-white p-0.5"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Navigation groups ────────────────────────────────────────────── */}
       <nav className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden py-3 sidebar-scroll">
-        <div className={cn("flex flex-col", collapsed ? "gap-1 px-2" : "gap-4 px-3")}>
-          {NAV_GROUPS.map((group, groupIdx) => (
-            <div key={group.label}>
-              {/* Group label — hidden when collapsed */}
-              {!collapsed && (
-                <div className="sidebar-group-label text-[10px] font-bold tracking-[0.2em] uppercase mb-2 px-3 flex items-center gap-2">
-                  <span>{group.label}</span>
-                  <span
-                    className="flex-1 h-px"
-                    style={{
-                      background:
-                        "linear-gradient(90deg, rgba(125,211,252,0.15), transparent)",
-                    }}
-                  />
-                </div>
-              )}
+        <div className={cn("flex flex-col", collapsed ? "gap-1 px-2" : "gap-3 px-3")}>
+          {filteredGroups.map((group) => {
+            const isGroupCollapsed = !collapsed && !!collapsedGroups[group.id] && !searchQuery;
 
-              <ul className="flex flex-col gap-0.5">
-                {group.items.map((item) => {
-                  const active =
-                    item.href === "/patient"
-                      ? pathname === "/patient"
-                      : pathname?.startsWith(item.href) ?? false;
-                  const Icon = item.icon;
-                  const isHovered = hoveredItem === item.href;
-                  const hasBadge = item.badge && unreadNotifications > 0;
-
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        data-testid={item.testId}
-                        title={collapsed ? item.label : undefined}
-                        aria-label={item.label}
-                        aria-current={active ? "page" : undefined}
-                        onMouseEnter={() => setHoveredItem(item.href)}
-                        onMouseLeave={() => setHoveredItem(null)}
+            return (
+              <div key={group.id} className="flex flex-col">
+                {/* Group label */}
+                {!collapsed && (
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.id)}
+                    className="sidebar-group-label group/label flex items-center justify-between text-[10px] font-bold tracking-[0.12em] uppercase mb-1 px-2 py-1 rounded hover:bg-white/[0.03] transition-colors"
+                  >
+                    <span className="text-slate-400 group-hover/label:text-slate-200 transition-colors">
+                      {group.label}
+                    </span>
+                    <span className="flex items-center gap-1.5 opacity-60 group-hover/label:opacity-100 transition-opacity">
+                      <ChevronDown
+                        size={11}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-xl text-[13px] font-medium sidebar-link",
-                          collapsed
-                            ? "justify-center h-10 w-11 mx-auto"
-                            : "h-[38px] px-3"
+                          "transition-transform duration-200 text-slate-400",
+                          isGroupCollapsed ? "-rotate-90" : "rotate-0"
                         )}
-                      >
-                        {/* Active indicator — animated pill background */}
-                        {active && (
-                          <span
-                            className="absolute inset-0 rounded-xl sidebar-active-indicator"
-                            style={{
-                              background:
-                                "linear-gradient(135deg, rgba(56,189,248,0.15) 0%, rgba(14,165,233,0.08) 100%)",
-                              border: "1px solid rgba(56,189,248,0.2)",
-                              boxShadow: "0 0 20px rgba(14,165,233,0.08)",
-                            }}
-                          />
-                        )}
+                      />
+                    </span>
+                  </button>
+                )}
 
-                        {/* Hover glow */}
-                        {isHovered && !active && (
-                          <span
-                            className="absolute inset-0 rounded-xl transition-opacity duration-200"
-                            style={{
-                              background: "rgba(255,255,255,0.04)",
-                            }}
-                          />
-                        )}
+                {/* Items List */}
+                {!isGroupCollapsed && (
+                  <ul className="flex flex-col gap-0.5">
+                    {group.items.map((item) => {
+                      const active =
+                        item.href === "/patient"
+                          ? pathname === "/patient"
+                          : pathname?.startsWith(item.href) ?? false;
+                      const Icon = item.icon;
+                      const isHovered = hoveredItem === item.href;
+                      const hasBadge = item.badge && unreadNotifications > 0;
 
-                        {/* Active left accent bar with glow */}
-                        {active && !collapsed && (
-                          <span
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                            style={{
-                              background:
-                                "linear-gradient(180deg, #38BDF8, #0EA5E9)",
-                              boxShadow: "0 0 8px rgba(56,189,248,0.5)",
-                            }}
-                          />
-                        )}
-
-                        {/* Icon container */}
-                        <span
-                          className={cn(
-                            "relative z-10 flex-shrink-0 flex items-center justify-center transition-all duration-200",
-                            active ? "h-6 w-6 rounded-lg" : "h-5 w-5"
-                          )}
-                        >
-                          <Icon
-                            size={collapsed ? 17 : 15}
-                            strokeWidth={active ? 2.3 : 1.8}
-                            className="transition-all duration-200"
-                          />
-                        </span>
-
-                        {!collapsed && (
-                          <span className="relative z-10 flex-1 truncate leading-none transition-colors duration-200">
-                            {item.label}
-                          </span>
-                        )}
-
-                        {/* Badge counter */}
-                        {hasBadge && (
-                          <span
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            data-testid={item.testId}
+                            title={collapsed ? item.label : undefined}
+                            aria-label={item.label}
+                            aria-current={active ? "page" : undefined}
+                            onMouseEnter={() => setHoveredItem(item.href)}
+                            onMouseLeave={() => setHoveredItem(null)}
                             className={cn(
-                              "relative z-10 text-[10px] font-bold rounded-full flex items-center justify-center text-white",
+                              "group relative flex items-center gap-3 rounded-xl text-[13px] font-medium sidebar-link",
                               collapsed
-                                ? "absolute top-1 right-1 h-2 w-2 p-0 bg-sky-400"
-                                : "px-1.5 py-0.2 min-w-[18px] h-[18px] bg-sky-500 shadow-sm"
+                                ? "justify-center h-10 w-10 mx-auto"
+                                : "h-[36px] px-2.5"
                             )}
                           >
-                            {!collapsed ? unreadNotifications : null}
-                          </span>
-                        )}
+                            {/* Active left glowing bar */}
+                            {active && !collapsed && (
+                              <span
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full"
+                                style={{
+                                  background: "linear-gradient(180deg, #38bdf8, #0ea5e9)",
+                                  boxShadow: "0 0 10px rgba(56, 189, 248, 0.7)",
+                                }}
+                              />
+                            )}
 
-                        {/* Collapsed active dot indicator */}
-                        {active && collapsed && !hasBadge && (
-                          <span
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full"
-                            style={{
-                              background: "#38BDF8",
-                              boxShadow: "0 0 6px rgba(56,189,248,0.6)",
-                            }}
-                          />
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+                            {/* Icon container */}
+                            <span
+                              className={cn(
+                                "relative z-10 flex-shrink-0 flex items-center justify-center transition-all duration-180",
+                                active ? "text-sky-400" : "text-slate-400 group-hover:text-slate-200"
+                              )}
+                            >
+                              <Icon
+                                size={collapsed ? 18 : 16}
+                                strokeWidth={active ? 2.3 : 1.8}
+                              />
+                            </span>
 
-              {/* Divider between groups */}
-              {groupIdx < NAV_GROUPS.length - 1 && (
-                <div
-                  className={cn(
-                    collapsed ? "my-2 mx-auto w-8 h-px" : "my-3 mx-3 h-px"
-                  )}
-                  style={{
-                    background: collapsed
-                      ? "rgba(125,211,252,0.1)"
-                      : "linear-gradient(90deg, transparent 0%, rgba(125,211,252,0.12) 50%, transparent 100%)",
-                  }}
-                />
-              )}
-            </div>
-          ))}
+                            {/* Item label */}
+                            {!collapsed && (
+                              <span
+                                className={cn(
+                                  "relative z-10 flex-1 truncate transition-colors duration-180",
+                                  active
+                                    ? "text-white font-semibold"
+                                    : "text-slate-300 group-hover:text-white"
+                                )}
+                              >
+                                {item.label}
+                              </span>
+                            )}
+
+                            {/* Unread badge count */}
+                            {hasBadge && (
+                              <span
+                                className={cn(
+                                  "relative z-10 text-[10px] font-bold rounded-full flex items-center justify-center text-white bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]",
+                                  collapsed
+                                    ? "absolute top-1.5 right-1.5 h-2 w-2 p-0"
+                                    : "px-1.5 min-w-[18px] h-[18px]"
+                                )}
+                              >
+                                {!collapsed ? unreadNotifications : null}
+                              </span>
+                            )}
+
+                            {/* Collapsed active dot */}
+                            {active && collapsed && !hasBadge && (
+                              <span
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sky-400"
+                                style={{ boxShadow: "0 0 6px rgba(56,189,248,0.7)" }}
+                              />
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       </nav>
 
       {/* ── Patient Profile Footer ────────────────────────────────────────── */}
-      <div className="relative z-10 mt-auto shrink-0">
-        {/* Top gradient separator */}
-        <div
-          className="h-px mx-4"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(125,211,252,0.2) 50%, transparent 100%)",
-          }}
-        />
-
-        <div
-          className="sidebar-footer-bg"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 100%)",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          {/* Collapse toggle */}
+      <div className="relative z-10 mt-auto shrink-0 border-t border-white/[0.08] bg-[#060d18]/80 backdrop-blur-md">
+        {/* Collapse toggle row */}
+        <div className="px-2 pt-2">
           <button
             type="button"
             onClick={toggle}
             className={cn(
-              "w-full flex items-center gap-2.5 h-9 sidebar-btn transition-all duration-200",
-              collapsed ? "justify-center px-0" : "px-4"
+              "w-full flex items-center gap-2 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all duration-150",
+              collapsed ? "justify-center px-0" : "px-2.5"
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <span
               className={cn(
-                "flex items-center justify-center h-5 w-5 rounded-md transition-transform duration-200",
+                "flex items-center justify-center transition-transform duration-200",
                 collapsed ? "rotate-180" : ""
               )}
-              style={{ background: "rgba(255,255,255,0.06)" }}
             >
-              <ChevronLeft size={12} strokeWidth={2.2} />
+              <ChevronLeft size={13} strokeWidth={2.2} />
             </span>
             {!collapsed && (
-              <span className="text-[11px] font-medium tracking-wide opacity-70">
-                Collapse
+              <span className="text-[11px] font-medium tracking-wide">
+                Collapse sidebar
               </span>
             )}
           </button>
+        </div>
 
-          {/* Patient Card */}
-          <div
-            className={cn(
-              "flex items-center gap-3 pb-3",
-              collapsed ? "justify-center px-0 pt-1" : "px-4 pt-1"
-            )}
-          >
-            {/* Avatar with gradient ring */}
-            <div className="relative flex-shrink-0">
-              <div
-                title={user?.name ?? undefined}
-                className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
-                  boxShadow:
-                    "0 2px 10px rgba(14,165,233,0.3), 0 0 0 2px rgba(56,189,248,0.2)",
-                }}
-              >
-                {initials}
-              </div>
-              {/* Online indicator */}
-              <span
-                className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2"
-                style={{
-                  borderColor: "#082B4E",
-                  background: "linear-gradient(135deg, #34D399, #10B981)",
-                  boxShadow: "0 0 6px rgba(52,211,153,0.5)",
-                }}
-              />
+        {/* Patient Profile Card */}
+        <div
+          className={cn(
+            "p-2.5",
+            collapsed ? "flex justify-center" : "flex items-center gap-2.5"
+          )}
+        >
+          {/* Avatar with gradient ring */}
+          <div className="relative flex-shrink-0">
+            <div
+              title={user?.name ?? undefined}
+              className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
+              style={{
+                background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
+                boxShadow: "0 2px 8px rgba(2, 132, 199, 0.4), 0 0 0 1.5px rgba(56, 189, 248, 0.3)",
+              }}
+            >
+              {initials}
             </div>
-
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold text-white truncate leading-tight">
-                  {user?.name ?? "Patient"}
-                </div>
-                <div className="text-[10px] leading-tight truncate mt-0.5 sidebar-patient-email flex items-center gap-1">
-                  <span className="truncate">
-                    {user?.email ?? user?.phone ?? "HealthHub"}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {!collapsed && (
-              <div className="flex items-center gap-1">
-                <Link
-                  href="/patient/profile"
-                  className="h-7 w-7 rounded-lg flex items-center justify-center sidebar-footer-btn transition-all duration-200"
-                  title="Profile & Settings"
-                >
-                  <Settings size={13} strokeWidth={2} />
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={signingOut}
-                  data-testid="sidebar-logout"
-                  className="h-7 w-7 rounded-lg flex items-center justify-center sidebar-footer-btn sidebar-footer-btn-danger transition-all duration-200 disabled:opacity-50"
-                  title="Sign out"
-                >
-                  <LogOut size={13} strokeWidth={2} />
-                </button>
-              </div>
-            )}
+            <span
+              className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#060d18] bg-emerald-400"
+              style={{ boxShadow: "0 0 6px #34d399" }}
+            />
           </div>
+
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <div className="text-[12.5px] font-semibold text-white truncate leading-tight">
+                {user?.name ?? "Patient"}
+              </div>
+              <div className="text-[10px] text-slate-400 leading-tight truncate mt-0.5 font-mono">
+                {user?.email ?? user?.phone ?? "HealthHub"}
+              </div>
+            </div>
+          )}
+
+          {!collapsed && (
+            <div className="flex items-center gap-1">
+              <Link
+                href="/patient/profile"
+                className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                title="Profile & Settings"
+              >
+                <Settings size={13} strokeWidth={2} />
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={signingOut}
+                data-testid="sidebar-logout"
+                className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-colors disabled:opacity-50"
+                title="Sign out"
+              >
+                <LogOut size={13} strokeWidth={2} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </aside>

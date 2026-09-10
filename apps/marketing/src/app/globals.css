@@ -312,9 +312,392 @@ ul { margin: 0; padding: 0; list-style: none; }
 .hero-journal__photo { position: absolute; left: 0; top: 16px; width: 74%; height: 458px; overflow: hidden; border-radius: 2px 28px 28px 28px; box-shadow: 0 34px 76px rgba(11,31,58,.22); }
 .hero-journal__photo::after { content: ""; position: absolute; inset: auto 0 0; height: 82px; background: rgba(5,14,25,.48); }.hero-journal__photo img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.75) contrast(1.03); transition: transform 1.1s var(--ease), filter .7s; }.hero-journal:hover .hero-journal__photo img { transform: scale(1.035); filter: saturate(.88) contrast(1.03); }
 .hero-journal__caption { position: absolute; z-index: 1; left: 18px; bottom: 16px; color: #fff; font-family: var(--mono); font-size: 9px; letter-spacing: .15em; text-transform: uppercase; }
-.hero-journal__paper { position: absolute; right: 6%; top: 0; width: 53%; height: 61%; background: #d8d2c6; border: 1px solid rgba(11,31,58,.1); transform: rotate(5deg); box-shadow: 0 18px 38px rgba(11,31,58,.1); }.hero-journal__paper::before { content: "A place for the pieces"; position: absolute; left: 18px; bottom: 18px; width: 9em; color: rgba(11,31,58,.55); font-family: var(--display); font-size: clamp(18px, 2vw, 26px); font-style: italic; line-height: 1; }.hero-journal__paper::after { content: "HH · 2026"; position: absolute; top: 18px; right: 18px; color: rgba(11,31,58,.42); font-family: var(--mono); font-size: 8px; letter-spacing: .15em; }
-.hero-journal__card { position: absolute; right: 0; bottom: 0; width: min(56%, 320px); padding: 28px; border-radius: 4px 4px 4px 26px; background: var(--navy); color: #edf3ff; box-shadow: 0 30px 68px rgba(6,16,28,.36), 0 1px 0 rgba(255,255,255,.12) inset; transform: rotate(-3deg); transition: transform .5s var(--ease), box-shadow .5s var(--ease); }.hero-journal:hover .hero-journal__card { transform: rotate(-1deg) translateY(-6px); box-shadow: 0 38px 74px rgba(6,16,28,.42), 0 1px 0 rgba(255,255,255,.12) inset; }
-.hero-journal__eyebrow { display: block; color: #9db6ff; font-family: var(--mono); font-size: 9px; letter-spacing: .15em; text-transform: uppercase; }.hero-journal__card h2 { margin: 18px 0 12px; font-size: clamp(25px, 3vw, 38px); line-height: .98; letter-spacing: -.055em; }.hero-journal__card h2 em { font-family: var(--display); font-weight: 500; color: #b7ccff; }.hero-journal__card p { font-size: 12.5px; line-height: 1.6; color: rgba(237,243,255,.68); }.hero-journal__rule { height: 1px; margin: 22px 0 12px; background: rgba(183,204,255,.25); }.hero-journal__footer { display: flex; justify-content: space-between; color: #9db6ff; font-family: var(--mono); font-size: 8px; letter-spacing: .1em; text-transform: uppercase; }
+.hero-journal__paper { position: absolute; right: 6%; top: 0; width: 53%; height: 61%; background: #d8d2c6; border: 1px solid rgba(11,31,58,.1); transform: rotate(5deg); box-shadow: 0 18px 38px rgba(11,31,58,.1); }
+.hero-journal__paper::before { content: "A place for the pieces"; position: absolute; left: 18px; bottom: 18px; width: 9em; color: rgba(11,31,58,.55); font-family: var(--display); font-size: clamp(18px, 2vw, 26px); font-style: italic; line-height: 1; }
+.hero-journal__paper::after { content: "HH · 2026"; position: absolute; top: 18px; right: 18px; color: rgba(11,31,58,.42); font-family: var(--mono); font-size: 8px; letter-spacing: .15em; }
+
+.hero-journal__paper .paper-header {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+}
+.hero-journal__paper .paper-header span {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(11, 31, 58, 0.65);
+}
+.hero-journal__paper .paper-header small {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  color: rgba(11, 31, 58, 0.4);
+}
+
+.hero-journal__photo-badge {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(8, 24, 46, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.hero-journal__card {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: min(68%, 385px);
+  padding: 22px;
+  border-radius: 4px 4px 4px 26px;
+  background: var(--navy);
+  color: #edf3ff;
+  box-shadow: 0 32px 70px rgba(6, 16, 28, 0.4), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  transform: rotate(-2deg);
+  transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
+}
+.hero-journal:hover .hero-journal__card {
+  transform: rotate(0deg) translateY(-6px);
+  box-shadow: 0 40px 80px rgba(6, 16, 28, 0.48), 0 1px 0 rgba(255, 255, 255, 0.18) inset;
+}
+
+/* Living Record specifics */
+.living-record__patient {
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(183, 204, 255, 0.14);
+}
+.living-record__user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.living-record__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justifyContent: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 3px 10px rgba(2, 132, 199, 0.35);
+}
+.living-record__meta {
+  display: flex;
+  flex-direction: column;
+}
+.living-record__meta b {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+.living-record__meta small {
+  font-size: 10.5px;
+  color: rgba(237, 243, 255, 0.65);
+  font-family: var(--mono);
+}
+.living-record__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  color: #34d399;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.live-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: live-blink 2s ease-in-out infinite;
+}
+@keyframes live-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.living-record__tabs {
+  display: flex;
+  gap: 5px;
+  margin: 12px 0 10px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.living-record__tab {
+  flex: 1;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: rgba(237, 243, 255, 0.65);
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+.living-record__tab:hover {
+  color: #ffffff;
+}
+.living-record__tab.is-active {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.45);
+}
+
+.living-record__body {
+  min-height: 140px;
+}
+.living-record__content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: cardFadeIn 0.25s ease;
+}
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.living-record__source {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tag-hospital {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  font-size: 10px;
+  font-weight: 700;
+}
+.living-record__source small {
+  color: rgba(237, 243, 255, 0.55);
+  font-size: 10.5px;
+}
+
+.living-record__metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.metric-num {
+  font-size: 29px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.metric-num small {
+  font-size: 17px;
+  font-weight: 600;
+  color: #38bdf8;
+  margin-left: 2px;
+}
+.metric-delta {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #34d399;
+  margin-left: 8px;
+}
+.metric-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.metric-badge.in-range {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.living-record__chart {
+  margin-top: 2px;
+  position: relative;
+}
+.living-record__chart .sparkline {
+  width: 100%;
+  height: 42px;
+  overflow: visible;
+}
+.sparkline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: rgba(237, 243, 255, 0.5);
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+.sparkline-labels .highlight {
+  color: #34d399;
+  font-weight: 700;
+}
+
+/* Rx Scan items */
+.living-record__meds {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.med-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.med-icon {
+  font-size: 15px;
+}
+.med-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.med-info b {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.med-info small {
+  font-size: 10px;
+  color: rgba(237, 243, 255, 0.65);
+}
+.med-time {
+  font-size: 9.5px;
+  font-family: var(--mono);
+  color: #38bdf8;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(56, 189, 248, 0.12);
+}
+.med-note {
+  font-size: 10px;
+  color: #38bdf8;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Doctor brief card */
+.doctor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.doctor-card__item {
+  padding: 6px 8px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.doctor-card__item small {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #38bdf8;
+  font-family: var(--mono);
+  margin-bottom: 2px;
+}
+.doctor-card__item b {
+  font-size: 11.5px;
+  color: #edf3ff;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.doctor-card__security {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #34d399;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.living-record__rule {
+  height: 1px;
+  margin: 12px 0 10px;
+  background: rgba(183, 204, 255, 0.14);
+}
+.living-record__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #9db6ff;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.living-record__footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Trust row on left side hero */
+.hero__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 22px;
+  font-size: 12px;
+}
+.hero__trust span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.hero__trust span svg {
+  color: #0284c7;
+}
 
 .hero__stage { position: relative; min-height: 620px; }
 .collage { position: absolute; inset: 0; }
@@ -882,12 +1265,10 @@ ul { margin: 0; padding: 0; list-style: none; }
   .nav__mobile a { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--line); font-weight: 700; }
   .hero h1 { font-size: clamp(40px, 12vw, 58px); }
   .hero--editorial .hero__inner { padding-top: 36px; }
-  .hero-journal { min-height: 430px; margin-top: 4px; }
-  .hero-journal__photo { top: 0; width: 82%; height: 355px; }
-  .hero-journal__paper { right: 0; width: 50%; height: 53%; }
-  .hero-journal__card { width: min(64%, 278px); padding: 21px; }
-  .hero-journal__card h2 { font-size: 29px; }
-  .hero-journal__card p { font-size: 11.5px; }
+  .hero-journal { min-height: 460px; margin-top: 12px; }
+  .hero-journal__photo { top: 0; width: 85%; height: 365px; }
+  .hero-journal__paper { right: 0; width: 52%; height: 50%; }
+  .hero-journal__card { width: min(85%, 340px); padding: 18px; }
   .hero__meta { grid-template-columns: 1fr 1fr 1fr; }
   .float-card--lab { left: -8px; width: 176px; }
   .float-card--dose { right: -8px; width: 180px; }
