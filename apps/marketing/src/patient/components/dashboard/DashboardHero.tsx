@@ -16,6 +16,7 @@ import {
 
 import {
   useHealthSummary,
+  useInsurance,
   useProfile,
   useVitalsAlerts,
   useWellness,
@@ -61,6 +62,7 @@ export function DashboardHero({ className }: { className?: string }) {
   const summary = useHealthSummary();
   const wellness = useWellness();
   const alerts = useVitalsAlerts(7);
+  const insurance = useInsurance();
 
   const hour = useMemo(() => new Date().getHours(), []);
   const firstName = (profile.data?.name ?? "there").split(" ")[0];
@@ -102,7 +104,7 @@ export function DashboardHero({ className }: { className?: string }) {
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-10"
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-10 hidden"
         style={{
           background:
             "radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 50%)",
@@ -253,47 +255,29 @@ export function DashboardHero({ className }: { className?: string }) {
               />
             </Link>
 
-            {/* Quick Action Shortcuts */}
-            <div className="flex items-center gap-2">
+            {/* Insurance mini-line */}
+            {insurance.data?.policy ? (
               <Link
-                href="/patient/health"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border focus-visible:outline-2 focus-visible:outline-white"
-                style={{
-                  background: "rgba(255, 255, 255, 0.12)",
-                  borderColor: "rgba(255, 255, 255, 0.18)",
-                  backdropFilter: "blur(6px)",
-                }}
+                href="/patient/insurance"
+                className="text-[11.5px] font-semibold text-white/85 hover:text-white"
+                data-testid="hero-insurance-line"
               >
-                <Activity size={12} className="text-sky-300" />
-                <span>Log vitals</span>
+                {insurance.data.policy.provider}
+                {insurance.data.policy.renewsAt
+                  ? ` · renews in ${Math.max(0, Math.ceil((new Date(insurance.data.policy.renewsAt).getTime() - Date.now()) / 86_400_000))}d`
+                  : ""}{" "}
+                →
               </Link>
+            ) : null}
 
-              <Link
-                href="/patient/health-id"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border focus-visible:outline-2 focus-visible:outline-white"
-                style={{
-                  background: "rgba(255, 255, 255, 0.12)",
-                  borderColor: "rgba(255, 255, 255, 0.18)",
-                  backdropFilter: "blur(6px)",
-                }}
-              >
-                <QrCode size={12} className="text-emerald-300" />
-                <span>Health ID</span>
-              </Link>
-
-              <Link
-                href="/patient/appointments"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border focus-visible:outline-2 focus-visible:outline-white"
-                style={{
-                  background: "rgba(255, 255, 255, 0.12)",
-                  borderColor: "rgba(255, 255, 255, 0.18)",
-                  backdropFilter: "blur(6px)",
-                }}
-              >
-                <Calendar size={12} className="text-sky-300" />
-                <span>Book visit</span>
-              </Link>
-            </div>
+            {/* Quick Action CTA */}
+            <Link
+              href="/patient/health"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-bold text-[#0369A1] transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-white shadow-md"
+            >
+              <Activity size={14} aria-hidden />
+              Log vitals
+            </Link>
           </div>
         </div>
       </div>
