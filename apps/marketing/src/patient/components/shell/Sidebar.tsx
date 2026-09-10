@@ -80,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/patient/records", label: "Medical Records", icon: FolderOpen, testId: "nav-records" },
       { href: "/patient/diagnostic-tests", label: "Lab Tests", icon: FlaskConical, testId: "nav-diagnostic-tests" },
+      { href: "/patient/diagnostic-tests/bookings", label: "My Lab Bookings", icon: ClipboardList, testId: "nav-diagnostic-bookings" },
       { href: "/patient/imaging", label: "Imaging & Scans", icon: ScanLine, testId: "nav-imaging" },
       { href: "/patient/vaccinations", label: "Vaccinations", icon: ShieldCheck, testId: "nav-vaccinations" },
       { href: "/patient/allergies", label: "Allergies", icon: AlertCircle, testId: "nav-allergies" },

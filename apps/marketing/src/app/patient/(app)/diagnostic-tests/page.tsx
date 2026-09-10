@@ -542,11 +542,11 @@ export default function DiagnosticTestsPage() {
 
             {/* Quick View My Bookings Button */}
             <Link
-              href="/patient/appointments"
+              href="/patient/diagnostic-tests/bookings"
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-white text-sky-950 hover:bg-sky-50 transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
             >
               <Calendar size={14} className="text-sky-700" />
-              <span>View My Appointments &amp; Bookings</span>
+              <span>View My Lab Bookings</span>
               <ArrowRight size={13} className="text-sky-600" />
             </Link>
           </div>
