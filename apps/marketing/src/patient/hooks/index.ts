@@ -28,5 +28,6 @@ export * from "./diagnostic";
 export * from "./family";
 export * from "./emergency";
 export * from "./health-id";
+export * from "./insurance";
 export * from "./consents";
 export * from "./dsar";

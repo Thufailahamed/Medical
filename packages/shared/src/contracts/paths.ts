@@ -270,6 +270,10 @@ export const patientPaths = {
     mine: (limit?: number) => `/activity/me${qs({ limit })}`,
   },
 
+  insurance: {
+    mine: () => "/insurance/me",
+  },
+
   support: {
     contact: () => "/support/contact",
   },

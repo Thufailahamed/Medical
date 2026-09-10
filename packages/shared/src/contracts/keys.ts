@@ -121,6 +121,8 @@ export const patientKeys = {
     ["patient", "diagnostic", "bookings", id] as const,
 
   activity: (limit?: number) => ["patient", "activity", limit ?? 50] as const,
+
+  insurance: () => ["patient", "insurance", "me"] as const,
 };
 
 /** Range key → an ISO `from` bound. `to` is always "now" (omitted). */
