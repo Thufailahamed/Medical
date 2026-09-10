@@ -3,6 +3,7 @@
 import {
   CareAssistant,
   DashboardHero,
+  HealthSummaryStrip,
   MedicationsToday,
   QuickActions,
   RecentRecords,
@@ -17,10 +18,11 @@ import {
  */
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-5 px-1 pb-6 pt-1 sm:gap-6 sm:px-2">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-1 pb-6 pt-1 sm:gap-6 sm:px-2">
       <DashboardHero />
       <SafetyBanner />
       <QuickActions />
+      <HealthSummaryStrip />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <MedicationsToday />

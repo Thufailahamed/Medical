@@ -10,3 +10,4 @@ export { BodyOverview } from "./BodyOverview";
 export { DashboardHero } from "./DashboardHero";
 export { SafetyBanner } from "./SafetyBanner";
 export { QuickActions } from "./QuickActions";
+export { HealthSummaryStrip } from "./HealthSummaryStrip";

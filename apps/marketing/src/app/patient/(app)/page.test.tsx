@@ -101,6 +101,8 @@ describe("DashboardPage", () => {
     expect(screen.getByText(/Care insights/)).toBeTruthy();
     expect(screen.getAllByText(/Ask AI/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Wellness/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Adherence/)).toBeTruthy();
+    expect(screen.getByText(/Next visit/)).toBeTruthy();
 
     // Removed noise: no duplicate stat strip, body map, week strip, or activity feed
     expect(screen.queryByText(/Do something now/)).toBeNull();
