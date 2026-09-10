@@ -80,6 +80,16 @@ vi.mock("@/patient/hooks", () => ({
     isLoading: false,
     isError: false,
   }),
+  useNotifications: () => ({
+    data: { notifications: [] },
+    isLoading: false,
+    isError: false,
+  }),
+  useInsurance: () => ({
+    data: null,
+    isLoading: false,
+    isError: false,
+  }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -103,6 +113,8 @@ describe("DashboardPage", () => {
     expect(screen.getAllByText(/Wellness/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Adherence/)).toBeTruthy();
     expect(screen.getByText(/Next visit/)).toBeTruthy();
+    expect(screen.getByText(/Notifications/)).toBeTruthy();
+    expect(screen.getByText(/Insurance/)).toBeTruthy();
 
     // Removed noise: no duplicate stat strip, body map, week strip, or activity feed
     expect(screen.queryByText(/Do something now/)).toBeNull();

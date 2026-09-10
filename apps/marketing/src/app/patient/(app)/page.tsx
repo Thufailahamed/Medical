@@ -4,7 +4,9 @@ import {
   CareAssistant,
   DashboardHero,
   HealthSummaryStrip,
+  InsuranceCoverage,
   MedicationsToday,
+  NotificationsPreview,
   QuickActions,
   RecentRecords,
   SafetyBanner,
@@ -12,28 +14,29 @@ import {
   VitalsTrend,
 } from "@/patient/components/dashboard";
 
-/**
- * Patient home — only what you need today:
- * greeting, safety, shortcuts, meds + next visit, vitals, records, AI.
- */
 export default function DashboardPage() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-1 pb-6 pt-1 sm:gap-6 sm:px-2">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-1 pb-6 pt-1">
       <DashboardHero />
       <SafetyBanner />
       <QuickActions />
       <HealthSummaryStrip />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <MedicationsToday />
-        <UpcomingAppointment />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-7"><MedicationsToday /></div>
+        <div className="lg:col-span-5"><UpcomingAppointment /></div>
       </div>
 
       <VitalsTrend />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <RecentRecords />
-        <CareAssistant className="min-h-full" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-7"><RecentRecords /></div>
+        <div className="lg:col-span-5"><NotificationsPreview /></div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-5"><InsuranceCoverage /></div>
+        <div className="lg:col-span-7"><CareAssistant /></div>
       </div>
     </div>
   );
