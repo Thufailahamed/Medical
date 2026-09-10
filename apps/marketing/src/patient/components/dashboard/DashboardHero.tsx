@@ -79,7 +79,7 @@ export function DashboardHero({ className }: { className?: string }) {
       )}
       style={{
         background:
-          "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
+          "linear-gradient(135deg, #0B4A6F 0%, #0369A1 45%, #0E7490 75%, #14919B 100%)",
         boxShadow:
           "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
       }}
@@ -121,7 +121,7 @@ export function DashboardHero({ className }: { className?: string }) {
       />
 
       <div className="relative z-10">
-        <div className="flex items-start justify-between gap-6 flex-wrap">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between md:gap-6">
           {/* ── Left Column: Greeting, Headline, Guidance & Vitals Pills ─── */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
@@ -204,11 +204,11 @@ export function DashboardHero({ className }: { className?: string }) {
           </div>
 
           {/* ── Right Column: Wellness Score Card & Action Shortcuts ──────── */}
-          <div className="flex flex-col items-end gap-3 shrink-0">
+          <div className="flex flex-col items-stretch md:items-end gap-3 shrink-0 w-full md:w-auto">
             {/* Wellness Badge Link */}
             <Link
               href="/patient/health"
-              className="group flex min-w-[13.5rem] items-center gap-4 rounded-2xl px-4 py-3.5 transition-all duration-200 hover:scale-[1.02] border"
+              className="group flex min-w-[13.5rem] items-center gap-4 rounded-2xl px-4 py-3.5 transition-all duration-200 hover:scale-[1.02] border focus-visible:outline-2 focus-visible:outline-white"
               style={{
                 background: "rgba(255, 255, 255, 0.12)",
                 borderColor: "rgba(255, 255, 255, 0.2)",
@@ -257,7 +257,7 @@ export function DashboardHero({ className }: { className?: string }) {
             <div className="flex items-center gap-2">
               <Link
                 href="/patient/health"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border focus-visible:outline-2 focus-visible:outline-white"
                 style={{
                   background: "rgba(255, 255, 255, 0.12)",
                   borderColor: "rgba(255, 255, 255, 0.18)",
@@ -270,7 +270,7 @@ export function DashboardHero({ className }: { className?: string }) {
 
               <Link
                 href="/patient/health-id"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border focus-visible:outline-2 focus-visible:outline-white"
                 style={{
                   background: "rgba(255, 255, 255, 0.12)",
                   borderColor: "rgba(255, 255, 255, 0.18)",
@@ -283,7 +283,7 @@ export function DashboardHero({ className }: { className?: string }) {
 
               <Link
                 href="/patient/appointments"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all duration-200 hover:scale-[1.03] border focus-visible:outline-2 focus-visible:outline-white"
                 style={{
                   background: "rgba(255, 255, 255, 0.12)",
                   borderColor: "rgba(255, 255, 255, 0.18)",
