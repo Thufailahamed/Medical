@@ -134,7 +134,7 @@ auth.post("/register", async (c) => {
     return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
 
-  const { email, phone, name, role, password, nic, dob, doctorProfile, inviteToken } = parsed.data;
+  const { email, phone, name, role, password, nic, dob, doctorProfile, inviteToken, labProfile, licenseNumber, accreditation, address, city, operatingHours, bankName, bankAccount } = parsed.data as any;
 
   // Phase 3.1 slice 3: invite tokens are only valid for hospital_staff
   // registrations. Reject early with a translated Zod message so we
@@ -228,6 +228,34 @@ auth.post("/register", async (c) => {
         registrationNumber: doctorProfile.registrationNumber?.trim() || null,
         hospitalId: doctorProfile.hospitalId || null,
       });
+    } else if (role === "laboratory") {
+      // Lab provider profile: merge flat fields (web form) + nested labProfile.
+      // Best-effort so a profile write never blocks account creation.
+      const resolved = {
+        licenseNumber: (labProfile?.licenseNumber ?? licenseNumber ?? "").trim(),
+        accreditation: (labProfile?.accreditation ?? accreditation ?? null) || null,
+        address: (labProfile?.address ?? address ?? "").trim(),
+        city: (labProfile?.city ?? city ?? null) || null,
+        operatingHours: (labProfile?.operatingHours ?? operatingHours ?? null) || null,
+        bankName: (labProfile?.bankName ?? bankName ?? null) || null,
+        bankAccount: (labProfile?.bankAccount ?? bankAccount ?? null) || null,
+      };
+      try {
+        const { labProfiles } = await import("@healthcare/db");
+        await db.insert(labProfiles).values({
+          userId: u.id,
+          labName: name.trim(),
+          licenseNumber: resolved.licenseNumber,
+          accreditation: resolved.accreditation,
+          address: resolved.address,
+          city: resolved.city,
+          operatingHours: resolved.operatingHours,
+          bankName: resolved.bankName,
+          bankAccount: resolved.bankAccount,
+        });
+      } catch (profileErr: any) {
+        logger.error("auth.register", "lab profile insert failed", { err: profileErr?.message });
+      }
     }
     dbUser = u;
   } catch (err: any) {
@@ -249,6 +277,7 @@ auth.post("/register", async (c) => {
         .from(users)
         .where(and(eq(users.role, "super_admin"), eq(users.status, "active")));
       if (admins.length > 0) {
+        const extra = role === "laboratory" ? { licenseNumber: (labProfile?.licenseNumber ?? licenseNumber ?? null), city: (labProfile?.city ?? city ?? null) } : {};
         await db.insert(notifications).values(
           admins.map((a) => ({
             id: crypto.randomUUID(),
@@ -256,7 +285,7 @@ auth.post("/register", async (c) => {
             type: "account_pending_review",
             title: `New ${role.replace("_", " ")} application`,
             body: `${name} (${email || phone || "no contact"}) registered and is awaiting approval.`,
-            data: JSON.stringify({ pendingUserId: dbUser.id, role }),
+            data: JSON.stringify({ pendingUserId: dbUser.id, role, ...extra }),
             read: 0,
           }))
         );

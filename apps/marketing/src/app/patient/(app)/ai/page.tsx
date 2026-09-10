@@ -154,7 +154,7 @@ export default function AiToolsPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-1 pb-6 pt-1 sm:gap-6 sm:px-2">
       {/* Hero + command center */}
-      <section className="dashboard-hero relative overflow-hidden rounded-2xl p-6 text-white shadow-xl md:p-7">
+      <section className="dashboard-hero relative overflow-hidden rounded-2xl p-6 text-white shadow-xl md:p-8">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full"
@@ -173,15 +173,15 @@ export default function AiToolsPage() {
         />
 
         <div className="relative z-10 flex flex-col gap-4">
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/20 bg-white/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-sky-200 backdrop-blur-md">
-            <Sparkles size={11} aria-hidden />
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-sky-300/30 bg-sky-400/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-100 backdrop-blur-md shadow-2xs">
+            <Sparkles size={12} className="text-sky-300" aria-hidden />
             Clinical intelligence
           </span>
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            <h1 className="text-2xl font-black tracking-tight sm:text-3xl md:text-4xl text-white">
               AI health assistant
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/80">
+            <p className="mt-2 max-w-2xl text-sm md:text-[15px] leading-relaxed text-white/85 font-normal">
               Summaries, medication safety checks and lab explanations grounded
               in your health record — private by design and never a replacement
               for your physician.
@@ -189,40 +189,40 @@ export default function AiToolsPage() {
           </div>
 
           <AiCommandBar
-            className="max-w-3xl"
+            className="max-w-3xl mt-1"
             onSubmit={goToChat}
             quickPrompts={[
               {
                 label: "Summarize my record",
-                icon: <FileText size={12} aria-hidden />,
+                icon: <FileText size={13} className="text-sky-200" aria-hidden />,
                 onSelect: () => runQuickPrompt("summary"),
               },
               {
                 label: "Explain my lab results",
-                icon: <FlaskConical size={12} aria-hidden />,
+                icon: <FlaskConical size={13} className="text-emerald-200" aria-hidden />,
                 onSelect: () => runQuickPrompt("lab"),
               },
               {
                 label: "Check my medications",
-                icon: <Pill size={12} aria-hidden />,
+                icon: <Pill size={13} className="text-amber-200" aria-hidden />,
                 onSelect: () => runQuickPrompt("meds"),
               },
               {
                 label: "Prepare for my visit",
-                icon: <Stethoscope size={12} aria-hidden />,
+                icon: <Stethoscope size={13} className="text-indigo-200" aria-hidden />,
                 onSelect: () => runQuickPrompt("chat"),
               },
             ]}
           />
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-white/15 pt-3.5">
+          <div className="flex flex-wrap items-center gap-2 border-t border-white/15 pt-4 mt-1">
             {TRUST.map(({ icon: Icon, label }) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-white/90"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/95 backdrop-blur-sm shadow-2xs"
               >
-                <Icon size={12} aria-hidden />
-                {label}
+                <Icon size={12} className="text-sky-200" aria-hidden />
+                <span>{label}</span>
               </span>
             ))}
           </div>

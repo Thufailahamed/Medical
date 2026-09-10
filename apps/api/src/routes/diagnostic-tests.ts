@@ -769,16 +769,78 @@ router.post("/book", authMiddleware, async (c) => {
       .limit(1);
 
     if (!test) return c.json({ error: "Test not found or inactive" }, 404);
-    if (!test.homeCollectionAvailable) {
-      return c.json(
-        { error: "This test requires lab visit, home collection not available" },
-        400
-      );
-    }
-
-    totalPrice = test.discountPrice ?? test.price;
-    labPartnerId = test.labPartnerId;
     testName = test.name;
+
+    // Resolve lab offer: explicit labPartnerId wins (validated), else
+    // cheapest active lab_diagnostic_tests row, else legacy catalog row.
+    const offers = (await db
+      .select()
+      .from(labDiagnosticTests)
+      .where(
+        and(
+          eq(labDiagnosticTests.testId, data.testId),
+          eq(labDiagnosticTests.isActive, true)
+        )
+      )) as Array<any>;
+    const activeOffers = (offers || []).filter((o: any) => {
+      const active = o.isActive ?? o.is_active;
+      return active === true || active === 1;
+    });
+    const priceOf = (o: any) =>
+      (o.discountPrice ?? o.discount_price ?? null) ?? o.price;
+
+    if ((data as any).labPartnerId) {
+      const wanted = (data as any).labPartnerId as string;
+      const match = activeOffers.find(
+        (o: any) => (o.labPartnerId ?? o.lab_partner_id) === wanted
+      );
+      if (!match) {
+        return c.json(
+          { error: "Selected lab does not offer this test" },
+          404
+        );
+      }
+      const homeOk =
+        match.homeCollectionAvailable ?? match.home_collection_available ?? true;
+      if (!homeOk) {
+        return c.json(
+          { error: "This test requires lab visit, home collection not available" },
+          400
+        );
+      }
+      totalPrice = priceOf(match);
+      labPartnerId = wanted;
+    } else if (activeOffers.length > 0) {
+      let best = activeOffers[0];
+      for (const o of activeOffers.slice(1)) {
+        if (priceOf(o) < priceOf(best)) best = o;
+      }
+      const homeOk =
+        best.homeCollectionAvailable ?? best.home_collection_available ?? true;
+      if (!homeOk && !test.homeCollectionAvailable) {
+        return c.json(
+          { error: "This test requires lab visit, home collection not available" },
+          400
+        );
+      }
+      totalPrice = priceOf(best);
+      labPartnerId = best.labPartnerId ?? best.lab_partner_id;
+    } else {
+      if (!test.homeCollectionAvailable) {
+        return c.json(
+          { error: "This test requires lab visit, home collection not available" },
+          400
+        );
+      }
+      if (!test.labPartnerId) {
+        return c.json(
+          { error: "No lab currently offers this test" },
+          404
+        );
+      }
+      totalPrice = test.discountPrice ?? test.price;
+      labPartnerId = test.labPartnerId;
+    }
   } else if (data.bookingType === "package" && data.packageId) {
     const [pkg] = await db
       .select()
@@ -921,7 +983,20 @@ router.get("/bookings", authMiddleware, async (c) => {
     .where(and(...conditions))
     .orderBy(desc(testBookings.createdAt));
 
-  // Enrich with test/package names
+  // Enrich with test/package names + lab display name
+  const labIds = Array.from(new Set(rows.map((r: any) => r.labPartnerId).filter(Boolean)));
+  let labNameById = new Map<string, string>();
+  if (labIds.length > 0) {
+    try {
+      const labRows = (await db
+        .select({ id: users.id, name: users.name })
+        .from(users)
+        .where(sql`${users.id} IN (${sql.join(labIds.map((id: string) => sql`${id}`), sql.raw(","))})`)) as Array<{ id: string; name: string }>;
+      for (const lr of labRows) labNameById.set(lr.id, lr.name);
+    } catch {
+      labNameById = new Map();
+    }
+  }
   const enriched = await Promise.all(
     rows.map(async (booking) => {
       let itemName = "";
@@ -956,6 +1031,7 @@ router.get("/bookings", authMiddleware, async (c) => {
         collectionAddress: JSON.parse(booking.collectionAddress),
         itemName,
         itemSlug,
+        labName: labNameById.get((booking as any).labPartnerId) ?? null,
       };
     })
   );
@@ -984,6 +1060,17 @@ router.get("/bookings/:id", authMiddleware, async (c) => {
 
   let itemName = "";
   let itemDetails: any = null;
+  let labName: string | null = null;
+  try {
+    const [lab] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, (booking as any).labPartnerId))
+      .limit(1);
+    labName = (lab as any)?.name ?? null;
+  } catch {
+    labName = null;
+  }
 
   if (booking.bookingType === "single_test" && booking.testId) {
     const [test] = await db
@@ -1026,6 +1113,7 @@ router.get("/bookings/:id", authMiddleware, async (c) => {
       collectionAddress: JSON.parse(booking.collectionAddress),
       itemName,
       itemDetails,
+      labName,
     },
   });
 });
@@ -1061,8 +1149,10 @@ router.patch("/bookings/:id/cancel", authMiddleware, async (c) => {
 
   if (!booking) return c.json({ error: "Booking not found" }, 404);
 
-  // Can only cancel active bookings (before sample collection)
-  const cancellable = ["pending", "confirmed", "phlebotomist_assigned"];
+  // Can only cancel active bookings (before sample collection).
+  // Parity with the lab-side cancel: en-route may also be cancelled
+  // (rider already dispatched — lab is notified so they can stand down).
+  const cancellable = ["pending", "confirmed", "phlebotomist_assigned", "sample_collection_en_route"];
   if (!cancellable.includes(booking.status)) {
     return c.json(
       {
@@ -1084,11 +1174,13 @@ router.patch("/bookings/:id/cancel", authMiddleware, async (c) => {
 
   // Handle refund for online/card payments: paid→refunded flag + ledger audit.
   // No schema drops; TB- PayHere orders refund via manual ledger (no auto-rail).
+  let refunded = false;
   if (booking.paymentStatus === "paid") {
     await db
       .update(testBookings)
       .set({ paymentStatus: "refunded", updatedAt: new Date().toISOString() })
       .where(eq(testBookings.id, id));
+    refunded = true;
     audit(db, {
       userId,
       action: "refund",
@@ -1104,15 +1196,37 @@ router.patch("/bookings/:id/cancel", authMiddleware, async (c) => {
     }).catch(() => {});
   }
 
+  // Re-read so the response reflects the refunded payment status.
+  const [fresh] = await db
+    .select()
+    .from(testBookings)
+    .where(eq(testBookings.id, id))
+    .limit(1);
+
   notify({
     db,
     env: c.env,
     userId,
     type: "lab_ready",
     title: "Test Booking Cancelled",
-    body: `Your booking has been cancelled.`,
-    data: { bookingId: id, kind: "test_booking_cancelled" },
+    body: refunded
+      ? "Your booking has been cancelled. Your payment will be refunded to the original method."
+      : `Your booking has been cancelled.`,
+    data: { bookingId: id, kind: "test_booking_cancelled", refunded },
   }).catch(() => {});
+
+  // Notify the lab so an assigned phlebotomist can be stood down.
+  if (booking.labPartnerId) {
+    notify({
+      db,
+      env: c.env,
+      userId: booking.labPartnerId,
+      type: "lab_ready",
+      title: "Booking Cancelled by Patient",
+      body: `A booking for ${parsed.data.cancellationReason || id} was cancelled by the patient.`,
+      data: { bookingId: id, kind: "test_booking_cancelled_by_patient" },
+    }).catch(() => {});
+  }
 
   audit(db, userId, {
     action: "cancel",
@@ -1121,7 +1235,7 @@ router.patch("/bookings/:id/cancel", authMiddleware, async (c) => {
     details: { reason: parsed.data.cancellationReason },
   }).catch(() => {});
 
-  return c.json({ booking: updated });
+  return c.json({ booking: fresh ?? updated });
 });
 
 // ─── Reschedule booking (patient) ────────────────────────
@@ -1167,6 +1281,28 @@ router.patch("/bookings/:id/reschedule", authMiddleware, async (c) => {
   const today = new Date().toISOString().slice(0, 10);
   if (parsed.data.scheduledDate < today) {
     return c.json({ error: "Cannot reschedule to a past date" }, 400);
+  }
+
+  // Slot capacity (mirror POST /book): max 20 active bookings per
+  // lab + date + slot, excluding this booking itself.
+  const slotPeers = await db
+    .select({ id: testBookings.id })
+    .from(testBookings)
+    .where(
+      and(
+        eq(testBookings.labPartnerId, booking.labPartnerId),
+        eq(testBookings.scheduledDate, parsed.data.scheduledDate),
+        eq(testBookings.scheduledTimeSlot, parsed.data.scheduledTimeSlot),
+        inArray(testBookings.status, BOOKING_ACTIVE_STATUSES)
+      )
+    )
+    .limit(21);
+  const peersExcludingSelf = slotPeers.filter((r: any) => r.id !== id);
+  if (peersExcludingSelf.length >= 20) {
+    return c.json(
+      { error: "This time slot is fully booked. Please choose another slot." },
+      409
+    );
   }
 
   const [updated] = await db

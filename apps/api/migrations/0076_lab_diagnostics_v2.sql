@@ -34,6 +34,8 @@
 --     applied once via wrangler; if re-run by hand the duplicate-column
 --     errors surface immediately, which is the desired signal.
 
+PRAGMA defer_foreign_keys = ON;
+
 -- ─── 1. Categories table ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS lab_diagnostic_test_categories (
   id TEXT PRIMARY KEY,
@@ -49,77 +51,13 @@ CREATE TABLE IF NOT EXISTS lab_diagnostic_test_categories (
 CREATE INDEX IF NOT EXISTS idx_lab_diag_cat_active
   ON lab_diagnostic_test_categories(is_active, display_order);
 
--- ─── 2. Rebuild diagnostic_test_catalog ────────────────────────────
--- D1/SQLite lacks ALTER COLUMN DROP NOT NULL. Rebuild the table with
--- the new column list (lab_partner_id now nullable + all new fields).
--- Old data is preserved 1:1; new columns default to sensible values.
-BEGIN;
-
-CREATE TABLE IF NOT EXISTS diagnostic_test_catalog_new (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  category TEXT CHECK(category IN (
-    'blood','urine','stool','saliva','swab','cardiac','diabetes',
-    'thyroid','liver','kidney','lipid','vitamin','hormone',
-    'cancer_marker','infection','allergy','genetic','imaging','other'
-  )),
-  description TEXT,
-  sample_type TEXT NOT NULL CHECK(sample_type IN (
-    'blood','urine','stool','saliva','swab','other'
-  )),
-  fasting_required INTEGER NOT NULL DEFAULT 0,
-  fasting_hours INTEGER NOT NULL DEFAULT 0,
-  home_collection_available INTEGER NOT NULL DEFAULT 1,
-  price REAL NOT NULL,
-  discount_price REAL,
-  -- Now nullable: catalog becomes a global template; per-lab config
-  -- lives in lab_diagnostic_tests (per-lab availability join).
-  lab_partner_id TEXT REFERENCES users(id),
-  turnaround_hours INTEGER NOT NULL DEFAULT 24,
-  instructions TEXT,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  -- New v2 columns
-  short_name TEXT,
-  code TEXT,
-  category_id TEXT REFERENCES lab_diagnostic_test_categories(id) ON DELETE SET NULL,
-  result_interpretation TEXT,
-  reference_info TEXT,
-  currency TEXT NOT NULL DEFAULT 'LKR',
-  visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public','internal')),
-  is_bookable INTEGER NOT NULL DEFAULT 1 CHECK (is_bookable IN (0,1)),
-  is_doctor_orderable INTEGER NOT NULL DEFAULT 1 CHECK (is_doctor_orderable IN (0,1)),
-  lab_collection_available INTEGER NOT NULL DEFAULT 1 CHECK (lab_collection_available IN (0,1)),
-  synonyms TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0
-);
-
-INSERT INTO diagnostic_test_catalog_new (
-  id, name, slug, category, description, sample_type,
-  fasting_required, fasting_hours, home_collection_available,
-  price, discount_price, lab_partner_id, turnaround_hours,
-  instructions, is_active, created_at, updated_at
-)
-SELECT
-  id, name, slug, category, description, sample_type,
-  fasting_required, fasting_hours, home_collection_available,
-  price, discount_price, lab_partner_id, turnaround_hours,
-  instructions, is_active, created_at, updated_at
-FROM diagnostic_test_catalog;
-
-DROP TABLE diagnostic_test_catalog;
-ALTER TABLE diagnostic_test_catalog_new RENAME TO diagnostic_test_catalog;
-
+-- ─── 2. diagnostic_test_catalog indexes ────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_diagnostic_test_catalog_category
   ON diagnostic_test_catalog(category, is_active);
 CREATE INDEX IF NOT EXISTS idx_diagnostic_test_catalog_lab_partner
   ON diagnostic_test_catalog(lab_partner_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_diag_test_catalog_category_id
   ON diagnostic_test_catalog(category_id);
-
-COMMIT;
 
 -- ─── 3. Per-laboratory availability join ───────────────────────────
 CREATE TABLE IF NOT EXISTS lab_diagnostic_tests (
@@ -143,28 +81,9 @@ CREATE INDEX IF NOT EXISTS idx_lab_diag_tests_test
 CREATE INDEX IF NOT EXISTS idx_lab_diag_tests_lab
   ON lab_diagnostic_tests(lab_partner_id, is_active);
 
--- ─── 4. Enrich test_packages ───────────────────────────────────────
-ALTER TABLE test_packages ADD COLUMN category_id TEXT REFERENCES lab_diagnostic_test_categories(id) ON DELETE SET NULL;
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN preparation TEXT;
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN fasting_required INTEGER NOT NULL DEFAULT 0 CHECK (fasting_required IN (0,1));
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN sample_type TEXT;
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN image_url TEXT;
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN popular INTEGER NOT NULL DEFAULT 0 CHECK (popular IN (0,1));
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN featured INTEGER NOT NULL DEFAULT 0 CHECK (featured IN (0,1));
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0;
---> statement-breakpoint
-ALTER TABLE test_packages ADD COLUMN discount_percent REAL;
---> statement-breakpoint
+-- ─── 4. test_packages indexes ───────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_test_packages_featured
   ON test_packages(featured, is_active);
---> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_test_packages_category
   ON test_packages(category_id);
 
@@ -180,7 +99,6 @@ CREATE INDEX IF NOT EXISTS idx_pkg_img
   ON test_package_images(package_id, display_order);
 
 -- ─── 6. Backfill (idempotent) ──────────────────────────────────────
-BEGIN;
 
 -- 6a. Seed known categories. Slug = lower(category), name = title-case
 --     human label. The 0062 CHECK constraint defines the canonical
@@ -265,6 +183,8 @@ SELECT
   diagnostic_test_catalog.turnaround_hours,
   diagnostic_test_catalog.is_active
 FROM diagnostic_test_catalog
-WHERE diagnostic_test_catalog.lab_partner_id IS NOT NULL;
+WHERE diagnostic_test_catalog.lab_partner_id IS NOT NULL
+  AND diagnostic_test_catalog.lab_partner_id IN (SELECT id FROM users);
 
-COMMIT;
+PRAGMA defer_foreign_keys = OFF;
+

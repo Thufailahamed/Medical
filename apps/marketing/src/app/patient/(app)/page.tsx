@@ -29,14 +29,14 @@ export default function DashboardPage() {
 
       <VitalsTrend />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-7"><RecentRecords /></div>
-        <div className="lg:col-span-5"><NotificationsPreview /></div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 items-stretch">
+        <div className="lg:col-span-7 flex"><RecentRecords className="w-full" /></div>
+        <div className="lg:col-span-5 flex"><NotificationsPreview className="w-full" /></div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-5"><InsuranceCoverage /></div>
-        <div className="lg:col-span-7"><CareAssistant /></div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 items-stretch">
+        <div className="lg:col-span-5 flex"><InsuranceCoverage className="w-full" /></div>
+        <div className="lg:col-span-7 flex"><CareAssistant className="w-full" /></div>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useLabAuthStore } from "../stores/auth";
+import { useLabAuthStore, getLabSessionUser } from "../stores/auth";
 import { loginHref } from "@/portal/lib/login";
 
 const NAV_ITEMS = [
@@ -21,12 +21,13 @@ export default function PortalLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, clearAuth } = useLabAuthStore();
+  const displayUser = user ?? getLabSessionUser();
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.push(loginHref({ port: "facility" }));
+      router.push(loginHref({ port: "facility", next: pathname || "/lab-portal/dashboard" }));
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, pathname]);
 
   if (!isAuthenticated()) return null;
 
@@ -41,7 +42,7 @@ export default function PortalLayout({
             </div>
             <div>
               <h2 className="font-bold text-gray-900">Lab Portal</h2>
-              <p className="text-xs text-gray-500 truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500 truncate">{displayUser?.name}</p>
             </div>
           </div>
         </div>

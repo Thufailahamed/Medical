@@ -30,8 +30,12 @@ import {
 import {
   useTestBookingDetail,
   useCancelTestBooking,
+  useRescheduleTestBooking,
+  useTestTimeSlots,
   type TestBooking,
 } from "@/hooks/useApi";
+import { api } from "@/lib/api";
+import { runPayHereCheckout } from "@/lib/payhere";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -90,6 +94,12 @@ export default function TestBookingDetailScreen() {
 
   const { data, isLoading, error } = useTestBookingDetail(id);
   const cancelBooking = useCancelTestBooking();
+  const rescheduleBooking = useRescheduleTestBooking();
+  const { data: timeSlotsData } = useTestTimeSlots();
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [newDate, setNewDate] = useState("");
+  const [newSlot, setNewSlot] = useState("");
+  const [paying, setPaying] = useState(false);
 
   const handleCancel = useCallback(() => {
     Alert.alert(
@@ -151,10 +161,61 @@ export default function TestBookingDetailScreen() {
   const isCancelled = booking.status === "cancelled";
   const isRescheduled = booking.status === "rescheduled";
   const isCompleted = booking.status === "completed";
-  const canCancel = ["pending", "confirmed", "phlebotomist_assigned"].includes(
+  const canCancel = ["pending", "confirmed", "phlebotomist_assigned", "sample_collection_en_route"].includes(
     booking.status
   );
-  const canReschedule = canCancel;
+  const canReschedule = ["pending", "confirmed", "phlebotomist_assigned"].includes(
+    booking.status
+  );
+  const canPayRetry =
+    (booking.paymentStatus === "pending" || (booking as any).paymentStatus === "failed") &&
+    booking.paymentMethod !== "cash" &&
+    !["cancelled", "completed", "rescheduled"].includes(booking.status);
+
+  const handlePayRetry = useCallback(async () => {
+    setPaying(true);
+    try {
+      const init: any = await api("/payments/initiate", {
+        method: "POST",
+        body: { testBookingId: id },
+      });
+      const result = await runPayHereCheckout({
+        appointmentId: id!,
+        fields: init.fields,
+        checkoutUrl: init.checkoutUrl,
+        pollStatus: async () => {
+          const s: any = await api(`/payments/${id}`);
+          return { status: s.status };
+        },
+      });
+      toast.show(
+        result.status === "paid" ? "Payment confirmed!" : "Payment pending.",
+        result.status === "paid" ? "success" : "info"
+      );
+    } catch (err: any) {
+      toast.show(err?.message || "Could not start payment.", "error");
+    } finally {
+      setPaying(false);
+    }
+  }, [id, toast]);
+
+  const handleRescheduleConfirm = useCallback(async () => {
+    if (!newDate || !newSlot) {
+      toast.show("Pick a date and time slot", "error");
+      return;
+    }
+    try {
+      await rescheduleBooking.mutateAsync({
+        id: id!,
+        scheduledDate: newDate,
+        scheduledTimeSlot: newSlot,
+      });
+      toast.show("Rescheduled — the lab will re-confirm.", "success");
+      setShowReschedule(false);
+    } catch (err: any) {
+      toast.show(err?.message || "Failed to reschedule", "error");
+    }
+  }, [id, newDate, newSlot, rescheduleBooking, toast]);
 
   return (
     <Screen padded={false} bottomInset={false}>
@@ -796,7 +857,7 @@ export default function TestBookingDetailScreen() {
       </ScrollView>
 
       {/* Bottom Actions */}
-      {(canCancel || canReschedule || isCompleted) && (
+      {(canCancel || canReschedule || canPayRetry || isCompleted) && (
         <View
           style={{
             position: "absolute",
@@ -814,6 +875,16 @@ export default function TestBookingDetailScreen() {
             gap: 12,
           }}
         >
+          {canPayRetry && (
+            <View style={{ flex: 1 }}>
+              <Button
+                title={paying ? "Starting…" : "Pay now"}
+                icon={CheckCircle2}
+                onPress={handlePayRetry}
+                style={{ width: "100%" }}
+              />
+            </View>
+          )}
           {canCancel && (
             <View style={{ flex: 1 }}>
               <Button
@@ -832,18 +903,13 @@ export default function TestBookingDetailScreen() {
                 variant="outline"
                 title="Reschedule"
                 icon={RefreshCw}
-                onPress={() =>
-                  router.push({
-                    pathname: "/book-test",
-                    params: {
-                      bookingType: booking.bookingType,
-                      testId: booking.testId || undefined,
-                      testName: booking.itemName,
-                      packageId: booking.packageId || undefined,
-                      testPrice: String(booking.totalPrice),
-                    },
-                  })
-                }
+                onPress={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 1);
+                  setNewDate(d.toISOString().slice(0, 10));
+                  setNewSlot((timeSlotsData?.slots?.[0] as any)?.id ?? booking.scheduledTimeSlot);
+                  setShowReschedule(true);
+                }}
                 style={{ width: "100%" }}
               />
             </View>
@@ -859,6 +925,117 @@ export default function TestBookingDetailScreen() {
               />
             </View>
           )}
+        </View>
+      )}
+
+      {showReschedule && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <View
+            style={{
+              width: "100%",
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              padding: 20,
+              gap: 12,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>
+              Reschedule visit
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+              Pick a new date and slot. The booking returns to pending for the lab to re-confirm.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {Array.from({ length: 14 }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() + i + 1);
+                const v = d.toISOString().slice(0, 10);
+                const active = newDate === v;
+                return (
+                  <Pressable
+                    key={v}
+                    onPress={() => setNewDate(v)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 8,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: active ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: active ? "#fff" : colors.text,
+                      }}
+                    >
+                      {d.toLocaleDateString("en-LK", { day: "numeric", month: "short" })}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {(timeSlotsData?.slots ?? []).map((s: any) => {
+                const active = newSlot === s.id;
+                return (
+                  <Pressable
+                    key={s.id}
+                    onPress={() => setNewSlot(s.id)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: active ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "600",
+                        color: active ? "#fff" : colors.text,
+                      }}
+                    >
+                      {s.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  variant="outline"
+                  title="Close"
+                  onPress={() => setShowReschedule(false)}
+                  style={{ width: "100%" }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Confirm"
+                  onPress={handleRescheduleConfirm}
+                  style={{ width: "100%" }}
+                />
+              </View>
+            </View>
+          </View>
         </View>
       )}
     </Screen>

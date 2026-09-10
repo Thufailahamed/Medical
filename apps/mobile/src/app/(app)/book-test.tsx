@@ -109,6 +109,8 @@ export default function BookTestScreen() {
     packageId?: string;
     packageName?: string;
     testPrice?: string;
+    labPartnerId?: string;
+    labName?: string;
     fastingRequired?: string;
     fastingHours?: string;
   }>();
@@ -225,6 +227,7 @@ export default function BookTestScreen() {
           bookingType,
           testId: params.testId,
           packageId: params.packageId,
+          ...(params.labPartnerId ? { labPartnerId: params.labPartnerId } : {}),
           scheduledDate: data.scheduledDate,
           scheduledTimeSlot: data.scheduledTimeSlot,
           collectionAddress: {

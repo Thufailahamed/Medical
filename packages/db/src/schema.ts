@@ -4896,3 +4896,30 @@ export type LabDiagnosticTest = InferSelectModel<typeof labDiagnosticTests>;
 export type NewLabDiagnosticTest = InferInsertModel<typeof labDiagnosticTests>;
 export type TestPackageImage = InferSelectModel<typeof testPackageImages>;
 export type NewTestPackageImage = InferInsertModel<typeof testPackageImages>;
+
+// ─── Lab Profiles (provider onboarding) ────────────────────
+//
+// One row per `laboratory` user. Created at POST /auth/register when
+// role == laboratory. Holds the verification fields the web
+// lab-portal/register page collects (license, accreditation, address,
+// hours, bank) so admins can review and patients can see lab details.
+// Additive (migration 0080), no drops.
+export const labProfiles = sqliteTable("lab_profiles", {
+  userId: text("user_id")
+    .primaryKey()
+    .references((): any => users.id, { onDelete: "cascade" }),
+  labName: text("lab_name").notNull(),
+  licenseNumber: text("license_number").notNull().unique(),
+  accreditation: text("accreditation"),
+  address: text("address").notNull(),
+  city: text("city"),
+  operatingHours: text("operating_hours"),
+  bankName: text("bank_name"),
+  bankAccount: text("bank_account"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});

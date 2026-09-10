@@ -459,20 +459,37 @@ export interface TestPackage {
   reportTimeHours: number | null;
 }
 
-/** Diagnostic test booking */
+/** Diagnostic test booking (GET /diagnostic-tests/bookings).
+ * Mirrors the enriched test_bookings row: 9-state status, LKR pricing,
+ * PayHere payment state, result fields, and hydrated display names.
+ * Legacy aliases (packageName/scheduledAt/totalAmount/resultUrl) are
+ * kept optional for older callers. */
 export interface TestBooking {
   id: string;
-  packageId: string;
-  packageName: string;
   patientId: string;
+  labPartnerId: string;
+  bookingType: "single_test" | "package";
+  testId: string | null;
+  packageId: string | null;
+  packageName: string;
   scheduledAt: string;
-  status: "scheduled" | "sample_collected" | "processing" | "completed" | "cancelled";
+  scheduledDate: string;
+  scheduledTimeSlot: string;
+  status: "pending" | "confirmed" | "phlebotomist_assigned" | "sample_collection_en_route" | "sample_collected" | "in_progress" | "completed" | "cancelled" | "rescheduled" | "scheduled" | "processing";
   labName: string | null;
   totalAmount: number;
-  paymentStatus: "pending" | "paid" | "refunded";
+  totalPrice: number;
+  paymentStatus: "pending" | "paid" | "refunded" | "cash_on_collection";
+  paymentMethod: "cash" | "card" | "online";
+  paymentRef: string | null;
   notes: string | null;
   resultUrl: string | null;
+  resultPdfUrl: string | null;
   resultSummary: string | null;
+  resultReadyAt: string | null;
+  cancellationReason: string | null;
+  itemName?: string;
+  itemSlug?: string;
   createdAt: string;
 }
 

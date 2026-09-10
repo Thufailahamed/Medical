@@ -18,6 +18,9 @@ type Row = {
   phone: string | null;
   status: string;
   createdAt: string;
+  licenseNumber?: string | null;
+  city?: string | null;
+  address?: string | null;
 };
 
 export default function AdminLabsPage() {
@@ -67,6 +70,7 @@ export default function AdminLabsPage() {
           <THead>
             <TR>
               <TH>Name</TH>
+              <TH>License</TH>
               <TH>Email</TH>
               <TH>Phone</TH>
               <TH>Status</TH>
@@ -77,7 +81,8 @@ export default function AdminLabsPage() {
           <TBody>
             {data.items.map((l) => (
               <TR key={l.id}>
-                <TD className="font-semibold">{l.name}</TD>
+                <TD className="font-semibold">{l.name}<span className="block text-xs font-normal text-text-muted">{l.city || l.address || ""}</span></TD>
+                <TD className="text-xs">{l.licenseNumber || "—"}</TD>
                 <TD className="text-xs">{l.email || "—"}</TD>
                 <TD className="text-xs">{l.phone || "—"}</TD>
                 <TD><Pill tone={l.status === "active" ? "success" : "warn"}>{l.status}</Pill></TD>

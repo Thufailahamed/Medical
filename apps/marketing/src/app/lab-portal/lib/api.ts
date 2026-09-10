@@ -2,16 +2,32 @@ import { loginHref } from "@/portal/lib/login";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.healthhub.app";
 
+function readStoreToken(key: string): string | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw)?.state?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Unified login persists in the main portal store; the legacy
+// lab store is only a fallback. Prefer main so labs authenticated
+// via /login (port=facility) can reach the portal APIs.
+export function getLabToken(): string | null {
+  return (
+    readStoreToken("healthcare-portal-auth") ??
+    readStoreToken("healthcare-lab-auth")
+  );
+}
+
 export async function api<T>(
   path: string,
   init?: RequestInit & { body?: any }
 ): Promise<T> {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("healthcare-lab-auth")
-        ? JSON.parse(localStorage.getItem("healthcare-lab-auth")!).state?.token
-        : null
-      : null;
+  const token = getLabToken();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -44,12 +60,7 @@ export async function api<T>(
 // Lab Task 3: R2 upload via POST /files/upload (multipart, no JSON Content-Type).
 // Returns the canonical `/files/download/<key>` URL for `complete { resultPdfUrl }`.
 export async function uploadFile(file: File): Promise<{ r2Key: string; url: string }> {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("healthcare-lab-auth")
-        ? JSON.parse(localStorage.getItem("healthcare-lab-auth")!).state?.token
-        : null
-      : null;
+  const token = getLabToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${API_BASE}/files/upload`, {

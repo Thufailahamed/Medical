@@ -12,6 +12,7 @@ const STATUS_TABS = [
   { key: "sample_collected", label: "Collected" },
   { key: "in_progress", label: "In Progress" },
   { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {

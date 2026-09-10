@@ -31,6 +31,7 @@ export type LabBooking = {
   resultPdfUrl: string | null;
   resultSummary: string | null;
   resultReadyAt: string | null;
+  cancellationReason?: string | null;
   createdAt: string;
 };
 

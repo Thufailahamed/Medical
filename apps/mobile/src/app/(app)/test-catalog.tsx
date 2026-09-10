@@ -99,22 +99,28 @@ export default function TestCatalogScreen() {
 
   const categoryChips = useMemo(() => {
     if (!categoriesData?.categories) return [];
-    return categoriesData.categories
-      .filter((c) => c.count > 0)
-      .sort((a, b) => b.count - a.count)
-      .map((c) => ({
-        value: c.category,
-        label: CATEGORY_CONFIG[c.category]?.label || c.category,
-        count: c.count,
-        color: CATEGORY_CONFIG[c.category]?.color || colors.primary,
-      }));
-  }, [categoriesData, colors.primary]);
+    const counts = new Map<string, number>();
+    for (const t of (testsData?.items as any[]) || []) {
+      const key = (t.categorySlug ?? (t as any).category ?? "") as string;
+      if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return (categoriesData.categories as any[])
+      .map((c: any) => ({
+        value: c.slug ?? c.category,
+        label: CATEGORY_CONFIG[c.slug ?? c.category]?.label || c.name || c.slug,
+        count: typeof c.count === "number" ? c.count : (counts.get(c.slug) ?? 0),
+        color: CATEGORY_CONFIG[c.slug ?? c.category]?.color || colors.primary,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [categoriesData, testsData, colors.primary]);
 
   const renderTestCard = useCallback(
     ({ item }: { item: DiagnosticTest }) => {
-      const cat = getCategoryIcon(item.category);
+      const slug = (item as any).categorySlug ?? (item as any).category ?? "other";
+      const cat = getCategoryIcon(slug);
       const CatIcon = cat.icon;
-      const price = item.discountPrice ?? item.price;
+      const price = (item as any).minPrice ?? item.discountPrice ?? item.price;
+      const labCount = (item as any).laboratoryCount ?? (item as any).availableAt?.length ?? 0;
 
       return (
         <Pressable
@@ -205,7 +211,7 @@ export default function TestCatalogScreen() {
                   fontWeight: "600",
                 }}
               >
-                Results in {item.turnaroundHours}h
+                Results in {item.turnaroundHours}h{labCount > 0 ? ` · ${labCount} lab${labCount === 1 ? "" : "s"}` : ""}
               </Text>
             </View>
 

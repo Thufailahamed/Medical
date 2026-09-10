@@ -34,6 +34,8 @@ export function useBookTestPackage() {
   return useMutation({
     mutationFn: ({
       slug,
+      labId,
+      labPartnerId,
       ...input
     }: {
       slug?: string;
@@ -46,11 +48,13 @@ export function useBookTestPackage() {
       collectionAddress?: Record<string, unknown>;
       paymentMethod?: string;
       labId?: string;
+      labPartnerId?: string;
       notes?: string;
     }) =>
       api<{ booking: TestBooking }>(patientPaths.diagnostic.book(), {
         method: "POST",
-        json: input,
+        // Backend expects labPartnerId; accept legacy labId alias.
+        json: { ...input, ...(labPartnerId ?? labId ? { labPartnerId: labPartnerId ?? labId } : {}) },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: patientKeys.diagnosticBookings() });
@@ -113,5 +117,45 @@ export function useTestBookingRating(id: string) {
       ),
     enabled: Boolean(id),
     ...PATIENT_QUERY_DEFAULTS,
+  });
+}
+
+export function useCancelTestBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api<{ booking: TestBooking }>(`/diagnostic-tests/bookings/${id}/cancel`, {
+        method: "PATCH",
+        json: { cancellationReason: reason },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.diagnosticBookings() });
+      qc.invalidateQueries({ queryKey: patientKeys.all });
+    },
+  });
+}
+
+export function useRescheduleTestBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, date, slot }: { id: string; date: string; slot: string }) =>
+      api<{ booking: TestBooking }>(`/diagnostic-tests/bookings/${id}/reschedule`, {
+        method: "PATCH",
+        json: { scheduledDate: date, scheduledTimeSlot: slot },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.diagnosticBookings() });
+      qc.invalidateQueries({ queryKey: patientKeys.all });
+    },
+  });
+}
+
+export function useInitiateTestPayment() {
+  return useMutation({
+    mutationFn: ({ bookingId }: { bookingId: string }) =>
+      api<{ orderId: string; checkoutUrl: string; fields: Record<string, string>; amount: number }>(
+        "/payments/initiate",
+        { method: "POST", json: { testBookingId: bookingId } },
+      ),
   });
 }

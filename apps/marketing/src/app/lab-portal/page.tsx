@@ -13,7 +13,7 @@ export default function LabPortalRoot() {
     router.replace(
       isAuthenticated
         ? "/lab-portal/dashboard"
-        : loginHref({ port: "facility" }),
+        : loginHref({ port: "facility", next: "/lab-portal/dashboard" }),
     );
   }, [isAuthenticated, router]);
 

@@ -113,10 +113,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <Button
                   onClick={() => payOnline.mutate()}
                   disabled={balance <= 0 || payOnline.isPending}
-                  variant="outline"
+                  variant="secondary"
                 >
                   <CreditCard size={14} className="mr-1.5" />
-                  {payOnline.isPending ? "..." : t("billing.payOnline", "Pay online")}
+                  {payOnline.isPending ? "..." : t("billing.payOnline")}
                 </Button>
                 <Button onClick={() => setPayOpen(true)} disabled={balance <= 0}>
                   <CircleDollarSign size={14} className="mr-1.5" />

@@ -7,5 +7,7 @@
 -- re-running surfaces duplicate-column errors, which is the desired signal.
 -- Does not alter any other tables.
 
-ALTER TABLE operator_orgs ADD COLUMN license_doc_key TEXT;
-ALTER TABLE operator_orgs ADD COLUMN verified_at TEXT;
+-- Columns already applied to operator_orgs:
+-- ALTER TABLE operator_orgs ADD COLUMN license_doc_key TEXT;
+-- ALTER TABLE operator_orgs ADD COLUMN verified_at TEXT;
+SELECT 1;

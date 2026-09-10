@@ -92,6 +92,16 @@ export const doctorProfileSchema = z.object({
   hospitalId: z.string().uuid().optional(),
 });
 
+export const labProfileSchema = z.object({
+  licenseNumber: z.string().min(2).max(64).optional(),
+  accreditation: z.string().max(200).optional(),
+  address: z.string().max(500).optional(),
+  city: z.string().max(120).optional(),
+  operatingHours: z.string().max(200).optional(),
+  bankName: z.string().max(120).optional(),
+  bankAccount: z.string().max(64).optional(),
+});
+
 export const registerSchema = z
   .object({
     email: z.string().email().optional(),
@@ -113,6 +123,16 @@ export const registerSchema = z
     nic: nicField.optional(),
     dob: dobField.optional(),
     doctorProfile: doctorProfileSchema.optional(),
+    // Lab provider onboarding: web lab-portal/register sends these flat;
+    // nested labProfile also accepted. Persisted to lab_profiles.
+    labProfile: labProfileSchema.optional(),
+    licenseNumber: z.string().min(2).max(64).optional(),
+    accreditation: z.string().max(200).optional(),
+    address: z.string().max(500).optional(),
+    city: z.string().max(120).optional(),
+    operatingHours: z.string().max(200).optional(),
+    bankName: z.string().max(120).optional(),
+    bankAccount: z.string().max(64).optional(),
   })
   .refine(
     (d) => d.role !== "doctor" || !!d.doctorProfile?.specialization?.trim(),
@@ -153,6 +173,18 @@ export const registerSchema = z
     {
       message: "Date of birth doesn't match the NIC. Please re-check both.",
       path: ["dob"],
+    }
+  )
+  .refine(
+    (d) => {
+      if (d.role !== "laboratory") return true;
+      const lic = d.labProfile?.licenseNumber ?? d.licenseNumber;
+      const addr = d.labProfile?.address ?? d.address;
+      return !!lic?.trim() && !!addr?.trim();
+    },
+    {
+      message: "License number and address are required for laboratory accounts",
+      path: ["licenseNumber"],
     }
   );
 
@@ -622,6 +654,7 @@ export const testBookingSchema = z
     bookingType: z.enum(["single_test", "package"]),
     testId: z.string().optional(),
     packageId: z.string().optional(),
+    labPartnerId: z.string().min(1).max(80).optional(),
     scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
     scheduledTimeSlot: z.string().min(1, "Time slot is required"),
     collectionAddress: collectionAddressSchema,

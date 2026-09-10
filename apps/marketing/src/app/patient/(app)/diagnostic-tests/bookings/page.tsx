@@ -1,17 +1,47 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, FlaskConical, MapPin, Calendar } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
-import { useTestBookings } from "@/patient/hooks/diagnostic";
+import { api } from "@/portal/lib/api";
 import { formatDayLabel, humanize } from "@/patient/lib/format";
 
+const TABS = [
+  { key: "", label: "All" },
+  { key: "active", label: "Upcoming" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
+] as const;
+
+type BookingRow = {
+  id: string;
+  status: string;
+  itemName?: string;
+  packageName?: string;
+  scheduledDate?: string;
+  scheduledTimeSlot?: string;
+  scheduledAt?: string;
+  labName?: string | null;
+  totalPrice?: number;
+  totalAmount?: number;
+  paymentStatus?: string;
+};
+
 export default function TestBookingsPage() {
-  const query = useTestBookings();
+  const [tab, setTab] = useState<string>("");
+  const query = useQuery({
+    queryKey: ["patient", "diagnostic", "bookings", tab],
+    queryFn: () =>
+      api<{ bookings: BookingRow[] }>(
+        `/diagnostic-tests/bookings${tab ? `?status=${tab}` : ""}`,
+      ),
+  });
   return (
     <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
       <SectionHeader
@@ -19,6 +49,23 @@ export default function TestBookingsPage() {
         title="My bookings"
         description="Lab tests you've scheduled. Tap a booking to view its status, report, and lab info."
       />
+
+      <div className="flex gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={`rounded-pill px-4 py-1.5 text-xs font-semibold ${
+              tab === t.key
+                ? "bg-brand text-white"
+                : "border border-border text-text-soft"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       <Card>
         <QueryBoundary
@@ -47,17 +94,27 @@ export default function TestBookingsPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-text">
-                          {b.packageName}
+                          {b.itemName || b.packageName || "Test booking"}
                         </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-soft">
                           <span className="inline-flex items-center gap-1">
                             <Calendar size={11} aria-hidden />
-                            {formatDayLabel(b.scheduledAt)}
+                            {b.scheduledDate
+                              ? formatDayLabel(`${b.scheduledDate}T00:00:00`)
+                              : b.scheduledAt
+                                ? formatDayLabel(b.scheduledAt)
+                                : "—"}
                           </span>
                           {b.labName ? (
                             <span className="inline-flex items-center gap-1">
                               <MapPin size={11} aria-hidden />
                               {b.labName}
+                            </span>
+                          ) : null}
+                          {typeof (b.totalPrice ?? b.totalAmount) === "number" ? (
+                            <span>
+                              LKR {(b.totalPrice ?? b.totalAmount ?? 0).toLocaleString()}
+                              {b.paymentStatus ? ` · ${humanize(b.paymentStatus)}` : ""}
                             </span>
                           ) : null}
                         </div>
@@ -86,7 +143,7 @@ function statusTone(
   status: string
 ): "success" | "warn" | "danger" | "neutral" | "info" {
   if (status === "completed") return "success";
-  if (status === "sample_collected" || status === "processing") return "warn";
+  if (status === "sample_collected" || status === "processing" || status === "in_progress") return "warn";
   if (status === "cancelled") return "danger";
   return "info";
 }

@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -49,6 +50,12 @@ export default function TestDetailScreen() {
 
   const test = (data as any)?.test ?? data;
   const packages = (data as any)?.packages ?? [];
+  const offers: Array<{ labId: string; labName: string; price: number; discountPrice: number | null }> =
+    (test as any)?.availableAt ?? [];
+  const cheapest = offers.slice().sort((a, b) => (a.discountPrice ?? a.price) - (b.discountPrice ?? b.price))[0];
+  const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
+  const effectiveLabId = selectedLabId ?? cheapest?.labId ?? null;
+  const effectiveLab = offers.find((o) => o.labId === effectiveLabId) ?? cheapest ?? null;
 
   if (error || !test?.id) {
     return (
@@ -62,7 +69,8 @@ export default function TestDetailScreen() {
       </Screen>
     );
   }
-  const price = test.discountPrice ?? test.price;
+  const price = (test as any).minPrice ?? test.discountPrice ?? test.price;
+  const categoryLabel = ((test as any).categorySlug ?? test.category ?? "").replace(/_/g, " ");
 
   return (
     <Screen padded={false} bottomInset={false} edges={["top"]}>
@@ -124,7 +132,7 @@ export default function TestDetailScreen() {
                   textTransform: "capitalize",
                 }}
               >
-                {test.category.replace(/_/g, " ")} · {test.sampleType} sample
+                {categoryLabel} · {test.sampleType} sample
               </Text>
             </View>
           </View>
@@ -217,6 +225,62 @@ export default function TestDetailScreen() {
           </SectionCard>
         ) : null}
 
+        {offers.length > 0 ? (
+          <SectionCard title={`Available at ${offers.length} lab${offers.length === 1 ? "" : "s"}`} colors={colors} spacing={spacing} fontFamily={fontFamily}>
+            <View style={{ gap: 4 }}>
+              {offers.map((o, idx) => {
+                const active = (effectiveLabId ?? "") === o.labId;
+                return (
+                <Pressable
+                  key={o.labId}
+                  onPress={() => setSelectedLabId(o.labId)}
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    borderTopWidth: idx === 0 ? 0 : 1,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.85 : 1,
+                    gap: 10,
+                  })}
+                >
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      borderWidth: 2,
+                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: active ? colors.primary : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {active ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.onPrimary }} /> : null}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "700",
+                        color: colors.text,
+                        fontFamily: fontFamily.bodyBold,
+                      }}
+                    >
+                      {o.labName || "Laboratory"}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2, fontWeight: "600" }}>
+                      {formatPrice(o.discountPrice ?? o.price)}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+                </Pressable>
+                );
+              })}
+            </View>
+          </SectionCard>
+        ) : null}
+
         {packages && packages.length > 0 ? (
           <SectionCard title="Available in packages" colors={colors} spacing={spacing} fontFamily={fontFamily}>
             <View style={{ gap: 4 }}>
@@ -284,7 +348,7 @@ export default function TestDetailScreen() {
         }}
       >
         <Button
-          title={`Book now — ${formatPrice(price)}`}
+          title={`Book now — ${formatPrice(effectiveLab ? (effectiveLab.discountPrice ?? effectiveLab.price) : price)}`}
           onPress={() =>
             router.push({
               pathname: "/book-test",
@@ -292,7 +356,8 @@ export default function TestDetailScreen() {
                 bookingType: "single_test",
                 testId: test.id,
                 testName: test.name,
-                testPrice: String(price),
+                testPrice: String(effectiveLab ? (effectiveLab.discountPrice ?? effectiveLab.price) : price),
+                ...(effectiveLabId ? { labPartnerId: effectiveLabId, labName: effectiveLab?.labName ?? "" } : {}),
                 fastingRequired: test.fastingRequired ? "1" : "0",
                 fastingHours: String(test.fastingHours),
               },

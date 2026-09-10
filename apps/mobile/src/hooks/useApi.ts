@@ -4186,6 +4186,7 @@ export type DiagnosticTest = {
   name: string;
   slug: string;
   category: string;
+  categorySlug?: string | null;
   description: string | null;
   sampleType: string;
   fastingRequired: boolean;
@@ -4193,14 +4194,14 @@ export type DiagnosticTest = {
   homeCollectionAvailable: boolean;
   price: number;
   discountPrice: number | null;
-  labPartnerId: string | null;
+  minPrice?: number | null;
+  labPartnerId?: string | null;
   turnaroundHours: number;
   instructions: string | null;
-  isActive: boolean;
+  isActive?: boolean;
   // v2 (Task 3 — catalog API rewrite)
   shortName?: string | null;
   code?: string | null;
-  categorySlug?: string | null;
   resultInterpretation?: string | null;
   referenceInfo?: string | null;
   currency?: string;
@@ -4208,7 +4209,6 @@ export type DiagnosticTest = {
   isBookable?: boolean;
   isDoctorOrderable?: boolean;
   synonyms?: string[];
-  minPrice?: number;
   laboratoryCount?: number;
   availableAt?: Array<{
     labId: string;
@@ -4230,6 +4230,9 @@ export type DiagnosticCategory = {
   name_ta?: string | null;
   icon?: string | null;
   displayOrder: number;
+  // Back-compat for legacy callers (test-catalog chips).
+  category?: string;
+  count?: number;
 };
 
 export type TestPackage = {
@@ -4397,6 +4400,7 @@ export function useBookTest() {
       bookingType: "single_test" | "package";
       testId?: string;
       packageId?: string;
+      labPartnerId?: string;
       scheduledDate: string;
       scheduledTimeSlot: string;
       collectionAddress: {

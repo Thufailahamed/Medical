@@ -90,6 +90,13 @@ export default function BookingDetailPage() {
         </span>
       </div>
 
+      {booking.status === "cancelled" ? (
+        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-6 text-sm text-red-700">
+          Cancelled{booking.cancellationReason ? `: ${booking.cancellationReason}` : ""}
+          {booking.paymentStatus === "refunded" ? " · Payment flagged for refund." : ""}
+        </div>
+      ) : null}
+
       {/* Status Timeline */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100 mb-6">
         <h2 className="font-semibold text-gray-900 mb-4">Progress</h2>

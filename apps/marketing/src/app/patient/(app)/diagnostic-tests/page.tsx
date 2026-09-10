@@ -34,11 +34,15 @@ interface DiagnosticTest {
   slug: string;
   name: string;
   category: string | null;
+  categorySlug?: string | null;
   price: number;
   discountPrice: number | null;
+  minPrice?: number | null;
   sampleType: string | null;
   homeCollectionAvailable: boolean;
   fastingRequired?: boolean;
+  laboratoryCount?: number;
+  availableAt?: Array<{ labId: string; labName: string; price: number; discountPrice: number | null }>;
 }
 
 interface Package {
@@ -260,20 +264,26 @@ export default function DiagnosticTestsPage() {
   const [bookingStatus, setBookingStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [bookingMsg, setBookingMsg] = useState("");
 
-  // Queries
+  // Queries — backend returns {items,nextCursor}; tolerate legacy {tests,total}.
   const testsQuery = useQuery({
     queryKey: ["patient", "diagnostic-tests", "catalog", search],
-    queryFn: () =>
-      api<{ tests: DiagnosticTest[]; total: number }>(
+    queryFn: async () => {
+      const raw = await api<{ items?: any[]; tests?: DiagnosticTest[]; total?: number }>(
         `/diagnostic-tests/catalog?limit=50${
-          search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ""
+          search.trim() ? `&q=${encodeURIComponent(search.trim())}` : ""
         }`,
-      ),
+      );
+      const tests = (raw as any).items ?? (raw as any).tests ?? [];
+      return { tests: tests as DiagnosticTest[], total: (raw as any).total ?? tests.length };
+    },
   });
 
   const packagesQuery = useQuery({
     queryKey: ["patient", "diagnostic-tests", "packages"],
-    queryFn: () => api<{ packages: Package[] }>("/diagnostic-tests/packages"),
+    queryFn: async () => {
+      const raw = await api<{ items?: Package[]; packages?: Package[] }>("/diagnostic-tests/packages");
+      return { packages: (raw as any).items ?? (raw as any).packages ?? [] };
+    },
   });
 
   const apiPackages = packagesQuery.data?.packages ?? [];
@@ -345,7 +355,7 @@ export default function DiagnosticTestsPage() {
     if (selectedCategory !== "all") {
       list = list.filter(
         (t) =>
-          (t.category?.toLowerCase() || "").includes(selectedCategory) ||
+          ((t.categorySlug ?? t.category)?.toLowerCase() || "").includes(selectedCategory) ||
           (t.sampleType?.toLowerCase() || "").includes(selectedCategory) ||
           (t.name?.toLowerCase() || "").includes(selectedCategory),
       );
@@ -355,19 +365,20 @@ export default function DiagnosticTestsPage() {
       list = list.filter(
         (t) =>
           t.name.toLowerCase().includes(q) ||
-          (t.category?.toLowerCase() || "").includes(q),
+          ((t.categorySlug ?? t.category)?.toLowerCase() || "").includes(q),
       );
     }
 
+    const priceOf = (t: DiagnosticTest) => t.minPrice ?? t.discountPrice ?? t.price;
     const sorted = [...list];
     sorted.sort((a, b) => {
-      const pa = effectivePrice(a.price, a.discountPrice);
-      const pb = effectivePrice(b.price, b.discountPrice);
+      const pa = effectivePrice(priceOf(a), null);
+      const pb = effectivePrice(priceOf(b), null);
       if (sort === "price-asc") return pa - pb;
       if (sort === "price-desc") return pb - pa;
       if (sort === "savings") {
-        const sa = a.discountPrice ? a.price - a.discountPrice : 0;
-        const sb = b.discountPrice ? b.price - b.discountPrice : 0;
+        const sa = (a.price ?? priceOf(a)) - priceOf(a);
+        const sb = (b.price ?? priceOf(b)) - priceOf(b);
         return sb - sa;
       }
       return a.name.localeCompare(b.name);
@@ -375,19 +386,22 @@ export default function DiagnosticTestsPage() {
     return sorted;
   }, [rawTests, selectedCategory, search, sort]);
 
+  const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online">("cash");
+
   async function handleConfirmBooking() {
     if (!bookingItem) return;
     setBookingStatus("submitting");
     setBookingMsg("");
 
     try {
-      await api("/diagnostic-tests/book", {
+      const created = await api<{ booking: { id: string } }>("/diagnostic-tests/book", {
         method: "POST",
         json: {
           bookingType: bookingItem.type === "package" ? "package" : "single_test",
           ...(bookingItem.type === "package"
             ? { packageId: bookingItem.id }
-            : { testId: bookingItem.id }),
+            : { testId: bookingItem.id, ...(selectedLabId ? { labPartnerId: selectedLabId } : {}) }),
           scheduledDate,
           scheduledTimeSlot: scheduledSlot,
           collectionAddress: {
@@ -396,9 +410,27 @@ export default function DiagnosticTestsPage() {
             district: "Colombo",
             contactPhone,
           },
-          paymentMethod: "cash",
+          paymentMethod: paymentMethod === "online" ? "online" : "cash",
         },
       });
+
+      if (paymentMethod === "online" && created?.booking?.id) {
+        // PayHere checkout: mint order then open in a new tab; booking
+        // flips pending→paid on notify, patient polls GET /payments/:id.
+        const init = await api<{ checkoutUrl: string; fields: Record<string, string> }>(
+          "/payments/initiate",
+          { method: "POST", json: { testBookingId: created.booking.id } },
+        );
+        if (init?.checkoutUrl) {
+          const url = `${init.checkoutUrl}?${new URLSearchParams(init.fields as Record<string, string>).toString()}`;
+          window.open(url, "_blank", "noopener");
+        }
+        setBookingStatus("success");
+        setBookingMsg(
+          `Booking created for "${bookingItem.name}". Complete payment in the opened tab — status updates automatically once PayHere confirms.`,
+        );
+        return;
+      }
 
       setBookingStatus("success");
       setBookingMsg(
@@ -1096,6 +1128,28 @@ export default function DiagnosticTestsPage() {
                     <span>
                       Our verified phlebotomist will arrive with a sterile sealed kit and temperature-controlled container. Settle via cash or card reader upon collection.
                     </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Payment
+                    </label>
+                    <div className="flex gap-2">
+                      {(["cash", "online"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setPaymentMethod(m)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                            paymentMethod === m
+                              ? "bg-slate-900 text-white border-slate-900"
+                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          {m === "cash" ? "Cash on collection" : "Pay online"}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-2">

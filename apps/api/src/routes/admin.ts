@@ -47,6 +47,7 @@ import {
   systemSettings,
   userAdminNotes,
   doctorVerificationDocs,
+  labProfiles,
 } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
 import { requirePasskeyFresh } from "../middleware/stepup";
@@ -217,10 +218,28 @@ adminRouter.get("/approvals", async (c) => {
 
   const byUser = new Map(doctorProfiles.map((d) => [d.userId, d]));
 
+  // Hydrate lab profiles for laboratory applicants so the queue shows
+  // license + address (best-effort; table ships in migration 0080).
+  const labUserIds = (rows as any[]).filter((u) => u.role === "laboratory").map((u) => u.id);
+  let labByUser = new Map<string, any>();
+  if (labUserIds.length > 0) {
+    try {
+      const labRows = (await db.select().from(labProfiles)) as any[];
+      labByUser = new Map(
+        labRows
+          .filter((p: any) => labUserIds.includes(p.userId ?? p.user_id))
+          .map((p: any) => [p.userId ?? p.user_id, p]),
+      );
+    } catch {
+      labByUser = new Map();
+    }
+  }
+
   return c.json({
     items: rows.map((u) => ({
       user: u,
       doctorProfile: u.role === "doctor" ? byUser.get(u.id) ?? null : null,
+      labProfile: u.role === "laboratory" ? labByUser.get(u.id) ?? null : null,
     })),
     total: rows.length,
   });
@@ -381,7 +400,24 @@ adminRouter.get("/users", async (c) => {
       .where(where),
   ]);
 
-  return c.json({ items: rows, total: totalRow[0]?.count ?? 0, limit, offset });
+  // Hydrate lab profiles for laboratory rows (best-effort).
+  let enriched = rows as any[];
+  try {
+    const labIds = rows.filter((r: any) => r.role === "laboratory").map((r: any) => r.id);
+    if (labIds.length > 0) {
+      const profiles = (await db.select().from(labProfiles)) as any[];
+      const byUser = new Map(profiles.filter((p: any) => labIds.includes(p.userId ?? p.user_id)).map((p: any) => [p.userId ?? p.user_id, p]));
+      enriched = rows.map((r: any) => {
+        const p: any = byUser.get(r.id);
+        if (!p) return r;
+        return { ...r, licenseNumber: p.licenseNumber ?? p.license_number ?? null, address: p.address ?? null, city: p.city ?? null, accreditation: p.accreditation ?? null };
+      });
+    }
+  } catch {
+    // lab_profiles table missing on old DBs — return users as-is.
+  }
+
+  return c.json({ items: enriched, total: totalRow[0]?.count ?? 0, limit, offset });
 });
 
 adminRouter.get("/users/:id", async (c) => {
@@ -400,10 +436,19 @@ adminRouter.get("/users/:id", async (c) => {
   const [clinic] = row.role === "hospital_admin" || row.role === "doctor"
     ? await db.select().from(clinics).where(eq(clinics.userId, id)).limit(1)
     : [null];
+  let lab: any = null;
+  if (row.role === "laboratory") {
+    try {
+      const [lp] = await db.select().from(labProfiles).where(eq(labProfiles.userId, id)).limit(1);
+      lab = lp ?? null;
+    } catch {
+      lab = null;
+    }
+  }
 
   return c.json({
     user: row,
-    profiles: { doctor: doctor ?? null, hospital: hospital ?? null, clinic: clinic ?? null },
+    profiles: { doctor: doctor ?? null, hospital: hospital ?? null, clinic: clinic ?? null, lab: lab ?? null },
   });
 });
 

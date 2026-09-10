@@ -676,14 +676,40 @@ router.patch("/bookings/:id/cancel", async (c) => {
     .where(eq(testBookings.id, id))
     .returning();
 
+  // Paid bookings cancelled by the lab are auto-flagged refunded
+  // (manual disbursement via original rail — no auto-rail in MVP),
+  // mirroring the patient-cancel path in diagnostic-tests.ts.
+  let refunded = false;
+  if (booking.paymentStatus === "paid") {
+    await db
+      .update(testBookings)
+      .set({ paymentStatus: "refunded", updatedAt: new Date().toISOString() })
+      .where(eq(testBookings.id, id));
+    refunded = true;
+    audit(db, labId, {
+      action: "refund",
+      resource: "test_booking",
+      resourceId: id,
+      details: {
+        amount: booking.totalPrice,
+        paymentRef: booking.paymentRef,
+        paymentMethod: booking.paymentMethod,
+        reason: body.reason || "lab_cancel",
+        initiatedBy: "laboratory",
+      },
+    }).catch(() => {});
+  }
+
   notify({
     db,
     env: c.env,
     userId: booking.patientId,
     type: "lab_ready",
     title: "Booking Cancelled",
-    body: "Your test booking has been cancelled by the lab. Please contact support for details.",
-    data: { bookingId: id, kind: "test_booking_cancelled" },
+    body: refunded
+      ? "Your test booking has been cancelled by the lab. Your payment will be refunded to the original method."
+      : "Your test booking has been cancelled by the lab. Please contact support for details.",
+    data: { bookingId: id, kind: "test_booking_cancelled", refunded },
   }).catch(() => {});
 
   audit(db, labId, {
@@ -1268,13 +1294,31 @@ router.get("/stats", async (c) => {
       )
     );
 
+  // Availability-model offers (lab_diagnostic_tests) count too —
+  // labs on the canonical flow would otherwise always see 0.
+  let availabilityCount = 0;
+  try {
+    const [avail] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(labDiagnosticTests)
+      .where(
+        and(
+          eq(labDiagnosticTests.labPartnerId, labId),
+          eq(labDiagnosticTests.isActive, true)
+        )
+      );
+    availabilityCount = avail?.count ?? 0;
+  } catch {
+    availabilityCount = 0;
+  }
+
   return c.json({
     stats: {
       totalBookings: totalBookings.count,
       todayBookings: todayBookings.count,
       pendingBookings: pendingBookings.count,
       completedBookings: completedBookings.count,
-      activeTests: activeTests.count,
+      activeTests: activeTests.count + availabilityCount,
     },
   });
 });

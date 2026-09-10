@@ -86,7 +86,7 @@ const PORTS: PortSpec[] = [
       hospital_admin: "/hospital/dashboard",
       hospital_staff: "/hospital/dashboard",
       pharmacy: "/hospital/dashboard",
-      laboratory: "/hospital/dashboard",
+      laboratory: "/lab-portal/dashboard",
       super_admin: "/admin/dashboard",
     },
     description: "Operations hub for hospital wards, labs, and licensed pharmacies.",
