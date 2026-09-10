@@ -21,4 +21,9 @@ describe("HealthSummaryStrip", () => {
     expect(screen.getByText("Next visit")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Wellness/i })).toHaveProperty("href");
   });
+
+  it("renders at least 4 sparkline polylines", () => {
+    const { container } = render(<HealthSummaryStrip />);
+    expect(container.querySelectorAll("polyline").length).toBeGreaterThanOrEqual(4);
+  });
 });
