@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Activity, Clock, Plus } from "lucide-react";
+import { Activity, Clock, HeartPulse, Droplets, Wind, Scale, Plus } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { TrendArea } from "@/patient/components/charts/TrendArea";
@@ -15,9 +15,18 @@ import {
 } from "@/patient/lib/vitals";
 import { useVitalsSeries } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
+import { MiniSparkline } from "./MiniSparkline";
+
+const OVERVIEW = [
+  { vitalKey: "heart_rate" as const, label: "Heart rate", unit: "bpm", icon: HeartPulse, href: "/patient/vitals?type=heart_rate" },
+  { vitalKey: "blood_pressure" as const, label: "Blood pressure", unit: "mmHg", icon: Droplets, href: "/patient/vitals?type=blood_pressure" },
+  { vitalKey: "spo2" as const, label: "SpO₂", unit: "%", icon: Wind, href: "/patient/vitals?type=spo2" },
+  { vitalKey: "weight" as const, label: "Weight", unit: "kg", icon: Scale, href: "/patient/vitals?type=weight" },
+];
 
 /**
- * Vitals overview — tab pills, trend chart (or empty CTA), average / max.
+ * Vitals overview — 4-cell sparkline strip for at-a-glance trends + tabbed
+ * detail chart below for deep dives.
  */
 export function VitalsTrend({ className }: { className?: string }) {
   const [type, setType] = useState<(typeof DASHBOARD_VITALS)[number]>(
@@ -41,7 +50,13 @@ export function VitalsTrend({ className }: { className?: string }) {
       className={cn("anim-rise relative overflow-hidden", className)}
       accent="sky"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+        {OVERVIEW.map((cell) => (
+          <OverviewCell key={cell.vitalKey} {...cell} />
+        ))}
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-surface-3 pt-4">
         <div
           className="inline-flex flex-wrap gap-1 rounded-[var(--radius-inner)] bg-surface-2 p-1"
           role="tablist"
@@ -135,5 +150,60 @@ export function VitalsTrend({ className }: { className?: string }) {
         </div>
       </div>
     </Card>
+  );
+}
+
+function OverviewCell({
+  vitalKey,
+  label,
+  unit,
+  icon: Icon,
+  href,
+}: {
+  vitalKey: "heart_rate" | "blood_pressure" | "spo2" | "weight";
+  label: string;
+  unit: string;
+  icon: typeof HeartPulse;
+  href: string;
+}) {
+  const { data } = useVitalsSeries(vitalKey, "week");
+  const series = data ? toSeries(data.points).map((p) => p.value) : [];
+  const last = series.at(-1);
+  const prev = series.at(-2);
+  const delta = last != null && prev != null ? last - prev : 0;
+  const decimals = VITAL_REGISTRY[vitalKey]?.decimals ?? 0;
+  return (
+    <Link
+      href={href}
+      aria-label={`${label} details`}
+      className="group flex flex-col rounded-xl border border-surface-3 bg-white p-3 transition-all hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand"
+    >
+      <div className="flex items-center gap-1.5 text-text-muted">
+        <span className="grid h-6 w-6 place-items-center rounded-md bg-brand-soft text-brand">
+          <Icon size={12} aria-hidden />
+        </span>
+        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="mt-1.5 flex items-baseline gap-1">
+        <span className="text-lg font-extrabold text-text">
+          {last != null ? Number(last).toFixed(decimals) : "—"}
+        </span>
+        <span className="text-[10px] text-text-muted">{unit}</span>
+        {delta !== 0 ? (
+          <span
+            className={cn(
+              "text-[10px] font-bold px-1 py-0.5 rounded",
+              delta > 0 ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50",
+            )}
+          >
+            {delta > 0 ? "+" : ""}
+            {Number(delta).toFixed(decimals)}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-1 text-brand">
+        <MiniSparkline points={series} width={120} height={28} />
+      </div>
+    </Link>
   );
 }
