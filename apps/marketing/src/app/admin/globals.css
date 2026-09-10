@@ -161,6 +161,332 @@
 }
 
 /* ============================================================
+   Button styling scoped to admin & overlays
+   ============================================================ */
+[data-app="admin"] .portal-btn,
+.portal-overlay-root .portal-btn,
+.portal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  font-family: inherit;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+[data-app="admin"] .portal-btn:disabled,
+.portal-overlay-root .portal-btn:disabled,
+.portal-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+[data-app="admin"] .portal-btn-sm,
+.portal-overlay-root .portal-btn-sm,
+.portal-btn-sm {
+  height: 2rem;
+  padding: 0 0.875rem;
+  font-size: 0.75rem;
+}
+[data-app="admin"] .portal-btn-md,
+.portal-overlay-root .portal-btn-md,
+.portal-btn-md {
+  height: 2.25rem;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+}
+[data-app="admin"] .portal-btn-lg,
+.portal-overlay-root .portal-btn-lg,
+.portal-btn-lg {
+  height: 2.75rem;
+  padding: 0 1.5rem;
+  font-size: 0.875rem;
+}
+[data-app="admin"] .portal-btn-icon,
+.portal-overlay-root .portal-btn-icon,
+.portal-btn-icon {
+  height: 2.25rem;
+  width: 2.25rem;
+  padding: 0;
+}
+[data-app="admin"] .portal-btn-block,
+.portal-overlay-root .portal-btn-block,
+.portal-btn-block {
+  width: 100%;
+}
+[data-app="admin"] .portal-btn-primary,
+.portal-overlay-root .portal-btn-primary,
+.portal-btn-primary {
+  color: #ffffff;
+  background: var(--brand);
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.2);
+}
+[data-app="admin"] .portal-btn-primary:hover,
+.portal-overlay-root .portal-btn-primary:hover,
+.portal-btn-primary:hover {
+  background: var(--brand-strong);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+}
+[data-app="admin"] .portal-btn-secondary,
+.portal-overlay-root .portal-btn-secondary,
+.portal-btn-secondary {
+  color: var(--text);
+  background: var(--surface);
+  border-color: rgba(226, 232, 240, 0.9);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+[data-app="admin"] .portal-btn-secondary:hover,
+.portal-overlay-root .portal-btn-secondary:hover,
+.portal-btn-secondary:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+[data-app="admin"] .portal-btn-ghost,
+.portal-overlay-root .portal-btn-ghost,
+.portal-btn-ghost {
+  color: var(--text-soft);
+  background: transparent;
+}
+[data-app="admin"] .portal-btn-ghost:hover,
+.portal-overlay-root .portal-btn-ghost:hover,
+.portal-btn-ghost:hover {
+  background: rgba(241, 245, 249, 0.9);
+  color: var(--text);
+}
+[data-app="admin"] .portal-btn-danger,
+.portal-overlay-root .portal-btn-danger,
+.portal-btn-danger {
+  color: #ffffff;
+  background: var(--danger);
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.2);
+}
+[data-app="admin"] .portal-btn-danger:hover,
+.portal-overlay-root .portal-btn-danger:hover,
+.portal-btn-danger:hover {
+  background: #b91c1c;
+}
+[data-app="admin"] .portal-btn-link,
+.portal-overlay-root .portal-btn-link,
+.portal-btn-link {
+  color: var(--brand);
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+[data-app="admin"] .portal-btn-link:hover,
+.portal-overlay-root .portal-btn-link:hover,
+.portal-btn-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-app="admin"] .portal-btn:active:not(:disabled),
+.portal-overlay-root .portal-btn:active:not(:disabled),
+.portal-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+[data-app="admin"] .portal-btn:focus-visible,
+.portal-overlay-root .portal-btn:focus-visible,
+.portal-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Overlays, Modals, and Drawers
+   ============================================================ */
+.portal-overlay-root {
+  color: var(--text, #0f172a);
+  font-family: var(--font-sans, "Outfit", ui-sans-serif, system-ui, sans-serif);
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --text: #0f172a;
+  --text-soft: #475569;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --brand: #d97706;
+  --brand-strong: #b45309;
+  --brand-soft: #fef3c7;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+}
+
+.portal-overlay-host {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portal-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 201;
+  animation: portalFadeIn 0.15s ease-out;
+}
+
+.portal-modal-panel {
+  position: relative;
+  z-index: 202;
+  width: calc(100% - 2rem);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  animation: portalModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.portal-modal-sm { max-width: 28rem; }
+.portal-modal-md { max-width: 34rem; }
+.portal-modal-lg { max-width: 44rem; }
+.portal-modal-xl { max-width: 56rem; }
+
+.portal-drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 202;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #0f172a;
+  border-left: 1px solid #e2e8f0;
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.15);
+}
+.portal-drawer-sm { max-width: 24rem; }
+.portal-drawer-md { max-width: 32rem; }
+.portal-drawer-lg { max-width: 42rem; }
+.portal-drawer-xl { max-width: 56rem; }
+
+.portal-overlay-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.125rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.portal-overlay-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.portal-overlay-subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.125rem;
+  line-height: 1.4;
+}
+
+.portal-overlay-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.portal-overlay-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.portal-overlay-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  background: #ffffff;
+}
+
+.portal-overlay-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Form Inputs inside Admin & Overlays
+   ============================================================ */
+[data-app="admin"] .portal-input,
+.portal-overlay-root .portal-input,
+.portal-input {
+  display: block;
+  width: 100%;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+[data-app="admin"] .portal-input:focus,
+.portal-overlay-root .portal-input:focus,
+.portal-input:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+@keyframes portalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes portalModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ============================================================
    Cursor override (marketing hides cursor for custom effect)
    ============================================================ */
 [data-app="admin"],

@@ -10,7 +10,8 @@
     "./vitals": "./src/vitals.ts",
     "./records": "./src/records.ts",
     "./extractors": "./src/extractors.ts",
-    "./contracts": "./src/contracts/index.ts"
+    "./contracts": "./src/contracts/index.ts",
+    "./doctor-badge": "./src/doctor-badge.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

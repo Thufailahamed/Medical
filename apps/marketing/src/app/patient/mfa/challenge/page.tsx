@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Shield, KeyRound, Loader2 } from "lucide-react";
@@ -11,6 +11,14 @@ import { patientPaths } from "@healthcare/shared/contracts";
 import { useAuthStore, type AuthUser } from "@/portal/stores/auth";
 
 export default function MfaChallengePage() {
+  return (
+    <Suspense fallback={<main className="flex min-h-[100dvh] items-center justify-center p-6"><Card className="w-full max-w-md h-64 animate-pulse" /></main>}>
+      <MfaChallengeInner />
+    </Suspense>
+  );
+}
+
+function MfaChallengeInner() {
   const router = useRouter();
   const params = useSearchParams();
   const identifier = params.get("identifier") || "";

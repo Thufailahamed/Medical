@@ -9,6 +9,7 @@ import {
   Clock,
   Wallet,
   Check,
+  CheckCircle2,
   X,
   HeartPulse,
   Sparkles,

@@ -139,21 +139,28 @@ app.use("*", logger());
 // marketing site). Add additional origins here as we ship
 // more subdomains (e.g. doctor.healthhub.app).
 app.use("*", cors({
-  origin: [
-    "http://localhost:8081",
-    "https://*.exp.host",
-    "https://healthhub.app",
-    "https://www.healthhub.app",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-  ],
+  origin: (origin) => {
+    if (!origin) return null;
+    if (
+      origin.startsWith("http://localhost:") ||
+      origin.startsWith("http://127.0.0.1:") ||
+      origin.endsWith(".exp.host") ||
+      origin === "https://healthhub.app" ||
+      origin.endsWith(".healthhub.app") ||
+      origin.endsWith(".workers.dev") ||
+      origin.endsWith(".pages.dev")
+    ) {
+      return origin;
+    }
+    return null;
+  },
   allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowHeaders: [
     "Content-Type",
     "Authorization",
     "Accept-Language",
+    "X-Stepup-Token",
+    "x-stepup-token",
     // E-Rx safety override ack (doctor confirmed a blocking warning).
     "X-Confirm-Warning",
     // Family + tenant + caretaker context headers set by the clients.

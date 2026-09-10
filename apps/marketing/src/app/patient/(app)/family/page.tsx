@@ -95,7 +95,7 @@ export default function FamilyPage() {
       list = list.filter(
         (m) =>
           m.name.toLowerCase().includes(q) ||
-          m.relationship.toLowerCase().includes(q) ||
+          (m.relationship || "").toLowerCase().includes(q) ||
           (m.phone || "").toLowerCase().includes(q),
       );
     }

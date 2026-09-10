@@ -49,6 +49,10 @@ function b64url(buf: Buffer | string): string {
 }
 
 function getRpId(c: any): string {
+  const origin = c.req.header("origin") || c.req.header("referer") || "";
+  if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+    return "localhost";
+  }
   return c.env.WEBAUTHN_RP_ID || "localhost";
 }
 
@@ -59,6 +63,22 @@ function getRpName(): string {
 function newChallenge(): string {
   return b64url(randomBytes(32));
 }
+
+// ─── Dev Step-Up (Localhost / Testing) ──────────────────────
+webauthnRouter.post("/dev-stepup", async (c) => {
+  const me = c.get("dbUser");
+  const origin = c.req.header("origin") || c.req.header("referer") || "";
+  const isDev =
+    c.env.DEV_MODE === "true" ||
+    c.env.ALLOW_DEV_SEED === "true" ||
+    origin.includes("localhost") ||
+    origin.includes("127.0.0.1");
+  if (!isDev) {
+    return c.json({ error: "Dev step-up only allowed in development" }, 403);
+  }
+  const stepUp = issueStepUpToken(c, me.id);
+  return c.json({ ok: true, stepUpToken: stepUp });
+});
 
 // ─── Status ─────────────────────────────────────────────────
 webauthnRouter.get("/status", async (c) => {

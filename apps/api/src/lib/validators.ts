@@ -682,15 +682,20 @@ export const diagnosticTestCatalogSchema = z.object({
     "thyroid", "liver", "kidney", "lipid", "vitamin", "hormone",
     "cancer_marker", "infection", "allergy", "genetic", "imaging", "other",
   ]),
-  description: z.string().max(2000).optional(),
+  // Optional + nullable: clients commonly send `null` for empty optional
+  // fields (form `value || null` pattern). Without `.nullable()` Zod
+  // rejects with "Expected string, received null".
+  description: z.string().max(2000).optional().nullable(),
   sampleType: z.enum(["blood", "urine", "stool", "saliva", "swab", "other"]),
   fastingRequired: z.boolean().default(false),
   fastingHours: z.number().int().min(0).max(48).default(0),
   homeCollectionAvailable: z.boolean().default(true),
   price: z.number().positive(),
-  discountPrice: z.number().positive().optional(),
+  discountPrice: z.number().positive().optional().nullable(),
   turnaroundHours: z.number().int().min(1).max(720).default(24),
-  instructions: z.string().max(2000).optional(),
+  instructions: z.string().max(2000).optional().nullable(),
+  // Lab Task: image upload. Optional R2 key produced by POST /files/upload.
+  imageR2Key: z.string().min(1).max(500).optional().nullable(),
 });
 
 export const testPackageSchema = z.object({

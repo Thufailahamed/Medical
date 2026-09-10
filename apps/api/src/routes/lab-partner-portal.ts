@@ -769,6 +769,7 @@ router.post("/catalog", async (c) => {
       labPartnerId: labId,
       turnaroundHours: data.turnaroundHours,
       instructions: data.instructions || null,
+      imageR2Key: data.imageR2Key ?? null,
     })
     .returning();
 

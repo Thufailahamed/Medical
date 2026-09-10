@@ -54,8 +54,12 @@ function OverlayPortal({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
+  const currentApp =
+    (typeof document !== "undefined" &&
+      document.querySelector("[data-app]")?.getAttribute("data-app")) ||
+    "portal";
   return createPortal(
-    <div data-app="portal" className="portal-overlay-root">
+    <div data-app={currentApp} className="portal-overlay-root">
       {children}
     </div>,
     document.body

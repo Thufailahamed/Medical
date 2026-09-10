@@ -27,8 +27,18 @@ function bufToB64url(buf: ArrayBuffer): string {
  * server's `/register/verify` endpoint expects.
  */
 export async function createPasskey(options: any, deviceName: string) {
+  const isLocal =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname.endsWith(".localhost"));
+
   const publicKey = {
     ...options,
+    rp: {
+      ...options.rp,
+      id: isLocal ? "localhost" : (options.rp?.id || window.location.hostname),
+    },
     challenge: b64urlToBuf(options.challenge),
     user: {
       ...options.user,
@@ -58,8 +68,15 @@ export async function createPasskey(options: any, deviceName: string) {
  * server's `/auth/verify` endpoint expects.
  */
 export async function getPasskey(options: any) {
+  const isLocal =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname.endsWith(".localhost"));
+
   const publicKey = {
     ...options,
+    rpId: isLocal ? "localhost" : (options.rpId || window.location.hostname),
     challenge: b64urlToBuf(options.challenge),
     allowCredentials: (options.allowCredentials ?? []).map((c: any) => ({
       ...c,

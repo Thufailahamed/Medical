@@ -4558,6 +4558,10 @@ export const diagnosticTestCatalog = sqliteTable(
     // JSON array of alternative test names (e.g. ["Complete Blood Count", "CBC"]).
     synonyms: text("synonyms"),
     displayOrder: integer("display_order").default(0).notNull(),
+    // Phase: lab-portal image upload (migration 0081). R2 object key
+    // for an optional per-test image (icon / brand mark / sample photo).
+    // Resolved to a streamable URL via /files/download/<key>?stream=1.
+    imageR2Key: text("image_r2_key"),
   },
   (t) => ({
     categoryIdx: index("idx_diagnostic_test_catalog_category").on(

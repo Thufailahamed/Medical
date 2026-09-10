@@ -1,0 +1,1 @@
+ALTER TABLE `diagnostic_test_catalog` ADD `image_r2_key` text;

@@ -10,11 +10,14 @@ import { cn } from "@/portal/lib/utils";
 import { loginHref } from "@/portal/lib/login";
 
 function resolveLabel(t: (k: string) => string, key: string): string {
-  // `admin.nav.<slug>` keys live under the `admin` namespace. The custom
-  // i18n shim doesn't support `defaultValue`, so we fall back to the
-  // last path segment when the key is missing.
   const direct = t(key);
-  return direct === key ? (key.split(".").pop() ?? key) : direct;
+  if (direct && direct !== key) return direct;
+  const lastPart = key.split(".").pop() ?? key;
+  return lastPart
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[-_]/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase())
+    .trim();
 }
 
 export function AdminSidebar() {

@@ -25,7 +25,7 @@ export function getLabToken(): string | null {
 
 export async function api<T>(
   path: string,
-  init?: RequestInit & { body?: any }
+  init?: Omit<RequestInit, "body"> & { body?: any }
 ): Promise<T> {
   const token = getLabToken();
 
@@ -51,7 +51,18 @@ export async function api<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    // Surface backend `details` (e.g. Zod field errors) so the UI can
+    // tell the user *why* validation failed instead of just the top-
+    // level "Validation failed" string.
+    const detail = err.details
+      ? typeof err.details === "string"
+        ? err.details
+        : JSON.stringify(err.details)
+      : null;
+    const message = detail
+      ? `${err.error || `HTTP ${res.status}`}: ${detail}`
+      : err.error || `HTTP ${res.status}`;
+    throw new Error(message);
   }
 
   return res.json();

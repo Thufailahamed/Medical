@@ -97,10 +97,11 @@ const PORTS: PortSpec[] = [
     label: "Partner",
     badge: "Insurance & EMS",
     icon: Truck,
-    roles: ["insurance", "ambulance"],
+    roles: ["insurance", "ambulance", "super_admin"],
     landingFor: {
       insurance: "/admin/insurance-claims",
       ambulance: "/admin/ambulances",
+      super_admin: "/admin/dashboard",
     },
     description: "Real-time claims adjudication and emergency fleet dispatch.",
     placeholder: "operator@insurance.lk",
@@ -369,6 +370,32 @@ function UnifiedLoginForm() {
           return;
         }
         setError(friendlyError(err2));
+        setSubmitting(false);
+      }
+    }
+  }
+
+  async function devLoginAsAdmin() {
+    setPort("facility");
+    setError(null);
+    setValue("identifier", "admin@healthhub.local");
+    setValue("password", "Admin#12345");
+    setSubmitting(true);
+    try {
+      const user = await login({
+        email: "admin@healthhub.local",
+        password: "Admin#12345",
+      });
+      land(String(user.role));
+    } catch {
+      try {
+        const user = await login({
+          email: "admin@hospital.lk",
+          password: "dev",
+        });
+        land(String(user.role));
+      } catch (err: unknown) {
+        setError(friendlyError(err));
         setSubmitting(false);
       }
     }
@@ -787,6 +814,13 @@ function UnifiedLoginForm() {
                   disabled={submitting}
                 >
                   As Doctor
+                </button>
+                <button
+                  type="button"
+                  onClick={devLoginAsAdmin}
+                  disabled={submitting}
+                >
+                  As Admin
                 </button>
               </div>
             </div>

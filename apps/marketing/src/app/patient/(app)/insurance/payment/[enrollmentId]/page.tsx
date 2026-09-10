@@ -43,7 +43,7 @@ export default function PaymentPage({
     },
   });
 
-  const [payTrigger, setPayTrigger] = usePayTrigger(enrollmentId);
+  const payTrigger = usePayTrigger(enrollmentId);
 
   if (q.isLoading) return <Skeleton className="h-48 w-full" />;
   const e = q.data?.enrollment;

@@ -1,0 +1,21 @@
+# Cloudflare Pages _redirects
+# /portal/me/* -> /patient/* consolidation redirects
+/portal/me/insurance                     /patient/insurance                     301
+/portal/me/insurance/marketplace         /patient/insurance/marketplace         301
+/portal/me/insurance/marketplace/:providerId /patient/insurance/marketplace/:providerId 301
+/portal/me/insurance/plans/:planId       /patient/insurance/plans/:planId       301
+/portal/me/insurance/quote               /patient/insurance/quote               301
+/portal/me/insurance/enroll/:planId      /patient/insurance/enroll/:planId      301
+/portal/me/insurance/payment/:enrollmentId /patient/insurance/payment/:enrollmentId 301
+/portal/me/insurance/policy/:id          /patient/insurance/policy/:id          301
+/portal/me/insurance/ecard/:id           /patient/insurance/ecard/:id           301
+/portal/me/insurance/coverage-check      /patient/insurance/coverage-check      301
+/portal/me/insurance/claims              /patient/insurance/claims              301
+/portal/me/insurance/claims/new          /patient/insurance/claims/new          301
+/portal/me/insurance/claims/:id          /patient/insurance/claims/:id          301
+/portal/me/share                         /patient/share                         301
+/portal/me/audit                         /patient/audit                         301
+/portal/me/imaging                       /patient/imaging                       301
+/portal/me/imaging/:studyUid             /patient/imaging/:studyUid             301
+/portal/me/records                       /patient/records                       301
+/portal/me/notifications                 /patient/notifications                 301

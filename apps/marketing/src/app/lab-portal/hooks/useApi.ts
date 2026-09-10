@@ -40,27 +40,28 @@ export type LabTest = {
   name: string;
   slug: string;
   category: string;
-  description: string | null;
+  description?: string | null;
   sampleType: string;
   fastingRequired: boolean;
   fastingHours: number;
   homeCollectionAvailable: boolean;
   price: number;
-  discountPrice: number | null;
+  discountPrice?: number | null;
   turnaroundHours: number;
-  instructions: string | null;
+  instructions?: string | null;
   isActive: boolean;
+  imageR2Key?: string | null;
 };
 
 export type LabPackage = {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
+  description?: string | null;
   price: number;
-  discountPrice: number | null;
+  discountPrice?: number | null;
   turnaroundHours: number;
-  instructions: string | null;
+  instructions?: string | null;
   isActive: boolean;
   testCount?: number;
 };
