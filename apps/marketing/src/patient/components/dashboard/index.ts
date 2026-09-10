@@ -11,3 +11,5 @@ export { DashboardHero } from "./DashboardHero";
 export { SafetyBanner } from "./SafetyBanner";
 export { QuickActions } from "./QuickActions";
 export { HealthSummaryStrip } from "./HealthSummaryStrip";
+export { NotificationsPreview } from "./NotificationsPreview";
+export { InsuranceCoverage } from "./InsuranceCoverage";
