@@ -186,6 +186,48 @@ export function MedicationsToday({ className }: { className?: string }) {
                   ) : null}
                 </div>
               ) : null}
+
+              {/* ── Compact today's doses list (status pills) ───────────── */}
+              {meds.length > 0 ? (
+                <ul className="mt-2 grid gap-1.5" data-testid="med-dose-list">
+                  {meds.slice(0, 5).map((m) => {
+                    const list = doseByMedicine.get(m.id) ?? [];
+                    const taken = list.filter((d) => d.takenAt).length;
+                    const skipped = list.filter((d) => d.skipped).length;
+                    const pendingCount = list.filter(
+                      (d) => !d.takenAt && !d.skipped,
+                    ).length;
+                    const total = list.length;
+                    const tone =
+                      pendingCount === 0 && total > 0
+                        ? "text-emerald-700 bg-emerald-50"
+                        : pendingCount > 0
+                          ? "text-amber-700 bg-amber-50"
+                          : "text-text-muted bg-slate-50";
+                    return (
+                      <li
+                        key={m.id}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-surface-3 bg-white px-3 py-2 text-xs"
+                      >
+                        <span className="min-w-0 truncate font-semibold text-text">
+                          {m.name}
+                          {m.dosage ? (
+                            <span className="ml-1 font-normal text-text-muted">{m.dosage}</span>
+                          ) : null}
+                        </span>
+                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", tone)}>
+                          {total === 0
+                            ? "no doses"
+                            : pendingCount === 0
+                              ? "all done"
+                              : `${pendingCount} pending`}
+                          {skipped > 0 ? ` · ${skipped} skipped` : ""}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
               {actionError ? (
                 <p role="alert" className="text-xs text-danger">
                   {actionError}
