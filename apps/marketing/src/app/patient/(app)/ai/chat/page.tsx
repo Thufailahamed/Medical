@@ -34,9 +34,9 @@ export default function AiChatPage() {
   const [modelId, setModelId] = useState<ChatModelId>("wellness-72");
   const [useEhr, setUseEhr] = useState(true);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [focusToken, setFocusToken] = useState(0);
 
   const listRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const initialPromptSent = useRef(false);
 
   useEffect(() => {
@@ -109,7 +109,7 @@ export default function AiChatPage() {
       );
     } finally {
       setBusy(false);
-      requestAnimationFrame(() => inputRef.current?.focus());
+      requestAnimationFrame(() => setFocusToken((t) => t + 1));
     }
   }
 
@@ -144,7 +144,7 @@ export default function AiChatPage() {
     setInput("");
     setRating({});
     initialPromptSent.current = true;
-    inputRef.current?.focus();
+    setFocusToken((t) => t + 1);
   }
 
   async function copyMessage(id: string, text: string) {
@@ -283,7 +283,7 @@ export default function AiChatPage() {
                   setError(null);
                   if (last) {
                     setInput(last.body);
-                    inputRef.current?.focus();
+                    setFocusToken((t) => t + 1);
                   }
                 }}
                 className="text-[11px] font-bold text-danger underline underline-offset-2 hover:opacity-80"
@@ -311,7 +311,7 @@ export default function AiChatPage() {
         busy={busy}
         useEhr={useEhr}
         onToggleEhr={setUseEhr}
-        textareaRef={inputRef}
+        focusToken={focusToken}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowUp, ShieldCheck, Square } from "lucide-react";
 
 import { cn } from "@/portal/lib/utils";
@@ -13,7 +13,7 @@ export function ChatComposer({
   busy,
   useEhr,
   onToggleEhr,
-  textareaRef,
+  focusToken = 0,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -22,14 +22,20 @@ export function ChatComposer({
   busy: boolean;
   useEhr: boolean;
   onToggleEhr: (value: boolean) => void;
-  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+  focusToken?: number;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
-    const ta = textareaRef?.current;
+    const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = "auto";
     ta.style.height = `${Math.min(ta.scrollHeight, 220)}px`;
-  }, [value, textareaRef]);
+  }, [value]);
+
+  useEffect(() => {
+    if (focusToken > 0) textareaRef.current?.focus();
+  }, [focusToken]);
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
