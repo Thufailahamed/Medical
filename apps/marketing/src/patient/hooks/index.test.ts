@@ -100,6 +100,7 @@ const EXPECTED_HOOK_EXPORTS = [
   "useBookTestPackage",
   "useTestBookings",
   "useTestBooking",
+  "useTestBookingRating",
   "useRateTest",
   "useNotificationPreferences",
   "useUpdateNotificationPreferences",
@@ -135,6 +136,10 @@ const EXPECTED_HOOK_EXPORTS = [
   "useBulkRestoreRecords",
   "useBulkTagRecords",
   "useBulkMoveRecords",
+  "useInsurance",
+  // Patient AI (web)
+  "useGenerateSummary",
+  "useCheckDrugInteractions",
 ] as const;
 
 const EXPECTED = new Set<string>(EXPECTED_HOOK_EXPORTS);

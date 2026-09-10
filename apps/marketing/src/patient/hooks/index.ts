@@ -31,3 +31,9 @@ export * from "./health-id";
 export * from "./insurance";
 export * from "./consents";
 export * from "./dsar";
+export {
+  useGenerateSummary,
+  useCheckDrugInteractions,
+  type StructuredSummary,
+  type DrugInteractionItem,
+} from "./ai";
