@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Video } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { Pill } from "@/patient/components/primitives/Pill";
@@ -14,6 +15,7 @@ import {
 } from "@/patient/hooks";
 import { formatDayLabel, formatTime, humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { teleconsultApi } from "@/portal/lib/api";
 
 export default function AppointmentDetailPage({
   params,
@@ -29,6 +31,31 @@ export default function AppointmentDetailPage({
   const [time, setTime] = useState("");
   const [editing, setEditing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Live teleconsult session — when the doctor has opened the room for
+  // this appointment, "Join video visit" goes straight to it; otherwise
+  // it lands on the waiting room ("__pending__") and auto-joins.
+  const [activeSession, setActiveSession] = useState<{
+    id: string;
+    roomId: string;
+    status: string;
+    appointmentId: string;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await teleconsultApi.getActiveForMe();
+        if (!cancelled) setActiveSession(res.session);
+      } catch {}
+    };
+    load();
+    const id = setInterval(load, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
@@ -47,6 +74,13 @@ export default function AppointmentDetailPage({
           {(data) => {
             const appointment = data.appointment;
             const canManage = ["scheduled", "confirmed"].includes(appointment.status);
+            const canJoinVideo =
+              appointment.mode === "video" &&
+              ["scheduled", "confirmed", "in_progress"].includes(appointment.status);
+            const joinRoomId =
+              activeSession?.appointmentId === id
+                ? activeSession.roomId
+                : "__pending__";
             const onCancel = async () => {
               if (!window.confirm("Cancel this appointment?")) return;
               setActionError(null);
@@ -93,6 +127,19 @@ export default function AppointmentDetailPage({
                 </div>
 
                 {actionError ? <p role="alert" className="text-sm text-danger">{actionError}</p> : null}
+
+                {canJoinVideo ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/patient/teleconsult/${joinRoomId}`)}
+                    className="inline-flex items-center gap-2 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
+                  >
+                    <Video size={16} />
+                    {activeSession?.appointmentId === id
+                      ? "Join video visit"
+                      : "Enter waiting room"}
+                  </button>
+                ) : null}
 
                 {canManage && !editing ? (
                   <div className="flex flex-wrap gap-2">

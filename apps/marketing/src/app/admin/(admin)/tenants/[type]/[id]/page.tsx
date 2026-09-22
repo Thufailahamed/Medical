@@ -37,13 +37,21 @@ export default function AdminTenantDetailPage({
   });
 
   if (isLoading) {
-    return <p className="text-text-soft text-sm">Loading…</p>;
+    return <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
+          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
+          <div className="h-4 w-full admin-shimmer rounded-md" />
+          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
+          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
+        </div>;
   }
   if (error || !data) {
     return (
-      <div className="bg-surface border border-border rounded-2xl p-10 text-center">
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
+          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
+            <Building2 size={18} aria-hidden />
+          </div>
         <p className="text-danger font-semibold mb-2">Tenant not found</p>
-        <Link href={`/admin/${params.type === "clinic" ? "clinics" : "hospitals"}`} className="text-amber-600 hover:underline text-sm">
+        <Link href={`/admin/${params.type === "clinic" ? "clinics" : "hospitals"}`} className="text-blue-600 hover:underline text-sm">
           ← Back to {params.type === "clinic" ? "clinics" : "hospitals"}
         </Link>
       </div>
@@ -65,10 +73,10 @@ export default function AdminTenantDetailPage({
       <PageHeader
         title={t.name}
         subtitle={typeLabel}
-        icon={<Building2 size={20} className="text-amber-600" />}
+        icon={<Building2 size={20} className="text-blue-600" />}
       />
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <section className="portal-card bg-surface border border-border rounded-2xl p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
         <KV label="License" value={t.license || "—"} />
         <KV label="Address" value={t.address || "—"} />
         <KV label="Phone" value={t.phone || "—"} />
@@ -79,7 +87,7 @@ export default function AdminTenantDetailPage({
 
       <section>
         <SectionHeader title="Owner" className="mb-3" />
-        <div className="bg-surface border border-border rounded-2xl p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="portal-card bg-surface border border-border rounded-2xl p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
           <KV label="Name" value={t.ownerName} />
           <KV label="Email" value={t.ownerEmail} />
           <KV
@@ -94,7 +102,7 @@ export default function AdminTenantDetailPage({
           />
           <Link
             href={`/admin/users/${t.ownerUserId}`}
-            className="text-sm text-amber-600 hover:underline mt-2"
+            className="text-sm text-blue-600 hover:underline mt-2"
           >
             View full user record →
           </Link>

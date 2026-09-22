@@ -4,8 +4,9 @@ import {
   Text,
   ScrollView,
   Alert,
-  Linking,
+  StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,9 +39,14 @@ import {
   ScrollText,
   QrCode,
   Shield,
+  BadgeCheck,
+  Phone,
+  Plus,
 } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useTone, type Tone } from "@/theme/tone";
 import {
   usePatientProfile,
   useUnreadCount,
@@ -57,15 +63,12 @@ import {
   Screen,
   Card,
   Avatar,
-  Pill,
-  Skeleton,
   Button,
-  IconButton,
-  StatCard,
   ListItem,
   SectionHeader,
   Divider,
   Chip,
+  Pressable,
 } from "@/components/ui";
 
 function calcBmi(height?: number | null, weight?: number | null) {
@@ -103,6 +106,15 @@ function parseContacts(v: string | null | undefined): { name: string; phone?: st
     return [];
   }
 }
+
+type MenuItem = {
+  labelKey: string;
+  subtitle: string;
+  icon: LucideIcon;
+  tone: Tone;
+  pill?: { label: string; tone?: Tone };
+  onPress: () => void;
+};
 
 export default function ProfileScreen() {
   const { user, logout, authFailureCount } = useAuthStore();
@@ -196,7 +208,7 @@ export default function ProfileScreen() {
     router.replace("/(auth)/login" as any);
   }
 
-  const accountItems = [
+  const accountItems: MenuItem[] = [
     {
       labelKey: "profile.item.editProfile.label",
       subtitle: t("profile.item.editProfile.subtitle"),
@@ -249,6 +261,10 @@ export default function ProfileScreen() {
         : t("profile.item.notifications.subtitle"),
       icon: Bell,
       tone: "warning" as const,
+      pill:
+        unreadCount > 0
+          ? { label: String(unreadCount), tone: "danger" as const }
+          : undefined,
       onPress: () => router.push("/(app)/notifications" as any),
     },
     {
@@ -281,7 +297,7 @@ export default function ProfileScreen() {
     },
   ];
 
-  const healthItems = [
+  const healthItems: MenuItem[] = [
     {
       labelKey: "profile.item.timeline.label",
       subtitle: t("profile.item.timeline.subtitle"),
@@ -326,6 +342,10 @@ export default function ProfileScreen() {
         : t("profile.item.vitals.subtitleEmpty"),
       icon: Activity,
       tone: abnormalCount > 0 ? ("danger" as const) : ("info" as const),
+      pill:
+        abnormalCount > 0
+          ? { label: String(abnormalCount), tone: "danger" as const }
+          : undefined,
       onPress: () => router.push("/(app)/vitals" as any),
     },
     {
@@ -338,6 +358,10 @@ export default function ProfileScreen() {
         : t("profile.item.allergies.subtitleEmpty"),
       icon: AlertTriangle,
       tone: criticalAllergies > 0 ? ("danger" as const) : ("warning" as const),
+      pill:
+        criticalAllergies > 0
+          ? { label: String(criticalAllergies), tone: "danger" as const }
+          : undefined,
       onPress: () => router.push("/(app)/allergies" as any),
     },
     {
@@ -449,6 +473,37 @@ export default function ProfileScreen() {
       : []),
   ];
 
+  const quickActions = [
+    {
+      key: "edit",
+      label: t("profile.quick.edit"),
+      icon: Pencil,
+      tone: "primary" as const,
+      onPress: () => router.push("/(app)/edit-profile" as any),
+    },
+    {
+      key: "healthId",
+      label: t("profile.quick.healthId"),
+      icon: QrCode,
+      tone: "info" as const,
+      onPress: () => router.push("/(app)/health-id" as any),
+    },
+    {
+      key: "share",
+      label: t("profile.quick.share"),
+      icon: Share2,
+      tone: "accent" as const,
+      onPress: () => router.push("/(app)/share" as any),
+    },
+    {
+      key: "family",
+      label: t("profile.quick.family"),
+      icon: Users,
+      tone: "accent2" as const,
+      onPress: () => router.push("/(app)/family" as any),
+    },
+  ];
+
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScrollView
@@ -474,27 +529,148 @@ export default function ProfileScreen() {
           >
             {t("profile.title")}
           </Text>
-          <IconButton
-            icon={Bell}
-            variant="ghost"
-            size="md"
+          <Pressable
             onPress={() => router.push("/(app)/notifications" as any)}
+            haptic="light"
+            accessibilityRole="button"
             accessibilityLabel={t("profile.item.notifications.label")}
-            badge={unreadCount > 0 ? unreadCount : undefined}
-          />
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 15,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              ...shadow.sm,
+            }}
+          >
+            <Bell size={18} color={colors.text} strokeWidth={2} />
+            {unreadCount > 0 ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -5,
+                  right: -5,
+                  minWidth: 18,
+                  height: 18,
+                  paddingHorizontal: 4,
+                  borderRadius: 9,
+                  backgroundColor: colors.danger,
+                  borderWidth: 2,
+                  borderColor: colors.bg,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "800" }}
+                  numberOfLines={1}
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
         </View>
 
-        {/* ─── Hero identity card ─── */}
+        {/* ─── Hero identity card (premium gradient) ─── */}
         <View
           style={{
             marginHorizontal: spacing.lg,
             marginTop: spacing.xs,
           }}
         >
-          <Card padded={false}>
+          <View
+            style={{
+              borderRadius: radius.xxxl,
+              overflow: "hidden",
+              ...shadow.hero,
+            }}
+          >
+            <LinearGradient
+              colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            {/* radial accent overlays for depth */}
+            <View
+              style={{
+                position: "absolute",
+                top: -90,
+                right: -70,
+                width: 240,
+                height: 240,
+                borderRadius: 120,
+                backgroundColor: "rgba(56, 189, 248, 0.30)",
+              }}
+            />
+            <View
+              style={{
+                position: "absolute",
+                bottom: -110,
+                left: -70,
+                width: 260,
+                height: 260,
+                borderRadius: 130,
+                backgroundColor: "rgba(14, 165, 233, 0.28)",
+              }}
+            />
+            {/* top sheen */}
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 1,
+                backgroundColor: "rgba(255, 255, 255, 0.25)",
+              }}
+            />
+            {/* heartbeat watermark */}
+            <View
+              pointerEvents="none"
+              style={{ position: "absolute", right: -18, bottom: -18, opacity: 0.08 }}
+            >
+              <HeartPulse size={170} color="#FFFFFF" strokeWidth={1.5} />
+            </View>
+
+            {/* edit shortcut — wrapped in a plain View so absolute positioning
+                anchors to the card, not Pressable's inner animated wrapper */}
+            <View
+              style={{
+                position: "absolute",
+                top: spacing.md,
+                right: spacing.md,
+                zIndex: 2,
+              }}
+            >
+              <Pressable
+                onPress={() => router.push("/(app)/edit-profile" as any)}
+                haptic="light"
+                accessibilityRole="button"
+                accessibilityLabel={t("profile.item.editProfile.label")}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(255, 255, 255, 0.16)",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.32)",
+                }}
+              >
+                <Pencil size={15} color="#FFFFFF" strokeWidth={2.25} />
+              </Pressable>
+            </View>
+
             <View
               style={{
                 padding: spacing.xl,
+                paddingBottom: spacing.xxxxl + spacing.sm,
                 gap: spacing.lg,
               }}
             >
@@ -506,18 +682,73 @@ export default function ProfileScreen() {
                   gap: spacing.lg,
                 }}
               >
-                <Avatar
-                  name={userRow?.name || user?.name}
-                  source={photoUri ? { uri: photoUri } : undefined}
-                  size="2xl"
-                  ring
-                  tone={isDoctor ? "info" : "primary"}
-                />
+                {/* avatar with glass ring + verified dot */}
+                <View>
+                  <View
+                    style={{
+                      padding: 3,
+                      borderRadius: 9999,
+                      backgroundColor: "rgba(255, 255, 255, 0.28)",
+                      borderWidth: 1.5,
+                      borderColor: "rgba(255, 255, 255, 0.55)",
+                    }}
+                  >
+                    <View
+                      style={{
+                        borderRadius: 9999,
+                        backgroundColor: "#FFFFFF",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <Avatar
+                        name={userRow?.name || user?.name}
+                        source={photoUri ? { uri: photoUri } : undefined}
+                        size="xl"
+                        tone={isDoctor ? "info" : "primary"}
+                      />
+                    </View>
+                  </View>
+                  {userRow?.verified || user?.verified ? (
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        backgroundColor: "#10B981",
+                        borderWidth: 2.5,
+                        borderColor: "#FFFFFF",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <BadgeCheck size={12} color="#FFFFFF" strokeWidth={3} />
+                    </View>
+                  ) : null}
+                </View>
+
                 <View style={{ flex: 1, minWidth: 0 }}>
                   {profileLoading ? (
                     <>
-                      <Skeleton width="80%" height={20} />
-                      <Skeleton width="60%" height={14} style={{ marginTop: 8 }} />
+                      <View
+                        style={{
+                          width: "70%",
+                          height: 20,
+                          borderRadius: 6,
+                          backgroundColor: "rgba(255, 255, 255, 0.25)",
+                        }}
+                      />
+                      <View
+                        style={{
+                          width: "50%",
+                          height: 14,
+                          borderRadius: 6,
+                          backgroundColor: "rgba(255, 255, 255, 0.18)",
+                          marginTop: 8,
+                        }}
+                      />
                     </>
                   ) : (
                     <>
@@ -525,9 +756,10 @@ export default function ProfileScreen() {
                         style={[
                           typography.title.lg,
                           {
-                            color: colors.text,
+                            color: "#FFFFFF",
                             fontWeight: "800",
                             letterSpacing: -0.4,
+                            fontSize: 22,
                           },
                         ]}
                         numberOfLines={1}
@@ -539,7 +771,7 @@ export default function ProfileScreen() {
                       <Text
                         style={[
                           typography.body.sm,
-                          { color: colors.textMuted, marginTop: 2 },
+                          { color: "rgba(255, 255, 255, 0.78)", marginTop: 2 },
                         ]}
                         numberOfLines={1}
                       >
@@ -551,81 +783,93 @@ export default function ProfileScreen() {
                       </Text>
                     </>
                   )}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: spacing.xs,
-                      marginTop: spacing.sm,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Pill
-                      label={role.replace("_", " ")}
-                      tone={isDoctor ? "info" : "primary"}
-                      size="sm"
-                    />
-                    {isDoctor && doctorProfileData?.doctor?.doctors?.specialization ? (
-                      <Pill
-                        label={doctorProfileData.doctor.doctors.specialization}
-                        tone="info"
-                        size="sm"
-                      />
-                    ) : null}
-                    {isDoctor && doctorProfileData?.doctor?.doctors?.registrationNumber ? (
-                      <Pill
-                        label={`SLMC: ${doctorProfileData.doctor.doctors.registrationNumber}`}
-                        tone="neutral"
-                        size="sm"
-                      />
-                    ) : null}
-                    {userRow?.verified || user?.verified ? (
-                      <Pill
-                        icon={ShieldCheck}
-                        label={t("profile.verified")}
-                        tone="success"
-                        size="sm"
-                      />
-                    ) : null}
-                  </View>
                 </View>
               </View>
 
-              {/* 3-col stats grid */}
-              {!isDoctor && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    gap: spacing.sm,
-                  }}
-                >
-                  <StatCard
-                    icon={Droplet}
-                    tone="danger"
-                    size="sm"
-                    label={t("profile.statCard.blood")}
-                    value={patient?.bloodGroup || "—"}
+              {/* glass chips */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.sm,
+                }}
+              >
+                <GlassChip
+                  icon={isDoctor ? Stethoscope : HeartPulse}
+                  label={role.replace("_", " ")}
+                />
+                {isDoctor && doctorProfileData?.doctor?.doctors?.specialization ? (
+                  <GlassChip
+                    label={doctorProfileData.doctor.doctors.specialization}
                   />
-                  <StatCard
-                    icon={HeartPulse}
-                    tone={bmiInfo?.tone ?? "info"}
-                    size="sm"
-                    label={t("profile.statCard.bmi")}
-                    value={bmi ? bmi.toFixed(1) : "—"}
-                    hint={bmiInfo?.label}
+                ) : null}
+                {isDoctor && doctorProfileData?.doctor?.doctors?.registrationNumber ? (
+                  <GlassChip
+                    label={`SLMC: ${doctorProfileData.doctor.doctors.registrationNumber}`}
                   />
-                  <StatCard
-                    icon={Activity}
-                    tone="primary"
-                    size="sm"
-                    label={t("profile.statCard.active")}
-                    value={String(medCount)}
-                    hint={t("profile.statCard.medicine", { count: medCount })}
-                  />
-                </View>
-              )}
+                ) : null}
+                {userRow?.verified || user?.verified ? (
+                  <GlassChip icon={ShieldCheck} label={t("profile.verified")} />
+                ) : null}
+              </View>
             </View>
-          </Card>
+          </View>
         </View>
+
+        {/* ─── Floating health stats ─── */}
+        {!isDoctor && (
+          <View
+            style={{
+              flexDirection: "row",
+              gap: spacing.sm,
+              marginHorizontal: spacing.xxl,
+              marginTop: -spacing.xxl - spacing.xs,
+            }}
+          >
+            <StatTile
+              icon={Droplet}
+              tone="danger"
+              label={t("profile.statCard.blood")}
+              value={patient?.bloodGroup || "—"}
+            />
+            <StatTile
+              icon={HeartPulse}
+              tone={bmiInfo?.tone ?? "info"}
+              label={t("profile.statCard.bmi")}
+              value={bmi ? bmi.toFixed(1) : "—"}
+              hint={bmiInfo?.label}
+            />
+            <StatTile
+              icon={Activity}
+              tone="primary"
+              label={t("profile.statCard.active")}
+              value={String(medCount)}
+              hint={t("profile.statCard.medicine", { count: medCount })}
+            />
+          </View>
+        )}
+
+        {/* ─── Quick actions ─── */}
+        {!isDoctor && (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginHorizontal: spacing.xl,
+              marginTop: spacing.xl,
+            }}
+          >
+            {quickActions.map((a) => (
+              <QuickAction
+                key={a.key}
+                icon={a.icon}
+                label={a.label}
+                tone={a.tone}
+                onPress={a.onPress}
+              />
+            ))}
+          </View>
+        )}
 
         {/* ─── Health profile card ─── */}
         {!isDoctor && (
@@ -643,7 +887,7 @@ export default function ProfileScreen() {
               <View
                 style={{
                   paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.md,
+                  paddingVertical: spacing.md + 2,
                   flexDirection: "row",
                   alignItems: "center",
                   gap: spacing.md,
@@ -651,12 +895,14 @@ export default function ProfileScreen() {
               >
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
                     borderRadius: radius.lg,
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor: colors.warningSoft,
+                    borderWidth: 1,
+                    borderColor: colors.border,
                   }}
                 >
                   <AlertTriangle
@@ -679,53 +925,65 @@ export default function ProfileScreen() {
                     {t("profile.healthCard.subtitle")}
                   </Text>
                 </View>
-                <ChevronRight
-                  size={18}
-                  color={colors.textSubtle}
-                  strokeWidth={2.25}
-                />
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    backgroundColor: colors.surfaceMuted,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ChevronRight
+                    size={15}
+                    color={colors.textMuted}
+                    strokeWidth={2.5}
+                  />
+                </View>
               </View>
               <Divider />
-              <View style={{ padding: spacing.lg, gap: spacing.md }}>
-                <SummaryRow
-                  label={t("profile.allergiesHeading")}
-                  empty={t("profile.noneRecorded")}
-                  items={allergies}
-                  tone="danger"
+              <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+                <HealthRow
                   icon={AlertTriangle}
-                />
-                <SummaryRow
-                  label={t("profile.conditionsHeading")}
-                  empty={t("profile.noneRecorded")}
-                  items={conditions}
-                  tone="warning"
+                  tone="danger"
+                  label={t("profile.allergiesHeading")}
+                >
+                  {allergies.length === 0 ? (
+                    <EmptyValue label={t("profile.noneRecorded")} />
+                  ) : (
+                    <ChipWrap items={allergies} tone="danger" icon={AlertTriangle} />
+                  )}
+                </HealthRow>
+                <HealthRow
                   icon={Activity}
-                />
-                <View style={{ gap: spacing.xs }}>
-                  <Text
-                    style={[
-                      typography.overline,
-                      { color: colors.textMuted, letterSpacing: 1.2, alignSelf: "flex-start" },
-                    ]}
-                  >
-                    {t("profile.emergencyContactsHeading")}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.body.md,
-                      {
-                        color: emergencyContacts.length > 0 ? colors.text : colors.textSubtle,
-                        fontWeight: emergencyContacts.length > 0 ? "600" : "500",
-                        alignSelf: "flex-start",
-                        marginTop: 4,
-                      },
-                    ]}
-                  >
-                    {emergencyContacts.length > 0
-                      ? t("profile.onFile", { count: emergencyContacts.length })
-                      : t("profile.noneRecorded")}
-                  </Text>
-                </View>
+                  tone="warning"
+                  label={t("profile.conditionsHeading")}
+                >
+                  {conditions.length === 0 ? (
+                    <EmptyValue label={t("profile.noneRecorded")} />
+                  ) : (
+                    <ChipWrap items={conditions} tone="warning" icon={Activity} />
+                  )}
+                </HealthRow>
+                <HealthRow
+                  icon={Phone}
+                  tone="info"
+                  label={t("profile.emergencyContactsHeading")}
+                >
+                  {emergencyContacts.length === 0 ? (
+                    <EmptyValue label={t("profile.noneRecorded")} />
+                  ) : (
+                    <Text
+                      style={[
+                        typography.body.md,
+                        { color: colors.text, fontWeight: "600" },
+                      ]}
+                    >
+                      {t("profile.onFile", { count: emergencyContacts.length })}
+                    </Text>
+                  )}
+                </HealthRow>
               </View>
             </Card>
           </View>
@@ -746,6 +1004,7 @@ export default function ProfileScreen() {
                     iconTone={item.tone}
                     title={t(item.labelKey)}
                     subtitle={item.subtitle}
+                    pill={item.pill}
                     onPress={item.onPress}
                     showChevron
                     bordered={false}
@@ -795,6 +1054,7 @@ export default function ProfileScreen() {
                       iconTone={item.tone}
                       title={t(item.labelKey)}
                       subtitle={item.subtitle}
+                      pill={item.pill}
                       onPress={item.onPress}
                       showChevron
                       bordered={false}
@@ -839,7 +1099,7 @@ export default function ProfileScreen() {
         >
           <Button
             title={t("profile.logout.confirm")}
-            variant="outline"
+            variant="danger"
             icon={LogOut}
             onPress={confirmLogout}
             fullWidth
@@ -858,53 +1118,267 @@ export default function ProfileScreen() {
   );
 }
 
-function SummaryRow({
-  label,
-  empty,
-  items,
-  tone,
-  icon: Icon,
-}: {
-  label: string;
-  empty: string;
-  items: string[];
-  tone: "danger" | "warning";
-  icon: any;
-}) {
-  const { colors, spacing, typography } = useTheme();
+/** Translucent chip rendered on the gradient hero card. */
+function GlassChip({ icon: Icon, label }: { icon?: LucideIcon; label: string }) {
+  const { spacing, typography } = useTheme();
   return (
-    <View style={{ alignItems: "flex-start", gap: spacing.xs }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        paddingHorizontal: spacing.sm + 2,
+        paddingVertical: 5,
+        borderRadius: 999,
+        backgroundColor: "rgba(255, 255, 255, 0.16)",
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.30)",
+      }}
+    >
+      {Icon ? <Icon size={11} color="#FFFFFF" strokeWidth={2.5} /> : null}
       <Text
         style={[
-          typography.overline,
-          { color: colors.textMuted, letterSpacing: 1.2, alignSelf: "flex-start" },
+          typography.caption,
+          { color: "#FFFFFF", fontWeight: "700", fontSize: 11 },
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/** Elevated metric tile that overlaps the hero card. */
+function StatTile({
+  icon: Icon,
+  tone,
+  label,
+  value,
+  hint,
+}: {
+  icon: LucideIcon;
+  tone: Tone;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  const { colors, spacing, radius, typography, shadow } = useTheme();
+  const pal = useTone(tone);
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.surface,
+        borderRadius: radius.xl,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        gap: spacing.sm,
+        ...shadow.md,
+      }}
+      accessibilityRole="text"
+      accessibilityLabel={`${label}: ${value}${hint ? `, ${hint}` : ""}`}
+    >
+      <View
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 10,
+          backgroundColor: pal.bg,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={15} color={pal.fg} strokeWidth={2.5} />
+      </View>
+      <View>
+        <Text
+          style={[typography.title.md, { color: colors.text, fontWeight: "800" }]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <Text
+          style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+        {hint ? (
+          <Text
+            style={[typography.caption, { color: colors.textSubtle, marginTop: 1 }]}
+            numberOfLines={1}
+          >
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** Rounded icon tile + label for the quick-actions row. */
+function QuickAction({
+  icon: Icon,
+  label,
+  tone,
+  onPress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  tone: Tone;
+  onPress: () => void;
+}) {
+  const { colors, spacing, radius, typography } = useTheme();
+  const pal = useTone(tone);
+  return (
+    <Pressable
+      onPress={onPress}
+      haptic="light"
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={{ alignItems: "center", gap: spacing.sm, width: 72 }}
+    >
+      <View
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: radius.lg,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: pal.bg,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <Icon size={20} color={pal.fg} strokeWidth={2.25} />
+      </View>
+      <Text
+        style={[
+          typography.caption,
+          { color: colors.textMuted, fontWeight: "600" },
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Labelled row inside the health profile card. */
+function HealthRow({
+  icon: Icon,
+  tone,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  tone: Tone;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  const pal = useTone(tone);
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.sm,
+        }}
+      >
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 8,
+            backgroundColor: pal.bg,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon size={13} color={pal.fg} strokeWidth={2.5} />
+        </View>
+        <Text
+          style={[
+            typography.overline,
+            { color: colors.textMuted, letterSpacing: 1.1 },
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+      <View style={{ paddingLeft: 24 + spacing.sm }}>{children}</View>
+    </View>
+  );
+}
+
+/** Muted "none recorded" text with a subtle add affordance. */
+function EmptyValue({ label }: { label: string }) {
+  const { colors, spacing, typography } = useTheme();
+  const { t } = useTranslation();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+      <Text
+        style={[
+          typography.body.sm,
+          { color: colors.textSubtle, fontWeight: "500" },
         ]}
       >
         {label}
       </Text>
-      {items.length === 0 ? (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 3,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 3,
+          borderRadius: 999,
+          backgroundColor: colors.primarySoft,
+        }}
+      >
+        <Plus size={10} color={colors.primary} strokeWidth={3} />
         <Text
-          style={[
-            typography.body.md,
-            { color: colors.textSubtle, fontWeight: "500", alignSelf: "flex-start" },
-          ]}
-        >
-          {empty}
-        </Text>
-      ) : (
-        <View
           style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: spacing.xs,
-            alignSelf: "flex-start",
+            color: colors.primary,
+            fontSize: 10,
+            fontWeight: "800",
+            letterSpacing: 0.4,
           }}
         >
-          {items.map((it, i) => (
-            <Chip key={`${label}-${i}`} label={it} size="sm" tone={tone} icon={Icon} />
-          ))}
-        </View>
-      )}
+          {t("common.add").toUpperCase()}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function ChipWrap({
+  items,
+  tone,
+  icon: Icon,
+}: {
+  items: string[];
+  tone: "danger" | "warning";
+  icon: LucideIcon;
+}) {
+  const { spacing } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: spacing.xs,
+        alignSelf: "flex-start",
+      }}
+    >
+      {items.map((it, i) => (
+        <Chip key={`${it}-${i}`} label={it} size="sm" tone={tone} icon={Icon} />
+      ))}
     </View>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/portal/stores/auth";
 import { AdminSidebar } from "@/portal/components/admin/AdminSidebar";
 import { AdminTopbar } from "@/portal/components/admin/AdminTopbar";
@@ -35,14 +36,17 @@ export default function AdminShellLayout({ children }: { children: ReactNode }) 
     !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])
   ) {
     return (
-      <div className="min-h-screen grid place-items-center text-text-soft text-sm">
-        Verifying admin session…
+      <div className="min-h-screen grid place-items-center admin-bg text-text-soft text-sm">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={22} className="animate-spin text-blue-600" />
+          <p className="font-medium">Verifying admin session…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex bg-bg admin-bg">
+    <div className="min-h-screen flex admin-bg">
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <AdminTopbar />

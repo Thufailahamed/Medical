@@ -64,9 +64,9 @@ export function NotesPanel({ userId }: { userId: string }) {
   const items = notes.data?.items ?? [];
 
   return (
-    <section className="bg-surface border border-border rounded-2xl p-5">
+    <section className="portal-card bg-surface border border-border rounded-2xl p-5">
       <header className="flex items-center gap-2 mb-4">
-        <MessageSquare size={16} className="text-amber-600" />
+        <MessageSquare size={16} className="text-blue-600" />
         <h3 className="text-sm font-semibold">Internal notes</h3>
         <span className="text-xs text-text-muted">(admin-only, visible to all super_admins)</span>
       </header>
@@ -120,7 +120,7 @@ export function NotesPanel({ userId }: { userId: string }) {
                           setEditingId(n.id);
                           setEditBody(n.body);
                         }}
-                        className="p-1 text-text-muted hover:text-amber-700"
+                        className="p-1 text-text-muted hover:text-blue-700"
                         title="Edit"
                       >
                         <Edit3 size={12} />

@@ -7,10 +7,13 @@ import {
   Text,
   ScrollView,
   RefreshControl,
+  Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Send } from "lucide-react-native";
+import { Send, BadgeCheck, Undo2 } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
+import type { Tone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
@@ -18,10 +21,14 @@ import {
   Pill,
   Avatar,
   Chip,
+  Divider,
+  Pressable,
   EmptyState,
+  useToast,
 } from "@/components/ui";
 import {
   useMyMarketplaceInquiriesSent,
+  useWithdrawMarketplaceInquiry,
   type MarketplaceInquiryStatus,
 } from "@/hooks/useCaretakerMarketplace";
 
@@ -31,9 +38,10 @@ const STATUS_FILTERS: ("all" | MarketplaceInquiryStatus)[] = [
   "accepted",
   "declined",
   "expired",
+  "withdrawn",
 ];
 
-function pillTone(status: MarketplaceInquiryStatus) {
+function pillTone(status: MarketplaceInquiryStatus): Tone {
   if (status === "accepted") return "success";
   if (status === "pending") return "info";
   if (status === "declined") return "danger";
@@ -43,7 +51,8 @@ function pillTone(status: MarketplaceInquiryStatus) {
 export default function MyMarketplaceInquiriesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, radius } = useTheme();
+  const toast = useToast();
 
   const [status, setStatus] = useState<"all" | MarketplaceInquiryStatus>(
     "all"
@@ -51,13 +60,30 @@ export default function MyMarketplaceInquiriesScreen() {
   const sent = useMyMarketplaceInquiriesSent(
     status === "all" ? undefined : status
   );
+  const withdraw = useWithdrawMarketplaceInquiry();
   const inquiries = sent.data?.inquiries ?? [];
+
+  function confirmWithdraw(id: string) {
+    Alert.alert(t("marketplace.inquiry.withdrawConfirm"), "", [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("marketplace.inquiry.withdraw"),
+        style: "destructive",
+        onPress: () =>
+          withdraw.mutate(id, {
+            onSuccess: () =>
+              toast.show(t("marketplace.inquiry.withdrawn"), "info"),
+            onError: () => toast.show(t("common.error"), "danger"),
+          }),
+      },
+    ]);
+  }
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset>
       <ScreenHeader back title={t("marketplace.inquiriesMine.title")} />
 
-      <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
+      <View style={{ paddingHorizontal: spacing.lg }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -72,6 +98,7 @@ export default function MyMarketplaceInquiriesScreen() {
                   : t(`marketplace.inquiriesMine.status.${s}`)
               }
               selected={status === s}
+              tone={status === s ? "primary" : "neutral"}
               onPress={() => setStatus(s)}
             />
           ))}
@@ -79,7 +106,12 @@ export default function MyMarketplaceInquiriesScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          padding: spacing.lg,
+          gap: spacing.md,
+          paddingBottom: spacing.xxxxl,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={sent.isFetching}
@@ -92,10 +124,13 @@ export default function MyMarketplaceInquiriesScreen() {
           <EmptyState
             icon={Send}
             title={t("marketplace.inquiriesMine.empty")}
+            actionLabel={t("marketplace.title")}
+            onAction={() => router.push("/(app)/marketplace" as any)}
           />
         ) : null}
+
         {inquiries.map((i) => (
-          <Card key={i.id} style={{ gap: spacing.xs }}>
+          <Card key={i.id} style={{ gap: spacing.sm }}>
             <View
               style={{
                 flexDirection: "row",
@@ -103,50 +138,145 @@ export default function MyMarketplaceInquiriesScreen() {
                 gap: spacing.sm,
               }}
             >
-              <Avatar
-                uri={i.caretakerPhoto ?? undefined}
-                name={i.caretakerName ?? ""}
-                size="md"
-              />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  style={[
-                    typography.title.sm,
-                    { color: colors.text, fontWeight: "700" },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {i.caretakerName ?? "—"}
-                </Text>
-              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push(
+                    `/(app)/marketplace/${i.caretakerUserId}` as any
+                  )
+                }
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  flex: 1,
+                }}
+              >
+                <Avatar
+                  source={
+                    i.caretakerPhoto ? { uri: i.caretakerPhoto } : undefined
+                  }
+                  name={i.caretakerName ?? ""}
+                  size="md"
+                />
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.title.sm,
+                        { color: colors.text, fontWeight: "700" },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {i.caretakerName ?? "—"}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[typography.caption, { color: colors.textMuted }]}
+                  >
+                    {formatDate(i.createdAt)}
+                  </Text>
+                </View>
+              </Pressable>
               <Pill
                 label={t(`marketplace.inquiriesMine.status.${i.status}`)}
                 tone={pillTone(i.status)}
                 size="sm"
               />
             </View>
-            <Text
-              style={[
-                typography.bodySmall,
-                { color: colors.textSecondary },
-              ]}
-              numberOfLines={3}
+
+            <View
+              style={{
+                backgroundColor: colors.surfaceMuted,
+                borderRadius: radius.md,
+                padding: spacing.sm,
+              }}
             >
-              {i.patientMessage}
-            </Text>
-            {i.status === "accepted" && i.linkId ? (
               <Text
-                style={[
-                  typography.caption,
-                  { color: colors.success },
-                ]}
+                style={[typography.body.sm, { color: colors.textMuted }]}
+                numberOfLines={3}
               >
-                {t("marketplace.inquiry.alreadyLinked")}
+                {i.patientMessage}
               </Text>
+            </View>
+
+            {i.status === "accepted" && i.linkId ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <BadgeCheck size={13} color={colors.success} />
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.success, fontWeight: "600" },
+                  ]}
+                >
+                  {t("marketplace.inquiry.alreadyLinked")}
+                </Text>
+              </View>
+            ) : null}
+
+            {i.status === "pending" ? (
+              <>
+                <Divider />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("marketplace.inquiry.withdraw")}
+                    haptic="light"
+                    onPress={() => confirmWithdraw(i.id)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: spacing.sm + 2,
+                      paddingVertical: 7,
+                      borderRadius: radius.full,
+                      backgroundColor: colors.dangerSoft,
+                    }}
+                  >
+                    <Undo2 size={12} color={colors.danger} />
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.danger, fontWeight: "700" },
+                      ]}
+                    >
+                      {t("marketplace.inquiry.withdraw")}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
             ) : null}
           </Card>
         ))}
       </ScrollView>
     </Screen>
   );
+}
+
+function formatDate(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }

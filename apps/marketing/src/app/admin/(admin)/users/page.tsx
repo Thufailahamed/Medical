@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, CheckCircle2, Search, Trash2, Pause, Play, Eye, Loader2 } from "lucide-react";
+import { Eye, Loader2, Pause, Play, Search, Trash2, Users } from "lucide-react";
+import { cn } from "@/portal/lib/utils";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { ExportButton } from "@/portal/components/admin/ExportButton";
 import { Pill, PillRow } from "@/portal/components/ui/Pill";
@@ -37,6 +38,31 @@ const STATUS_TONE: Record<string, "success" | "warn" | "danger" | "neutral"> = {
   suspended: "danger",
   rejected: "danger",
 };
+
+const ROLE_TONE: Record<string, "neutral" | "info" | "violet" | "accent" | "success" | "warn" | "danger" | "brand"> = {
+  patient: "neutral",
+  doctor: "info",
+  hospital_admin: "violet",
+  hospital_staff: "violet",
+  laboratory: "accent",
+  pharmacy: "success",
+  insurance: "warn",
+  ambulance: "danger",
+  super_admin: "brand",
+};
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
+
+const ACTION_BTN =
+  "grid h-8 w-8 place-items-center rounded-lg border border-border bg-surface text-text-muted transition-all hover:bg-surface-2 hover:text-text hover:border-border-strong";
 
 export default function AdminUsersPage() {
   const qc = useQueryClient();
@@ -124,6 +150,7 @@ export default function AdminUsersPage() {
   return (
     <div className="flex flex-col gap-4 max-w-7xl">
       <PageHeader
+        icon={<Users size={20} className="text-blue-600" />}
         title="Users"
         subtitle={`${data?.total ?? 0} users`}
         actions={
@@ -139,40 +166,57 @@ export default function AdminUsersPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+      <div className="portal-card flex flex-wrap items-center gap-2.5 rounded-2xl border border-border/70 bg-surface p-3 shadow-2xs">
+        <div className="relative w-full min-w-[220px] flex-1 sm:max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <Input
             placeholder="Search name / email / phone"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="pl-8 w-72 h-9"
+            className="h-9 w-full pl-9"
           />
         </div>
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="h-9 rounded-lg border border-border bg-surface px-3 text-sm"
+          className="h-9 rounded-lg border border-border bg-surface px-3 text-sm font-medium capitalize text-text-soft"
         >
           {ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
+            <option key={r} value={r}>
+              {r === "all" ? "All roles" : r.replace(/_/g, " ")}
+            </option>
           ))}
         </select>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 rounded-lg border border-border bg-surface px-3 text-sm"
+          className="h-9 rounded-lg border border-border bg-surface px-3 text-sm font-medium capitalize text-text-soft"
         >
           {STATUSES.map((s) => (
-            <option key={s} value={s}>status: {s}</option>
+            <option key={s} value={s}>
+              {s === "all" ? "All statuses" : s}
+            </option>
           ))}
         </select>
+        {data ? (
+          <span className="ml-auto hidden text-xs font-medium text-text-muted sm:block">
+            {data.items.length} shown
+          </span>
+        ) : null}
       </div>
 
       {isLoading || !data ? (
-        <p className="text-text-soft text-sm">Loading…</p>
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
+          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
+          <div className="h-4 w-full admin-shimmer rounded-md" />
+          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
+          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
+        </div>
       ) : data.items.length === 0 ? (
-        <div className="bg-surface border border-border rounded-2xl p-10 text-center">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
+          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
+            <Users size={18} aria-hidden />
+          </div>
           <p className="text-text-soft">No users match those filters.</p>
         </div>
       ) : (
@@ -190,7 +234,7 @@ export default function AdminUsersPage() {
                       setSelected(new Set());
                     }
                   }}
-                  className="accent-amber-600"
+                  className="accent-blue-600"
                 />
               </TH>
               <TH>Name</TH>
@@ -203,7 +247,7 @@ export default function AdminUsersPage() {
           </THead>
           <TBody>
             {data.items.map((u) => (
-              <TR key={u.id}>
+              <TR key={u.id} className={cn(selected.has(u.id) && "bg-blue-50/60 hover:bg-blue-50/60")}>
                 <TD>
                   <input
                     type="checkbox"
@@ -214,14 +258,14 @@ export default function AdminUsersPage() {
                       else next.delete(u.id);
                       setSelected(next);
                     }}
-                    className="accent-amber-600"
+                    className="accent-blue-600"
                   />
                 </TD>
                 <TD>
                   <Linkish name={u.name} id={u.id} />
                 </TD>
                 <TD>
-                  <Pill tone="brand">{u.role.replace("_", " ")}</Pill>
+                  <Pill tone={ROLE_TONE[u.role] ?? "neutral"}>{u.role.replace(/_/g, " ")}</Pill>
                 </TD>
                 <TD>
                   <PillRow>
@@ -239,46 +283,53 @@ export default function AdminUsersPage() {
                   {new Date(u.createdAt).toLocaleDateString()}
                 </TD>
                 <TD className="text-right">
-                  <div className="flex gap-1.5 justify-end">
+                  <div className="flex justify-end gap-1">
                     {u.role !== "super_admin" ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                      <button
+                        type="button"
                         onClick={() => setImpersonateTarget(u)}
                         title="Impersonate this user (step-up required)"
+                        aria-label={`Impersonate ${u.name}`}
+                        className={ACTION_BTN}
                       >
                         <Eye size={14} />
-                      </Button>
+                      </button>
                     ) : null}
                     {u.status === "suspended" ? (
-                      <Button
-                        size="sm"
-                        variant="primary"
+                      <button
+                        type="button"
                         onClick={() => toggleSuspend.mutate({ id: u.id, action: "unsuspend" })}
+                        title="Unsuspend"
+                        aria-label={`Unsuspend ${u.name}`}
+                        className={cn(ACTION_BTN, "hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600")}
                       >
-                        <Play size={14} className="mr-1" />Unsuspend
-                      </Button>
+                        <Play size={14} />
+                      </button>
                     ) : u.role !== "super_admin" ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
+                      <button
+                        type="button"
                         onClick={() => setSuspendTarget(u)}
+                        title="Suspend"
+                        aria-label={`Suspend ${u.name}`}
+                        className={cn(ACTION_BTN, "hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600")}
                       >
-                        <Pause size={14} className="mr-1" />Suspend
-                      </Button>
+                        <Pause size={14} />
+                      </button>
                     ) : null}
                     {u.role !== "super_admin" ? (
-                      <Button
-                        size="sm"
-                        variant="danger"
+                      <button
+                        type="button"
                         onClick={() => {
                           if (confirm(`Delete ${u.name}? This cannot be undone.`)) {
                             remove.mutate(u.id);
                           }
                         }}
+                        title="Delete"
+                        aria-label={`Delete ${u.name}`}
+                        className={cn(ACTION_BTN, "hover:border-red-200 hover:bg-red-50 hover:text-red-600")}
                       >
                         <Trash2 size={14} />
-                      </Button>
+                      </button>
                     ) : null}
                   </div>
                 </TD>
@@ -361,8 +412,19 @@ export default function AdminUsersPage() {
 
 function Linkish({ name, id }: { name: string; id: string }) {
   return (
-    <a href={`/admin/users/${id}`} className="hover:underline font-semibold">
-      {name}
+    <a
+      href={`/admin/users/${id}`}
+      className="flex items-center gap-2.5 no-underline hover:no-underline"
+    >
+      <span
+        aria-hidden
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-100 to-blue-200 text-[11px] font-bold text-blue-800 ring-1 ring-inset ring-blue-300/50"
+      >
+        {initials(name)}
+      </span>
+      <span className="font-semibold text-text hover:text-blue-700 hover:underline">
+        {name}
+      </span>
     </a>
   );
 }

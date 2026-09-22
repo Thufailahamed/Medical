@@ -88,8 +88,10 @@ export function ImpersonationBanner() {
   const startedAt = new Date().toLocaleTimeString();
 
   return (
-    <div className="sticky top-0 z-40 bg-red-600 text-white px-4 py-2 flex items-center gap-3 text-sm shadow-md">
-      <ShieldOff size={16} />
+    <div className="sticky top-0 z-40 flex items-center gap-3 border-b border-red-400/30 bg-gradient-to-r from-red-700 via-red-600 to-red-700 px-5 py-2.5 text-sm text-white shadow-md">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/15 ring-1 ring-inset ring-white/20">
+        <ShieldOff size={14} />
+      </span>
       <div className="flex-1">
         <b>Acting as {target.name}</b>
         <span className="opacity-80"> · {target.email} · {target.role}</span>
@@ -98,7 +100,7 @@ export function ImpersonationBanner() {
       <button
         onClick={() => endWithStepUp.mutate()}
         disabled={endWithStepUp.isPending}
-        className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-red-700 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50"
       >
         <RefreshCw size={12} className={endWithStepUp.isPending ? "animate-spin" : ""} />
         End session

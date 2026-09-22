@@ -63,7 +63,7 @@ describe("POST /appointments — mode handling", () => {
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,
       hospitalId: HOSPITAL_ID,
-      date: "2026-08-01",
+      date: "2026-12-01",
       time: "10:00",
       mode: "video",
     });
@@ -83,7 +83,7 @@ describe("POST /appointments — mode handling", () => {
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,
       hospitalId: HOSPITAL_ID,
-      date: "2026-08-02",
+      date: "2026-12-02",
       time: "11:00",
     });
     if (res.status !== 201) {
@@ -99,7 +99,7 @@ describe("POST /appointments — mode handling", () => {
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,
       hospitalId: HOSPITAL_ID,
-      date: "2026-08-03",
+      date: "2026-12-03",
       time: "12:00",
       mode: "audio",
     });

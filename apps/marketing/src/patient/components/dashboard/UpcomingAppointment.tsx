@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarDays, Video } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { CardHeader } from "@/patient/components/primitives/CardHeader";
@@ -9,6 +10,7 @@ import { Pill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useAppointments } from "@/patient/hooks";
 import { formatDayLabel, formatTime } from "@/patient/lib/format";
+import { teleconsultApi } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
 
 function CountdownChip({ date }: { date: string }) {
@@ -32,6 +34,29 @@ function CountdownChip({ date }: { date: string }) {
 
 export function UpcomingAppointment({ className }: { className?: string }) {
   const query = useAppointments();
+  const [activeSession, setActiveSession] = useState<{
+    roomId: string;
+    appointmentId: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await teleconsultApi.getActiveForMe();
+        if (!cancelled) setActiveSession(res.session);
+      } catch {
+        /* ignore */
+      }
+    };
+    void load();
+    const id = setInterval(load, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
   return (
     <Card accent="sky" className={cn("anim-rise", className)}>
       <CardHeader
@@ -86,6 +111,20 @@ export function UpcomingAppointment({ className }: { className?: string }) {
                 <Pill tone={next.mode === "video" ? "brand" : "neutral"}>
                   {next.mode === "video" ? "Video" : "In-person"}
                 </Pill>
+                {next.mode === "video" ? (
+                  <Link
+                    href={`/patient/teleconsult/${
+                      activeSession?.appointmentId === next.id
+                        ? activeSession.roomId
+                        : "__pending__"
+                    }`}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-violet-600"
+                    data-testid="join-call-link"
+                  >
+                    <Video size={13} />
+                    Join Call
+                  </Link>
+                ) : null}
                 <Link
                   href={`/patient/appointments/${next.id}/reschedule`}
                   className="text-[11px] font-bold text-text-muted hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"

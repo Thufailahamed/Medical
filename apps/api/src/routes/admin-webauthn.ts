@@ -43,6 +43,35 @@ function purgeOld(): void {
   }
 }
 
+async function saveChallenge(c: any, key: string, entry: ChallengeEntry): Promise<void> {
+  if (c.env?.WEBAUTHN_KV) {
+    await c.env.WEBAUTHN_KV.put(key, JSON.stringify(entry), { expirationTtl: 300 });
+  } else {
+    challenges.set(key, entry);
+  }
+}
+
+async function getChallenge(c: any, key: string): Promise<ChallengeEntry | null> {
+  if (c.env?.WEBAUTHN_KV) {
+    const raw = await c.env.WEBAUTHN_KV.get(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  return challenges.get(key) || null;
+}
+
+async function deleteChallenge(c: any, key: string): Promise<void> {
+  if (c.env?.WEBAUTHN_KV) {
+    await c.env.WEBAUTHN_KV.delete(key);
+  } else {
+    challenges.delete(key);
+  }
+}
+
 function b64url(buf: Buffer | string): string {
   const b = typeof buf === "string" ? Buffer.from(buf) : buf;
   return b.toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
@@ -105,7 +134,7 @@ webauthnRouter.post("/register/options", async (c) => {
   const me = c.get("dbUser");
   purgeOld();
   const challenge = newChallenge();
-  challenges.set(`reg:${me.id}`, { challenge, userId: me.id, createdAt: Date.now() });
+  await saveChallenge(c, `reg:${me.id}`, { challenge, userId: me.id, createdAt: Date.now() });
 
   // Existing credential IDs so the browser can exclude them.
   const db = c.get("db");
@@ -159,7 +188,7 @@ webauthnRouter.post("/register/verify", async (c) => {
   if (!parsed.success) {
     return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
-  const entry = challenges.get(`reg:${me.id}`);
+  const entry = await getChallenge(c, `reg:${me.id}`);
   if (!entry) return c.json({ error: "No registration challenge issued (or expired)" }, 400);
 
   // Minimal client-data check: the challenge must appear in the
@@ -178,7 +207,7 @@ webauthnRouter.post("/register/verify", async (c) => {
     return c.json({ error: "Wrong ceremony type" }, 400);
   }
 
-  challenges.delete(`reg:${me.id}`);
+  await deleteChallenge(c, `reg:${me.id}`);
 
   // Store the credential. Public key is opaque — in production
   // this would be the parsed COSE key. We keep whatever the
@@ -223,7 +252,7 @@ webauthnRouter.post("/auth/options", async (c) => {
     return c.json({ error: "No passkeys enrolled", code: "no_passkeys" }, 400);
   }
   const challenge = newChallenge();
-  challenges.set(`auth:${me.id}`, { challenge, userId: me.id, createdAt: Date.now() });
+  await saveChallenge(c, `auth:${me.id}`, { challenge, userId: me.id, createdAt: Date.now() });
   return c.json({
     challenge,
     rpId: getRpId(c),
@@ -255,7 +284,7 @@ webauthnRouter.post("/auth/verify", async (c) => {
   if (!parsed.success) {
     return c.json({ error: "Validation failed", details: flattenTranslated(parsed.error, c.get("locale")) }, 400);
   }
-  const entry = challenges.get(`auth:${me.id}`);
+  const entry = await getChallenge(c, `auth:${me.id}`);
   if (!entry) return c.json({ error: "No auth challenge issued (or expired)" }, 400);
 
   let clientData: any;
@@ -271,7 +300,7 @@ webauthnRouter.post("/auth/verify", async (c) => {
     return c.json({ error: "Wrong ceremony type" }, 400);
   }
 
-  challenges.delete(`auth:${me.id}`);
+  await deleteChallenge(c, `auth:${me.id}`);
 
   // Find the credential.
   const [cred] = await db

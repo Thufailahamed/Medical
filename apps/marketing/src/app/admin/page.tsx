@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/portal/stores/auth";
 import { loginHref } from "@/portal/lib/login";
 
@@ -22,8 +23,11 @@ export default function AdminEntryPage() {
   }, [hydrated, token, user, router]);
 
   return (
-    <div className="min-h-screen grid place-items-center text-text-soft">
-      <p className="text-sm">Loading…</p>
+    <div className="min-h-screen grid place-items-center admin-bg text-text-soft">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 size={22} className="animate-spin text-blue-600" />
+        <p className="text-sm font-medium">Loading…</p>
+      </div>
     </div>
   );
 }

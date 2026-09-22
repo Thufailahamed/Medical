@@ -111,7 +111,7 @@ export default function AdminDSARPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-7xl">
-      <PageHeader title="Privacy / DSAR requests" icon={<FileLock2 size={20} className="text-amber-600" />} />
+      <PageHeader title="Privacy / DSAR requests" icon={<FileLock2 size={20} className="text-blue-600" />} />
 
       <div className="flex flex-wrap gap-1.5">
         {STATUSES.map((s) => (
@@ -122,9 +122,17 @@ export default function AdminDSARPage() {
       </div>
 
       {isLoading || !data ? (
-        <p className="text-text-soft text-sm">Loading…</p>
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
+          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
+          <div className="h-4 w-full admin-shimmer rounded-md" />
+          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
+          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
+        </div>
       ) : data.items.length === 0 ? (
-        <div className="bg-surface border border-border rounded-2xl p-10 text-center text-text-soft">No {status} requests.</div>
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
+          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
+            <FileLock2 size={18} aria-hidden />
+          </div>No {status} requests.</div>
       ) : (
         <Table>
           <THead>
@@ -146,7 +154,7 @@ export default function AdminDSARPage() {
                 <TD><Pill tone={STATUS_TONE[r.status] ?? "neutral"}>{r.status}</Pill></TD>
                 <TD className="text-xs">
                   {r.resultUrl ? (
-                    <a href={r.resultUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-amber-700 hover:underline">
+                    <a href={r.resultUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:underline">
                       Download <ExternalLink size={12} />
                     </a>
                   ) : "—"}

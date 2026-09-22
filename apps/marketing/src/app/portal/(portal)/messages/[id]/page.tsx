@@ -2,7 +2,7 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Send, RefreshCcw } from "lucide-react";
+import { ArrowLeft, Send, RefreshCcw, Lock, Unlock } from "lucide-react";
 import Link from "next/link";
 
 import { api } from "@/portal/lib/api";
@@ -24,7 +24,18 @@ interface Message {
 }
 
 interface ConversationDetail {
-  conversation: { id: string; patientId: string; patient: { name: string; photo: string | null } };
+  conversation: {
+    id: string;
+    patientId: string;
+    status: "open" | "closed";
+  };
+  patient: {
+    id: string;
+    userId: string;
+    name: string;
+    photo: string | null;
+    phone: string | null;
+  } | null;
   messages: Message[];
 }
 
@@ -63,6 +74,18 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
     },
   });
 
+  const setStatus = useMutation({
+    mutationFn: (status: "open" | "closed") =>
+      api(`/doctor-messages/conversations/${id}`, {
+        method: "PATCH",
+        json: { status },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctor-messages", "conversation", id] });
+      qc.invalidateQueries({ queryKey: ["doctor-messages", "conversations"] });
+    },
+  });
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim() || send.isPending) return;
@@ -70,7 +93,8 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
   }
 
   const msgs = data?.messages ?? [];
-  const patient = data?.conversation?.patient;
+  const patient = data?.patient;
+  const isClosed = data?.conversation?.status === "closed";
 
   return (
     <div className="flex flex-col gap-3 h-[calc(100vh-100px)]">
@@ -84,10 +108,23 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
             <div className="min-w-0">
               <div className="text-sm font-semibold text-text truncate">{patient.name}</div>
               <div className="text-[10px] text-text-muted">
-                {t("messages.conversationHash", { id: id.slice(0, 8) })}
+                {isClosed
+                  ? t("messages.closed")
+                  : t("chart.messages.conversationHash", { id: id.slice(0, 8) })}
               </div>
             </div>
           </div>
+        ) : null}
+        {data?.conversation ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={setStatus.isPending}
+            leftIcon={isClosed ? <Unlock size={12} /> : <Lock size={12} />}
+            onClick={() => setStatus.mutate(isClosed ? "open" : "closed")}
+          >
+            {isClosed ? t("messages.reopenThread") : t("messages.closeThread")}
+          </Button>
         ) : null}
       </div>
 
@@ -111,7 +148,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
           {isLoading ? (
             <Skeleton className="h-20 w-full" />
           ) : msgs.length === 0 ? (
-            <Empty title={t("messages.emptyConversation")} />
+            <Empty title={t("chart.messages.emptyConversation")} />
           ) : (
             msgs.map((m) => {
               const mine = m.senderRole === "doctor";
@@ -140,32 +177,50 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
           )}
           <div ref={bottomRef} />
         </div>
-        <form
-          onSubmit={onSubmit}
-          className="border-t border-border p-3 flex items-end gap-2"
-        >
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onSubmit(e);
-              }
-            }}
-            placeholder={t("messages.composerPlaceholder")}
-            rows={1}
-            className="flex-1 resize-none max-h-32 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted focus-ring focus:border-brand focus:outline-none"
-          />
-          <Button
-            type="submit"
-            disabled={!body.trim() || send.isPending}
-            loading={send.isPending}
-            leftIcon={<Send size={14} />}
+        {isClosed ? (
+          <div className="border-t border-border p-3 flex items-center justify-between gap-3 bg-surface-2">
+            <span className="flex items-center gap-2 text-xs text-text-muted">
+              <Lock size={13} />
+              {t("messages.closedHint")}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={setStatus.isPending}
+              leftIcon={<Unlock size={12} />}
+              onClick={() => setStatus.mutate("open")}
+            >
+              {t("messages.reopenThread")}
+            </Button>
+          </div>
+        ) : (
+          <form
+            onSubmit={onSubmit}
+            className="border-t border-border p-3 flex items-end gap-2"
           >
-            {t("common.send")}
-          </Button>
-        </form>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  onSubmit(e);
+                }
+              }}
+              placeholder={t("messages.typeMessage")}
+              rows={1}
+              className="flex-1 resize-none max-h-32 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted focus-ring focus:border-brand focus:outline-none"
+            />
+            <Button
+              type="submit"
+              disabled={!body.trim() || send.isPending}
+              loading={send.isPending}
+              leftIcon={<Send size={14} />}
+            >
+              {t("common.send")}
+            </Button>
+          </form>
+        )}
       </Card>
     </div>
   );

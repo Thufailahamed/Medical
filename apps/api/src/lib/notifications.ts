@@ -73,10 +73,14 @@ export async function notify(input: NotifyInput): Promise<void> {
     sms = true;
   }
 
-  // 2. Insert DB row.
+  // 2. Insert DB row. Keep the generated id so the push ticket can be
+  // stamped back onto the same row for the receipts cron.
+  let notificationId: string | null = null;
   if (inApp) {
     try {
+      notificationId = crypto.randomUUID();
       await db.insert(notifications).values({
+        id: notificationId,
         userId,
         type,
         title,
@@ -85,10 +89,12 @@ export async function notify(input: NotifyInput): Promise<void> {
       } as any);
     } catch (err) {
       console.error("notify insert failed:", err);
+      notificationId = null;
     }
   }
 
-  // 3. Dispatch push (best-effort, never throws).
+  // 3. Dispatch push (best-effort, never throws). Capture Expo ticket
+  // ids so pollReceipts can mark delivered/failed and reap dead tokens.
   if (push) {
     try {
       const tokens = await db
@@ -96,7 +102,7 @@ export async function notify(input: NotifyInput): Promise<void> {
         .from(pushTokens)
         .where(eq(pushTokens.userId, userId));
       if (tokens.length > 0) {
-        await sendExpoPush(
+        const tickets = await sendExpoPush(
           tokens.map((t: any) => ({
             to: t.token,
             title,
@@ -105,6 +111,12 @@ export async function notify(input: NotifyInput): Promise<void> {
             sound: "default",
           }))
         );
+        if (notificationId && tickets.length > 0) {
+          await db
+            .update(notifications)
+            .set({ expoTicket: tickets[0], status: "sent" } as any)
+            .where(eq(notifications.id, notificationId));
+        }
       }
     } catch (err) {
       console.error("push dispatch failed:", err);
@@ -128,12 +140,16 @@ export async function notify(input: NotifyInput): Promise<void> {
   }
 }
 
-async function sendExpoPush(messages: any[]): Promise<void> {
+// Returns the Expo ticket ids (one per accepted message). Ticket ids
+// are what /push/getReceipts polls — without persisting them delivery
+// state is untracked and dead tokens are never reaped.
+async function sendExpoPush(messages: any[]): Promise<string[]> {
+  const ticketIds: string[] = [];
   // Chunk to 100 per Expo spec.
   for (let i = 0; i < messages.length; i += 100) {
     const chunk = messages.slice(i, i + 100);
     try {
-      await fetch(EXPO_PUSH_URL, {
+      const res = await fetch(EXPO_PUSH_URL, {
         method: "POST",
         headers: {
           "Accept": "application/json",
@@ -141,10 +157,17 @@ async function sendExpoPush(messages: any[]): Promise<void> {
         },
         body: JSON.stringify(chunk),
       });
+      const json = (await res.json().catch(() => null)) as {
+        data?: Array<{ status?: string; id?: string }>;
+      } | null;
+      for (const ticket of json?.data ?? []) {
+        if (ticket?.id) ticketIds.push(ticket.id);
+      }
     } catch (err) {
       console.error("Expo push request failed:", err);
     }
   }
+  return ticketIds;
 }
 
 /**

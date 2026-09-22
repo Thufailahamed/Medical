@@ -36,6 +36,7 @@ interface ConvRow {
   lastMessageAt: string;
   lastMessagePreview: string | null;
   doctorUnread: number;
+  status: "open" | "closed";
 }
 
 export default function MessagesInboxPage() {
@@ -63,7 +64,7 @@ export default function MessagesInboxPage() {
           patient: { id: string; nic?: string | null; dob?: string | null; sex?: string | null; photo?: string | null };
           user: { id: string; name: string };
         }>;
-      }>("/doctor/search-patients?q=&limit=5"),
+      }>("/doctor/search-patients?recent=1&limit=5"),
   });
 
   const startConversation = useMutation({
@@ -82,8 +83,8 @@ export default function MessagesInboxPage() {
       setIsCreating(false);
       router.push(`/portal/messages/${conv.id}`);
     },
-    onError: (err: any) => {
-      toast.error(t("toast.error"), err?.message ?? "Failed to open conversation");
+    onError: (err: unknown) => {
+      toast.error(t("toast.error"), err instanceof Error ? err.message : "Failed to open conversation");
     },
   });
 
@@ -324,6 +325,12 @@ export default function MessagesInboxPage() {
                             {isUnread && (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-600 text-white shadow-2xs">
                                 New
+                              </span>
+                            )}
+                            {c.status === "closed" && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs flex items-center gap-1">
+                                <Lock size={9} />
+                                {t("messages.closed")}
                               </span>
                             )}
                           </div>

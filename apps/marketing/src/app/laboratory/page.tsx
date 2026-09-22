@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 interface LabJob {
   id: string;
@@ -14,6 +15,7 @@ interface LabJob {
 }
 
 export default function LaboratoryPortal() {
+  redirect("/lab-portal");
   const [jobs, setJobs] = useState<LabJob[]>([
     { id: "J801", patientName: "Ahamed Thufail", nic: "1994198300V", testType: "Lipid Panel", status: "Completed", confidence: 98, time: "15:20" },
     { id: "J802", patientName: "Dilanka Senavirathne", nic: "1990283944V", testType: "Full Blood Count (FBC)", status: "Pending Verification", confidence: 87, time: "15:35" },

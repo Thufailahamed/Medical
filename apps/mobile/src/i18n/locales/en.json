@@ -176,6 +176,10 @@
         "label": "Vaccinations",
         "description": "Immunization schedule alerts"
       },
+      "teleconsult": {
+        "label": "Teleconsults",
+        "description": "Video visit start & call alerts"
+      },
       "insurance": {
         "label": "Insurance",
         "description": "Claims, expiry, updates"
@@ -232,6 +236,12 @@
     "noneRecorded": "None recorded",
     "onFile": "{{count}} on file",
     "manageInFamily": "Manage in Family",
+    "quick": {
+      "edit": "Edit",
+      "healthId": "Health ID",
+      "share": "Share",
+      "family": "Family"
+    },
     "item": {
       "editProfile": {
         "label": "Edit profile",
@@ -1154,6 +1164,24 @@
       "share": "Share {{name}}'s records",
       "remove": "Remove {{name}}"
     },
+    "act": {
+      "call": "Call",
+      "message": "Text",
+      "share": "Share",
+      "remove": "Remove"
+    },
+    "lock": {
+      "lockedBadge": "Locked",
+      "confirmLockTitle": "Lock records?",
+      "confirmLock": "{{name}}'s records will be hidden from family views until you unlock them.",
+      "confirmUnlockTitle": "Unlock records?",
+      "confirmUnlock": "{{name}}'s records will be visible in family views again.",
+      "toggleLock": "Lock",
+      "toggleUnlock": "Unlock",
+      "toastLocked": "{{name}} locked",
+      "toastUnlocked": "{{name}} unlocked",
+      "toastError": "Couldn't update the lock"
+    },
     "compose": {
       "nameLabel": "Name",
       "namePlaceholder": "e.g., Mother",
@@ -1242,6 +1270,8 @@
       "revoke": "Revoke",
       "revoked": "Invite revoked",
       "pendingTitle": "Pending invites",
+      "pendingCount_one": "{{count}} pending",
+      "pendingCount_other": "{{count}} pending",
       "pendingEmpty": "No pending invites.",
       "pendingExpires": "Expires {{date}}",
       "summary": {
@@ -1740,7 +1770,7 @@
       "editTags": "Edit tags"
     },
     "quickActions": {
-      "edit": "Edit record",
+      "edit": "Edit",
       "share": "Share",
       "link": "Link"
     },
@@ -1967,7 +1997,13 @@
     "rateCta": "Rate this visit",
     "youRated": "You rated this visit ★ {{stars}}",
     "helpCta": "Need help with this visit?",
-    "helpBody": "Chat with us on WhatsApp — usually replies within an hour."
+    "helpBody": "Chat with us on WhatsApp — usually replies within an hour.",
+    "cancel": "Cancel appointment",
+    "cancelConfirmTitle": "Cancel Appointment?",
+    "cancelConfirmMessage": "Are you sure you want to cancel this appointment? This action cannot be undone.",
+    "cancelConfirmAction": "Yes, Cancel",
+    "cancelSuccess": "Appointment cancelled",
+    "cancelError": "Could not cancel appointment"
   },
   "bookAppointment": {
     "title": "Book appointment",
@@ -2302,6 +2338,16 @@
     "sessionFallbackWhen": "Tap to open",
     "sessionDeleteA11y": "Delete chat",
     "disclaimer": "AI can make mistakes. Confirm important info with your doctor.",
+    "heroTitle": "Health Assistant",
+    "heroSubtitle": "Personalized answers grounded in your private medical records",
+    "suggestedTitle": "Suggested Topics",
+    "suggestedSubtitle": "Tap any topic to ask with your context",
+    "recentTitle": "Recent Conversations",
+    "deleteConfirmTitle": "Delete chat?",
+    "deleteConfirmMsg": "This chat session and its messages will be permanently deleted.",
+    "privacyPill": "Private & Encrypted",
+    "recordsPill": "Records-Aware AI",
+    "tapToContinue": "Tap to open",
     "newChatTitle": "New chat",
     "sendError": "Could not send",
     "createError": "Could not start chat",
@@ -3053,7 +3099,8 @@
     "empty": "No patients yet",
     "emptyBody": "Patients who grant you record access will appear here.",
     "recordsTab": "Records",
-    "consentBanner": "Only records you have consent to view are shown"
+    "consentBanner": "Only records you have consent to view are shown",
+    "actionMessage": "Message"
   },
   "hospitalRedirect": {
     "title": "Hospital operations on the web",
@@ -3307,7 +3354,9 @@
     "howStep3": "Open the app to set a record type, title, and date — your records are yours to organize.",
     "legacyHeading": "Send from your verified email",
     "legacyBody": "You can also send from {{email}} — we'll route by sender even without the alias.",
-    "legacyAction": "Open mail"
+    "legacyAction": "Open mail",
+    "legacyHint": "We'll route by sender even without the alias",
+    "step": "Step {{n}}"
   },
   "auth": {
     "login": {
@@ -3511,12 +3560,23 @@
     "subtitleWithUnread": "{{count}} unread message",
     "subtitleWithUnread_other": "{{count}} unread messages",
     "emptyTitle": "No conversations yet",
-    "emptyBody": "Tap a patient from Prescribe to start a chat — or open any patient profile to send a message.",
+    "emptyBody": "Tap + to pick a patient and start a secure chat, or message a patient from their profile.",
     "startCta": "Start a conversation",
     "notFound": "Conversation not found",
     "noMessagesYet": "No messages yet — say hello.",
     "composerPlaceholder": "Type a message…",
     "youPrefix": "You:",
+    "newTitle": "New conversation",
+    "newSubtitle": "Pick a patient to message",
+    "searchPlaceholder": "Search patients by name or phone…",
+    "recentPatients": "Recent patients",
+    "patientFallback": "Patient",
+    "tapToMessage": "Tap to start chatting",
+    "startFailed": "Couldn't start the conversation. Try again.",
+    "noPatientsFound": "No patients found",
+    "noPatientsFoundBody": "Only patients you have a relationship with can be messaged — appointments, prescriptions, records, or care team.",
+    "noRecentPatients": "No patients yet",
+    "noRecentPatientsBody": "Patients you treat will appear here for quick messaging.",
     "errorTitle": "Couldn't load messages",
     "errorBody": "Check your connection and try again."
   },
@@ -3774,6 +3834,11 @@
   "caretaker": {
     "title": "Caretakers",
     "subtitle": "Family members who can manage your health info",
+    "countActive_one": "{{count}} active",
+    "countActive_other": "{{count}} active",
+    "countPending_one": "{{count}} pending",
+    "countPending_other": "{{count}} pending",
+    "invitesTitle": "Pending invites",
     "addCta": "Add a caretaker",
     "emptyTitle": "No caretakers yet",
     "emptyBody": "Invite a family member to help manage your records, medicines, and appointments.",
@@ -3896,7 +3961,10 @@
       "sent": "Inquiry sent",
       "failed": "Could not send inquiry",
       "alreadyLinked": "You already have this caretaker linked",
-      "alreadyPending": "Inquiry sent — awaiting response"
+      "alreadyPending": "Inquiry sent — awaiting response",
+      "withdraw": "Withdraw",
+      "withdrawConfirm": "Withdraw this inquiry?",
+      "withdrawn": "Inquiry withdrawn"
     },
     "listing": {
       "title": "Marketplace",
@@ -3923,7 +3991,10 @@
       "decline": "Decline",
       "acceptConfirm": "Accept this inquiry?",
       "declineConfirm": "Decline this inquiry?",
-      "patientMessage": "Message from patient"
+      "patientMessage": "Message from patient",
+      "listedHint": "Your listing is live — patients can send inquiries",
+      "bioPlaceholder": "Tell patients about your experience and the care you offer.",
+      "districtPlaceholder": "Other district…"
     },
     "inquiriesMine": {
       "title": "Sent inquiries",
@@ -3932,9 +4003,11 @@
         "pending": "Awaiting response",
         "accepted": "Accepted",
         "declined": "Declined",
-        "expired": "Expired"
+        "expired": "Expired",
+        "withdrawn": "Withdrawn"
       }
-    }
+    },
+    "perHour": "per hour"
   },
   "consult": {
     "startVideoVisit": "Start video visit",
@@ -3958,9 +4031,11 @@
     "turnMissing": "Your network may block video calls. Contact support if this keeps happening.",
     "permissionDenied": "Camera or microphone access was blocked. Allow it in Settings and rejoin.",
     "startVideoError": "Could not start video visit. Please try again.",
-    "bannerWaiting": "Video session created — tap to enter",
-    "bannerInCall": "Call in progress — tap to return",
+    "bannerWaiting": "Video visit ready",
+    "bannerInCall": "Call in progress",
     "bannerRoom": "Room {{roomId}}",
+    "bannerJoin": "Join",
+    "bannerReturn": "Return",
     "bannerDismiss": "Dismiss",
     "noPatient": "No patient linked",
     "noRecords": "No recent records",
@@ -3979,7 +4054,8 @@
       "records": "Records",
       "prescriptions": "Prescriptions",
       "clinicalNote": "Notes"
-    }
+    },
+    "flipCamera": "Flip camera"
   },
   "testCatalog": {
     "title": "Book a Test",

@@ -22,7 +22,7 @@ export function Empty({
       )}
     >
       {icon ? (
-        <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-3.5 border border-sky-100 shadow-xs">
+        <div className="h-14 w-14 rounded-2xl bg-brand-soft/60 text-brand ring-1 ring-inset ring-brand/15 flex items-center justify-center mb-3.5 shadow-xs">
           {icon}
         </div>
       ) : null}

@@ -70,7 +70,7 @@ export const TYPE_TO_QUERY_KEYS: Record<string, readonly (readonly string[])[]> 
   emergency: [["emergency"], ["patient", "emergency"]],
   vaccination: [["vaccinations"], ["patient", "vaccinations"]],
   general: [
-    ["doctor-messages", "conversations"],
+    ["doctor-messages"],
     ["doctor-portal", "messages"],
     ["inbox"],
     ["patient", "messages"],

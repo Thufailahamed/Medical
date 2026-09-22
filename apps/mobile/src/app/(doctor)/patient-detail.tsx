@@ -34,6 +34,7 @@ import {
   usePatientSnapshot,
   usePreVisitSummary,
   useUpcomingAppointmentsForPatient,
+  useStartConversation,
   type VitalsPoint,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -66,6 +67,7 @@ export default function DoctorPatientDetail() {
 
   const { data, isLoading, isError, refetch } = usePatientSummary(id || null);
   const { data: overview, isLoading: overviewLoading } = usePatientOverview(id || null);
+  const startConversation = useStartConversation();
   // Tier 1 records: Patient Health Snapshot (doctor view).
   const { data: snapshot, isLoading: snapshotLoading } = usePatientSnapshot(id || null);
   // Tier 1 records PR3: pre-visit summary. Pulls the next upcoming
@@ -246,6 +248,23 @@ export default function DoctorPatientDetail() {
                 params: { patientId: id },
               })
             }
+          />
+          <Button
+            title={t("doctorPatientDetail.actionMessage")}
+            icon={MessageSquare}
+            variant="secondary"
+            size="sm"
+            fullWidth={false}
+            loading={startConversation.isPending}
+            onPress={async () => {
+              try {
+                const res = await startConversation.mutateAsync(id);
+                const convId = res?.conversation?.id;
+                if (convId) router.push(`/(doctor)/inbox/${convId}` as any);
+              } catch {
+                // no-op: React Query surfaces the error state
+              }
+            }}
           />
           <Button
             title={t("doctorPatientDetail.actionClinicalNote")}

@@ -14,6 +14,7 @@ import {
   Pill,
   Search,
   ShieldCheck,
+  Video,
   X,
 } from "lucide-react";
 
@@ -42,8 +43,19 @@ function cleanNotificationBody(body: string | null | undefined): string {
   });
 }
 
-function getNotificationCategory(title: string, type: string) {
+function getNotificationCategory(title: string, type: string, data?: unknown) {
   const text = `${title} ${type}`.toLowerCase();
+  if (type === "teleconsult" || text.includes("teleconsult") || text.includes("video")) {
+    const payload = data as { roomId?: unknown } | null | undefined;
+    const roomId =
+      payload && typeof payload.roomId === "string" ? payload.roomId : null;
+    return {
+      category: "appointments",
+      icon: Video,
+      bg: "bg-violet-50 text-violet-700 border-violet-100",
+      link: roomId ? `/patient/teleconsult/${roomId}` : "/patient/appointments",
+    };
+  }
   if (text.includes("appoint") || text.includes("visit") || text.includes("doctor")) {
     return {
       category: "appointments",
@@ -422,7 +434,7 @@ export default function NotificationsPage() {
         ) : (
           <div className="flex flex-col gap-2.5">
             {filteredNotifications.map((n) => {
-              const meta = getNotificationCategory(n.title, n.type);
+              const meta = getNotificationCategory(n.title, n.type, n.data);
               const CategoryIcon = meta.icon;
               const formattedBody = cleanNotificationBody(n.body);
 

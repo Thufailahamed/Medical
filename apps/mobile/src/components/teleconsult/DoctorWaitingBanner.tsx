@@ -17,23 +17,42 @@
  * status flips within ~5s (staleTime).
  */
 
-import { useState } from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Video, PhoneIncoming, X } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Video, PhoneIncoming, X, ChevronRight } from "lucide-react-native";
 import { useActiveTeleconsultSession } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function DoctorWaitingBanner() {
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors, spacing, radius, typography } = useTheme();
   const { data, isLoading } = useActiveTeleconsultSession();
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
 
   const session = data?.session ?? null;
   const dismissed = session ? dismissedFor === session.roomId : false;
+
+  const isLive =
+    !!session && (session.status === "ringing" || session.status === "active");
+
+  // Gentle pulse on the live dot while a call is ringing/active.
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!isLive) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.35, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isLive, pulse]);
 
   if (isLoading || !session || dismissed) return null;
 
@@ -43,24 +62,25 @@ export default function DoctorWaitingBanner() {
     return null;
   }
 
-  const isLive = session.status === "ringing" || session.status === "active";
   const Icon = isLive ? PhoneIncoming : Video;
-  const tint = isLive ? "success" : "primary";
-  const toneBg = isLive ? colors.successSoft : colors.primarySoft;
   const toneFg = isLive ? colors.success : colors.primary;
   const label = isLive
-    ? t("consult.bannerInCall", "Call in progress — tap to return")
-    : t("consult.bannerWaiting", "Video session created — tap to enter");
+    ? t("consult.bannerInCall", "Call in progress")
+    : t("consult.bannerWaiting", "Video session created");
+  const cta = isLive
+    ? t("consult.bannerReturn", "Return")
+    : t("consult.bannerJoin", "Join");
 
   return (
     <View
       pointerEvents="box-none"
       style={{
         position: "absolute",
-        top: spacing.md,
+        top: insets.top + spacing.xs,
         left: spacing.md,
         right: spacing.md,
         zIndex: 50,
+        elevation: 6,
       }}
     >
       <Pressable
@@ -70,28 +90,29 @@ export default function DoctorWaitingBanner() {
             params: { roomId: session.roomId },
           })
         }
-        style={{
+        style={({ pressed }) => ({
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.sm,
           paddingVertical: 10,
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: spacing.sm,
           borderRadius: radius.lg,
-          backgroundColor: toneBg,
+          backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: toneFg,
+          borderColor: colors.border,
           shadowColor: "#000",
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: 3,
-        }}
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 6,
+          opacity: pressed ? 0.9 : 1,
+        })}
       >
         <View
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: toneFg,
@@ -99,19 +120,48 @@ export default function DoctorWaitingBanner() {
         >
           <Icon size={18} color="#fff" strokeWidth={2.25} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text
-            numberOfLines={1}
-            style={[typography.body.sm, { color: colors.text, fontWeight: "700" }]}
-          >
-            {label}
-          </Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            {isLive && (
+              <Animated.View
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: 4,
+                  backgroundColor: toneFg,
+                  opacity: pulse,
+                }}
+              />
+            )}
+            <Text
+              numberOfLines={1}
+              style={[typography.body.sm, { color: colors.text, fontWeight: "700" }]}
+            >
+              {label}
+            </Text>
+          </View>
           <Text
             numberOfLines={1}
             style={[typography.caption, { color: colors.textMuted }]}
           >
             {t("consult.bannerRoom", { roomId: session.roomId })}
           </Text>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 2,
+            paddingVertical: 6,
+            paddingHorizontal: 10,
+            borderRadius: radius.full,
+            backgroundColor: toneFg,
+          }}
+        >
+          <Text style={[typography.caption, { color: "#fff", fontWeight: "700" }]}>
+            {cta}
+          </Text>
+          <ChevronRight size={14} color="#fff" strokeWidth={2.5} />
         </View>
         <Pressable
           onPress={() => setDismissedFor(session.roomId)}
@@ -124,9 +174,10 @@ export default function DoctorWaitingBanner() {
             borderRadius: 14,
             alignItems: "center",
             justifyContent: "center",
+            backgroundColor: colors.surfaceMuted,
           }}
         >
-          <X size={16} color={colors.textMuted} strokeWidth={2.25} />
+          <X size={14} color={colors.textMuted} strokeWidth={2.25} />
         </Pressable>
       </Pressable>
     </View>

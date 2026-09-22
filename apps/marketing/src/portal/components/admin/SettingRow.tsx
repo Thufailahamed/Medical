@@ -36,7 +36,7 @@ function ValueInput({
           type="checkbox"
           checked={!!value}
           onChange={(e) => onChange(e.target.checked)}
-          className="w-4 h-4 accent-amber-600"
+          className="w-4 h-4 accent-blue-600"
         />
         <span className="text-sm font-mono">{value ? "true" : "false"}</span>
       </label>
@@ -123,7 +123,7 @@ export function SettingRow({ item }: { item: SettingItem }) {
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm font-semibold">{item.key}</span>
           {item.isSensitive ? (
-            <span title="Sensitive — confirm before save" className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-amber-700">
+            <span title="Sensitive — confirm before save" className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-blue-700">
               <AlertTriangle size={11} /> sensitive
             </span>
           ) : null}
@@ -169,7 +169,7 @@ export function SettingRow({ item }: { item: SettingItem }) {
             <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmedSave} className="bg-amber-600 hover:bg-amber-700 text-white">
+            <Button onClick={handleConfirmedSave} className="bg-blue-600 hover:bg-blue-700 text-white">
               Confirm and save
             </Button>
           </div>
@@ -180,17 +180,17 @@ export function SettingRow({ item }: { item: SettingItem }) {
             This is a sensitive setting. The change takes effect immediately and
             cannot be undone from this UI.
           </p>
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <div className="text-xs uppercase tracking-widest text-amber-700 font-semibold">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="text-xs uppercase tracking-widest text-blue-700 font-semibold">
               Before
             </div>
-            <pre className="mt-1 text-xs font-mono text-amber-900">
+            <pre className="mt-1 text-xs font-mono text-blue-900">
               {JSON.stringify(item.value, null, 2)}
             </pre>
-            <div className="mt-3 text-xs uppercase tracking-widest text-amber-700 font-semibold">
+            <div className="mt-3 text-xs uppercase tracking-widest text-blue-700 font-semibold">
               After
             </div>
-            <pre className="mt-1 text-xs font-mono text-amber-900">
+            <pre className="mt-1 text-xs font-mono text-blue-900">
               {JSON.stringify(draft, null, 2)}
             </pre>
           </div>

@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { eq, and, desc, asc, or, like, gte, lt, isNull, sql, inArray } from "drizzle-orm";
+import { eq, ne, and, desc, asc, or, like, gte, lt, isNull, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
   doctors,
@@ -62,6 +62,7 @@ import {
   lockedFmIdsForPrincipal,
 } from "../lib/family-lock";
 import { flattenTranslated } from "../lib/validation-error";
+import { encryptPii } from "../lib/pii-cipher";
 import { txWrite, UniqueViolation } from "../lib/tx";
 import {
   withStatusGuard,
@@ -139,6 +140,183 @@ async function resolveActiveTenant(
     isActive: false,
   };
 }
+
+// ─── GET /profile ────────────────────────────────────────
+// Hydrates the portal Settings page: doctor row + the owning user's
+// identity fields (name/email/phone live on `users`, not `doctors`).
+doctorPortalRouter.get("/profile", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const [user] = await db
+    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const { signingPrivateKeyEnc: _sk, ...safeDoctor } = doctor;
+  return c.json({ doctor: safeDoctor, user });
+});
+
+// ─── PATCH /profile ──────────────────────────────────────
+// Doctor self-service settings. Two surfaces:
+//   users row  — name, email, phone (login identifiers; uniqueness
+//                enforced, PII cipher columns kept in sync, at least
+//                one contact channel must remain)
+//   doctors row — specialization, slmcRegistrationNo (edits clear the
+//                slmcVerifiedAt stamp since verification applies to the
+//                old number), qualification, experience, consultationFee,
+//                telemedicineEnabled (when off, POST /appointments
+//                rejects mode=video).
+doctorPortalRouter.patch("/profile", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+
+  const str = (v: unknown, max: number) =>
+    typeof v === "string" ? v.trim().slice(0, max) : undefined;
+
+  // ── users-row patch ──
+  const userPatch: Record<string, unknown> = {};
+  if (body?.name !== undefined) {
+    const v = str(body.name, 100);
+    if (!v) return c.json({ error: "name must be a non-empty string" }, 400);
+    userPatch.name = v;
+  }
+  if (body?.email !== undefined) {
+    const v = str(body.email, 200);
+    if (v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
+      return c.json({ error: "email must be a valid address" }, 400);
+    }
+    if (v) {
+      const [dupe] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.email, v), ne(users.id, userId)))
+        .limit(1);
+      if (dupe) return c.json({ error: "This email is already in use" }, 409);
+    }
+    userPatch.email = v || null;
+  }
+  if (body?.phone !== undefined) {
+    const v = str(body.phone, 20);
+    if (v && !/^\+?[\d\s-]{7,20}$/.test(v)) {
+      return c.json({ error: "phone must be a valid number" }, 400);
+    }
+    if (v) {
+      const [dupe] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.phone, v), ne(users.id, userId)))
+        .limit(1);
+      if (dupe) return c.json({ error: "This phone number is already in use" }, 409);
+    }
+    userPatch.phone = v || null;
+  }
+
+  // At least one contact channel must survive — clearing both would
+  // orphan the account's login identifiers.
+  if (userPatch.email === null || userPatch.phone === null) {
+    const [me] = await db
+      .select({ email: users.email, phone: users.phone })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const nextEmail = "email" in userPatch ? userPatch.email : me?.email;
+    const nextPhone = "phone" in userPatch ? userPatch.phone : me?.phone;
+    if (!nextEmail && !nextPhone) {
+      return c.json({ error: "Email or phone is required for sign-in" }, 400);
+    }
+  }
+
+  // ── doctors-row patch ──
+  const patch: Record<string, unknown> = {};
+  if (body?.telemedicineEnabled !== undefined) {
+    if (typeof body.telemedicineEnabled !== "boolean") {
+      return c.json({ error: "telemedicineEnabled must be a boolean" }, 400);
+    }
+    patch.telemedicineEnabled = body.telemedicineEnabled;
+  }
+  if (body?.specialization !== undefined) {
+    const v = str(body.specialization, 100);
+    if (!v) return c.json({ error: "specialization must be a non-empty string" }, 400);
+    patch.specialization = v;
+  }
+  if (body?.slmcRegistrationNo !== undefined) {
+    const v = str(body.slmcRegistrationNo, 50);
+    // Verification belongs to the previous number — a new number is
+    // unverified until the manual review pass stamps it again.
+    if ((v || null) !== (doctor.slmcRegistrationNo ?? null)) {
+      patch.slmcVerifiedAt = null;
+    }
+    patch.slmcRegistrationNo = v || null;
+  }
+  if (body?.qualification !== undefined) {
+    patch.qualification = str(body.qualification, 200) || null;
+  }
+  if (body?.experience !== undefined) {
+    if (body.experience === null) {
+      patch.experience = null;
+    } else {
+      const n = Number(body.experience);
+      if (!Number.isInteger(n) || n < 0 || n > 70) {
+        return c.json({ error: "experience must be an integer between 0 and 70" }, 400);
+      }
+      patch.experience = n;
+    }
+  }
+  if (body?.consultationFee !== undefined) {
+    if (body.consultationFee === null) {
+      patch.consultationFee = null;
+    } else {
+      const n = Number(body.consultationFee);
+      if (!Number.isFinite(n) || n < 0) {
+        return c.json({ error: "consultationFee must be a non-negative number" }, 400);
+      }
+      patch.consultationFee = n;
+    }
+  }
+
+  if (Object.keys(patch).length === 0 && Object.keys(userPatch).length === 0) {
+    return c.json({ error: "No updatable fields supplied" }, 400);
+  }
+
+  if (Object.keys(userPatch).length > 0) {
+    if ("email" in userPatch) {
+      userPatch.emailPii = await encryptPii(c.env, userPatch.email as string | null).catch(() => null);
+    }
+    if ("phone" in userPatch) {
+      userPatch.phonePii = await encryptPii(c.env, userPatch.phone as string | null).catch(() => null);
+    }
+    await db.update(users).set(userPatch).where(eq(users.id, userId));
+  }
+
+  let updatedDoctor = doctor;
+  if (Object.keys(patch).length > 0) {
+    const [updated] = await db
+      .update(doctors)
+      .set(patch)
+      .where(eq(doctors.id, doctor.id))
+      .returning();
+    updatedDoctor = updated;
+  }
+
+  const [user] = await db
+    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const { signingPrivateKeyEnc: _sk, ...safeDoctor } = updatedDoctor;
+  return c.json({ doctor: safeDoctor, user });
+});
 
 // ─── Today's queue ───────────────────────────────────────
 // GET /doctor-portal/queue?date=YYYY-MM-DD

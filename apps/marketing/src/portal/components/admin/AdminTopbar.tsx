@@ -41,21 +41,23 @@ export function AdminTopbar() {
     : "";
 
   return (
-    <header className="h-[60px] bg-surface border-b border-border flex items-center px-6 gap-3">
-      <div className="flex items-center gap-1.5 text-text-soft text-sm">
-        <span className="font-semibold text-text">Admin</span>
+    <header className="h-[60px] bg-surface/90 backdrop-blur border-b border-border flex items-center px-6 gap-3">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-500/20">
+          Admin
+        </span>
         <ChevronRight size={14} className="text-text-muted" />
-        <span>{currentLabel}</span>
+        <span className="font-semibold text-text">{currentLabel}</span>
       </div>
       <div className="flex-1" />
       <Link
         href="/admin/inbox"
-        className="relative inline-flex items-center justify-center h-8 w-8 rounded-lg text-text-soft hover:text-text hover:bg-surface-2 transition-colors"
+        className="relative inline-flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-surface text-text-soft hover:text-text hover:bg-surface-2 hover:border-border-strong transition-all no-underline hover:no-underline"
         aria-label="Notifications inbox"
       >
         <Bell size={16} />
         {unreadCount > 0 ? (
-          <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-white flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-blue-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         ) : null}

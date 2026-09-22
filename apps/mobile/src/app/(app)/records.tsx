@@ -51,6 +51,7 @@ import {
   AlarmClock,
   Activity,
   ChevronsUpDown,
+  Check,
   ScanLine,
   TrendingUp,
   type LucideIcon,
@@ -58,7 +59,6 @@ import {
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
-  RECORD_REGISTRY,
   RECORD_CATEGORIES,
   PURPOSE_REGISTRY,
   type RecordKind,
@@ -97,7 +97,6 @@ import {
   HealthSnapshotCard,
   SharePackSheet,
   kindIcon,
-  kindTone,
   fmtCount,
   fmtRelative,
   fmtDate,
@@ -591,7 +590,7 @@ export default function RecordsV2() {
   return (
     <Screen padded={false} tabBarOffset={false} bottomInset={false} edges={["top"]}>
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: "#F4F8FB" }}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -605,80 +604,92 @@ export default function RecordsV2() {
             justifyContent: "space-between",
             alignItems: "center",
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.md,
+            paddingTop: spacing.lg,
             paddingBottom: spacing.sm,
           }}
         >
-          <AppText
+          <View style={{ flex: 1 }}>
+            <AppText
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: colors.primary,
+                fontFamily: fontFamily.bodyBold,
+                letterSpacing: 1.2,
+                textTransform: "uppercase",
+                marginBottom: 3,
+              }}
+            >
+              Personal health vault
+            </AppText>
+            <AppText
+              style={{
+                fontSize: 28,
+                fontWeight: "900",
+                color: colors.text,
+                fontFamily: fontFamily.bodyBold,
+                letterSpacing: -0.9,
+              }}
+            >
+              {t("recordsHub.title", "Records")}
+            </AppText>
+          </View>
+          <View
             style={{
-              fontSize: 24,
-              fontWeight: "900",
-              color: colors.text,
-              fontFamily: fontFamily.bodyBold,
+              flexDirection: "row",
+              gap: 6,
+              padding: 4,
+              borderRadius: 24,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: "#E3EBF2",
+              shadowColor: "#0F2742",
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.06,
+              shadowRadius: 16,
+              elevation: 2,
             }}
           >
-            Records
-          </AppText>
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <Pressable
-              onPress={() => setShareOpen(true)}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.border,
-                shadowColor: "rgba(0,0,0,0.02)",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 1,
-                shadowRadius: 4,
-                elevation: 1,
-              })}
-            >
-              <Share2 size={18} color={colors.primary} strokeWidth={2.25} />
-            </Pressable>
-            <Pressable
-              onPress={() => setDsarOpen(true)}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.border,
-                shadowColor: "rgba(0,0,0,0.02)",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 1,
-                shadowRadius: 4,
-                elevation: 1,
-              })}
-            >
-              <Download size={18} color={colors.primary} strokeWidth={2.25} />
-            </Pressable>
+            {[
+              { icon: Share2, onPress: () => setShareOpen(true), label: "Share records" },
+              { icon: Download, onPress: () => setDsarOpen(true), label: "Export records" },
+            ].map(({ icon: Icon, onPress, label }) => (
+              <Pressable
+                key={label}
+                onPress={onPress}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                style={({ pressed }) => ({
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: pressed ? colors.primarySoft : "transparent",
+                  alignItems: "center",
+                  justifyContent: "center",
+                })}
+              >
+                <Icon size={17} color={colors.primary} strokeWidth={2.25} />
+              </Pressable>
+            ))}
             <Pressable
               onPress={() => router.push("/add-record")}
+              accessibilityRole="button"
+              accessibilityLabel="Add record"
               style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: pressed ? "#0876A5" : colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.border,
-                shadowColor: "rgba(0,0,0,0.02)",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 1,
-                shadowRadius: 4,
-                elevation: 1,
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.24,
+                shadowRadius: 8,
+                elevation: 3,
               })}
             >
-              <Plus size={20} color={colors.primary} strokeWidth={2.5} />
+              <Plus size={19} color="#FFFFFF" strokeWidth={2.75} />
             </Pressable>
           </View>
         </View>
@@ -716,8 +727,8 @@ export default function RecordsV2() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            marginTop: spacing.lg,
-            gap: spacing.md,
+            marginTop: 18,
+            gap: 14,
           }}
         >
           <SlidingTabs tab={tab} onChange={setTab} />
@@ -726,16 +737,16 @@ export default function RecordsV2() {
             <View
               style={{
                 backgroundColor: colors.surface,
-                borderRadius: 22,
+                borderRadius: 24,
                 borderWidth: 1,
-                borderColor: colors.border,
-                padding: spacing.md,
-                gap: spacing.md,
-                shadowColor: "#0F172A",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.04,
-                shadowRadius: 16,
-                elevation: 2,
+                borderColor: "#E3EBF2",
+                padding: 16,
+                gap: 14,
+                shadowColor: "#16324A",
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.06,
+                shadowRadius: 24,
+                elevation: 3,
               }}
             >
               <View
@@ -914,9 +925,20 @@ export default function RecordsV2() {
                               : colors.surfaceMuted,
                           flexDirection: "row",
                           alignItems: "center",
+                          gap: 6,
                           minHeight: 36,
                         })}
                       >
+                        {cat.key !== "all" && !isActive ? (
+                          <View
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: 3,
+                              backgroundColor: cat.tint,
+                            }}
+                          />
+                        ) : null}
                         <AppText
                           style={{
                             fontSize: 13,
@@ -1093,18 +1115,54 @@ export default function RecordsV2() {
                   return grouped.map((group) => (
                     <View key={group.monthYear} style={{ gap: spacing.sm, marginTop: spacing.xs }}>
                       {/* Month Header */}
-                      <View style={{ paddingHorizontal: spacing.lg, paddingVertical: 4 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                          paddingHorizontal: spacing.lg,
+                          paddingVertical: 4,
+                        }}
+                      >
                         <AppText
                           style={{
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: "800",
                             color: colors.textSubtle,
                             fontFamily: fontFamily.bodyBold,
-                            letterSpacing: 0.5,
+                            letterSpacing: 1,
                           }}
                         >
                           {group.monthYear}
                         </AppText>
+                        <View
+                          style={{
+                            flex: 1,
+                            height: StyleSheet.hairlineWidth,
+                            backgroundColor: colors.borderStrong,
+                          }}
+                        />
+                        <View
+                          style={{
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderRadius: 999,
+                            backgroundColor: colors.surfaceMuted,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                          }}
+                        >
+                          <AppText
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: "800",
+                              color: colors.textMuted,
+                              fontFamily: fontFamily.bodyBold,
+                            }}
+                          >
+                            {group.data.length}
+                          </AppText>
+                        </View>
                       </View>
                       {/* Cards list */}
                       <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
@@ -1276,17 +1334,23 @@ function PremiumHero({
     <View
       style={{
         marginHorizontal: spacing.lg,
-        marginTop: spacing.md,
-        borderRadius: radius.xxxl,
+        marginTop: spacing.sm,
+        borderRadius: 28,
         overflow: "hidden",
-        ...themeShadow.hero,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.18)",
+        shadowColor: "#063B5B",
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.2,
+        shadowRadius: 26,
+        elevation: 8,
       }}
     >
       {/* Multi-stop base gradient — rich deep navy → electric cyan → medical teal */}
       <LinearGradient
-        colors={["#0A2540", "#0C4A6E", "#0284C7", "#0D9488"]}
+        colors={["#082F49", "#075985", "#0891B2", "#0F766E"]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 1, y: 0.9 }}
         style={StyleSheet.absoluteFill}
       />
       {/* Soft radial highlight — top-left */}
@@ -1365,9 +1429,9 @@ function PremiumHero({
 
       <View
         style={{
-          paddingHorizontal: spacing.lg + 2,
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.md + 4,
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          paddingBottom: 18,
         }}
       >
         {/* Top row — identity + avatar */}
@@ -1472,12 +1536,12 @@ function PremiumHero({
         {/* Glass stats strip — perfectly balanced 3-column layout */}
         <View
           style={{
-            marginTop: spacing.lg - 2,
-            borderRadius: 18,
+            marginTop: 18,
+            borderRadius: 20,
             overflow: "hidden",
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.22)",
-            backgroundColor: Platform.OS === "ios" ? "transparent" : "rgba(255,255,255,0.12)",
+            borderColor: "rgba(255,255,255,0.2)",
+            backgroundColor: Platform.OS === "ios" ? "transparent" : "rgba(3,35,55,0.24)",
           }}
         >
           {Platform.OS === "ios" ? (
@@ -1580,7 +1644,7 @@ function PremiumHero({
               </TextMuted>
             </View>
 
-            {/* Stat 3: encrypted / synced with 100% indicator */}
+            {/* Stat 3: active shares */}
             <View
               style={{
                 flex: 1,
@@ -1599,7 +1663,7 @@ function PremiumHero({
                   gap: 4,
                 }}
               >
-                <ShieldCheck size={16} color="#34D399" strokeWidth={2.5} />
+                <Share2 size={14} color="#7DD3FC" strokeWidth={2.5} />
                 <TextMuted
                   color="#FFFFFF"
                   size={21}
@@ -1608,7 +1672,7 @@ function PremiumHero({
                   letterSpacing={-0.5}
                   numberOfLines={1}
                 >
-                  100%
+                  {fmtCount(activeConsents)}
                 </TextMuted>
               </View>
               <TextMuted
@@ -1619,7 +1683,7 @@ function PremiumHero({
                 fontFamily={fontFamily.bodyBold}
                 style={{ textTransform: "uppercase" }}
               >
-                {encryptedLabel}
+                {t("recordsHub.stats.shared", "Shared")}
               </TextMuted>
             </View>
           </View>
@@ -1640,16 +1704,16 @@ function PremiumHero({
               accessibilityRole="button"
               accessibilityLabel={t("recordsHub.hero.addCta", "Add record")}
               style={({ pressed }) => ({
-                flex: 1,
-                height: 42,
+                flex: 1.15,
+                height: 44,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 6,
+                gap: 7,
                 paddingHorizontal: 14,
-                borderRadius: 999,
+                borderRadius: 14,
                 backgroundColor: pressed
-                  ? "rgba(255,255,255,0.92)"
+                  ? "rgba(255,255,255,0.9)"
                   : "#FFFFFF",
                 shadowColor: "#000000",
                 shadowOffset: { width: 0, height: 4 },
@@ -1677,13 +1741,13 @@ function PremiumHero({
               accessibilityLabel={t("recordsHub.hero.scanCta", "Scan")}
               style={({ pressed }) => ({
                 flex: 1,
-                height: 42,
+                height: 44,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 6,
+                gap: 7,
                 paddingHorizontal: 14,
-                borderRadius: 999,
+                borderRadius: 14,
                 backgroundColor: pressed
                   ? "rgba(255,255,255,0.28)"
                   : "rgba(255,255,255,0.18)",
@@ -1709,11 +1773,11 @@ function PremiumHero({
               accessibilityRole="button"
               accessibilityLabel={t("recordsHub.hero.shareCta", "Share")}
               style={({ pressed }) => ({
-                width: 42,
-                height: 42,
+                width: 44,
+                height: 44,
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: 999,
+                borderRadius: 14,
                 backgroundColor: pressed
                   ? "rgba(255,255,255,0.28)"
                   : "rgba(255,255,255,0.18)",
@@ -2029,17 +2093,17 @@ function SlidingTabs({
     <View
       style={{
         flexDirection: "row",
-        backgroundColor: colors.surface,
-        borderRadius: 14,
+        backgroundColor: "#E8F0F5",
+        borderRadius: 16,
         padding: 4,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: "#DFE9F0",
         width: "100%",
-        shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-        elevation: 1,
+        shadowColor: "transparent",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
       }}
     >
       {tabs.map((tt) => {
@@ -2053,8 +2117,9 @@ function SlidingTabs({
             accessibilityLabel={tt.label}
             style={({ pressed }) => ({
               flex: 1,
+              minHeight: 42,
               paddingVertical: 10,
-              borderRadius: 11,
+              borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
@@ -2063,7 +2128,7 @@ function SlidingTabs({
           >
             {active ? (
               <LinearGradient
-                colors={["#38BDF8", "#0C8B8C"]}
+                colors={["#0284C7", "#0F766E"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -2105,13 +2170,13 @@ function PremiumSearchBar({
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.xs,
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: 14,
         paddingVertical: 2,
-        borderRadius: 14,
-        backgroundColor: colors.surfaceMuted,
+        borderRadius: 16,
+        backgroundColor: "#F7FAFC",
         borderWidth: 1,
-        borderColor: colors.border,
-        minHeight: 44,
+        borderColor: "#DFE8EF",
+        minHeight: 48,
       }}
     >
       <Search size={16} color={colors.textMuted} strokeWidth={2.25} />
@@ -2191,20 +2256,44 @@ function RecordCard({
   void radius;
   void typography;
   const kind = (item.kind ?? item.recordType) as RecordKind;
-  const def = RECORD_REGISTRY[kind];
   const Icon = kindIcon(kind);
+  const v = visualFor(kind);
+  const isSelected = !!selectedIds?.includes(item.id);
 
   // Custom visual settings matching the screenshot's color themes
   const customVisual = (() => {
     switch (kind) {
       case "lab_report":
+      case "lab_order":
+      case "lab_subtest":
         return { bg: "#FEF3C7", fg: "#D97706", tag: "LAB" };
       case "prescription":
+      case "medication_order":
         return { bg: "#F3E8FF", fg: "#9333EA", tag: "RX" };
       case "imaging":
+      case "imaging_series":
         return { bg: "#E0E7FF", fg: "#4F46E5", tag: "IMAGING" };
       case "vaccination":
         return { bg: "#CCFBF1", fg: "#0D9488", tag: "VACCINE" };
+      case "hospital_visit":
+      case "visit":
+      case "follow_up":
+      case "consultation":
+        return { bg: "#CCFBF1", fg: "#0D9488", tag: "VISIT" };
+      case "clinical_note":
+      case "clinical_attachment":
+        return { bg: "#E2E8F0", fg: "#475569", tag: "CLINICAL NOTE" };
+      case "surgery":
+      case "operation_note":
+        return { bg: "#FEE2E2", fg: "#DC2626", tag: "SURGERY" };
+      case "allergy":
+        return { bg: "#FEE2E2", fg: "#E11D48", tag: "ALLERGY" };
+      case "insurance":
+      case "invoice":
+        return { bg: "#D1FAE5", fg: "#059669", tag: "INSURANCE" };
+      case "medical_certificate":
+      case "discharge_summary":
+        return { bg: "#EDE9FE", fg: "#7C3AED", tag: "CERTIFICATE" };
       default:
         return { bg: "#E2E8F0", fg: "#475569", tag: (kind || "").toUpperCase().replace(/_/g, " ") };
     }
@@ -2254,119 +2343,199 @@ function RecordCard({
       }}
       accessibilityRole="button"
       accessibilityLabel={titleText}
+      accessibilityState={{ selected: isSelected }}
       style={({ pressed }) => ({
         backgroundColor: colors.surface,
         borderRadius: 20,
-        padding: spacing.md + 2,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
         flexDirection: "row",
         alignItems: "center",
+        gap: 13,
+        overflow: "hidden",
         opacity: pressed ? 0.9 : 1,
-        shadowColor: "rgba(0, 0, 0, 0.03)",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 10,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: colors.border,
+        transform: [{ scale: pressed ? 0.992 : 1 }],
+        shadowColor: "#16324A",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.07,
+        shadowRadius: 18,
+        elevation: 3,
+        borderWidth: isSelected ? 1.5 : 1,
+        borderColor: isSelected ? colors.primary : "#E3EBF2",
       })}
     >
-      {/* Circle Icon Badge */}
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: customVisual.bg,
+          position: "absolute",
+          left: 0,
+          top: 14,
+          bottom: 14,
+          width: 3,
+          borderTopRightRadius: 3,
+          borderBottomRightRadius: 3,
+          backgroundColor: customVisual.fg,
+          opacity: 0.75,
+        }}
+      />
+      {/* Selection check circle (share-pack mode) */}
+      {selectionMode ? (
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: isSelected ? colors.primary : colors.surface,
+            borderWidth: isSelected ? 0 : 1.5,
+            borderColor: colors.borderStrong,
+          }}
+        >
+          {isSelected ? (
+            <Check size={14} color="#FFFFFF" strokeWidth={3} />
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* Gradient kind icon tile */}
+      <View
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 16,
+          overflow: "hidden",
           alignItems: "center",
           justifyContent: "center",
-          marginRight: spacing.md,
+          shadowColor: v.glow,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.5,
+          shadowRadius: 10,
+          elevation: 3,
         }}
       >
-        <Icon size={20} color={customVisual.fg} strokeWidth={2.25} />
+        <LinearGradient
+          colors={v.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <Icon size={22} color="#FFFFFF" strokeWidth={2.25} />
       </View>
 
-      {/* Card Content */}
-      <View style={{ flex: 1, gap: 3 }}>
-        {/* Top Meta Row */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <AppText
-            style={{
-              fontSize: 13,
-              fontWeight: "600",
-              color: colors.textMuted,
-              fontFamily: fontFamily.bodyMedium,
-            }}
-          >
-            {dateText}
-          </AppText>
-          <AppText
-            style={{
-              fontSize: 11,
-              fontWeight: "800",
-              color: customVisual.fg,
-              fontFamily: fontFamily.bodyBold,
-              letterSpacing: 0.5,
-            }}
-          >
-            {customVisual.tag}
-          </AppText>
-        </View>
-
-        {/* Title */}
-        <AppText
+      {/* Card content */}
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        {/* Title + kind tag */}
+        <View
           style={{
-            fontSize: 16,
-            fontWeight: "800",
-            color: colors.text,
-            fontFamily: fontFamily.bodyBold,
-            marginTop: 2,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
           }}
-          numberOfLines={2}
         >
-          {titleText}
-        </AppText>
+          <AppText
+            style={{
+              flex: 1,
+              fontSize: 15.5,
+              fontWeight: "800",
+              color: colors.text,
+              fontFamily: fontFamily.bodyBold,
+              letterSpacing: -0.2,
+            }}
+            numberOfLines={1}
+          >
+            {titleText}
+          </AppText>
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 999,
+              backgroundColor: customVisual.bg,
+            }}
+          >
+            <AppText
+              style={{
+                fontSize: 10,
+                fontWeight: "800",
+                color: customVisual.fg,
+                fontFamily: fontFamily.bodyBold,
+                letterSpacing: 0.6,
+              }}
+            >
+              {customVisual.tag}
+            </AppText>
+          </View>
+        </View>
 
         {/* Subtitle */}
         {subtitleText ? (
           <AppText
             style={{
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: "500",
               color: colors.textMuted,
               fontFamily: fontFamily.body,
-              marginTop: 1,
             }}
-            numberOfLines={2}
+            numberOfLines={1}
           >
             {subtitleText}
           </AppText>
         ) : null}
 
-        {/* PDF Link Action (Card 1 visual) */}
-        {fileCount > 0 ? (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              marginTop: 6,
-            }}
-          >
-            <FileText size={13} color="#4F46E5" strokeWidth={2.25} />
+        {/* Meta row — date + attachments */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 3,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Calendar size={11} color={colors.textSubtle} strokeWidth={2.25} />
             <AppText
               style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: "#4F46E5",
-                fontFamily: fontFamily.bodyBold,
-                textDecorationLine: "underline",
+                fontSize: 11.5,
+                fontWeight: "600",
+                color: colors.textSubtle,
+                fontFamily: fontFamily.bodyMedium,
               }}
             >
-              View Results (PDF)
+              {dateText}
             </AppText>
           </View>
-        ) : null}
+          {fileCount > 0 ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                paddingHorizontal: 7,
+                paddingVertical: 2,
+                borderRadius: 999,
+                backgroundColor: colors.surfaceMuted,
+              }}
+            >
+              <FileText size={10} color={colors.textMuted} strokeWidth={2.5} />
+              <AppText
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: "700",
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {t("recordsHub.row.files", { count: fileCount })}
+              </AppText>
+            </View>
+          ) : null}
+        </View>
       </View>
+
+      {/* Trailing chevron */}
+      {!selectionMode ? (
+        <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.25} />
+      ) : null}
     </Pressable>
   );
 }

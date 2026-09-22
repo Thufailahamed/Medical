@@ -233,29 +233,51 @@ export default function InboxScreen() {
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.lg,
           paddingBottom: spacing.md,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
-        <Text
-          style={[
-            typography.display.lg,
-            {
-              color: colors.text,
-              fontFamily: fontFamily.displayBold,
-              fontSize: 28,
-              lineHeight: 34,
-            },
-          ]}
+        <View style={{ flex: 1 }}>
+          <Text
+            style={[
+              typography.display.lg,
+              {
+                color: colors.text,
+                fontFamily: fontFamily.displayBold,
+                fontSize: 28,
+                lineHeight: 34,
+              },
+            ]}
+          >
+            {t("inbox.title")}
+          </Text>
+          <Text
+            style={[
+              typography.body,
+              { color: colors.textSubtle, marginTop: 4 },
+            ]}
+          >
+            {subtitle}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => router.push("/(doctor)/inbox/new" as any)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("inbox.startCta")}
+          style={({ pressed }) => ({
+            width: 42,
+            height: 42,
+            borderRadius: 21,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primary,
+            opacity: pressed ? 0.85 : 1,
+          })}
         >
-          {t("inbox.title")}
-        </Text>
-        <Text
-          style={[
-            typography.body,
-            { color: colors.textSubtle, marginTop: 4 },
-          ]}
-        >
-          {subtitle}
-        </Text>
+          <MessageSquarePlus size={20} color="#FFFFFF" strokeWidth={2.25} />
+        </Pressable>
       </View>
 
       {isLoading ? (
@@ -285,7 +307,7 @@ export default function InboxScreen() {
             title={t("inbox.emptyTitle")}
             message={t("inbox.emptyBody")}
             actionLabel={t("inbox.startCta")}
-            onAction={() => router.push("/(doctor)/prescription" as any)}
+            onAction={() => router.push("/(doctor)/inbox/new" as any)}
           />
         </View>
       ) : (

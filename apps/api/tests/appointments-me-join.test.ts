@@ -40,7 +40,7 @@ beforeEach(async () => {
       patientId: PATIENT_ID,
       doctorId: DOCTOR_ID,
       hospitalId: HOSPITAL_ID,
-      date: "2026-09-10",
+      date: "2026-12-10",
       time: "10:00",
       status: "confirmed",
       mode: "in_person",
@@ -80,7 +80,7 @@ describe("GET /appointments/me", () => {
     expect(row.id).toBe("apt-1");
     expect(row.doctorId).toBe(DOCTOR_ID);
     expect(row.hospitalId).toBe(HOSPITAL_ID);
-    expect(row.date).toBe("2026-09-10");
+    expect(row.date).toBe("2026-12-10");
     expect(row.time).toBe("10:00");
     expect(row.status).toBe("confirmed");
     expect(row.mode).toBe("in_person");
@@ -102,7 +102,7 @@ describe("GET /appointments/me", () => {
         patientId: PATIENT_ID,
         doctorId: "doctor-deleted",
         hospitalId: HOSPITAL_ID,
-        date: "2026-09-11",
+        date: "2026-12-11",
         time: "11:00",
         status: "scheduled",
         mode: "in_person",

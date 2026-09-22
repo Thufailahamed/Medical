@@ -246,6 +246,10 @@ export default function DoctorLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
+        name="inbox/new"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
         name="notifications"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />

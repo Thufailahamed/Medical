@@ -196,6 +196,10 @@
         "label": "Vaccinations",
         "description": "Immunization schedule alerts"
       },
+      "teleconsult": {
+        "label": "Teleconsults",
+        "description": "Video visit start & call alerts"
+      },
       "insurance": {
         "label": "Insurance",
         "description": "Claims, expiry, updates"
@@ -401,7 +405,13 @@
     "emergencyContactsHeading": "EMERGENCY CONTACTS",
     "noneRecorded": "None recorded",
     "onFile": "{{count}} on file",
-    "manageInFamily": "Manage in Family"
+    "manageInFamily": "Manage in Family",
+    "quick": {
+      "edit": "Edit",
+      "healthId": "Health ID",
+      "share": "Share",
+      "family": "Family"
+    }
   },
   "audit": {
     "title": "ප්‍රවේශ සටහන",
@@ -593,6 +603,8 @@
       "revoke": "අවලංගු කරන්න",
       "revoked": "ආරාධනාව අවලංගු කෙරිණි",
       "pendingTitle": "පොරොත්තු ආරාධනා",
+      "pendingCount_one": "{{count}} පොරොත්තුවේ",
+      "pendingCount_other": "{{count}} පොරොත්තුවේ",
       "pendingEmpty": "පොරොත්තු ආරාධනා නැත.",
       "pendingExpires": "කල් ඉකුත් වන්නේ {{date}}",
       "summary": {
@@ -626,6 +638,24 @@
       "message": "Message {{name}}",
       "share": "Share {{name}}'s records",
       "remove": "Remove {{name}}"
+    },
+    "act": {
+      "call": "අමතන්න",
+      "message": "පණිවිඩය",
+      "share": "බෙදාගන්න",
+      "remove": "ඉවත් කරන්න"
+    },
+    "lock": {
+      "lockedBadge": "අගුළු ලූ",
+      "confirmLockTitle": "වාර්තා අගුළු දාන්නද?",
+      "confirmLock": "ඔබ අගුළු හරින තෙක් {{name}}ගේ වාර්තා පවුල් දැක්මෙන් සැඟවේ.",
+      "confirmUnlockTitle": "වාර්තා අගුළු හරින්නද?",
+      "confirmUnlock": "{{name}}ගේ වාර්තා නැවත පවුල් දැක්මේ පෙනේ.",
+      "toggleLock": "අගුළු දාන්න",
+      "toggleUnlock": "අගුළු හරින්න",
+      "toastLocked": "{{name}} අගුළු දමන ලදී",
+      "toastUnlocked": "{{name}} අගුළු හරින ලදී",
+      "toastError": "අගුල යාවත්කාලීන කළ නොහැක"
     },
     "compose": {
       "nameLabel": "Name",
@@ -2062,7 +2092,9 @@
     "howStep3": "වාර්තා වර්ගය, මාතෘකාව සහ දිනය සකසන්න — ඔබේ වාර්තා ඔබ සංවිධානය කරන්න.",
     "legacyHeading": "ඔබේ සත්‍යාපිත ඊමේල් ලිපිනයෙන් යවන්න",
     "legacyBody": "ඔබට {{email}} වෙතින් ද යැවිය හැක — අපි යවන්නා අනුව මාර්ගගත කරන්නෙමු.",
-    "legacyAction": "තැපැල් විවෘත කරන්න"
+    "legacyAction": "තැපැල් විවෘත කරන්න",
+    "legacyHint": "අන්වර්ථය නොමැතිවත් අපි යවන්නා අනුව මාර්ගගත කරන්නෙමු",
+    "step": "පියවර {{n}}"
   },
   "recordsHub": {
     "title": "සෞඛ්‍ය වාර්තා",
@@ -2218,7 +2250,8 @@
     "noVitals": "No vitals recorded",
     "alertsHeading": "Out-of-range readings",
     "abnormalCount_one": "{{count}} out of range",
-    "abnormalCount_other": "{{count}} out of range"
+    "abnormalCount_other": "{{count}} out of range",
+    "actionMessage": "Message"
   },
   "overview": {
     "title": "රෝගී දළ විශ්ලේෂණය",
@@ -2475,7 +2508,7 @@
       "editTags": "Edit tags"
     },
     "quickActions": {
-      "edit": "Edit record",
+      "edit": "සංස්කරණය",
       "share": "Share",
       "link": "Link"
     },
@@ -2652,7 +2685,13 @@
     "rateCta": "Rate this visit",
     "youRated": "You rated this visit ★ {{stars}}",
     "helpCta": "මෙම පැමිණිල්ල සම්බන්ධයෙන් උදව් අවශ්‍යද?",
-    "helpBody": "WhatsApp හරහා අප සමඟ කතා කරන්න — සාමාන්‍යයෙන් පැයකින් පිළිතුරු ලැබේ."
+    "helpBody": "WhatsApp මගින් අප හා සම්බන්ධ වන්න — සාමාන්‍යයෙන් පැයක් තුළ පිළිතුරු ලැබේ.",
+    "cancel": "හමුවීම අවලංගු කරන්න",
+    "cancelConfirmTitle": "හමුවීම අවලංගු කරන්නද?",
+    "cancelConfirmMessage": "ඔබට මෙම හමුවීම අවලංගු කිරීමට අවශ්‍ය බව තහවුරුද? මෙම ක්‍රියාව ආපසු හැරවිය නොහැක.",
+    "cancelConfirmAction": "ඔව්, අවලංගු කරන්න",
+    "cancelSuccess": "හමුවීම අවලංගු කරන ලදී",
+    "cancelError": "හමුවීම අවලංගු කිරීමට නොහැකි විය"
   },
   "bookAppointment": {
     "title": "Book appointment",
@@ -3872,12 +3911,23 @@
     "subtitleWithUnread": "{{count}} unread message",
     "subtitleWithUnread_other": "{{count}} unread messages",
     "emptyTitle": "No conversations yet",
-    "emptyBody": "Tap a patient from Prescribe to start a chat — or open any patient profile to send a message.",
+    "emptyBody": "Tap + to pick a patient and start a secure chat, or message a patient from their profile.",
     "startCta": "Start a conversation",
     "notFound": "Conversation not found",
     "noMessagesYet": "No messages yet — say hello.",
     "composerPlaceholder": "Type a message…",
     "youPrefix": "You:",
+    "newTitle": "New conversation",
+    "newSubtitle": "Pick a patient to message",
+    "searchPlaceholder": "Search patients by name or phone…",
+    "recentPatients": "Recent patients",
+    "patientFallback": "Patient",
+    "tapToMessage": "Tap to start chatting",
+    "startFailed": "Couldn't start the conversation. Try again.",
+    "noPatientsFound": "No patients found",
+    "noPatientsFoundBody": "Only patients you have a relationship with can be messaged — appointments, prescriptions, records, or care team.",
+    "noRecentPatients": "No patients yet",
+    "noRecentPatientsBody": "Patients you treat will appear here for quick messaging.",
     "errorTitle": "පණිවුඩ පූරණය කළ නොහැකි විය",
     "errorBody": "ඔබේ අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න."
   },
@@ -3952,6 +4002,11 @@
   "caretaker": {
     "title": "රැකබලාගන්නන්",
     "subtitle": "ඔබගේ සෞඛ්‍ය තොරතුරු කළමනාකරණය කිරීමට හැකි පවුලේ සාමාජිකයන්",
+    "countActive_one": "සක්‍රිය {{count}}",
+    "countActive_other": "සක්‍රිය {{count}}",
+    "countPending_one": "පොරොත්තු {{count}}",
+    "countPending_other": "පොරොත්තු {{count}}",
+    "invitesTitle": "පොරොත්තු ආරාධනා",
     "addCta": "රැකබලාගන්නෙකු එකතු කරන්න",
     "emptyTitle": "තවම රැකබලාගන්නන් නැත",
     "emptyBody": "ඔබගේ වාර්තා, ඖෂධ සහ හමුවීම් කළමනාකරණය කිරීමට පවුලේ සාමාජිකයෙකුට ආරාධනා කරන්න.",
@@ -4074,7 +4129,10 @@
       "sent": "විමසීම යවා ඇත",
       "failed": "විමසීම යැවීමට නොහැකි විය",
       "alreadyLinked": "මෙම සත්කාරකවරයා � already සම්බන්ධයි",
-      "alreadyPending": "විමසීම යවා ඇත — ප්‍රතිචාරය බලාපොරොත්තුවෙන්"
+      "alreadyPending": "විමසීම යවා ඇත — ප්‍රතිචාරය බලාපොරොත්තුවෙන්",
+      "withdraw": "ඉවතලන්න",
+      "withdrawConfirm": "මෙම විමසීම ඉවතලන්නද?",
+      "withdrawn": "විමසීම ඉවත් කළා"
     },
     "listing": {
       "title": "වෙළඳපොළ",
@@ -4101,7 +4159,10 @@
       "decline": "ප්‍රතික්ෂිප්ත කරන්න",
       "acceptConfirm": "මෙම විමසීම පිළිගන්නද?",
       "declineConfirm": "මෙම විමසීම ප්‍රතික්ෂිප්ත කරන්නද?",
-      "patientMessage": "රෝගියාගේ පණිවිඩය"
+      "patientMessage": "රෝගියාගේ පණිවිඩය",
+      "listedHint": "ඔබේ ලැයිස්තුව සක්‍රියයි — රෝගීන්ට විමසීම් යැවිය හැක",
+      "bioPlaceholder": "ඔබේ පළපුරුද්ද සහ ලබාදෙන සේවාව ගැන රෝගීන්ට කියන්න.",
+      "districtPlaceholder": "වෙනත් දිස්ත්‍රික්කය…"
     },
     "inquiriesMine": {
       "title": "යැවූ විමසීම්",
@@ -4110,9 +4171,11 @@
         "pending": "ප්‍රතිචාරය බලාපොරොත්තුවෙන්",
         "accepted": "පිළිගනු ලැබුවා",
         "declined": "ප්‍රතික්ෂිප්තයි",
-        "expired": "කල් ඉකුත් වුවා"
+        "expired": "කල් ඉකුත් වුවා",
+        "withdrawn": "ඉවත් කළා"
       }
-    }
+    },
+    "perHour": "පැයකට"
   },
   "consult": {
     "startVideoVisit": "වීඩියෝ පරීක්ෂාව ආරම්භ කරන්න",
@@ -4136,9 +4199,11 @@
     "turnMissing": "ඔබේ ජාලය වීඩියෝ ඇමතුම් අවහිර කළ හැකිය. මෙය දිගටම සිදු වුවහොත් සහාය සම්බන්ධ කර ගන්න.",
     "permissionDenied": "කැමරාව හෝ මයික්‍රෆෝන ප්‍රවේශය අවහිර කර ඇත. සැකසීම් වලින් ඉඩ දී නැවත සම්බන්ධ වන්න.",
     "startVideoError": "වීඩියෝ සම්බන්ධතාවය ආරම්භ කළ නොහැක. කරුණාකර නැවත උත්සාහ කරන්න.",
-    "bannerWaiting": "වීඩියෝ සැසිය නිර්මාණය කරන ලදී — ඇතුළු වීමට තට්ටු කරන්න",
-    "bannerInCall": "ඇමතුම ක්‍රියාත්මකයි — ආපසු යාමට තට්ටු කරන්න",
+    "bannerWaiting": "වීඩියෝ සැසිය සූදානම්",
+    "bannerInCall": "ඇමතුම ක්‍රියාත්මකයි",
     "bannerRoom": "කාමරය {{roomId}}",
+    "bannerJoin": "එක්වන්න",
+    "bannerReturn": "ආපසු යන්න",
     "bannerDismiss": "ඉවතලන්න",
     "noPatient": "රෝගියා සම්බන්ධ නැත",
     "noRecords": "මෑත වාර්තා නැත",

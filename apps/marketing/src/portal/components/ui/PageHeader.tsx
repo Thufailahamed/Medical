@@ -21,13 +21,17 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-200/90 bg-white p-4.5 sm:p-5 shadow-2xs flex items-start justify-between gap-4 flex-wrap",
+        "relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4.5 sm:p-5 shadow-2xs flex items-start justify-between gap-4 flex-wrap",
         className
       )}
     >
-      <div className="flex items-start gap-3.5 min-w-0">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-14 -top-16 h-44 w-44 rounded-full bg-brand-soft/60 blur-2xl"
+      />
+      <div className="relative flex items-start gap-3.5 min-w-0">
         {icon && (
-          <div className="h-11 w-11 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 shadow-2xs flex items-center justify-center shrink-0">
+          <div className="h-11 w-11 rounded-xl bg-brand-soft text-brand ring-1 ring-inset ring-brand/15 shadow-2xs flex items-center justify-center shrink-0">
             {icon}
           </div>
         )}
@@ -43,7 +47,7 @@ export function PageHeader({
           )}
         </div>
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>}
+      {actions && <div className="relative flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>}
     </div>
   );
 }
@@ -66,7 +70,7 @@ export function SectionHeader({
     <div className={cn("flex items-center justify-between gap-3", className)}>
       <div className="flex items-center gap-2.5">
         {icon && (
-          <div className="h-8 w-8 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center shrink-0">
+          <div className="h-8 w-8 rounded-xl bg-brand-soft/70 text-brand ring-1 ring-inset ring-brand/10 flex items-center justify-center shrink-0">
             {icon}
           </div>
         )}

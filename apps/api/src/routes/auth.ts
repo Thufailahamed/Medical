@@ -2,7 +2,8 @@
 
 import { Hono } from "hono";
 import { and, eq, isNull, or, inArray } from "drizzle-orm";
-import { users, patients, doctors, otpCodes, notifications } from "@healthcare/db";
+import { users, patients, doctors, otpCodes, notifications, passwordResets } from "@healthcare/db";
+import { resolveJwtSecret } from "../lib/jwt-secret";
 import { getApprovalRequiredRoles } from "../lib/settings";
 import {
   registerSchema,
@@ -854,7 +855,7 @@ auth.post("/login-by-phone", async (c) => {
     channel: "mobile",
     target: maskTarget(phone),
     expiresAt,
-    ...((isDev || isDevTestPhone) ? { devCode: code } : {}),
+    ...((isDev && isDevTestPhone) ? { devCode: code } : {}),
   });
 });
 
@@ -1167,21 +1168,62 @@ auth.get("/me", authMiddleware, async (c) => {
 
 // ─── Refresh token ───────────────────────────────────────
 auth.post("/refresh", async (c) => {
-  const { refresh_token } = await c.req.json().catch(() => ({}));
+  const body = await c.req.json().catch(() => ({}));
+  const incomingToken = body.refresh_token || body.refreshToken || body.access_token;
 
-  if (!refresh_token) {
+  if (!incomingToken) {
     return c.json({ error: "Refresh token required" }, 400);
   }
 
-  // Phase 1.3: refresh now also emits a fresh session cookie. The portal
-  // will pick it up on the next request automatically; clients that
-  // still carry the access token from the response body work the same.
-  emitSessionCookie(c, "dummy-new-token");
+  const secretResult = resolveJwtSecret(c.env);
+  if (!secretResult.ok) {
+    return c.json(
+      {
+        error: "Server misconfigured: JWT_SECRET is required in production.",
+        reason: secretResult.reason,
+      },
+      503
+    );
+  }
+
+  // Verify the incoming token
+  const decoded = await verifyToken(incomingToken, secretResult.secret);
+  if (!decoded || !decoded.sub) {
+    return c.json({ error: "Invalid or expired token" }, 401);
+  }
+
+  const db = c.get("db");
+  const [dbUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, decoded.sub))
+    .limit(1);
+
+  if (!dbUser || dbUser.deletedAt) {
+    return c.json({ error: "User not found or inactive" }, 401);
+  }
+
+  const loginAge = ageAtRegistration(dbUser.dateOfBirth);
+  await stampLastLogin(db, dbUser.id);
+  const token = await generateToken(
+    dbUser.id,
+    secretResult.secret,
+    {
+      nic: dbUser.nic,
+      dob: dbUser.dateOfBirth,
+      nicVerificationLevel: dbUser.nicVerificationLevel ?? null,
+      isMinor: loginAge !== null && loginAge < 18,
+    },
+    { aud: adminAudFor(dbUser.role) }
+  );
+
+  emitSessionCookie(c, token);
 
   return c.json({
+    user: dbUser,
     session: {
-      access_token: "dummy-new-token",
-      refresh_token: "dummy-refresh-token",
+      access_token: token,
+      refresh_token: token,
     },
   });
 });
@@ -1203,6 +1245,51 @@ auth.post("/logout", authMiddleware, async (c) => {
 
 // ─── Forgot password ─────────────────────────────────────
 auth.post("/forgot-password", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const email = body.email ? String(body.email).trim().toLowerCase() : "";
+  if (!email || !email.includes("@")) {
+    return c.json({ error: "Valid email is required" }, 400);
+  }
+
+  const db = c.get("db");
+  const [dbUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  // Anti-enumeration: always return generic success message even if user not found
+  if (dbUser && !dbUser.deletedAt) {
+    const rawToken = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+
+    await db.insert(passwordResets).values({
+      id: crypto.randomUUID(),
+      userId: dbUser.id,
+      token: rawToken,
+      expiresAt,
+    });
+
+    const publicUrl = c.env.PUBLIC_URL || "https://app.healthhub.app";
+    const resetUrl = `${publicUrl}/reset-password?token=${rawToken}`;
+    const emailProvider = createEmailProvider(c.env);
+    await emailProvider.sendEmail({
+      to: email,
+      subject: "Reset your HealthHub password",
+      text: `Hello,\n\nA request was received to reset your HealthHub password. Click the link below to set a new password:\n\n${resetUrl}\n\nThis link will expire in 1 hour. If you did not request this, you can safely ignore this email.\n\n— HealthHub Security`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #0EA5A4;">Reset Your Password</h2>
+          <p>A request was received to reset your HealthHub password. Click the button below to set a new password:</p>
+          <div style="margin: 24px 0;">
+            <a href="${resetUrl}" style="background-color: #0EA5A4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Reset Password</a>
+          </div>
+          <p style="color: #64748B; font-size: 14px;">This link will expire in 1 hour. If you did not request this reset, you can safely ignore this email.</p>
+        </div>
+      `,
+    });
+  }
+
   return c.json({
     message: "If an account exists for that email, a reset link has been sent.",
   });
@@ -1211,29 +1298,58 @@ auth.post("/forgot-password", async (c) => {
 // ─── Reset password ──────────────────────────────────────
 auth.post("/reset-password", async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const accessToken = body?.accessToken || body?.access_token;
+  const token = body?.token || body?.accessToken || body?.access_token;
   const newPassword = body?.newPassword || body?.password || "";
 
-  if (!accessToken || !newPassword) {
-    return c.json({ error: "accessToken and newPassword are required" }, 400);
+  if (!token || !newPassword) {
+    return c.json({ error: "token and newPassword are required" }, 400);
   }
   if (newPassword.length < 8) {
     return c.json({ error: "Password must be at least 8 characters" }, 400);
   }
 
-  // Decode the access token (which acts as the reset token)
-  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
-  const decoded = await verifyToken(accessToken, secret);
-  if (!decoded || !decoded.sub) {
+  const db = c.get("db");
+  const nowIso = new Date().toISOString();
+
+  // First check if token is in password_resets table
+  const [resetRow] = await db
+    .select()
+    .from(passwordResets)
+    .where(and(eq(passwordResets.token, token), isNull(passwordResets.usedAt)))
+    .limit(1);
+
+  let targetUserId: string | null = null;
+
+  if (resetRow) {
+    if (resetRow.expiresAt < nowIso) {
+      return c.json({ error: "Reset token has expired. Please request a new one." }, 400);
+    }
+    targetUserId = resetRow.userId;
+    // Mark token used
+    await db
+      .update(passwordResets)
+      .set({ usedAt: nowIso })
+      .where(eq(passwordResets.id, resetRow.id));
+  } else {
+    // Fallback: check if it's a signed JWT (backward compatibility)
+    const secretResult = resolveJwtSecret(c.env);
+    if (secretResult.ok) {
+      const decoded = await verifyToken(token, secretResult.secret);
+      if (decoded && decoded.sub) {
+        targetUserId = decoded.sub;
+      }
+    }
+  }
+
+  if (!targetUserId) {
     return c.json({ error: "Invalid or expired reset token" }, 401);
   }
 
-  const db = c.get("db");
   const passwordHash = await hashPassword(newPassword);
   await db
     .update(users)
     .set({ passwordHash })
-    .where(eq(users.id, decoded.sub));
+    .where(eq(users.id, targetUserId));
 
   return c.json({ message: "Password reset successfully" });
 });

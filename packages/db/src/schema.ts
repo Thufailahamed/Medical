@@ -951,12 +951,19 @@ export const notifications = sqliteTable("notifications", {
       "account_pending_review",
       "tenant_pending_review",
       "hospital_request",
+      "teleconsult",
     ],
   }).notNull(),
   title: text("title").notNull(),
   body: text("body").notNull(),
   data: text("data"), // JSON: additional payload
   read: integer("read", { mode: "boolean" }).default(false),
+  // Push delivery tracking (migration 0075): expo_ticket links the row
+  // to an Expo Push receipt ticket; status transitions sent → delivered
+  // | failed via the push-receipts cron.
+  expoTicket: text("expo_ticket"),
+  status: text("status").default("sent"),
+  deliveredAt: text("delivered_at"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -4435,7 +4442,7 @@ export const caretakerMarketplaceInquiries = sqliteTable(
       .references(() => users.id),
     patientMessage: text("patient_message").notNull(),
     status: text("status", {
-      enum: ["pending", "accepted", "declined", "expired"],
+      enum: ["pending", "accepted", "declined", "expired", "withdrawn"],
     })
       .notNull()
       .default("pending"),

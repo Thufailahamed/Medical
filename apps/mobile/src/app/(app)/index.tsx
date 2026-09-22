@@ -12,6 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { useRouter, useFocusEffect, Redirect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -63,12 +64,10 @@ import {
   useTodayDoses,
   useVitalsDerived,
   useVitalsSparkline,
-  useHealthSnapshot,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
 import { Sparkline } from "@/components/vitals";
-import { HealthSnapshotCard } from "@/components/records";
 import { VITAL_REGISTRY, type VitalType } from "@healthcare/shared/vitals";
 import { CURATED_PACKAGES, packageImage } from "./test-packages";
 import { CURATED_INSURANCE_PLANS, insurancePlanImage } from "@/components/insurance/PlanCard";
@@ -128,8 +127,6 @@ export default function HomeScreen() {
   const { data: vaccineDue } = useVaccinationsDue();
   const { data: wellnessData, refetch: refetchWellness } = useWellness();
   const { data: todayDoses, refetch: refetchDoses } = useTodayDoses();
-  const { data: snapshotData, isLoading: snapshotLoading, refetch: refetchSnapshot } = useHealthSnapshot();
-
   const [fabOpen, setFabOpen] = useState(false);
 
   useFocusEffect(
@@ -140,8 +137,7 @@ export default function HomeScreen() {
       refetchUnread();
       refetchWellness();
       refetchDoses();
-      refetchSnapshot();
-    }, [refetchProfile, refetchMeds, refetchAppts, refetchUnread, refetchWellness, refetchDoses, refetchSnapshot])
+    }, [refetchProfile, refetchMeds, refetchAppts, refetchUnread, refetchWellness, refetchDoses])
   );
 
   useEffect(() => {
@@ -1299,325 +1295,256 @@ export default function HomeScreen() {
             </ScrollView>
           </View>
 
-          {/* AI Section (premium dark) */}
+          {/* AI Section (Modern Clinical AI Assistant) */}
           <View style={{ gap: spacing.sm }}>
-            <SectionLabel title={t("home.sectionAi")} />
+            <SectionLabel
+              title={t("home.sectionAi")}
+              action={{
+                label: "Chat Now",
+                onPress: () => router.push("/(app)/ai/chat"),
+              }}
+            />
             <View
               style={{
-                borderRadius: 26,
+                borderRadius: 24,
                 overflow: "hidden",
-                shadowColor: colors.primary,
+                shadowColor: "#6366F1",
                 shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.06,
-                shadowRadius: 16,
-                elevation: 3,
+                shadowOpacity: 0.08,
+                shadowRadius: 18,
+                elevation: 4,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: "rgba(99, 102, 241, 0.22)",
+                backgroundColor: colors.surface,
               }}
             >
               <LinearGradient
-                colors={["#FFFFFF", "#F0F7FF"]}
+                colors={["#FFFFFF", "#F8FAFF"]}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ padding: spacing.md, position: "relative" }}
+                end={{ x: 0, y: 1 }}
+                style={{ padding: spacing.md, gap: 14 }}
               >
-                {/* Subtle blue glow orbs */}
-                <View
-                  style={{
-                    position: "absolute",
-                    top: -80,
-                    right: -40,
-                    width: 220,
-                    height: 220,
-                    borderRadius: 110,
-                    backgroundColor: "rgba(56, 189, 248, 0.12)",
-                  }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    bottom: -90,
-                    left: -30,
-                    width: 200,
-                    height: 200,
-                    borderRadius: 100,
-                    backgroundColor: "rgba(99, 102, 241, 0.08)",
-                  }}
-                />
-
+                {/* ─── Top Header: Title, Live Status & Quick Action ─── */}
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: spacing.sm,
-                    position: "relative",
-                    marginBottom: spacing.md,
+                    justifyContent: "space-between",
                   }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                    <View
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        shadowColor: "#6366F1",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 8,
+                        elevation: 3,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <LinearGradient
+                        colors={["#6366F1", "#3B82F6"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                      <Sparkles size={20} color="#FFFFFF" strokeWidth={2.4} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            fontSize: 16,
+                            fontWeight: "800",
+                            color: colors.text,
+                            letterSpacing: -0.3,
+                          }}
+                        >
+                          {t("home.aiTitle")}
+                        </Text>
+                        <View
+                          style={{
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: 6,
+                            backgroundColor: "rgba(99, 102, 241, 0.1)",
+                          }}
+                        >
+                          <Text style={{ fontSize: 9.5, fontWeight: "800", color: "#6366F1" }}>
+                            INTELLIGENCE
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
+                        <View
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: 3.5,
+                            backgroundColor: "#10B981",
+                          }}
+                        />
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            fontSize: 11,
+                            color: "#64748B",
+                            fontWeight: "600",
+                          }}
+                        >
+                          24/7 Clinical Assistant Online
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    onPress={() => router.push("/(app)/ai/chat")}
+                    style={({ pressed }) => ({
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 10,
+                      backgroundColor: pressed ? "rgba(99, 102, 241, 0.16)" : "rgba(99, 102, 241, 0.08)",
+                    })}
+                  >
+                    <Text style={{ fontSize: 11.5, fontWeight: "700", color: "#4F46E5" }}>
+                      Chat Now
+                    </Text>
+                    <ChevronRight size={13} color="#4F46E5" strokeWidth={2.5} />
+                  </Pressable>
+                </View>
+
+                {/* ─── Interactive Quick Ask Bar ─── */}
+                <Pressable
+                  onPress={() => router.push("/(app)/ai/chat")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ask AI a health question"
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    backgroundColor: pressed ? "#E2E8F0" : "#F8FAFC",
+                    borderWidth: 1,
+                    borderColor: "rgba(203, 213, 225, 0.8)",
+                    borderRadius: 16,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                  })}
                 >
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 13,
+                      width: 28,
+                      height: 28,
+                      borderRadius: 9,
+                      backgroundColor: "#EEF2FF",
                       alignItems: "center",
                       justifyContent: "center",
-                      shadowColor: colors.primary,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 8,
-                      elevation: 4,
-                      overflow: "hidden",
                     }}
                   >
-                    <LinearGradient
-                      colors={[colors.primary, "#1D4ED8"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={StyleSheet.absoluteFill}
-                    />
-                    <Sparkles size={18} color="#FFFFFF" strokeWidth={2.5} />
+                    <MessageSquare size={14} color="#6366F1" strokeWidth={2.4} />
                   </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "800",
-                        color: colors.text,
-                        letterSpacing: -0.2,
-                        fontFamily: fontFamily.displayBold,
-                      }}
-                    >
-                      {t("home.aiTitle")}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontSize: 11.5,
-                        color: colors.textMuted,
-                        marginTop: 1,
-                        fontWeight: "500",
-                      }}
-                    >
-                      {t("home.aiSubtitle")}
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      flex: 1,
+                      fontSize: 12.5,
+                      color: "#64748B",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Ask symptoms, lab reports, drug safety...
+                  </Text>
+                  <View
+                    style={{
+                      paddingHorizontal: 9,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: "#6366F1",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Sparkles size={11} color="#FFF" strokeWidth={2.2} />
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#FFF" }}>
+                      Ask
                     </Text>
                   </View>
+                </Pressable>
+
+                {/* ─── 4 Curated AI Tools Grid (2x2) ─── */}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  <AiToolCard
+                    icon={MessageSquare}
+                    title={t("home.aiChat")}
+                    desc="Symptom check & Q&A"
+                    iconColor="#2563EB"
+                    bgColor="#EFF6FF"
+                    onPress={() => router.push("/(app)/ai/chat")}
+                  />
+                  <AiToolCard
+                    icon={ScanText}
+                    title={t("home.aiLabExplain")}
+                    desc="Decode medical tests"
+                    iconColor="#0D9488"
+                    bgColor="#F0FDFA"
+                    onPress={() => router.push("/(app)/ai/lab-explain")}
+                  />
+                  <AiToolCard
+                    icon={Pill}
+                    title={t("home.aiDrugCheck")}
+                    desc="Interaction checks"
+                    iconColor="#6366F1"
+                    bgColor="#EEF2FF"
+                    onPress={() => router.push("/(app)/ai/drug-check")}
+                  />
+                  <AiToolCard
+                    icon={FileSearch}
+                    title={t("home.aiOcrLabel", "Prescription OCR")}
+                    desc="Scan paper scripts"
+                    iconColor="#7C3AED"
+                    bgColor="#F5F3FF"
+                    onPress={() => router.push("/(app)/ai/ocr")}
+                  />
                 </View>
 
+                {/* ─── Secondary Tools Strip (Horizontal chips) ─── */}
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.xs }}
+                  contentContainerStyle={{ gap: 8, paddingVertical: 2, paddingRight: 16 }}
                 >
-                  <AiTile
-                    icon={MessageSquare}
-                    label={t("home.aiChat")}
-                    iconColor="#2563EB"
-                    iconBg="#EFF6FF"
-                    onPress={() => router.push("/(app)/ai/chat")}
-                  />
-                  <AiTile
+                  <AiChip
                     icon={Sparkles}
                     label={t("home.aiSummary")}
-                    iconColor="#0284C7"
-                    iconBg="#F0F9FF"
                     onPress={() => router.push("/(app)/ai/summary")}
                   />
-                  <AiTile
-                    icon={ScanText}
-                    label={t("home.aiLabExplain")}
-                    iconColor="#0D9488"
-                    iconBg="#F0FDFA"
-                    onPress={() => router.push("/(app)/ai/lab-explain")}
-                  />
-                  <AiTile
-                    icon={Pill}
-                    label={t("home.aiDrugCheck")}
-                    iconColor="#4F46E5"
-                    iconBg="#EEF2FF"
-                    onPress={() => router.push("/(app)/ai/drug-check")}
-                  />
-                  <AiTile
+                  <AiChip
                     icon={FlaskConical}
                     label={t("home.aiLabTrend")}
-                    iconColor="#059669"
-                    iconBg="#ECFDF5"
                     onPress={() => router.push("/(app)/ai/lab-trend")}
                   />
-                  <AiTile
+                  <AiChip
                     icon={Stethoscope}
                     label={t("home.aiClinicalNote")}
-                    iconColor="#E11D48"
-                    iconBg="#FFF1F2"
                     onPress={() => router.push("/(app)/ai/clinical-note")}
-                  />
-                  <AiTile
-                    icon={FileSearch}
-                    label={t("home.aiOcrLabel", "Prescription OCR")}
-                    iconColor="#7C3AED"
-                    iconBg="#F5F3FF"
-                    onPress={() => router.push("/(app)/ai/ocr")}
                   />
                 </ScrollView>
               </LinearGradient>
             </View>
           </View>
 
-          {/* Up next (premium gradient) */}
-          {nextMed ? (
-            <Pressable
-              onPress={() => router.push("/(app)/medicines")}
-              accessibilityRole="button"
-              accessibilityLabel={t("home.a11y.upNextMedicine")}
-              style={({ pressed }) => ({
-                borderRadius: 22,
-                overflow: "hidden",
-                opacity: pressed ? 0.95 : 1,
-                shadowColor: "#0EA5E9",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.18,
-                shadowRadius: 16,
-                elevation: 4,
-              })}
-            >
-              <LinearGradient
-                colors={["#E0F2FE", "#BAE6FD"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.md,
-                  padding: spacing.md,
-                }}
-              >
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 16,
-                    backgroundColor: "#0EA5E9",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    shadowColor: "#0EA5E9",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 8,
-                  }}
-                >
-                  <LinearGradient
-                    colors={["#38BDF8", "#0284C7"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <Clock size={22} color="#FFFFFF" strokeWidth={2.5} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "800",
-                      color: "#0369A1",
-                      letterSpacing: 1.3,
-                      fontFamily: fontFamily.displayBold,
-                    }}
-                  >
-                    {t("home.upNextLabel")}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontSize: 15,
-                      color: "#0C4A6E",
-                      marginTop: 2,
-                      fontWeight: "800",
-                      letterSpacing: -0.2,
-                    }}
-                  >
-                    {nextMed?.name ?? t("home.fallbackMed")}
-                    {nextMed?.dosage ? ` ${nextMed.dosage}` : ""}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontSize: 11.5,
-                      color: "#0369A1",
-                      opacity: 0.7,
-                      marginTop: 1,
-                    }}
-                  >
-                    {nextMed?.notes ?? nextMed?.timing ?? t("home.tapToView")}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "#FFFFFF",
-                  }}
-                >
-                  <ChevronRight size={16} color="#0284C7" strokeWidth={2.5} />
-                </View>
-              </LinearGradient>
-            </Pressable>
-          ) : null}
 
-          {/* Schedule */}
-          <View style={{ gap: spacing.sm }}>
-            <SectionLabel
-              title={t("home.sectionSchedule")}
-              action={
-                todayMeds.length > 0
-                  ? {
-                      label: t("home.viewAll"),
-                      onPress: () => router.push("/(app)/medicines"),
-                    }
-                  : undefined
-              }
-            />
-
-            {medsLoading ? (
-              <Card>
-                <View style={{ flexDirection: "row", gap: spacing.md }}>
-                  <Skeleton width={130} height={130} radius={radius.xl} />
-                  <Skeleton width={130} height={130} radius={radius.xl} />
-                  <Skeleton width={130} height={130} radius={radius.xl} />
-                </View>
-              </Card>
-            ) : totalMeds === 0 ? (
-              <EmptyState
-                icon={Pill}
-                title={t("home.scheduleEmptyTitle")}
-                message={t("home.scheduleEmptyBody")}
-                actionLabel={t("home.scheduleEmptyAction")}
-                onAction={() => router.push("/(app)/add-medicine")}
-              />
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{
-                  gap: spacing.md,
-                  paddingRight: spacing.sm,
-                }}
-              >
-                {(Object.keys(grouped) as TimingKey[])
-                  .filter((k) => grouped[k].length > 0)
-                  .map((k) => (
-                    <ScheduleCard
-                      key={k}
-                      meta={timingMeta[k]}
-                      items={grouped[k]}
-                    />
-                  ))}
-              </ScrollView>
-            )}
-          </View>
 
           {/* Wellness */}
           <View style={{ gap: spacing.sm }}>
@@ -1658,14 +1585,6 @@ export default function HomeScreen() {
             </View>
           ) : null}
 
-          {/* Health Snapshot (Active Medicines & Vitals Trends) */}
-          <HealthSnapshotCard
-            snapshot={snapshotData as any}
-            loading={snapshotLoading}
-            onJumpToTrends={() => router.push("/(app)/records/trends")}
-            onJumpToAllergies={() => router.push("/(app)/allergies")}
-            onJumpToMeds={() => router.push("/(app)/medicines")}
-          />
 
           <View style={{ height: spacing.lg }} />
         </View>
@@ -1879,7 +1798,7 @@ function QuickTile({
   badge?: string;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, fontFamily } = useTheme();
   const palette = useTone(tone);
   const isEmergency = tone === "danger";
 
@@ -1891,134 +1810,181 @@ function QuickTile({
       style={({ pressed }) => ({
         flexBasis: "48%",
         flexGrow: 1,
-        padding: spacing.md,
         borderRadius: 22,
-        backgroundColor: isEmergency ? palette.bg : colors.surface,
-        opacity: pressed ? 0.92 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-        minHeight: 124,
-        justifyContent: "space-between",
-        gap: spacing.sm,
+        backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: isEmergency ? "rgba(239, 68, 68, 0.25)" : colors.border,
         overflow: "hidden",
-        position: "relative",
-        shadowColor: palette.fg,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: isEmergency ? 0.14 : 0.08,
+        opacity: pressed ? 0.94 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
+        shadowColor: isEmergency ? "#EF4444" : "rgba(0, 0, 0, 0.08)",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: isEmergency ? 0.16 : 0.08,
         shadowRadius: 12,
         elevation: 3,
       })}
     >
-      {/* 3D Illustration / Visual Image in top-right */}
-      {image ? (
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            width: 56,
-            height: 56,
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: isEmergency
-              ? "rgba(255,255,255,0.4)"
-              : palette.bg,
-            borderWidth: 1,
-            borderColor: isEmergency
-              ? "rgba(255,255,255,0.6)"
-              : palette.border || "rgba(0,0,0,0.05)",
-            shadowColor: palette.fg,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.18,
-            shadowRadius: 6,
-            elevation: 2,
-          }}
-        >
+      {/* Full width hero image at top */}
+      <View
+        style={{
+          width: "100%",
+          height: 112,
+          position: "relative",
+          backgroundColor: isEmergency ? "rgba(239, 68, 68, 0.08)" : palette.bg,
+        }}
+      >
+        {image ? (
           <Image
             source={image}
             resizeMode="cover"
-            style={{ width: "100%", height: "100%", borderRadius: 16 }}
+            style={{ width: "100%", height: "100%" }}
           />
-        </View>
-      ) : (
+        ) : (
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              backgroundColor: isEmergency ? "rgba(239, 68, 68, 0.15)" : palette.bg,
+            }}
+          />
+        )}
+
+        {/* Floating Icon Chip on Top-Left */}
         <View
-          pointerEvents="none"
           style={{
             position: "absolute",
-            top: -28,
-            right: -24,
-            width: 96,
-            height: 96,
-            borderRadius: 48,
-            backgroundColor: isEmergency
-              ? "rgba(255,255,255,0.35)"
-              : palette.bg,
-            opacity: isEmergency ? 1 : 0.9,
+            top: 10,
+            left: 10,
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            backgroundColor: "rgba(255, 255, 255, 0.92)",
+            alignItems: "center",
+            justifyContent: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 5,
+            elevation: 3,
           }}
-        />
-      )}
+        >
+          <Icon size={19} color={palette.fg} strokeWidth={2.4} />
+        </View>
 
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          alignItems: "center",
-          justifyContent: "center",
-          alignSelf: "flex-start",
-          backgroundColor: palette.bgStrong,
-          shadowColor: palette.fg,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.28,
-          shadowRadius: 8,
-          elevation: 3,
-        }}
-      >
-        <Icon size={20} color={palette.onBgStrong} strokeWidth={2.4} />
+        {/* Optional Badge on Top-Right (e.g. SOS for Emergency) */}
+        {isEmergency ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 10,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 999,
+              backgroundColor: "#EF4444",
+              shadowColor: "#EF4444",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.35,
+              shadowRadius: 4,
+              elevation: 2,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "800",
+                color: "#FFFFFF",
+                letterSpacing: 0.6,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              SOS
+            </Text>
+          </View>
+        ) : badge ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 10,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 999,
+              backgroundColor: palette.bgStrong,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "700",
+                color: palette.onBgStrong,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              {badge}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
-      <View style={{ gap: 2, paddingRight: spacing.xs }}>
+      {/* Text details UNDER the image */}
+      <View
+        style={{
+          paddingHorizontal: 14,
+          paddingTop: 12,
+          paddingBottom: 14,
+          gap: 3,
+          backgroundColor: isEmergency ? palette.bg : colors.surface,
+        }}
+      >
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: spacing.xs,
           }}
         >
           <Text
             numberOfLines={1}
-            style={[
-              typography.title.sm,
-              {
-                color: isEmergency ? palette.fg : colors.text,
-                fontWeight: "700",
-                flex: 1,
-                letterSpacing: -0.2,
-              },
-            ]}
+            style={{
+              fontSize: 15.5,
+              fontWeight: "700",
+              color: isEmergency ? palette.fg : colors.text,
+              letterSpacing: -0.2,
+              fontFamily: fontFamily.bodyBold,
+              flex: 1,
+            }}
           >
             {label}
           </Text>
-          <ChevronRight
-            size={15}
-            color={isEmergency ? palette.fg : colors.textSubtle}
-            strokeWidth={2.5}
-          />
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: isEmergency ? "rgba(239, 68, 68, 0.12)" : colors.surfaceMuted,
+              alignItems: "center",
+              justifyContent: "center",
+              marginLeft: 4,
+            }}
+          >
+            <ChevronRight
+              size={13}
+              color={isEmergency ? palette.fg : colors.textSubtle}
+              strokeWidth={2.5}
+            />
+          </View>
         </View>
         {hint ? (
           <Text
             numberOfLines={1}
-            style={[
-              typography.body.sm,
-              {
-                color: isEmergency ? palette.fg : colors.textMuted,
-                opacity: isEmergency ? 0.85 : 1,
-                fontWeight: "500",
-              },
-            ]}
+            style={{
+              fontSize: 12,
+              fontWeight: "500",
+              color: isEmergency ? palette.fg : colors.textMuted,
+              opacity: isEmergency ? 0.85 : 1,
+              fontFamily: fontFamily.bodyMedium,
+            }}
           >
             {hint}
           </Text>
@@ -2028,67 +1994,127 @@ function QuickTile({
   );
 }
 
-// ─── AI section tile (light theme white and blue) ───────────────────────
-function AiTile({
+// ─── AI section tool card (sleek modern 2-col tile) ─────────────────────
+function AiToolCard({
   icon: Icon,
-  label,
-  iconColor = "#3B82F6",
-  iconBg = "rgba(59, 130, 246, 0.1)",
+  title,
+  desc,
+  iconColor,
+  bgColor,
   onPress,
 }: {
   icon: any;
-  label: string;
-  iconColor?: string;
-  iconBg?: string;
+  title: string;
+  desc: string;
+  iconColor: string;
+  bgColor: string;
   onPress: () => void;
 }) {
-  const { colors, typography } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={`${title}. ${desc}`}
       style={({ pressed }) => ({
-        width: 92,
-        paddingVertical: 12,
-        paddingHorizontal: 8,
-        borderRadius: 16,
-        backgroundColor: pressed ? "#F0F7FF" : "#FFFFFF",
+        flexBasis: "48%",
+        flexGrow: 1,
+        padding: 12,
+        borderRadius: 18,
+        backgroundColor: pressed ? "#F8FAFC" : "#FFFFFF",
         borderWidth: 1,
-        borderColor: pressed ? "#93C5FD" : colors.border,
-        alignItems: "center",
-        gap: 8,
-        shadowColor: "#000000",
+        borderColor: pressed ? "#C7D2FE" : "rgba(226, 232, 240, 0.9)",
+        gap: 10,
+        shadowColor: "#0F172A",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.02,
-        shadowRadius: 4,
-        elevation: 1,
+        shadowOpacity: 0.04,
+        shadowRadius: 5,
+        elevation: 2,
       })}
     >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 11,
-          backgroundColor: iconBg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={17} color={iconColor} strokeWidth={2.5} />
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            backgroundColor: bgColor,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon size={18} color={iconColor} strokeWidth={2.4} />
+        </View>
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: "#F1F5F9",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ChevronRight size={13} color="#64748B" strokeWidth={2.5} />
+        </View>
       </View>
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: 11.5,
-          fontWeight: "700",
-          color: colors.text,
-          letterSpacing: -0.1,
-          textAlign: "center",
-        }}
-      >
+      <View style={{ gap: 2 }}>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 13,
+            fontWeight: "800",
+            color: "#0F172A",
+            letterSpacing: -0.2,
+          }}
+        >
+          {title}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 11,
+            color: "#64748B",
+            fontWeight: "500",
+          }}
+        >
+          {desc}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── AI Chip for secondary tools ───────────────────────────────────────
+function AiChip({
+  icon: Icon,
+  label,
+  onPress,
+}: {
+  icon: any;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 0,
+        gap: 6,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        backgroundColor: pressed ? "#EEF2FF" : "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "rgba(226, 232, 240, 0.9)",
+      })}
+    >
+      <Icon size={13} color="#6366F1" strokeWidth={2.2} />
+      <Text style={{ fontSize: 11.5, fontWeight: "700", color: "#334155" }}>
         {label}
       </Text>
+      <ChevronRight size={11} color="#94A3B8" strokeWidth={2.2} />
     </Pressable>
   );
 }
@@ -2268,92 +2294,292 @@ function ScheduleCard({
   );
 }
 
-// ─── Wellness bar (gradient) ───────────────────────────────────────────
-function WellnessBar({
-  label,
+// ─── Wellness circular progress gauge (SVG) ───────────────────────────
+function WellnessScoreRing({
   score,
-  max,
-  tone,
+  tone = "info",
+  size = 88,
 }: {
-  label: string;
   score: number;
-  max: number;
-  tone: Tone;
+  tone?: Tone;
+  size?: number;
 }) {
-  const { colors, typography, spacing, radius } = useTheme();
-  const p = useTone(tone);
-  const pct = max > 0 ? (score / max) * 100 : 0;
+  const strokeWidth = 7.5;
+  const center = size / 2;
+  const radius = center - strokeWidth / 2 - 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, score));
+  const strokeDashoffset = circumference - (clamped / 100) * circumference;
 
-  const gradient: [string, string] = (() => {
-    if (tone === "accent") return ["#38BDF8", "#0284C7"];
-    if (tone === "warning") return ["#FBBF24", "#F59E0B"];
-    if (tone === "info") return ["#67E8F9", "#22D3EE"];
-    if (tone === "danger") return ["#FCA5A5", "#EF4444"];
-    if (tone === "success") return ["#34D399", "#10B981"];
-    return ["#38BDF8", "#0EA5E9"];
+  const gradColors: [string, string] = (() => {
+    if (tone === "success" || score >= 80) return ["#10B981", "#059669"];
+    if (tone === "warning" || score < 50) return ["#F59E0B", "#D97706"];
+    if (tone === "danger" || score < 30) return ["#EF4444", "#DC2626"];
+    return ["#38BDF8", "#0284C7"];
   })();
 
   return (
-    <View style={{ gap: 6 }}>
+    <View
+      style={{
+        width: size,
+        height: size,
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+      }}
+    >
+      {/* Ambient background glow */}
       <View
         style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: spacing.sm,
+          position: "absolute",
+          width: size - 16,
+          height: size - 16,
+          borderRadius: (size - 16) / 2,
+          backgroundColor: `${gradColors[0]}18`,
+          shadowColor: gradColors[1],
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
         }}
-      >
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.label.md,
-            { color: colors.text, fontWeight: "700", flex: 1 },
-          ]}
-        >
-          {label}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.caption,
-            { color: colors.textMuted, fontWeight: "700" },
-          ]}
-        >
-          {score}/{max}
-        </Text>
-      </View>
-      <View
-        style={{
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: colors.surfaceMuted,
-          overflow: "hidden",
-        }}
-      >
-        <LinearGradient
-          colors={gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            borderRadius: 4,
-          }}
+      />
+
+      <Svg width={size} height={size} style={{ transform: [{ rotate: "-90deg" }] }}>
+        <Defs>
+          <SvgGradient id="wellnessRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={gradColors[0]} />
+            <Stop offset="100%" stopColor={gradColors[1]} />
+          </SvgGradient>
+        </Defs>
+
+        {/* Track circle */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke="rgba(2, 132, 199, 0.12)"
+          strokeWidth={strokeWidth}
+          fill="transparent"
         />
+
+        {/* Active progress arc */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke="url(#wellnessRingGrad)"
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="transparent"
+        />
+      </Svg>
+
+      {/* Central Score */}
+      <View
+        style={{
+          position: "absolute",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text
+          numberOfLines={1}
+          style={{
+            color: gradColors[1],
+            fontWeight: "800",
+            fontSize: 26,
+            lineHeight: 28,
+            letterSpacing: -0.5,
+          }}
+        >
+          {score}
+        </Text>
+        <Text
+          style={{
+            fontSize: 9.5,
+            color: "#64748B",
+            fontWeight: "800",
+            marginTop: 1,
+            letterSpacing: 0.5,
+          }}
+        >
+          /100
+        </Text>
       </View>
     </View>
   );
 }
 
-const COMPONENT_TONE: Record<string, Tone> = {
-  bmi: "info",
-  adherence: "primary",
-  vitals: "accent",
-  profile: "warning",
-  engagement: "success",
+const COMPONENT_CONFIG: Record<
+  string,
+  {
+    title: string;
+    icon: any;
+    colors: [string, string];
+    bgColor: string;
+  }
+> = {
+  bmi: {
+    title: "Body Mass (BMI)",
+    icon: Scale,
+    colors: ["#06B6D4", "#0891B2"],
+    bgColor: "#ECFEFF",
+  },
+  adherence: {
+    title: "Med Adherence",
+    icon: Pill,
+    colors: ["#3B82F6", "#1D4ED8"],
+    bgColor: "#EFF6FF",
+  },
+  vitals: {
+    title: "Vitals In Range",
+    icon: HeartPulse,
+    colors: ["#F43F5E", "#BE123C"],
+    bgColor: "#FFF1F2",
+  },
+  derived: {
+    title: "Clinical Indices",
+    icon: Activity,
+    colors: ["#8B5CF6", "#6D28D9"],
+    bgColor: "#F5F3FF",
+  },
+  profile: {
+    title: "Health Profile",
+    icon: ShieldCheck,
+    colors: ["#F59E0B", "#B45309"],
+    bgColor: "#FFFBEB",
+  },
+  engagement: {
+    title: "App Activity",
+    icon: Sparkles,
+    colors: ["#10B981", "#047857"],
+    bgColor: "#ECFDF5",
+  },
 };
 
-// ─── Wellness card (premium — conic-style ring via gradient) ───────────
+// ─── Wellness metric tile (compact modern card) ────────────────────────
+function WellnessMetricTile({
+  itemKey,
+  label,
+  score,
+  max,
+}: {
+  itemKey: string;
+  label: string;
+  score: number;
+  max: number;
+}) {
+  const config = COMPONENT_CONFIG[itemKey] ?? {
+    title: label,
+    icon: Activity,
+    colors: ["#0284C7", "#0369A1"],
+    bgColor: "#F0F9FF",
+  };
+  const Icon = config.icon;
+  const pct = max > 0 ? Math.min(100, Math.round((score / max) * 100)) : 0;
+
+  return (
+    <View
+      style={{
+        flexBasis: "48%",
+        flexGrow: 1,
+        padding: 12,
+        borderRadius: 16,
+        backgroundColor: "#F8FAFC",
+        borderWidth: 1,
+        borderColor: "rgba(226, 232, 240, 0.85)",
+        gap: 8,
+      }}
+    >
+      {/* Top Header: Icon + Percentage */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 9,
+            backgroundColor: config.bgColor,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon size={14} color={config.colors[0]} strokeWidth={2.4} />
+        </View>
+
+        <View
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 6,
+            backgroundColor: `${config.colors[0]}15`,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "800",
+              color: config.colors[1],
+            }}
+          >
+            {pct}%
+          </Text>
+        </View>
+      </View>
+
+      {/* Metric Title (Full width) */}
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 12.5,
+          fontWeight: "700",
+          color: "#1E293B",
+        }}
+      >
+        {config.title}
+      </Text>
+
+      {/* Bottom: Score fraction + sleek progress bar */}
+      <View style={{ gap: 4 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={{ fontSize: 10, color: "#64748B", fontWeight: "600" }}>
+            Score
+          </Text>
+          <Text style={{ fontSize: 11, color: "#475569", fontWeight: "700" }}>
+            {score}/{max}
+          </Text>
+        </View>
+        <View
+          style={{
+            height: 5,
+            borderRadius: 3,
+            backgroundColor: "rgba(0,0,0,0.06)",
+            overflow: "hidden",
+          }}
+        >
+          <LinearGradient
+            colors={config.colors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              width: `${pct}%`,
+              height: "100%",
+              borderRadius: 3,
+            }}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Wellness Card (redesigned modern health dashboard) ────────────────
 function WellnessCard() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -2364,15 +2590,15 @@ function WellnessCard() {
 
   if (isLoading) {
     return (
-      <Card style={{ padding: spacing.lg, gap: spacing.md }}>
+      <Card style={{ padding: spacing.lg, gap: spacing.md, borderRadius: 24 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-          <Skeleton width={76} height={76} radius={38} />
+          <Skeleton width={88} height={88} radius={44} />
           <View style={{ flex: 1, gap: spacing.xs }}>
             <Skeleton width="60%" height={18} />
             <Skeleton width="40%" height={14} />
           </View>
         </View>
-        <Skeleton width="100%" height={10} radius={5} />
+        <Skeleton width="100%" height={40} radius={12} />
         <Skeleton width="100%" height={10} radius={5} />
       </Card>
     );
@@ -2382,251 +2608,333 @@ function WellnessCard() {
 
   const score = data.score;
   const components = Array.isArray(data.components) ? data.components : [];
-  const Trend = score >= 75 ? TrendingUp : score >= 45 ? Minus : TrendingDown;
 
   return (
-    <Pressable
-      onPress={() => router.push("/(app)/profile")}
-      accessibilityRole="button"
-      accessibilityLabel={t("home.a11y.wellnessScore")}
-      style={({ pressed }) => ({ opacity: pressed ? 0.95 : 1 })}
+    <Card
+      style={{
+        padding: spacing.lg,
+        gap: spacing.lg,
+        backgroundColor: colors.surface,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: "rgba(226, 232, 240, 0.8)",
+        shadowColor: "#0284C7",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+      }}
     >
-      <Card
-        style={{
-          padding: spacing.lg,
-          gap: spacing.lg,
-          backgroundColor: colors.surface,
-          borderColor: palette.bg,
-          ...themeShadow.md,
-        }}
+      {/* ─── Hero Header: Circular Gauge + Status ─── */}
+      <Pressable
+        onPress={() => router.push("/(app)/profile")}
+        accessibilityRole="button"
+        accessibilityLabel={t("home.a11y.wellnessScore")}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 16,
+          opacity: pressed ? 0.92 : 1,
+        })}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md,
-          }}
-        >
-          {/* Conic-style score ring with glow */}
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: palette.fg,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.35,
-              shadowRadius: 12,
-              elevation: 6,
-              backgroundColor: palette.bg,
-              borderWidth: 3,
-              borderColor: palette.fg,
-            }}
-          >
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-              style={[
-                typography.display.lg,
-                {
-                  color: palette.fg,
-                  fontWeight: "800",
-                  fontSize: 28,
-                  lineHeight: 32,
-                  includeFontPadding: false,
-                  letterSpacing: -0.5,
-                },
-              ]}
-            >
-              {score}
-            </Text>
-            <Text
-              style={{
-                fontSize: 9,
-                color: palette.fg,
-                fontWeight: "800",
-                marginTop: -2,
-                letterSpacing: 0.4,
-                opacity: 0.7,
-              }}
-            >
-              / 100
-            </Text>
-          </View>
+        {/* SVG Circular Progress Gauge */}
+        <WellnessScoreRing score={score} tone={tone} size={88} />
 
-          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+          {/* Status badge pill */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.xs,
+                gap: 5,
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                borderRadius: 12,
+                backgroundColor: palette.bg,
+                borderWidth: 1,
+                borderColor: `${palette.fg}33`,
               }}
             >
-              <View
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 7,
-                  backgroundColor: palette.bg,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <HeartPulse size={12} color={palette.fg} strokeWidth={2.5} />
-              </View>
+              <HeartPulse size={12} color={palette.fg} strokeWidth={2.5} />
               <Text
                 numberOfLines={1}
                 style={{
                   fontSize: 10.5,
                   color: palette.fg,
-                  letterSpacing: 1.3,
+                  letterSpacing: 0.8,
                   fontWeight: "800",
+                  textTransform: "uppercase",
                 }}
               >
-                {data.level?.label?.toUpperCase() ?? t("home.wellnessDefault")}
+                {data.level?.label ?? t("home.wellnessDefault")}
               </Text>
             </View>
+
             <Text
-              numberOfLines={2}
-              style={[
-                typography.title.md,
-                { color: colors.text, fontWeight: "800", fontSize: 17, letterSpacing: -0.3 },
-              ]}
+              style={{
+                fontSize: 11,
+                color: "#64748B",
+                fontWeight: "600",
+              }}
             >
-              {score >= 75
-                ? t("home.wellnessDoingGreat")
-                : score >= 45
-                ? t("home.wellnessRoomToImprove")
-                : t("home.wellnessBackOnTrack")}
+              Health Score
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Trend size={12} color={colors.textMuted} strokeWidth={2.5} />
+          </View>
+
+          {/* Headline */}
+          <Text
+            numberOfLines={1}
+            style={{
+              color: colors.text,
+              fontWeight: "800",
+              fontSize: 20,
+              letterSpacing: -0.4,
+            }}
+          >
+            {score >= 75
+              ? t("home.wellnessDoingGreat")
+              : score >= 45
+              ? t("home.wellnessRoomToImprove")
+              : t("home.wellnessBackOnTrack")}
+          </Text>
+
+          {/* BMI Status & Tap Hint */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 8,
+                backgroundColor: "#F1F5F9",
+              }}
+            >
+              <Scale size={11} color="#64748B" strokeWidth={2.2} />
               <Text
                 numberOfLines={1}
-                style={[typography.caption, { color: colors.textMuted, flex: 1 }]}
+                style={{
+                  fontSize: 11,
+                  color: "#475569",
+                  fontWeight: "700",
+                }}
               >
                 {data.bmi != null
-                  ? t("home.bmiRow", { bmi: data.bmi, category: data.bmiCategory })
+                  ? `BMI ${data.bmi} • ${data.bmiCategory ?? "Healthy"}`
                   : t("home.a11y.bmiNeeded")}
               </Text>
             </View>
+            <ChevronRight size={14} color="#94A3B8" strokeWidth={2.5} />
           </View>
         </View>
+      </Pressable>
 
-        <View style={{ gap: spacing.sm }}>
-          {components.map((c) => (
-            <WellnessBar
-              key={c.key}
-              label={c.label}
-              score={c.score}
-              max={c.max}
-              tone={COMPONENT_TONE[c.key] ?? "neutral"}
-            />
-          ))}
-        </View>
+      {/* ─── 2-Column Metric Tiles Grid ─── */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        {components.map((c) => (
+          <WellnessMetricTile
+            key={c.key}
+            itemKey={c.key}
+            label={c.label}
+            score={c.score}
+            max={c.max}
+          />
+        ))}
+      </View>
 
-        {data.topTip ? (
-          <View
+      {/* ─── Actionable Health Insight Banner ─── */}
+      {data.topTip ? (
+        <Pressable
+          onPress={() => router.push("/(app)/vitals")}
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.92 : 1,
+          })}
+        >
+          <LinearGradient
+            colors={["#F0F9FF", "#E0F2FE"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={{
               flexDirection: "row",
-              alignItems: "flex-start",
-              gap: spacing.sm,
-              padding: spacing.md,
-              borderRadius: 14,
-              backgroundColor: palette.bg,
+              alignItems: "center",
+              gap: 12,
+              padding: 13,
+              borderRadius: 16,
               borderWidth: 1,
-              borderColor: `${palette.fg}33`,
+              borderColor: "rgba(56, 189, 248, 0.4)",
+              shadowColor: "#0284C7",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 6,
+              elevation: 1,
             }}
           >
-            <Sparkles size={16} color={palette.fg} strokeWidth={2.5} />
-            <Text
-              style={[
-                typography.body.sm,
-                { color: colors.text, flex: 1 },
-              ]}
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                backgroundColor: "#0284C7",
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: "#0284C7",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+              }}
             >
-              {data.topTip}
-            </Text>
-          </View>
-        ) : null}
+              <Sparkles size={18} color="#FFFFFF" strokeWidth={2.4} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: "800",
+                  color: "#0369A1",
+                  letterSpacing: 0.7,
+                  textTransform: "uppercase",
+                }}
+              >
+                Daily Health Insight
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color: "#0F172A",
+                  lineHeight: 16,
+                }}
+              >
+                {data.topTip}
+              </Text>
+            </View>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: "rgba(255, 255, 255, 0.85)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ChevronRight size={15} color="#0284C7" strokeWidth={2.5} />
+            </View>
+          </LinearGradient>
+        </Pressable>
+      ) : null}
 
-        <View
-          style={{
-            flexDirection: "row",
-            gap: spacing.sm,
-            paddingTop: spacing.xs,
-          }}
-        >
-          <MiniStat
-            icon={Droplet}
-            label={t("home.miniStat.blood")}
-            value={
-              data.profile?.filled != null && data.profile.filled > 0
-                ? `${data.profile.filled}/${data.profile.total}`
-                : "—"
-            }
-          />
-          <MiniStat
-            icon={Pill}
-            label={t("home.miniStat.doses")}
-            value={
-              data.adherence?.scheduled != null && data.adherence.scheduled > 0
-                ? `${data.adherence.taken}/${data.adherence.scheduled}`
-                : "—"
-            }
-          />
-          <MiniStat
-            icon={Activity}
-            label={t("home.miniStat.vitals")}
-            value={data.vitals?.readings != null ? String(data.vitals.readings) : "—"}
-          />
-        </View>
-      </Card>
-    </Pressable>
+      {/* ─── Bottom Quick Stat Pills ─── */}
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 10,
+        }}
+      >
+        <MiniStatCard
+          icon={ShieldCheck}
+          label="Profile Info"
+          value={
+            data.profile?.filled != null && data.profile.filled > 0
+              ? `${data.profile.filled}/${data.profile.total}`
+              : "—"
+          }
+          tone="warning"
+          onPress={() => router.push("/(app)/profile")}
+        />
+        <MiniStatCard
+          icon={Pill}
+          label="Today's Doses"
+          value={
+            data.adherence?.scheduled != null && data.adherence.scheduled > 0
+              ? `${data.adherence.taken}/${data.adherence.scheduled}`
+              : "—"
+          }
+          tone="primary"
+          onPress={() => router.push("/(app)/medicines")}
+        />
+        <MiniStatCard
+          icon={HeartPulse}
+          label="Recent Vitals"
+          value={data.vitals?.readings != null ? `${data.vitals.readings}` : "—"}
+          tone="danger"
+          onPress={() => router.push("/(app)/vitals")}
+        />
+      </View>
+    </Card>
   );
 }
 
-function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  const { colors, spacing, typography, radius } = useTheme();
+function MiniStatCard({
+  icon: Icon,
+  label,
+  value,
+  tone = "primary",
+  onPress,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  tone?: Tone;
+  onPress?: () => void;
+}) {
+  const p = useTone(tone);
   return (
-    <View
-      style={{
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
         flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.xs,
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.sm,
-        borderRadius: radius.md,
-        backgroundColor: colors.surfaceMuted,
         minWidth: 0,
-      }}
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+        borderRadius: 16,
+        backgroundColor: pressed ? "#F1F5F9" : "#F8FAFC",
+        borderWidth: 1,
+        borderColor: "rgba(226, 232, 240, 0.8)",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        opacity: pressed ? 0.9 : 1,
+      })}
     >
-      <Icon size={14} color={colors.textMuted} strokeWidth={2.25} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.caption,
-            { color: colors.textMuted, fontWeight: "600" },
-          ]}
-        >
-          {label}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.label.md,
-            { color: colors.text, fontWeight: "800" },
-          ]}
-        >
-          {value}
-        </Text>
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 9,
+          backgroundColor: p.bg,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={14} color={p.fg} strokeWidth={2.4} />
       </View>
-    </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 10,
+          fontWeight: "600",
+          color: "#64748B",
+          textAlign: "center",
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 14,
+          fontWeight: "800",
+          color: "#0F172A",
+          textAlign: "center",
+        }}
+      >
+        {value}
+      </Text>
+    </Pressable>
   );
 }
 

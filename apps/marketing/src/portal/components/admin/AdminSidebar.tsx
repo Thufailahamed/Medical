@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShieldCheck, Activity } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { ADMIN_NAV_GROUPS } from "./admin-nav";
 import { useAuthStore } from "@/portal/stores/auth";
 import { useT } from "@/portal/i18n";
@@ -38,27 +38,27 @@ export function AdminSidebar() {
 
   return (
     <aside
-      className="hidden md:flex flex-col w-[260px] shrink-0 border-r border-border bg-surface"
+      className="hidden md:flex flex-col w-[260px] shrink-0 bg-slate-950 text-slate-300"
       aria-label="Admin navigation"
     >
       {/* Brand */}
-      <div className="h-[60px] flex items-center gap-2.5 px-5 border-b border-border">
-        <div className="h-9 w-9 rounded-lg bg-amber-600 text-white flex items-center justify-center">
+      <div className="h-[60px] flex items-center gap-2.5 px-5 border-b border-white/[0.06]">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white flex items-center justify-center shadow-[0_4px_14px_rgba(59,111,245,0.45)]">
           <ShieldCheck size={18} strokeWidth={2.25} />
         </div>
         <div>
-          <p className="text-sm font-bold tracking-wider leading-none">HEALTHHUB</p>
-          <p className="text-[10px] text-text-muted tracking-widest mt-0.5">
+          <p className="text-sm font-extrabold tracking-wider leading-none text-white">HEALTHHUB</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] mt-1 text-blue-400/90">
             {isSuperAdmin ? "ADMIN" : "OPERATOR"}
           </p>
         </div>
       </div>
 
       {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-4">
+      <nav className="admin-sidebar-scroll flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-5">
         {visibleGroups.map((group) => (
           <div key={group.labelKey}>
-            <p className="px-3 mb-1.5 text-[10px] font-bold tracking-widest text-text-muted uppercase">
+            <p className="px-3 mb-1.5 text-[10px] font-bold tracking-[0.14em] text-slate-500 uppercase">
               {resolveLabel(t, group.labelKey)}
             </p>
             <div className="flex flex-col gap-0.5">
@@ -70,13 +70,17 @@ export function AdminSidebar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-2.5 px-3 h-9 rounded-lg text-sm transition-colors",
+                      "flex items-center gap-2.5 px-3 h-9 rounded-lg text-[13px] transition-all no-underline hover:no-underline",
                       active
-                        ? "bg-amber-50 text-amber-700 font-semibold"
-                        : "text-text-soft hover:bg-surface-2 hover:text-text",
+                        ? "bg-blue-500/15 text-blue-300 font-semibold ring-1 ring-inset ring-blue-400/25"
+                        : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
                     )}
                   >
-                    <Icon size={16} strokeWidth={2} className={active ? "text-amber-600" : "text-text-muted"} />
+                    <Icon
+                      size={16}
+                      strokeWidth={2}
+                      className={active ? "text-blue-400" : "text-slate-500"}
+                    />
                     {resolveLabel(t, item.labelKey)}
                   </Link>
                 );
@@ -87,15 +91,15 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer: user + sign out */}
-      <div className="border-t border-border px-3 py-3">
-        <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="h-9 w-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-bold">
+      <div className="border-t border-white/[0.06] p-3">
+        <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.04] px-3 py-2.5">
+          <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white flex items-center justify-center text-sm font-bold">
             {(user?.name || "A").slice(0, 1).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate">{user?.name || "Admin"}</p>
-            <p className="text-[11px] text-text-muted truncate flex items-center gap-1">
-              <Activity size={10} className="text-emerald-500" />
+            <p className="text-[13px] font-semibold text-white truncate">{user?.name || "Admin"}</p>
+            <p className="text-[11px] text-slate-500 truncate flex items-center gap-1.5">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               {user?.role ?? "—"}
             </p>
           </div>
@@ -105,7 +109,7 @@ export function AdminSidebar() {
               window.location.href = loginHref({ port: "operator" });
             }}
             aria-label="Sign out"
-            className="h-8 w-8 rounded-md hover:bg-surface-2 flex items-center justify-center text-text-muted hover:text-text"
+            className="h-8 w-8 shrink-0 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
           >
             <LogOut size={15} />
           </button>

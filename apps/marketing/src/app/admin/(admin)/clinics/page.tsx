@@ -6,6 +6,7 @@ import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
 import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { Hospital } from "lucide-react";
 
 type Row = {
   id: string;
@@ -27,11 +28,22 @@ export default function AdminClinicsPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-7xl">
-      <PageHeader title="Clinics" subtitle={`${data?.items.length ?? 0} tenants`} />
+      <PageHeader
+        icon={<Hospital size={20} className="text-blue-600" />}
+        title="Clinics" subtitle={`${data?.items.length ?? 0} tenants`} 
+      />
       {isLoading || !data ? (
-        <p className="text-text-soft text-sm">Loading…</p>
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
+          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
+          <div className="h-4 w-full admin-shimmer rounded-md" />
+          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
+          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
+        </div>
       ) : data.items.length === 0 ? (
-        <div className="bg-surface border border-border rounded-2xl p-10 text-center text-text-soft">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
+          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
+            <Hospital size={18} aria-hidden />
+          </div>
           No clinics.
         </div>
       ) : (

@@ -5,6 +5,7 @@ import {
   View,
   Text,
   ScrollView,
+  StyleSheet,
   Pressable,
   Image,
   Linking,
@@ -14,6 +15,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
 import { fmtDateLong, intlLocale } from "@/lib/format";
@@ -35,7 +37,9 @@ import {
   Trash2,
   X,
   Check,
+  ChevronRight,
   MoreHorizontal,
+  Plus,
   Sparkles,
   RefreshCw,
   FlaskConical,
@@ -161,6 +165,24 @@ function buildTypeMeta(
     },
   };
 }
+
+// Kind-graded gradient used for the hero icon tile — mirrors the palette
+// on the Records hub cards so the detail view reads as the same object.
+const DETAIL_GRADIENT: Record<string, readonly [string, string]> = {
+  lab_report: ["#FBBF24", "#F59E0B"],
+  prescription: ["#A78BFA", "#7C3AED"],
+  imaging: ["#38BDF8", "#0284C7"],
+  hospital_visit: ["#2DD4BF", "#0D9488"],
+  vaccination: ["#FB923C", "#EA580C"],
+  surgery: ["#F87171", "#DC2626"],
+  op_note: ["#F472B6", "#DB2777"],
+  discharge_summary: ["#A78BFA", "#6D28D9"],
+  referral: ["#60A5FA", "#2563EB"],
+  insurance: ["#34D399", "#059669"],
+  pathology: ["#FBBF24", "#B45309"],
+  dental: ["#38BDF8", "#0284C7"],
+  other: ["#94A3B8", "#475569"],
+};
 
 export default function RecordDetailScreen() {
   const router = useRouter();
@@ -520,10 +542,11 @@ export default function RecordDetailScreen() {
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: spacing.lg,
-          paddingVertical: 14,
-          backgroundColor: "#FFFFFF",
+          paddingTop: spacing.md,
+          paddingBottom: 14,
+          backgroundColor: "#F4F8FB",
           borderBottomWidth: 1,
-          borderBottomColor: "#E2E8F0",
+          borderBottomColor: "#E2EBF1",
         }}
       >
         <IconButton
@@ -535,14 +558,31 @@ export default function RecordDetailScreen() {
           size="md"
         />
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <IconComp size={16} color={meta.tone} strokeWidth={2.5} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 11,
+            paddingVertical: 6,
+            borderRadius: 999,
+            backgroundColor: "#FFFFFF",
+            borderWidth: 1,
+            borderColor: "#E2EBF1",
+            shadowColor: "#0F2742",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.05,
+            shadowRadius: 10,
+            elevation: 1,
+          }}
+        >
+          <IconComp size={15} color={meta.tone} strokeWidth={2.5} />
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: "800",
               color: meta.tone,
-              letterSpacing: 1.1,
+              letterSpacing: 1,
               fontFamily: fontFamily.displayBold,
             }}
           >
@@ -559,15 +599,24 @@ export default function RecordDetailScreen() {
             borderRadius: 20,
             alignItems: "center",
             justifyContent: "center",
+            backgroundColor: "#FFFFFF",
+            borderWidth: 1,
+            borderColor: "#E2EBF1",
+            shadowColor: "#0F2742",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.05,
+            shadowRadius: 10,
+            elevation: 1,
           }}
         >
-          <MoreHorizontal size={22} color={colors.primary} />
+          <MoreHorizontal size={20} color={colors.primary} strokeWidth={2.5} />
         </Pressable>
       </View>
 
       <ScrollView
-        style={{ backgroundColor: "#F8FAFC" }}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        style={{ backgroundColor: "#F4F8FB" }}
+        contentContainerStyle={{ paddingBottom: 148 }}
+        showsVerticalScrollIndicator={false}
       >
         {/* Hero Card */}
         <View
@@ -580,47 +629,67 @@ export default function RecordDetailScreen() {
           <View
             style={{
               backgroundColor: "#FFFFFF",
-              borderRadius: 20,
-              padding: 18,
+              borderRadius: 24,
+              padding: 20,
               borderWidth: 1,
-              borderColor: "#E2E8F0",
-              shadowColor: "rgba(0,0,0,0.03)",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 1,
-              shadowRadius: 10,
-              elevation: 2,
-              gap: 12,
+              borderColor: "#E2EBF1",
+              shadowColor: "#16324A",
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.08,
+              shadowRadius: 22,
+              elevation: 4,
+              gap: 14,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  color: "#64748B",
-                  fontFamily: fontFamily.body,
-                }}
-              >
-                {ownerLabel} · {formatDate(record.date, locale)}
-              </Text>
+            {/* Kind identity row — gradient icon tile + type + owner/date */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <View
                 style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 999,
-                  backgroundColor: `${meta.tone}14`,
+                  width: 50,
+                  height: 50,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: meta.tone,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 10,
+                  elevation: 3,
                 }}
               >
+                <LinearGradient
+                  colors={DETAIL_GRADIENT[recordKind ?? "other"] ?? DETAIL_GRADIENT.other}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                />
+                <IconComp size={21} color="#FFFFFF" strokeWidth={2.25} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
                   style={{
-                    fontSize: 10,
+                    fontSize: 10.5,
                     fontWeight: "800",
                     color: meta.tone,
-                    letterSpacing: 0.8,
-                    fontFamily: fontFamily.bodyBold,
+                    letterSpacing: 1.1,
+                    fontFamily: fontFamily.displayBold,
                   }}
+                  numberOfLines={1}
                 >
                   {meta.label.toUpperCase()}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: "600",
+                    color: "#64748B",
+                    fontFamily: fontFamily.body,
+                    marginTop: 2,
+                  }}
+                  numberOfLines={1}
+                >
+                  {ownerLabel} · {formatDate(record.date, locale)}
                 </Text>
               </View>
             </View>
@@ -632,6 +701,7 @@ export default function RecordDetailScreen() {
                 color: "#0F172A",
                 lineHeight: 30,
                 fontFamily: fontFamily.displayBold,
+                letterSpacing: -0.4,
               }}
             >
               {record.title}
@@ -782,9 +852,20 @@ export default function RecordDetailScreen() {
               return null;
             const SecIcon = sec.icon;
             return (
-              <Card key={sec.key} style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                  <SecIcon size={14} color={sec.color} strokeWidth={2.5} />
+              <Card key={sec.key} style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 }}>
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 12,
+                      backgroundColor: `${sec.color}16`,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <SecIcon size={15} color={sec.color} strokeWidth={2.5} />
+                  </View>
                   <Text
                     style={{
                       fontSize: 11,
@@ -838,11 +919,133 @@ export default function RecordDetailScreen() {
           />
         ) : null}
 
-        {/* Tags */}
+        {/* Tags — tap anywhere on the card to edit */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <Tag size={14} color={colors.primary} strokeWidth={2.5} />
+          <Pressable
+            onPress={() => setShowTagPicker(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t("recordDetail.a11y.editTags", "Edit tags")}
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+          >
+            <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 12,
+                    backgroundColor: `${colors.primary}16`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Tag size={15} color={colors.primary} strokeWidth={2.5} />
+                </View>
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 11,
+                    fontWeight: "800",
+                    color: colors.textMuted,
+                    letterSpacing: 1.1,
+                    fontFamily: fontFamily.displayBold,
+                  }}
+                >
+                  {t("recordDetail.tagsHeading").toUpperCase()}
+                </Text>
+                <View
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    backgroundColor: colors.primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Plus size={15} color={colors.primary} strokeWidth={2.75} />
+                </View>
+              </View>
+              {record.tags?.length ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 6,
+                  }}
+                >
+                  {record.tags.map((tag: string) => (
+                    <View
+                      key={tag}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        borderRadius: 999,
+                        backgroundColor: `${colors.primary}14`,
+                      }}
+                    >
+                      <Tag size={11} color={colors.primary} strokeWidth={2.5} />
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: colors.primary,
+                          fontFamily: fontFamily.bodyBold,
+                        }}
+                      >
+                        {tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View
+                  style={{
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderStyle: "dashed",
+                    borderColor: "#CBD8E2",
+                    backgroundColor: "#F8FBFD",
+                    paddingVertical: 16,
+                    paddingHorizontal: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: colors.textMuted,
+                      fontFamily: fontFamily.body,
+                    }}
+                  >
+                    {t("recordDetail.noTags")}
+                  </Text>
+                </View>
+              )}
+            </Card>
+          </Pressable>
+        </View>
+
+        {/* Details — extracted fields as key/value rows */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+          <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 12,
+                  backgroundColor: "#E8F0F5",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ListChecks size={16} color="#475569" strokeWidth={2.5} />
+              </View>
               <Text
                 style={{
                   fontSize: 11,
@@ -852,94 +1055,79 @@ export default function RecordDetailScreen() {
                   fontFamily: fontFamily.displayBold,
                 }}
               >
-                {t("recordDetail.tagsHeading").toUpperCase()}
+                {t("recordDetail.detailsHeading").toUpperCase()}
               </Text>
             </View>
-            {record.tags?.length ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 6,
-                }}
-              >
-                {record.tags.map((tag: string) => (
-                  <View
-                    key={tag}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 4,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                      borderRadius: 999,
-                      backgroundColor: `${colors.primary}14`,
-                    }}
-                  >
-                    <Tag size={11} color={colors.primary} strokeWidth={2.5} />
-                    <Text
+            {record.extractedData && Object.keys(record.extractedData).length ? (
+              <View>
+                {Object.entries(record.extractedData)
+                  .slice(0, 14)
+                  .map(([key, val], i) => (
+                    <View
+                      key={key}
                       style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: colors.primary,
-                        fontFamily: fontFamily.bodyBold,
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        paddingVertical: 8,
+                        borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                        borderTopColor: "#E2E8F0",
                       }}
                     >
-                      {tag}
-                    </Text>
-                  </View>
-                ))}
+                      <Text
+                        style={{
+                          flex: 1,
+                          fontSize: 12.5,
+                          fontWeight: "600",
+                          color: colors.textMuted,
+                          fontFamily: fontFamily.body,
+                          textTransform: "capitalize",
+                        }}
+                        numberOfLines={1}
+                      >
+                        {prettifyDetailKey(key)}
+                      </Text>
+                      <Text
+                        style={{
+                          flex: 1.4,
+                          fontSize: 12.5,
+                          fontWeight: "700",
+                          color: "#1E293B",
+                          fontFamily: fontFamily.body,
+                          textAlign: "right",
+                        }}
+                        numberOfLines={3}
+                      >
+                        {formatDetailValue(val)}
+                      </Text>
+                    </View>
+                  ))}
               </View>
             ) : (
-              <Text
+              <View
                 style={{
-                  fontSize: 13,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.body,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: "#CBD8E2",
+                  backgroundColor: "#F8FBFD",
+                  paddingVertical: 16,
+                  paddingHorizontal: 14,
+                  alignItems: "center",
                 }}
               >
-                {t("recordDetail.noTags")}
-              </Text>
-            )}
-          </Card>
-        </View>
-
-        {/* Details (JSON pretty) */}
-        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "800",
-                color: colors.textMuted,
-                letterSpacing: 1.1,
-                marginBottom: 8,
-                fontFamily: fontFamily.displayBold,
-              }}
-            >
-              {t("recordDetail.detailsHeading").toUpperCase()}
-            </Text>
-            {record.extractedData && Object.keys(record.extractedData).length ? (
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: "#1D1B20",
-                  fontFamily: fontFamily.mono,
-                  lineHeight: 18,
-                }}
-              >
-                {JSON.stringify(record.extractedData, null, 2)}
-              </Text>
-            ) : (
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.body,
-                }}
-              >
-                {t("recordDetail.emptyDetails")}
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "600",
+                    color: colors.textMuted,
+                    fontFamily: fontFamily.body,
+                    textAlign: "center",
+                  }}
+                >
+                  {t("recordDetail.emptyDetails")}
+                </Text>
+              </View>
             )}
           </Card>
         </View>
@@ -976,7 +1164,7 @@ export default function RecordDetailScreen() {
         {/* Attachments */}
         {attachments.length ? (
           <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-            <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
+            <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
               <Text
                 style={{
                   fontSize: 11,
@@ -1015,10 +1203,10 @@ export default function RecordDetailScreen() {
                         alignItems: "center",
                         gap: 12,
                         padding: 12,
-                        borderRadius: 14,
-                        backgroundColor: pressed ? "#F1F5F9" : "#F8FAFC",
+                        borderRadius: 16,
+                        backgroundColor: pressed ? "#EDF4F8" : "#F8FBFD",
                         borderWidth: 1,
-                        borderColor: "#E2E8F0",
+                        borderColor: "#DFE9F0",
                       })}
                     >
                       {isImage && att.id && signedUrls[att.id] ? (
@@ -1027,18 +1215,18 @@ export default function RecordDetailScreen() {
                             uri: signedUrls[att.id],
                           }}
                           style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 10,
+                            width: 52,
+                            height: 52,
+                            borderRadius: 14,
                           }}
                           resizeMode="cover"
                         />
                       ) : (
                         <View
                           style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 12,
+                            width: 48,
+                            height: 48,
+                            borderRadius: 14,
                             backgroundColor: "#E0F2FE",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1105,24 +1293,25 @@ export default function RecordDetailScreen() {
       <View
         style={{
           position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 1,
-          borderColor: "#E2E8F0",
-          paddingHorizontal: spacing.lg,
-          paddingTop: 12,
-          paddingBottom: Platform.OS === "ios" ? 28 : 14,
+          bottom: 12,
+          left: 12,
+          right: 12,
+          backgroundColor: "rgba(255,255,255,0.98)",
+          borderWidth: 1,
+          borderColor: "#DFE9F0",
+          borderRadius: 24,
+          paddingHorizontal: 10,
+          paddingTop: 10,
+          paddingBottom: 10,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 10,
-          shadowColor: "rgba(0,0,0,0.06)",
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 1,
-          shadowRadius: 10,
-          elevation: 8,
+          shadowColor: "#0B2942",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.14,
+          shadowRadius: 24,
+          elevation: 12,
         }}
       >
         <Button
@@ -1135,7 +1324,7 @@ export default function RecordDetailScreen() {
               params: { id: params.id },
             })
           }
-          style={{ flex: 1, height: 46, borderRadius: 14 }}
+          style={{ flex: 1, height: 48, borderRadius: 16 }}
           icon={Pencil}
         />
         <Button
@@ -1143,7 +1332,7 @@ export default function RecordDetailScreen() {
           variant="secondary"
           size="md"
           onPress={doShare}
-          style={{ flex: 1, height: 46, borderRadius: 14 }}
+          style={{ flex: 1, height: 48, borderRadius: 16 }}
           icon={Share2}
         />
         <Button
@@ -1151,7 +1340,7 @@ export default function RecordDetailScreen() {
           variant="outline"
           size="md"
           onPress={() => router.push("/(app)/notifications")}
-          style={{ flex: 1, height: 46, borderRadius: 14 }}
+          style={{ flex: 1, height: 48, borderRadius: 16 }}
           icon={ExternalLink}
         />
       </View>
@@ -1380,6 +1569,32 @@ function formatDate(dateStr: string, locale: string) {
   }
 }
 
+// "hemoglobinValue" / "patient_dob" → "Hemoglobin value" / "Patient dob"
+function prettifyDetailKey(key: string) {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function formatDetailValue(val: unknown): string {
+  if (val == null) return "—";
+  if (typeof val === "boolean") return val ? "Yes" : "No";
+  if (typeof val === "number" || typeof val === "string") return String(val);
+  if (Array.isArray(val)) {
+    return val
+      .slice(0, 4)
+      .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
+      .join(", ");
+  }
+  try {
+    return JSON.stringify(val);
+  } catch {
+    return String(val);
+  }
+}
+
 // ─── Structured data card ───────────────────────────────
 //
 // Shown on lab_report / imaging / discharge_summary / vaccination /
@@ -1472,16 +1687,27 @@ function StructuredDataCard({
 
   return (
     <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <Card style={{ borderRadius: 18, borderColor: "#E2E8F0", padding: 16 }}>
+      <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 6,
-            marginBottom: 10,
+            gap: 10,
+            marginBottom: 12,
           }}
         >
-          <Sparkles size={14} color="#0D9488" strokeWidth={2.5} />
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 12,
+              backgroundColor: "#CCFBF1",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Sparkles size={16} color="#0D9488" strokeWidth={2.5} />
+          </View>
           <Text
             style={{
               fontSize: 11,
@@ -1517,7 +1743,7 @@ function StructuredDataCard({
               onPress={onReExtract}
               disabled={isExtracting}
               style={{ borderRadius: 12, height: 42 }}
-              leftIcon={<Sparkles size={15} color="#FFFFFF" />}
+              icon={<Sparkles size={15} color="#FFFFFF" />}
             />
           </View>
         ) : (
@@ -1574,7 +1800,7 @@ function StructuredDataCard({
               onPress={onReExtract}
               disabled={isExtracting}
               style={{ borderRadius: 10, height: 38 }}
-              leftIcon={<RefreshCw size={14} color={colors.primary} />}
+              icon={<RefreshCw size={14} color={colors.primary} />}
             />
           </View>
         )}

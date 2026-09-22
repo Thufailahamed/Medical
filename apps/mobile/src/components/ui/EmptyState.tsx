@@ -90,6 +90,7 @@ export function EmptyState({
           onPress={onAction}
           variant={tone === "neutral" ? "outline" : "primary"}
           fullWidth={false}
+          style={{ alignSelf: "center" }}
         />
       ) : null}
     </View>

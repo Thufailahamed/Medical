@@ -14,11 +14,13 @@ export interface AiQuickPrompt {
 export function AiCommandBar({
   onSubmit,
   quickPrompts,
+  promptsLabel,
   placeholder = "Ask about records, labs, symptoms or prescriptions…",
   className,
 }: {
   onSubmit: (prompt: string) => void;
   quickPrompts: AiQuickPrompt[];
+  promptsLabel?: string;
   placeholder?: string;
   className?: string;
 }) {
@@ -46,7 +48,7 @@ export function AiCommandBar({
     <div className={cn("flex flex-col gap-3", className)}>
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 rounded-2xl bg-white p-1.5 md:p-2 shadow-[0_12px_36px_rgba(12,74,110,0.28),0_2px_8px_rgba(0,0,0,0.06)] border border-white/50 ring-4 ring-black/5"
+        className="flex items-center gap-2 rounded-2xl border border-white/50 bg-white p-1.5 shadow-[0_12px_36px_rgba(12,74,110,0.28),0_2px_8px_rgba(0,0,0,0.06)] ring-4 ring-black/5 transition-shadow focus-within:ring-sky-300/50 md:p-2"
       >
         <span
           aria-hidden
@@ -81,6 +83,11 @@ export function AiCommandBar({
 
       {quickPrompts.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
+          {promptsLabel ? (
+            <span className="mr-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-200/80">
+              {promptsLabel}
+            </span>
+          ) : null}
           {quickPrompts.map((prompt) => (
             <button
               key={prompt.label}

@@ -322,11 +322,16 @@ export interface HealthSummary {
 export interface Conversation {
   id: string;
   doctorId: string;
-  doctorName: string | null;
+  doctor: {
+    id: string;
+    userId: string;
+    name: string;
+    photo: string | null;
+  } | null;
   status: "open" | "closed";
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
-  lastMessageSender: string | null;
+  lastMessageSender: "doctor" | "patient" | null;
   patientUnread: number;
 }
 
@@ -335,7 +340,9 @@ export interface Message {
   id: string;
   conversationId: string;
   senderRole: "doctor" | "patient";
+  senderId: string;
   body: string;
+  readAt: string | null;
   createdAt: string;
 }
 

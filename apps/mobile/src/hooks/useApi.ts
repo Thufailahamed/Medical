@@ -9,14 +9,16 @@ import { setLastAllergies, setLastMeds } from "@/lib/offline-cache";
 const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === "true";
 
 async function getAuthToken(): Promise<string | null> {
+  try {
+    const token = await SecureStore.getItemAsync("auth_token");
+    if (token) return token;
+  } catch {
+    // Fall through to dev check
+  }
   if (DEV_MODE) {
     return "dev-token";
   }
-  try {
-    return await SecureStore.getItemAsync("auth_token");
-  } catch {
-    return null;
-  }
+  return null;
 }
 import type { Patient, MedicalRecord, Appointment } from "@healthcare/shared";
 import type {
@@ -1781,8 +1783,11 @@ export function useCancelAppointment() {
   return useMutation({
     mutationFn: (id: string) =>
       api<{ appointment: any }>(`/appointments/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ["appointments", id] });
+      }
     },
   });
 }
@@ -2128,6 +2133,7 @@ const NOTIF_TYPES = [
   "hospital",
   "emergency",
   "general",
+  "teleconsult",
 ] as const;
 
 export function useNotificationPreferences() {
@@ -3458,6 +3464,19 @@ export function useSetConversationStatus(conversationId: string | undefined) {
       });
       qc.invalidateQueries({ queryKey: ["doctor", "messages", "conversations"] });
     },
+  });
+}
+
+// Doctor's accessible patients, most-recently-visited first. Powers the
+// "New conversation" patient picker on the inbox screen.
+export function useRecentDoctorPatients(limit = 10) {
+  return useQuery({
+    queryKey: ["doctor", "patients", "recent", limit],
+    queryFn: () =>
+      api<{ patients: { patient: any; user: any }[] }>(
+        `/doctor/search-patients?recent=1&limit=${limit}`
+      ),
+    staleTime: 30_000,
   });
 }
 

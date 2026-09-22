@@ -11,7 +11,6 @@ import {
   AlertCircle,
   ArrowRight,
   Building2,
-  CheckCircle2,
   Eye,
   EyeOff,
   Heart,
@@ -115,36 +114,48 @@ const PORT_HERO: Record<
     headline: string;
     highlight: string;
     description: string;
+    photo: string;
   }
 > = {
   patient: {
-    eyebrow: "Personal Health Gateway",
-    headline: "Your health journey,",
-    highlight: "protected in one place.",
+    eyebrow: "Private beta · 6°55′N Colombo",
+    headline: "Your health has a history.",
+    highlight: "Keep it close.",
     description:
-      "Encrypted medical records, prescriptions, and direct connection with your doctors — confidential and always in your hands.",
+      "Records, medicines and visits — private, readable, and doctor-ready in English, Sinhala and Tamil.",
+    photo: "/assets/brand/harbor-hands.png",
   },
   doctor: {
-    eyebrow: "Clinical Practice Cockpit",
-    headline: "Patient context ready,",
-    highlight: "before your consult begins.",
+    eyebrow: "Clinical workstation",
+    headline: "The chart, already written.",
+    highlight: "Before they sit down.",
     description:
-      "Longitudinal medical histories, digital prescriptions, lab orders, and diagnostic trends in a unified clinical dashboard.",
+      "Longitudinal history, labs and prescriptions in one place — so the visit can start somewhere better.",
+    photo: "/assets/insurance/plan-types/insurance-senior.jpg",
   },
   facility: {
-    eyebrow: "Healthcare Operations",
-    headline: "Wards, labs, and pharmacy,",
-    highlight: "seamlessly coordinated.",
+    eyebrow: "Hospital · lab · pharmacy",
+    headline: "Wards, specimens, stock.",
+    highlight: "One quiet board.",
     description:
-      "Real-time bed management, specimen tracking, automated dispensing, and audit-ready departmental workflows.",
+      "Beds, lab routing and dispensing coordinated without the WhatsApp scramble.",
+    photo: "/assets/lab/hero.jpg",
   },
   operator: {
-    eyebrow: "Payer & Emergency Network",
-    headline: "Instant claims & rapid dispatch,",
-    highlight: "connected in real time.",
+    eyebrow: "Insurance & EMS",
+    headline: "Claims and dispatch,",
+    highlight: "in the same breath.",
     description:
-      "Direct policy verification, automated claims settlement, and coordinated ambulance fleet tracking across the island.",
+      "Policy checks, settlement and fleet tracking across the island — live, auditable, unhurried.",
+    photo: "/assets/insurance/hero.jpg",
   },
+};
+
+const PORT_ACTION_LABEL: Record<Port, string> = {
+  patient: "Sign in as Patient",
+  doctor: "Sign in to Clinical Desk",
+  facility: "Sign in to Facility Hub",
+  operator: "Sign in to Partner Desk",
 };
 
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -418,7 +429,37 @@ function UnifiedLoginForm() {
 
       {/* ── Left Hero Side ───────────────────────────────────────────────── */}
       <aside className="hl-hero" aria-label="HealthHub Platform">
-        <div className="hl-hero__grid" />
+        <div className="hl-hero__field" aria-hidden="true">
+          <div className="hl-hero__spot" />
+          <div className="hl-hero__grain" />
+          <svg className="hl-hero__ecg" viewBox="0 0 900 1100" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="hl-ecg" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#7eb0ff" stopOpacity="0" />
+                <stop offset=".4" stopColor="#5ec8ff" stopOpacity=".7" />
+                <stop offset="1" stopColor="#7eb0ff" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              className="hl-hero__ecg-path"
+              d="M-20 540 H140 l18-48 12 96 18-140 10 70 22-22 H900"
+              fill="none"
+              stroke="url(#hl-ecg)"
+              strokeWidth="1.25"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="hl-compass">
+            <span className="hl-compass__ring" />
+            <span className="hl-compass__ring hl-compass__ring--2" />
+            <span className="hl-compass__ring hl-compass__ring--3" />
+            <span className="hl-compass__ticks" />
+            <span className="hl-compass__north">N</span>
+            <div className="hl-compass__photo">
+              <img src={hero.photo} alt="" key={hero.photo} />
+            </div>
+          </div>
+        </div>
 
         <Link href="/" className="hl-brand">
           <div className="hl-brand__icon-wrap">
@@ -426,7 +467,7 @@ function UnifiedLoginForm() {
           </div>
           <div>
             <div className="hl-brand__name">HealthHub</div>
-            <div className="hl-brand__badge">Unified Health System</div>
+            <div className="hl-brand__badge">Beta</div>
           </div>
         </Link>
 
@@ -438,18 +479,26 @@ function UnifiedLoginForm() {
 
           <div>
             <h1 className="hl-headline">
-              {hero.headline} <br />
+              {hero.headline}
               <span className="hl-headline-accent">{hero.highlight}</span>
             </h1>
-            <p className="hl-lede mt-3">{hero.description}</p>
+            <p className="hl-lede">{hero.description}</p>
+            <div className="hl-langs" aria-label="Languages">
+              <b>EN</b><i /><b>සිංහල</b><i /><b>தமிழ்</b>
+            </div>
           </div>
+        </div>
 
-          {/* Dynamic Frosted Glass Preview Card */}
-          <div className="hl-card-preview">
+        <div className="hl-card-preview" key={`card-${port}`}>
             <div className="hl-card-preview__top">
               <div className="hl-card-preview__brand">
-                <ShieldCheck size={16} className="text-sky-400" />
-                <span>Verified System Node</span>
+                <ShieldCheck size={16} />
+                <span>
+                  {port === "patient" && "Family record"}
+                  {port === "doctor" && "Clinic session"}
+                  {port === "facility" && "Operations board"}
+                  {port === "operator" && "Dispatch desk"}
+                </span>
               </div>
               <span className="hl-card-preview__chip">
                 {port === "patient" && "LK-NHI · ENCRYPTED"}
@@ -519,7 +568,7 @@ function UnifiedLoginForm() {
                       </div>
                     </div>
                     <div className="hl-card-tag">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="hl-live" />
                       <span>Live Sync</span>
                     </div>
                   </div>
@@ -544,7 +593,7 @@ function UnifiedLoginForm() {
                       </div>
                     </div>
                     <div className="hl-card-tag">
-                      <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+                      <span className="hl-live" />
                       <span>12 En Route</span>
                     </div>
                   </div>
@@ -556,18 +605,17 @@ function UnifiedLoginForm() {
                 </>
               )}
             </div>
-          </div>
         </div>
 
         <div className="hl-hero__foot">
           <div className="hl-hero__trust">
             <span>
-              <ShieldCheck size={13} className="text-sky-400" />
-              256-bit Encrypted
+              <ShieldCheck size={13} />
+              256-bit encrypted
             </span>
             <span>
-              <CheckCircle2 size={13} className="text-emerald-400" />
-              SLMC Verified
+              <Lock size={13} />
+              Never sold
             </span>
           </div>
           <span>© {new Date().getFullYear()} HealthHub</span>
@@ -589,9 +637,9 @@ function UnifiedLoginForm() {
 
         <div className="hl-form-container" id="login-form">
           <div className="hl-header">
-            <span className="hl-eyebrow">Portal Access</span>
-            <h2>Sign in to your account</h2>
-            <p>Select your workspace role to continue with your credentials.</p>
+            <span className="hl-eyebrow">{selected.badge}</span>
+            <h2>Sign in <em>quietly.</em></h2>
+            <p>Choose your workspace, then pick up the story where you left it.</p>
           </div>
 
           {/* Minimalist 4-Role Segmented Control */}
@@ -606,7 +654,11 @@ function UnifiedLoginForm() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => switchPort(p.value)}
-                  className={cn("hl-tab-btn", active && "is-active")}
+                  className={cn(
+                    "hl-tab-btn",
+                    `hl-tab-btn--${p.value}`,
+                    active && "is-active",
+                  )}
                 >
                   <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
                   <span>{p.label}</span>
@@ -690,13 +742,17 @@ function UnifiedLoginForm() {
               >
                 {submitting ? (
                   <>
-                    <span className="hl-spinner" aria-hidden />
                     <span>Sending code…</span>
+                    <span className="hl-btn-primary__glyph" aria-hidden>
+                      <span className="hl-spinner" />
+                    </span>
                   </>
                 ) : (
                   <>
-                    <span>Send Verification Code</span>
-                    <ArrowRight size={15} />
+                    <span>Send verification code</span>
+                    <span className="hl-btn-primary__glyph" aria-hidden>
+                      <ArrowRight size={15} />
+                    </span>
                   </>
                 )}
               </button>
@@ -784,13 +840,17 @@ function UnifiedLoginForm() {
               >
                 {submitting ? (
                   <>
-                    <span className="hl-spinner" aria-hidden />
                     <span>Signing in…</span>
+                    <span className="hl-btn-primary__glyph" aria-hidden>
+                      <span className="hl-spinner" />
+                    </span>
                   </>
                 ) : (
                   <>
-                    <span>Sign in as {selected.label}</span>
-                    <ArrowRight size={15} />
+                    <span>{PORT_ACTION_LABEL[port]}</span>
+                    <span className="hl-btn-primary__glyph" aria-hidden>
+                      <ArrowRight size={15} />
+                    </span>
                   </>
                 )}
               </button>
@@ -834,12 +894,22 @@ function UnifiedLoginForm() {
                 New to HealthHub?{" "}
                 <Link href="/patient/register">Create an account</Link>
               </span>
+            ) : port === "doctor" ? (
+              <span>
+                New clinician?{" "}
+                <Link href="/doctor/register">Request access</Link>
+              </span>
+            ) : port === "facility" ? (
+              <span>
+                New facility?{" "}
+                <Link href="/hospital/register">Register it here</Link>
+              </span>
             ) : (
               <span>
-                Need access?{" "}
-                <a href="mailto:support@healthhub.app?subject=Staff%20Access">
-                  Contact administrator
-                </a>
+                New partner?{" "}
+                <Link href="/insurance-operator/register">
+                  Register your organisation
+                </Link>
               </span>
             )}
           </div>

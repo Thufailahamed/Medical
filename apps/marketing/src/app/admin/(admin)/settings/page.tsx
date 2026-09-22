@@ -29,11 +29,11 @@ export default function AdminSettingsPage() {
       <PageHeader
         title="System settings"
         subtitle="Runtime configuration. Changes take effect immediately."
-        icon={<SettingsIcon size={20} className="text-amber-600" />}
+        icon={<SettingsIcon size={20} className="text-blue-600" />}
         actions={
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 text-xs text-text-soft hover:text-amber-700"
+            className="inline-flex items-center gap-1.5 text-xs text-text-soft hover:text-blue-700"
           >
             <RefreshCw size={12} />
             Refresh
@@ -42,13 +42,21 @@ export default function AdminSettingsPage() {
       />
 
       {isLoading ? (
-        <p className="text-text-soft text-sm">Loading settings…</p>
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
+          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
+          <div className="h-4 w-full admin-shimmer rounded-md" />
+          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
+          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
+        </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-700">
           Failed to load settings.
         </div>
       ) : !data || data.items.length === 0 ? (
-        <div className="bg-surface border border-border rounded-2xl p-10 text-center">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
+          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
+            <SettingsIcon size={18} aria-hidden />
+          </div>
           <p className="text-text-soft">
             No settings found. Run the seed script to insert defaults.
           </p>
@@ -59,16 +67,16 @@ export default function AdminSettingsPage() {
           return (
             <section
               key={category}
-              className="bg-surface border border-border rounded-2xl"
+              className="portal-card bg-surface border border-border rounded-2xl"
             >
               <button
                 onClick={() => setOpen((o) => ({ ...o, [category]: !isOpen }))}
                 className="w-full flex items-center gap-2 p-5 text-left"
               >
                 {isOpen ? (
-                  <ChevronDown size={16} className="text-amber-600" />
+                  <ChevronDown size={16} className="text-blue-600" />
                 ) : (
-                  <ChevronRight size={16} className="text-amber-600" />
+                  <ChevronRight size={16} className="text-blue-600" />
                 )}
                 <div className="flex-1 text-left">
                   <SectionHeader title={CATEGORY_LABEL[category] ?? category} />
@@ -89,7 +97,7 @@ export default function AdminSettingsPage() {
         })
       )}
 
-      <section className="bg-surface border border-border rounded-2xl p-5">
+      <section className="portal-card bg-surface border border-border rounded-2xl p-5">
         <PasskeyManager />
       </section>
     </div>

@@ -39,25 +39,18 @@ const TEST_CATEGORIES = [
   },
 ];
 
-const SAMPLE_NARRATIVES: Record<string, string> = {
-  HbA1c: `**HbA1c Longitudinal Trajectory (Past 12 Months)**
-
-• **Baseline (12 mos ago):** 6.4% (Pre-diabetic threshold)
-• **Mid-Point (6 mos ago):** 6.1% (Favorable downward shift)
-• **Current Reading:** 5.8% (Near optimal normal range: < 5.7%)
-
-**Clinical Trajectory Interpretation:**
-Your glycated hemoglobin (HbA1c) exhibits a sustained downward trend of -0.6% over the last year. This consistent decline indicates that dietary modifications, increased physical activity, and prescribed medications are effectively stabilizing average blood glucose levels. If this trajectory continues, you remain at very low risk for microvascular diabetic complications.`,
-
-  "Total Cholesterol": `**Total Cholesterol Longitudinal Trajectory (Past 18 Months)**
-
-• **Baseline (18 mos ago):** 218 mg/dL (Borderline High)
-• **Mid-Point (9 mos ago):** 198 mg/dL (Borderline Normal)
-• **Current Reading:** 182 mg/dL (Desirable: < 200 mg/dL)
-
-**Clinical Trajectory Interpretation:**
-Your total circulating serum cholesterol has steadily declined from borderline elevations into the desirable clinical reference interval. This -36 mg/dL reduction correlates with reduced arterial plaque formation risk and improved vascular endothelial function.`,
-};
+interface LabTrend {
+  type: string;
+  count: number;
+  lastDate: string | null;
+  pendingCount: number;
+  completedCount: number;
+  series: Array<{ date: string; status: string }>;
+  narrative: string;
+  overdue?: boolean | null;
+  intervalMonths?: number | null;
+  nextSuggestedDate?: string | null;
+}
 
 export default function AiLabTrendPage() {
   const profile = usePatientProfile();
@@ -65,7 +58,7 @@ export default function AiLabTrendPage() {
   const [test, setTest] = useState("HbA1c");
   const [customInput, setCustomInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [narrative, setNarrative] = useState<string | null>(null);
+  const [trend, setTrend] = useState<LabTrend | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -76,47 +69,40 @@ export default function AiLabTrendPage() {
       setError("Please select or enter a lab test name.");
       return;
     }
+    if (!patientId) {
+      setError(
+        profile.isLoading
+          ? "Your profile is still loading — try again in a moment."
+          : "We couldn't load your patient profile. Please refresh and try again.",
+      );
+      return;
+    }
 
     setBusy(true);
     setError(null);
-    setNarrative(null);
+    setTrend(null);
 
     try {
-      if (patientId) {
-        const res = await api<{ narrative: string }>(
-          `/ai/lab-trend/${patientId}?test=${encodeURIComponent(selectedTest)}`,
-          { method: "GET" }
-        ).catch(() => null);
-
-        if (res?.narrative) {
-          setNarrative(res.narrative);
-          setBusy(false);
-          return;
-        }
-      }
-
-      // High-fidelity clinical fallback narrative if server is empty
-      const sample =
-        SAMPLE_NARRATIVES[selectedTest] ||
-        `**${selectedTest} Longitudinal Trend Analysis**\n\n• **Historical Trajectory:** Values for ${selectedTest} recorded over the past monitoring cycle demonstrate clinical stability within standard physiological reference margins.\n\n**Clinical Interpretation:**\nNo abrupt deviations or pathological spikes were detected in recent readings. Continue standard periodic monitoring as scheduled by your physician.`;
-
-      setTimeout(() => {
-        setNarrative(sample);
-        setBusy(false);
-      }, 600);
+      const res = await api<{ trend: LabTrend }>(
+        `/ai/lab-trend?patientId=${encodeURIComponent(patientId)}&type=${encodeURIComponent(selectedTest)}&months=24`,
+        { method: "GET" },
+      );
+      if (!res?.trend) throw new Error("Empty response");
+      setTrend(res.trend);
     } catch (err) {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Couldn't load the trend narrative. Please try a different test."
+          : "Couldn't load the trend narrative. Please try a different test.",
       );
+    } finally {
       setBusy(false);
     }
   }
 
   function handleCopy() {
-    if (!narrative) return;
-    void navigator.clipboard.writeText(narrative);
+    if (!trend) return;
+    void navigator.clipboard.writeText(trend.narrative);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -350,7 +336,7 @@ export default function AiLabTrendPage() {
       </section>
 
       {/* ── 3. Generated Trend Narrative Card ──────────────────────────────── */}
-      {narrative && (
+      {trend && (
         <section className="rounded-2xl border border-sky-200 bg-white p-6 sm:p-7 shadow-md flex flex-col gap-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2.5">
@@ -359,7 +345,7 @@ export default function AiLabTrendPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
-                  {selectedTest} — Clinical Trajectory Analysis
+                  {trend.type} — Clinical Trajectory Analysis
                 </h3>
                 <p className="text-xs text-slate-500">
                   AI-synthesized longitudinal interpretation
@@ -368,6 +354,11 @@ export default function AiLabTrendPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              {trend.overdue === true ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+                  Overdue — schedule soon
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={handleCopy}
@@ -388,8 +379,8 @@ export default function AiLabTrendPage() {
 
               <Link
                 href={`/patient/ai/chat?prompt=${encodeURIComponent(
-                  `Help me understand my ${selectedTest} trend over time: ` +
-                    narrative.slice(0, 150),
+                  `Help me understand my ${trend.type} trend over time: ` +
+                    trend.narrative.slice(0, 150),
                 )}`}
                 className="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors flex items-center gap-1 cursor-pointer"
               >
@@ -399,9 +390,76 @@ export default function AiLabTrendPage() {
             </div>
           </div>
 
-          <div className="prose prose-sm max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 font-normal">
-            <div className="whitespace-pre-wrap">{narrative}</div>
+          {/* Real report stats */}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+                Reports on file
+              </p>
+              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+                {trend.count}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+                Last done
+              </p>
+              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+                {trend.lastDate ?? "—"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+                Usual interval
+              </p>
+              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+                {trend.intervalMonths ? `~${trend.intervalMonths} mo` : "—"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+                Next suggested
+              </p>
+              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+                {trend.nextSuggestedDate ?? "—"}
+              </p>
+            </div>
           </div>
+
+          <div className="prose prose-sm max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 font-normal">
+            <div className="whitespace-pre-wrap">{trend.narrative}</div>
+          </div>
+
+          {trend.series.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Report history — last 24 months
+              </span>
+              <ul className="flex flex-wrap gap-1.5">
+                {trend.series.map((s, i) => (
+                  <li
+                    key={`${s.date}-${i}`}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
+                      s.status === "completed"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                        : "border-amber-200 bg-amber-50 text-amber-800",
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        s.status === "completed" ? "bg-emerald-500" : "bg-amber-500",
+                      )}
+                    />
+                    {s.date}
+                    <span className="font-normal opacity-70">· {s.status}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-[11px] text-slate-500">
             <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />

@@ -91,7 +91,7 @@ emergencyRouter.post("/sos", authMiddleware, requireRole("patient"), async (c) =
       await db
         .update(emergencies)
         .set({ nearestHospitalId })
-        .where(eq(emergencies.id, emergency.emergencies.id));
+        .where(eq(emergencies.id, emergency.id));
     }
   }
 
@@ -126,7 +126,7 @@ emergencyRouter.post("/sos", authMiddleware, requireRole("patient"), async (c) =
         body: `Your emergency contact ${u.name} has triggered an SOS${nearestHospitalName ? `. Nearest hospital: ${nearestHospitalName}` : ""}.`,
         data: {
           patientId: p.id,
-          emergencyId: emergency.emergencies.id,
+          emergencyId: emergency.id,
           latitude,
           longitude,
           nearestHospitalId,
@@ -152,7 +152,7 @@ emergencyRouter.post("/sos", authMiddleware, requireRole("patient"), async (c) =
       body: `${u.name} triggered emergency SOS${nearestHospitalName ? ` near ${nearestHospitalName}` : ""}. Blood group ${p.bloodGroup ?? "—"}.`,
       data: {
         patientId: p.id,
-        emergencyId: emergency.emergencies.id,
+        emergencyId: emergency.id,
         latitude,
         longitude,
         nearestHospitalId,
@@ -188,15 +188,15 @@ emergencyRouter.post("/sos", authMiddleware, requireRole("patient"), async (c) =
     allergies: safeParseArray(p.allergies),
     conditions: safeParseArray(p.medicalConditions),
     currentMedicines: activeMeds.map((m: any) => ({
-      name: m.medicines.name,
-      dosage: m.medicines.dosage,
+      name: m.name,
+      dosage: m.dosage,
     })),
     nearestHospital: nearestHospitalName,
     distanceKm: nearestKm,
   };
 
   return c.json({
-    emergency: emergency.emergencies,
+    emergency,
     notifiedContacts,
     ambulancesNotified,
     nearestHospital: nearestHospitalName ? {
@@ -265,9 +265,9 @@ emergencyRouter.get("/qr", authMiddleware, async (c) => {
     allergies: p.allergies ? JSON.parse(p.allergies) : [],
     medicalConditions: p.medicalConditions ? JSON.parse(p.medicalConditions) : [],
     emergencyContacts: p.emergencyContacts ? JSON.parse(p.emergencyContacts) : [],
-    currentMedicines: activeMeds.map((m) => ({
-      name: m.medicines.name,
-      dosage: m.medicines.dosage,
+    currentMedicines: activeMeds.map((m: any) => ({
+      name: m.name,
+      dosage: m.dosage,
     })),
     dateOfBirth: p.dateOfBirth,
     phone: u.phone,

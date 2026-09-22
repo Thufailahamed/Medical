@@ -3,7 +3,7 @@ import { cn } from "@/portal/lib/utils";
 
 export function Table({ children, className, ...rest }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border/70 bg-surface">
+    <div className="overflow-x-auto rounded-2xl border border-border/70 bg-surface shadow-sm">
       <table
         className={cn("w-full text-sm border-collapse", className)}
         {...rest}
@@ -16,7 +16,7 @@ export function Table({ children, className, ...rest }: HTMLAttributes<HTMLTable
 
 export function THead({ children }: { children: ReactNode }) {
   return (
-    <thead className="bg-surface-2/50 text-text-soft text-[11px] uppercase tracking-wider font-semibold">
+    <thead className="bg-surface-2/70 text-text-soft text-[11px] uppercase tracking-wider font-semibold [&_tr]:border-b [&_tr]:border-border/70">
       {children}
     </thead>
   );
@@ -34,7 +34,7 @@ export function TR({
   return (
     <tr
       className={cn(
-        "border-t border-border/60 transition-colors hover:bg-surface-2/40",
+        "border-t border-border/60 transition-colors hover:bg-brand-soft/20",
         className
       )}
       {...rest}

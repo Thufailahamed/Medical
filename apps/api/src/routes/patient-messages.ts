@@ -6,7 +6,7 @@
 // If the doctor has closed the thread, reads still work but sends are 403.
 
 import { Hono } from "hono";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, isNull } from "drizzle-orm";
 import {
   messagesConversations,
   messages,
@@ -172,7 +172,8 @@ patientMessagesRouter.post("/conversations/:id/read", async (c) => {
     .where(
       and(
         eq(messages.conversationId, conversationId),
-        eq(messages.senderRole, "doctor")
+        eq(messages.senderRole, "doctor"),
+        isNull(messages.readAt)
       )
     );
 

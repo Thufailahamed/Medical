@@ -74,7 +74,7 @@ export default function MessagesPage() {
       const q = search.toLowerCase();
       list = list.filter(
         (c) =>
-          (c.doctorName || "").toLowerCase().includes(q) ||
+          (c.doctor?.name || "").toLowerCase().includes(q) ||
           (c.lastMessagePreview || "").toLowerCase().includes(q),
       );
     }
@@ -381,7 +381,7 @@ export default function MessagesPage() {
         ) : (
           <div className="flex flex-col gap-2.5">
             {filteredConversations.map((c) => {
-              const initials = getDoctorInitials(c.doctorName ?? "Dr");
+              const initials = getDoctorInitials(c.doctor?.name ?? "Dr");
               const hasUnread = (c.patientUnread || 0) > 0;
 
               return (
@@ -397,14 +397,23 @@ export default function MessagesPage() {
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     {/* Doctor Avatar */}
-                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                      {initials}
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
+                      {c.doctor?.photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={c.doctor.photo}
+                          alt={c.doctor.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        initials
+                      )}
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-sky-700 transition-colors truncate">
-                          {c.doctorName ?? "Attending Physician"}
+                          {c.doctor?.name ?? "Attending Physician"}
                         </h3>
                         {hasUnread ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-600 text-white shadow-2xs">

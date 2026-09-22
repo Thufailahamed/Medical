@@ -40,7 +40,8 @@ export type MarketplaceInquiryStatus =
   | "pending"
   | "accepted"
   | "declined"
-  | "expired";
+  | "expired"
+  | "withdrawn";
 
 export type MarketplaceInquiry = {
   id: string;
@@ -213,5 +214,18 @@ export function useMyMarketplaceInquiriesSent(
         `/marketplace/inquiries/mine${qs}`
       ),
     staleTime: 15_000,
+  });
+}
+
+export function useWithdrawMarketplaceInquiry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(`/marketplace/inquiries/${id}/withdraw`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketplace"] });
+    },
   });
 }

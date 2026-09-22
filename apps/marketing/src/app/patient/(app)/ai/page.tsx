@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { useMedications, usePatientProfile } from "@/patient/hooks";
+import { cn } from "@/portal/lib/utils";
 import { AiCommandBar } from "@/patient/components/ai/AiCommandBar";
 import { AiSafetyNotice } from "@/patient/components/ai/AiSafetyNotice";
 import {
@@ -110,7 +111,10 @@ export default function AiToolsPage() {
   const drugSectionRef = useRef<HTMLDivElement>(null);
 
   const activeMedNames = useMemo(
-    () => (meds.data?.medicines ?? []).map((m) => m.name),
+    () =>
+      (meds.data?.medicines ?? [])
+        .filter((m) => m.active !== false)
+        .map((m) => m.name),
     [meds.data?.medicines],
   );
 
@@ -152,46 +156,64 @@ export default function AiToolsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-1 pb-6 pt-1 sm:gap-6 sm:px-2">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-1 pb-8 pt-1 sm:gap-7 sm:px-2">
       {/* Hero + command center */}
-      <section className="dashboard-hero relative overflow-hidden rounded-2xl p-6 text-white shadow-xl md:p-8">
+      <section className="dashboard-hero anim-rise relative overflow-hidden rounded-3xl p-6 text-white shadow-xl md:p-9">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full"
+          className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
+              "radial-gradient(circle, rgba(56,189,248,0.4) 0%, transparent 65%)",
           }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full"
+          className="pointer-events-none absolute -bottom-24 -left-10 h-64 w-64 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
+              "radial-gradient(circle, rgba(52,211,153,0.28) 0%, transparent 60%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/3 md:block"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1.4px)",
+            backgroundSize: "20px 20px",
+            maskImage:
+              "linear-gradient(to left, rgba(0,0,0,0.9) 35%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to left, rgba(0,0,0,0.9) 35%, transparent)",
           }}
         />
 
-        <div className="relative z-10 flex flex-col gap-4">
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-sky-300/30 bg-sky-400/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-100 backdrop-blur-md shadow-2xs">
-            <Sparkles size={12} className="text-sky-300" aria-hidden />
-            Clinical intelligence
-          </span>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight sm:text-3xl md:text-4xl text-white">
-              AI health assistant
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm md:text-[15px] leading-relaxed text-white/85 font-normal">
-              Summaries, medication safety checks and lab explanations grounded
-              in your health record — private by design and never a replacement
-              for your physician.
-            </p>
-          </div>
+        <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex max-w-3xl flex-col gap-5">
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-sky-300/30 bg-sky-400/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-100 backdrop-blur-md shadow-2xs">
+              <Sparkles size={12} className="text-sky-300" aria-hidden />
+              Clinical intelligence
+            </span>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl">
+                AI health{" "}
+                <span className="bg-gradient-to-r from-sky-200 via-cyan-100 to-emerald-200 bg-clip-text text-transparent">
+                  assistant
+                </span>
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm font-normal leading-relaxed text-white/85 md:text-[15px]">
+                Summaries, medication safety checks and lab explanations
+                grounded in your health record — private by design and never a
+                replacement for your physician.
+              </p>
+            </div>
 
-          <AiCommandBar
-            className="max-w-3xl mt-1"
-            onSubmit={goToChat}
-            quickPrompts={[
+            <AiCommandBar
+              className="mt-1"
+              promptsLabel="Try"
+              onSubmit={goToChat}
+              quickPrompts={[
               {
                 label: "Summarize my record",
                 icon: <FileText size={13} className="text-sky-200" aria-hidden />,
@@ -215,42 +237,84 @@ export default function AiToolsPage() {
             ]}
           />
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-white/15 pt-4 mt-1">
-            {TRUST.map(({ icon: Icon, label }) => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/95 backdrop-blur-sm shadow-2xs"
-              >
-                <Icon size={12} className="text-sky-200" aria-hidden />
-                <span>{label}</span>
-              </span>
-            ))}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-white/15 pt-4">
+              {TRUST.map(({ icon: Icon, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-2 text-[11px] font-semibold text-white/85"
+                >
+                  <span
+                    aria-hidden
+                    className="grid h-6 w-6 place-items-center rounded-lg border border-white/15 bg-white/10 text-sky-200"
+                  >
+                    <Icon size={12} />
+                  </span>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Decorative constellation of the tool icons */}
+          <div aria-hidden className="relative hidden lg:block">
+            <div
+              className="absolute inset-0 -m-10 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(125,211,252,0.18) 0%, transparent 65%)",
+              }}
+            />
+            <div className="relative grid grid-cols-2 gap-4">
+              {TOOLS.map((tool, i) => (
+                <div key={tool.href} className={cn(i % 2 === 1 && "translate-y-5")}>
+                  <div
+                    className="anim-pulse-soft grid h-16 w-16 place-items-center rounded-2xl border border-white/15 bg-white/10 text-sky-100 shadow-lg backdrop-blur-md"
+                    style={{ animationDelay: `${i * 0.45}s` }}
+                  >
+                    {tool.icon}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Primary tools */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <HealthSummaryCard
-          ref={summaryRef}
-          patientId={patientId}
-          profileLoading={profile.isLoading}
-        />
-        <div ref={drugSectionRef} className="h-full scroll-mt-24">
-          <DrugInteractionCard ref={drugRef} activeMedNames={activeMedNames} />
+      <section className="anim-rise anim-rise-delay-1 flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-4 px-1">
+          <div>
+            <p className="t-label">Start here</p>
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-text md:text-xl">
+              Your record, doing the work
+            </h2>
+          </div>
+          <p className="hidden max-w-xs pb-0.5 text-right text-xs leading-relaxed text-text-muted sm:block">
+            Instant briefings and safety checks generated from your live EMR.
+          </p>
         </div>
-      </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <HealthSummaryCard
+            ref={summaryRef}
+            patientId={patientId}
+            profileLoading={profile.isLoading}
+          />
+          <div ref={drugSectionRef} className="h-full scroll-mt-24">
+            <DrugInteractionCard ref={drugRef} activeMedNames={activeMedNames} />
+          </div>
+        </div>
+      </section>
 
       {/* Tool directory */}
-      <section className="flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-4 border-b border-border pb-3">
+      <section className="anim-rise anim-rise-delay-2 flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-4 px-1">
           <div>
-            <h2 className="t-card-title text-text">Specialized AI tools</h2>
-            <p className="mt-0.5 text-xs text-text-soft">
-              Six dedicated assistants for labs, documents and trends
-            </p>
+            <p className="t-label">AI toolkit</p>
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-text md:text-xl">
+              Specialized assistants
+            </h2>
           </div>
-          <span className="text-[11px] font-bold text-text-muted">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-bold text-text-soft shadow-2xs">
             {TOOLS.length} tools
           </span>
         </div>
@@ -261,7 +325,7 @@ export default function AiToolsPage() {
         </div>
       </section>
 
-      <AiSafetyNotice />
+      <AiSafetyNotice className="anim-rise anim-rise-delay-3" />
     </div>
   );
 }

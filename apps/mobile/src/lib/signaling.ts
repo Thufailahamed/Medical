@@ -35,7 +35,16 @@ export type SignalingRole = "doctor" | "patient";
 
 export interface SignalingOptions {
   sessionId: string;
-  ticket: string;
+  /**
+   * Initial WS ticket — used when `getTicket` isn't supplied. Tickets
+   * expire in 60s, so reconnects MUST mint a fresh one via `getTicket`.
+   */
+  ticket?: string;
+  /**
+   * Mints a fresh WS ticket before EVERY upgrade attempt (initial +
+   * reconnects). Preferred over the static `ticket` field.
+   */
+  getTicket?: () => Promise<string | undefined>;
   apiBase: string;
   iceServers: RTCIceServer[];
   role: SignalingRole;
@@ -98,14 +107,19 @@ export class TeleconsultSignaling {
     this.openWebSocket();
   }
 
-  private openWebSocket() {
+  private async openWebSocket() {
     const apiBase = this.opts.apiBase.replace(/\/$/, "");
     const wsBase = apiBase.startsWith("https")
       ? apiBase.replace(/^https/, "wss")
       : apiBase.replace(/^http/, "ws");
+    let ticket = this.opts.ticket;
+    try {
+      ticket = (await this.opts.getTicket?.()) ?? ticket;
+    } catch {}
+    if (this.ended) return;
     const wsUrl = `${wsBase}/teleconsult/sessions/${encodeURIComponent(
       this.opts.sessionId
-    )}/ws?ticket=${encodeURIComponent(this.opts.ticket)}`;
+    )}/ws?ticket=${encodeURIComponent(ticket ?? "")}`;
 
     try {
       this.ws = new WebSocket(wsUrl);

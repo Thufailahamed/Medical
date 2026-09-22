@@ -128,7 +128,7 @@ export function Button({
           alignItems: "center",
           justifyContent: "center",
           gap: spacing.sm,
-          alignSelf: isFullWidth ? "stretch" : "flex-start",
+          alignSelf: isFullWidth ? "stretch" : "auto",
           opacity: isDisabled ? 0.55 : 1,
           overflow: "hidden", // Clips the blur and gradients to pill shape
 

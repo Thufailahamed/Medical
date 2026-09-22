@@ -9,12 +9,14 @@ import {
   ChevronDown,
   HeartPulse,
   LogOut,
+  Menu,
   Search,
   Settings,
   Sparkles,
 } from "lucide-react";
 
 import type { AuthUser } from "@/portal/stores/auth";
+import { useUiStore } from "@/portal/stores/ui";
 import { logout } from "@/portal/lib/auth";
 import { loginHref } from "@/portal/lib/login";
 import { useUnreadNotificationsCount } from "@/patient/hooks/useNotifications";
@@ -83,6 +85,7 @@ export function Topbar({ user }: { user: AuthUser | null }) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const toggleMobileNav = useUiStore((s) => s.toggleMobileNav);
 
   const today = formatLongDate(new Date());
   const fullName = user?.name?.trim() || "Patient";
@@ -109,6 +112,16 @@ export function Topbar({ user }: { user: AuthUser | null }) {
       }}
     >
       <div className="relative z-10 flex items-center justify-between w-full gap-3 sm:gap-4">
+        <button
+          type="button"
+          aria-label="Open navigation menu"
+          onClick={toggleMobileNav}
+          className="grid h-10 w-10 shrink-0 place-items-center text-text-soft transition-colors hover:bg-brand-soft hover:text-brand lg:hidden"
+          style={{ borderRadius: "var(--radius-pill)" }}
+        >
+          <Menu size={19} aria-hidden />
+        </button>
+
         {/* Page context */}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[15px] font-bold tracking-tight text-text sm:text-base">

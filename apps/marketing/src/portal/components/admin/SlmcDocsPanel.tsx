@@ -243,7 +243,7 @@ export function SlmcDocsPanel({ doctorId }: { doctorId: string }) {
 
       {rejectTarget ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-surface border border-border rounded-2xl p-5 w-[420px] max-w-[92vw]">
+          <div className="portal-card bg-surface border border-border rounded-2xl p-5 w-[420px] max-w-[92vw]">
             <p className="text-base font-semibold">Reject {rejectTarget.fileName}?</p>
             <p className="text-xs text-text-muted mt-1">
               The doctor will see this note in their rejection history.

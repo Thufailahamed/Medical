@@ -87,11 +87,25 @@ export default function TeleconsultRoom({
       try {
         const meta = await teleconsultApi.getSession(sessionId);
         if (cancelled) return;
+        // WS tickets are the portable credential — the portal_session
+        // cookie is SameSite=Lax and does not ride cross-site WS
+        // upgrades (app domain → API domain). Fresh ticket per attempt
+        // since they expire in 60s. Falls back to cookie auth when
+        // minting fails (same-site dev still works).
+        const getTicket = async () => {
+          try {
+            const t = await teleconsultApi.mintWsTicket(sessionId);
+            return t.ticket;
+          } catch {
+            return undefined;
+          }
+        };
         const signaling = new TeleconsultSignaling({
           sessionId,
           roomId: meta.session.roomId,
           apiBase: API_URL,
           iceServers: meta.iceServers,
+          getTicket,
           // Doctors are impolite (offer first); patients are polite
           // (back off on glare). This is the canonical 2-peer split
           // and avoids the negotiationneeded dance in edge cases.

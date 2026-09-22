@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { Hono } from "hono";
-import { and, eq, desc, asc, gt, sql } from "drizzle-orm";
+import { and, eq, desc, asc, gt, isNull, sql } from "drizzle-orm";
 import {
   messagesConversations,
   messages,
@@ -207,7 +207,8 @@ doctorMessagesRouter.get("/conversations/:id/messages", async (c) => {
       .where(
         and(
           eq(messages.conversationId, conversationId),
-          eq(messages.senderRole, "patient")
+          eq(messages.senderRole, "patient"),
+          isNull(messages.readAt)
         )
       );
   }
@@ -356,7 +357,8 @@ doctorMessagesRouter.post("/conversations/:id/read", async (c) => {
     .where(
       and(
         eq(messages.conversationId, conversationId),
-        eq(messages.senderRole, "patient")
+        eq(messages.senderRole, "patient"),
+        isNull(messages.readAt)
       )
     );
 

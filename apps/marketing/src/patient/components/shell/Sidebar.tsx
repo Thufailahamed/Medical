@@ -122,10 +122,11 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
-  const collapsed = useUiStore((s) => s.sidebarCollapsed);
+  const collapsedPref = useUiStore((s) => s.sidebarCollapsed);
+  const collapsed = collapsedPref && !forceExpanded;
   const toggle = useUiStore((s) => s.toggleSidebar);
   const user = useAuthStore((s) => s.user);
   const unreadNotifications = useUnreadNotificationsCount();
@@ -420,7 +421,8 @@ export function Sidebar() {
 
       {/* ── Patient Profile Footer ────────────────────────────────────────── */}
       <div className="relative z-10 mt-auto shrink-0 border-t border-white/[0.08] bg-[#060d18]/80 backdrop-blur-md">
-        {/* Collapse toggle row */}
+        {/* Collapse toggle row — desktop rail only */}
+        {!forceExpanded && (
         <div className="px-2 pt-2">
           <button
             type="button"
@@ -446,6 +448,7 @@ export function Sidebar() {
             )}
           </button>
         </div>
+        )}
 
         {/* Patient Profile Card */}
         <div

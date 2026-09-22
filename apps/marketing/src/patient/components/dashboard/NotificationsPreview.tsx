@@ -26,6 +26,28 @@ const SEVERITY: Record<string, string> = {
   success: "bg-emerald-500",
 };
 
+function notificationHref(n: PatientNotification): string {
+  const text = `${n.title} ${n.type}`.toLowerCase();
+  if (n.type === "teleconsult" || text.includes("teleconsult") || text.includes("video")) {
+    const payload = n.data as { roomId?: unknown } | null | undefined;
+    const roomId = payload && typeof payload.roomId === "string" ? payload.roomId : null;
+    return roomId ? `/patient/teleconsult/${roomId}` : "/patient/appointments";
+  }
+  if (text.includes("appoint") || text.includes("visit") || text.includes("doctor")) {
+    return "/patient/appointments";
+  }
+  if (text.includes("med") || text.includes("prescript") || text.includes("dose") || text.includes("refill")) {
+    return "/patient/medications";
+  }
+  if (text.includes("lab") || text.includes("test") || text.includes("scan") || text.includes("result")) {
+    return "/patient/records";
+  }
+  if (text.includes("claim") || text.includes("insurance") || text.includes("policy")) {
+    return "/patient/insurance/claims";
+  }
+  return "/patient/notifications";
+}
+
 export function NotificationsPreview({ className }: { className?: string }) {
   const q = useNotifications();
   const loading = q.isLoading;
@@ -80,34 +102,36 @@ export function NotificationsPreview({ className }: { className?: string }) {
         ) : (
           <ul className="space-y-2">
             {items.map((n) => (
-              <li
-                key={n.id}
-                data-testid="notif-row"
-                className="group flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/40 hover:bg-blue-50/30 hover:border-blue-200/80 px-3.5 py-2.5 transition-all"
-              >
-                <span
-                  className={cn(
-                    "h-2 w-2 shrink-0 rounded-full",
-                    SEVERITY[n.type] ?? "bg-slate-400",
-                  )}
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs md:text-[13px] font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                    {n.title}
-                  </span>
-                  {n.body ? (
-                    <span className="block truncate text-[11px] text-slate-500 mt-0.5">
-                      {n.body}
+              <li key={n.id}>
+                <Link
+                  href={notificationHref(n)}
+                  data-testid="notif-row"
+                  className="group flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/40 hover:bg-blue-50/30 hover:border-blue-200/80 px-3.5 py-2.5 transition-all"
+                >
+                  <span
+                    className={cn(
+                      "h-2 w-2 shrink-0 rounded-full",
+                      SEVERITY[n.type] ?? "bg-slate-400",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs md:text-[13px] font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {n.title}
                     </span>
+                    {n.body ? (
+                      <span className="block truncate text-[11px] text-slate-500 mt-0.5">
+                        {n.body}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                    {relativeTime(n.createdAt)}
+                  </span>
+                  {!n.read ? (
+                    <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" aria-label="unread" />
                   ) : null}
-                </span>
-                <span className="text-[11px] font-medium text-slate-400 shrink-0">
-                  {relativeTime(n.createdAt)}
-                </span>
-                {!n.read ? (
-                  <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" aria-label="unread" />
-                ) : null}
+                </Link>
               </li>
             ))}
           </ul>

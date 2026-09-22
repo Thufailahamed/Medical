@@ -10,10 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocaleStore } from "@/stores/locale";
 import { fmtDate, intlLocale } from "@/lib/format";
 
@@ -26,6 +28,16 @@ import {
   Trash2,
   MessageSquare,
   Sparkles,
+  FlaskConical,
+  Pill,
+  Stethoscope,
+  TrendingUp,
+  ShieldCheck,
+  ChevronRight,
+  Clock,
+  Lock,
+  Bot,
+  ArrowUpRight,
 } from "lucide-react-native";
 import {
   useChatSessions,
@@ -39,12 +51,11 @@ import { SmartPromptChips } from "@/components/ai/SmartPromptChips";
 import { SourceCitationCard } from "@/components/ai/SourceCitationCard";
 import { LongitudinalTrendChart } from "@/components/ai/LongitudinalTrendChart";
 import { useTheme } from "@/theme/ThemeProvider";
+import { palette } from "@/constants/theme";
 import {
   Screen,
   ScreenHeader,
   Card,
-  Button,
-  EmptyState,
   ErrorState,
   Skeleton,
   Pill as PillCmp,
@@ -81,6 +92,45 @@ function fmtWhen(t: (k: string, opts?: any) => string, d: string, locale: string
     return "";
   }
 }
+
+const SUGGESTED_TOPICS = [
+  {
+    id: "lab_results",
+    title: "Explain Lab Results",
+    desc: "Analyze blood markers & flags",
+    prompt: "Can you explain my latest blood test report and highlight any abnormal values?",
+    icon: FlaskConical,
+    iconColor: palette.sky[600],
+    iconBg: palette.sky[100],
+  },
+  {
+    id: "medications",
+    title: "Medication Review",
+    desc: "Check doses & instructions",
+    prompt: "Which medications appear in my records and what are the key instructions?",
+    icon: Pill,
+    iconColor: palette.emerald[600],
+    iconBg: palette.emerald[100],
+  },
+  {
+    id: "doctor_prep",
+    title: "Doctor Visit Prep",
+    desc: "Prepare summary for consult",
+    prompt: "Prepare a concise summary of my recent health records for my next doctor visit.",
+    icon: Stethoscope,
+    iconColor: palette.amber[600],
+    iconBg: palette.amber[100],
+  },
+  {
+    id: "trends",
+    title: "Longitudinal Trends",
+    desc: "Track HbA1c & cholesterol",
+    prompt: "How has my HbA1c and cholesterol changed over the last three years?",
+    icon: TrendingUp,
+    iconColor: palette.coral[600],
+    iconBg: palette.coral[100],
+  },
+];
 
 export default function AiChatScreen() {
   const router = useRouter();
@@ -177,6 +227,21 @@ export default function AiChatScreen() {
     }
   }
 
+  function promptDelete(id: string) {
+    Alert.alert(
+      t("aiChat.deleteConfirmTitle", "Delete chat?"),
+      t("aiChat.deleteConfirmMsg", "This chat session and its messages will be permanently deleted."),
+      [
+        { text: t("common.cancel", "Cancel"), style: "cancel" },
+        {
+          text: t("common.delete", "Delete"),
+          style: "destructive",
+          onPress: () => handleDelete(id),
+        },
+      ]
+    );
+  }
+
   const list = (sessions.data?.sessions || []) as any[];
 
   // ─── THREAD VIEW ─────────────────────────────────────────
@@ -230,13 +295,116 @@ export default function AiChatScreen() {
                 onAction={() => messages.refetch?.()}
               />
             ) : msgList.length === 0 && !pendingUserText ? (
-              <View style={{ paddingTop: spacing.md, gap: spacing.lg }}>
-                <EmptyState
-                  icon={MessageSquare}
-                  title={t("aiChat.emptyTitle")}
-                  message={t("aiChat.emptyBody")}
-                />
-                <SmartPromptChips onSelectPrompt={(txt) => handleSend(txt)} />
+              <View style={{ gap: spacing.xl }}>
+                <LinearGradient
+                  colors={[palette.sky[800], palette.sky[600], palette.cyan[500]]}
+                  locations={[0, 0.62, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    borderRadius: 28,
+                    padding: spacing.xl,
+                    overflow: "hidden",
+                    shadowColor: palette.sky[700],
+                    shadowOffset: { width: 0, height: 10 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 20,
+                    elevation: 6,
+                  }}
+                >
+                  <View
+                    style={{
+                      position: "absolute",
+                      width: 170,
+                      height: 170,
+                      borderRadius: 85,
+                      right: -68,
+                      top: -76,
+                      backgroundColor: colors.glassOnPrimary,
+                    }}
+                  />
+                  <View
+                    style={{
+                      width: 54,
+                      height: 54,
+                      borderRadius: 18,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: colors.glassOnPrimary,
+                      borderWidth: 1,
+                      borderColor: colors.glassOnPrimary,
+                      marginBottom: spacing.lg,
+                    }}
+                  >
+                    <Sparkles size={26} color={palette.white} strokeWidth={2.1} />
+                  </View>
+                  <Text
+                    style={[
+                      typography.display.sm,
+                      { color: palette.white, fontWeight: "700", maxWidth: 290 },
+                    ]}
+                  >
+                    {t("aiChat.emptyTitle", "Ask anything about your health")}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.body.sm,
+                      {
+                        color: colors.glassOnPrimarySoft,
+                        lineHeight: 20,
+                        maxWidth: 310,
+                        marginTop: spacing.xs,
+                      },
+                    ]}
+                  >
+                    {t("aiChat.emptyBody", "Get clear answers grounded in your private medical records.")}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      alignSelf: "flex-start",
+                      gap: 6,
+                      marginTop: spacing.lg,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: colors.glassOnPrimary,
+                    }}
+                  >
+                    <Lock size={11} color={palette.white} strokeWidth={2.4} />
+                    <Text style={{ fontSize: 10.5, fontWeight: "600", color: palette.white }}>
+                      Private, encrypted, and records-aware
+                    </Text>
+                  </View>
+                </LinearGradient>
+
+                <View style={{ gap: spacing.md }}>
+                  <View style={{ gap: 2 }}>
+                    <Text style={[typography.title.md, { color: colors.text, fontWeight: "700" }]}>
+                      Popular questions
+                    </Text>
+                    <Text style={[typography.body.xs, { color: colors.textMuted }]}>
+                      Choose a starting point or write your own question below
+                    </Text>
+                  </View>
+                  <SmartPromptChips onSelectPrompt={(txt) => handleSend(txt)} />
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    paddingVertical: spacing.xs,
+                  }}
+                >
+                  <ShieldCheck size={13} color={colors.success} strokeWidth={2.2} />
+                  <Text style={{ fontSize: 10.5, color: colors.textMuted }}>
+                    Answers are grounded in your connected health records
+                  </Text>
+                </View>
               </View>
             ) : (
               <>
@@ -276,16 +444,16 @@ export default function AiChatScreen() {
                         gap: 8,
                         paddingHorizontal: 14,
                         paddingVertical: 10,
-                        backgroundColor: "#FFFFFF",
+                        backgroundColor: colors.surface,
                         borderRadius: 18,
                         borderTopLeftRadius: 6,
                         borderWidth: 1,
-                        borderColor: "#E2E8F0",
+                        borderColor: colors.border,
                         marginTop: 4,
                       }}
                     >
-                      <ActivityIndicator size="small" color="#0284C7" />
-                      <Text style={{ fontSize: 13, color: "#475569", fontWeight: "600" }}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600" }}>
                         Analyzing medical records & trends...
                       </Text>
                     </View>
@@ -298,29 +466,38 @@ export default function AiChatScreen() {
           {/* Composer */}
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "flex-end",
-              gap: spacing.sm,
+              gap: 7,
               paddingHorizontal: spacing.lg,
-              paddingTop: spacing.sm,
-              paddingBottom: Math.max(insets.bottom, spacing.lg),
+              paddingTop: spacing.md,
+              paddingBottom: Math.max(insets.bottom, spacing.md),
               borderTopWidth: 1,
               borderTopColor: colors.border,
               backgroundColor: colors.bgElevated,
+              shadowColor: palette.slate[900],
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.05,
+              shadowRadius: 14,
+              elevation: 8,
             }}
           >
             <View
               style={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 44,
+                flexDirection: "row",
+                alignItems: "flex-end",
+                gap: spacing.sm,
+                minHeight: 54,
                 borderRadius: 22,
                 backgroundColor: colors.surface,
                 borderWidth: 1,
-                borderColor: colors.border,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                justifyContent: "center",
+                borderColor: canSend ? colors.borderStrong : colors.border,
+                paddingLeft: spacing.lg,
+                paddingRight: 6,
+                paddingVertical: 6,
+                shadowColor: palette.slate[900],
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.05,
+                shadowRadius: 8,
+                elevation: 2,
               }}
             >
               <RNTextInput
@@ -329,12 +506,13 @@ export default function AiChatScreen() {
                 placeholder={t("aiChat.inputPlaceholder")}
                 placeholderTextColor={colors.textSubtle}
                 style={{
+                  flex: 1,
                   padding: 0,
                   margin: 0,
                   color: colors.text,
                   fontSize: 15,
-                  lineHeight: 20,
-                  minHeight: 24,
+                  lineHeight: 21,
+                  minHeight: 40,
                   maxHeight: 120,
                   textAlignVertical: "center",
                 }}
@@ -343,25 +521,37 @@ export default function AiChatScreen() {
                 blurOnSubmit={false}
                 returnKeyType="send"
               />
+              <Pressable
+                onPress={handleSend}
+                disabled={!canSend}
+                accessibilityRole="button"
+                accessibilityLabel={t("aiChat.sendA11y")}
+                hitSlop={6}
+                style={({ pressed }) => ({
+                  width: 42,
+                  height: 42,
+                  borderRadius: 15,
+                  overflow: "hidden",
+                  opacity: canSend ? (pressed ? 0.82 : 1) : 0.38,
+                  transform: [{ scale: pressed && canSend ? 0.96 : 1 }],
+                })}
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Send size={18} color={palette.white} strokeWidth={2.4} />
+                </LinearGradient>
+              </Pressable>
             </View>
-            <Pressable
-              onPress={handleSend}
-              disabled={!canSend}
-              accessibilityRole="button"
-              accessibilityLabel={t("aiChat.sendA11y")}
-              hitSlop={6}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: colors.primary,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: canSend ? 1 : 0.45,
-              }}
-            >
-              <Send size={18} color={colors.onPrimary} strokeWidth={2.4} />
-            </Pressable>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 }}>
+              <Lock size={10} color={colors.textSubtle} strokeWidth={2.3} />
+              <Text style={{ fontSize: 9.5, color: colors.textSubtle }}>
+                Your health information stays private and encrypted
+              </Text>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Screen>
@@ -384,67 +574,415 @@ export default function AiChatScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.xl,
+          paddingTop: spacing.md,
+          paddingBottom: spacing.xl * 1.5,
           gap: spacing.lg,
         }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Button
-          title={t("aiChat.startNew")}
-          icon={Plus}
-          size="lg"
-          fullWidth={false}
-          onPress={startNew}
-          loading={createSession.isPending}
-        />
-
-        {sessions.isLoading ? (
-          <View style={{ gap: spacing.md }}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} height={72} radius={16} />
-            ))}
-          </View>
-        ) : sessions.isError ? (
-          <ErrorState
-            title={t("common.errorTitle")}
-            message={t("common.errorLoad")}
-            actionLabel={t("common.retry")}
-            onAction={() => sessions.refetch?.()}
-          />
-        ) : list.length === 0 ? (
-          <EmptyState
-            icon={MessageSquare}
-            title={t("aiChat.listEmptyTitle")}
-            message={t("aiChat.listEmptyBody")}
-          />
-        ) : (
-          <View style={{ gap: spacing.sm }}>
-            {list.map((s) => (
-              <SessionRow
-                key={s.id}
-                title={s.title || t("aiChat.sessionFallbackTitle")}
-                when={
-                  s.updatedAt
-                    ? fmtWhen(t, s.updatedAt, locale)
-                    : t("aiChat.sessionFallbackWhen")
-                }
-                onPress={() => setActiveId(s.id)}
-                onDelete={() => handleDelete(s.id)}
-              />
-            ))}
-          </View>
-        )}
-
-        <Text
-          numberOfLines={2}
-          style={[
-            typography.caption,
-            { color: colors.textSubtle, textAlign: "center" },
-          ]}
+        {/* Hero AI Assistant Card */}
+        <LinearGradient
+          colors={[palette.sky[800], palette.sky[600], palette.cyan[500]]}
+          locations={[0, 0.62, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: 28,
+            padding: spacing.xl,
+            gap: spacing.lg,
+            overflow: "hidden",
+            shadowColor: palette.sky[700],
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.24,
+            shadowRadius: 22,
+            elevation: 7,
+          }}
         >
-          {t("aiChat.disclaimer")}
-        </Text>
+          <View
+            style={{
+              position: "absolute",
+              width: 180,
+              height: 180,
+              borderRadius: 90,
+              right: -70,
+              top: -82,
+              backgroundColor: colors.glassOnPrimary,
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              width: 110,
+              height: 110,
+              borderRadius: 55,
+              left: -46,
+              bottom: -58,
+              backgroundColor: colors.glassOnPrimary,
+            }}
+          />
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 17,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.glassOnPrimary,
+                borderWidth: 1,
+                borderColor: colors.glassOnPrimary,
+              }}
+            >
+              <Sparkles size={25} color={palette.white} strokeWidth={2.2} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                <Text style={[typography.title.lg, { color: palette.white, fontWeight: "700" }]}>
+                  {t("aiChat.heroTitle", "Health Assistant")}
+                </Text>
+                <View
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 4,
+                    backgroundColor: palette.emerald[300],
+                    shadowColor: palette.emerald[300],
+                    shadowOpacity: 0.8,
+                    shadowRadius: 5,
+                  }}
+                />
+              </View>
+              <Text style={[typography.body.sm, { color: colors.glassOnPrimarySoft, lineHeight: 19 }]}>
+                {t("aiChat.heroSubtitle", "Personalized answers grounded in your private medical records")}
+              </Text>
+            </View>
+          </View>
+
+          {/* Context & Privacy Tags */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 11,
+                paddingVertical: 7,
+                borderRadius: 999,
+                backgroundColor: colors.glassOnPrimary,
+                borderWidth: 1,
+                borderColor: colors.glassOnPrimary,
+              }}
+            >
+              <Lock size={12} color={palette.white} strokeWidth={2.4} />
+              <Text style={{ fontSize: 11, fontWeight: "600", color: palette.white }}>
+                {t("aiChat.privacyPill", "Private & Encrypted")}
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 11,
+                paddingVertical: 7,
+                borderRadius: 999,
+                backgroundColor: colors.glassOnPrimary,
+                borderWidth: 1,
+                borderColor: colors.glassOnPrimary,
+              }}
+            >
+              <Bot size={12} color={palette.white} strokeWidth={2.4} />
+              <Text style={{ fontSize: 11, fontWeight: "600", color: palette.white }}>
+                {t("aiChat.recordsPill", "Records-Aware AI")}
+              </Text>
+            </View>
+          </View>
+
+          {/* Hero CTA Button */}
+          <Pressable
+            onPress={startNew}
+            disabled={createSession.isPending}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              backgroundColor: palette.white,
+              minHeight: 52,
+              paddingHorizontal: spacing.md,
+              borderRadius: 17,
+              opacity: pressed || createSession.isPending ? 0.88 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+            })}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 10,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: palette.sky[100],
+                }}
+              >
+                {createSession.isPending ? (
+                  <ActivityIndicator size="small" color={palette.sky[600]} />
+                ) : (
+                  <Plus size={17} color={palette.sky[600]} strokeWidth={2.7} />
+                )}
+              </View>
+              <Text style={{ color: palette.slate[900], fontSize: 15, fontWeight: "700" }}>
+                {t("aiChat.startNew", "Start new chat")}
+              </Text>
+            </View>
+            <ArrowUpRight size={19} color={palette.sky[600]} strokeWidth={2.4} />
+          </Pressable>
+        </LinearGradient>
+
+        {/* Suggested Topics Section */}
+        <View style={{ gap: spacing.sm }}>
+          <View style={{ gap: 2 }}>
+            <Text style={[typography.title.md, { color: colors.text, fontWeight: "700" }]}>
+              {t("aiChat.suggestedTitle", "Suggested Topics")}
+            </Text>
+            <Text style={[typography.body.xs, { color: colors.textMuted }]}>
+              {t("aiChat.suggestedSubtitle", "Tap any topic to ask with your context")}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+            {SUGGESTED_TOPICS.map((topic) => {
+              const IconCmp = topic.icon;
+              return (
+                <Pressable
+                  key={topic.id}
+                  onPress={() => handleSend(topic.prompt)}
+                  disabled={send.isPending || createSession.isPending}
+                  accessibilityRole="button"
+                  style={({ pressed }) => ({
+                    flexBasis: "48%",
+                    flexGrow: 1,
+                    minHeight: 144,
+                    backgroundColor: colors.surface,
+                    borderRadius: 22,
+                    borderWidth: 1,
+                    borderColor: pressed ? topic.iconColor : colors.border,
+                    padding: spacing.md,
+                    justifyContent: "space-between",
+                    overflow: "hidden",
+                    opacity: send.isPending || createSession.isPending ? 0.55 : 1,
+                    transform: [{ translateY: pressed ? 1 : 0 }, { scale: pressed ? 0.985 : 1 }],
+                    shadowColor: palette.slate[900],
+                    shadowOffset: { width: 0, height: 5 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 12,
+                    elevation: 2,
+                  })}
+                >
+                  <View
+                    style={{
+                      position: "absolute",
+                      width: 72,
+                      height: 72,
+                      borderRadius: 36,
+                      right: -26,
+                      top: -25,
+                      backgroundColor: topic.iconBg,
+                      opacity: 0.58,
+                    }}
+                  />
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 14,
+                        backgroundColor: topic.iconBg,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <IconCmp size={20} color={topic.iconColor} strokeWidth={2.2} />
+                    </View>
+                    <View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: colors.surface,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <ArrowUpRight size={14} color={topic.iconColor} strokeWidth={2.3} />
+                    </View>
+                  </View>
+                  <View style={{ gap: 3 }}>
+                    <Text numberOfLines={2} style={{ fontSize: 14, lineHeight: 19, fontWeight: "700", color: colors.text }}>
+                      {topic.title}
+                    </Text>
+                    <Text numberOfLines={2} style={{ fontSize: 11, lineHeight: 16, color: colors.textMuted }}>
+                      {topic.desc}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      position: "absolute",
+                      left: spacing.md,
+                      right: spacing.md,
+                      bottom: 0,
+                      height: 3,
+                      borderRadius: 2,
+                      backgroundColor: topic.iconColor,
+                      opacity: 0.85,
+                    }}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Recent Conversations Section */}
+        <View style={{ gap: spacing.sm }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={[typography.title.md, { color: colors.text, fontWeight: "700" }]}>
+                {t("aiChat.recentTitle", "Recent Conversations")}
+              </Text>
+              {list.length > 0 ? (
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 999,
+                    backgroundColor: colors.primarySoft,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: colors.primary,
+                    }}
+                  >
+                    {list.length}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          {sessions.isLoading ? (
+            <View style={{ gap: spacing.sm }}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} height={68} radius={16} />
+              ))}
+            </View>
+          ) : sessions.isError ? (
+            <ErrorState
+              title={t("common.errorTitle")}
+              message={t("common.errorLoad")}
+              actionLabel={t("common.retry")}
+              onAction={() => sessions.refetch?.()}
+            />
+          ) : list.length === 0 ? (
+            <Card padded>
+              <View style={{ alignItems: "center", paddingVertical: spacing.md, gap: spacing.xs }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: colors.primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 4,
+                  }}
+                >
+                  <MessageSquare size={22} color={colors.primary} strokeWidth={2} />
+                </View>
+                <Text style={[typography.title.sm, { color: colors.text, fontWeight: "600" }]}>
+                  {t("aiChat.listEmptyTitle")}
+                </Text>
+                <Text
+                  style={[
+                    typography.body.xs,
+                    { color: colors.textMuted, textAlign: "center", maxWidth: 260 },
+                  ]}
+                >
+                  {t("aiChat.listEmptyBody")}
+                </Text>
+              </View>
+            </Card>
+          ) : (
+            <View style={{ gap: spacing.sm }}>
+              {list.map((s) => (
+                <SessionRow
+                  key={s.id}
+                  title={s.title || t("aiChat.sessionFallbackTitle")}
+                  when={
+                    s.updatedAt
+                      ? fmtWhen(t, s.updatedAt, locale)
+                      : t("aiChat.sessionFallbackWhen")
+                  }
+                  onPress={() => setActiveId(s.id)}
+                  onDelete={() => promptDelete(s.id)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Clinical Disclaimer & Grounding Card */}
+        <LinearGradient
+          colors={[colors.primarySoft, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: 12,
+            padding: spacing.md,
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 11,
+              backgroundColor: colors.surface,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+              marginTop: 1,
+            }}
+          >
+            <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.text }}>
+              Clinically Grounded AI
+            </Text>
+            <Text style={{ fontSize: 11, lineHeight: 16, color: colors.textMuted }}>
+              {t("aiChat.disclaimer")}
+            </Text>
+          </View>
+        </LinearGradient>
       </ScrollView>
     </Screen>
   );
@@ -619,62 +1157,83 @@ function SessionRow({
   const ICON_SIZE = 44;
 
   return (
-    <Card padded={false} onPress={onPress}>
+    <Card
+      padded={false}
+      onPress={onPress}
+      style={{ borderRadius: 20, borderColor: colors.borderStrong }}
+    >
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
+          paddingVertical: 13,
         }}
       >
-        <View
+        <LinearGradient
+          colors={[colors.primarySoft, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
             width: ICON_SIZE,
             height: ICON_SIZE,
             borderRadius: 14,
-            backgroundColor: colors.accentSoft,
             alignItems: "center",
             justifyContent: "center",
+            borderWidth: 1,
+            borderColor: colors.border,
           }}
         >
-          <MessageSquare
-            size={20}
-            color={colors.accent}
-            strokeWidth={2.25}
-          />
-        </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <MessageSquare size={20} color={colors.primary} strokeWidth={2.2} />
+        </LinearGradient>
+        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <Text
             numberOfLines={1}
-            style={[typography.title.sm, { color: colors.text }]}
+            style={[typography.title.sm, { color: colors.text, fontWeight: "600" }]}
           >
             {title}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={[typography.caption, { color: colors.textMuted }]}
-          >
-            {when}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Clock size={11} color={colors.textMuted} strokeWidth={2} />
+            <Text
+              numberOfLines={1}
+              style={[typography.caption, { color: colors.textMuted }]}
+            >
+              {when}
+            </Text>
+          </View>
         </View>
-        <Pressable
-          onPress={onDelete}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t("aiChat.sessionDeleteA11y")}
-          style={({ pressed }) => ({
-            width: ICON_SIZE,
-            height: ICON_SIZE,
-            borderRadius: ICON_SIZE / 2,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-          })}
-        >
-          <Trash2 size={18} color={colors.danger} strokeWidth={2.25} />
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Pressable
+            onPress={onDelete}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("aiChat.sessionDeleteA11y")}
+            style={({ pressed }) => ({
+              width: 32,
+              height: 32,
+              borderRadius: 11,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: pressed ? colors.dangerSoft : colors.surfaceMuted,
+            })}
+          >
+            <Trash2 size={15} color={colors.danger} strokeWidth={2.1} />
+          </Pressable>
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.primarySoft,
+            }}
+          >
+            <ChevronRight size={16} color={colors.primary} strokeWidth={2.2} />
+          </View>
+        </View>
       </View>
     </Card>
   );

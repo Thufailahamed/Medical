@@ -85,6 +85,7 @@ pushRouter.put("/notification-preferences/me", authMiddleware, async (c) => {
     "vaccination",
     "general",
     "hospital_request",
+    "teleconsult",
   ];
 
   for (const p of list) {

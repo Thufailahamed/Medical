@@ -65,20 +65,18 @@ slmcRouter.post(
       .where(eq(doctors.userId, userId))
       .limit(1);
 
-    const verifiedAt = new Date().toISOString();
-
     if (existing) {
       const [updated] = await db
         .update(doctors)
         .set({
           slmcRegistrationNo,
-          slmcVerifiedAt: verifiedAt,
         } as any)
         .where(eq(doctors.userId, userId))
         .returning();
       return c.json({
         slmcRegistrationNo: updated.slmcRegistrationNo,
         slmcVerifiedAt: updated.slmcVerifiedAt,
+        status: updated.slmcVerifiedAt ? "verified" : "pending_review",
       });
     }
 

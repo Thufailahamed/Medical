@@ -100,8 +100,8 @@ const ROLE_CONFIG: Record<
     label: "Laboratory",
     icon: FlaskConical,
     tone: "warn",
-    bgLight: "bg-amber-50",
-    textDark: "text-amber-700",
+    bgLight: "bg-blue-50",
+    textDark: "text-blue-700",
   },
   hospital_admin: {
     label: "Hospital Admin",
@@ -238,7 +238,7 @@ export default function ApprovalsPage() {
       <PageHeader
         title="Account Approvals"
         subtitle="Review, verify credentials, and grant portal access for healthcare practitioners and facilities."
-        icon={<UserCheck size={22} className="text-amber-600" />}
+        icon={<UserCheck size={22} className="text-blue-600" />}
         actions={
           <div className="flex items-center gap-2.5">
             <ExportButton exportPath="approvals" filters={{ status }} />
@@ -248,7 +248,7 @@ export default function ApprovalsPage() {
               onClick={() => refetch()}
               disabled={isFetching}
             >
-              <RefreshCw size={14} className={`mr-1.5 ${isFetching ? "animate-spin text-amber-600" : ""}`} />
+              <RefreshCw size={14} className={`mr-1.5 ${isFetching ? "animate-spin text-blue-600" : ""}`} />
               Refresh
             </Button>
           </div>
@@ -265,17 +265,17 @@ export default function ApprovalsPage() {
           }}
           className={`text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
             status === "pending"
-              ? "bg-amber-50/80 border-amber-300 ring-2 ring-amber-500/20 shadow-sm"
+              ? "bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-sm"
               : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50"
           }`}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Review</span>
-            <div className="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse" />
+            <div className="h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-slate-900">{pendingCount}</span>
-            <span className="text-xs font-medium text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-medium text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full">
               Needs action
             </span>
           </div>
@@ -376,7 +376,7 @@ export default function ApprovalsPage() {
                 }}
                 className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none whitespace-nowrap ${
                   active
-                    ? "bg-amber-600 text-white shadow-xs font-bold"
+                    ? "bg-blue-600 text-white shadow-xs font-bold"
                     : "bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
                 }`}
               >
@@ -384,7 +384,7 @@ export default function ApprovalsPage() {
                 {f.key === "pending" && pendingCount > 0 ? (
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      active ? "bg-white/25 text-white" : "bg-amber-200 text-amber-900"
+                      active ? "bg-white/25 text-white" : "bg-blue-200 text-blue-900"
                     }`}
                   >
                     {pendingCount}
@@ -404,7 +404,7 @@ export default function ApprovalsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search name, email, phone, license..."
-              className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
+              className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
             />
             {searchQuery ? (
               <button
@@ -422,7 +422,7 @@ export default function ApprovalsPage() {
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
               aria-label="Filter by role"
-              className="h-9 px-3 pr-8 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 cursor-pointer appearance-none"
+              className="h-9 px-3 pr-8 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer appearance-none"
             >
               <option value="all">All Roles</option>
               <option value="doctor">Doctors</option>
@@ -441,12 +441,12 @@ export default function ApprovalsPage() {
       <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
         {isLoading ? (
           <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-400">
-            <RefreshCw size={24} className="animate-spin text-amber-600" />
+            <RefreshCw size={24} className="animate-spin text-blue-600" />
             <p className="text-sm font-medium">Loading applications…</p>
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="p-16 text-center flex flex-col items-center justify-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <UserCheck size={24} />
             </div>
             <div>
@@ -493,7 +493,7 @@ export default function ApprovalsPage() {
                           setSelected(new Set());
                         }
                       }}
-                      className="rounded accent-amber-600 cursor-pointer h-4 w-4"
+                      className="rounded accent-blue-600 cursor-pointer h-4 w-4"
                     />
                   </TH>
                   <TH className="text-xs font-bold uppercase tracking-wider text-slate-600">Applicant</TH>
@@ -519,8 +519,8 @@ export default function ApprovalsPage() {
                   return (
                     <TR
                       key={u.id}
-                      className={`group hover:bg-amber-50/20 transition-colors border-b border-slate-100 last:border-0 ${
-                        isChecked ? "bg-amber-50/35" : ""
+                      className={`group hover:bg-blue-50/20 transition-colors border-b border-slate-100 last:border-0 ${
+                        isChecked ? "bg-blue-50/35" : ""
                       }`}
                     >
                       {/* Checkbox */}
@@ -535,7 +535,7 @@ export default function ApprovalsPage() {
                             else next.delete(u.id);
                             setSelected(next);
                           }}
-                          className="rounded accent-amber-600 cursor-pointer h-4 w-4"
+                          className="rounded accent-blue-600 cursor-pointer h-4 w-4"
                         />
                       </TD>
 
@@ -551,7 +551,7 @@ export default function ApprovalsPage() {
                             <button
                               type="button"
                               onClick={() => setReviewTarget(it)}
-                              className="font-bold text-slate-900 hover:text-amber-700 text-left transition-colors truncate block cursor-pointer"
+                              className="font-bold text-slate-900 hover:text-blue-700 text-left transition-colors truncate block cursor-pointer"
                             >
                               {u.name}
                             </button>
@@ -586,8 +586,8 @@ export default function ApprovalsPage() {
                             <span className="capitalize">{roleConfig.label}</span>
                           </Pill>
                           {u.status === "pending" ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60">
+                              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
                               Pending Approval
                             </span>
                           ) : u.status === "active" ? (
@@ -623,11 +623,11 @@ export default function ApprovalsPage() {
                         ) : it.labProfile ? (
                           <div className="space-y-1">
                             <p className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                              <Building2 size={13} className="text-amber-600" />
+                              <Building2 size={13} className="text-blue-600" />
                               {it.labProfile.labName || u.name}
                             </p>
                             <div className="flex items-center gap-2 text-xs flex-wrap">
-                              <span className="font-mono text-[11px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200/60 font-semibold">
+                              <span className="font-mono text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200/60 font-semibold">
                                 LIC: {it.labProfile.licenseNumber}
                               </span>
                               {it.labProfile.city && (
@@ -732,7 +732,7 @@ export default function ApprovalsPage() {
           <div className="flex flex-col gap-5 max-h-[75vh] overflow-y-auto pr-1">
             {/* Applicant Summary Banner */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-start gap-3.5">
-              <div className="h-12 w-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-lg shrink-0">
+              <div className="h-12 w-12 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-lg shrink-0">
                 {reviewTarget.user.name.slice(0, 1).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -746,7 +746,7 @@ export default function ApprovalsPage() {
                       reviewTarget.user.status === "active"
                         ? "bg-emerald-100 text-emerald-800"
                         : reviewTarget.user.status === "pending"
-                        ? "bg-amber-100 text-amber-800"
+                        ? "bg-blue-100 text-blue-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
@@ -820,8 +820,8 @@ export default function ApprovalsPage() {
                 </div>
               </div>
             ) : reviewTarget.labProfile ? (
-              <div className="border border-amber-200 bg-amber-50/40 rounded-2xl p-4.5 space-y-3">
-                <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+              <div className="border border-blue-200 bg-blue-50/40 rounded-2xl p-4.5 space-y-3">
+                <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
                   <FlaskConical size={16} /> Laboratory &amp; Facility Profile
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -834,7 +834,7 @@ export default function ApprovalsPage() {
                   <div>
                     <span className="text-slate-500 block text-[11px]">Government / MoH License:</span>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-mono font-bold text-sm bg-white px-2.5 py-0.5 rounded border border-amber-300 text-amber-900">
+                      <span className="font-mono font-bold text-sm bg-white px-2.5 py-0.5 rounded border border-blue-300 text-blue-900">
                         {reviewTarget.labProfile.licenseNumber}
                       </span>
                       <button
@@ -904,7 +904,7 @@ export default function ApprovalsPage() {
                         [`${reviewTarget.user.id}-lic`]: e.target.checked,
                       }))
                     }
-                    className="accent-amber-600 rounded"
+                    className="accent-blue-600 rounded"
                   />
                   <span>Registry or Medical Council license number verified against official records</span>
                 </label>
@@ -918,7 +918,7 @@ export default function ApprovalsPage() {
                         [`${reviewTarget.user.id}-phone`]: e.target.checked,
                       }))
                     }
-                    className="accent-amber-600 rounded"
+                    className="accent-blue-600 rounded"
                   />
                   <span>Applicant identity and primary telephone number confirmed</span>
                 </label>
@@ -932,7 +932,7 @@ export default function ApprovalsPage() {
                         [`${reviewTarget.user.id}-org`]: e.target.checked,
                       }))
                     }
-                    className="accent-amber-600 rounded"
+                    className="accent-blue-600 rounded"
                   />
                   <span>Physical premises, clinic, or facility verified in good standing</span>
                 </label>

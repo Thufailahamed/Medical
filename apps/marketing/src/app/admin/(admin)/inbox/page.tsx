@@ -8,6 +8,8 @@ import { api } from "@/portal/lib/api";
 import { Card } from "@/portal/components/ui/Card";
 import { Button } from "@/portal/components/ui/Button";
 import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { PageHeader } from "@/portal/components/ui/PageHeader";
+import { Pill } from "@/portal/components/ui/Pill";
 import { toast } from "@/portal/components/ui/Toast";
 import { relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -87,25 +89,29 @@ export default function AdminInboxPage() {
 
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-text">Inbox</h1>
-          <p className="text-sm text-text-soft mt-0.5">
-            {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
-          </p>
-        </div>
-        {unreadCount > 0 ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            leftIcon={<CheckCheck size={14} />}
-            onClick={() => markAllRead.mutate()}
-            loading={markAllRead.isPending}
-          >
-            Mark all read
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Inbox"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
+        icon={<Bell size={20} className="text-blue-600" />}
+        badge={
+          unreadCount > 0 ? (
+            <Pill tone="warn">{unreadCount} new</Pill>
+          ) : null
+        }
+        actions={
+          unreadCount > 0 ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<CheckCheck size={14} />}
+              onClick={() => markAllRead.mutate()}
+              loading={markAllRead.isPending}
+            >
+              Mark all read
+            </Button>
+          ) : null
+        }
+      />
 
       <Card padding={false}>
         {isLoading ? (
@@ -133,14 +139,14 @@ export default function AdminInboxPage() {
                 <div
                   className={cn(
                     "flex items-start gap-3 px-4 py-3.5 border-b border-border/50 last:border-0 transition-colors group",
-                    !n.read && "bg-amber-50/40",
+                    !n.read && "bg-blue-50/40",
                     href && "hover:bg-surface-2/70"
                   )}
                 >
                   <div
                     className={cn(
                       "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
-                      n.read ? "bg-surface-2 text-text-muted" : "bg-amber-50 text-amber-700"
+                      n.read ? "bg-surface-2 text-text-muted" : "bg-blue-50 text-blue-700"
                     )}
                   >
                     <Icon size={16} />
@@ -155,7 +161,7 @@ export default function AdminInboxPage() {
                       >
                         {n.title}
                       </span>
-                      {!n.read && <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />}
+                      {!n.read && <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />}
                     </div>
                     {n.body ? (
                       <p className="text-xs text-text-muted mt-0.5 line-clamp-2 leading-relaxed">

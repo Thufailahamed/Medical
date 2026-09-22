@@ -50,6 +50,7 @@ beforeEach(async () => {
       doctorId: DOCTOR_ID,
       patientId: PATIENT_ID,
       status: "confirmed",
+      mode: "video",
       date: "2026-07-13",
       time: "10:00",
     },
@@ -158,7 +159,7 @@ describe("POST /teleconsult/sessions", () => {
       {
         id: "old-1",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "oldroomid000",
@@ -212,7 +213,7 @@ describe("GET /teleconsult/sessions/me/active", () => {
       {
         id: "sess-active",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",
@@ -237,7 +238,7 @@ describe("GET /teleconsult/sessions/me/active", () => {
       {
         id: "sess-doc",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "active",
         roomId: "activeroom0001",
@@ -247,7 +248,7 @@ describe("GET /teleconsult/sessions/me/active", () => {
     const app = await buildTestApp(db, { id: DOCTOR_USER, role: "doctor" });
     app.route("/teleconsult", teleconsultRouter);
     db.setWhere("doctors", (r) => r.userId === DOCTOR_USER);
-    db.setWhere("teleconsultSessions", (r) => r.doctorId === DOCTOR_ID);
+    db.setWhere("teleconsultSessions", (r) => r.doctorId === DOCTOR_USER);
 
     const res = await getJson(app, "/teleconsult/sessions/me/active");
     const body = await res.json();
@@ -275,7 +276,7 @@ describe("GET /teleconsult/sessions/:id", () => {
       {
         id: "sess-1",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",
@@ -295,7 +296,7 @@ describe("GET /teleconsult/sessions/:id", () => {
       {
         id: "sess-1",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",
@@ -328,7 +329,7 @@ describe("POST /teleconsult/sessions/:id/start", () => {
       {
         id: "sess-r",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "requested",
         roomId: "reqroom00001",
@@ -351,7 +352,7 @@ describe("POST /teleconsult/sessions/:id/start", () => {
       {
         id: "sess-r",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "requested",
         roomId: "reqroom00001",
@@ -371,7 +372,7 @@ describe("POST /teleconsult/sessions/:id/start", () => {
       {
         id: "sess-a",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "active",
         roomId: "activeroom0001",
@@ -395,7 +396,7 @@ describe("POST /teleconsult/sessions/:id/end", () => {
       {
         id: "sess-end",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "active",
         roomId: "activeroom0001",
@@ -425,7 +426,7 @@ describe("POST /teleconsult/sessions/:id/end", () => {
       {
         id: "sess-old",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ended",
         roomId: "oldroomid0000",
@@ -452,7 +453,7 @@ describe("POST /teleconsult/sessions/:id/ws-ticket", () => {
       {
         id: "sess-1",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",
@@ -480,7 +481,7 @@ describe("POST /teleconsult/sessions/:id/ws-ticket", () => {
       {
         id: "sess-end",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ended",
         roomId: "oldroomid0000",
@@ -503,7 +504,7 @@ describe("GET /teleconsult/sessions/:id/ws (WS upgrade)", () => {
       {
         id: "sess-1",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",
@@ -526,7 +527,7 @@ describe("GET /teleconsult/sessions/:id/ws (WS upgrade)", () => {
       {
         id: "sess-1",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",
@@ -547,7 +548,7 @@ describe("GET /teleconsult/sessions/:id/ws (WS upgrade)", () => {
       {
         id: "sess-1",
         appointmentId: APPT_ID,
-        doctorId: DOCTOR_ID,
+        doctorId: DOCTOR_USER,
         patientUserId: PATIENT_USER,
         status: "ringing",
         roomId: "ringingroom01",

@@ -132,7 +132,7 @@ export function StepUpModal() {
       onClose={cancel}
       title={
         <span className="flex items-center gap-2">
-          <ShieldAlert size={18} className="text-amber-500" />
+          <ShieldAlert size={18} className="text-blue-500" />
           Confirm with passkey
         </span>
       }
@@ -147,7 +147,7 @@ export function StepUpModal() {
                 size="sm"
                 onClick={runDevStepUp}
                 disabled={busy}
-                className="text-xs text-amber-700 hover:bg-amber-50 cursor-pointer"
+                className="text-xs text-blue-700 hover:bg-blue-50 cursor-pointer"
                 title="Bypass passkey challenge for local testing"
               >
                 ⚡ Dev Bypass
@@ -164,7 +164,7 @@ export function StepUpModal() {
                 size="sm"
                 onClick={runEnrollment}
                 disabled={busy || !supported}
-                className="bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
               >
                 <KeyRound size={14} className="mr-1" />
                 {busy ? "Registering Touch ID…" : "Register this device"}
@@ -175,7 +175,7 @@ export function StepUpModal() {
                 size="sm"
                 onClick={runAssertion}
                 disabled={busy || !supported}
-                className="bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
               >
                 <Fingerprint size={14} className="mr-1" />
                 {busy ? "Touch your authenticator…" : "Use passkey"}
@@ -192,11 +192,11 @@ export function StepUpModal() {
         </p>
 
         {needsEnrollment ? (
-          <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 space-y-1.5">
-            <p className="font-semibold flex items-center gap-1.5 text-amber-800">
+          <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-3 space-y-1.5">
+            <p className="font-semibold flex items-center gap-1.5 text-blue-800">
               <KeyRound size={14} /> No passkey registered yet
             </p>
-            <p className="text-[11px] text-amber-700 leading-relaxed">
+            <p className="text-[11px] text-blue-700 leading-relaxed">
               Click <strong>&quot;Register this device&quot;</strong> to link your Mac Touch ID / Windows Hello in 1 click, or use <strong>&quot;Dev Bypass&quot;</strong> to authorize immediately.
             </p>
           </div>

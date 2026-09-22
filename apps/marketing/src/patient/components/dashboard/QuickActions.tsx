@@ -8,35 +8,42 @@ import {
   Pill,
 } from "lucide-react";
 
+import {
+  useAppointments,
+  useMedicationStats,
+  useRefillDue,
+  useVitalsAlerts,
+} from "@/patient/hooks";
+import { formatDayLabel, formatTime } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 
 /** Four primary actions — everything else lives in the sidebar. */
 const ACTIONS = [
   {
+    key: "medications",
     href: "/patient/medications",
     label: "Medications",
-    hint: "Today's doses",
     icon: Pill,
     accent: "bg-rose-50 text-rose-600",
   },
   {
+    key: "record",
     href: "/patient/records/new",
     label: "Add record",
-    hint: "Upload or log",
     icon: FolderPlus,
     accent: "bg-sky-50 text-sky-600",
   },
   {
+    key: "book",
     href: "/patient/appointments/book",
     label: "Book visit",
-    hint: "Find a doctor",
     icon: CalendarPlus,
     accent: "bg-brand-soft text-brand",
   },
   {
+    key: "vitals",
     href: "/patient/vitals",
     label: "Log vitals",
-    hint: "Track trends",
     icon: Activity,
     accent: "bg-amber-50 text-amber-700",
   },
@@ -44,8 +51,40 @@ const ACTIONS = [
 
 /**
  * Primary shortcuts — dense enough for daily use, not a second nav.
+ * Hints are live: they reuse the same react-query cache as the rest of
+ * the dashboard, so this costs no extra requests.
  */
 export function QuickActions({ className }: { className?: string }) {
+  const stats = useMedicationStats(7);
+  const refills = useRefillDue(14);
+  const appts = useAppointments();
+  const alerts = useVitalsAlerts(7);
+
+  const taken = stats.data?.todayTaken ?? 0;
+  const total = stats.data?.todayCount ?? 0;
+  const refillCount = refills.data?.count ?? 0;
+  const next = (appts.data?.appointments ?? [])
+    .filter((a) => new Date(a.date) >= new Date(new Date().toDateString()))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0] ?? null;
+  const alertCount = alerts.data?.count ?? 0;
+
+  const hints: Record<(typeof ACTIONS)[number]["key"], string> = {
+    medications:
+      total > 0
+        ? `${taken}/${total} doses today${refillCount > 0 ? ` · ${refillCount} refill${refillCount === 1 ? "" : "s"} due` : ""}`
+        : refillCount > 0
+          ? `${refillCount} refill${refillCount === 1 ? "" : "s"} due`
+          : "Today's doses",
+    record: "Upload or log",
+    book: next
+      ? `Next: ${formatDayLabel(next.date)} · ${formatTime(next.time)}`
+      : "Find a doctor",
+    vitals:
+      alertCount > 0
+        ? `${alertCount} alert${alertCount === 1 ? "" : "s"} to review`
+        : "Track trends",
+  };
+
   return (
     <section className={cn("anim-rise anim-rise-delay-1", className)}>
       <div className="mb-3 flex items-end justify-between gap-3">
@@ -77,7 +116,7 @@ export function QuickActions({ className }: { className?: string }) {
                   {action.label}
                 </span>
                 <span className="block truncate text-xs text-text-muted mt-0.5">
-                  {action.hint}
+                  {hints[action.key]}
                 </span>
               </span>
             </Link>

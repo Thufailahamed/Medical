@@ -321,7 +321,9 @@ marketplaceInquiriesRouter.get(
     ];
     if (
       statusFilter &&
-      ["pending", "accepted", "declined", "expired"].includes(statusFilter)
+      ["pending", "accepted", "declined", "expired", "withdrawn"].includes(
+        statusFilter
+      )
     ) {
       whereParts.push(eq(caretakerMarketplaceInquiries.status, statusFilter as any));
     }
@@ -356,6 +358,59 @@ marketplaceInquiriesRouter.get(
         linkId: r.linkId ?? null,
       })),
     });
+  }
+);
+
+// ─── Withdraw a pending inquiry ────────────────────────────
+//
+// Patient cancels their own pending inquiry (changed their mind,
+// found someone else). Only the author can withdraw, and only
+// while still pending — accepted/declined rows are history, not
+// something you take back. 'withdrawn' is a terminal status.
+marketplaceInquiriesRouter.post(
+  "/:id/withdraw",
+  authMiddleware,
+  requireRole("patient", "caretaker", "super_admin"),
+  async (c) => {
+    const userId = c.get("userId");
+    const db = c.get("db");
+    const inquiryId = c.req.param("id");
+
+    const [inquiry] = await db
+      .select()
+      .from(caretakerMarketplaceInquiries)
+      .where(
+        and(
+          eq(caretakerMarketplaceInquiries.id, inquiryId),
+          eq(caretakerMarketplaceInquiries.patientUserId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!inquiry) {
+      return c.json({ error: "Inquiry not found" }, 404);
+    }
+    if ((inquiry as any).status !== "pending") {
+      return c.json(
+        { error: "Only pending inquiries can be withdrawn", code: "not_pending" },
+        409
+      );
+    }
+
+    const now = new Date().toISOString();
+    await db
+      .update(caretakerMarketplaceInquiries)
+      .set({ status: "withdrawn", decidedAt: now, updatedAt: now } as any)
+      .where(eq(caretakerMarketplaceInquiries.id, inquiryId));
+
+    await writeAudit(db, {
+      userId,
+      action: "caretaker_marketplace_inquiry_withdrawn",
+      resource: "caretaker_marketplace_inquiry",
+      resourceId: inquiryId,
+    });
+
+    return c.json({ ok: true });
   }
 );
 

@@ -15,8 +15,19 @@ import {
   Alert,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { BadgeCheck, ShieldUser } from "lucide-react-native";
+import {
+  BadgeCheck,
+  ShieldUser,
+  FileText,
+  Languages,
+  HeartHandshake,
+  MapPin,
+  Inbox,
+  Check,
+  X,
+} from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
+import type { Tone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
@@ -27,9 +38,11 @@ import {
   TextInput,
   Pill,
   Avatar,
+  Divider,
+  EmptyState,
   useToast,
-  SectionHeader,
 } from "@/components/ui";
+import { VerificationRequestSheet } from "@/components/VerificationRequestSheet";
 import {
   useMyMarketplaceProfile,
   useUpsertMarketplaceProfile,
@@ -48,9 +61,33 @@ const ROLE_OPTIONS: CareRole[] = [
 
 const LANGUAGE_OPTIONS = ["en", "si", "ta"];
 
+const DISTRICT_OPTIONS = [
+  "Colombo",
+  "Kandy",
+  "Galle",
+  "Jaffna",
+  "Gampaha",
+  "Matara",
+  "Kurunegala",
+];
+
+function languageName(code: string, t: any): string {
+  if (code === "en") return t("common.languageEnglish");
+  if (code === "si") return t("common.languageSinhala");
+  if (code === "ta") return t("common.languageTamil");
+  return code;
+}
+
+function inquiryTone(status: string): Tone {
+  if (status === "pending") return "info";
+  if (status === "accepted") return "success";
+  if (status === "declined") return "danger";
+  return "neutral";
+}
+
 export default function CaretakerMarketplaceScreen() {
   const { t } = useTranslation();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, radius } = useTheme();
   const toast = useToast();
 
   const profile = useMyMarketplaceProfile();
@@ -63,6 +100,7 @@ export default function CaretakerMarketplaceScreen() {
   const isVerified = v?.verified === true;
   const p = v?.profile;
 
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const [bio, setBio] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
   const [roles, setRoles] = useState<CareRole[]>([]);
@@ -118,41 +156,33 @@ export default function CaretakerMarketplaceScreen() {
   }
 
   function confirmAccept(id: string) {
-    Alert.alert(
-      t("marketplace.listing.acceptConfirm"),
-      "",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("marketplace.listing.accept"),
-          onPress: () =>
-            accept.mutate(id, {
-              onSuccess: () =>
-                toast.show(t("marketplace.listing.accepted"), "success"),
-              onError: () => toast.show(t("common.error"), "danger"),
-            }),
-        },
-      ]
-    );
+    Alert.alert(t("marketplace.listing.acceptConfirm"), "", [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("marketplace.listing.accept"),
+        onPress: () =>
+          accept.mutate(id, {
+            onSuccess: () =>
+              toast.show(t("marketplace.listing.accepted"), "success"),
+            onError: () => toast.show(t("common.error"), "danger"),
+          }),
+      },
+    ]);
   }
 
   function confirmDecline(id: string) {
-    Alert.alert(
-      t("marketplace.listing.declineConfirm"),
-      "",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("marketplace.listing.decline"),
-          style: "destructive",
-          onPress: () =>
-            decline.mutate(id, {
-              onSuccess: () =>
-                toast.show(t("marketplace.listing.declined"), "info"),
-            }),
-        },
-      ]
-    );
+    Alert.alert(t("marketplace.listing.declineConfirm"), "", [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("marketplace.listing.decline"),
+        style: "destructive",
+        onPress: () =>
+          decline.mutate(id, {
+            onSuccess: () =>
+              toast.show(t("marketplace.listing.declined"), "info"),
+          }),
+      },
+    ]);
   }
 
   const incoming = inquiries.data?.inquiries ?? [];
@@ -162,7 +192,12 @@ export default function CaretakerMarketplaceScreen() {
       <ScreenHeader back title={t("marketplace.listing.title")} />
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          padding: spacing.lg,
+          gap: spacing.md,
+          paddingBottom: spacing.xxxxl,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={profile.isFetching || inquiries.isFetching}
@@ -174,9 +209,9 @@ export default function CaretakerMarketplaceScreen() {
           />
         }
       >
-        {/* ─── Verified gate banner ─── */}
         {!isVerified ? (
-          <Card>
+          /* ─── Verified gate ─── */
+          <Card style={{ gap: spacing.sm }}>
             <View
               style={{
                 flexDirection: "row",
@@ -184,108 +219,192 @@ export default function CaretakerMarketplaceScreen() {
                 gap: spacing.sm,
               }}
             >
-              <ShieldUser size={18} color={colors.warning} />
-              <Text
+              <View
                 style={{
-                  ...typography.body,
-                  color: colors.text,
-                  flex: 1,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.warningSoft,
                 }}
+              >
+                <ShieldUser size={20} color={colors.warning} />
+              </View>
+              <Text
+                style={[
+                  typography.body.sm,
+                  { color: colors.text, flex: 1, fontWeight: "600" },
+                ]}
               >
                 {t("marketplace.listing.notVerified")}
               </Text>
             </View>
-          </Card>
-        ) : null}
-
-        {/* ─── Availability toggle ─── */}
-        <Card>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: spacing.md,
-            }}
-          >
-            <Text style={{ ...typography.body, color: colors.text, flex: 1 }}>
-              {t("marketplace.listing.available")}
-            </Text>
-            <Switch
-              value={isAvailable}
-              onValueChange={setIsAvailable}
-              disabled={!isVerified}
+            <Button
+              label={t("caretaker.verification.requestCta")}
+              onPress={() => setVerifyOpen(true)}
+              icon={BadgeCheck}
+              fullWidth
             />
-          </View>
-        </Card>
-
-        {/* ─── Form ─── */}
-        {isVerified ? (
+          </Card>
+        ) : (
           <>
+            {/* ─── Availability toggle ─── */}
             <Card>
-              <FormField label={t("marketplace.listing.bio")}>
-                <TextInput
-                  multiline
-                  numberOfLines={4}
-                  maxLength={1000}
-                  value={bio}
-                  onChangeText={setBio}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: isAvailable
+                      ? colors.successSoft
+                      : colors.surfaceMuted,
+                  }}
+                >
+                  <HeartHandshake
+                    size={20}
+                    color={isAvailable ? colors.success : colors.textMuted}
+                  />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text
+                    style={[
+                      typography.body.md,
+                      { color: colors.text, fontWeight: "700" },
+                    ]}
+                  >
+                    {t("marketplace.listing.available")}
+                  </Text>
+                  <Text
+                    style={[typography.caption, { color: colors.textMuted }]}
+                  >
+                    {p
+                      ? t("marketplace.listing.listedHint")
+                      : t("marketplace.listing.notListed")}
+                  </Text>
+                </View>
+                <Switch
+                  value={isAvailable}
+                  onValueChange={setIsAvailable}
+                  trackColor={{
+                    false: colors.border,
+                    true: colors.success,
+                  }}
                 />
-              </FormField>
+              </View>
             </Card>
 
-            <Card>
-              <FormField label={t("marketplace.listing.languages")}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: spacing.xs,
-                  }}
-                >
-                  {LANGUAGE_OPTIONS.map((l) => (
-                    <Chip
-                      key={l}
-                      label={l}
-                      selected={languages.includes(l)}
-                      onPress={() =>
-                        setLanguages((prev) => toggle(prev, l))
-                      }
-                    />
-                  ))}
-                </View>
-              </FormField>
+            {/* ─── About / bio ─── */}
+            <Card style={{ gap: spacing.sm }}>
+              <FormSectionHeader
+                icon={FileText}
+                label={t("marketplace.listing.bio")}
+              />
+              <TextInput
+                multiline
+                numberOfLines={4}
+                maxLength={1000}
+                value={bio}
+                onChangeText={setBio}
+                placeholder={t("marketplace.listing.bioPlaceholder")}
+              />
             </Card>
 
-            <Card>
-              <FormField label={t("marketplace.listing.roles")}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: spacing.xs,
-                  }}
-                >
-                  {ROLE_OPTIONS.map((r) => (
-                    <Chip
-                      key={r}
-                      label={t(`caretaker.role.${r}`)}
-                      selected={roles.includes(r)}
-                      onPress={() => setRoles((prev) => toggle(prev, r))}
-                    />
-                  ))}
-                </View>
-              </FormField>
+            {/* ─── Languages ─── */}
+            <Card style={{ gap: spacing.sm }}>
+              <FormSectionHeader
+                icon={Languages}
+                label={t("marketplace.listing.languages")}
+              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.xs,
+                }}
+              >
+                {LANGUAGE_OPTIONS.map((l) => (
+                  <Chip
+                    key={l}
+                    label={languageName(l, t)}
+                    selected={languages.includes(l)}
+                    tone={languages.includes(l) ? "primary" : "neutral"}
+                    onPress={() => setLanguages((prev) => toggle(prev, l))}
+                  />
+                ))}
+              </View>
             </Card>
 
-            <Card>
-              <FormField label={t("marketplace.listing.district")}>
-                <TextInput value={district} onChangeText={setDistrict} />
-              </FormField>
+            {/* ─── Care roles ─── */}
+            <Card style={{ gap: spacing.sm }}>
+              <FormSectionHeader
+                icon={HeartHandshake}
+                label={t("marketplace.listing.roles")}
+              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.xs,
+                }}
+              >
+                {ROLE_OPTIONS.map((r) => (
+                  <Chip
+                    key={r}
+                    label={t(`caretaker.role.${r}`)}
+                    selected={roles.includes(r)}
+                    tone={roles.includes(r) ? "primary" : "neutral"}
+                    onPress={() => setRoles((prev) => toggle(prev, r))}
+                  />
+                ))}
+              </View>
+            </Card>
+
+            {/* ─── District / rate / experience ─── */}
+            <Card style={{ gap: spacing.sm }}>
+              <FormSectionHeader
+                icon={MapPin}
+                label={t("marketplace.listing.district")}
+              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: spacing.xs,
+                }}
+              >
+                {DISTRICT_OPTIONS.map((d) => (
+                  <Chip
+                    key={d}
+                    label={d}
+                    selected={district === d}
+                    tone={district === d ? "primary" : "neutral"}
+                    onPress={() =>
+                      setDistrict((prev) => (prev === d ? "" : d))
+                    }
+                  />
+                ))}
+              </View>
+              <TextInput
+                value={district}
+                onChangeText={setDistrict}
+                placeholder={t("marketplace.listing.districtPlaceholder")}
+                style={{ marginTop: spacing.xs }}
+              />
+
               <FormField
                 label={t("marketplace.listing.rate")}
                 helper={t("marketplace.listing.rateOptional")}
-                style={{ marginTop: spacing.md }}
+                style={{ marginTop: spacing.sm }}
               >
                 <TextInput
                   keyboardType="numeric"
@@ -296,7 +415,7 @@ export default function CaretakerMarketplaceScreen() {
               </FormField>
               <FormField
                 label={t("marketplace.listing.experience")}
-                style={{ marginTop: spacing.md }}
+                style={{ marginTop: spacing.sm }}
               >
                 <TextInput
                   keyboardType="numeric"
@@ -316,102 +435,208 @@ export default function CaretakerMarketplaceScreen() {
               loading={save.isPending}
               disabled={!isVerified}
               fullWidth
-              icon={<BadgeCheck size={16} />}
+              icon={BadgeCheck}
             />
           </>
-        ) : null}
+        )}
 
         {/* ─── Incoming inquiries ─── */}
-        <View style={{ marginTop: spacing.lg }}>
-          <SectionHeader
-            title={t("marketplace.listing.inquiriesTitle")}
-          />
-          <View style={{ gap: spacing.sm }}>
-            {incoming.length === 0 ? (
-              <Card>
-                <Text
-                  style={{
-                    ...typography.body,
-                    color: colors.textMuted,
-                  }}
-                >
-                  {t("marketplace.listing.noInquiries")}
-                </Text>
-              </Card>
-            ) : (
-              incoming.map((i) => (
-                <Card
-                  key={i.id}
-                  style={{ gap: spacing.sm }}
-                >
+        <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+              paddingHorizontal: spacing.xs,
+            }}
+          >
+            <Inbox size={14} color={colors.textMuted} />
+            <Text
+              style={[
+                typography.label.md,
+                {
+                  color: colors.textMuted,
+                  fontWeight: "700",
+                  letterSpacing: 0.8,
+                  textTransform: "uppercase",
+                  fontSize: 11,
+                },
+              ]}
+            >
+              {t("marketplace.listing.inquiriesTitle")}
+            </Text>
+            {incoming.filter((i) => i.status === "pending").length > 0 ? (
+              <Pill
+                label={String(
+                  incoming.filter((i) => i.status === "pending").length
+                )}
+                tone="info"
+                size="sm"
+              />
+            ) : null}
+          </View>
+
+          {incoming.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              title={t("marketplace.listing.noInquiries")}
+            />
+          ) : (
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              {incoming.map((i, idx) => (
+                <View key={i.id}>
+                  {idx > 0 ? (
+                    <Divider style={{ marginHorizontal: spacing.md }} />
+                  ) : null}
                   <View
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
+                      padding: spacing.md,
                       gap: spacing.sm,
                     }}
                   >
-                    <Avatar
-                      uri={i.patientPhoto ?? undefined}
-                      name={i.patientName ?? "?"}
-                      size="md"
-                    />
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text
-                        style={[
-                          typography.title.sm,
-                          { color: colors.text, fontWeight: "700" },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {i.patientName ?? "—"}
-                      </Text>
-                      <Pill
-                        label={t(
-                          `marketplace.inquiriesMine.status.${i.status}`
-                        )}
-                        tone={
-                          i.status === "pending"
-                            ? "info"
-                            : i.status === "accepted"
-                            ? "success"
-                            : i.status === "declined"
-                            ? "danger"
-                            : "neutral"
-                        }
-                        size="sm"
-                      />
-                    </View>
-                  </View>
-                  <Text style={{ ...typography.body, color: colors.text }}>
-                    {i.patientMessage}
-                  </Text>
-                  {i.status === "pending" ? (
                     <View
                       style={{
                         flexDirection: "row",
+                        alignItems: "center",
                         gap: spacing.sm,
                       }}
                     >
-                      <Button
-                        label={t("marketplace.listing.accept")}
-                        onPress={() => confirmAccept(i.id)}
-                        compact
+                      <Avatar
+                        source={
+                          i.patientPhoto ? { uri: i.patientPhoto } : undefined
+                        }
+                        name={i.patientName ?? "?"}
+                        size="md"
                       />
-                      <Button
-                        label={t("marketplace.listing.decline")}
-                        onPress={() => confirmDecline(i.id)}
-                        variant="outline"
-                        compact
-                      />
+                      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                        <Text
+                          style={[
+                            typography.title.sm,
+                            { color: colors.text, fontWeight: "700" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {i.patientName ?? "—"}
+                        </Text>
+                        <Pill
+                          label={t(
+                            `marketplace.inquiriesMine.status.${i.status}`
+                          )}
+                          tone={inquiryTone(i.status)}
+                          size="sm"
+                        />
+                      </View>
                     </View>
-                  ) : null}
-                </Card>
-              ))
-            )}
-          </View>
+
+                    <View
+                      style={{
+                        backgroundColor: colors.surfaceMuted,
+                        borderRadius: radius.md,
+                        padding: spacing.sm,
+                      }}
+                    >
+                      <Text
+                        style={[
+                          typography.caption,
+                          {
+                            color: colors.textMuted,
+                            fontWeight: "700",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.6,
+                            fontSize: 10,
+                            marginBottom: 3,
+                          },
+                        ]}
+                      >
+                        {t("marketplace.listing.patientMessage")}
+                      </Text>
+                      <Text
+                        style={[
+                          typography.body.sm,
+                          { color: colors.text, lineHeight: 19 },
+                        ]}
+                      >
+                        {i.patientMessage}
+                      </Text>
+                    </View>
+
+                    {i.status === "pending" ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          gap: spacing.sm,
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Button
+                            label={t("marketplace.listing.accept")}
+                            onPress={() => confirmAccept(i.id)}
+                            icon={Check}
+                            compact
+                            fullWidth
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Button
+                            label={t("marketplace.listing.decline")}
+                            onPress={() => confirmDecline(i.id)}
+                            variant="outline"
+                            icon={X}
+                            compact
+                            fullWidth
+                          />
+                        </View>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </Card>
+          )}
         </View>
       </ScrollView>
+
+      <VerificationRequestSheet
+        visible={verifyOpen}
+        onDismiss={() => setVerifyOpen(false)}
+      />
     </Screen>
+  );
+}
+
+function FormSectionHeader({
+  icon: Icon,
+  label,
+}: {
+  icon: any;
+  label: string;
+}) {
+  const { spacing, colors, typography } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.xs,
+      }}
+    >
+      <View
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 8,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.primarySoft,
+        }}
+      >
+        <Icon size={13} color={colors.primary} />
+      </View>
+      <Text
+        style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}
+      >
+        {label}
+      </Text>
+    </View>
   );
 }

@@ -1,10 +1,11 @@
 // @ts-nocheck
 
 import { useMemo, useState } from "react";
-import { View, Text, Pressable, Alert } from "react-native";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Video, Stethoscope } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Video, Stethoscope, ChevronRight } from "lucide-react-native";
 import { useMyAppointments, useCancelAppointment, useActiveTeleconsultSession } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
@@ -182,9 +183,10 @@ export default function AppointmentsScreen() {
   const upcomingPct = all.length
     ? Math.round((upcomingCount / all.length) * 100)
     : 0;
+  const contentPadding = spacing.sm + 2;
 
   return (
-    <Screen scroll bottomInset={false}>
+    <Screen scroll padded={false} bottomInset={false}>
       <ScreenHeader
         title={t("appointments.title")}
         back={router.canGoBack()}
@@ -203,60 +205,98 @@ export default function AppointmentsScreen() {
         }
       />
 
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-          flexDirection: "row",
-          gap: spacing.sm,
-        }}
-      >
-        {FILTER_VALUES.map((v) => (
-          <FilterPill
-            key={v}
-            label={t(`appointments.filter.${v}`)}
-            active={filter === v}
-            onPress={() => setFilter(v)}
-          />
-        ))}
+      <View style={{ paddingHorizontal: contentPadding, paddingTop: spacing.xs }}>
+        <LinearGradient
+          colors={[colors.primarySoft, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: radius.lg,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: spacing.sm + 2,
+            gap: spacing.sm,
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            {FILTER_VALUES.map((v) => (
+              <FilterPill
+                key={v}
+                label={t(`appointments.filter.${v}`)}
+                active={filter === v}
+                onPress={() => setFilter(v)}
+              />
+            ))}
+          </View>
+
+          {/* Mode filter — Online (video) vs Offline (in-person) vs All.
+              Independent of the date filter so users can drill in either axis. */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              flexDirection: "row",
+              gap: spacing.sm,
+              alignItems: "center",
+              paddingRight: spacing.xs,
+            }}
+          >
+            {MODE_FILTER_VALUES.map((v) => {
+              const Icon = v === "video" ? Video : v === "in_person" ? Stethoscope : null;
+              return (
+                <ModePill
+                  key={v}
+                  label={t(
+                    v === "all"
+                      ? "appointments.modeFilter.all"
+                      : v === "video"
+                      ? "appointments.modeFilter.video"
+                      : "appointments.modeFilter.inPerson"
+                  )}
+                  Icon={Icon}
+                  active={modeFilter === v}
+                  onPress={() => setModeFilter(v)}
+                />
+              );
+            })}
+          </ScrollView>
+        </LinearGradient>
       </View>
 
-      {/* Mode filter — Online (video) vs Offline (in-person) vs All.
-          Independent of the date filter so users can drill in either axis. */}
       <View
         style={{
-          paddingHorizontal: spacing.lg,
-          paddingBottom: spacing.md,
+          paddingHorizontal: contentPadding,
+          paddingTop: spacing.md,
+          paddingBottom: spacing.sm,
           flexDirection: "row",
-          gap: spacing.sm,
           alignItems: "center",
-          flexWrap: "wrap",
+          justifyContent: "space-between",
         }}
       >
-        {MODE_FILTER_VALUES.map((v) => {
-          const Icon = v === "video" ? Video : v === "in_person" ? Stethoscope : null;
-          return (
-            <ModePill
-              key={v}
-              label={t(
-                v === "all"
-                  ? "appointments.modeFilter.all"
-                  : v === "video"
-                  ? "appointments.modeFilter.video"
-                  : "appointments.modeFilter.inPerson"
-              )}
-              Icon={Icon}
-              active={modeFilter === v}
-              onPress={() => setModeFilter(v)}
-            />
-          );
-        })}
+        <Text style={[typography.title.sm, { color: colors.text }]}>
+          {t(`appointments.filter.${filter}`)}
+        </Text>
+        <View
+          style={{
+            minWidth: 30,
+            height: 30,
+            paddingHorizontal: spacing.sm,
+            borderRadius: radius.full,
+            backgroundColor: colors.primarySoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={[typography.label.md, { color: colors.primary }]}>
+            {filtered.length}
+          </Text>
+        </View>
       </View>
 
       {/* Pinned upcoming video consultations — quick-join entries surfaced
           above the timeline whenever a video visit is approaching. */}
       {showPinnedVideo ? (
-        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.md }}>
+        <View style={{ paddingHorizontal: contentPadding, paddingBottom: spacing.sm }}>
           <View
             style={{
               flexDirection: "row",
@@ -292,9 +332,9 @@ export default function AppointmentsScreen() {
       ) : null}
 
       {isLoading ? (
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+        <View style={{ paddingHorizontal: contentPadding, gap: spacing.sm }}>
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} height={92} radius={20} />
+            <Skeleton key={i} height={82} radius={16} />
           ))}
         </View>
       ) : isError ? (
@@ -327,56 +367,20 @@ export default function AppointmentsScreen() {
           }
         />
       ) : (
-        <View style={{ paddingHorizontal: spacing.lg }}>
+        <View style={{ paddingHorizontal: contentPadding }}>
           <Timeline
             data={filtered}
             groupBy={(a: any) => groupKey(t, a)}
             keyExtractor={(a: any) => a.id}
             flush
+            style={{ gap: spacing.md }}
             renderItem={(item: any) => {
               const tone = STATUS_TONE[item.status] ?? "neutral";
               const { day, month } = dateParts(t, item.date);
               return (
-                <Card padded={false}>
-                  <View style={{ padding: spacing.lg }}>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: spacing.md,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 60,
-                          height: 68,
-                          borderRadius: radius.lg,
-                          backgroundColor: colors.primarySoft,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text
-                          style={[
-                            typography.title.md,
-                            {
-                              color: colors.primary,
-                              fontSize: 22,
-                              lineHeight: 24,
-                            },
-                          ]}
-                        >
-                          {day}
-                        </Text>
-                        <Text
-                          style={[
-                            typography.overline,
-                            { color: colors.primary, marginTop: 2 },
-                          ]}
-                        >
-                          {month}
-                        </Text>
-                      </View>
+                <Card padded={false} style={{ borderRadius: radius.lg }}>
+                  <View style={{ padding: spacing.sm + 2 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                       <Pressable
                         onPress={() =>
                           router.push({
@@ -384,80 +388,116 @@ export default function AppointmentsScreen() {
                             params: { id: item.id },
                           })
                         }
-                        style={{ flex: 1, gap: 6, minWidth: 0 }}
+                        accessibilityRole="button"
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: spacing.sm,
+                        }}
                       >
-                        <Text
-                          style={[typography.title.sm, { color: colors.text }]}
-                          numberOfLines={1}
-                        >
-                          {item.reason ||
-                            item.specialty ||
-                            t("appointments.fallbackTitle")}
-                        </Text>
-                        <View
+                        <LinearGradient
+                          colors={[colors.primary, colors.primaryMuted]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
                           style={{
-                            flexDirection: "row",
+                            width: 56,
+                            height: 66,
+                            borderRadius: radius.md,
                             alignItems: "center",
-                            gap: spacing.sm,
-                            flexWrap: "wrap",
+                            justifyContent: "center",
                           }}
                         >
-                          {item.time ? (
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 4,
-                              }}
-                            >
-                              <Clock
-                                size={13}
-                                color={colors.textMuted}
-                                strokeWidth={2.25}
+                          <Text
+                            style={[
+                              typography.title.lg,
+                              { color: colors.onPrimary, fontSize: 22, lineHeight: 24 },
+                            ]}
+                          >
+                            {day}
+                          </Text>
+                          <Text
+                            style={[
+                              typography.overline,
+                              { color: colors.onPrimary, marginTop: 1 },
+                            ]}
+                          >
+                            {month}
+                          </Text>
+                        </LinearGradient>
+
+                        <View style={{ flex: 1, minWidth: 0, gap: spacing.xs + 2 }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: spacing.xs,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {item.mode === "video" ? (
+                              <Pill
+                                icon={Video}
+                                label={t("appointments.mode.video")}
+                                tone="primary"
+                                size="sm"
                               />
-                              <Text
-                                style={[
-                                  typography.body.sm,
-                                  { color: colors.textMuted },
-                                ]}
-                              >
-                                {item.time}
-                              </Text>
-                            </View>
-                          ) : null}
-                          {item.status ? (
-                            <Pill
-                              label={item.status.replace("_", " ")}
-                              tone={tone}
-                              size="sm"
-                            />
-                          ) : null}
-                          {item.mode === "video" ? (
-                            <Pill
-                              icon={Video}
-                              label={t("appointments.mode.video")}
-                              tone="primary"
-                              size="sm"
-                            />
-                          ) : item.mode === "in_person" ? (
-                            <Pill
-                              label={t("appointments.mode.inPerson")}
-                              tone="neutral"
-                              size="sm"
-                            />
-                          ) : null}
-                          {item.recordCount ? (
-                            <Pill
-                              icon={FileText}
-                              label={t("appointments.note", {
-                                count: item.recordCount,
-                              })}
-                              tone="info"
-                              size="sm"
-                            />
-                          ) : null}
+                            ) : item.mode === "in_person" ? (
+                              <Pill
+                                icon={Stethoscope}
+                                label={t("appointments.mode.inPerson")}
+                                tone="neutral"
+                                size="sm"
+                              />
+                            ) : null}
+                            {item.status ? (
+                              <Pill
+                                label={item.status.replace("_", " ")}
+                                tone={tone}
+                                size="sm"
+                              />
+                            ) : null}
+                          </View>
+                          <Text
+                            style={[typography.title.sm, { color: colors.text }]}
+                            numberOfLines={1}
+                          >
+                            {item.reason ||
+                              item.specialty ||
+                              t("appointments.fallbackTitle")}
+                          </Text>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: spacing.xs,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {item.time ? (
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                                <Clock size={13} color={colors.textMuted} strokeWidth={2.25} />
+                                <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                                  {item.time}
+                                </Text>
+                              </View>
+                            ) : null}
+                            {item.recordCount ? (
+                              <Pill
+                                icon={FileText}
+                                label={t("appointments.note", {
+                                  count: item.recordCount,
+                                })}
+                                tone="info"
+                                size="sm"
+                              />
+                            ) : null}
+                          </View>
                         </View>
+                        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.25} />
                       </Pressable>
+
                       {(item.status === "scheduled" ||
                         item.status === "confirmed" ||
                         item.status === "pending") ? (
@@ -470,29 +510,19 @@ export default function AppointmentsScreen() {
                           hitSlop={6}
                           disabled={cancellingId === item.id}
                           style={({ pressed }) => ({
-                            width: 36,
-                            height: 36,
-                            borderRadius: 18,
+                            width: 34,
+                            height: 34,
+                            borderRadius: 17,
                             alignItems: "center",
                             justifyContent: "center",
-                            backgroundColor: pressed
-                              ? colors.danger
-                              : colors.dangerSoft,
+                            backgroundColor: pressed ? colors.danger : colors.dangerSoft,
                             opacity: cancellingId === item.id ? 0.6 : 1,
                           })}
                         >
                           {cancellingId === item.id ? (
-                            <Loader
-                              size={16}
-                              color={colors.danger}
-                              strokeWidth={2.25}
-                            />
+                            <Loader size={16} color={colors.danger} strokeWidth={2.25} />
                           ) : (
-                            <X
-                              size={16}
-                              color={colors.danger}
-                              strokeWidth={2.5}
-                            />
+                            <X size={16} color={colors.danger} strokeWidth={2.5} />
                           )}
                         </Pressable>
                       ) : null}
@@ -505,7 +535,7 @@ export default function AppointmentsScreen() {
                       item.status === "confirmed" ||
                       item.status === "pending" ||
                       item.status === "in_progress") ? (
-                      <View style={{ marginTop: spacing.md, paddingLeft: 76 }}>
+                      <View style={{ marginTop: spacing.md }}>
                         <Pressable
                           onPress={() =>
                             router.push({
@@ -518,23 +548,16 @@ export default function AppointmentsScreen() {
                           hitSlop={6}
                           style={({ pressed }) => ({
                             height: 38,
-                            borderRadius: 12,
+                            borderRadius: radius.md,
                             flexDirection: "row",
                             alignItems: "center",
                             justifyContent: "center",
-                            gap: 8,
-                            backgroundColor: pressed
-                              ? colors.primary
-                              : colors.primarySoft,
+                            gap: spacing.sm,
+                            backgroundColor: pressed ? colors.primaryMuted : colors.primary,
                           })}
                         >
-                          <Video size={16} color={colors.primary} strokeWidth={2.5} />
-                          <Text
-                            style={[
-                              typography.label.md,
-                              { color: colors.primary, fontWeight: "700" },
-                            ]}
-                          >
+                          <Video size={16} color={colors.onPrimary} strokeWidth={2.5} />
+                          <Text style={[typography.label.md, { color: colors.onPrimary }]}>
                             {t("consult.joinVideoVisit")}
                           </Text>
                         </Pressable>
@@ -547,7 +570,7 @@ export default function AppointmentsScreen() {
                       item.status === "confirmed" ||
                       item.status === "pending") &&
                     activeSession?.session?.appointmentId !== item.id ? (
-                      <View style={{ marginTop: spacing.md, paddingLeft: 76 }}>
+                      <View style={{ marginTop: spacing.md }}>
                         <Pressable
                           onPress={() =>
                             router.push({
@@ -560,23 +583,16 @@ export default function AppointmentsScreen() {
                           hitSlop={6}
                           style={({ pressed }) => ({
                             height: 38,
-                            borderRadius: 12,
+                            borderRadius: radius.md,
                             flexDirection: "row",
                             alignItems: "center",
                             justifyContent: "center",
-                            gap: 8,
-                            backgroundColor: pressed
-                              ? colors.primary
-                              : colors.primarySoft,
+                            gap: spacing.sm,
+                            backgroundColor: pressed ? colors.primaryMuted : colors.primary,
                           })}
                         >
-                          <Video size={16} color={colors.primary} strokeWidth={2.5} />
-                          <Text
-                            style={[
-                              typography.label.md,
-                              { color: colors.primary, fontWeight: "700" },
-                            ]}
-                          >
+                          <Video size={16} color={colors.onPrimary} strokeWidth={2.5} />
+                          <Text style={[typography.label.md, { color: colors.onPrimary }]}>
                             {t("appointments.joinVideo")}
                           </Text>
                         </Pressable>
@@ -668,21 +684,25 @@ function FilterPill({
   active: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, radius } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
-      style={{
-        paddingHorizontal: spacing.md,
-        paddingVertical: 6,
-        borderRadius: 999,
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: 42,
+        paddingHorizontal: spacing.sm,
+        borderRadius: radius.md,
+        alignItems: "center",
+        justifyContent: "center",
         backgroundColor: active ? colors.primary : colors.surface,
         borderWidth: 1,
         borderColor: active ? colors.primary : colors.border,
-      }}
+        opacity: pressed ? 0.8 : 1,
+      })}
     >
       <Text
         style={[
@@ -710,29 +730,33 @@ function ModePill({
   active: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, radius } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
-      style={{
+      style={({ pressed }) => ({
+        minHeight: 36,
+        flexShrink: 0,
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
         gap: 6,
         paddingHorizontal: spacing.md,
-        paddingVertical: 6,
-        borderRadius: 999,
+        borderRadius: radius.full,
         backgroundColor: active ? colors.primarySoft : colors.surface,
         borderWidth: 1,
         borderColor: active ? colors.primary : colors.border,
-      }}
+        opacity: pressed ? 0.8 : 1,
+      })}
     >
-      {Icon ? <Icon size={13} color={active ? colors.primary : colors.textMuted} strokeWidth={2.25} /> : null}
+      {Icon ? <Icon size={14} color={active ? colors.primary : colors.textMuted} strokeWidth={2.25} /> : null}
       <Text
+        numberOfLines={1}
         style={[
-          typography.label.sm,
+          typography.label.md,
           {
             color: active ? colors.primary : colors.text,
             fontWeight: "700",
@@ -758,40 +782,47 @@ function PinnedVideoCard({
   const { spacing, colors, typography, radius } = useTheme();
   const { day, month } = dateParts(t, appt.date);
   return (
-    <Card padded={false}>
+    <Card padded={false} style={{ borderColor: colors.primary }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          padding: spacing.md,
-          gap: spacing.md,
+          padding: spacing.sm + 2,
+          gap: spacing.sm,
         }}
       >
-        <View
+        <LinearGradient
+          colors={[colors.primary, colors.primaryMuted]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            width: 52,
-            height: 52,
+            width: 48,
+            height: 54,
             borderRadius: radius.md,
-            backgroundColor: colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={[typography.title.sm, { color: colors.primary }]}>{day}</Text>
-          <Text style={[typography.overline, { color: colors.primary }]}>{month}</Text>
-        </View>
+          <Text style={[typography.title.sm, { color: colors.onPrimary }]}>{day}</Text>
+          <Text style={[typography.overline, { color: colors.onPrimary }]}>{month}</Text>
+        </LinearGradient>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={[typography.title.sm, { color: colors.text }]}
-          >
+          <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text }]}>
             {appt.reason || appt.specialty || t("appointments.fallbackTitle")}
           </Text>
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: 4, flexWrap: "wrap" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+              marginTop: spacing.xs,
+              flexWrap: "wrap",
+            }}
+          >
             {appt.time ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Clock size={12} color={colors.textMuted} strokeWidth={2.25} />
-                <Text style={[typography.body.xs, { color: colors.textMuted }]}>
+                <Clock size={13} color={colors.textMuted} strokeWidth={2.25} />
+                <Text style={[typography.caption, { color: colors.textMuted }]}>
                   {appt.time}
                 </Text>
               </View>
@@ -806,20 +837,18 @@ function PinnedVideoCard({
             isActive ? t("consult.joinVideoVisit") : t("appointments.joinVideo")
           }
           style={({ pressed }) => ({
-            paddingHorizontal: spacing.md,
-            paddingVertical: 10,
-            borderRadius: 999,
-            backgroundColor: pressed ? colors.primary : colors.primarySoft,
-            borderWidth: 1,
-            borderColor: colors.primary,
+            minHeight: 38,
+            paddingHorizontal: spacing.sm + 2,
+            borderRadius: radius.full,
+            backgroundColor: pressed ? colors.primaryMuted : colors.primary,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: spacing.xs,
           })}
         >
-          <Text
-            style={[
-              typography.label.sm,
-              { color: colors.primary, fontWeight: "700" },
-            ]}
-          >
+          <Video size={14} color={colors.onPrimary} strokeWidth={2.5} />
+          <Text style={[typography.label.sm, { color: colors.onPrimary, fontWeight: "700" }]}>
             {isActive ? t("consult.joinVideoVisit") : t("appointments.joinVideo")}
           </Text>
         </Pressable>

@@ -13,6 +13,7 @@ cd "$(dirname "$0")"
 
 echo "📦 Step 1: Building frontend with OpenNext Cloudflare..."
 cd apps/marketing
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://healthcare-api.thufailahamed627.workers.dev}"
 bunx opennextjs-cloudflare build
 echo "✅ Build completed."
 echo ""

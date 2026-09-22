@@ -28,6 +28,7 @@ import {
   Filter,
   Bot,
 } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useUnifiedTimeline } from "@/hooks/useApi";
 import { AppText } from "@/components/ui/AppText";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -330,26 +331,42 @@ export function RecordTimeline() {
         accessibilityLabel="Ask AI about timeline"
         style={({ pressed }) => ({
           backgroundColor: pressed ? "#F0F9FF" : colors.surface,
-          borderRadius: 18,
-          padding: 12,
+          borderRadius: 22,
+          padding: 16,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: "#DDE9F1",
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
+          gap: 13,
+          shadowColor: "#16324A",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.07,
+          shadowRadius: 18,
+          elevation: 3,
         })}
       >
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: "#E0F2FE",
+            width: 44,
+            height: 44,
+            borderRadius: 15,
+            overflow: "hidden",
             alignItems: "center",
             justifyContent: "center",
+            shadowColor: "#0284C7",
+            shadowOffset: { width: 0, height: 5 },
+            shadowOpacity: 0.24,
+            shadowRadius: 10,
+            elevation: 3,
           }}
         >
-          <Sparkles size={18} color="#0284C7" strokeWidth={2.25} />
+          <LinearGradient
+            colors={["#38BDF8", "#0284C7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+          <Sparkles size={19} color="#FFFFFF" strokeWidth={2.35} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <AppText
@@ -380,12 +397,12 @@ export function RecordTimeline() {
             flexDirection: "row",
             alignItems: "center",
             gap: 3,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
+            paddingHorizontal: 11,
+            paddingVertical: 7,
             borderRadius: 999,
-            backgroundColor: "#F0F9FF",
+            backgroundColor: colors.primarySoft,
             borderWidth: 1,
-            borderColor: "#BAE6FD",
+            borderColor: "#CDEBF8",
           }}
         >
           <Bot size={12} color="#0284C7" />
@@ -393,7 +410,7 @@ export function RecordTimeline() {
             style={{
               fontSize: 11,
               fontWeight: "800",
-              color: "#0284C7",
+              color: colors.primary,
               fontFamily: fontFamily.bodyBold,
             }}
           >
@@ -420,18 +437,23 @@ export function RecordTimeline() {
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
-                paddingHorizontal: 12,
+                gap: 7,
+                paddingHorizontal: 14,
                 paddingVertical: 8,
                 borderRadius: 999,
                 backgroundColor: isActive
                   ? colors.primary
                   : pressed
-                    ? colors.surfaceMuted
+                    ? colors.primarySoft
                     : colors.surface,
                 borderWidth: 1,
-                borderColor: isActive ? colors.primary : colors.border,
-                minHeight: 36,
+                borderColor: isActive ? colors.primary : "#DDE9F1",
+                minHeight: 40,
+                shadowColor: isActive ? colors.primary : "#16324A",
+                shadowOffset: { width: 0, height: isActive ? 5 : 3 },
+                shadowOpacity: isActive ? 0.2 : 0.04,
+                shadowRadius: isActive ? 10 : 10,
+                elevation: isActive ? 3 : 1,
               })}
             >
               <IconComponent
@@ -543,7 +565,7 @@ export function RecordTimeline() {
                     key={eventKey}
                     style={{
                       flexDirection: "row",
-                      marginBottom: isLast ? 0 : 8,
+                      marginBottom: isLast ? 0 : 10,
                     }}
                   >
                     {/* Axis */}
@@ -558,35 +580,36 @@ export function RecordTimeline() {
                         <View
                           style={{
                             width: 2,
-                            height: 8,
-                            backgroundColor: colors.border,
+                            height: 10,
+                            borderRadius: 1,
+                            backgroundColor: "#D6E4ED",
                           }}
                         />
                       ) : (
-                        <View style={{ height: 8 }} />
+                        <View style={{ height: 10 }} />
                       )}
                       <View
                         style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: 8,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 9,
                           backgroundColor: meta.color,
                           alignItems: "center",
                           justifyContent: "center",
-                          borderWidth: 2,
+                          borderWidth: 2.5,
                           borderColor: "#FFFFFF",
                           shadowColor: meta.color,
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.3,
-                          shadowRadius: 3,
-                          elevation: 2,
+                          shadowOffset: { width: 0, height: 3 },
+                          shadowOpacity: 0.32,
+                          shadowRadius: 5,
+                          elevation: 3,
                         }}
                       >
                         <View
                           style={{
-                            width: 4,
-                            height: 4,
-                            borderRadius: 2,
+                            width: 5,
+                            height: 5,
+                            borderRadius: 2.5,
                             backgroundColor: "#fff",
                           }}
                         />
@@ -596,9 +619,10 @@ export function RecordTimeline() {
                           style={{
                             flex: 1,
                             width: 2,
-                            minHeight: 10,
-                            backgroundColor: colors.border,
-                            marginTop: 2,
+                            minHeight: 12,
+                            borderRadius: 1,
+                            backgroundColor: "#D6E4ED",
+                            marginTop: 3,
                           }}
                         />
                       ) : null}
@@ -617,13 +641,18 @@ export function RecordTimeline() {
                         flex: 1,
                         backgroundColor:
                           pressed || isPressed ? colors.surfaceMuted : colors.surface,
-                        borderRadius: 14,
-                        paddingVertical: 10,
-                        paddingHorizontal: 11,
+                        borderRadius: 20,
+                        paddingVertical: 14,
+                        paddingHorizontal: 14,
                         borderWidth: 1,
                         borderColor:
-                          pressed || isPressed ? meta.color : colors.border,
-                        gap: 6,
+                          pressed || isPressed ? meta.color : "#E2EBF1",
+                        gap: 8,
+                        shadowColor: "#16324A",
+                        shadowOffset: { width: 0, height: 7 },
+                        shadowOpacity: pressed || isPressed ? 0.09 : 0.06,
+                        shadowRadius: 16,
+                        elevation: 3,
                       })}
                     >
                       <View
@@ -639,10 +668,12 @@ export function RecordTimeline() {
                             alignItems: "center",
                             justifyContent: "center",
                             backgroundColor: meta.bg,
-                            borderRadius: 10,
-                            paddingHorizontal: 6,
-                            paddingVertical: 5,
-                            minWidth: 40,
+                            borderRadius: 13,
+                            paddingHorizontal: 8,
+                            paddingVertical: 7,
+                            minWidth: 48,
+                            borderWidth: 1,
+                            borderColor: meta.ring,
                           }}
                         >
                           <AppText
@@ -685,9 +716,9 @@ export function RecordTimeline() {
                                 flexDirection: "row",
                                 alignItems: "center",
                                 gap: 4,
-                                paddingHorizontal: 7,
-                                paddingVertical: 3,
-                                borderRadius: 6,
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 8,
                                 backgroundColor: meta.tagBg,
                               }}
                             >

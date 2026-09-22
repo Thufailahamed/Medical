@@ -8,6 +8,7 @@ import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
 import { useLocaleStore } from "@/stores/locale";
+import TeleconsultWaitingBanner from "@/components/teleconsult/TeleconsultWaitingBanner";
 
 // Sinhala + Tamil glyphs render ~1.3x wider than Latin at the same font size.
 // Trim fontSize + letterSpacing for those locales to keep the 5 labels from
@@ -40,23 +41,31 @@ export default function AppLayout() {
   useRealtime();
 
   return (
-    <Tabs
+    <View style={{ flex: 1 }}>
+      <TeleconsultWaitingBanner roomPathname="/(app)/teleconsult/[roomId]" />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          height: Platform.OS === "ios" ? 88 : 72,
-          paddingBottom: Platform.OS === "ios" ? 28 : 12,
-          paddingTop: 10,
-          elevation: 8,
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 4,
+          position: "absolute",
+          left: 12,
+          right: 12,
+          bottom: 8,
+          backgroundColor: "rgba(255,255,255,0.98)",
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: "#E2EBF1",
+          borderRadius: 24,
+          height: Platform.OS === "ios" ? 82 : 68,
+          paddingBottom: Platform.OS === "ios" ? 20 : 8,
+          paddingTop: 8,
+          elevation: 12,
+          shadowColor: "#0B2942",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.14,
+          shadowRadius: 24,
         },
         tabBarLabelStyle: labelStyle,
       }}
@@ -471,6 +480,7 @@ export default function AppLayout() {
         name="insurance/policy/[id]"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
-    </Tabs>
+      </Tabs>
+    </View>
   );
 }

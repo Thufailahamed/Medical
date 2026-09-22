@@ -408,6 +408,9 @@
     "send": "යවන්න",
     "open": "විවෘත කරන්න",
     "closeThread": "කතාබහ වසන්න",
+    "reopenThread": "කතාබහ නැවත විවෘත කරන්න",
+    "closed": "වසා ඇත",
+    "closedHint": "කතාබහ වසා ඇත — රෝගියාට පිළිතුරු දීමට නැවත විවෘත කරන්න.",
     "subtitle": "Direct clinical consultations and patient conversations",
     "search": "Search conversations by patient name or message…",
     "new": "New Conversation"
@@ -508,8 +511,12 @@
       "pending": "පොරොත්තුවෙන්",
       "processing": "සැකසෙමින්",
       "paid": "ගෙවූ",
-      "rejected": "ප්‍රතික්ෂේප"
-    }
+      "rejected": "ප්‍රතික්ෂේප",
+      "failed": "අසාර්ථකයි"
+    },
+    "payoutRequested": "ගෙවීම ඉල්ලා ඇත",
+    "eventCount": "සිදුවීම් {{count}}",
+    "paidOn": "ගෙවූයේ {{date}}"
   },
   "templates": {
     "title": "බෙහෙත් අච්චු",
@@ -606,7 +613,19 @@
       "fri": "සෙන",
       "sat": "සෙනස",
       "sun": "ඉරිදා"
-    }
+    },
+    "date": "දිනය",
+    "allDay": "දවස පුරා",
+    "dayOff": "නිවාඩු දිනය",
+    "addBlock": "කොටසක් එක් කරන්න",
+    "slotsCount": "කොටස් {{count}}",
+    "unsaved": "සුරකිනු ලැබ නැති වෙනස්කම්",
+    "errTimeOrder": "අවසන් වේලාව ආරම්භ වේලාවට පසුව විය යුතුය",
+    "errOverlap": "වෙනත් කොටසක් සමඟ අතිඛ්ෂේප වේ",
+    "errTimesIncomplete": "වේලා දෙකම සකසන්න හෝ දවස පුරා සඳහා හිස් තබන්න",
+    "duplicateTimeOff": "මෙම නිවාඩුව දැනටමත් උපලේඛනගත කර ඇත",
+    "dateRequired": "දිනයක් තෝරන්න",
+    "past": "පසුගිය"
   },
   "clinics": {
     "title": "සායන",
@@ -641,7 +660,44 @@
     "rotate": "යතුර කරකවන්න",
     "rotateConfirm": "කරකැවීම පවතින සියලු අත්සන් අවලංගු කරයි. ඉදිරියටද?",
     "language": "ප්‍රදර්ශන භාෂාව",
-    "saved": "සැකසුම් සුරකින ලදී"
+    "saved": "සැකසුම් සුරකින ලදී",
+    "profileUpdated": "පැතිකඩ යාවත්කාලීන කළේය",
+    "passwordChanged": "මුරපදය වෙනස් කළේය",
+    "passwordTooShort": "මුරපදය අවම අක්ෂර 8ක් විය යුතුය",
+    "passwordMismatch": "මුරපද නොගැලපේ",
+    "passwordHint": "අවම අක්ෂර 8ක්",
+    "showPasswords": "මුරපද පෙන්වන්න",
+    "hidePasswords": "මුරපද සඟවන්න",
+    "unsaved": "සුරකිනු ලැබ නැති වෙනස්කම්",
+    "verified": "තහවුරු කළ",
+    "videoConsults": "වීඩියෝ උපදේශන",
+    "videoConsultsHelp": "රෝගීන්ට ඔබ සමඟ ටෙලිසෞඛ්‍ය හමුවීම් වෙන්කර ගත හැක",
+    "saveProfile": "පැතිකඩ සුරකින්න",
+    "updatePassword": "මුරපදය යාවත්කාලීන කරන්න",
+    "notifTitle": "දැනුම්දීමේ මනාපයන්",
+    "notifSubtitle": "යෙදුම තුළ සහ push මඟින් ඔබට ලැබෙන යාවත්කාලීන තෝරන්න",
+    "inApp": "යෙදුම තුළ",
+    "push": "Push",
+    "alwaysOn": "සැමවිටම සක්‍රීය",
+    "savePreferences": "මනාපයන් සුරකින්න",
+    "prefsSaved": "දැනුම්දීමේ මනාපයන් සුරකින ලදී",
+    "keyRotated": "අත්සන් යතුර භ්‍රමණය කළේය",
+    "keyId": "නව යතුරු හැඳුනුම්පත",
+    "createdAt": "සාදන ලද්දේ",
+    "rotateExplain": "නව RSA-2048 අත්සන් යතුරක් ජනනය කරන්න. දැනට අත්සන් කළ බෙහෙත් වට්ටෝරු පැරණි පොදු යතුරෙන් තහවුරු වන බැවින් වලංගුව පවතී. නව අත්සන් නව යතුර භාවිත කරයි.",
+    "rotateAuditNote": "මෙම ක්‍රියාව විගණන සටහනේ සටහන් වේ.",
+    "notif": {
+      "appointment": "හමුවීම්",
+      "medicine": "ඖෂධ",
+      "lab_ready": "රසායනාගාර ප්‍රතිඵල",
+      "prescription": "බෙහෙත් වට්ටෝරු",
+      "vaccination": "එන්නත්",
+      "insurance": "රක්ෂණය",
+      "hospital": "රෝහල",
+      "emergency": "හදිසි",
+      "general": "සාමාන්‍ය",
+      "hospital_request": "රෝහල් ඉල්ලීම්"
+    }
   },
   "errors": {
     "unauthorized": "කරුණාකර ඉදිරියට යාමට පුරනය වන්න.",

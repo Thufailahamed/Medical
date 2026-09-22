@@ -3,65 +3,38 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  AlertCircle,
   ArrowLeft,
   ArrowRight,
   Building2,
   Check,
   CheckCircle2,
-  ChevronRight,
   Clock,
   CreditCard,
   Eye,
   EyeOff,
-  FileCheck2,
+  FileText,
   FlaskConical,
+  Heart,
   Lock,
   Mail,
-  MapPin,
   Phone,
   ShieldCheck,
-  Sparkles,
-  Zap,
-  CircleDashed,
-  CircleDot,
 } from "lucide-react";
+
+import { cn } from "@/portal/lib/utils";
+
+import "@/app/_shared/auth-harbor.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
 
-const STEPS = [
-  {
-    id: 1,
-    title: "Facility & Legal",
-    desc: "License & Accreditation",
-    icon: FileCheck2,
-  },
-  {
-    id: 2,
-    title: "Location & Hours",
-    desc: "Address & Operations",
-    icon: MapPin,
-  },
-  {
-    id: 3,
-    title: "Portal Admin",
-    desc: "Credentials & Contact",
-    icon: Lock,
-  },
-  {
-    id: 4,
-    title: "Disbursement",
-    desc: "Settlement Account",
-    icon: CreditCard,
-  },
-];
+const STEP_LABELS = ["Facility", "Location", "Admin", "Settlement"];
 
-const STEP_ICONS: Record<number, typeof FileCheck2> = {
-  1: FileCheck2,
-  2: MapPin,
-  3: Lock,
-  4: CreditCard,
-};
+const STEP_SUBS = [
+  "Enter the registered legal name and official licenses for your laboratory.",
+  "Configure your diagnostic center's physical address for specimen drop-offs and patient booking.",
+  "Create the master clinical administrator account for this laboratory instance.",
+  "Provide the corporate bank account details for direct diagnostic service payouts.",
+];
 
 export default function LabRegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -91,6 +64,15 @@ export default function LabRegisterPage() {
   function set(key: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  const facilityInitials =
+    form.name
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "";
 
   function validateStep(step: number): boolean {
     setError(null);
@@ -172,734 +154,654 @@ export default function LabRegisterPage() {
     }
   }
 
-  /* ── Success state ─────────────────────────────────────────────── */
-  if (submitted) {
-    return (
-      <div className="lab-split-root flex-col lg:flex-row">
-        <aside className="lab-hero-bg relative flex lg:w-5/12 flex-col justify-between overflow-hidden p-8 lg:p-12 text-white border-b lg:border-b-0 lg:border-r border-white/10">
-          <div className="lab-grid-pattern absolute inset-0 pointer-events-none" />
-          <div className="relative z-10">
-            <Link href="/" className="inline-flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 backdrop-blur-md">
-                <FlaskConical size={20} />
-              </div>
-              <div>
-                <div className="text-base font-bold tracking-tight text-white">
-                  HealthHub
-                </div>
-                <div className="text-[10px] font-mono tracking-widest uppercase text-emerald-400">
-                  Diagnostic Network
-                </div>
-              </div>
-            </Link>
-          </div>
-          <div className="relative z-10 my-10 max-w-md">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-              Application Registered
-            </div>
-            <h1 className="mt-4 font-display text-3xl font-medium tracking-tight text-white sm:text-4xl italic">
-              Compliance verification underway.
-            </h1>
-            <p className="mt-3 text-sm leading-relaxed text-slate-400">
-              Your facility credentials and accreditation documents have been
-              submitted to the HealthHub National Diagnostic Operations team.
-            </p>
-          </div>
-          <div className="relative z-10 border-t border-white/10 pt-6 text-xs text-slate-500 font-mono">
-            Node ID: LK-DIAG-
-            {(form.licenseNumber || "2026").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8)}{" "}
-            · 256-bit TLS Encrypted
-          </div>
-        </aside>
-
-        <main className="flex flex-1 items-center justify-center p-6 lg:p-14 bg-[var(--lab-bg)] lab-bg-grain">
-          <div className="w-full max-w-lg">
-            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--lab-brand-soft)] border border-[var(--lab-brand)]/20 text-[var(--lab-brand)] shadow-sm">
-              <CheckCircle2 size={28} />
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--lab-brand)]/20 bg-[var(--lab-brand-soft)] px-3 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[var(--lab-brand)]">
-              Application ID: #HH-LAB-{appId}
-            </span>
-            <h2 className="mt-3 font-display text-3xl font-medium text-[var(--lab-night)] tracking-tight italic">
-              Verification in progress
-            </h2>
-            <p className="mt-2 text-sm text-[var(--lab-ink-soft)] leading-relaxed">
-              We have acknowledged the application for{" "}
-              <strong className="text-[var(--lab-night)] font-semibold">
-                {form.name}
-              </strong>
-              . Our clinical liaison will verify your accreditation with the
-              relevant licensing council within 24 business hours.
-            </p>
-
-            <div className="lab-card mt-8 !shadow-none">
-              <div className="lab-card-head">
-                <div className="lab-card-title">
-                  <ShieldCheck size={14} />
-                  Onboarding protocol
-                </div>
-              </div>
-              <div className="lab-card-pad space-y-3.5">
-                <ProtocolStep
-                  done
-                  title="Facility credentials received"
-                  sub={`License ${form.licenseNumber} registered in intake queue`}
-                />
-                <ProtocolStep
-                  active
-                  title="Regulatory & SLAB/ISO verification"
-                  sub="Compliance validation with national medical council database"
-                />
-                <ProtocolStep
-                  todo
-                  step={3}
-                  title="LIS Bridge & order dispatch activation"
-                  sub="Portal credentials will be activated for electronic requisition orders"
-                />
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
-              <Link
-                href="/login?port=facility"
-                className="lab-btn lab-btn-primary w-full sm:w-auto"
-              >
-                Proceed to Sign In
-                <ArrowRight size={14} />
-              </Link>
-              <Link
-                href="/"
-                className="lab-btn lab-btn-secondary w-full sm:w-auto"
-              >
-                Return to HealthHub Home
-              </Link>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  /* ── Wizard state ──────────────────────────────────────────────── */
-  const CurrentIcon = STEP_ICONS[currentStep];
-
   return (
-    <div className="lab-split-root flex-col lg:flex-row min-h-screen">
-      {/* Left Hero Side */}
-      <aside className="lab-hero-bg relative flex lg:w-5/12 flex-col justify-between overflow-hidden p-8 lg:p-12 text-white border-b lg:border-b-0 lg:border-r border-white/10">
-        <div className="lab-grid-pattern absolute inset-0 pointer-events-none" />
+    <div className="hl-root">
+      <a href="#form-start" className="hl-skip">
+        Skip to form
+      </a>
 
-        <div className="relative z-10 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 backdrop-blur-md group-hover:bg-emerald-500/20 transition-all">
-              <FlaskConical size={20} />
-            </div>
-            <div>
-              <div className="text-base font-bold tracking-tight text-white flex items-center gap-2">
-                HealthHub
-                <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-mono font-medium tracking-wider text-emerald-400 uppercase">
-                  DIAGNOSTIC
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-400">
-                National Laboratory Gateway
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/login?port=facility"
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+      <div className="hl-hero" aria-hidden>
+        <div className="hl-hero__field">
+          <div className="hl-hero__spot" />
+          <div className="hl-hero__grain" />
+          <svg
+            className="hl-hero__ecg"
+            viewBox="0 0 1400 900"
+            preserveAspectRatio="none"
           >
-            <span>Existing facility?</span>
-            <span className="underline underline-offset-4">Sign in</span>
-          </Link>
-        </div>
-
-        <div className="relative z-10 my-10 max-w-md">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1 text-xs font-medium text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-            Provider Onboarding Portal
-          </div>
-          <h1 className="mt-4 font-display text-3xl sm:text-4xl lg:text-[2.6rem] lg:leading-[1.15] font-medium tracking-tight text-white italic">
-            Connect your lab to Sri Lanka&rsquo;s clinical network.
-          </h1>
-          <p className="mt-4 text-sm leading-relaxed text-slate-300">
-            Receive authenticated diagnostic orders from general practitioners,
-            clinics, and hospital wards directly into your laboratory
-            workstation with automated patient results delivery.
-          </p>
-
-          <div className="mt-8 space-y-3">
-            <HeroBadge
-              icon={Zap}
-              tint="emerald"
-              title="Direct Electronic Requisition (CPOE)"
-              sub="Receive orders with barcoded patient identifiers & clinical indications"
+            <path
+              d="M0,690 L240,690 L268,690 L282,648 L298,720 L316,690 L420,690 L448,690 L462,660 L478,708 L496,690 L640,690 L668,690 L682,648 L698,720 L716,690 L840,690 L868,690 L882,660 L898,708 L916,690 L1400,690"
+              fill="none"
+              stroke="rgba(122,168,255,0.4)"
+              strokeWidth="1.4"
+              className="hl-hero__ecg-path"
             />
-            <HeroBadge
-              icon={FileCheck2}
-              tint="sky"
-              title="Instant Results Synchronization"
-              sub="Validated reports sync directly to the patient's unified health record"
-            />
-            <HeroBadge
-              icon={CreditCard}
-              tint="purple"
-              title="Automated Insurance & Direct Settlements"
-              sub="Fast weekly batch disbursements straight into your nominated bank account"
-            />
+          </svg>
+          <div className="hl-compass">
+            <div className="hl-compass__ring" />
+            <div className="hl-compass__ring hl-compass__ring--2" />
+            <div className="hl-compass__ring hl-compass__ring--3" />
+            <div className="hl-compass__ticks" />
+            <div className="hl-compass__north">N</div>
+            <div className="hl-compass__photo">
+              <img src="/assets/lab/hero.jpg" alt="" loading="lazy" />
+            </div>
           </div>
         </div>
 
-        <div className="relative z-10 border-t border-white/10 pt-6 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-emerald-400" />
-            <span>Ministry of Health (MOH) Compliant</span>
-          </div>
-          <span className="font-mono text-[11px] text-slate-500">
-            ISO 15189 READY
+        <Link href="/" className="hl-brand" aria-label="HealthHub home">
+          <span className="hl-brand__icon-wrap">
+            <Heart size={17} color="#fff" fill="#fff" aria-hidden />
           </span>
+          <span>
+            <span className="hl-brand__name">HealthHub</span>
+            <span className="hl-brand__badge">Diagnostic</span>
+          </span>
+        </Link>
+
+        <div className="hl-hero__body" key={submitted ? "done" : "form"}>
+          <div className="hl-kicker">
+            <span className="hl-kicker__dot" />
+            {submitted ? "Application registered" : "Provider onboarding portal"}
+          </div>
+          <h2 className="hl-headline">
+            {submitted ? (
+              <>
+                Compliance verification
+                <span className="hl-headline-accent">underway.</span>
+              </>
+            ) : (
+              <>
+                Connect your lab to Sri Lanka&rsquo;s
+                <span className="hl-headline-accent">clinical network.</span>
+              </>
+            )}
+          </h2>
+          <p className="hl-lede">
+            {submitted
+              ? "Your facility credentials and accreditation documents have been submitted to the HealthHub National Diagnostic Operations team."
+              : "Receive authenticated diagnostic orders from general practitioners, clinics, and hospital wards directly into your laboratory workstation."}
+          </p>
+          <div className="hl-langs">
+            <b>English</b>
+            <i />
+            <b>සිංහල</b>
+            <i />
+            <b>தமிழ்</b>
+          </div>
         </div>
-      </aside>
 
-      {/* Right Form Side */}
-      <main className="flex flex-1 flex-col justify-between p-6 sm:p-10 lg:p-14 bg-[var(--lab-bg)] lab-bg-grain overflow-y-auto">
-        <div className="mx-auto w-full max-w-xl">
-          {/* Mobile brand bar */}
-          <div className="flex items-center justify-between pb-6 border-b border-[var(--lab-border)] lg:hidden mb-6">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--lab-brand-soft)] text-[var(--lab-brand)]">
-                <FlaskConical size={16} />
-              </div>
-              <span className="text-xs font-bold text-[var(--lab-night)]">
-                HealthHub Laboratory
-              </span>
+        <figure className="hl-card-preview" key={`card-${submitted}`}>
+          <div className="hl-card-preview__top">
+            <div className="hl-card-preview__brand">
+              <FlaskConical size={13} aria-hidden />
+              <span>HealthHub · Laboratory profile</span>
             </div>
-            <Link
-              href="/login?port=facility"
-              className="text-xs font-bold text-[var(--lab-brand)]"
-            >
-              Sign in →
-            </Link>
+            <span className="hl-card-preview__chip">
+              {submitted ? "In review" : "PHSRC · Licensed"}
+            </span>
           </div>
-
-          {/* Header */}
-          <div className="mb-7">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--lab-brand)]/20 bg-[var(--lab-brand-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lab-brand)]">
-                <Sparkles size={9} />
-                Enterprise Registration
-              </span>
-              <span className="text-[10.5px] font-mono font-medium tracking-widest uppercase text-[var(--lab-ink-faint)]">
-                Step {currentStep} · 04
-              </span>
-            </div>
-            <h2 className="mt-3 font-display text-3xl font-medium text-[var(--lab-night)] tracking-tight italic">
-              {currentStep === 1 && "Facility & Licensing Details"}
-              {currentStep === 2 && "Location & Operating Hours"}
-              {currentStep === 3 && "Portal Administrator Account"}
-              {currentStep === 4 && "Settlement & Banking"}
-            </h2>
-            <p className="mt-2 text-[13px] text-[var(--lab-ink-soft)] leading-relaxed">
-              {currentStep === 1 &&
-                "Enter the registered legal name and official licenses for your laboratory."}
-              {currentStep === 2 &&
-                "Configure your diagnostic center's physical address for specimen drop-offs and patient booking."}
-              {currentStep === 3 &&
-                "Create the master clinical administrator account for this laboratory instance."}
-              {currentStep === 4 &&
-                "Provide the corporate bank account details for direct diagnostic service payouts."}
-            </p>
-          </div>
-
-          {/* Vertical stepper */}
-          <div className="mb-7 space-y-2">
-            {STEPS.map((s) => {
-              const state =
-                s.id < currentStep ? "done" : s.id === currentStep ? "current" : "todo";
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  data-state={state}
-                  className="lab-stepper-item"
-                  onClick={() => {
-                    if (s.id < currentStep) setCurrentStep(s.id);
-                    else if (s.id === currentStep + 1 && validateStep(currentStep))
-                      setCurrentStep(s.id);
-                  }}
-                >
-                  <span className="lab-stepper-bullet">
-                    {state === "done" ? (
-                      <Check size={12} strokeWidth={3} />
-                    ) : state === "current" ? (
-                      <CircleDot size={14} />
-                    ) : (
-                      <CircleDashed size={14} />
-                    )}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="lab-stepper-title">{s.title}</div>
-                    <div className="lab-stepper-sub">{s.desc}</div>
+          <div className="hl-card-preview__content">
+            <div className="hl-card-row">
+              <div className="hl-card-meta">
+                <div className="hl-card-avatar">
+                  {facilityInitials || <FlaskConical size={16} aria-hidden />}
+                </div>
+                <div>
+                  <div className="hl-card-title">
+                    {form.name.trim() || "Your laboratory"}
                   </div>
-                  {state === "current" && (
-                    <span className="ml-auto text-[10px] tracking-widest uppercase text-[var(--lab-brand)] font-mono font-bold">
-                      Active
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                  <div className="hl-card-subtitle">
+                    {form.accreditation}
+                    {form.licenseNumber.trim()
+                      ? ` · ${form.licenseNumber.trim()}`
+                      : ""}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="hl-card-badges">
+              <span className="hl-card-tag">
+                <span className="hl-live" aria-hidden />
+                {submitted
+                  ? "Queued for verification"
+                  : "Electronic requisition ready"}
+              </span>
+              <span className="hl-card-tag">
+                <ShieldCheck size={11} aria-hidden />
+                MOH compliant
+              </span>
+            </div>
           </div>
+        </figure>
 
-          <div className="mb-5 h-1 rounded-full bg-[var(--lab-surface-2)] overflow-hidden">
+        <div className="hl-hero__foot">
+          <div className="hl-hero__trust">
+            <span>
+              <Lock size={11} aria-hidden />
+              256-bit encrypted
+            </span>
+            <span>
+              <ShieldCheck size={11} aria-hidden />
+              MOH compliant
+            </span>
+          </div>
+          <span>ISO 15189 READY</span>
+        </div>
+      </div>
+
+      <main className="hl-panel">
+        <div className="hl-mobile-brand">
+          <div className="hl-mobile-brand__left">
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-700 transition-all duration-500"
-              style={{ width: `${(currentStep / 4) * 100}%` }}
-            />
+              className="hl-brand__icon-wrap"
+              style={{ background: "var(--hl-lapis)", border: "none" }}
+            >
+              <Heart size={15} color="#fff" fill="#fff" aria-hidden />
+            </div>
+            <strong>HealthHub</strong>
           </div>
+          <div className="hl-secure">
+            <Lock size={10} aria-hidden />
+            Encrypted
+          </div>
+        </div>
 
-          {/* Form */}
-          <form
-            onSubmit={currentStep === 4 ? submit : handleNext}
-            className="lab-card"
-          >
-            <div className="lab-card-head">
-              <div className="lab-card-title">
-                <CurrentIcon size={14} />
-                Step {currentStep} of 4
+        <div className="hl-form-container" id="form-start">
+          {submitted ? (
+            <div className="hl-success">
+              <div className="hl-success__icon">
+                <CheckCircle2 size={26} aria-hidden />
               </div>
+              <header className="hl-header">
+                <div className="hl-success__chip">
+                  Application ID · #HH-LAB-{appId}
+                </div>
+                <h2>
+                  Verification in <em>progress</em>
+                </h2>
+                <p>
+                  We have acknowledged the application for{" "}
+                  <strong>{form.name}</strong>. Our clinical liaison will verify
+                  your accreditation with the relevant licensing council within
+                  24 business hours.
+                </p>
+              </header>
+
+              <div className="hl-protocol">
+                <div className="hl-protocol__step is-done">
+                  <span className="hl-protocol__icon">
+                    <Check size={13} aria-hidden />
+                  </span>
+                  <div>
+                    <div className="hl-protocol__title">
+                      Facility credentials received
+                    </div>
+                    <div className="hl-protocol__sub">
+                      License {form.licenseNumber} registered in intake queue
+                    </div>
+                  </div>
+                </div>
+                <div className="hl-protocol__step is-active">
+                  <span className="hl-protocol__icon">2</span>
+                  <div>
+                    <div className="hl-protocol__title">
+                      Regulatory &amp; SLAB/ISO verification
+                    </div>
+                    <div className="hl-protocol__sub">
+                      Compliance validation with national medical council
+                      database
+                    </div>
+                  </div>
+                </div>
+                <div className="hl-protocol__step is-todo">
+                  <span className="hl-protocol__icon">3</span>
+                  <div>
+                    <div className="hl-protocol__title">
+                      LIS Bridge &amp; order dispatch activation
+                    </div>
+                    <div className="hl-protocol__sub">
+                      Portal credentials will be activated for electronic
+                      requisition orders
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Link href="/login?port=facility" className="hl-btn-primary">
+                <span>Proceed to Sign In</span>
+                <span className="hl-btn-primary__glyph">
+                  <ArrowRight size={16} aria-hidden />
+                </span>
+              </Link>
             </div>
-            <div className="lab-card-pad space-y-4">
-              {/* STEP 1 */}
-              {currentStep === 1 && (
-                <div className="space-y-4">
-                  <div className="lab-field">
-                    <label className="lab-label">
-                      Official Laboratory / Center Name{" "}
-                      <span className="lab-label-req">*</span>
-                    </label>
-                    <div className="lab-input-icon-wrap">
-                      <Building2 size={15} className="lab-input-icon" />
-                      <input
-                        required
-                        value={form.name}
-                        onChange={(e) => set("name", e.target.value)}
-                        placeholder="e.g. Asiri Central Laboratories"
-                        className="lab-input !pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="lab-field">
-                      <label className="lab-label">
-                        Registration / License No.{" "}
-                        <span className="lab-label-req">*</span>
-                      </label>
-                      <div className="lab-input-icon-wrap">
-                        <FileCheck2 size={15} className="lab-input-icon" />
-                        <input
-                          required
-                          value={form.licenseNumber}
-                          onChange={(e) => set("licenseNumber", e.target.value)}
-                          placeholder="LAB-2026-XXXX"
-                          className="lab-input !pl-10 lab-mono"
-                        />
-                      </div>
-                    </div>
-                    <div className="lab-field">
-                      <label className="lab-label">Accreditation</label>
-                      <select
-                        value={form.accreditation}
-                        onChange={(e) => set("accreditation", e.target.value)}
-                        className="lab-input"
-                      >
-                        <option value="ISO 15189">ISO 15189</option>
-                        <option value="SLAB Accredited">SLAB Accredited</option>
-                        <option value="CAP Accredited">CAP Accredited</option>
-                        <option value="MOH Registered">MOH Registered Only</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="lab-banner lab-banner-info">
-                    <div className="lab-banner-icon">
-                      <ShieldCheck size={14} />
-                    </div>
-                    <div className="text-[12.5px] leading-relaxed">
-                      Licenses are matched against the National Private Health
-                      Services Regulatory Council (PHSRC) registry. Please use
-                      the exact registered entity name.
-                    </div>
-                  </div>
+          ) : (
+            <>
+              <header className="hl-header">
+                <div className="hl-eyebrow">
+                  Enterprise registration · Step {currentStep}/4
                 </div>
-              )}
-
-              {/* STEP 2 */}
-              {currentStep === 2 && (
-                <div className="space-y-4">
-                  <div className="lab-field">
-                    <label className="lab-label">
-                      Physical Facility Address{" "}
-                      <span className="lab-label-req">*</span>
-                    </label>
-                    <textarea
-                      required
-                      rows={2}
-                      value={form.address}
-                      onChange={(e) => set("address", e.target.value)}
-                      placeholder="Street number, building, road name, district"
-                      className="lab-input"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="lab-field">
-                      <label className="lab-label">
-                        City / Region <span className="lab-label-req">*</span>
-                      </label>
-                      <select
-                        value={form.city}
-                        onChange={(e) => set("city", e.target.value)}
-                        className="lab-input"
-                      >
-                        <option value="Colombo">Colombo</option>
-                        <option value="Kandy">Kandy</option>
-                        <option value="Galle">Galle</option>
-                        <option value="Gampaha">Gampaha</option>
-                        <option value="Jaffna">Jaffna</option>
-                        <option value="Kurunegala">Kurunegala</option>
-                        <option value="Matara">Matara</option>
-                        <option value="Kalutara">Kalutara</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    <div className="lab-field">
-                      <label className="lab-label">
-                        Desk Phone <span className="lab-label-req">*</span>
-                      </label>
-                      <div className="lab-input-icon-wrap">
-                        <Phone size={15} className="lab-input-icon" />
-                        <input
-                          required
-                          type="tel"
-                          value={form.phone}
-                          onChange={(e) => set("phone", e.target.value)}
-                          placeholder="011 234 5678"
-                          className="lab-input !pl-10"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="lab-field">
-                    <label className="lab-label">
-                      Operating Schedule & Specimen Drop-off
-                    </label>
-                    <div className="lab-input-icon-wrap">
-                      <Clock size={15} className="lab-input-icon" />
-                      <input
-                        value={form.operatingHours}
-                        onChange={(e) => set("operatingHours", e.target.value)}
-                        placeholder="Mon–Sat: 07:00 – 20:00"
-                        className="lab-input !pl-10"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3 */}
-              {currentStep === 3 && (
-                <div className="space-y-4">
-                  <div className="lab-field">
-                    <label className="lab-label">
-                      Official Administrative Email{" "}
-                      <span className="lab-label-req">*</span>
-                    </label>
-                    <div className="lab-input-icon-wrap">
-                      <Mail size={15} className="lab-input-icon" />
-                      <input
-                        required
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => set("email", e.target.value)}
-                        placeholder="director@diagnostics.lk"
-                        className="lab-input !pl-10"
-                      />
-                    </div>
-                    <p className="lab-help">
-                      Root master login for your lab operations dashboard.
-                    </p>
-                  </div>
-
-                  <div className="lab-field">
-                    <label className="lab-label">
-                      Account Master Password{" "}
-                      <span className="lab-label-req">*</span>
-                    </label>
-                    <div className="lab-input-icon-wrap">
-                      <Lock size={15} className="lab-input-icon" />
-                      <input
-                        required
-                        type={showPassword ? "text" : "password"}
-                        minLength={8}
-                        value={form.password}
-                        onChange={(e) => set("password", e.target.value)}
-                        placeholder="At least 8 characters"
-                        className="lab-input !pl-10 !pr-11"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--lab-ink-faint)] hover:text-[var(--lab-night)] p-1"
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="lab-banner lab-banner-info">
-                    <div className="lab-banner-icon">
-                      <ShieldCheck size={14} />
-                    </div>
-                    <div className="text-[12.5px] leading-relaxed">
-                      Passwords are encrypted with Argon2id. Hardware-backed MFA
-                      is enforced once verified by the MOH compliance module.
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 4 */}
-              {currentStep === 4 && (
-                <div className="space-y-4">
-                  <div className="lab-field">
-                    <label className="lab-label">Settlement Bank</label>
-                    <select
-                      value={form.bankName}
-                      onChange={(e) => set("bankName", e.target.value)}
-                      className="lab-input"
-                    >
-                      <option value="Commercial Bank of Ceylon">
-                        Commercial Bank of Ceylon
-                      </option>
-                      <option value="Bank of Ceylon (BOC)">Bank of Ceylon</option>
-                      <option value="Hatton National Bank (HNB)">HNB</option>
-                      <option value="Sampath Bank">Sampath Bank</option>
-                      <option value="Nations Trust Bank (NTB)">NTB</option>
-                      <option value="Seylan Bank">Seylan Bank</option>
-                      <option value="Standard Chartered">Standard Chartered</option>
-                      <option value="Other">Other Bank</option>
-                    </select>
-                  </div>
-                  <div className="lab-field">
-                    <label className="lab-label">
-                      Account Number (Corporate Payouts)
-                    </label>
-                    <div className="lab-input-icon-wrap">
-                      <CreditCard size={15} className="lab-input-icon" />
-                      <input
-                        value={form.bankAccount}
-                        onChange={(e) => set("bankAccount", e.target.value)}
-                        placeholder="e.g. 100029384812"
-                        className="lab-input !pl-10 lab-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="lab-card !shadow-none !border-dashed">
-                    <div className="lab-card-pad space-y-2">
-                      <div className="flex items-center justify-between text-[12.5px]">
-                        <span className="text-[var(--lab-ink-faint)]">
-                          Facility
-                        </span>
-                        <span className="font-bold text-[var(--lab-night)]">
-                          {form.name || "—"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[12.5px]">
-                        <span className="text-[var(--lab-ink-faint)]">
-                          License
-                        </span>
-                        <span className="font-mono font-medium text-[var(--lab-night)]">
-                          {form.licenseNumber || "—"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[12.5px]">
-                        <span className="text-[var(--lab-ink-faint)]">
-                          Admin Email
-                        </span>
-                        <span className="font-medium text-[var(--lab-night)]">
-                          {form.email || "—"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[12.5px]">
-                        <span className="text-[var(--lab-ink-faint)]">
-                          Accreditation
-                        </span>
-                        <span className="lab-pill" data-status="active">
-                          {form.accreditation}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="lab-banner lab-banner-danger">
-                  <div className="lab-banner-icon">
-                    <AlertCircle size={14} />
-                  </div>
-                  <div className="text-[12.5px]">{error}</div>
-                </div>
-              )}
-            </div>
-
-            <div className="lab-card-foot flex items-center justify-between">
-              {currentStep > 1 ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="lab-btn lab-btn-secondary"
-                >
-                  <ArrowLeft size={14} />
-                  Back
-                </button>
-              ) : (
-                <Link
-                  href="/login?port=facility"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--lab-ink-soft)] hover:text-[var(--lab-night)] transition-colors"
-                >
-                  <ArrowLeft size={13} />
-                  Cancel to Sign In
-                </Link>
-              )}
-
-              {currentStep < 4 ? (
-                <button
-                  type="button"
-                  onClick={() => handleNext()}
-                  className="lab-btn lab-btn-primary"
-                >
-                  Continue
-                  <ChevronRight size={14} />
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="lab-btn lab-btn-primary"
-                >
-                  {submitting ? (
+                <h2>
+                  {currentStep === 1 && (
                     <>
-                      <span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Submitting…
-                    </>
-                  ) : (
-                    <>
-                      Complete Facility Registration
-                      <CheckCircle2 size={15} />
+                      Facility &amp; <em>licensing</em>
                     </>
                   )}
-                </button>
-              )}
-            </div>
-          </form>
+                  {currentStep === 2 && (
+                    <>
+                      Location &amp; <em>hours</em>
+                    </>
+                  )}
+                  {currentStep === 3 && (
+                    <>
+                      Portal <em>admin</em>
+                    </>
+                  )}
+                  {currentStep === 4 && (
+                    <>
+                      Settlement &amp; <em>banking</em>
+                    </>
+                  )}
+                </h2>
+                <p>{STEP_SUBS[currentStep - 1]}</p>
+              </header>
 
-          {/* Trust footer */}
-          <div className="mt-8 pt-5 border-t border-[var(--lab-border)] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[var(--lab-ink-faint)]">
-            <span>Already an enrolled diagnostic partner?</span>
-            <Link
-              href="/login?port=facility"
-              className="font-bold text-[var(--lab-brand)] hover:text-emerald-700"
-            >
-              Sign into Facility Console →
-            </Link>
+              <div className="hl-steps" aria-label="Registration progress">
+                {STEP_LABELS.map((label, i) => {
+                  const n = i + 1;
+                  return (
+                    <div
+                      key={label}
+                      className={cn(
+                        "hl-steps__item",
+                        currentStep === n && "is-active",
+                        currentStep > n && "is-done"
+                      )}
+                    >
+                      <span className="hl-steps__bar" aria-hidden />
+                      <span className="hl-steps__label">
+                        {n}. {label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <form
+                onSubmit={currentStep === 4 ? submit : handleNext}
+                className="flex flex-col gap-4"
+              >
+                {/* STEP 1 — Facility & Legal */}
+                {currentStep === 1 && (
+                  <>
+                    <div className="hl-field">
+                      <label htmlFor="labName" className="hl-label">
+                        Official Laboratory / Center Name
+                      </label>
+                      <div className="hl-input-wrap">
+                        <span className="hl-input-icon">
+                          <Building2 size={15} aria-hidden />
+                        </span>
+                        <input
+                          id="labName"
+                          type="text"
+                          autoComplete="organization"
+                          value={form.name}
+                          onChange={(e) => set("name", e.target.value)}
+                          placeholder="e.g. Asiri Central Laboratories"
+                          required
+                          className="hl-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="hl-field-row">
+                      <div className="hl-field">
+                        <label htmlFor="licenseNumber" className="hl-label">
+                          Registration / License No.
+                        </label>
+                        <div className="hl-input-wrap">
+                          <span className="hl-input-icon">
+                            <FileText size={15} aria-hidden />
+                          </span>
+                          <input
+                            id="licenseNumber"
+                            type="text"
+                            value={form.licenseNumber}
+                            onChange={(e) =>
+                              set("licenseNumber", e.target.value)
+                            }
+                            placeholder="LAB-2026-XXXX"
+                            required
+                            className="hl-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="hl-field">
+                        <label htmlFor="accreditation" className="hl-label">
+                          Accreditation
+                        </label>
+                        <select
+                          id="accreditation"
+                          value={form.accreditation}
+                          onChange={(e) =>
+                            set("accreditation", e.target.value)
+                          }
+                          className="hl-input hl-input--plain"
+                        >
+                          <option value="ISO 15189">ISO 15189</option>
+                          <option value="SLAB Accredited">SLAB Accredited</option>
+                          <option value="CAP Accredited">CAP Accredited</option>
+                          <option value="MOH Registered">
+                            MOH Registered Only
+                          </option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <p className="hl-note">
+                      <ShieldCheck size={13} aria-hidden />
+                      Licenses are matched against the PHSRC registry — use the
+                      exact registered entity name.
+                    </p>
+                  </>
+                )}
+
+                {/* STEP 2 — Location & Hours */}
+                {currentStep === 2 && (
+                  <>
+                    <div className="hl-field">
+                      <label htmlFor="address" className="hl-label">
+                        Physical Facility Address
+                      </label>
+                      <textarea
+                        id="address"
+                        rows={2}
+                        value={form.address}
+                        onChange={(e) => set("address", e.target.value)}
+                        placeholder="Street number, building, road name, district"
+                        required
+                        className="hl-input hl-input--plain"
+                      />
+                    </div>
+
+                    <div className="hl-field-row">
+                      <div className="hl-field">
+                        <label htmlFor="city" className="hl-label">
+                          City / Region
+                        </label>
+                        <select
+                          id="city"
+                          value={form.city}
+                          onChange={(e) => set("city", e.target.value)}
+                          className="hl-input hl-input--plain"
+                        >
+                          <option value="Colombo">Colombo</option>
+                          <option value="Kandy">Kandy</option>
+                          <option value="Galle">Galle</option>
+                          <option value="Gampaha">Gampaha</option>
+                          <option value="Jaffna">Jaffna</option>
+                          <option value="Kurunegala">Kurunegala</option>
+                          <option value="Matara">Matara</option>
+                          <option value="Kalutara">Kalutara</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div className="hl-field">
+                        <label htmlFor="phone" className="hl-label">
+                          Desk Phone
+                        </label>
+                        <div className="hl-input-wrap">
+                          <span className="hl-input-icon">
+                            <Phone size={15} aria-hidden />
+                          </span>
+                          <input
+                            id="phone"
+                            type="tel"
+                            autoComplete="tel"
+                            value={form.phone}
+                            onChange={(e) => set("phone", e.target.value)}
+                            placeholder="011 234 5678"
+                            required
+                            className="hl-input"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="hl-field">
+                      <label htmlFor="operatingHours" className="hl-label">
+                        Operating Schedule &amp; Specimen Drop-off
+                      </label>
+                      <div className="hl-input-wrap">
+                        <span className="hl-input-icon">
+                          <Clock size={15} aria-hidden />
+                        </span>
+                        <input
+                          id="operatingHours"
+                          type="text"
+                          value={form.operatingHours}
+                          onChange={(e) =>
+                            set("operatingHours", e.target.value)
+                          }
+                          placeholder="Mon–Sat: 07:00 – 20:00"
+                          className="hl-input"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* STEP 3 — Portal Admin */}
+                {currentStep === 3 && (
+                  <>
+                    <div className="hl-field">
+                      <label htmlFor="email" className="hl-label">
+                        Official Administrative Email
+                      </label>
+                      <div className="hl-input-wrap">
+                        <span className="hl-input-icon">
+                          <Mail size={15} aria-hidden />
+                        </span>
+                        <input
+                          id="email"
+                          type="email"
+                          autoComplete="email"
+                          value={form.email}
+                          onChange={(e) => set("email", e.target.value)}
+                          placeholder="director@diagnostics.lk"
+                          required
+                          className="hl-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="hl-field">
+                      <label htmlFor="password" className="hl-label">
+                        Account Master Password
+                      </label>
+                      <div className="hl-input-wrap">
+                        <span className="hl-input-icon">
+                          <Lock size={15} aria-hidden />
+                        </span>
+                        <input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          minLength={8}
+                          value={form.password}
+                          onChange={(e) => set("password", e.target.value)}
+                          placeholder="At least 8 characters"
+                          required
+                          autoComplete="new-password"
+                          className="hl-input"
+                          style={{ paddingRight: 48 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((s) => !s)}
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                          className="hl-reveal"
+                        >
+                          {showPassword ? (
+                            <EyeOff size={15} aria-hidden />
+                          ) : (
+                            <Eye size={15} aria-hidden />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="hl-note">
+                      <ShieldCheck size={13} aria-hidden />
+                      Root master login for your lab operations dashboard —
+                      encrypted at rest.
+                    </p>
+                  </>
+                )}
+
+                {/* STEP 4 — Disbursement */}
+                {currentStep === 4 && (
+                  <>
+                    <div className="hl-field">
+                      <label htmlFor="bankName" className="hl-label">
+                        Settlement Bank
+                      </label>
+                      <select
+                        id="bankName"
+                        value={form.bankName}
+                        onChange={(e) => set("bankName", e.target.value)}
+                        className="hl-input hl-input--plain"
+                      >
+                        <option value="Commercial Bank of Ceylon">
+                          Commercial Bank of Ceylon
+                        </option>
+                        <option value="Bank of Ceylon (BOC)">
+                          Bank of Ceylon
+                        </option>
+                        <option value="Hatton National Bank (HNB)">HNB</option>
+                        <option value="Sampath Bank">Sampath Bank</option>
+                        <option value="Nations Trust Bank (NTB)">NTB</option>
+                        <option value="Seylan Bank">Seylan Bank</option>
+                        <option value="Standard Chartered">
+                          Standard Chartered
+                        </option>
+                        <option value="Other">Other Bank</option>
+                      </select>
+                    </div>
+
+                    <div className="hl-field">
+                      <label htmlFor="bankAccount" className="hl-label">
+                        Account Number (Corporate Payouts)
+                      </label>
+                      <div className="hl-input-wrap">
+                        <span className="hl-input-icon">
+                          <CreditCard size={15} aria-hidden />
+                        </span>
+                        <input
+                          id="bankAccount"
+                          type="text"
+                          inputMode="numeric"
+                          value={form.bankAccount}
+                          onChange={(e) =>
+                            set("bankAccount", e.target.value)
+                          }
+                          placeholder="e.g. 100029384812"
+                          className="hl-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="hl-protocol">
+                      {(
+                        [
+                          ["Facility", form.name],
+                          ["License", form.licenseNumber],
+                          ["Admin Email", form.email],
+                          ["Accreditation", form.accreditation],
+                        ] as const
+                      ).map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="flex items-center justify-between py-1.5 text-[12.5px]"
+                        >
+                          <span style={{ color: "var(--hl-ink-faint)" }}>
+                            {label}
+                          </span>
+                          <span
+                            className="font-semibold"
+                            style={{ color: "var(--hl-ink)" }}
+                          >
+                            {value || "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {error ? (
+                  <div role="alert" className="hl-error">
+                    {error}
+                  </div>
+                ) : null}
+
+                <div className="hl-form-nav">
+                  {currentStep > 1 ? (
+                    <button
+                      type="button"
+                      className="hl-btn-ghost"
+                      onClick={handleBack}
+                    >
+                      <ArrowLeft size={14} aria-hidden />
+                      Back
+                    </button>
+                  ) : (
+                    <Link href="/login?port=facility" className="hl-btn-ghost">
+                      <ArrowLeft size={14} aria-hidden />
+                      Cancel
+                    </Link>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="hl-btn-primary hl-btn-primary--inline"
+                  >
+                    <span>
+                      {currentStep < 4
+                        ? "Continue"
+                        : submitting
+                        ? "Submitting…"
+                        : "Complete Registration"}
+                    </span>
+                    <span className="hl-btn-primary__glyph">
+                      {currentStep < 4 ? (
+                        <ArrowRight size={16} aria-hidden />
+                      ) : (
+                        <CheckCircle2 size={16} aria-hidden />
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+
+          <div className="hl-foot mt-6">
+            <span>
+              Already an enrolled diagnostic partner?{" "}
+              <Link href="/login?port=facility">Sign in</Link>
+            </span>
+            <div className="hl-foot__legal">
+              <Link href="/privacy">Privacy</Link>
+              <span aria-hidden>·</span>
+              <Link href="/terms">Terms</Link>
+            </div>
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-function ProtocolStep({
-  done,
-  active,
-  todo,
-  step,
-  title,
-  sub,
-}: {
-  done?: boolean;
-  active?: boolean;
-  todo?: boolean;
-  step?: number;
-  title: string;
-  sub: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <div
-        className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full shrink-0 ${
-          done
-            ? "bg-emerald-600 text-white"
-            : active
-            ? "bg-[var(--lab-brand-soft)] text-[var(--lab-brand)] border border-[var(--lab-brand)]/30"
-            : "bg-white border border-[var(--lab-border)] text-[var(--lab-ink-faint)]"
-        }`}
-      >
-        {done ? (
-          <Check size={12} strokeWidth={3} />
-        ) : active ? (
-          <span className="h-2 w-2 rounded-full bg-[var(--lab-brand)] animate-pulse" />
-        ) : (
-          <span className="text-[10px] font-bold">{step}</span>
-        )}
-      </div>
-      <div className={todo ? "opacity-60" : ""}>
-        <p className="text-[13px] font-bold text-[var(--lab-night)]">{title}</p>
-        <p className="text-[11.5px] text-[var(--lab-ink-soft)] leading-snug mt-0.5">
-          {sub}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function HeroBadge({
-  icon: Icon,
-  tint,
-  title,
-  sub,
-}: {
-  icon: typeof Zap;
-  tint: "emerald" | "sky" | "purple";
-  title: string;
-  sub: string;
-}) {
-  const tintMap = {
-    emerald: "bg-emerald-500/20 text-emerald-300",
-    sky: "bg-sky-500/20 text-sky-300",
-    purple: "bg-purple-500/20 text-purple-300",
-  };
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-md">
-      <div
-        className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${tintMap[tint]}`}
-      >
-        <Icon size={16} />
-      </div>
-      <div>
-        <p className="text-xs font-bold text-white">{title}</p>
-        <p className="text-[11px] text-slate-400 leading-snug">{sub}</p>
-      </div>
     </div>
   );
 }

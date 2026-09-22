@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserCog, Loader2, Search, ShieldOff, ShieldCheck, UserMinus } from "lucide-react";
 import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
+import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
@@ -75,7 +76,7 @@ export default function AdminAdminsPage() {
       <PageHeader
         title="Administrators"
         subtitle="Promote, demote, and suspend super_admin accounts. All destructive actions are audited."
-        icon={<UserCog size={20} className="text-amber-600" />}
+        icon={<UserCog size={20} className="text-blue-600" />}
         actions={
           <Button onClick={() => setPromoteOpen(true)}>
             <UserCog size={12} className="mr-1" /> Promote existing user
@@ -84,38 +85,42 @@ export default function AdminAdminsPage() {
       />
 
       {isLoading ? (
-        <p className="text-text-soft text-sm">Loading…</p>
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
+          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
+          <div className="h-4 w-full admin-shimmer rounded-md" />
+          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
+          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
+        </div>
       ) : (
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-bg">
-              <tr>
-                <th className="text-left px-3 py-2">Name</th>
-                <th className="text-left px-3 py-2">Email</th>
-                <th className="text-left px-3 py-2">Status</th>
-                <th className="text-left px-3 py-2">Last login</th>
-                <th className="text-right px-3 py-2">Audit (30d)</th>
-                <th className="text-right px-3 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.items.map((a) => (
-                <tr key={a.id} className="border-t border-border">
-                  <td className="px-3 py-2 font-medium">{a.name ?? "—"}</td>
-                  <td className="px-3 py-2 text-text-soft">{a.email ?? "—"}</td>
-                  <td className="px-3 py-2">
-                    <Pill
-                      tone={a.status === "active" ? "success" : a.status === "suspended" ? "danger" : "neutral"}
-                    >
-                      {a.status ?? "unknown"}
-                    </Pill>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-text-soft">
-                    {a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString() : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right text-xs font-mono">{a.auditCountLast30d}</td>
-                  <td className="px-3 py-2 text-right">
-                    <div className="inline-flex gap-1">
+        <Table>
+          <THead>
+            <TR>
+              <TH>Name</TH>
+              <TH>Email</TH>
+              <TH>Status</TH>
+              <TH>Last login</TH>
+              <TH className="text-right">Audit (30d)</TH>
+              <TH className="text-right">Actions</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {data?.items.map((a) => (
+              <TR key={a.id}>
+                <TD className="font-medium">{a.name ?? "—"}</TD>
+                <TD className="text-text-soft">{a.email ?? "—"}</TD>
+                <TD>
+                  <Pill
+                    tone={a.status === "active" ? "success" : a.status === "suspended" ? "danger" : "neutral"}
+                  >
+                    {a.status ?? "unknown"}
+                  </Pill>
+                </TD>
+                <TD className="text-xs text-text-soft">
+                  {a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString() : "—"}
+                </TD>
+                <TD className="text-right text-xs font-mono">{a.auditCountLast30d}</TD>
+                <TD className="text-right">
+                  <div className="inline-flex gap-1">
                       {a.status === "suspended" ? (
                         <Button size="sm" variant="ghost" onClick={() => { setActionFor(a); setActionKind("unsuspend"); }}>
                           <ShieldCheck size={12} className="mr-1" /> Unsuspend
@@ -129,12 +134,11 @@ export default function AdminAdminsPage() {
                         <UserMinus size={12} className="mr-1" /> Demote
                       </Button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
       )}
 
       <Modal
@@ -153,7 +157,7 @@ export default function AdminAdminsPage() {
                 });
               }}
               disabled={mut.isPending}
-              className="bg-amber-600 text-white"
+              className="bg-blue-600 text-white"
             >
               {mut.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
               Confirm

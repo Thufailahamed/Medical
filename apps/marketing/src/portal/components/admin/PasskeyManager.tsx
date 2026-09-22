@@ -84,7 +84,7 @@ export function PasskeyManager() {
       </p>
 
       {!supported ? (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-sm">
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-3 text-sm">
           This browser does not support WebAuthn. Use a recent Chrome, Safari, or Edge with
           Touch ID, Windows Hello, or an enrolled security key.
         </div>

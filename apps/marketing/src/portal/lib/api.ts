@@ -330,9 +330,8 @@ export const teleconsultApi = {
       `/teleconsult/sessions/${encodeURIComponent(id)}/end`,
       { method: "POST" }
     ),
-  // Browser-side WS doesn't need a ticket — the portal_session cookie
-  // rides the upgrade. This helper is a no-op kept for symmetry with
-  // the mobile flow.
+  // Browser-side WS uses a ticket too — the SameSite=Lax portal_session
+  // cookie does not ride cross-site WS upgrades (app → API domain).
   mintWsTicket: (id: string) =>
     api<{ ticket: string; expiresAt: number; url: string }>(
       `/teleconsult/sessions/${encodeURIComponent(id)}/ws-ticket`,

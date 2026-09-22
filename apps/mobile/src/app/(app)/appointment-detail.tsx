@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  Alert,
 } from "react-native";
 import Constants from "expo-constants";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -28,10 +29,12 @@ import {
   MessageCircle,
   ChevronRight,
   Video,
+  XCircle,
 } from "lucide-react-native";
 import {
   useAppointmentRecords,
   useRescheduleAppointment,
+  useCancelAppointment,
   useActiveTeleconsultSession,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -122,6 +125,34 @@ export default function AppointmentDetailScreen() {
         "danger"
       );
     }
+  }
+
+  const cancelMutation = useCancelAppointment();
+
+  function confirmCancel() {
+    if (!id) return;
+    Alert.alert(
+      t("appointmentDetail.cancelConfirmTitle"),
+      t("appointmentDetail.cancelConfirmMessage"),
+      [
+        { text: t("common.cancel", "Cancel"), style: "cancel" },
+        {
+          text: t("appointmentDetail.cancelConfirmAction"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelMutation.mutateAsync(id);
+              toast.show(t("appointmentDetail.cancelSuccess"), "success");
+            } catch (err: any) {
+              toast.show(
+                err?.message || t("appointmentDetail.cancelError"),
+                "danger"
+              );
+            }
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -246,14 +277,25 @@ export default function AppointmentDetailScreen() {
                   ) : null}
 
                   {["scheduled", "confirmed"].includes(appt.status) ? (
-                    <Button
-                      title={t("appointmentDetail.reschedule")}
-                      icon={CalendarClock}
-                      variant="secondary"
-                      size="sm"
-                      fullWidth={false}
-                      onPress={startReschedule}
-                    />
+                    <View style={{ flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" }}>
+                      <Button
+                        title={t("appointmentDetail.reschedule")}
+                        icon={CalendarClock}
+                        variant="secondary"
+                        size="sm"
+                        fullWidth={false}
+                        onPress={startReschedule}
+                      />
+                      <Button
+                        title={t("appointmentDetail.cancel")}
+                        icon={XCircle}
+                        variant="danger"
+                        size="sm"
+                        fullWidth={false}
+                        loading={cancelMutation.isPending}
+                        onPress={confirmCancel}
+                      />
+                    </View>
                   ) : null}
                   {activeSession?.session?.appointmentId === id ? (
                     <Button

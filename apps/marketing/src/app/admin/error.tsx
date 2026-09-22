@@ -18,7 +18,7 @@ export default function AdminError({
 
   return (
     <div className="min-h-screen grid place-items-center text-text">
-      <div className="bg-surface border border-border rounded-2xl p-10 max-w-md text-center">
+      <div className="portal-card bg-surface border border-border rounded-2xl p-10 max-w-md text-center">
         <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-danger-soft text-red-700 grid place-items-center">
           <AlertTriangle size={22} />
         </div>
@@ -29,7 +29,7 @@ export default function AdminError({
         <div className="flex gap-2 justify-center">
           <button
             onClick={reset}
-            className="h-10 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold"
+            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
           >
             Try again
           </button>

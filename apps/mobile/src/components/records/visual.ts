@@ -60,6 +60,8 @@ const ICONS: Record<string, LucideIcon> = {
   Activity,
 };
 
+export { getRecordImageIcon, RECORD_IMAGE_ICONS } from "./recordIcons";
+
 export function kindIcon(k: string | null | undefined): LucideIcon {
   if (!k) return Folder;
   return ICONS[k] ?? Folder;

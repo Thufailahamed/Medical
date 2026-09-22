@@ -38,6 +38,7 @@ export default function AiChatPage() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const initialPromptSent = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const el = listRef.current;
@@ -71,6 +72,9 @@ export default function AiChatPage() {
     setBusy(true);
     setError(null);
 
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
     try {
       const payload: Record<string, unknown> = {
         message: userMsg.body,
@@ -84,7 +88,7 @@ export default function AiChatPage() {
         reply?: string;
         message?: { body: string };
         sessionId?: string;
-      }>("/ai/chat", { method: "POST", json: payload });
+      }>("/ai/chat", { method: "POST", json: payload, signal: ctrl.signal });
 
       if (res.sessionId) setSessionId(res.sessionId);
       const replyText =
@@ -102,19 +106,21 @@ export default function AiChatPage() {
         },
       ]);
     } catch (err) {
+      if (ctrl.signal.aborted) return;
       setError(
         err instanceof ApiError
           ? err.message
           : "The AI assistant is taking longer than usual. Please try again.",
       );
     } finally {
+      abortRef.current = null;
       setBusy(false);
       requestAnimationFrame(() => setFocusToken((t) => t + 1));
     }
   }
 
   function stopGeneration() {
-    setBusy(false);
+    abortRef.current?.abort();
   }
 
   function regenerate() {

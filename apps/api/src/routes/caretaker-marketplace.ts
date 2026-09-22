@@ -24,7 +24,7 @@
 // hidden from /inquiries unless explicitly filtered for.
 
 import { Hono } from "hono";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import {
   caretakerMarketplaceProfiles,
   caretakerMarketplaceInquiries,
@@ -231,6 +231,9 @@ caretakerMarketplaceRouter.get(
 
     const whereParts: any[] = [
       eq(caretakerMarketplaceInquiries.caretakerUserId, userId),
+      // Withdrawn inquiries are invisible to the caretaker — the
+      // patient retracted before they could decide.
+      ne(caretakerMarketplaceInquiries.status, "withdrawn"),
     ];
     if (
       statusFilter &&

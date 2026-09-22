@@ -8,12 +8,17 @@ export function AiSafetyNotice({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-2xl border border-border bg-surface-2 p-4",
+        "flex items-start gap-3 rounded-2xl border border-brand/15 bg-gradient-to-r from-brand-soft/50 to-surface p-4",
         className,
       )}
     >
-      <ShieldCheck size={16} aria-hidden className="mt-0.5 shrink-0 text-brand" />
-      <p className="text-xs leading-relaxed text-text-soft">
+      <span
+        aria-hidden
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border bg-white text-brand shadow-2xs"
+      >
+        <ShieldCheck size={14} />
+      </span>
+      <p className="pt-1 text-xs leading-relaxed text-text-soft">
         <strong className="font-bold text-text">Clinical safety notice.</strong>{" "}
         HealthHub AI helps you understand your health information and prepare for
         consultations. It does not replace emergency care or your physician&apos;s

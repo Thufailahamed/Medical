@@ -37,6 +37,15 @@ export interface SignalingOptions {
   iceServers: RTCIceServer[];
   role: SignalingRole;
   polite: boolean;
+  /**
+   * Mints a fresh WS ticket (POST /teleconsult/sessions/:id/ws-ticket).
+   * Called before EVERY upgrade attempt — tickets are 60s TTL so a
+   * reconnect must not reuse the original. Required cross-site because
+   * the SameSite=Lax portal_session cookie does not ride cross-site
+   * WebSocket upgrades. When absent/undefined we rely on cookie auth
+   * (same-site only).
+   */
+  getTicket?: () => Promise<string | undefined>;
   onLocalStream: (stream: MediaStream) => void;
   onRemoteStream: (stream: MediaStream) => void;
   onStatus: (status: SignalingStatus) => void;
@@ -92,18 +101,24 @@ export class TeleconsultSignaling {
     this.openWebSocket();
   }
 
-  private openWebSocket() {
+  private async openWebSocket() {
     const url = new URL(
       `/teleconsult/sessions/${encodeURIComponent(this.opts.sessionId)}/ws`,
       window.location.origin
     );
-    // Same-origin so the portal_session cookie rides the upgrade.
-    // API_URL may differ (e.g. dev), so honour it.
     const apiBase = this.opts.apiBase.replace(/\/$/, "");
     const wsBase = apiBase.startsWith("https")
       ? apiBase.replace(/^https/, "wss")
       : apiBase.replace(/^http/, "ws");
-    const wsUrl = `${wsBase}${url.pathname}${url.search}`;
+    let ticket: string | undefined;
+    try {
+      ticket = await this.opts.getTicket?.();
+    } catch {}
+    if (this.ended) return;
+    const ticketQuery = ticket
+      ? `?ticket=${encodeURIComponent(ticket)}`
+      : "";
+    const wsUrl = `${wsBase}${url.pathname}${ticketQuery || url.search}`;
     try {
       this.ws = new WebSocket(wsUrl);
     } catch (err) {

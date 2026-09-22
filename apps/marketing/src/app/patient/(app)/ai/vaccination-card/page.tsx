@@ -120,26 +120,12 @@ export default function AiVaccinationCardPage() {
       );
       setResult(ocr);
     } catch (err) {
-      // Fallback demo result if file upload service isn't active
-      setResult({
-        doses: [
-          {
-            vaccineName: "COVID-19 mRNA (Comirnaty)",
-            dose: "Dose 1 & 2 (Complete)",
-            administeredAt: "2024-04-12",
-            lotNumber: "EW0182",
-            provider: "National Hospital Colombo",
-          },
-          {
-            vaccineName: "Influenza Quadrivalent",
-            dose: "Annual 0.5mL",
-            administeredAt: "2025-10-04",
-            lotNumber: "FL8941",
-            provider: "Asiri Medical Center",
-          },
-        ],
-        text: "Sample parsed vaccination record",
-      });
+      setResult(null);
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't read this vaccination card. Try a clearer, well-lit photo."
+      );
     } finally {
       setBusy(false);
     }
@@ -148,18 +134,29 @@ export default function AiVaccinationCardPage() {
   async function saveDoses() {
     if (!result) return;
     setBusy(true);
+    setError(null);
     try {
-      for (const dose of result.doses) {
-        await api("/vaccinations", {
-          method: "POST",
-          json: {
-            vaccineName: dose.vaccineName,
-            dose: dose.dose,
-            administeredAt: dose.administeredAt,
-            lotNumber: dose.lotNumber,
-            provider: dose.provider,
-          },
-        }).catch(() => null);
+      const outcomes = await Promise.allSettled(
+        result.doses.map((dose) =>
+          api("/vaccinations", {
+            method: "POST",
+            json: {
+              vaccineName: dose.vaccineName,
+              dose: dose.dose,
+              administeredAt: dose.administeredAt,
+              lotNumber: dose.lotNumber,
+              provider: dose.provider,
+            },
+          }),
+        ),
+      );
+      const failed = outcomes.filter((o) => o.status === "rejected").length;
+      if (failed > 0) {
+        qc.invalidateQueries({ queryKey: patientKeys.vaccinations() });
+        setError(
+          `${result.doses.length - failed} of ${result.doses.length} doses were saved, but ${failed} failed. Check your vaccination record and try again.`,
+        );
+        return;
       }
       qc.invalidateQueries({ queryKey: patientKeys.vaccinations() });
       setSaved(true);

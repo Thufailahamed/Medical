@@ -39,11 +39,16 @@ export default function SystemHealthPage() {
       <PageHeader
         title="System health"
         subtitle="Live metrics. Auto-refreshes every 60s."
-        icon={<Activity size={20} className="text-amber-600" />}
+        icon={<Activity size={20} className="text-blue-600" />}
       />
 
       {isLoading || !overview ? (
-        <p className="text-text-soft text-sm">Loading…</p>
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
+          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
+          <div className="h-4 w-full admin-shimmer rounded-md" />
+          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
+          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
+        </div>
       ) : (
         <>
           <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -55,9 +60,9 @@ export default function SystemHealthPage() {
             <Tile label="Unread notifs" value={overview.counts.unreadNotifications} />
           </section>
 
-          <section className="bg-surface border border-border rounded-2xl p-5">
+          <section className="portal-card bg-surface border border-border rounded-2xl p-5">
             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-              <Database size={14} className="text-amber-600" /> Storage
+              <Database size={14} className="text-blue-600" /> Storage
             </h3>
             <div className="text-sm">
               {overview.storage.d1Bytes != null ? (
@@ -69,9 +74,9 @@ export default function SystemHealthPage() {
             </div>
           </section>
 
-          <section className="bg-surface border border-border rounded-2xl p-5">
+          <section className="portal-card bg-surface border border-border rounded-2xl p-5">
             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-              <Clock size={14} className="text-amber-600" /> Cron liveness
+              <Clock size={14} className="text-blue-600" /> Cron liveness
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {CRON_NAMES.map((name) => (
@@ -80,9 +85,9 @@ export default function SystemHealthPage() {
             </div>
           </section>
 
-          <section className="bg-surface border border-border rounded-2xl p-5">
+          <section className="portal-card bg-surface border border-border rounded-2xl p-5">
             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-              <AlertTriangle size={14} className="text-amber-600" /> Error tail
+              <AlertTriangle size={14} className="text-blue-600" /> Error tail
             </h3>
             {errors?.items?.length ? (
               <ul className="text-xs space-y-1 max-h-64 overflow-y-auto">
@@ -109,7 +114,7 @@ export default function SystemHealthPage() {
 
 function Tile({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
-    <div className={`bg-surface border border-border rounded-xl p-4 ${highlight ? "ring-2 ring-amber-300" : ""}`}>
+    <div className={`bg-surface border border-border rounded-xl p-4 ${highlight ? "ring-2 ring-blue-300" : ""}`}>
       <div className="text-xs text-text-soft">{label}</div>
       <div className="text-2xl font-semibold mt-1">{value.toLocaleString()}</div>
     </div>

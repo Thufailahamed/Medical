@@ -32,10 +32,10 @@ export default function AdminNotificationsPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
-      <PageHeader title="Broadcast notification" subtitle="Send a system-wide message to all matching users." icon={<Megaphone size={20} className="text-amber-600" />} />
+      <PageHeader title="Broadcast notification" subtitle="Send a system-wide message to all matching users." icon={<Megaphone size={20} className="text-blue-600" />} />
 
       <form
-        className="bg-surface border border-border rounded-2xl p-6 flex flex-col gap-5"
+        className="portal-card bg-surface border border-border rounded-2xl p-6 flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault();
           if (title.trim().length < 1 || body.trim().length < 1) {
@@ -55,7 +55,7 @@ export default function AdminNotificationsPage() {
             onChange={(e) => setBody(e.target.value)}
             maxLength={500}
             rows={4}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
         </Field>
         <div className="grid grid-cols-2 gap-4">
@@ -84,7 +84,7 @@ export default function AdminNotificationsPage() {
           <p className="text-xs text-text-soft max-w-md">
             Broadcasts are written to each user's notifications table. Other admins are excluded by default to prevent loops.
           </p>
-          <Button type="submit" loading={broadcast.isPending} className="bg-amber-600 hover:bg-amber-700 text-white">
+          <Button type="submit" loading={broadcast.isPending} className="bg-blue-600 hover:bg-blue-700 text-white">
             Send broadcast
           </Button>
         </div>

@@ -5,6 +5,7 @@
  *
  *   POST   /sessions                  doctor creates from an appointment
  *   GET    /sessions/:id              participant reads (with ICE servers)
+ *   GET    /sessions/by-room/:roomId  participant resolves roomId → session
  *   GET    /sessions/me/active        any user: their current waiting/active session
  *   POST   /sessions/:id/start        doctor moves `requested → ringing`
  *   POST   /sessions/:id/end          participant ends (idempotent)
@@ -12,7 +13,10 @@
  *   WS     /sessions/:id/ws           DO upgrade (ticket or cookie)
  *
  * Auth on REST: same JWT-or-cookie middleware as everything else.
- * Auth on WS: short-lived ticket (mobile) OR portal_session cookie (web).
+ * Auth on WS: self-contained — ?ticket= JWT (mobile + web), Bearer
+ * header, or portal_session cookie. The /ws route is registered before
+ * authMiddleware because browser WS upgrades can't send Authorization
+ * headers and the SameSite=Lax cookie doesn't ride cross-site upgrades.
  *
  * Audit events:
  *   teleconsult.session.create       on POST /sessions
@@ -27,17 +31,19 @@ import {
   appointments,
   doctors,
   patients,
+  patientLinks,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { generateToken, verifyToken } from "../lib/crypto";
+import { resolveJwtSecret } from "../lib/jwt-secret";
+import { readSessionCookie } from "../lib/session-cookie";
 import { writeAudit } from "../lib/audit";
 import { notify } from "../lib/notifications";
 import { LOCALE_TABLES } from "../lib/locale";
 import type { AppEnvironment } from "../types";
 
 const teleconsultRouter = new Hono<AppEnvironment>();
-teleconsultRouter.use("*", authMiddleware);
 
 const TICKET_TTL_SECONDS = 60;
 const PARTY_MAX = 2;
@@ -85,23 +91,158 @@ function shortRoomId() {
 // ─── Helper: resolve userId → participant identity ─────────
 // Used by the WS upgrade path to verify the caller is a real participant
 // of the session before handing off to the DO.
+//
+// NOTE on id shapes — two different `doctorId` columns exist:
+//   • appointments.doctorId        → doctors.id  (profile PK)
+//   • teleconsult_sessions.doctorId → users.id   (auth identity, see
+//     the FK + `doctorId: userId` in POST /sessions below)
+// Comparing doctors.id against session.doctorId never matches and
+// locked the owning doctor out of their own calls.
 async function resolveParticipant(db, userId, session) {
-  // Doctor: their doctor.userId == this userId.
-  // Patient: their patient.userId == this userId.
-  // Either path yields `role`.
-  const [doctor] = await db
-    .select({ id: doctors.id })
-    .from(doctors)
-    .where(eq(doctors.userId, userId))
-    .limit(1);
-  if (doctor && doctor.id === session.doctorId) {
+  if (userId === session.doctorId) {
     return { role: "doctor", userId };
   }
   if (userId === session.patientUserId) {
     return { role: "patient", userId };
   }
+  // Caretaker: an active patient_links row to the session's principal
+  // patient lets them join on the patient's behalf.
+  const [principal] = await db
+    .select({ id: patients.id })
+    .from(patients)
+    .where(eq(patients.userId, session.patientUserId))
+    .limit(1);
+  if (principal) {
+    const [link] = await db
+      .select({ id: patientLinks.id })
+      .from(patientLinks)
+      .where(
+        and(
+          eq(patientLinks.caretakerUserId, userId),
+          eq(patientLinks.principalPatientId, principal.id),
+          eq(patientLinks.status, "active")
+        )
+      )
+      .limit(1);
+    if (link) {
+      return { role: "patient", userId, viaCaretaker: true };
+    }
+  }
   return null;
 }
+
+// ─── WS /sessions/:id/ws ──────────────────────────────────
+// Hand off to the TeleconsultRoom DO. Registered BEFORE
+// `teleconsultRouter.use("*", authMiddleware)` — Hono composes
+// handlers in registration order, so this route is exempt from the
+// Bearer/cookie middleware. It does its own auth because browser
+// WebSocket upgrades can't set Authorization headers and the
+// SameSite=Lax portal_session cookie does not ride cross-site WS
+// upgrades (e.g. app.healthhub.app → *.workers.dev). Credentials,
+// checked in order:
+//   1. ?ticket=<60s purpose-scoped JWT> — minted by
+//      POST /sessions/:id/ws-ticket. The only portable credential;
+//      mobile AND web clients both use it.
+//   2. Authorization: Bearer <access token> — RN WebSocket and test
+//      tools can set headers.
+//   3. portal_session cookie — same-site deployments only.
+teleconsultRouter.get("/sessions/:id/ws", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+
+  const secretResult = resolveJwtSecret(c.env);
+  if (secretResult.ok === false) {
+    return c.json(
+      {
+        error: "Server misconfigured: JWT_SECRET is required in production.",
+        reason: secretResult.reason,
+      },
+      503
+    );
+  }
+  const secret = secretResult.secret;
+
+  let resolvedUserId: string | null = null;
+  let resolvedRole: string | null = null;
+
+  const ticket = c.req.query("ticket");
+  if (ticket) {
+    const decoded = await verifyToken(ticket, secret);
+    if (!decoded || decoded.purpose !== "teleconsult_ws") {
+      return c.json({ error: "Invalid ticket" }, 401);
+    }
+    if (decoded.sessionId !== id) {
+      return c.json({ error: "Ticket session mismatch" }, 401);
+    }
+    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+      return c.json({ error: "Ticket expired" }, 401);
+    }
+    resolvedUserId = decoded.sub;
+    resolvedRole = decoded.role ?? null;
+  } else {
+    const authHeader = c.req.header("Authorization");
+    const cookieToken = readSessionCookie(c);
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length)
+      : cookieToken;
+    if (token) {
+      const decoded = await verifyToken(token, secret);
+      if (!decoded?.sub) {
+        return c.json({ error: "Invalid or expired token" }, 401);
+      }
+      resolvedUserId = decoded.sub;
+    } else if (c.env.DEV_MODE === "true") {
+      // Mirror authMiddleware's dev bypass — refuse it in production so
+      // a leaked DEV_MODE=true can't mint dev-user-001 here either.
+      const envName = String(
+        (c.env as any).ENVIRONMENT ?? (c.env as any).CF_PAGES_BRANCH ?? ""
+      ).toLowerCase();
+      if (envName !== "production" && envName !== "prod") {
+        resolvedUserId = "dev-user-001";
+      }
+    }
+  }
+
+  if (!resolvedUserId) {
+    return c.json({ error: "Missing auth" }, 401);
+  }
+
+  const [row] = await db
+    .select()
+    .from(teleconsultSessions)
+    .where(eq(teleconsultSessions.id, id))
+    .limit(1);
+  if (!row) return c.json({ error: "Session not found" }, 404);
+
+  const participant = await resolveParticipant(db, resolvedUserId, row);
+  if (!participant) return c.json({ error: "Not a participant" }, 403);
+  // If a ticket told us the role, trust it over a stale cookie role.
+  if (resolvedRole && resolvedRole !== participant.role) {
+    return c.json({ error: "Role mismatch" }, 403);
+  }
+
+  const ns = c.env.TELECONSULT_ROOM;
+  if (!ns) {
+    return c.json({ error: "Teleconsult not configured" }, 503);
+  }
+  const doId = ns.idFromName(row.roomId);
+  const stub = ns.get(doId);
+
+  // Forward the upgrade request to the DO. We attach the verified
+  // userId + role as headers — the DO reads these on accept.
+  const doUrl = `https://do/upgrade`;
+  const doReq = new Request(doUrl, {
+    headers: {
+      Upgrade: "websocket",
+      "X-Teleconsult-User-Id": resolvedUserId,
+      "X-Teleconsult-Role": participant.role,
+    },
+  });
+  return stub.fetch(doReq);
+});
+
+// ─── Everything below requires a verified user ─────────────
+teleconsultRouter.use("*", authMiddleware);
 
 // ─── POST /sessions ───────────────────────────────────────
 // Doctor creates a teleconsult session for an appointment. Returns the
@@ -139,6 +280,17 @@ teleconsultRouter.post("/sessions", requireRole("doctor"), async (c) => {
     return c.json(
       {
         error: `Appointment status ${appt.status} cannot start a teleconsult`,
+      },
+      409
+    );
+  }
+  // Video visits only — a teleconsult room makes no sense for an
+  // in-person booking.
+  if (appt.mode !== "video") {
+    return c.json(
+      {
+        error: "Appointment is not a video visit",
+        code: "appointment_not_video",
       },
       409
     );
@@ -279,8 +431,33 @@ teleconsultRouter.get("/sessions/me/active", async (c) => {
   let filter;
   if (dbUser.role === "doctor") {
     filter = eq(teleconsultSessions.doctorId, userId);
-  } else if (dbUser.role === "patient" || dbUser.role === "caretaker") {
+  } else if (dbUser.role === "patient") {
     filter = eq(teleconsultSessions.patientUserId, userId);
+  } else if (dbUser.role === "caretaker") {
+    // Caretakers see the sessions of every principal they actively
+    // care for — resolve patient_links → patients.userId first.
+    const links = await db
+      .select({ principalPatientId: patientLinks.principalPatientId })
+      .from(patientLinks)
+      .where(
+        and(
+          eq(patientLinks.caretakerUserId, userId),
+          eq(patientLinks.status, "active")
+        )
+      );
+    if (links.length === 0) return c.json({ session: null });
+    const principalUsers = await db
+      .select({ userId: patients.userId })
+      .from(patients)
+      .where(
+        inArray(
+          patients.id,
+          links.map((l) => l.principalPatientId)
+        )
+      );
+    const userIds = principalUsers.map((p) => p.userId).filter(Boolean);
+    if (userIds.length === 0) return c.json({ session: null });
+    filter = inArray(teleconsultSessions.patientUserId, userIds);
   } else {
     return c.json({ session: null });
   }
@@ -346,6 +523,45 @@ teleconsultRouter.get("/sessions/:id", async (c) => {
       ...row,
       patientId: appt?.patientId ?? null,
       wherebyUrl,
+    },
+    iceServers: buildIceServers(c.env),
+    partyMax: PARTY_MAX,
+    you: participant,
+  });
+});
+
+// ─── GET /sessions/by-room/:roomId ─────────────────────────
+// Notification/deep-link entry: the push payload carries roomId, not
+// the session id. Resolve roomId → session for a participant.
+teleconsultRouter.get("/sessions/by-room/:roomId", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const roomId = c.req.param("roomId");
+
+  const [row] = await db
+    .select()
+    .from(teleconsultSessions)
+    .where(eq(teleconsultSessions.roomId, roomId))
+    .limit(1);
+  if (!row) return c.json({ error: "Session not found" }, 404);
+
+  const participant = await resolveParticipant(db, userId, row);
+  if (!participant) return c.json({ error: "Not a participant" }, 403);
+
+  const [appt] = await db
+    .select({ patientId: appointments.patientId })
+    .from(appointments)
+    .where(eq(appointments.id, row.appointmentId))
+    .limit(1);
+
+  return c.json({
+    session: {
+      ...row,
+      patientId: appt?.patientId ?? null,
+      wherebyUrl:
+        participant.role === "doctor"
+          ? row.wherebyHostRoomUrl
+          : row.wherebyRoomUrl,
     },
     iceServers: buildIceServers(c.env),
     partyMax: PARTY_MAX,
@@ -482,9 +698,18 @@ teleconsultRouter.post("/sessions/:id/ws-ticket", async (c) => {
     return c.json({ error: "Session already ended" }, 410);
   }
 
-  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const secretResult = resolveJwtSecret(c.env);
+  if (secretResult.ok === false) {
+    return c.json(
+      {
+        error: "Server misconfigured: JWT_SECRET is required in production.",
+        reason: secretResult.reason,
+      },
+      503
+    );
+  }
   const expiresAt = Math.floor(Date.now() / 1000) + TICKET_TTL_SECONDS;
-  const ticket = await generateToken(userId, secret, {
+  const ticket = await generateToken(userId, secretResult.secret, {
     purpose: "teleconsult_ws",
     sessionId: row.id,
     roomId: row.roomId,
@@ -496,72 +721,6 @@ teleconsultRouter.post("/sessions/:id/ws-ticket", async (c) => {
     expiresAt,
     url: `/teleconsult/sessions/${encodeURIComponent(row.id)}/ws?ticket=${encodeURIComponent(ticket)}`,
   });
-});
-
-// ─── WS /sessions/:id/ws ──────────────────────────────────
-// Hand off to the TeleconsultRoom DO. We do ticket validation here
-// BEFORE upgrading so the DO never sees unverified peers.
-teleconsultRouter.get("/sessions/:id/ws", async (c) => {
-  const db = c.get("db");
-  const userId = c.get("userId");
-  const id = c.req.param("id");
-
-  // If authMiddleware already resolved the user (e.g. via cookie for
-  // portal), trust it; otherwise require the ticket.
-  let resolvedUserId = userId;
-  let resolvedRole: string | null = null;
-
-  const ticket = c.req.query("ticket");
-  if (ticket) {
-    const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
-    const decoded = await verifyToken(ticket, secret);
-    if (!decoded || decoded.purpose !== "teleconsult_ws") {
-      return c.json({ error: "Invalid ticket" }, 401);
-    }
-    if (decoded.sessionId !== id) {
-      return c.json({ error: "Ticket session mismatch" }, 401);
-    }
-    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
-      return c.json({ error: "Ticket expired" }, 401);
-    }
-    resolvedUserId = decoded.sub;
-    resolvedRole = decoded.role;
-  } else if (!userId) {
-    return c.json({ error: "Missing auth" }, 401);
-  }
-
-  const [row] = await db
-    .select()
-    .from(teleconsultSessions)
-    .where(eq(teleconsultSessions.id, id))
-    .limit(1);
-  if (!row) return c.json({ error: "Session not found" }, 404);
-
-  const participant = await resolveParticipant(db, resolvedUserId, row);
-  if (!participant) return c.json({ error: "Not a participant" }, 403);
-  // If a ticket told us the role, trust it over a stale cookie role.
-  if (resolvedRole && resolvedRole !== participant.role) {
-    return c.json({ error: "Role mismatch" }, 403);
-  }
-
-  const ns = c.env.TELECONSULT_ROOM;
-  if (!ns) {
-    return c.json({ error: "Teleconsult not configured" }, 503);
-  }
-  const doId = ns.idFromName(row.roomId);
-  const stub = ns.get(doId);
-
-  // Forward the upgrade request to the DO. We attach the verified
-  // userId + role as headers — the DO reads these on accept.
-  const doUrl = `https://do/upgrade`;
-  const doReq = new Request(doUrl, {
-    headers: {
-      Upgrade: "websocket",
-      "X-Teleconsult-User-Id": resolvedUserId,
-      "X-Teleconsult-Role": participant.role,
-    },
-  });
-  return stub.fetch(doReq);
 });
 
 export default teleconsultRouter;

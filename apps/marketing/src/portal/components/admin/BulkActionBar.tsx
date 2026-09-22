@@ -25,7 +25,7 @@ interface BulkResult {
 
 const LABELS: Record<BulkKind, { verb: string; needsReason: boolean; needsConfirm: boolean; tone: string }> = {
   approve:    { verb: "Approve",    needsReason: false, needsConfirm: false, tone: "bg-emerald-600 hover:bg-emerald-700" },
-  reject:     { verb: "Reject",     needsReason: true,  needsConfirm: false, tone: "bg-amber-600 hover:bg-amber-700" },
+  reject:     { verb: "Reject",     needsReason: true,  needsConfirm: false, tone: "bg-blue-600 hover:bg-blue-700" },
   suspend:    { verb: "Suspend",    needsReason: true,  needsConfirm: false, tone: "bg-orange-600 hover:bg-orange-700" },
   unsuspend:  { verb: "Unsuspend",  needsReason: false, needsConfirm: false, tone: "bg-blue-600 hover:bg-blue-700" },
   delete:     { verb: "Delete",     needsReason: false, needsConfirm: true,  tone: "bg-red-600 hover:bg-red-700" },
@@ -98,18 +98,22 @@ export function BulkActionBar({ selectedIds, onClear, invalidateKeys }: BulkActi
 
   return (
     <>
-      <div className="sticky bottom-4 z-30 bg-amber-50 border border-amber-200 rounded-2xl shadow-lg p-3 flex items-center gap-3 flex-wrap">
-        <div className="flex-1 flex items-center gap-2 px-2">
-          <span className="font-semibold text-sm text-amber-900">
-            {selectedIds.length} selected
+      <div className="sticky bottom-4 z-30 mx-auto flex w-fit max-w-full items-center gap-2.5 rounded-2xl border border-white/10 bg-slate-900 px-4 py-2.5 text-white shadow-[0_12px_40px_rgba(15,23,42,0.35)]">
+        <div className="flex items-center gap-2 pr-1">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+            <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-500 px-1.5 text-[11px] font-bold text-slate-900">
+              {selectedIds.length}
+            </span>
+            selected
           </span>
           <button
             onClick={onClear}
-            className="inline-flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900"
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X size={12} /> Clear
           </button>
         </div>
+        <span aria-hidden className="h-5 w-px bg-white/15" />
         {(Object.keys(LABELS) as BulkKind[]).map((k) => (
           <Button
             key={k}

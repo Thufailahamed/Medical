@@ -6,6 +6,13 @@
  * Mirrors the doctor portal route. The patient joins a video room by
  * roomId (the shareable token). Layout: remote video fills the screen
  * with a local self-view in the corner.
+ *
+ * Two entry modes (same contract as the mobile app):
+ *   - Real roomId: resolves roomId → sessionId via
+ *     GET /teleconsult/sessions/me/active, then mounts <TeleconsultRoom>.
+ *   - roomId === "__pending__": the doctor hasn't opened the room yet —
+ *     poll /me/active every 5s and swap to the real roomId when one
+ *     appears.
  */
 
 import { use, useEffect, useState } from "react";
@@ -14,9 +21,9 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, AlertTriangle, Video } from "lucide-react";
 
 import TeleconsultRoom from "@/portal/components/teleconsult/TeleconsultRoom";
-import { api } from "@/portal/lib/api";
+import { teleconsultApi } from "@/portal/lib/api";
+import { useT } from "@/portal/i18n";
 import { Card } from "@/patient/components/primitives/Card";
-import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 
 export default function PatientTeleconsultPage({
   params,
@@ -25,28 +32,47 @@ export default function PatientTeleconsultPage({
 }) {
   const { roomId } = use(params);
   const router = useRouter();
+  const t = useT();
+  const isPending = roomId === "__pending__";
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !isPending);
 
   useEffect(() => {
     let cancelled = false;
+
+    // Pending branch — poll until the doctor creates a session, then
+    // replace this route with the real roomId.
+    if (isPending) {
+      const interval = setInterval(async () => {
+        if (cancelled) return;
+        try {
+          const active = await teleconsultApi.getActiveForMe();
+          if (cancelled || !active.session) return;
+          clearInterval(interval);
+          router.replace(`/patient/teleconsult/${active.session.roomId}`);
+        } catch {
+          // network blip — keep polling
+        }
+      }, 5_000);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
+    }
+
+    // Real-room branch — one-shot lookup; mismatch means the link is
+    // stale or belongs to someone else.
     (async () => {
       try {
-        // Resolve the roomId for this patient. The patient side lists
-        // sessions from /teleconsult/sessions/me filtered to the active
-        // row.
-        const result = await api<{
-          sessions: Array<{ id: string; roomId: string }>;
-        }>("/teleconsult/sessions/me?status=active");
+        const active = await teleconsultApi.getActiveForMe();
         if (cancelled) return;
-        const session = result.sessions?.find((s) => s.roomId === roomId);
-        if (!session) {
+        if (!active.session || active.session.roomId !== roomId) {
           setError("This video room is not active for you.");
           setLoading(false);
           return;
         }
-        setSessionId(session.id);
+        setSessionId(active.session.id);
         setLoading(false);
       } catch (err) {
         if (cancelled) return;
@@ -59,7 +85,7 @@ export default function PatientTeleconsultPage({
     return () => {
       cancelled = true;
     };
-  }, [roomId]);
+  }, [roomId, isPending, router]);
 
   if (loading) {
     return (
@@ -67,6 +93,29 @@ export default function PatientTeleconsultPage({
         <div className="flex items-center gap-2">
           <Loader2 size={18} className="animate-spin" />
           Loading video room…
+        </div>
+      </div>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <div className="grid min-h-[60dvh] place-items-center p-6">
+        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+          <Loader2 size={32} className="animate-spin text-brand" />
+          <h2 className="text-base font-semibold text-text">
+            {t("consult.waitingForDoctor")}
+          </h2>
+          <p className="text-sm text-text-soft">
+            Keep this page open — you’ll join automatically when the call
+            starts.
+          </p>
+          <Link
+            href="/patient/appointments"
+            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-text-soft hover:text-brand"
+          >
+            <ArrowLeft size={14} aria-hidden /> Back to appointments
+          </Link>
         </div>
       </div>
     );

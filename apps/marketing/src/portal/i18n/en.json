@@ -593,7 +593,10 @@
     "typeMessage": "Type a message…",
     "send": "Send",
     "open": "Open",
-    "closeThread": "Close thread"
+    "closeThread": "Close thread",
+    "reopenThread": "Reopen thread",
+    "closed": "Closed",
+    "closedHint": "Chat is closed — reopen to let the patient reply."
   },
   "walkins": {
     "title": "Walk-in queue",
@@ -717,8 +720,12 @@
       "pending": "Pending",
       "processing": "Processing",
       "paid": "Paid",
-      "rejected": "Rejected"
-    }
+      "rejected": "Rejected",
+      "failed": "Failed"
+    },
+    "payoutRequested": "Payout requested",
+    "eventCount": "{{count}} events",
+    "paidOn": "Paid {{date}}"
   },
   "templates": {
     "title": "Rx templates",
@@ -815,7 +822,19 @@
       "fri": "Fri",
       "sat": "Sat",
       "sun": "Sun"
-    }
+    },
+    "date": "Date",
+    "allDay": "All day",
+    "dayOff": "Day off",
+    "addBlock": "Add block",
+    "slotsCount": "{{count}} slots",
+    "unsaved": "Unsaved changes",
+    "errTimeOrder": "End time must be after start time",
+    "errOverlap": "Overlaps another block",
+    "errTimesIncomplete": "Set both times or leave blank for all day",
+    "duplicateTimeOff": "This time off is already scheduled",
+    "dateRequired": "Pick a date",
+    "past": "Past"
   },
   "clinics": {
     "title": "Clinics",
@@ -850,7 +869,44 @@
     "rotate": "Rotate key",
     "rotateConfirm": "Rotating invalidates all existing signatures. Continue?",
     "language": "Display language",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "profileUpdated": "Profile updated",
+    "passwordChanged": "Password changed",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordMismatch": "Passwords do not match",
+    "passwordHint": "At least 8 characters",
+    "showPasswords": "Show passwords",
+    "hidePasswords": "Hide passwords",
+    "unsaved": "Unsaved changes",
+    "verified": "Verified",
+    "videoConsults": "Video consultations",
+    "videoConsultsHelp": "Patients can book teleconsult appointments with you",
+    "saveProfile": "Save profile",
+    "updatePassword": "Update password",
+    "notifTitle": "Notification preferences",
+    "notifSubtitle": "Choose which updates reach you in-app and by push",
+    "inApp": "In-app",
+    "push": "Push",
+    "alwaysOn": "Always on",
+    "savePreferences": "Save preferences",
+    "prefsSaved": "Notification preferences saved",
+    "keyRotated": "Signing key rotated",
+    "keyId": "New key id",
+    "createdAt": "Created at",
+    "rotateExplain": "Generate a new RSA-2048 signing key. Already-signed prescriptions stay verifiable because their signature rows keep the previous public key. New signatures will use the new key.",
+    "rotateAuditNote": "This action is recorded in the audit log.",
+    "notif": {
+      "appointment": "Appointments",
+      "medicine": "Medicines",
+      "lab_ready": "Lab results",
+      "prescription": "Prescriptions",
+      "vaccination": "Vaccinations",
+      "insurance": "Insurance",
+      "hospital": "Hospital",
+      "emergency": "Emergency",
+      "general": "General",
+      "hospital_request": "Hospital requests"
+    }
   },
   "clinicalNotes": {
     "title": "Clinical Notes",

@@ -57,7 +57,7 @@ describe("POST /appointments — telemedicine gating", () => {
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,
       hospitalId: HOSPITAL_ID,
-      date: "2026-08-10",
+      date: "2026-12-10",
       time: "09:00",
       mode: "video",
     });
@@ -77,7 +77,7 @@ describe("POST /appointments — telemedicine gating", () => {
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,
       hospitalId: HOSPITAL_ID,
-      date: "2026-08-11",
+      date: "2026-12-11",
       time: "09:30",
       mode: "video",
     });
@@ -98,7 +98,7 @@ describe("POST /appointments — telemedicine gating", () => {
     const res = await postJson(baseApp, "/appointments", {
       doctorId: DOCTOR_ID,
       hospitalId: HOSPITAL_ID,
-      date: "2026-08-12",
+      date: "2026-12-12",
       time: "10:00",
       mode: "in_person",
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -21,6 +21,7 @@ import {
 import { useAppointments } from "@/patient/hooks";
 import { formatTime, humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { teleconsultApi } from "@/portal/lib/api";
 
 type TabFilter = "all" | "upcoming" | "completed" | "past";
 
@@ -75,6 +76,32 @@ export default function AppointmentsPage() {
   const query = useAppointments();
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [search, setSearch] = useState("");
+
+  // Live teleconsult session (if the doctor already opened a room).
+  // Polls so "Join Call" picks the real roomId over the __pending__
+  // waiting room as soon as the session exists. Plain effect+interval
+  // (not react-query) — this page's tests render without a provider.
+  const [activeSession, setActiveSession] = useState<{
+    id: string;
+    roomId: string;
+    status: string;
+    appointmentId: string;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await teleconsultApi.getActiveForMe();
+        if (!cancelled) setActiveSession(res.session);
+      } catch {}
+    };
+    load();
+    const id = setInterval(load, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   const rawAppointments = query.data?.appointments ?? [];
 
@@ -501,7 +528,11 @@ export default function AppointmentsPage() {
                     <div className="flex items-center gap-2">
                       {isVideo && isUpcoming ? (
                         <Link
-                          href={`/patient/appointments/${a.id}`}
+                          href={`/patient/teleconsult/${
+                            activeSession?.appointmentId === a.id
+                              ? activeSession.roomId
+                              : "__pending__"
+                          }`}
                           className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1"
                           style={{
                             background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",

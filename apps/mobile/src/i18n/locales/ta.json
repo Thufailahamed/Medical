@@ -196,6 +196,10 @@
         "label": "Vaccinations",
         "description": "Immunization schedule alerts"
       },
+      "teleconsult": {
+        "label": "Teleconsults",
+        "description": "Video visit start & call alerts"
+      },
       "insurance": {
         "label": "Insurance",
         "description": "Claims, expiry, updates"
@@ -401,7 +405,13 @@
     "emergencyContactsHeading": "EMERGENCY CONTACTS",
     "noneRecorded": "None recorded",
     "onFile": "{{count}} on file",
-    "manageInFamily": "Manage in Family"
+    "manageInFamily": "Manage in Family",
+    "quick": {
+      "edit": "Edit",
+      "healthId": "Health ID",
+      "share": "Share",
+      "family": "Family"
+    }
   },
   "audit": {
     "title": "அணுகல் பதிவு",
@@ -593,6 +603,8 @@
       "revoke": "ரத்து செய்",
       "revoked": "அழைப்பு ரத்து செய்யப்பட்டது",
       "pendingTitle": "நிலுவை அழைப்புகள்",
+      "pendingCount_one": "{{count}} நிலுவையில்",
+      "pendingCount_other": "{{count}} நிலுவையில்",
       "pendingEmpty": "நிலுவை அழைப்புகள் இல்லை.",
       "pendingExpires": "{{date}} அன்று காலாவதியாகும்",
       "summary": {
@@ -626,6 +638,24 @@
       "message": "Message {{name}}",
       "share": "Share {{name}}'s records",
       "remove": "Remove {{name}}"
+    },
+    "act": {
+      "call": "அழை",
+      "message": "செய்தி",
+      "share": "பகிர்",
+      "remove": "நீக்கு"
+    },
+    "lock": {
+      "lockedBadge": "பூட்டப்பட்டது",
+      "confirmLockTitle": "பதிவுகளைப் பூட்டவா?",
+      "confirmLock": "நீங்கள் திறக்கும் வரை {{name}} இன் பதிவுகள் குடும்பப் பார்வைகளில் மறைக்கப்படும்.",
+      "confirmUnlockTitle": "பதிவுகளைத் திறக்கவா?",
+      "confirmUnlock": "{{name}} இன் பதிவுகள் மீண்டும் குடும்பப் பார்வைகளில் தெரியும்.",
+      "toggleLock": "பூட்டு",
+      "toggleUnlock": "பூட்டைத் திற",
+      "toastLocked": "{{name}} பூட்டப்பட்டார்",
+      "toastUnlocked": "{{name}} திறக்கப்பட்டார்",
+      "toastError": "பூட்டைப் புதுப்பிக்க முடியவில்லை"
     },
     "compose": {
       "nameLabel": "Name",
@@ -2062,7 +2092,9 @@
     "howStep3": "பதிவு வகை, தலைப்பு மற்றும் தேதியை அமைக்க — உங்கள் பதிவுகளை நீங்கள் ஒழுங்கமைக்கவும்.",
     "legacyHeading": "உங்கள் சரிபார்க்கப்பட்ட மின்னஞ்சலில் இருந்து அனுப்பு",
     "legacyBody": "{{email}} இலிருந்தும் அனுப்பலாம் — முகவரி இல்லாவிட்டாலும் அனுப்புநர் மூலம் வழிசெலுத்துவோம்.",
-    "legacyAction": "அஞ்சலைத் திற"
+    "legacyAction": "அஞ்சலைத் திற",
+    "legacyHint": "முகவரி இல்லாவிட்டாலும் அனுப்புநர் மூலம் வழிசெலுத்துவோம்",
+    "step": "படி {{n}}"
   },
   "recordsHub": {
     "title": "சுகாதார பதிவுகள்",
@@ -2218,7 +2250,8 @@
     "noVitals": "No vitals recorded",
     "alertsHeading": "Out-of-range readings",
     "abnormalCount_one": "{{count}} out of range",
-    "abnormalCount_other": "{{count}} out of range"
+    "abnormalCount_other": "{{count}} out of range",
+    "actionMessage": "Message"
   },
   "overview": {
     "title": "நோயாளி மேலோட்டம்",
@@ -2475,7 +2508,7 @@
       "editTags": "Edit tags"
     },
     "quickActions": {
-      "edit": "Edit record",
+      "edit": "திருத்து",
       "share": "Share",
       "link": "Link"
     },
@@ -2652,7 +2685,13 @@
     "rateCta": "Rate this visit",
     "youRated": "You rated this visit ★ {{stars}}",
     "helpCta": "இந்த சந்திப்பு குறித்து உதவி தேவையா?",
-    "helpBody": "WhatsApp-ல் எங்களுடன் அரட்டையடிக்கவும் — பொதுவாக ஒரு மணி நேரத்தில் பதிலளிக்கப்படும்."
+    "helpBody": "WhatsApp மூலம் எங்களுடன் தொடர்பு கொள்ளவும் — பொதுவாக ஒரு மணி நேரத்திற்குள் பதில் அளிக்கப்படும்.",
+    "cancel": "சந்திப்பை ரத்துசெய்",
+    "cancelConfirmTitle": "சந்திப்பை ரத்து செய்யவா?",
+    "cancelConfirmMessage": "நிச்சயமாக இந்த சந்திப்பை ரத்து செய்ய விரும்புகிறீர்களா? இந்த செயலை மாற்றியமைக்க முடியாது.",
+    "cancelConfirmAction": "ஆம், ரத்து செய்",
+    "cancelSuccess": "சந்திப்பு ரத்து செய்யப்பட்டது",
+    "cancelError": "சந்திப்பை ரத்து செய்ய முடியவில்லை"
   },
   "bookAppointment": {
     "title": "Book appointment",
@@ -3872,12 +3911,23 @@
     "subtitleWithUnread": "{{count}} unread message",
     "subtitleWithUnread_other": "{{count}} unread messages",
     "emptyTitle": "No conversations yet",
-    "emptyBody": "Tap a patient from Prescribe to start a chat — or open any patient profile to send a message.",
+    "emptyBody": "Tap + to pick a patient and start a secure chat, or message a patient from their profile.",
     "startCta": "Start a conversation",
     "notFound": "Conversation not found",
     "noMessagesYet": "No messages yet — say hello.",
     "composerPlaceholder": "Type a message…",
     "youPrefix": "You:",
+    "newTitle": "New conversation",
+    "newSubtitle": "Pick a patient to message",
+    "searchPlaceholder": "Search patients by name or phone…",
+    "recentPatients": "Recent patients",
+    "patientFallback": "Patient",
+    "tapToMessage": "Tap to start chatting",
+    "startFailed": "Couldn't start the conversation. Try again.",
+    "noPatientsFound": "No patients found",
+    "noPatientsFoundBody": "Only patients you have a relationship with can be messaged — appointments, prescriptions, records, or care team.",
+    "noRecentPatients": "No patients yet",
+    "noRecentPatientsBody": "Patients you treat will appear here for quick messaging.",
     "errorTitle": "செய்திகளை ஏற்ற முடியவில்லை",
     "errorBody": "உங்கள் இணைப்பை சோதித்து மீண்டும் முயற்சிக்கவும்."
   },
@@ -3952,6 +4002,11 @@
   "caretaker": {
     "title": "பராமரிப்பாளர்கள்",
     "subtitle": "உங்கள் சுகாதார தகவலை நிர்வகிக்கக்கூடிய குடும்ப உறுப்பினர்கள்",
+    "countActive_one": "{{count}} செயலில்",
+    "countActive_other": "{{count}} செயலில்",
+    "countPending_one": "{{count}} நிலுவையில்",
+    "countPending_other": "{{count}} நிலுவையில்",
+    "invitesTitle": "நிலுவை அழைப்புகள்",
     "addCta": "பராமரிப்பாளரைச் சேர்க்கவும்",
     "emptyTitle": "இன்னும் பராமரிப்பாளர்கள் இல்லை",
     "emptyBody": "உங்கள் பதிவுகள், மருந்துகள் மற்றும் சந்திப்புகளை நிர்வகிக்க குடும்ப உறுப்பினரை அழைக்கவும்.",
@@ -4074,7 +4129,10 @@
       "sent": "விசாரணை அனுப்பப்பட்டது",
       "failed": "விசாரணை அனுப்ப முடியவில்லை",
       "alreadyLinked": "இந்த பராமரிப்பாளர் ஏற்கனவே இணைக்கப்பட்டுள்ளார்",
-      "alreadyPending": "விசாரணை அனுப்பப்பட்டது — பதிலுக்காக காத்திருக்கிறது"
+      "alreadyPending": "விசாரணை அனுப்பப்பட்டது — பதிலுக்காக காத்திருக்கிறது",
+      "withdraw": "திரும்பப் பெறு",
+      "withdrawConfirm": "இந்த விசாரணையைத் திரும்பப் பெறவா?",
+      "withdrawn": "விசாரணை திரும்பப் பெறப்பட்டது"
     },
     "listing": {
       "title": "சந்தை",
@@ -4101,7 +4159,10 @@
       "decline": "நிராகரி",
       "acceptConfirm": "இந்த விசாரணையை ஏற்றுக்கொள்ளவா?",
       "declineConfirm": "இந்த விசாரணையை நிராகரிக்கவா?",
-      "patientMessage": "நோயாளியின் செய்தி"
+      "patientMessage": "நோயாளியின் செய்தி",
+      "listedHint": "உங்கள் பட்டியல் நேரடியாக உள்ளது — நோயாளர்கள் விசாரணைகளை அனுப்பலாம்",
+      "bioPlaceholder": "உங்கள் அனுபவம் மற்றும் வழங்கும் பராமரிப்பை நோயாளர்களுக்குச் சொல்லுங்கள்.",
+      "districtPlaceholder": "வேறு மாவட்டம்…"
     },
     "inquiriesMine": {
       "title": "அனுப்பிய விசாரணைகள்",
@@ -4110,9 +4171,11 @@
         "pending": "பதிலுக்காக காத்திருக்கிறது",
         "accepted": "ஏற்றுக்கொள்ளப்பட்டது",
         "declined": "நிராகரிக்கப்பட்டது",
-        "expired": "காலாவதியானது"
+        "expired": "காலாவதியானது",
+        "withdrawn": "திரும்பப் பெறப்பட்டது"
       }
-    }
+    },
+    "perHour": "ஒரு மணி நேரத்துக்கு"
   },
   "consult": {
     "startVideoVisit": "வீடியோ ஆலோசனையைத் தொடங்கு",
@@ -4136,9 +4199,11 @@
     "turnMissing": "உங்கள் நெட்வொர்க் வீடியோ அழைப்புகளைத் தடுக்கலாம். இது தொடர்ந்தால் ஆதரவைத் தொடர்பு கொள்ளுங்கள்.",
     "permissionDenied": "கேமரா அல்லது மைக்ரோஃபோன் அணுகல் தடுக்கப்பட்டது. அமைப்புகளில் அனுமதித்து மீண்டும் சேருங்கள்.",
     "startVideoError": "வீடியோ வருகையைத் தொடங்க முடியவில்லை. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.",
-    "bannerWaiting": "வீடியோ அமர்வு உருவாக்கப்பட்டது — நுழைக தட்டவும்",
-    "bannerInCall": "அழைப்பு நடைபெறுகிறது — திரும்ப தட்டவும்",
+    "bannerWaiting": "வீடியோ அமர்வு தயார்",
+    "bannerInCall": "அழைப்பு நடைபெறுகிறது",
     "bannerRoom": "அறை {{roomId}}",
+    "bannerJoin": "சேரவும்",
+    "bannerReturn": "திரும்பவும்",
     "bannerDismiss": "நிராகரி",
     "noPatient": "நோயாளி இணைக்கப்படவில்லை",
     "noRecords": "சமீபத்திய பதிவுகள் இல்லை",
