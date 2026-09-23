@@ -12,6 +12,7 @@ import {
 import { toSeries } from "@/patient/lib/vitals";
 import { formatDayLabel, formatTime } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { countdownDays } from "@healthcare/shared/visit-lifecycle";
 import { MiniSparkline } from "./MiniSparkline";
 
 type BadgeTone = "emerald" | "rose" | "muted" | "amber";
@@ -70,18 +71,9 @@ export function HealthSummaryStrip({ className }: { className?: string }) {
   const adherencePct =
     total > 0 ? Math.round((taken / total) * 100) : null;
   const next = (appts.data?.appointments ?? [])
-    .filter((a) => new Date(a.date) >= new Date(new Date().toDateString()))
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0] ?? null;
-  const visitDays = next
-    ? Math.max(
-        0,
-        Math.ceil(
-          (new Date(next.date).getTime() -
-            new Date(new Date().toDateString()).getTime()) /
-            86_400_000,
-        ),
-      )
-    : null;
+    .filter((a) => a.bucket === "upcoming" || a.bucket === "today")
+    .sort((a, b) => a.startsAt - b.startsAt)[0] ?? null;
+  const visitDays = next ? countdownDays(next.startsAt) : null;
   const hrPoints = heartRate.data ? toSeries(heartRate.data.points) : [];
   const hrSpark = hrPoints.map((p) => p.value);
 

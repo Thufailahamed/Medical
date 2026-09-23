@@ -12,16 +12,11 @@ import { useAppointments } from "@/patient/hooks";
 import { formatDayLabel, formatTime } from "@/patient/lib/format";
 import { teleconsultApi } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
+import { countdownDays } from "@healthcare/shared/visit-lifecycle";
 
-function CountdownChip({ date }: { date: string }) {
-  const days = Math.max(
-    0,
-    Math.ceil(
-      (new Date(date).getTime() - new Date(new Date().toDateString()).getTime()) /
-        86_400_000,
-    ),
-  );
-  const label = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `in ${days}d`;
+function CountdownChip({ startsAt }: { startsAt: number }) {
+  const days = countdownDays(startsAt);
+  const label = days <= 0 ? "Today" : days === 1 ? "Tomorrow" : `in ${days}d`;
   return (
     <span
       data-testid="countdown-chip"
@@ -75,8 +70,8 @@ export function UpcomingAppointment({ className }: { className?: string }) {
       >
         {(data) => {
           const next = (data.appointments ?? [])
-            .filter((a) => new Date(a.date) >= new Date(new Date().toDateString()))
-            .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+            .filter((a) => a.bucket === "upcoming" || a.bucket === "today")
+            .sort((a, b) => a.startsAt - b.startsAt)[0];
           if (!next) {
             return (
               <p className="mt-4 text-sm text-text-soft">No upcoming appointments</p>
@@ -105,25 +100,31 @@ export function UpcomingAppointment({ className }: { className?: string }) {
                     </p>
                   ) : null}
                 </div>
-                <CountdownChip date={next.date} />
+                <CountdownChip startsAt={next.startsAt} />
               </div>
               <div className="flex items-center gap-2">
                 <Pill tone={next.mode === "video" ? "brand" : "neutral"}>
                   {next.mode === "video" ? "Video" : "In-person"}
                 </Pill>
-                {next.mode === "video" ? (
+                {next.mode === "video" &&
+                next.isLive &&
+                activeSession?.appointmentId === next.id ? (
                   <Link
-                    href={`/patient/teleconsult/${
-                      activeSession?.appointmentId === next.id
-                        ? activeSession.roomId
-                        : "__pending__"
-                    }`}
+                    href={`/patient/teleconsult/${activeSession.roomId}`}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-violet-600"
                     data-testid="join-call-link"
                   >
                     <Video size={13} />
                     Join Call
                   </Link>
+                ) : next.mode === "video" && (next.bucket === "today" || next.isLive) ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-500"
+                    data-testid="join-waiting-chip"
+                  >
+                    <Video size={13} />
+                    {next.isLive ? "Waiting for doctor" : "Starts soon"}
+                  </span>
                 ) : null}
                 <Link
                   href={`/patient/appointments/${next.id}/reschedule`}

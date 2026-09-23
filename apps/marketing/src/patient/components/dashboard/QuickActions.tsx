@@ -64,8 +64,8 @@ export function QuickActions({ className }: { className?: string }) {
   const total = stats.data?.todayCount ?? 0;
   const refillCount = refills.data?.count ?? 0;
   const next = (appts.data?.appointments ?? [])
-    .filter((a) => new Date(a.date) >= new Date(new Date().toDateString()))
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0] ?? null;
+    .filter((a) => a.bucket === "upcoming" || a.bucket === "today")
+    .sort((a, b) => a.startsAt - b.startsAt)[0] ?? null;
   const alertCount = alerts.data?.count ?? 0;
 
   const hints: Record<(typeof ACTIONS)[number]["key"], string> = {
