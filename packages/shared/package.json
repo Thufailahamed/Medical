@@ -11,6 +11,7 @@
     "./records": "./src/records.ts",
     "./extractors": "./src/extractors.ts",
     "./contracts": "./src/contracts/index.ts",
+    "./visit-lifecycle": "./src/visit-lifecycle.ts",
     "./doctor-badge": "./src/doctor-badge.ts"
   },
   "scripts": {

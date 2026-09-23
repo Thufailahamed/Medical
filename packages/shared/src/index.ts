@@ -6,3 +6,4 @@ export * from "./extractors";
 export * from "./coding";
 export * from "./doctor-badge";
 export * from "./diagnostics";
+export * from "./visit-lifecycle";
