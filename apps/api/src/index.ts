@@ -79,6 +79,7 @@ import { insuranceGraceExpiryRouter } from "./cron/insurance-grace-expiry";
 import { symptomAnomaliesRouter } from "./cron/symptom-anomalies";
 import { postVisitSummaryRouter } from "./cron/post-visit-summary-router";
 import { preVisitSummaryRouter } from "./cron/pre-visit-summary-router";
+import { noShowSweepRouter } from "./cron/no-show-sweep-router";
 import ratingsRouter from "./routes/ratings";
 import familyActiveRouter from "./routes/family-active";
 import adminRouter from "./routes/admin";
@@ -400,6 +401,7 @@ app.route("/admin/caretaker-verifications", adminCaretakerVerificationsRouter);
 //   POST /__cron/vaccination-reminders    with x-cron-secret header.
 //   POST /__cron/symptom-anomalies        with x-cron-secret header.
 //   POST /__cron/post-visit-summary       with x-cron-secret header.
+//   POST /__cron/no-show-sweep           with x-cron-secret header.
 //   POST /__cron/insurance-premium-reminders  with x-cron-secret header.
 //   POST /__cron/insurance-billing            with x-cron-secret header.
 //   POST /__cron/insurance-grace-expiry       with x-cron-secret header.
@@ -416,6 +418,7 @@ app.route("/", vaccinationRemindersRouter);
 app.route("/", symptomAnomaliesRouter);
 app.route("/", postVisitSummaryRouter);
 app.route("/", preVisitSummaryRouter);
+app.route("/", noShowSweepRouter);
 
 // ─── 404 ─────────────────────────────────────────────────
 app.notFound((c) => {
@@ -463,6 +466,7 @@ export default {
     if (utcMin >= 5 && utcMin < 10) {
       paths.push("/__cron/booking-reminders");
       paths.push("/__cron/post-visit-summary");
+      paths.push("/__cron/no-show-sweep");
     }
 
     // 3. Daily tasks (refills + vaccinations): run once a day around 03:35 UTC (between minute 35 and 40)
