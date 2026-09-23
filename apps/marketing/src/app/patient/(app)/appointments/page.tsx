@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Clock,
   Plus,
-  RotateCcw,
   Search,
   User,
   Video,
@@ -22,8 +21,9 @@ import { useAppointments } from "@/patient/hooks";
 import { formatTime, humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { teleconsultApi } from "@/portal/lib/api";
+import type { VisitBucket } from "@healthcare/shared/visit-lifecycle";
 
-type TabFilter = "all" | "upcoming" | "completed" | "past";
+type TabFilter = "all" | VisitBucket;
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -53,7 +53,7 @@ function getStatusBadge(status: string) {
       };
     case "no_show":
       return {
-        label: "No Show",
+        label: "Missed",
         className: "bg-rose-50 text-rose-700 border-rose-200/70",
         icon: AlertCircle,
       };
@@ -105,27 +105,18 @@ export default function AppointmentsPage() {
 
   const rawAppointments = query.data?.appointments ?? [];
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  const { upcomingList, completedList, pastList } = useMemo(() => {
+  const { upcomingList, completedList, missedList, cancelledList } = useMemo(() => {
     const sorted = [...rawAppointments].sort((a, b) =>
       (b.date + b.time).localeCompare(a.date + a.time)
     );
-
-    const upcoming = sorted.filter(
-      (a) => a.date >= today && a.status !== "cancelled" && a.status !== "no_show" && a.status !== "completed"
-    );
-    const completed = sorted.filter((a) => a.status === "completed");
-    const past = sorted.filter(
-      (a) => a.date < today || a.status === "no_show" || a.status === "cancelled"
-    );
-
+    const byBucket = (b: VisitBucket) => sorted.filter((a) => a.bucket === b);
     return {
-      upcomingList: upcoming,
-      completedList: completed,
-      pastList: past,
+      upcomingList: [...byBucket("today"), ...byBucket("upcoming")],
+      completedList: byBucket("completed"),
+      missedList: byBucket("missed"),
+      cancelledList: byBucket("cancelled"),
     };
-  }, [rawAppointments, today]);
+  }, [rawAppointments]);
 
   const filteredAppointments = useMemo(() => {
     let list = rawAppointments;
@@ -134,8 +125,10 @@ export default function AppointmentsPage() {
       list = upcomingList;
     } else if (activeTab === "completed") {
       list = completedList;
-    } else if (activeTab === "past") {
-      list = pastList;
+    } else if (activeTab === "missed") {
+      list = missedList;
+    } else if (activeTab === "cancelled") {
+      list = cancelledList;
     }
 
     if (search.trim()) {
@@ -150,7 +143,7 @@ export default function AppointmentsPage() {
     }
 
     return list;
-  }, [rawAppointments, activeTab, upcomingList, completedList, pastList, search]);
+  }, [rawAppointments, activeTab, upcomingList, completedList, missedList, cancelledList, search]);
 
   return (
     <div className="flex flex-col gap-5 pb-16">
@@ -290,23 +283,46 @@ export default function AppointmentsPage() {
 
             <button
               type="button"
-              onClick={() => setActiveTab("past")}
+              onClick={() => setActiveTab("missed")}
               className={cn(
                 "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "past"
+                activeTab === "missed"
                   ? "bg-white/20 border-white/30 shadow-xs"
                   : "bg-white/10 border-white/10 hover:bg-white/15",
               )}
             >
               <div className="h-8 w-8 rounded-lg bg-rose-400/30 flex items-center justify-center text-rose-200 shrink-0">
-                <RotateCcw size={16} />
+                <AlertCircle size={16} />
               </div>
               <div className="min-w-0">
                 <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Past / Missed
+                  Missed
                 </p>
                 <p className="text-base font-extrabold text-white">
-                  {pastList.length}
+                  {missedList.length}
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("cancelled")}
+              className={cn(
+                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
+                activeTab === "cancelled"
+                  ? "bg-white/20 border-white/30 shadow-xs"
+                  : "bg-white/10 border-white/10 hover:bg-white/15",
+              )}
+            >
+              <div className="h-8 w-8 rounded-lg bg-slate-400/30 flex items-center justify-center text-slate-200 shrink-0">
+                <XCircle size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
+                  Cancelled
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {cancelledList.length}
                 </p>
               </div>
             </button>
@@ -356,15 +372,27 @@ export default function AppointmentsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("past")}
+            onClick={() => setActiveTab("missed")}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-              activeTab === "past"
+              activeTab === "missed"
                 ? "bg-white text-sky-900 shadow-xs"
                 : "text-slate-600 hover:text-slate-900",
             )}
           >
-            Past &amp; Missed ({pastList.length})
+            Missed ({missedList.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("cancelled")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
+              activeTab === "cancelled"
+                ? "bg-white text-sky-900 shadow-xs"
+                : "text-slate-600 hover:text-slate-900",
+            )}
+          >
+            Cancelled ({cancelledList.length})
           </button>
         </div>
 
@@ -438,7 +466,7 @@ export default function AppointmentsPage() {
               const badge = getStatusBadge(a.status);
               const BadgeIcon = badge.icon;
               const isVideo = a.mode === "video";
-              const isUpcoming = a.date >= today && a.status !== "cancelled" && a.status !== "no_show";
+              const isUpcoming = a.bucket === "upcoming" || a.bucket === "today";
 
               return (
                 <div
@@ -526,13 +554,9 @@ export default function AppointmentsPage() {
                     </span>
 
                     <div className="flex items-center gap-2">
-                      {isVideo && isUpcoming ? (
+                      {isVideo && a.isLive && activeSession?.appointmentId === a.id ? (
                         <Link
-                          href={`/patient/teleconsult/${
-                            activeSession?.appointmentId === a.id
-                              ? activeSession.roomId
-                              : "__pending__"
-                          }`}
+                          href={`/patient/teleconsult/${activeSession.roomId}`}
                           className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1"
                           style={{
                             background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
@@ -541,6 +565,10 @@ export default function AppointmentsPage() {
                           <Video size={13} />
                           <span>Join Call</span>
                         </Link>
+                      ) : isVideo && (a.bucket === "today" || a.isLive) ? (
+                        <span className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200">
+                          {a.isLive ? "Waiting for doctor" : "Starts soon"}
+                        </span>
                       ) : null}
 
                       <Link
@@ -551,7 +579,7 @@ export default function AppointmentsPage() {
                         <ChevronRight size={13} />
                       </Link>
 
-                      {a.status === "no_show" || a.status === "cancelled" || a.status === "completed" ? (
+                      {a.bucket === "missed" || a.bucket === "cancelled" || a.bucket === "completed" ? (
                         <Link
                           href={`/patient/appointments/book?doctorId=${a.doctorId}`}
                           className="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200/70 transition-colors"
