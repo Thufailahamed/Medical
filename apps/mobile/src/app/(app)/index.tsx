@@ -151,9 +151,10 @@ export default function HomeScreen() {
   const patient = profileData?.patient?.patients;
   const todayMeds: any[] = medsData?.medicines ?? [];
   const appointments: any[] = apptsData?.appointments ?? [];
-  const upcomingAppointments = appointments.filter((a: any) =>
-    ["scheduled", "confirmed", "in_progress"].includes(a.status)
+  const upcomingAppointments = appointments.filter(
+    (a: any) => a.bucket === "upcoming" || a.bucket === "today"
   );
+  upcomingAppointments.sort((a: any, b: any) => a.startsAt - b.startsAt);
 
   const hour = new Date().getHours();
   const greeting =

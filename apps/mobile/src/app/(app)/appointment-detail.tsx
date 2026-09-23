@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Video,
   XCircle,
+  CalendarPlus,
 } from "lucide-react-native";
 import {
   useAppointmentRecords,
@@ -61,7 +62,7 @@ const STATUS_TONE: Record<string, PillTone> = {
   confirmed: "success",
   in_progress: "primary",
   completed: "info",
-  cancelled: "danger",
+  cancelled: "neutral",
   no_show: "danger",
 };
 
@@ -207,7 +208,11 @@ export default function AppointmentDetailScreen() {
                     }}
                   >
                     <PillCmp
-                      label={appt.status.replace("_", " ")}
+                      label={
+                        t(`appointments.statusLabel.${appt.status}`, {
+                          defaultValue: appt.status.replace("_", " "),
+                        }) as string
+                      }
                       tone={STATUS_TONE[appt.status] || "neutral"}
                       size="sm"
                     />
@@ -297,7 +302,9 @@ export default function AppointmentDetailScreen() {
                       />
                     </View>
                   ) : null}
-                  {activeSession?.session?.appointmentId === id ? (
+                  {appt.mode === "video" &&
+                  activeSession?.session?.appointmentId === id &&
+                  activeSession.session ? (
                     <Button
                       title={t("consult.joinVideoVisit")}
                       icon={Video}
@@ -311,16 +318,29 @@ export default function AppointmentDetailScreen() {
                       }
                     />
                   ) : appt.mode === "video" &&
-                    ["scheduled", "confirmed"].includes(appt.status) ? (
+                    (appt.bucket === "today" || appt.isLive) ? (
                     <Button
-                      title={t("appointments.joinVideo")}
+                      title={
+                        appt.isLive
+                          ? t("appointments.waitingForDoctor")
+                          : t("appointments.startsSoon")
+                      }
                       icon={Video}
+                      variant="secondary"
+                      size="md"
+                      disabled
+                    />
+                  ) : null}
+                  {appt.bucket === "missed" ? (
+                    <Button
+                      title={t("appointments.bookAgain")}
+                      icon={CalendarPlus}
                       variant="primary"
                       size="md"
                       onPress={() =>
                         router.push({
-                          pathname: "/(app)/teleconsult/[roomId]" as any,
-                          params: { roomId: "__pending__" },
+                          pathname: "/(app)/book-appointment" as any,
+                          params: { prefillDoctorId: appt.doctorId ?? "" },
                         })
                       }
                     />
