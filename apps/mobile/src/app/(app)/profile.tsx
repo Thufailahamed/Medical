@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Pencil,
   Users,
@@ -121,7 +122,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, shadow } = useTheme();
+  const { spacing, colors, typography, radius, shadow, layout } = useTheme();
+  const insets = useSafeAreaInsets();
   const { data: profileData, isLoading: profileLoading } = usePatientProfile();
   const { data: unread } = useUnreadCount();
   const { data: familyData } = useFamilyMembers();
@@ -508,7 +510,9 @@ export default function ProfileScreen() {
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: spacing.xxxxl }}
+        contentContainerStyle={{
+          paddingBottom: layout.tabBarHeight + insets.bottom + spacing.xxxl,
+        }}
       >
         {/* ─── Top bar ─── */}
         <View

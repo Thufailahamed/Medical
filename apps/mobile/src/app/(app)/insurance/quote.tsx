@@ -1,8 +1,8 @@
 // @ts-nocheck
 // Personalized quote calculator. 3-step wizard: age/gender -> members -> pre-existing.
 
-import { useState } from "react";
-import { View, TextInput, ScrollView } from "react-native";
+import { useState, useCallback, useEffect } from "react";
+import { View, TextInput, ScrollView, BackHandler } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2, UserPlus, HeartPulse } from "lucide-react-native";
@@ -87,10 +87,37 @@ export default function Quote() {
     }
   };
 
+  const handleBack = useCallback(() => {
+    if (step > 1) {
+      setStep((s) => s - 1);
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/insurance/marketplace");
+    }
+  }, [step, router]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (step > 1) {
+        setStep((s) => s - 1);
+        return true;
+      }
+      if (router.canGoBack()) {
+        router.back();
+        return true;
+      }
+      return false;
+    };
+
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
+  }, [step, router]);
+
   if (!quote.planId) {
     return (
       <Screen>
-        <ScreenHeader title={t("insurance.quote.title")} subtitle="" />
+        <ScreenHeader back onBack={() => router.replace("/insurance/marketplace")} title={t("insurance.quote.title")} subtitle="" />
         <View style={{ padding: 16 }}>
           <AppText size="sm" color="muted">
             {t("insurance.quote.noPlan")}
@@ -108,6 +135,8 @@ export default function Quote() {
   return (
     <Screen>
       <ScreenHeader
+        back
+        onBack={handleBack}
         title={t("insurance.quote.title")}
         subtitle={quote.planName ?? ""}
         kicker={t("insurance.quote.kicker")}
@@ -228,13 +257,22 @@ export default function Quote() {
                 />
               </View>
 
-              <Button
-                label={t("insurance.quote.next")}
-                onPress={() => {
-                  setStep(3);
-                  requestQuote();
-                }}
-              />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Button
+                  variant="outline"
+                  label={t("common.back", "Back")}
+                  onPress={handleBack}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  label={t("insurance.quote.next")}
+                  onPress={() => {
+                    setStep(3);
+                    requestQuote();
+                  }}
+                  style={{ flex: 1 }}
+                />
+              </View>
             </Card>
           </>
         ) : null}
@@ -327,7 +365,19 @@ export default function Quote() {
               )}
             </Card>
 
-            <Button label={t("insurance.quote.continue")} onPress={onSubmit} />
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Button
+                variant="outline"
+                label={t("common.back", "Back")}
+                onPress={handleBack}
+                style={{ flex: 1 }}
+              />
+              <Button
+                label={t("insurance.quote.continue")}
+                onPress={onSubmit}
+                style={{ flex: 1 }}
+              />
+            </View>
             <Button
               variant="ghost"
               label={t("insurance.quote.reset")}

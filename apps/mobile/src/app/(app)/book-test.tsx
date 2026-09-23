@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Pressable,
   TextInput,
   Alert,
+  BackHandler,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -216,8 +217,30 @@ export default function BookTestScreen() {
   }, [step, formValues, trigger, toast]);
 
   const handleBack = useCallback(() => {
-    if (step > 0) setStep(step - 1);
-    else router.back();
+    if (step > 0) {
+      setStep(step - 1);
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(app)");
+    }
+  }, [step, router]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (step > 0) {
+        setStep(step - 1);
+        return true;
+      }
+      if (router.canGoBack()) {
+        router.back();
+        return true;
+      }
+      return false;
+    };
+
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
   }, [step, router]);
 
   const onSubmit = useCallback(

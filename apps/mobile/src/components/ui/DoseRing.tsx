@@ -28,6 +28,8 @@ type Props = {
   accessibilityLabel?: string;
   centerColor?: string;
   textColor?: string;
+  trackColor?: string;
+  progressColor?: string;
 };
 
 // Create an animated circle using reanimated
@@ -43,6 +45,8 @@ export function DoseRing({
   accessibilityLabel,
   centerColor,
   textColor,
+  trackColor,
+  progressColor,
 }: Props) {
   const { colors, motion: motionTokens, typography } = useTheme();
   const motionEnabled = useMotionEnabled();
@@ -120,7 +124,7 @@ export function DoseRing({
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={colors.border}
+            stroke={trackColor ?? colors.border}
             strokeWidth={strokeWidth}
             fill={centerColor ?? "transparent"}
           />
@@ -129,7 +133,7 @@ export function DoseRing({
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={fg}
+            stroke={progressColor ?? fg}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={circumference}

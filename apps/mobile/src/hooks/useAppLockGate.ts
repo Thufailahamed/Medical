@@ -16,6 +16,7 @@ import { AppState, type AppStateStatus } from "react-native";
 import { useRouter, useSegments } from "expo-router";
 import { useAuthStore } from "@/stores/auth";
 import { useAppLockStore } from "@/stores/appLock";
+import { homeForRole } from "./useProtectedRoute";
 
 export function useAppLockGate(isReady: boolean = true) {
   const router = useRouter();
@@ -111,7 +112,8 @@ export function useAppLockGate(isReady: boolean = true) {
       }
       // Successfully unlocked — navigate out of the lock screen.
       if (isAuthenticated && pinHash && !isLocked && isLockScreen) {
-        router.replace("/(app)");
+        const role = useAuthStore.getState().user?.role;
+        router.replace(homeForRole(role) as any);
         return;
       }
       // Auth dropped while we were on /lock: kick back to login.

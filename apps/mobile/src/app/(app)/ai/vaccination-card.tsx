@@ -1,12 +1,13 @@
 // @ts-nocheck
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   Image,
   Pressable,
+  BackHandler,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -198,11 +199,38 @@ export default function VaccinationCardScreen() {
     }
   }
 
+  const handleBack = useCallback(() => {
+    if (step === "review") {
+      setStep("scan");
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(app)/vaccinations");
+    }
+  }, [step, router]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (step === "review") {
+        setStep("scan");
+        return true;
+      }
+      if (router.canGoBack()) {
+        router.back();
+        return true;
+      }
+      return false;
+    };
+
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
+  }, [step, router]);
+
   return (
     <Screen padded={false} edges={["top"]} bottomInset>
       <ScreenHeader
         back
-        onBack={() => router.back()}
+        onBack={handleBack}
         title={t("vaccinationCard.title")}
         subtitle={t("vaccinationCard.subtitle")}
       />

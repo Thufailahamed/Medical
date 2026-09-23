@@ -5,9 +5,10 @@ import { View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
-import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Video, Stethoscope, ChevronRight } from "lucide-react-native";
+import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Video, Stethoscope, ChevronRight, Building2 } from "lucide-react-native";
 import { useMyAppointments, useCancelAppointment, useActiveTeleconsultSession } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { withOpacity } from "@/constants/theme";
 import { api } from "@/lib/api";
 import { slDayDiff } from "@healthcare/shared";
 import {
@@ -55,20 +56,45 @@ function monthName(_t: (k: string) => string, m: number) {
   return names[(m - 1) % 12] || "—";
 }
 
-function groupKey(t: (k: string) => string, a: any) {
-  if (!a?.date) return t("appointments.groups.later");
+function sortAppointments(items: any[]) {
+  return [...items].sort((a, b) => {
+    const isAUpcoming = a.bucket === "today" || a.bucket === "upcoming";
+    const isBUpcoming = b.bucket === "today" || b.bucket === "upcoming";
+
+    // 1. Upcoming always comes before past/missed/cancelled
+    if (isAUpcoming && !isBUpcoming) return -1;
+    if (!isAUpcoming && isBUpcoming) return 1;
+
+    // 2. Both upcoming: chronological (soonest first)
+    if (isAUpcoming && isBUpcoming) {
+      const aTime = a.startsAt ?? new Date(`${a.date}T${a.time || "00:00"}`).getTime();
+      const bTime = b.startsAt ?? new Date(`${b.date}T${b.time || "00:00"}`).getTime();
+      return aTime - bTime;
+    }
+
+    // 3. Both past/missed: reverse-chronological (most recent first)
+    const aTime = a.startsAt ?? new Date(`${a.date}T${a.time || "00:00"}`).getTime();
+    const bTime = b.startsAt ?? new Date(`${b.date}T${b.time || "00:00"}`).getTime();
+    return bTime - aTime;
+  });
+}
+
+function groupKey(t: (k: string, opts?: any) => string, a: any) {
+  if (!a?.date) return t("appointments.groups.later", { defaultValue: "Upcoming" });
   const diff = slDayDiff(a.date);
-  if (diff === 0) return t("appointments.groups.today");
-  if (diff < 0) {
-    const d = new Date(a.date);
-    return t("appointments.groups.pastMonth", {
-      month: d.toLocaleString("en", { month: "short" }),
-      year: d.getFullYear(),
-      defaultValue: `${d.toLocaleString("en", { month: "long" })} ${d.getFullYear()}`,
-    });
+  if (a.bucket === "today" || diff === 0) {
+    return t("appointments.groups.today", { defaultValue: "Today" });
   }
-  if (diff <= 7) return t("appointments.groups.week");
-  return t("appointments.groups.later");
+  if (a.bucket === "upcoming" || diff > 0) {
+    if (diff <= 7) return t("appointments.groups.week", { defaultValue: "This Week" });
+    return t("appointments.groups.later", { defaultValue: "Upcoming" });
+  }
+  const d = new Date(a.date);
+  return t("appointments.groups.pastMonth", {
+    month: d.toLocaleString("en", { month: "short" }).toUpperCase(),
+    year: d.getFullYear(),
+    defaultValue: `${d.toLocaleString("en", { month: "short" }).toUpperCase()} ${d.getFullYear()}`,
+  });
 }
 
 export default function AppointmentsScreen() {
@@ -138,8 +164,17 @@ export default function AppointmentsScreen() {
     return a.mode === modeFilter;
   };
 
+  const counts = useMemo(() => {
+    return {
+      all: all.length,
+      upcoming: all.filter((a) => a.bucket === "upcoming" || a.bucket === "today").length,
+      missed: all.filter((a) => a.bucket === "missed").length,
+      past: all.filter((a) => a.bucket === "completed" || a.bucket === "cancelled").length,
+    };
+  }, [all]);
+
   const filtered = useMemo(
-    () => all.filter((a) => matchesDateFilter(a) && matchesModeFilter(a)),
+    () => sortAppointments(all.filter((a) => matchesDateFilter(a) && matchesModeFilter(a))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [all, filter, modeFilter]
   );
@@ -165,16 +200,14 @@ export default function AppointmentsScreen() {
     (modeFilter === "all" || modeFilter === "video") &&
     (filter === "all" || filter === "upcoming");
 
-  const upcomingCount = all.filter(
-    (a) => a.bucket === "upcoming" || a.bucket === "today"
-  ).length;
+  const upcomingCount = counts.upcoming;
   const upcomingPct = all.length
     ? Math.round((upcomingCount / all.length) * 100)
     : 0;
   const contentPadding = spacing.sm + 2;
 
   return (
-    <Screen scroll padded={false} bottomInset={false}>
+    <Screen scroll padded={false} tabBarOffset bottomInset>
       <ScreenHeader
         title={t("appointments.title")}
         back={router.canGoBack()}
@@ -193,40 +226,46 @@ export default function AppointmentsScreen() {
         }
       />
 
-      <View style={{ paddingHorizontal: contentPadding, paddingTop: spacing.xs }}>
-        <LinearGradient
-          colors={[colors.primarySoft, colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+      <View style={{ paddingHorizontal: contentPadding, paddingTop: spacing.xs, paddingBottom: spacing.sm }}>
+        <View
           style={{
-            borderRadius: radius.lg,
+            backgroundColor: colors.surface,
+            borderRadius: radius.xl,
             borderWidth: 1,
             borderColor: colors.border,
             padding: spacing.sm + 2,
             gap: spacing.sm,
           }}
         >
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            {FILTER_VALUES.map((v) => (
-              <FilterPill
-                key={v}
-                label={t(`appointments.filter.${v}`)}
-                active={filter === v}
-                onPress={() => setFilter(v)}
-              />
-            ))}
-          </View>
-
-          {/* Mode filter — Online (video) vs Offline (in-person) vs All.
-              Independent of the date filter so users can drill in either axis. */}
+          {/* Date Filter Pills with Counts */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{
               flexDirection: "row",
-              gap: spacing.sm,
+              gap: spacing.xs + 2,
               alignItems: "center",
-              paddingRight: spacing.xs,
+            }}
+          >
+            {FILTER_VALUES.map((v) => (
+              <FilterPill
+                key={v}
+                label={t(`appointments.filter.${v}`)}
+                count={counts[v]}
+                active={filter === v}
+                onPress={() => setFilter(v)}
+              />
+            ))}
+          </ScrollView>
+
+          {/* Mode filter — All vs Video visit vs In-person */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              flexDirection: "row",
+              gap: spacing.xs + 2,
+              alignItems: "center",
             }}
           >
             {MODE_FILTER_VALUES.map((v) => {
@@ -248,36 +287,6 @@ export default function AppointmentsScreen() {
               );
             })}
           </ScrollView>
-        </LinearGradient>
-      </View>
-
-      <View
-        style={{
-          paddingHorizontal: contentPadding,
-          paddingTop: spacing.md,
-          paddingBottom: spacing.sm,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Text style={[typography.title.sm, { color: colors.text }]}>
-          {t(`appointments.filter.${filter}`)}
-        </Text>
-        <View
-          style={{
-            minWidth: 30,
-            height: 30,
-            paddingHorizontal: spacing.sm,
-            borderRadius: radius.full,
-            backgroundColor: colors.primarySoft,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={[typography.label.md, { color: colors.primary }]}>
-            {filtered.length}
-          </Text>
         </View>
       </View>
 
@@ -369,10 +378,18 @@ export default function AppointmentsScreen() {
             renderItem={(item: any) => {
               const tone = STATUS_TONE[item.status] ?? "neutral";
               const { day, month } = dateParts(t, item.date);
+              const isUpcoming = item.bucket === "today" || item.bucket === "upcoming";
+
+              const doctorDisplayName = item.doctorName || null;
+              const subDetails = [
+                item.doctorSpecialization,
+                item.hospitalName || (item.mode === "video" ? t("appointments.mode.video") : undefined),
+              ].filter(Boolean).join(" · ");
+
               return (
-                <Card padded={false} style={{ borderRadius: radius.lg }}>
-                  <View style={{ padding: spacing.sm + 2 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <Card padded={false} style={{ borderRadius: radius.lg, overflow: "hidden" }}>
+                  <View style={{ padding: spacing.sm + 4 }}>
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm + 2 }}>
                       <Pressable
                         onPress={() =>
                           router.push({
@@ -385,47 +402,85 @@ export default function AppointmentsScreen() {
                           flex: 1,
                           minWidth: 0,
                           flexDirection: "row",
-                          alignItems: "center",
-                          gap: spacing.sm,
+                          alignItems: "flex-start",
+                          gap: spacing.sm + 2,
                         }}
                       >
-                        <LinearGradient
-                          colors={[colors.primary, colors.primaryMuted]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={{
-                            width: 56,
-                            height: 66,
-                            borderRadius: radius.md,
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Text
-                            style={[
-                              typography.title.lg,
-                              { color: colors.onPrimary, fontSize: 22, lineHeight: 24 },
-                            ]}
+                        {/* Date box */}
+                        {isUpcoming ? (
+                          <LinearGradient
+                            colors={[colors.primary, colors.primaryMuted]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={{
+                              width: 54,
+                              height: 62,
+                              borderRadius: radius.md,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
                           >
-                            {day}
-                          </Text>
-                          <Text
-                            style={[
-                              typography.overline,
-                              { color: colors.onPrimary, marginTop: 1 },
-                            ]}
+                            <Text
+                              style={[
+                                typography.title.lg,
+                                { color: colors.onPrimary, fontSize: 20, lineHeight: 22, fontWeight: "700" },
+                              ]}
+                            >
+                              {day}
+                            </Text>
+                            <Text
+                              style={[
+                                typography.overline,
+                                { color: colors.onPrimary, marginTop: 1, letterSpacing: 0.5 },
+                              ]}
+                            >
+                              {month}
+                            </Text>
+                          </LinearGradient>
+                        ) : (
+                          <View
+                            style={{
+                              width: 54,
+                              height: 62,
+                              borderRadius: radius.md,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              backgroundColor: colors.surfaceMuted,
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                            }}
                           >
-                            {month}
-                          </Text>
-                        </LinearGradient>
+                            <Text
+                              style={[
+                                typography.title.lg,
+                                { color: colors.text, fontSize: 20, lineHeight: 22, fontWeight: "700" },
+                              ]}
+                            >
+                              {day}
+                            </Text>
+                            <Text
+                              style={[
+                                typography.overline,
+                                { color: colors.textMuted, marginTop: 1, letterSpacing: 0.5 },
+                              ]}
+                            >
+                              {month}
+                            </Text>
+                          </View>
+                        )}
 
-                        <View style={{ flex: 1, minWidth: 0, gap: spacing.xs + 2 }}>
+                        {/* Appointment Info */}
+                        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                          {/* Badges row: mode + status */}
                           <View
                             style={{
                               flexDirection: "row",
                               alignItems: "center",
                               gap: spacing.xs,
                               flexWrap: "wrap",
+                              marginBottom: 2,
                             }}
                           >
                             {item.mode === "video" ? (
@@ -455,29 +510,56 @@ export default function AppointmentsScreen() {
                               />
                             ) : null}
                           </View>
+
+                          {/* Primary title: Doctor's name or reason */}
                           <Text
-                            style={[typography.title.sm, { color: colors.text }]}
+                            style={[
+                              typography.title.sm,
+                              { color: colors.text, fontWeight: "700" },
+                            ]}
                             numberOfLines={1}
                           >
-                            {item.reason ||
+                            {doctorDisplayName ||
+                              item.reason ||
                               item.specialty ||
                               t("appointments.fallbackTitle")}
                           </Text>
+
+                          {/* Subtitle: Specialization / Hospital / Reason */}
+                          {subDetails ? (
+                            <Text
+                              style={[
+                                typography.body.xs,
+                                { color: colors.textMuted },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {subDetails}
+                            </Text>
+                          ) : null}
+
+                          {/* Meta row: Time + Queue + Records */}
                           <View
                             style={{
                               flexDirection: "row",
                               alignItems: "center",
-                              gap: spacing.xs,
+                              gap: spacing.sm,
                               flexWrap: "wrap",
+                              marginTop: 2,
                             }}
                           >
                             {item.time ? (
                               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                                <Clock size={13} color={colors.textMuted} strokeWidth={2.25} />
-                                <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                                <Clock size={12} color={colors.textMuted} strokeWidth={2.25} />
+                                <Text style={[typography.body.xs, { color: colors.textMuted, fontWeight: "500" }]}>
                                   {item.time}
                                 </Text>
                               </View>
+                            ) : null}
+                            {item.queueNumber ? (
+                              <Text style={[typography.body.xs, { color: colors.primary, fontWeight: "600" }]}>
+                                Queue #{item.queueNumber}
+                              </Text>
                             ) : null}
                             {item.recordCount ? (
                               <Pill
@@ -491,9 +573,16 @@ export default function AppointmentsScreen() {
                             ) : null}
                           </View>
                         </View>
-                        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.25} />
+
+                        <ChevronRight
+                          size={18}
+                          color={colors.textSubtle}
+                          strokeWidth={2}
+                          style={{ alignSelf: "center", marginLeft: 2 }}
+                        />
                       </Pressable>
 
+                      {/* Cancel button */}
                       {(item.status === "scheduled" ||
                         item.status === "confirmed") ? (
                         <Pressable
@@ -505,19 +594,20 @@ export default function AppointmentsScreen() {
                           hitSlop={6}
                           disabled={cancellingId === item.id}
                           style={({ pressed }) => ({
-                            width: 34,
-                            height: 34,
-                            borderRadius: 17,
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
                             alignItems: "center",
                             justifyContent: "center",
                             backgroundColor: pressed ? colors.danger : colors.dangerSoft,
                             opacity: cancellingId === item.id ? 0.6 : 1,
+                            marginLeft: 4,
                           })}
                         >
                           {cancellingId === item.id ? (
-                            <Loader size={16} color={colors.danger} strokeWidth={2.25} />
+                            <Loader size={14} color={colors.danger} strokeWidth={2.25} />
                           ) : (
-                            <X size={16} color={colors.danger} strokeWidth={2.5} />
+                            <X size={15} color={colors.danger} strokeWidth={2.5} />
                           )}
                         </Pressable>
                       ) : null}
@@ -529,7 +619,7 @@ export default function AppointmentsScreen() {
                     (item.status === "scheduled" ||
                       item.status === "confirmed" ||
                       item.status === "in_progress") ? (
-                      <View style={{ marginTop: spacing.md }}>
+                      <View style={{ marginTop: spacing.sm + 4 }}>
                         <Pressable
                           onPress={() =>
                             router.push({
@@ -558,7 +648,7 @@ export default function AppointmentsScreen() {
                       </View>
                     ) : item.mode === "video" &&
                       (item.bucket === "today" || item.isLive) ? (
-                      <View style={{ marginTop: spacing.md }}>
+                      <View style={{ marginTop: spacing.sm + 4 }}>
                         <View
                           accessibilityRole="button"
                           accessibilityLabel={
@@ -573,7 +663,7 @@ export default function AppointmentsScreen() {
                             alignItems: "center",
                             justifyContent: "center",
                             gap: spacing.sm,
-                            backgroundColor: colors.surfaceMuted || colors.bgMuted,
+                            backgroundColor: colors.surfaceMuted,
                             opacity: 0.8,
                           }}
                         >
@@ -587,9 +677,9 @@ export default function AppointmentsScreen() {
                       </View>
                     ) : null}
 
-                    {/* Missed visits: one-tap recovery */}
+                    {/* Missed visits: compact outline recovery pill */}
                     {item.bucket === "missed" ? (
-                      <View style={{ marginTop: spacing.md }}>
+                      <View style={{ marginTop: spacing.sm + 2, paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.borderMuted || colors.border }}>
                         <Pressable
                           onPress={() =>
                             router.push({
@@ -601,19 +691,21 @@ export default function AppointmentsScreen() {
                           accessibilityLabel={t("appointments.bookAgain")}
                           hitSlop={6}
                           style={({ pressed }) => ({
-                            height: 38,
-                            borderRadius: radius.md,
+                            height: 32,
+                            alignSelf: "flex-start",
+                            paddingHorizontal: spacing.md,
+                            borderRadius: radius.full,
                             flexDirection: "row",
                             alignItems: "center",
                             justifyContent: "center",
-                            gap: spacing.sm,
-                            backgroundColor: pressed ? colors.primaryMuted : colors.primarySoft,
+                            gap: 6,
+                            backgroundColor: pressed ? colors.primarySoft : "transparent",
                             borderWidth: 1,
                             borderColor: colors.primary,
                           })}
                         >
-                          <CalendarPlus size={16} color={colors.primary} strokeWidth={2.5} />
-                          <Text style={[typography.label.md, { color: colors.primary }]}>
+                          <CalendarPlus size={14} color={colors.primary} strokeWidth={2.25} />
+                          <Text style={[typography.label.sm, { color: colors.primary, fontWeight: "700" }]}>
                             {t("appointments.bookAgain")}
                           </Text>
                         </Pressable>
@@ -698,10 +790,12 @@ export default function AppointmentsScreen() {
 
 function FilterPill({
   label,
+  count,
   active,
   onPress,
 }: {
   label: string;
+  count?: number;
   active: boolean;
   onPress: () => void;
 }) {
@@ -710,15 +804,17 @@ function FilterPill({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      accessibilityLabel={label}
+      accessibilityLabel={`${label} ${count !== undefined ? count : ""}`}
       onPress={onPress}
       style={({ pressed }) => ({
-        flex: 1,
-        minHeight: 42,
-        paddingHorizontal: spacing.sm,
-        borderRadius: radius.md,
+        minHeight: 36,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 6,
+        borderRadius: radius.full,
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
+        gap: 6,
         backgroundColor: active ? colors.primary : colors.surface,
         borderWidth: 1,
         borderColor: active ? colors.primary : colors.border,
@@ -730,12 +826,41 @@ function FilterPill({
           typography.label.md,
           {
             color: active ? colors.onPrimary : colors.text,
-            fontWeight: "700",
+            fontWeight: active ? "700" : "600",
           },
         ]}
       >
         {label}
       </Text>
+      {typeof count === "number" ? (
+        <View
+          style={{
+            minWidth: 19,
+            height: 19,
+            borderRadius: 10,
+            paddingHorizontal: 5,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: active
+              ? withOpacity(colors.onPrimary, 0.22)
+              : colors.surfaceMuted,
+          }}
+        >
+          <Text
+            style={[
+              typography.caption,
+              {
+                fontSize: 11,
+                lineHeight: 13,
+                fontWeight: "700",
+                color: active ? colors.onPrimary : colors.textMuted,
+              },
+            ]}
+          >
+            {count}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -759,7 +884,7 @@ function ModePill({
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
-        minHeight: 36,
+        minHeight: 34,
         flexShrink: 0,
         flexDirection: "row",
         alignItems: "center",
@@ -773,14 +898,14 @@ function ModePill({
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      {Icon ? <Icon size={14} color={active ? colors.primary : colors.textMuted} strokeWidth={2.25} /> : null}
+      {Icon ? <Icon size={13} color={active ? colors.primary : colors.textMuted} strokeWidth={2.25} /> : null}
       <Text
         numberOfLines={1}
         style={[
-          typography.label.md,
+          typography.label.sm,
           {
             color: active ? colors.primary : colors.text,
-            fontWeight: "700",
+            fontWeight: active ? "700" : "500",
           },
         ]}
       >
@@ -828,8 +953,8 @@ function PinnedVideoCard({
           <Text style={[typography.overline, { color: colors.onPrimary }]}>{month}</Text>
         </LinearGradient>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text }]}>
-            {appt.reason || appt.specialty || t("appointments.fallbackTitle")}
+          <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+            {appt.doctorName || appt.reason || appt.specialty || t("appointments.fallbackTitle")}
           </Text>
           <View
             style={{

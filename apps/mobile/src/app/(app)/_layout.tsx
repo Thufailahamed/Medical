@@ -44,30 +44,58 @@ export default function AppLayout() {
     <View style={{ flex: 1 }}>
       <TeleconsultWaitingBanner roomPathname="/(app)/teleconsult/[roomId]" />
       <Tabs
-      screenOptions={{
+        backBehavior="history"
+        screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSubtle,
+        tabBarItemStyle: {
+          paddingTop: 3,
+        },
         tabBarStyle: {
           position: "absolute",
-          left: 12,
-          right: 12,
-          bottom: 8,
-          backgroundColor: "rgba(255,255,255,0.98)",
+          left: 16,
+          right: 16,
+          bottom: Platform.OS === "ios" ? 14 : 10,
+          backgroundColor: "transparent",
           borderTopWidth: 0,
-          borderWidth: 1,
-          borderColor: "#E2EBF1",
+          height: Platform.OS === "ios" ? 72 : 64,
+          paddingBottom: Platform.OS === "ios" ? 10 : 6,
+          paddingTop: 4,
           borderRadius: 24,
-          height: Platform.OS === "ios" ? 82 : 68,
-          paddingBottom: Platform.OS === "ios" ? 20 : 8,
-          paddingTop: 8,
-          elevation: 12,
-          shadowColor: "#0B2942",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.14,
-          shadowRadius: 24,
+          elevation: 16,
+          shadowColor: "#062238",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.12,
+          shadowRadius: 20,
         },
-        tabBarLabelStyle: labelStyle,
+        tabBarBackground: () => (
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              borderRadius: 24,
+              overflow: "hidden",
+              borderWidth: 1,
+              borderColor: "rgba(226, 235, 241, 0.8)",
+              backgroundColor:
+                Platform.OS === "android"
+                  ? "#FFFFFF"
+                  : "rgba(255, 255, 255, 0.88)",
+            }}
+          >
+            {Platform.OS === "ios" ? (
+              <BlurView
+                intensity={80}
+                tint="light"
+                style={StyleSheet.absoluteFill}
+              />
+            ) : null}
+          </View>
+        ),
+        tabBarLabelStyle: {
+          ...labelStyle,
+          marginTop: 2,
+        },
       }}
     >
       <Tabs.Screen

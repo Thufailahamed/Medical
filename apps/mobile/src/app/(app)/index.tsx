@@ -233,7 +233,7 @@ export default function HomeScreen() {
             tintColor={colors.primary}
           />
         }
-        contentContainerStyle={{ paddingBottom: layout.tabBarHeight + spacing.lg }}
+        contentContainerStyle={{ paddingBottom: layout.tabBarHeight + 56 }}
       >
         {/* ─── Critical allergy banner ─── */}
         {(() => {
@@ -1553,15 +1553,6 @@ export default function HomeScreen() {
           </View>
 
 
-
-          {/* Wellness */}
-          <View style={{ gap: spacing.sm }}>
-            <SectionLabel title={t("home.sectionWellness")} />
-            <WellnessCard />
-          </View>
-
-          {/* Vitals at a glance — sparkline row */}
-          <VitalsGlanceCard />
 
           {/* Active Prescriptions Hub */}
           <HomePrescriptionsSection />

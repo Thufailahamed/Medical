@@ -23,7 +23,7 @@ export function TabIcon({
   focused,
   badge,
   tint,
-  size = 24,
+  size = 21,
   style,
 }: Props) {
   const { colors, radius, motion } = useTheme();
@@ -42,19 +42,19 @@ export function TabIcon({
 
   const pillStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
-    transform: [{ scale: 0.4 + progress.value * 0.6 }],
+    transform: [{ scale: 0.6 + progress.value * 0.4 }],
   }));
 
   const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (1 - progress.value) * 2 }],
+    transform: [{ translateY: (1 - progress.value) * 1 }],
   }));
 
   return (
     <View
       style={[
         {
-          width: 56,
-          height: 32,
+          width: 48,
+          height: 30,
           alignItems: "center",
           justifyContent: "center",
         },
@@ -67,19 +67,19 @@ export function TabIcon({
           styles.pill,
           {
             backgroundColor: colors.primarySoft,
-            borderRadius: radius.full,
+            borderRadius: 15,
           },
           pillStyle,
         ]}
       />
       <Animated.View style={iconStyle}>
-        <Icon size={size} color={fg} strokeWidth={focused ? 2.5 : 2} />
+        <Icon size={size} color={fg} strokeWidth={focused ? 2.4 : 1.9} />
       </Animated.View>
       {typeof badge === "number" && badge > 0 ? (
         <View
           style={[
             styles.badge,
-            { backgroundColor: colors.danger, borderColor: colors.bg },
+            { backgroundColor: colors.danger, borderColor: colors.surface || "#FFFFFF" },
           ]}
           accessibilityLabel={`${badge} unread`}
         >
@@ -95,23 +95,23 @@ export function TabIcon({
 const styles = StyleSheet.create({
   pill: {
     position: "absolute",
-    width: 56,
-    height: 32,
+    width: 44,
+    height: 30,
   },
   badge: {
     position: "absolute",
-    top: -2,
-    right: -8,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
+    top: -3,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "800",
   },
 });

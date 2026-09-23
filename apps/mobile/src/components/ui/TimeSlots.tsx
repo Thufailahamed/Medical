@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, type DimensionValue } from "react-native";
+import { View, Text, Pressable, StyleSheet, type DimensionValue } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -30,7 +30,7 @@ export function TimeSlots({ slots, value, onChange, columns = 4 }: Props) {
           slot={slot}
           selected={value === slot.value}
           onPress={() => onChange(slot.value)}
-          flexBasis={(`${100 / columns}%` as unknown) as DimensionValue}
+          flexBasis={(`${100 / columns - 2.5}%` as unknown) as DimensionValue}
         />
       ))}
     </View>
@@ -81,18 +81,28 @@ function AnimatedButton({
 }) {
   const { colors, spacing, radius, typography } = useTheme();
   return (
-    <View
+    <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
-      onTouchEnd={onPress}
-      style={[
+      onPress={onPress}
+      style={({ pressed }) => [
         styles.slot,
         {
-          backgroundColor: selected ? colors.primary : colors.surface,
+          backgroundColor: selected
+            ? colors.primary
+            : pressed
+              ? colors.surfaceMuted
+              : colors.surface,
           borderColor: selected ? colors.primary : colors.border,
           borderRadius: radius.lg,
           paddingVertical: spacing.md,
+          shadowColor: selected ? colors.primary : colors.text,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: selected ? 0.22 : 0.04,
+          shadowRadius: selected ? 8 : 4,
+          elevation: selected ? 3 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
         },
       ]}
     >
@@ -108,7 +118,7 @@ function AnimatedButton({
       >
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

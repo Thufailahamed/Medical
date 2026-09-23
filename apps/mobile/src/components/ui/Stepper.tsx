@@ -15,7 +15,7 @@ type Props = {
 };
 
 export function Stepper({ steps, current }: Props) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, shadow } = useTheme();
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -34,13 +34,38 @@ export function Stepper({ steps, current }: Props) {
       <View
         style={{
           backgroundColor: colors.surface,
-          borderRadius: 18,
+          borderRadius: 22,
           borderWidth: 1,
           borderColor: colors.border,
           paddingVertical: spacing.md,
-          paddingHorizontal: spacing.sm,
+          paddingHorizontal: spacing.md,
+          ...shadow.sm,
         }}
       >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: spacing.md,
+          }}
+        >
+          <Text style={[typography.label.md, { color: colors.text, fontWeight: "800" }]}>
+            {steps[current]}
+          </Text>
+          <View
+            style={{
+              paddingHorizontal: 9,
+              paddingVertical: 4,
+              borderRadius: 999,
+              backgroundColor: colors.primarySoft,
+            }}
+          >
+            <Text style={[typography.caption, { color: colors.primary, fontWeight: "800" }]}>
+              {`${current + 1} / ${steps.length}`}
+            </Text>
+          </View>
+        </View>
         {/* Connector track behind the dots */}
         <View style={[styles.trackRow]}>
           <View

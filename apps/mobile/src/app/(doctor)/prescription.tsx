@@ -1,8 +1,7 @@
 // @ts-nocheck
-
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput as RNTextInput } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,6 +19,10 @@ import {
   Plus,
   Trash2,
   Layers,
+  FilePenLine,
+  Phone,
+  Sparkles,
+  UserRound,
 } from "lucide-react-native";
 import {
   useSearchPatients,
@@ -30,10 +33,12 @@ import {
   useSafetyCheck,
   useDoctorRxTemplates,
   useRecordRxTemplateUse,
+  useRecentDoctorPatients,
   type MedicineEntry as TemplateMedicine,
 } from "@/hooks/useApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTheme } from "@/theme/ThemeProvider";
+import { withOpacity } from "@/constants/theme";
 import {
   Screen,
   ScreenHeader,
@@ -64,6 +69,32 @@ const PRESET_MEDS = [
 ];
 
 const COMMON_DOSAGES = ["250mg", "500mg", "1g", "5mg", "10mg", "20mg"];
+
+const AVATAR_PALETTES = [
+  { bg: "#EFF6FF", fg: "#2563EB", border: "#BFDBFE" }, // Sapphire
+  { bg: "#ECFDF5", fg: "#059669", border: "#A7F3D0" }, // Emerald
+  { bg: "#F5F3FF", fg: "#7C3AED", border: "#DDD6FE" }, // Violet
+  { bg: "#FFF7ED", fg: "#EA580C", border: "#FED7AA" }, // Amber / Coral
+  { bg: "#ECFEFF", fg: "#0891B2", border: "#A5F3FC" }, // Cyan
+  { bg: "#FDF2F8", fg: "#DB2777", border: "#FBCFE8" }, // Rose
+];
+
+function getAvatarPalette(name: string) {
+  let hash = 0;
+  for (let i = 0; i < (name || "").length; i++) {
+    hash = (hash + name.charCodeAt(i)) % AVATAR_PALETTES.length;
+  }
+  return AVATAR_PALETTES[hash];
+}
+
+function getInitials(name: string): string {
+  if (!name) return "PT";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 // ─── Medicine entry shape ───────────────────────────────────
 // One MedicineEntry per line on the prescription. The local id
@@ -126,23 +157,6 @@ export default function PrescriptionScreen() {
   const { spacing, colors, typography, radius, fontFamily } = useTheme();
   const { t } = useTranslation();
 
-  // Dynamically hide bottom tab bar when actively writing a prescription
-  useLayoutEffect(() => {
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.setOptions({
-        tabBarStyle: selectedPatient ? { display: "none" } : undefined,
-      });
-    }
-    return () => {
-      if (parent) {
-        parent.setOptions({
-          tabBarStyle: undefined,
-        });
-      }
-    };
-  }, [navigation, selectedPatient]);
-
   const toast = useToast();
   const { patientId } = useLocalSearchParams<{ patientId?: string }>();
 
@@ -152,9 +166,27 @@ export default function PrescriptionScreen() {
   const debouncedQuery = useDebounce(searchQuery, 200);
   const { data: searchResults } = useSearchPatients(debouncedQuery);
   const { data: consentsData } = useConsentsIssued();
+  const { data: recentPatientsData } = useRecentDoctorPatients(15);
   const { data: patientOverview } = usePatientOverview(patientId || null);
 
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
+
+  // Dynamically hide bottom tab bar when actively writing a prescription
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: selectedPatient ? { display: "none" } : undefined,
+    });
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.setOptions({
+        tabBarStyle: selectedPatient ? { display: "none" } : undefined,
+      });
+    }
+    return () => {
+      navigation.setOptions({ tabBarStyle: undefined });
+      if (parent) parent.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation, selectedPatient]);
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
   // Phase 4: medicines are an array, not a single entry. The form
@@ -405,97 +437,355 @@ export default function PrescriptionScreen() {
     updateEntry(entryKey, { name: display, masterMedicineId: m.id });
   }
 
+  const [patientFilter, setPatientFilter] = useState<"all" | "careTeam" | "recent">("all");
+
+  const consentPatients = useMemo(() => {
+    return (consentsData?.items || []).map((c: any) => ({
+      patient: { id: c.patientId },
+      user: {
+        name: c.patientName,
+        phone: c.patientPhone,
+        photo: c.patientPhoto,
+      },
+      isCareTeam: true,
+    }));
+  }, [consentsData]);
+
+  const recentPatients = useMemo(() => {
+    return (recentPatientsData?.patients || []).map((r: any) => ({
+      ...r,
+      isRecent: true,
+    }));
+  }, [recentPatientsData]);
+
+  const allKnownPatients = useMemo(() => {
+    const seen = new Set<string>();
+    const list: any[] = [];
+    for (const p of [...consentPatients, ...recentPatients]) {
+      const id = p.patient?.id || p.patients?.id || p.id;
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        list.push(p);
+      }
+    }
+    return list;
+  }, [consentPatients, recentPatients]);
+
+  const remoteResults = searchResults?.patients || [];
+
+  const results = useMemo(() => {
+    if (searchQuery.trim().length > 0) {
+      const normalizedQuery = searchQuery.toLowerCase().trim();
+      const localFiltered = allKnownPatients.filter((p: any) => {
+        const name = (p.user?.name || p.users?.name || p.name || "").toLowerCase();
+        const phone = (p.user?.phone || p.users?.phone || p.phone || "").toLowerCase();
+        const nic = (p.user?.nic || p.users?.nic || p.nic || "").toLowerCase();
+        return (
+          name.includes(normalizedQuery) ||
+          phone.includes(normalizedQuery) ||
+          nic.includes(normalizedQuery)
+        );
+      });
+
+      const seenIds = new Set<string>();
+      return [...localFiltered, ...remoteResults].filter((p: any) => {
+        const pId = p.patient?.id || p.patients?.id || p.id;
+        if (!pId || seenIds.has(pId)) return false;
+        seenIds.add(pId);
+        return true;
+      });
+    }
+    return allKnownPatients;
+  }, [searchQuery, allKnownPatients, remoteResults]);
+
+  const displayedPatients = useMemo(() => {
+    if (patientFilter === "careTeam") {
+      const activeIds = new Set(
+        consentPatients.map((a: any) => a.patient?.id || a.id).filter(Boolean)
+      );
+      return results.filter((p: any) => {
+        const id = p.patient?.id || p.patients?.id || p.id;
+        return id && activeIds.has(id);
+      });
+    }
+    if (patientFilter === "recent") {
+      const recentIds = new Set(
+        recentPatients.map((r: any) => r.patient?.id || r.id).filter(Boolean)
+      );
+      return results.filter((p: any) => {
+        const id = p.patient?.id || p.patients?.id || p.id;
+        return id && recentIds.has(id);
+      });
+    }
+    return results;
+  }, [results, patientFilter, consentPatients, recentPatients]);
+
+  const hasDraft =
+    !selectedPatient &&
+    (diagnosis.trim().length > 0 ||
+      medicines.some((m) => m.name.trim().length > 0));
+
   if (selectedPatient) {
+    const patientName =
+      selectedPatient.name ||
+      selectedPatient.user?.name ||
+      selectedPatient.users?.name ||
+      t("doctorPrescription.patientFallback", { defaultValue: "Patient" });
+    const patientPhone =
+      selectedPatient.phone ||
+      selectedPatient.user?.phone ||
+      selectedPatient.users?.phone ||
+      t("doctorPrescription.noPhone", { defaultValue: "No phone on file" });
+    const patientPhoto =
+      selectedPatient.photo ||
+      selectedPatient.user?.photo ||
+      selectedPatient.users?.photo;
+
     return (
       // Fragment wraps Screen + the override BottomSheet so the return
       // has a single JSX root. The override sheet is sibling to the
       // form so the doctor can keep the keyboard visible behind it.
       <>
-      <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
-        <ScreenHeader
-          back
-          onBack={() => setSelectedPatient(null)}
-          title={t("doctorPrescription.newTitle")}
-          right={<PillCmp label={t("doctorPrescription.draft")} tone="warning" size="sm" />}
-        />
-
+      <Screen
+        scroll
+        keyboard
+        padded={false}
+        edges={["top"]}
+        contentContainerStyle={{ paddingBottom: 170 }}
+        style={{ backgroundColor: colors.bg }}
+      >
+        {/* ── Screen Header ── */}
         <View
           style={{
-            margin: spacing.lg,
-            padding: spacing.lg,
-            borderRadius: radius.glass,
-            backgroundColor: colors.primarySoft,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.sm,
+            backgroundColor: colors.bg,
             flexDirection: "row",
             alignItems: "center",
-            gap: spacing.md,
+            justifyContent: "space-between",
           }}
         >
-          <Avatar
-            name={selectedPatient.name || selectedPatient.user?.name || selectedPatient.users?.name}
-            size="lg"
-            tone="primary"
-            ring
-            source={
-              selectedPatient.photo
-                ? { uri: selectedPatient.photo }
-                : selectedPatient.user?.photo
-                ? { uri: selectedPatient.user.photo }
-                : selectedPatient.users?.photo
-                ? { uri: selectedPatient.users.photo }
-                : undefined
-            }
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={[typography.title.md, { color: colors.text }]}>
-              {selectedPatient.name || selectedPatient.user?.name || selectedPatient.users?.name || t("doctorPrescription.patientFallback")}
-            </Text>
-            <Text
-              style={[
-                typography.body.sm,
-                { color: colors.textMuted, marginTop: 2 },
-              ]}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+            <Pressable
+              onPress={() => setSelectedPatient(null)}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.borderSubtle ?? colors.border,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.8 : 1,
+              })}
             >
-              {selectedPatient.phone || selectedPatient.user?.phone || selectedPatient.users?.phone || t("doctorPrescription.noPhone")}
-            </Text>
+              <ChevronRight
+                size={18}
+                color={colors.text}
+                style={{ transform: [{ rotate: "180deg" }] }}
+              />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  typography.display.lg,
+                  {
+                    color: colors.text,
+                    fontFamily: fontFamily.displayBold,
+                    fontSize: 22,
+                    lineHeight: 28,
+                  },
+                ]}
+              >
+                {t("doctorPrescription.newTitle", { defaultValue: "New Prescription" })}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.body,
+                }}
+              >
+                E-Prescription • Clinical Order
+              </Text>
+            </View>
           </View>
+
           <PillCmp
-            icon={X}
-            label={t("doctorPrescription.changePill")}
-            tone="neutral"
+            label={t("doctorPrescription.draft", { defaultValue: "Draft" })}
+            tone="warning"
             size="sm"
           />
         </View>
 
+        {/* ── Selected Patient Card ── */}
+        <View
+          style={{
+            marginHorizontal: spacing.lg,
+            marginTop: spacing.xs,
+            marginBottom: spacing.md,
+            padding: 14,
+            borderRadius: 20,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.borderSubtle ?? colors.border,
+            flexDirection: "row",
+            alignItems: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.03,
+            shadowRadius: 6,
+            elevation: 2,
+          }}
+        >
+          <Avatar
+            name={patientName}
+            size="md"
+            tone="primary"
+            source={patientPhoto ? { uri: patientPhoto } : undefined}
+          />
+          <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  typography.bodyBold,
+                  { color: colors.text, fontWeight: "700", fontSize: 15 },
+                ]}
+              >
+                {patientName}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: withOpacity(colors.primary, 0.12),
+                  paddingHorizontal: 6,
+                  paddingVertical: 1.5,
+                  borderRadius: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: "700",
+                    color: colors.primary,
+                  }}
+                >
+                  Patient
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+              <Phone size={11} color={colors.textSubtle} strokeWidth={2} />
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.body,
+                }}
+                numberOfLines={1}
+              >
+                {patientPhone}
+              </Text>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => setSelectedPatient(null)}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 14,
+              backgroundColor: colors.surfaceMuted,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle ?? colors.border,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <X size={13} color={colors.textSubtle} />
+            <Text
+              style={{
+                fontSize: 11.5,
+                fontWeight: "600",
+                color: colors.textMuted,
+              }}
+            >
+              Change
+            </Text>
+          </Pressable>
+        </View>
+
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg }}>
-          <Card padded={false}>
+          <Card
+            padded={false}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle ?? colors.border,
+              overflow: "hidden",
+            }}
+          >
             <View
               style={{
                 paddingHorizontal: spacing.lg,
-                paddingTop: spacing.lg,
+                paddingTop: spacing.md + 2,
                 paddingBottom: spacing.sm,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.borderSubtle ?? colors.border,
               }}
             >
-              <Text style={[typography.label.lg, { color: colors.textMuted }]}>
-                {t("doctorPrescription.assessment")}
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 9,
+                  backgroundColor: colors.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Stethoscope size={15} color={colors.primary} strokeWidth={2.4} />
+              </View>
+              <Text
+                style={[
+                  typography.title.sm,
+                  { color: colors.text, fontWeight: "700", fontSize: 14.5 },
+                ]}
+              >
+                {t("doctorPrescription.assessment", { defaultValue: "Clinical Assessment" })}
               </Text>
             </View>
-            <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-              <FormField label={t("doctorPrescription.diagnosis")}>
+            <View style={{ padding: spacing.lg, gap: spacing.md }}>
+              <FormField label={t("doctorPrescription.diagnosis", { defaultValue: "Diagnosis" })} required>
                 <TextInput
                   value={diagnosis}
                   onChangeText={setDiagnosis}
-                  placeholder={t("doctorPrescription.diagnosisPlaceholder")}
+                  placeholder={t("doctorPrescription.diagnosisPlaceholder", {
+                    defaultValue: "e.g., Acute pharyngitis, Type 2 Diabetes",
+                  })}
                   leadingIcon={Stethoscope}
                   multiline
                   numberOfLines={2}
                 />
               </FormField>
 
-              <FormField label={t("doctorPrescription.notes")}>
+              <FormField label={t("doctorPrescription.notes", { defaultValue: "Clinical Notes & Advice" })}>
                 <TextInput
                   value={notes}
                   onChangeText={setNotes}
-                  placeholder={t("doctorPrescription.notesPlaceholder")}
+                  placeholder={t("doctorPrescription.notesPlaceholder", {
+                    defaultValue: "Additional instructions, diet advice, or notes...",
+                  })}
                   leadingIcon={FileText}
                   multiline
                   numberOfLines={3}
@@ -610,25 +900,72 @@ export default function PrescriptionScreen() {
               multi-select, food-relation chips, and duration. Tapping
               the + button appends an empty entry; tapping the trash
               removes one (always keeps at least one entry visible). */}
-          <Card padded={false}>
+          <Card
+            padded={false}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle ?? colors.border,
+              overflow: "hidden",
+            }}
+          >
             <View
               style={{
                 paddingHorizontal: spacing.lg,
-                paddingTop: spacing.lg,
+                paddingTop: spacing.md + 2,
                 paddingBottom: spacing.sm,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
+                borderBottomWidth: 1,
+                borderBottomColor: colors.borderSubtle ?? colors.border,
               }}
             >
-              <Text style={[typography.label.lg, { color: colors.textMuted }]}>
-                {t("doctorPrescription.medicinesHeading")}
-              </Text>
-              <Text
-                style={[typography.body.sm, { color: colors.textMuted, fontWeight: "700" }]}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 9,
+                    backgroundColor: colors.primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <PillIcon size={15} color={colors.primary} strokeWidth={2.4} />
+                </View>
+                <Text
+                  style={[
+                    typography.title.sm,
+                    { color: colors.text, fontWeight: "700", fontSize: 14.5 },
+                  ]}
+                >
+                  {t("doctorPrescription.medicinesHeading", {
+                    defaultValue: "Prescribed Medicines",
+                  })}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  backgroundColor: colors.primarySoft,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 12,
+                }}
               >
-                {medicines.length}
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "800",
+                    color: colors.primary,
+                    fontFamily: fontFamily.displayBold,
+                  }}
+                >
+                  {medicines.length}
+                </Text>
+              </View>
             </View>
             <View style={{ padding: spacing.lg, gap: spacing.md }}>
               {medicines.map((m, idx) => (
@@ -719,119 +1056,668 @@ export default function PrescriptionScreen() {
     );
   }
 
-  // Map active consent patients to match the search results shape
-  const activePatients = (consentsData?.items || []).map((c: any) => ({
-    patient: { id: c.patientId },
-    user: {
-      name: c.patientName,
-      phone: c.patientPhone,
-      photo: c.patientPhoto,
-    }
-  }));
-
-  const remoteResults = searchResults?.patients || [];
-  let results: any[] = [];
-
-  if (searchQuery.trim().length > 0) {
-    const normalizedQuery = searchQuery.toLowerCase();
-    const localFiltered = activePatients.filter((p: any) => {
-      const name = (p.user?.name || "").toLowerCase();
-      const phone = (p.user?.phone || "").toLowerCase();
-      return name.includes(normalizedQuery) || phone.includes(normalizedQuery);
-    });
-
-    const seenIds = new Set<string>();
-    results = [...localFiltered, ...remoteResults].filter((p: any) => {
-      const pId = p.patient?.id || p.patients?.id || p.id;
-      if (!pId || seenIds.has(pId)) return false;
-      seenIds.add(pId);
-      return true;
-    });
-  } else {
-    // Default to listing all active care team patients
-    results = activePatients;
-  }
-
   return (
-    <Screen scroll padded={false} edges={["top"]} bottomInset>
-      <ScreenHeader
-        back
-        onBack={() => router.back()}
-        title={t("doctorPrescription.title")}
-        subtitle={t("doctorPrescription.subtitle")}
-      />
+    <Screen scroll padded={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
+      {/* ── Top Header Bar ── */}
+      <View
+        style={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+          paddingBottom: spacing.sm,
+          backgroundColor: colors.bg,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 14,
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: withOpacity(colors.primary, 0.2),
+              }}
+            >
+              <FilePenLine size={20} color={colors.primary} strokeWidth={2.4} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  typography.display.lg,
+                  {
+                    color: colors.text,
+                    fontFamily: fontFamily.displayBold,
+                    fontSize: 22,
+                    lineHeight: 28,
+                    letterSpacing: -0.4,
+                  },
+                ]}
+              >
+                {t("doctorPrescription.title", { defaultValue: "Prescribe" })}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12.5,
+                  color: colors.textMuted,
+                  marginTop: 1,
+                  fontFamily: fontFamily.body,
+                }}
+              >
+                {t("doctorPrescription.subtitle", {
+                  defaultValue: "Select a patient to issue an electronic Rx",
+                })}
+              </Text>
+            </View>
+          </View>
 
-      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-        <View style={{ gap: spacing.sm }}>
-          <Text style={[typography.title.sm, { color: colors.text }]}>
-            {t("doctorPrescription.searchPatients")}
-          </Text>
-          <TextInput
-            placeholder={t("doctorPrescription.searchPlaceholder")}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            leadingIcon={Search}
-            tone="soft"
-            autoCapitalize="none"
-          />
+          {/* Templates Shortcut Button */}
+          <Pressable
+            onPress={() => router.push("/(doctor)/rx-templates" as any)}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 20,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle ?? colors.border,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.04,
+              shadowRadius: 3,
+              elevation: 1,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <Layers size={14} color={colors.primary} strokeWidth={2.4} />
+            <Text
+              style={{
+                fontSize: 12.5,
+                fontWeight: "700",
+                color: colors.text,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              Templates
+            </Text>
+            {templates.length > 0 && (
+              <View
+                style={{
+                  backgroundColor: colors.primarySoft,
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ fontSize: 10.5, fontWeight: "800", color: colors.primary }}>
+                  {templates.length}
+                </Text>
+              </View>
+            )}
+          </Pressable>
         </View>
 
-        {results.length > 0 ? (
-          <View style={{ gap: spacing.sm }}>
-            {results.map((p) => {
-              const pId = p.patient?.id || p.patients?.id || p.id;
-              const pName = p.user?.name || p.users?.name || p.name;
-              const pPhone = p.user?.phone || p.users?.phone || p.phone;
-              const pPhoto = p.user?.photo || p.users?.photo || p.photo;
-              return (
-                <ListItem
-                  key={pId}
-                  variant="contact"
-                  iconTone="primary"
-                  title={pName || t("doctorPrescription.patientFallback")}
-                  subtitle={pPhone || t("doctorPrescription.tapToPrescribe")}
-                  mediaSlot={
-                    <Avatar
-                      name={pName}
-                      size="md"
-                      tone="primary"
-                      source={pPhoto ? { uri: pPhoto } : undefined}
-                    />
-                  }
-                  pill={{ label: t("doctorPrescription.pillPrescribe"), tone: "primary" }}
-                  trailing={
+        {/* ── Active Draft Banner ── */}
+        {hasDraft && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: 12,
+              borderRadius: 16,
+              backgroundColor: withOpacity(colors.warning || "#F59E0B", 0.1),
+              borderWidth: 1,
+              borderColor: withOpacity(colors.warning || "#F59E0B", 0.28),
+              marginTop: 14,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+              <Sparkles size={16} color={colors.warning || "#B45309"} strokeWidth={2.4} />
+              <Text
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: "600",
+                  color: colors.warning || "#B45309",
+                  flex: 1,
+                }}
+                numberOfLines={1}
+              >
+                Unfinished Rx draft ({medicines.filter((m) => m.name.trim()).length} med
+                {medicines.filter((m) => m.name.trim()).length === 1 ? "" : "s"} saved)
+              </Text>
+            </View>
+            <Pressable
+              onPress={async () => {
+                setDiagnosis("");
+                setNotes("");
+                setMedicines([emptyEntry()]);
+                try {
+                  await SecureStore.deleteItemAsync("prescription_draft");
+                } catch {}
+              }}
+              hitSlop={6}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.danger || "#DC2626",
+                }}
+              >
+                Discard
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* ── Single-Container Search Bar ── */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.borderSubtle ?? colors.border,
+            paddingHorizontal: 14,
+            height: 48,
+            marginTop: 14,
+            gap: 10,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.03,
+            shadowRadius: 3,
+            elevation: 1,
+          }}
+        >
+          <Search size={18} color={colors.primary} strokeWidth={2.2} />
+          <RNTextInput
+            placeholder={t("doctorPrescription.searchPlaceholder", {
+              defaultValue: "Search by patient name, phone, or NIC...",
+            })}
+            placeholderTextColor={colors.textSubtle}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            style={{
+              flex: 1,
+              fontSize: 14,
+              color: colors.text,
+              fontFamily: fontFamily.body,
+              paddingVertical: 0,
+            }}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              hitSlop={8}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                backgroundColor: colors.surfaceMuted,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={13} color={colors.textMuted} strokeWidth={2.2} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* ── Filter Segment Chips ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingTop: 12,
+          }}
+        >
+          <Pressable
+            onPress={() => setPatientFilter("all")}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 20,
+              backgroundColor: patientFilter === "all" ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: patientFilter === "all" ? colors.primary : colors.borderSubtle ?? colors.border,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: patientFilter === "all" ? "700" : "600",
+                color: patientFilter === "all" ? "#FFFFFF" : colors.textMuted,
+                fontFamily: patientFilter === "all" ? fontFamily.bodyBold : fontFamily.body,
+              }}
+            >
+              All Patients
+            </Text>
+            <View
+              style={{
+                paddingHorizontal: 6,
+                paddingVertical: 1,
+                borderRadius: 10,
+                backgroundColor:
+                  patientFilter === "all" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: "800",
+                  color: patientFilter === "all" ? "#FFFFFF" : colors.textMuted,
+                }}
+              >
+                {results.length}
+              </Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setPatientFilter("careTeam")}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 20,
+              backgroundColor: patientFilter === "careTeam" ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: patientFilter === "careTeam" ? colors.primary : colors.borderSubtle ?? colors.border,
+            }}
+          >
+            <Users
+              size={13}
+              color={patientFilter === "careTeam" ? "#FFFFFF" : colors.primary}
+              strokeWidth={2.4}
+            />
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: patientFilter === "careTeam" ? "700" : "600",
+                color: patientFilter === "careTeam" ? "#FFFFFF" : colors.textMuted,
+                fontFamily: patientFilter === "careTeam" ? fontFamily.bodyBold : fontFamily.body,
+              }}
+            >
+              Care Team
+            </Text>
+            <View
+              style={{
+                paddingHorizontal: 6,
+                paddingVertical: 1,
+                borderRadius: 10,
+                backgroundColor:
+                  patientFilter === "careTeam" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: "800",
+                  color: patientFilter === "careTeam" ? "#FFFFFF" : colors.textMuted,
+                }}
+              >
+                {consentPatients.length}
+              </Text>
+            </View>
+          </Pressable>
+
+          {recentPatients.length > 0 && (
+            <Pressable
+              onPress={() => setPatientFilter("recent")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 20,
+                backgroundColor: patientFilter === "recent" ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: patientFilter === "recent" ? colors.primary : colors.borderSubtle ?? colors.border,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: patientFilter === "recent" ? "700" : "600",
+                  color: patientFilter === "recent" ? "#FFFFFF" : colors.textMuted,
+                  fontFamily: patientFilter === "recent" ? fontFamily.bodyBold : fontFamily.body,
+                }}
+              >
+                Recent
+              </Text>
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  borderRadius: 10,
+                  backgroundColor:
+                    patientFilter === "recent" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: "800",
+                    color: patientFilter === "recent" ? "#FFFFFF" : colors.textMuted,
+                  }}
+                >
+                  {recentPatients.length}
+                </Text>
+              </View>
+            </Pressable>
+          )}
+        </ScrollView>
+      </View>
+
+      {/* ── Patients List / Content ── */}
+      <View
+        style={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.sm,
+          paddingBottom: 150, // Clearance for floating navigation bar!
+          gap: 10,
+        }}
+      >
+        {displayedPatients.length > 0 ? (
+          displayedPatients.map((p) => {
+            const pId = p.patient?.id || p.patients?.id || p.id;
+            const pName = p.user?.name || p.users?.name || p.name || "Patient";
+            const pPhone = p.user?.phone || p.users?.phone || p.phone;
+            const pNic = p.user?.nic || p.users?.nic || p.nic;
+            const isCareTeam = consentPatients.some(
+              (a: any) => (a.patient?.id || a.id) === pId
+            );
+            const palette = getAvatarPalette(pName);
+            const initials = getInitials(pName);
+
+            return (
+              <Pressable
+                key={pId}
+                onPress={() => setSelectedPatient(p)}
+                style={({ pressed }) => ({
+                  backgroundColor: colors.surface,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: colors.borderSubtle ?? colors.border,
+                  padding: 14,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.03,
+                  shadowRadius: 6,
+                  elevation: 1.5,
+                  opacity: pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.995 : 1 }],
+                })}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  {/* Dynamic Squircle Avatar */}
                   <View
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 999,
+                      width: 44,
+                      height: 44,
+                      borderRadius: 14,
+                      backgroundColor: palette.bg,
+                      borderWidth: 1,
+                      borderColor: palette.border,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: colors.primary,
                     }}
                   >
-                    <ChevronRight size={18} color={colors.onPrimary} strokeWidth={2.5} />
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "800",
+                        color: palette.fg,
+                        fontFamily: fontFamily.displayBold,
+                      }}
+                    >
+                      {initials}
+                    </Text>
                   </View>
-                }
-                onPress={() => setSelectedPatient(p)}
-              />
+
+                  {/* Patient Details */}
+                  <View style={{ flex: 1, marginLeft: 12, minWidth: 0, paddingRight: 8 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "nowrap" }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          color: colors.text,
+                          fontWeight: "700",
+                          fontSize: 15,
+                          fontFamily: fontFamily.bodyBold,
+                          flexShrink: 1,
+                        }}
+                      >
+                        {pName}
+                      </Text>
+                      {isCareTeam && (
+                        <View
+                          style={{
+                            backgroundColor: withOpacity(colors.primary, 0.1),
+                            paddingHorizontal: 6,
+                            paddingVertical: 1.5,
+                            borderRadius: 6,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "700",
+                              color: colors.primary,
+                            }}
+                          >
+                            Care Team
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 3,
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Phone size={11} color={colors.textSubtle} strokeWidth={2} />
+                        <Text
+                          style={{
+                            fontSize: 12.5,
+                            color: colors.textMuted,
+                            fontFamily: fontFamily.body,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {pPhone || "No phone on file"}
+                        </Text>
+                      </View>
+
+                      {pNic ? (
+                        <Text
+                          style={{
+                            fontSize: 11.5,
+                            color: colors.textSubtle,
+                          }}
+                          numberOfLines={1}
+                        >
+                          • NIC: {pNic}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  {/* Action Pill */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                      backgroundColor: colors.primary,
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 14,
+                      shadowColor: colors.primary,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 4,
+                      elevation: 2,
+                    }}
+                  >
+                    <FilePenLine size={13} color="#FFFFFF" strokeWidth={2.4} />
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 12,
+                        fontWeight: "700",
+                        fontFamily: fontFamily.bodyBold,
+                      }}
+                    >
+                      Prescribe
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
             );
-          })}
-          </View>
+          })
         ) : searchQuery.length > 0 ? (
-          <EmptyState
-            icon={Search}
-            title={t("doctorPrescription.emptySearchTitle")}
-            message={t("doctorPrescription.emptySearchBody")}
-            tone="neutral"
-          />
+          <View
+            style={{
+              paddingVertical: 44,
+              paddingHorizontal: spacing.lg,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.surface,
+              borderRadius: 22,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle ?? colors.border,
+              marginTop: 10,
+              gap: 8,
+            }}
+          >
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: colors.surfaceMuted,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 4,
+              }}
+            >
+              <Search size={22} color={colors.textSubtle} strokeWidth={2} />
+            </View>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "700",
+                color: colors.text,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              No patients found
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: colors.textMuted,
+                textAlign: "center",
+                lineHeight: 18,
+                paddingHorizontal: 20,
+              }}
+            >
+              No patient matching "{searchQuery}". Check the phone number or NIC.
+            </Text>
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              style={{
+                marginTop: 6,
+                paddingHorizontal: 16,
+                paddingVertical: 7,
+                borderRadius: 16,
+                backgroundColor: colors.primarySoft,
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
+                Clear Search
+              </Text>
+            </Pressable>
+          </View>
         ) : (
-          <EmptyState
-            icon={Users}
-            title={t("doctorPrescription.emptyInitialTitle")}
-            message={t("doctorPrescription.emptyInitialBody")}
-            tone="neutral"
-          />
+          <View
+            style={{
+              paddingVertical: 44,
+              paddingHorizontal: spacing.lg,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.surface,
+              borderRadius: 22,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle ?? colors.border,
+              marginTop: 10,
+              gap: 8,
+            }}
+          >
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 4,
+              }}
+            >
+              <Users size={22} color={colors.primary} strokeWidth={2} />
+            </View>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "700",
+                color: colors.text,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              No patients in this view
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: colors.textMuted,
+                textAlign: "center",
+                lineHeight: 18,
+              }}
+            >
+              Use the search bar above to look up any registered patient.
+            </Text>
+          </View>
         )}
       </View>
     </Screen>
@@ -924,11 +1810,11 @@ function MedicineCard({
   return (
     <View
       style={{
-        borderRadius: radius.lg,
+        borderRadius: 18,
         borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.bgElevated,
-        padding: spacing.md,
+        borderColor: colors.borderSubtle ?? colors.border,
+        backgroundColor: colors.surfaceMuted,
+        padding: 16,
         gap: spacing.md,
       }}
     >

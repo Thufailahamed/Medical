@@ -1971,8 +1971,8 @@
     },
     "modeFilter": {
       "all": "All types",
-      "video": "Online · Video",
-      "inPerson": "Offline · In-person"
+      "video": "Video visit",
+      "inPerson": "In-person"
     },
     "upcomingVideo": "Upcoming video consultations",
     "cancelConfirmTitle": "Cancel appointment?",

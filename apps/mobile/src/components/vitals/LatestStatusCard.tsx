@@ -30,8 +30,9 @@ export function LatestStatusCard({ latest, sparkline, onPress, compact }: Props)
   const { spacing, typography, colors, radius } = useTheme();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
+  if (!latest) return null;
   const def = VITAL_REGISTRY[latest.type as VitalType];
-  const meta = latest.latest;
+  const meta = latest.latest || (latest.value != null ? latest : null);
   if (!meta) return null;
 
   const reading =

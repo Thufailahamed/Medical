@@ -449,7 +449,7 @@ export default function DoctorPatientDetail() {
                           value: p.value,
                           secondary: null,
                           id: p.recordedAt,
-                          unit: latest.unit ?? null,
+                          unit: l.unit ?? l.latest?.unit ?? null,
                         })
                       )}
                     />

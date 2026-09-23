@@ -25,6 +25,7 @@ import { users, adminPasskeys } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
 import { flattenTranslated } from "../lib/validation-error";
 import { issueStepUpToken } from "../middleware/stepup";
+import { verifyPassword } from "../lib/crypto";
 import type { AppEnvironment } from "../types";
 
 const webauthnRouter = new Hono<AppEnvironment>();
@@ -107,6 +108,45 @@ webauthnRouter.post("/dev-stepup", async (c) => {
   }
   const stepUp = issueStepUpToken(c, me.id);
   return c.json({ ok: true, stepUpToken: stepUp });
+});
+
+// ─── Password Step-Up (mobile admin surface) ────────────────
+// The mobile app has no WebAuthn authenticator, so destructive admin
+// actions re-authenticate with the account password instead of a
+// passkey assertion. Same 5-minute step-up token, same audit trail.
+const passwordStepUpSchema = z.object({
+  password: z.string().min(1).max(200),
+});
+
+webauthnRouter.post("/password-stepup", async (c) => {
+  const me = c.get("dbUser");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = passwordStepUpSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed" }, 400);
+  }
+  if (!me.passwordHash) {
+    return c.json(
+      {
+        error: "No password set on this admin account. Use a passkey on the web portal.",
+        code: "no_password",
+      },
+      400,
+    );
+  }
+  const ok = await verifyPassword(parsed.data.password, me.passwordHash);
+  if (!ok) {
+    return c.json({ error: "Incorrect password", code: "bad_password" }, 401);
+  }
+
+  await recordAdminAction(c, {
+    action: "password_stepup",
+    resource: "user",
+    resourceId: me.id,
+  });
+
+  const stepUp = issueStepUpToken(c, me.id);
+  return c.json({ ok: true, stepUpToken: stepUp, expiresIn: 5 * 60 });
 });
 
 // ─── Status ─────────────────────────────────────────────────

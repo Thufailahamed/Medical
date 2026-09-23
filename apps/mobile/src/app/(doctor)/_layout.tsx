@@ -72,10 +72,20 @@ export default function DoctorLayout() {
           borderTopWidth: 0,
           paddingBottom: 6,
           paddingTop: 4,
+          borderRadius: 32,
           elevation: 0,
+          shadowColor: "#062238",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.12,
+          shadowRadius: 24,
         },
         tabBarBackground: () => (
-          <View style={StyleSheet.absoluteFill}>
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { borderRadius: 32, overflow: "hidden" },
+            ]}
+          >
             <BlurView
               intensity={Platform.OS === "ios" ? 90 : 60}
               tint="default"
@@ -88,7 +98,7 @@ export default function DoctorLayout() {
                   backgroundColor:
                     Platform.OS === "android"
                       ? colors.bgElevated
-                      : "rgba(255,255,255,0.55)",
+                      : "rgba(255,255,255,0.72)",
                 },
               ]}
             />

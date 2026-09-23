@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
+import { homeForRole } from "@/hooks/useProtectedRoute";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
 import { maskTarget } from "@/lib/format";
@@ -155,8 +156,7 @@ export default function VerifyOtpScreen() {
           mode === "login" ? "Welcome back" : "Account verified",
           "success",
         );
-        const home = res.user?.role === "doctor" ? "/(doctor)" : "/(app)";
-        router.replace(home as any);
+        router.replace(homeForRole(res.user?.role) as any);
       } else {
         router.replace("/(auth)/login" as any);
       }

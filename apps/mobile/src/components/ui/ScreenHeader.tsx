@@ -42,10 +42,10 @@ export function ScreenHeader({
       onBack();
     } else if (typeof back === "function") {
       back();
-    } else if (pathname && pathname.includes("/insurance")) {
-      router.replace("/(app)");
-    } else {
+    } else if (router.canGoBack()) {
       router.back();
+    } else {
+      router.replace("/(app)");
     }
   };
 

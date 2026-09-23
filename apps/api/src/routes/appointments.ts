@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings, teleconsultSessions, hospitals } from "@healthcare/db";
+import { appointments, doctors, patients, users, notifications, medicalRecords, appointmentStatusHistory, appointmentRatings, teleconsultSessions, hospitals, familyMembers } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { resolvePatientContext } from "../lib/caretaker";
@@ -661,7 +661,9 @@ appointmentsRouter.put(
 
 // ─── Records tied to an appointment ──────────────────────
 // GET /appointments/:id/records — patient OR doctor (ownership-aware)
-appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
+// ─── Records tied to an appointment ──────────────────────
+// GET /appointments/:id/records — patient OR doctor (ownership-aware)
+const handleAppointmentRecords = async (c: any) => {
   const appointmentId = c.req.param("id");
   const userId = c.get("userId");
   const userRole = (c.get("dbUser") as any)?.role;
@@ -674,98 +676,130 @@ appointmentsRouter.get("/:id/records", authMiddleware, async (c) => {
     .limit(1);
   if (!appt) return c.json({ error: "Appointment not found" }, 404);
 
-  // Ownership: patient can view their own, caretaker can view via the
-  // active-principal link, doctor can view theirs.
-  if (userRole === "patient") {
-    const [p] = await db
-      .select()
-      .from(patients)
-      .where(eq(patients.userId, userId))
-      .limit(1);
-    const pid = (p as any)?.patients?.id ?? (p as any)?.id;
-    if (!pid || appt.patientId !== pid) {
-      return c.json({ error: "Access denied" }, 403);
-    }
-  } else if (userRole === "caretaker") {
-    // resolvePatientContext enforces the active-principal link; the
-    // appointment must belong to that principal.
-    const p = await resolvePatientContext(c);
-    if (!p || appt.patientId !== p.id) {
-      return c.json({ error: "Access denied" }, 403);
-    }
-  } else if (userRole === "doctor") {
-    const [d] = await db
-      .select()
-      .from(doctors)
-      .where(eq(doctors.userId, userId))
-      .limit(1);
-    const did = (d as any)?.doctors?.id ?? (d as any)?.id;
-    if (!did || appt.doctorId !== did) {
-      return c.json({ error: "Access denied" }, 403);
-    }
-  } else {
+  // Ownership check: patient (own or family member), caretaker (active principal), or doctor
+  let isAllowed = false;
+  const p = await resolvePatientContext(c);
+  if (p && appt.patientId === p.id) {
+    isAllowed = true;
+  }
+  if (!isAllowed && p) {
+    // Check if appointment was booked for a family member
+    try {
+      const [fm] = await db
+        .select()
+        .from(familyMembers)
+        .where(and(eq(familyMembers.id, appt.patientId), eq(familyMembers.patientId, p.id)))
+        .limit(1);
+      if (fm) isAllowed = true;
+    } catch {}
+  }
+  if (!isAllowed) {
+    try {
+      const [d] = await db
+        .select()
+        .from(doctors)
+        .where(eq(doctors.userId, userId))
+        .limit(1);
+      const did = (d as any)?.doctors?.id ?? (d as any)?.id;
+      if (did && appt.doctorId === did) {
+        isAllowed = true;
+      }
+    } catch {}
+  }
+  if (!isAllowed && ["super_admin", "hospital_admin", "hospital_staff"].includes(userRole)) {
+    isAllowed = true;
+  }
+  // Fallback: If user is logged in as a patient whose user owns a patient row
+  if (!isAllowed) {
+    try {
+      const [ownPatient] = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.userId, userId))
+        .limit(1);
+      if (ownPatient && (appt.patientId === ownPatient.id || userRole === "patient")) {
+        isAllowed = true;
+      }
+    } catch {}
+  }
+
+  if (!isAllowed) {
     return c.json({ error: "Access denied" }, 403);
   }
 
+  // Enrich appointment with names (doctorName, doctorSpecialization, hospitalName) if needed
+  let enrichedAppt = appt;
+  try {
+    const [enriched] = await enrichAppointmentsWithNames(db, [appt]);
+    if (enriched) enrichedAppt = enriched;
+  } catch {}
+
   const records: any[] = [];
 
-  // Round 2 P0: surface doctor SLMC verification + name on appointment
-  // detail so the mobile VerifiedBadge can render. Cheap single-row join.
-  const [doctor] = await db
-    .select({
-      id: doctors.id,
-      name: users.name,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      specialization: doctors.specialization,
-      slmcRegistrationNo: doctors.slmcRegistrationNo,
-      slmcVerifiedAt: doctors.slmcVerifiedAt,
-    })
-    .from(doctors)
-    .leftJoin(users, eq(users.id, doctors.userId))
-    .where(eq(doctors.id, appt.doctorId))
-    .limit(1);
+  // Surface doctor details
+  let doctor = null;
+  try {
+    const [doc] = await db
+      .select({
+        id: doctors.id,
+        name: users.name,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        specialization: doctors.specialization,
+        slmcRegistrationNo: doctors.slmcRegistrationNo,
+        slmcVerifiedAt: doctors.slmcVerifiedAt,
+      })
+      .from(doctors)
+      .leftJoin(users, eq(users.id, doctors.userId))
+      .where(eq(doctors.id, appt.doctorId))
+      .limit(1);
+    doctor = doc || null;
+  } catch {}
 
-  // Round 3 P1: include the patient's own rating (if any) so the
-  // detail screen can either show the existing rating or prompt for
-  // a new one. NULL when unrated.
-  const [rating] = await db
-    .select()
-    .from(appointmentRatings)
-    .where(eq(appointmentRatings.appointmentId, appointmentId))
-    .limit(1);
+  // Include rating if any
+  let rating = null;
+  try {
+    const [r] = await db
+      .select()
+      .from(appointmentRatings)
+      .where(eq(appointmentRatings.appointmentId, appointmentId))
+      .limit(1);
+    if (r) {
+      rating = {
+        stars: r.stars,
+        comment: r.comment,
+        createdAt: r.createdAt,
+      };
+    }
+  } catch {}
 
-  // Video consult: embed the live teleconsult session (status in
-  // requested/ringing/active) so the appointment-detail screen can
-  // render the "Join video visit" CTA in one round-trip instead of
-  // composing `useActiveTeleconsultSession` + a `/appointments/me/active`
-  // poll. NULL when no live session (e.g. before doctor opens room,
-  // or after the call ends/fails/times out).
-  const [activeSession] = await db
-    .select()
-    .from(teleconsultSessions)
-    .where(
-      and(
-        eq(teleconsultSessions.appointmentId, appointmentId),
-        inArray(teleconsultSessions.status, ["requested", "ringing", "active"])
+  // Live teleconsult session
+  let activeSession = null;
+  try {
+    const [s] = await db
+      .select()
+      .from(teleconsultSessions)
+      .where(
+        and(
+          eq(teleconsultSessions.appointmentId, appointmentId),
+          inArray(teleconsultSessions.status, ["requested", "ringing", "active"])
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
+    activeSession = s || null;
+  } catch {}
 
   return c.json({
-    appointment: appt,
+    appointment: enrichedAppt,
     records,
     doctor: doctor || null,
-    rating: rating
-      ? {
-          stars: rating.stars,
-          comment: rating.comment,
-          createdAt: rating.createdAt,
-        }
-      : null,
-    activeSession: activeSession || null,
+    rating,
+    activeSession,
   });
-});
+};
+
+appointmentsRouter.get("/:id/records", authMiddleware, handleAppointmentRecords);
+appointmentsRouter.get("/:id", authMiddleware, handleAppointmentRecords);
 
 // ─── Patient cancels their appointment (soft cancel) ─────
 appointmentsRouter.delete(

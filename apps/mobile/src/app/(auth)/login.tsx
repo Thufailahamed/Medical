@@ -19,6 +19,8 @@ import {
   Heart,
   ShieldCheck,
   MessageCircle,
+  Mail,
+  Lock,
 } from "lucide-react-native";
 import { api } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -26,6 +28,7 @@ import { Screen, useToast } from "@/components/ui";
 import * as SecureStore from "expo-secure-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
+import { homeForRole } from "@/hooks/useProtectedRoute";
 
 // SL mobile number validation: 07X XXXXXXX (10 digits) or +94 7X XXXXXXX
 const phoneSchema = z.object({
@@ -52,6 +55,10 @@ export default function LoginScreen() {
   const router = useRouter();
   const { colors, spacing, typography, radius, fontFamily } = useTheme();
   const [submitting, setSubmitting] = useState(false);
+  const [staffMode, setStaffMode] = useState(false);
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffPassword, setStaffPassword] = useState("");
+  const [staffError, setStaffError] = useState<string | null>(null);
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
@@ -124,8 +131,7 @@ export default function LoginScreen() {
         await SecureStore.setItemAsync("auth_token", verifyRes.session.access_token);
         setUser(verifyRes.user);
         toast.show("Quick login successful!", "success");
-        const home = verifyRes.user?.role === "doctor" ? "/(doctor)" : "/(app)";
-        router.replace(home as any);
+        router.replace(homeForRole(verifyRes.user?.role) as any);
       } else {
         toast.show("Failed to log in", "danger");
       }
@@ -197,6 +203,55 @@ export default function LoginScreen() {
       }
       setError("root", { message: msg });
       toast.show(msg, "danger");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Staff sign-in (doctors, admins, operators): same portal, email +
+  // password credential instead of phone OTP. /auth/login mints the
+  // correct audience token per role (admin tokens get aud:"admin").
+  const submitStaff = async () => {
+    Keyboard.dismiss();
+    if (!staffEmail.trim() || !staffPassword) {
+      setStaffError("Enter your email and password");
+      return;
+    }
+    setSubmitting(true);
+    setStaffError(null);
+    try {
+      const res = await api<{
+        user: any;
+        session?: any;
+        mfaRequired?: "enroll" | "verify";
+        mfaToken?: string;
+      }>("/auth/login", {
+        method: "POST",
+        body: { email: staffEmail.trim(), password: staffPassword },
+      });
+
+      if (res.mfaRequired && res.mfaToken) {
+        await SecureStore.setItemAsync("auth_token", res.mfaToken);
+        setUser(res.user);
+        router.replace(
+          res.mfaRequired === "enroll"
+            ? ("/(auth)/mfa-setup" as any)
+            : ("/(auth)/mfa-challenge" as any)
+        );
+        return;
+      }
+
+      if (res.session?.access_token) {
+        queryClient.clear();
+        await SecureStore.setItemAsync("auth_token", res.session.access_token);
+        setUser(res.user);
+        toast.show("Welcome back", "success");
+        router.replace(homeForRole(res.user?.role) as any);
+      } else {
+        setStaffError("Failed to sign in");
+      }
+    } catch (err: any) {
+      setStaffError(err?.message || "Invalid credentials");
     } finally {
       setSubmitting(false);
     }
@@ -281,11 +336,260 @@ export default function LoginScreen() {
             lineHeight: 22,
           }}
         >
-          Enter your mobile number to receive a verification code.
+          {staffMode
+            ? "Sign in with your staff email and password."
+            : "Enter your mobile number to receive a verification code."}
         </Text>
       </View>
 
-      {/* Phone number form */}
+      {/* Sign-in mode toggle */}
+      <View
+        style={{
+          flexDirection: "row",
+          backgroundColor: "#F5F3FA",
+          borderRadius: 26,
+          padding: 4,
+          marginBottom: 24,
+        }}
+      >
+        {(
+          [
+            { key: "phone", label: "Mobile OTP", icon: Phone },
+            { key: "staff", label: "Staff email", icon: Mail },
+          ] as const
+        ).map((opt) => {
+          const active = staffMode === (opt.key === "staff");
+          const Icon = opt.icon;
+          return (
+            <Pressable
+              key={opt.key}
+              onPress={() => setStaffMode(opt.key === "staff")}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingVertical: 10,
+                borderRadius: 22,
+                backgroundColor: active ? "#FFFFFF" : "transparent",
+                shadowColor: "#000",
+                shadowOpacity: active ? 0.08 : 0,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: active ? 2 : 0,
+              }}
+            >
+              <Icon size={14} color={active ? colors.primary : "#7F7B8C"} />
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "700",
+                  color: active ? colors.primary : "#7F7B8C",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {staffMode ? (
+        /* ─── Staff email + password sign-in ─── */
+        <View style={{ gap: 20 }}>
+          <View>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: "#7F7B8C",
+                letterSpacing: 0.8,
+                fontFamily: fontFamily.displayBold,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Work email
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: "#E6E4EA",
+                borderRadius: radius.md,
+                paddingHorizontal: 12,
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              <Mail size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+              <TextInput
+                value={staffEmail}
+                onChangeText={setStaffEmail}
+                placeholder="you@clinic.lk"
+                placeholderTextColor="#C4C0CC"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                style={{
+                  flex: 1,
+                  fontSize: 16,
+                  color: "#1D1B20",
+                  fontFamily: fontFamily.body,
+                  paddingVertical: 14,
+                }}
+              />
+            </View>
+          </View>
+
+          <View>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: "#7F7B8C",
+                letterSpacing: 0.8,
+                fontFamily: fontFamily.displayBold,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Password
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: "#E6E4EA",
+                borderRadius: radius.md,
+                paddingHorizontal: 12,
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              <Lock size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+              <TextInput
+                value={staffPassword}
+                onChangeText={setStaffPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#C4C0CC"
+                secureTextEntry
+                autoComplete="password"
+                style={{
+                  flex: 1,
+                  fontSize: 16,
+                  color: "#1D1B20",
+                  fontFamily: fontFamily.body,
+                  paddingVertical: 14,
+                }}
+              />
+            </View>
+          </View>
+
+          {staffError ? (
+            <View
+              style={{
+                backgroundColor: colors.dangerSoft,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radius.md,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+              }}
+            >
+              <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.danger, fontWeight: "600", flex: 1 },
+                ]}
+              >
+                {staffError}
+              </Text>
+            </View>
+          ) : null}
+
+          <Pressable
+            onPress={submitStaff}
+            disabled={submitting}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: submitting
+                ? `${colors.primary}80`
+                : colors.primary,
+              height: 52,
+              borderRadius: 26,
+              marginTop: 8,
+              opacity: pressed ? 0.8 : 1,
+              gap: 8,
+            })}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "700",
+                    color: "#FFFFFF",
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  Sign in
+                </Text>
+                <ArrowRight size={18} color="#FFFFFF" strokeWidth={2} />
+              </>
+            )}
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/(auth)/forgot-password" as any)}
+            hitSlop={8}
+            style={{ alignItems: "center", paddingVertical: spacing.xs }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                color: "#7F7B8C",
+                fontFamily: fontFamily.body,
+              }}
+            >
+              Forgot password?
+            </Text>
+          </Pressable>
+
+          {__DEV__ ? (
+            <Pressable
+              onPress={() => {
+                setStaffEmail("admin@healthhub.local");
+                setStaffPassword("Admin#12345");
+              }}
+              hitSlop={8}
+              style={{ alignItems: "center", paddingVertical: spacing.xs }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.primary,
+                  fontWeight: "700",
+                  fontFamily: fontFamily.bodyBold,
+                }}
+              >
+                🛠️ Fill dev admin credentials
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : (
+      /* Phone number form */
       <View style={{ gap: 20 }}>
         <Controller
           control={control}
@@ -376,6 +680,7 @@ export default function LoginScreen() {
           We'll text a 6-digit code to verify your identity.
         </Text>
       </View>
+      )}
 
       {/* Divider */}
       <View

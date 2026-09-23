@@ -53,14 +53,19 @@ export const Screen = forwardRef<View, Props>(function Screen(
     style,
   ];
 
+  const calculatedPaddingBottom = tabBarOffset
+    ? layout.tabBarHeight + insets.bottom + spacing.xl
+    : bottomInset
+    ? insets.bottom + spacing.lg
+    : 0;
+
   const inner = scroll ? (
     <ScrollView
       ref={ref as any}
       style={{ flex: 1 }}
       contentContainerStyle={[
         padded && { paddingHorizontal: spacing.lg },
-        tabBarOffset && { paddingBottom: layout.tabBarHeight + spacing.lg },
-        bottomInset && { paddingBottom: insets.bottom + spacing.lg },
+        calculatedPaddingBottom > 0 && { paddingBottom: calculatedPaddingBottom },
         contentContainerStyle,
       ]}
       keyboardShouldPersistTaps="handled"
@@ -86,8 +91,7 @@ export const Screen = forwardRef<View, Props>(function Screen(
       style={[
         { flex: 1 },
         padded && { paddingHorizontal: spacing.lg },
-        tabBarOffset && { paddingBottom: layout.tabBarHeight + spacing.lg },
-        bottomInset && { paddingBottom: insets.bottom + spacing.lg },
+        calculatedPaddingBottom > 0 && { paddingBottom: calculatedPaddingBottom },
         contentContainerStyle,
       ]}
     >

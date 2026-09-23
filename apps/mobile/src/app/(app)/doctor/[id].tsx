@@ -1,8 +1,9 @@
 // @ts-nocheck
 
-import { View, Text } from "react-native";
+import { View, Text, ScrollView, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Stethoscope,
   Video,
@@ -11,16 +12,17 @@ import {
   Wallet,
   Sparkles,
   Check,
+  MapPin,
+  BadgeCheck,
 } from "lucide-react-native";
 import {
   Screen,
   ScreenHeader,
-  Card,
   Avatar,
   Pill,
   Button,
+  VerifiedBadge,
   VerifiedBadgeWithRegNo,
-  StatCard,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -42,7 +44,8 @@ import { useTheme } from "@/theme/ThemeProvider";
 export default function DoctorDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, shadow } = useTheme();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const doctorId = id || "";
 
@@ -60,9 +63,10 @@ export default function DoctorDetailScreen() {
             paddingTop: spacing.md,
           }}
         >
-          <Skeleton height={120} radius={20} />
-          <Skeleton height={80} radius={16} />
+          <Skeleton height={180} radius={24} />
+          <Skeleton height={80} radius={20} />
           <Skeleton height={140} radius={20} />
+          <Skeleton height={100} radius={20} />
         </View>
       </Screen>
     );
@@ -95,135 +99,334 @@ export default function DoctorDetailScreen() {
   const telemedicineEnabled = !!doctor.telemedicineEnabled;
 
   return (
-    <Screen scroll padded={false} edges={["top"]} bottomInset tabBarOffset>
+    <Screen scroll={false} padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader back title={t("doctorDetail.title")} />
 
-      <View
-        style={{
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
           paddingHorizontal: spacing.lg,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xl + 20,
           gap: spacing.md,
-          paddingBottom: spacing.xl,
         }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header card: avatar + name + verified badge */}
-        <Card padded tone="primary">
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.md,
-            }}
-          >
-            <Avatar name={doctor.name} size="lg" tone="primary" />
-            <View style={{ flex: 1 }}>
-              <Text style={[typography.title.md, { color: colors.text }]}>
-                {doctor.name}
-              </Text>
-              <Text
-                style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}
+        {/* ── 1. Hero Doctor Card ── */}
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: spacing.lg,
+            alignItems: "center",
+            gap: spacing.sm + 2,
+            ...shadow.sm,
+          }}
+        >
+          <View style={{ position: "relative", marginBottom: 2 }}>
+            <Avatar
+              name={doctor.name}
+              source={doctor.photo ? { uri: doctor.photo } : undefined}
+              size="xl"
+              tone="primary"
+            />
+            {doctor.slmcVerifiedAt ? (
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: -2,
+                  right: -2,
+                  backgroundColor: colors.surface,
+                  borderRadius: 999,
+                  padding: 2,
+                }}
               >
-                {doctor.specialization}
-              </Text>
-              {doctor.slmcRegistrationNo ? (
-                <View style={{ marginTop: spacing.xs }}>
-                  <VerifiedBadgeWithRegNo
-                    verified={!!doctor.slmcVerifiedAt}
-                    regNo={doctor.slmcRegistrationNo}
-                  />
-                </View>
-              ) : null}
-            </View>
+                <BadgeCheck size={24} color={colors.primary} />
+              </View>
+            ) : null}
           </View>
-        </Card>
 
-        {/* Telemedicine availability — gating chip the booking screen reads */}
-        <Card padded>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.md,
-            }}
-          >
+          <View style={{ alignItems: "center", gap: 4 }}>
+            <Text
+              style={[
+                typography.title.lg,
+                { color: colors.text, fontWeight: "800", textAlign: "center", letterSpacing: -0.4 },
+              ]}
+            >
+              {doctor.name}
+            </Text>
+
             <View
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 14,
-                backgroundColor: telemedicineEnabled
-                  ? colors.primarySoft
-                  : colors.surface,
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: 6,
+                alignItems: "center",
+                marginTop: 2,
+              }}
+            >
+              {doctor.specialization ? (
+                <Pill label={doctor.specialization} tone="primary" size="md" />
+              ) : null}
+              {doctor.slmcRegistrationNo ? (
+                <VerifiedBadgeWithRegNo
+                  verified={!!doctor.slmcVerifiedAt}
+                  regNo={doctor.slmcRegistrationNo}
+                />
+              ) : doctor.slmcVerifiedAt ? (
+                <VerifiedBadge verified={true} size="md" />
+              ) : null}
+            </View>
+
+            {doctor.hospitalName ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 4,
+                }}
+              >
+                <Building2 size={14} color={colors.textMuted} />
+                <Text style={[typography.body.sm, { color: colors.textMuted, fontWeight: "500" }]}>
+                  {doctor.hospitalName}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* ── 2. Unified Key Highlights Bar (3 Stats) ── */}
+        <View
+          style={{
+            flexDirection: "row",
+            backgroundColor: colors.surface,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: colors.border,
+            paddingVertical: spacing.md,
+            paddingHorizontal: spacing.xs,
+            ...shadow.sm,
+          }}
+        >
+          {/* Stat 1: Experience */}
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Sparkles size={18} color={colors.primary} strokeWidth={2.2} />
+            </View>
+            <Text
+              style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}
+              numberOfLines={1}
+            >
+              {doctor.experience != null && Number(doctor.experience) > 0
+                ? t("doctorDetail.experienceYears", { years: doctor.experience })
+                : "Verified"}
+            </Text>
+            <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+              {t("doctorDetail.experience")}
+            </Text>
+          </View>
+
+          <View style={{ width: 1, backgroundColor: colors.borderSoft, marginVertical: 4 }} />
+
+          {/* Stat 2: Fee */}
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Wallet size={18} color={colors.primary} strokeWidth={2.2} />
+            </View>
+            <Text
+              style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}
+              numberOfLines={1}
+            >
+              {doctor.consultationFee != null
+                ? t("doctorDetail.feeLkr", {
+                    amount: Number(doctor.consultationFee).toLocaleString(),
+                  })
+                : "At Clinic"}
+            </Text>
+            <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+              {t("doctorDetail.fee")}
+            </Text>
+          </View>
+
+          <View style={{ width: 1, backgroundColor: colors.borderSoft, marginVertical: 4 }} />
+
+          {/* Stat 3: Consultation Mode */}
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: telemedicineEnabled ? colors.successSoft : colors.surfaceMuted,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               <Video
-                size={20}
-                color={telemedicineEnabled ? colors.primary : colors.textSubtle}
+                size={18}
+                color={telemedicineEnabled ? colors.success : colors.textSubtle}
                 strokeWidth={2.2}
               />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[typography.title.sm, { color: colors.text }]}>
-                {telemedicineEnabled
-                  ? t("doctorDetail.onlineAvailable")
-                  : t("doctorDetail.onlineUnavailable")}
-              </Text>
-              {telemedicineEnabled ? (
-                <Pill tone="success" testID="doctor-detail-telemedicine-on">
-                  {t("bookAppointment.telemedicineAvailable")}
-                </Pill>
-              ) : (
-                <Pill tone="neutral" testID="doctor-detail-telemedicine-off">
-                  {t("bookAppointment.telemedicineOnly")}
-                </Pill>
-              )}
-            </View>
-          </View>
-        </Card>
-
-        {/* Fee + experience stat row */}
-        <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          <View style={{ flex: 1 }}>
-            <StatCard
-              icon={Wallet}
-              label={t("doctorDetail.fee")}
-              value={
-                doctor.consultationFee != null
-                  ? t("doctorDetail.feeLkr", {
-                      amount: Number(doctor.consultationFee).toLocaleString(),
-                    })
-                  : "—"
-              }
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <StatCard
-              icon={Sparkles}
-              label={t("doctorDetail.experience")}
-              value={
-                doctor.experience != null
-                  ? t("doctorDetail.experienceYears", { years: doctor.experience })
-                  : "—"
-              }
-            />
+            <Text
+              numberOfLines={1}
+              style={[
+                typography.title.sm,
+                { color: telemedicineEnabled ? colors.success : colors.text, fontWeight: "800" },
+              ]}
+            >
+              {telemedicineEnabled ? "Video & Visit" : "In-Person"}
+            </Text>
+            <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+              Consultation
+            </Text>
           </View>
         </View>
 
-        {/* Hospital */}
-        {doctor.hospitalName ? (
-          <Card padded>
+        {/* ── 3. Consultation Options Card ── */}
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: spacing.lg,
+            gap: spacing.md,
+            ...shadow.sm,
+          }}
+        >
+          <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+            Consultation Options
+          </Text>
+
+          <View style={{ gap: spacing.sm }}>
+            {/* Hospital Visit */}
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 gap: spacing.md,
+                padding: spacing.md,
+                borderRadius: 16,
+                backgroundColor: colors.surfaceMuted,
               }}
             >
               <View
                 style={{
                   width: 40,
                   height: 40,
+                  borderRadius: 12,
+                  backgroundColor: colors.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: colors.borderSoft,
+                }}
+              >
+                <Building2 size={19} color={colors.primary} strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+                  Hospital Clinic Visit
+                </Text>
+                <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+                  {doctor.hospitalName || "In-person clinical appointment"}
+                </Text>
+              </View>
+              <Pill label="Available" tone="neutral" size="sm" />
+            </View>
+
+            {/* Video Consultation */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+                padding: spacing.md,
+                borderRadius: 16,
+                backgroundColor: telemedicineEnabled ? colors.successSoft : colors.surfaceMuted,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: colors.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: telemedicineEnabled ? colors.success : colors.borderSoft,
+                }}
+              >
+                <Video
+                  size={19}
+                  color={telemedicineEnabled ? colors.success : colors.textSubtle}
+                  strokeWidth={2.2}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+                  {telemedicineEnabled
+                    ? t("doctorDetail.onlineAvailable")
+                    : t("doctorDetail.onlineUnavailable")}
+                </Text>
+                <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+                  {telemedicineEnabled
+                    ? "Secure video call directly in app"
+                    : "Only in-person visits supported"}
+                </Text>
+              </View>
+              <Pill
+                label={telemedicineEnabled ? "Available" : "Unavailable"}
+                tone={telemedicineEnabled ? "success" : "neutral"}
+                size="sm"
+                testID={telemedicineEnabled ? "doctor-detail-telemedicine-on" : "doctor-detail-telemedicine-off"}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* ── 4. Hospital & Practice Location ── */}
+        {doctor.hospitalName ? (
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: spacing.lg,
+              gap: spacing.sm,
+              ...shadow.sm,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
                   borderRadius: 14,
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
@@ -233,71 +436,120 @@ export default function DoctorDetailScreen() {
                 <Building2 size={20} color={colors.primary} strokeWidth={2.2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text
-                  style={[typography.overline, { color: colors.textMuted, marginBottom: 2 }]}
-                >
+                <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600" }]}>
                   {t("doctorDetail.hospital")}
                 </Text>
-                <Text style={[typography.title.sm, { color: colors.text }]}>
+                <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700", marginTop: 2 }]}>
                   {doctor.hospitalName}
                 </Text>
+                {doctor.hospitalAddress ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                    <MapPin size={13} color={colors.textMuted} />
+                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                      {doctor.hospitalAddress}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
-          </Card>
+          </View>
         ) : null}
 
-        {/* Qualifications */}
+        {/* ── 5. Qualifications & Education ── */}
         {doctor.qualification ? (
-          <Card padded>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: spacing.md,
-              }}
-            >
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: spacing.lg,
+              gap: spacing.sm,
+              ...shadow.sm,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
               <View
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 42,
+                  height: 42,
                   borderRadius: 14,
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <GraduationCap
-                  size={20}
-                  color={colors.primary}
-                  strokeWidth={2.2}
-                />
+                <GraduationCap size={20} color={colors.primary} strokeWidth={2.2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text
-                  style={[typography.overline, { color: colors.textMuted, marginBottom: 2 }]}
-                >
+                <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600" }]}>
                   {t("doctorDetail.qualifications")}
                 </Text>
-                <Text style={[typography.body.md, { color: colors.text }]}>
+                <Text style={[typography.body.md, { color: colors.text, fontWeight: "600", marginTop: 2 }]}>
                   {doctor.qualification}
                 </Text>
               </View>
             </View>
-          </Card>
+          </View>
         ) : null}
+      </ScrollView>
 
-        {/* CTA — pops back to booking with the doctor pre-filled */}
-        <Button
-          title={t("doctorDetail.chooseCta")}
-          onPress={() => {
-            router.replace({
-              pathname: "/(app)/book-appointment",
-              params: { prefillDoctorId: doctorId, prefillHospitalId: doctor.hospitalId ?? "" },
-            });
-          }}
-          icon={Check}
-          fullWidth
-        />
+      {/* ── 6. Fixed Bottom Action Bar (Docked & Reachable) ── */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          paddingHorizontal: spacing.lg,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, 16),
+          backgroundColor: colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -3 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: 8,
+            },
+          }),
+        }}
+      >
+        {doctor.consultationFee != null ? (
+          <View style={{ gap: 1 }}>
+            <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600", fontSize: 11 }]}>
+              {t("doctorDetail.fee")}
+            </Text>
+            <Text style={[typography.title.md, { color: colors.primary, fontWeight: "800" }]}>
+              {`LKR ${Number(doctor.consultationFee).toLocaleString()}`}
+            </Text>
+          </View>
+        ) : null}
+        <View style={{ flex: 1 }}>
+          <Button
+            title={t("doctorDetail.chooseCta")}
+            onPress={() => {
+              const targetDocId =
+                doctor?.doctorId ||
+                doctor?.id ||
+                (doctorId && doctorId !== "undefined" ? doctorId : "");
+              router.replace({
+                pathname: "/(app)/book-appointment",
+                params: {
+                  prefillDoctorId: targetDocId,
+                  prefillHospitalId: doctor?.hospitalId ?? "",
+                },
+              });
+            }}
+            icon={Check}
+            size="lg"
+            variant="primary"
+          />
+        </View>
       </View>
     </Screen>
   );

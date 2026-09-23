@@ -20,6 +20,18 @@ const DEV_USER = {
   updatedAt: new Date().toISOString(),
 };
 
+/** Canonical role → route-group home. super_admin lands on the admin
+ * portal; doctor/caretaker on theirs; everyone else on the patient app. */
+export function homeForRole(role: string | null | undefined): string {
+  return role === "super_admin"
+    ? "/(admin)"
+    : role === "doctor"
+    ? "/(doctor)"
+    : role === "caretaker"
+    ? "/(caretaker)"
+    : "/(app)";
+}
+
 export function useProtectedRoute(isReady: boolean = true) {
   const { isAuthenticated, isLoading, setUser, setLoading } = useAuthStore();
   const segments = useSegments();
@@ -77,12 +89,7 @@ export function useProtectedRoute(isReady: boolean = true) {
       return () => clearTimeout(t);
     } else if (isAuthenticated && inAuthGroup) {
       const role = (useAuthStore.getState().user as any)?.role;
-      const home =
-        role === "doctor"
-          ? "/(doctor)"
-          : role === "caretaker"
-          ? "/(caretaker)"
-          : "/(app)";
+      const home = homeForRole(role);
       const t = setTimeout(() => {
         router.replace(home as any);
       }, 0);

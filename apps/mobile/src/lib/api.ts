@@ -143,6 +143,7 @@ async function runRequest<T>(
     const err: any = new Error(errMsg);
     err.status = response.status;
     err.reason = error?.reason;
+    err.code = error?.code;
     throw err;
   }
 
