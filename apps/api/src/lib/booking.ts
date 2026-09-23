@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { and, asc, eq, gt, inArray } from "drizzle-orm";
-import { appointments } from "@healthcare/db";
+import { appointments, appointmentStatusHistory } from "@healthcare/db";
+import { visitStartsAt } from "@healthcare/shared/visit-lifecycle";
+import { withStatusGuard } from "./status-guard";
 
 export const ACTIVE_STATUSES = ["scheduled", "confirmed", "in_progress"];
 export const MAX_PER_SLOT = 4;
@@ -70,12 +72,15 @@ export async function slotCount(
 /**
  * Auto-expire (mark as no_show) any scheduled/confirmed appointments
  * that have passed their start time by more than 15 minutes.
+ * Writes an appointment_status_history audit row per transition.
+ * Returns the number of appointments expired.
  */
 export async function autoExpireAppointments(
   db: any,
   patientId?: string,
   doctorId?: string
-): Promise<void> {
+): Promise<number> {
+  let expired = 0;
   try {
     const now = Date.now();
     const conditions = [];
@@ -97,19 +102,31 @@ export async function autoExpireAppointments(
       );
 
     for (const appt of pendingAppts) {
-      // Parse local time (Sri Lanka UTC+5:30)
-      const localISO = `${appt.date}T${appt.time || "00:00"}:00+05:30`;
-      const apptTime = new Date(localISO).getTime();
+      const apptTime = visitStartsAt(appt.date, appt.time);
 
       // If 15 mins buffer time has passed
       if (now - apptTime > 15 * 60 * 1000) {
-        await db
-          .update(appointments)
-          .set({ status: "no_show" })
-          .where(eq(appointments.id, appt.id));
+        const { changed } = await withStatusGuard(
+          db,
+          appointments,
+          appt.id,
+          ["scheduled", "confirmed"],
+          { status: "no_show" }
+        );
+        if (changed) {
+          expired += 1;
+          await db.insert(appointmentStatusHistory).values({
+            appointmentId: appt.id,
+            fromStatus: appt.status,
+            toStatus: "no_show",
+            changedByUserId: null,
+            reason: "auto_expired",
+          } as any);
+        }
       }
     }
   } catch (err) {
     console.error("autoExpireAppointments failed:", err);
   }
+  return expired;
 }
