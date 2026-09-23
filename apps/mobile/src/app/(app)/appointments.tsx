@@ -9,6 +9,7 @@ import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Vi
 import { useMyAppointments, useCancelAppointment, useActiveTeleconsultSession } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
+import { slDayDiff } from "@healthcare/shared/visit-lifecycle";
 import {
   Screen,
   ScreenHeader,
@@ -27,15 +28,14 @@ import {
 
 const STATUS_TONE: Record<string, PillTone> = {
   confirmed: "success",
-  pending: "warning",
   scheduled: "primary",
   in_progress: "primary",
   completed: "info",
-  cancelled: "danger",
+  cancelled: "neutral",
   no_show: "danger",
 };
 
-const FILTER_VALUES = ["all", "upcoming", "past"] as const;
+const FILTER_VALUES = ["all", "upcoming", "missed", "past"] as const;
 const MODE_FILTER_VALUES = ["all", "video", "in_person"] as const;
 
 function dateParts(t: (k: string) => string, date?: string | null) {
@@ -57,23 +57,16 @@ function monthName(_t: (k: string) => string, m: number) {
 
 function groupKey(t: (k: string) => string, a: any) {
   if (!a?.date) return t("appointments.groups.later");
-  const now = new Date();
-  const localTodayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  
-  if (a.date === localTodayIso) return t("appointments.groups.today");
-  
-  const d = new Date(a.date);
-  if (isNaN(d.getTime())) return t("appointments.groups.later");
-
-  if (a.date < localTodayIso) {
-    // Past appointments get grouped by year + month for scannability.
+  const diff = slDayDiff(a.date);
+  if (diff === 0) return t("appointments.groups.today");
+  if (diff < 0) {
+    const d = new Date(a.date);
     return t("appointments.groups.pastMonth", {
       month: d.toLocaleString("en", { month: "short" }),
       year: d.getFullYear(),
       defaultValue: `${d.toLocaleString("en", { month: "long" })} ${d.getFullYear()}`,
     });
   }
-  const diff = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
   if (diff <= 7) return t("appointments.groups.week");
   return t("appointments.groups.later");
 }
@@ -87,7 +80,7 @@ export default function AppointmentsScreen() {
   const cancelAppointment = useCancelAppointment();
   const { data: activeSession } = useActiveTeleconsultSession();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
+  const [filter, setFilter] = useState<"all" | "upcoming" | "missed" | "past">("all");
   const [modeFilter, setModeFilter] = useState<"all" | "video" | "in_person">("all");
   const [cancelSheet, setCancelSheet] = useState<any | null>(null);
   const [cancelEstimate, setCancelEstimate] = useState<any | null>(null);
@@ -133,15 +126,12 @@ export default function AppointmentsScreen() {
 
   const all: any[] = data?.appointments || [];
 
-  const now = new Date();
-  const localTodayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
   // Past + filter helper — used by the pinned section + the timeline.
   const matchesDateFilter = (a: any) => {
     if (filter === "all") return true;
-    if (!a.date) return filter === "upcoming";
-    if (filter === "upcoming") return a.date >= localTodayIso;
-    return a.date < localTodayIso;
+    if (filter === "missed") return a.bucket === "missed";
+    if (filter === "upcoming") return a.bucket === "upcoming" || a.bucket === "today";
+    return a.bucket === "completed" || a.bucket === "cancelled"; // "past"
   };
   const matchesModeFilter = (a: any) => {
     if (modeFilter === "all") return true;
@@ -154,21 +144,20 @@ export default function AppointmentsScreen() {
     [all, filter, modeFilter]
   );
 
-  // Pinned "Upcoming video consultations" — surface the next up-to-3
-  // video-mode appointments that are still in the future. Shown above the
-  // Timeline when the user is on the Upcoming tab (or All) so the doctor
-  // can join from one tap, regardless of filters applied below.
+  // Pinned video rows: only visits that are live or later today.
   const upcomingVideo = useMemo(() => {
     return all
-      .filter((a) => {
-        if (a.mode !== "video") return false;
-        if (!a.date) return false;
-        if (a.date < localTodayIso) return false;
-        return ["scheduled", "confirmed", "pending"].includes(a.status);
-      })
-      .sort((a, b) => a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""))
+      .filter(
+        (a) =>
+          a.mode === "video" &&
+          (a.isLive || a.bucket === "today") &&
+          (a.status === "scheduled" ||
+            a.status === "confirmed" ||
+            a.status === "in_progress")
+      )
+      .sort((a, b) => a.startsAt - b.startsAt)
       .slice(0, 3);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [all]);
 
   const showPinnedVideo =
@@ -176,10 +165,9 @@ export default function AppointmentsScreen() {
     (modeFilter === "all" || modeFilter === "video") &&
     (filter === "all" || filter === "upcoming");
 
-  const upcomingCount = all.filter((a) => {
-    if (!a.date) return false;
-    return a.date >= localTodayIso;
-  }).length;
+  const upcomingCount = all.filter(
+    (a) => a.bucket === "upcoming" || a.bucket === "today"
+  ).length;
   const upcomingPct = all.length
     ? Math.round((upcomingCount / all.length) * 100)
     : 0;
@@ -322,7 +310,7 @@ export default function AppointmentsScreen() {
                 onJoin={() =>
                   router.push({
                     pathname: "/(app)/teleconsult/[roomId]" as any,
-                    params: { roomId: activeSession?.session?.roomId ?? "__pending__" },
+                    params: { roomId: activeSession.session!.roomId },
                   })
                 }
               />
@@ -348,12 +336,16 @@ export default function AppointmentsScreen() {
         <EmptyState
           icon={CalendarPlus}
           title={
-            filter === "past"
+            filter === "missed"
+              ? t("appointments.missedEmpty.title")
+              : filter === "past"
               ? t("appointments.empty.pastTitle")
               : t("appointments.empty.title")
           }
           message={
-            filter === "past"
+            filter === "missed"
+              ? t("appointments.missedEmpty.body")
+              : filter === "past"
               ? t("appointments.empty.pastBody")
               : t("appointments.empty.body")
           }
@@ -453,7 +445,11 @@ export default function AppointmentsScreen() {
                             ) : null}
                             {item.status ? (
                               <Pill
-                                label={item.status.replace("_", " ")}
+                                label={
+                                  t(`appointments.statusLabel.${item.status}`, {
+                                    defaultValue: item.status.replace("_", " "),
+                                  }) as string
+                                }
                                 tone={tone}
                                 size="sm"
                               />
@@ -499,8 +495,7 @@ export default function AppointmentsScreen() {
                       </Pressable>
 
                       {(item.status === "scheduled" ||
-                        item.status === "confirmed" ||
-                        item.status === "pending") ? (
+                        item.status === "confirmed") ? (
                         <Pressable
                           onPress={() => openCancelSheet(item)}
                           accessibilityRole="button"
@@ -533,7 +528,6 @@ export default function AppointmentsScreen() {
                     activeSession.session.roomId &&
                     (item.status === "scheduled" ||
                       item.status === "confirmed" ||
-                      item.status === "pending" ||
                       item.status === "in_progress") ? (
                       <View style={{ marginTop: spacing.md }}>
                         <Pressable
@@ -562,24 +556,49 @@ export default function AppointmentsScreen() {
                           </Text>
                         </Pressable>
                       </View>
+                    ) : item.mode === "video" &&
+                      (item.bucket === "today" || item.isLive) ? (
+                      <View style={{ marginTop: spacing.md }}>
+                        <View
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            item.isLive
+                              ? t("appointments.waitingForDoctor")
+                              : t("appointments.startsSoon")
+                          }
+                          style={{
+                            height: 38,
+                            borderRadius: radius.md,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: spacing.sm,
+                            backgroundColor: colors.surfaceMuted || colors.bgMuted,
+                            opacity: 0.8,
+                          }}
+                        >
+                          <Video size={16} color={colors.textMuted} strokeWidth={2.5} />
+                          <Text style={[typography.label.md, { color: colors.textMuted }]}>
+                            {item.isLive
+                              ? t("appointments.waitingForDoctor")
+                              : t("appointments.startsSoon")}
+                          </Text>
+                        </View>
+                      </View>
                     ) : null}
 
-                    {/* Round 5 waiting CTA — also rendered below */}
-                    {item.mode === "video" &&
-                    (item.status === "scheduled" ||
-                      item.status === "confirmed" ||
-                      item.status === "pending") &&
-                    activeSession?.session?.appointmentId !== item.id ? (
+                    {/* Missed visits: one-tap recovery */}
+                    {item.bucket === "missed" ? (
                       <View style={{ marginTop: spacing.md }}>
                         <Pressable
                           onPress={() =>
                             router.push({
-                              pathname: "/(app)/teleconsult/[roomId]" as any,
-                              params: { roomId: "__pending__" },
+                              pathname: "/(app)/book-appointment" as any,
+                              params: { prefillDoctorId: item.doctorId ?? "" },
                             })
                           }
                           accessibilityRole="button"
-                          accessibilityLabel={t("appointments.joinVideo")}
+                          accessibilityLabel={t("appointments.bookAgain")}
                           hitSlop={6}
                           style={({ pressed }) => ({
                             height: 38,
@@ -588,12 +607,14 @@ export default function AppointmentsScreen() {
                             alignItems: "center",
                             justifyContent: "center",
                             gap: spacing.sm,
-                            backgroundColor: pressed ? colors.primaryMuted : colors.primary,
+                            backgroundColor: pressed ? colors.primaryMuted : colors.primarySoft,
+                            borderWidth: 1,
+                            borderColor: colors.primary,
                           })}
                         >
-                          <Video size={16} color={colors.onPrimary} strokeWidth={2.5} />
-                          <Text style={[typography.label.md, { color: colors.onPrimary }]}>
-                            {t("appointments.joinVideo")}
+                          <CalendarPlus size={16} color={colors.primary} strokeWidth={2.5} />
+                          <Text style={[typography.label.md, { color: colors.primary }]}>
+                            {t("appointments.bookAgain")}
                           </Text>
                         </Pressable>
                       </View>
@@ -830,28 +851,55 @@ function PinnedVideoCard({
             <Pill icon={Video} label={t("appointments.mode.video")} tone="primary" size="sm" />
           </View>
         </View>
-        <Pressable
-          onPress={onJoin}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isActive ? t("consult.joinVideoVisit") : t("appointments.joinVideo")
-          }
-          style={({ pressed }) => ({
-            minHeight: 38,
-            paddingHorizontal: spacing.sm + 2,
-            borderRadius: radius.full,
-            backgroundColor: pressed ? colors.primaryMuted : colors.primary,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: spacing.xs,
-          })}
-        >
-          <Video size={14} color={colors.onPrimary} strokeWidth={2.5} />
-          <Text style={[typography.label.sm, { color: colors.onPrimary, fontWeight: "700" }]}>
-            {isActive ? t("consult.joinVideoVisit") : t("appointments.joinVideo")}
-          </Text>
-        </Pressable>
+        {isActive ? (
+          <Pressable
+            onPress={onJoin}
+            accessibilityRole="button"
+            accessibilityLabel={t("consult.joinVideoVisit")}
+            style={({ pressed }) => ({
+              minHeight: 38,
+              paddingHorizontal: spacing.sm + 2,
+              borderRadius: radius.full,
+              backgroundColor: pressed ? colors.primaryMuted : colors.primary,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: spacing.xs,
+            })}
+          >
+            <Video size={14} color={colors.onPrimary} strokeWidth={2.5} />
+            <Text style={[typography.label.sm, { color: colors.onPrimary, fontWeight: "700" }]}>
+              {t("consult.joinVideoVisit")}
+            </Text>
+          </Pressable>
+        ) : (
+          <View
+            accessibilityRole="button"
+            accessibilityLabel={
+              appt.isLive
+                ? t("appointments.waitingForDoctor")
+                : t("appointments.startsSoon")
+            }
+            style={{
+              minHeight: 38,
+              paddingHorizontal: spacing.sm + 2,
+              borderRadius: radius.full,
+              backgroundColor: colors.surfaceMuted || colors.bgMuted,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: spacing.xs,
+              opacity: 0.8,
+            }}
+          >
+            <Video size={14} color={colors.textMuted} strokeWidth={2.5} />
+            <Text style={[typography.label.sm, { color: colors.textMuted, fontWeight: "700" }]}>
+              {appt.isLive
+                ? t("appointments.waitingForDoctor")
+                : t("appointments.startsSoon")}
+            </Text>
+          </View>
+        )}
       </View>
     </Card>
   );

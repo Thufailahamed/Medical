@@ -1849,9 +1849,25 @@
       "cancelAppointment": "Cancel appointment"
     },
     "filter": {
-      "all": "All",
-      "upcoming": "Upcoming",
-      "past": "Past"
+      "all": "සියල්ල",
+      "upcoming": "ඉදිරි",
+      "missed": "මඟ හැරිණි",
+      "past": "අතීත"
+    },
+    "statusLabel": {
+      "scheduled": "ඇපවී ඇත",
+      "confirmed": "තහවුරු කර ඇත",
+      "in_progress": "සිදුවෙමින්",
+      "completed": "සම්පූර්ණයි",
+      "cancelled": "අවලංගුයි",
+      "no_show": "මඟ හැරිණි"
+    },
+    "bookAgain": "නැවත වෙන් කරගන්න",
+    "waitingForDoctor": "වෛද්‍යවරයා ආරම්භ කිරීමට රැඳී සිටී",
+    "startsSoon": "ඉක්මනින් ආරම්භ වේ",
+    "missedEmpty": {
+      "title": "මඟ හැරුණු සංචාර නැත",
+      "body": "ඔබ සහභාගී නොවූ සංචාර මෙහි දිස්වේ"
     },
     "modeFilter": {
       "all": "සියලු වර්ග",

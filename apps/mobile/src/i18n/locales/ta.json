@@ -1849,9 +1849,25 @@
       "cancelAppointment": "Cancel appointment"
     },
     "filter": {
-      "all": "All",
-      "upcoming": "Upcoming",
-      "past": "Past"
+      "all": "அனைத்தும்",
+      "upcoming": "வரவிருக்கும்",
+      "missed": "தவறவிட்டவை",
+      "past": "கடந்தவை"
+    },
+    "statusLabel": {
+      "scheduled": "திட்டமிடப்பட்டது",
+      "confirmed": "உறுதிப்படுத்தப்பட்டது",
+      "in_progress": "நடைபெறுகிறது",
+      "completed": "முடிந்தது",
+      "cancelled": "ரத்து செய்யப்பட்டது",
+      "no_show": "தவறவிட்டது"
+    },
+    "bookAgain": "மீண்டும் பதிவு செய்",
+    "waitingForDoctor": "மருத்துவர் தொடங்கக் காத்திருக்கிறது",
+    "startsSoon": "விரைவில் தொடங்கும்",
+    "missedEmpty": {
+      "title": "தவறவிட்ட வருகைகள் இல்லை",
+      "body": "நீங்கள் கலந்துகொள்ளாத வருகைகள் இங்கே தோன்றும்"
     },
     "modeFilter": {
       "all": "அனைத்து வகைகள்",

@@ -1951,7 +1951,23 @@
     "filter": {
       "all": "All",
       "upcoming": "Upcoming",
+      "missed": "Missed",
       "past": "Past"
+    },
+    "statusLabel": {
+      "scheduled": "Scheduled",
+      "confirmed": "Confirmed",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no_show": "Missed"
+    },
+    "bookAgain": "Book again",
+    "waitingForDoctor": "Waiting for doctor to start",
+    "startsSoon": "Starts soon",
+    "missedEmpty": {
+      "title": "No missed visits",
+      "body": "Visits you didn't attend will show here"
     },
     "modeFilter": {
       "all": "All types",
