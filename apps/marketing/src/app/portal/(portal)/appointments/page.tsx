@@ -75,8 +75,8 @@ const STATUS_CONFIG: Record<
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   scheduled: ["confirmed", "in_progress", "cancelled", "no_show"],
-  confirmed: ["in_progress", "cancelled", "no_show"],
-  in_progress: ["completed"],
+  confirmed: ["in_progress", "completed", "cancelled", "no_show"],
+  in_progress: ["completed", "cancelled", "no_show"],
   waiting: ["in_consultation"],
   in_consultation: ["completed"],
 };

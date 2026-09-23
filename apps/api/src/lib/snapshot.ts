@@ -29,6 +29,7 @@
 //     for the AI-grade version.
 
 import { eq, and, desc, asc, gte, inArray } from "drizzle-orm";
+import { slTodayIso } from "@healthcare/shared/visit-lifecycle";
 import {
   medicalRecords,
   allergies,
@@ -322,12 +323,17 @@ export async function buildSnapshot(
   }
 
   // ─── Upcoming follow-ups ──────────────────────────────────────
-  const nowIso = new Date().toISOString();
+  // Colombo calendar day + exclude completed/cancelled/archived so old
+  // follow-ups can't read as upcoming.
+  const nowDay: string = slTodayIso();
   const upcomingFollowUps: SnapshotFollowUp[] = records
     .filter(
       (r: any) =>
         (r.kind === "follow_up" || r.recordType === "follow_up") &&
-        (r.followUpDate ?? r.date ?? "") >= nowIso.slice(0, 10)
+        !r.archivedAt &&
+        (r.status ?? "pending") !== "completed" &&
+        (r.status ?? "pending") !== "cancelled" &&
+        (r.followUpDate ?? r.date ?? "") >= nowDay
     )
     .sort((a: any, b: any) =>
       (a.followUpDate ?? a.date ?? "").localeCompare(b.followUpDate ?? b.date ?? "")

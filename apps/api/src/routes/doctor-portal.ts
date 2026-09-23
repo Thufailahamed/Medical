@@ -54,7 +54,8 @@ import { recordRevenueEvent } from "../lib/revenue";
 import { sendVisitSummaryEmail } from "../lib/post-visit-summary";
 import { sendPreVisitSummaryEmail } from "../lib/pre-visit-summary";
 import { cacheGet, cacheStore, aiComplete } from "../lib/ai";
-import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT, autoExpireAppointments } from "../lib/booking";
+import { compactQueue, ACTIVE_STATUSES, MAX_PER_SLOT, autoExpireAppointments, timeoutTeleconsultForAppointment } from "../lib/booking";
+import { computeVisitLifecycle, slTodayIso, visitStartsAt, canTransitionVisit } from "@healthcare/shared/visit-lifecycle";
 import { createShareLinkSchema } from "../lib/validators";
 import { canAccessPatient } from "../lib/access";
 import {
@@ -323,8 +324,7 @@ doctorPortalRouter.patch("/profile", async (c) => {
 doctorPortalRouter.get("/queue", async (c) => {
   const userId = c.get("userId");
   const db = c.get("db");
-  const date =
-    c.req.query("date") || new Date().toISOString().split("T")[0];
+  const date = c.req.query("date") || slTodayIso();
   // Round 6 P2: ?mode=video narrows the queue to video consultations
   // only. `mode=in_person` returns the rest. No mode (default) keeps
   // the existing "show everything" behavior.
@@ -422,6 +422,75 @@ doctorPortalRouter.get("/queue", async (c) => {
   });
 
   return c.json({ date, count: rows.length, queue: rows });
+});
+
+// ─── Doctor's appointments for a patient ─────────────────
+// GET /doctor-portal/appointments?patientId=&status=&upcoming=&mode=
+// Powers the doctor's patient-detail "next visit" card. `upcoming=1`
+// returns only visits whose lifecycle bucket is upcoming/today (never
+// stale scheduled rows from the past). Both offline (in_person) and
+// video modes are returned; pass ?mode=video to narrow to video only.
+doctorPortalRouter.get("/appointments", async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const patientId = c.req.query("patientId") || undefined;
+  const statusFilter = c.req.query("status") || undefined;
+  const upcomingOnly = c.req.query("upcoming") === "1" || c.req.query("upcoming") === "true";
+  const modeFilter = c.req.query("mode") || undefined;
+
+  const doctor = await getDoctor(db, userId);
+  if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
+
+  await autoExpireAppointments(db, undefined, doctor.id);
+
+  const conditions: any[] = [eq(appointments.doctorId, doctor.id)];
+  if (patientId) conditions.push(eq(appointments.patientId, patientId));
+  if (statusFilter) conditions.push(eq(appointments.status, statusFilter as any));
+  if (modeFilter) conditions.push(eq(appointments.mode, modeFilter as any));
+
+  const rows = await db
+    .select()
+    .from(appointments)
+    .where(and(...conditions))
+    .orderBy(asc(appointments.date), asc(appointments.time));
+
+  const now = Date.now();
+  const items = rows.map((r: any) => {
+    const lc = computeVisitLifecycle({
+      date: r.date,
+      time: r.time,
+      status: r.status,
+      now,
+    });
+    return {
+      ...r,
+      mode: r.mode ?? "in_person",
+      startsAt: lc.startsAt,
+      isPast: lc.isPast,
+      isLive: lc.isLive,
+      bucket: lc.bucket,
+    };
+  }).filter((r: any) => {
+    if (!upcomingOnly) return true;
+    return r.bucket === "upcoming" || r.bucket === "today";
+  });
+
+  return c.json({
+    items: items.map((r: any) => ({
+      appointmentId: r.id,
+      id: r.id,
+      date: r.date,
+      time: r.time,
+      reason: r.reason ?? null,
+      status: r.status,
+      mode: r.mode,
+      bucket: r.bucket,
+      startsAt: r.startsAt,
+      isLive: r.isLive,
+    })),
+    appointments: items,
+    count: items.length,
+  });
 });
 
 // ─── Patient summary (doctor view) ───────────────────────
@@ -1638,7 +1707,7 @@ doctorPortalRouter.get("/follow-ups", async (c) => {
   const upcoming = c.req.query("upcoming") === "true";
   const patientId = c.req.query("patientId") || undefined;
   const status = c.req.query("status") || undefined;
-  const today = new Date().toISOString().split("T")[0];
+  const today = slTodayIso();
 
   const doctor = await getDoctor(db, userId);
   if (!doctor) return c.json({ error: "Doctor profile not found" }, 404);
@@ -2216,11 +2285,44 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
     .limit(1);
   if (!own) return c.json({ error: "Appointment not found" }, 404);
 
-  const [row] = await db
-    .update(appointments)
-    .set({ status: parsed.data.status, notes: parsed.data.notes ?? own.notes })
-    .where(eq(appointments.id, id))
-    .returning();
+  // Canonical visit state machine: terminal states (completed /
+  // cancelled / no_show) are final, and scheduled can't jump straight
+  // to completed. `no_show` is the explicit "patient didn't attend"
+  // outcome for both offline (in_person) and video visits.
+  const next = parsed.data.status;
+  if (!canTransitionVisit(own.status, next)) {
+    return c.json(
+      { error: `Cannot transition appointment from ${own.status} to ${next}` },
+      409
+    );
+  }
+  // A future visit can't be completed or marked no-show before its window.
+  if ((next === "completed" || next === "no_show") && own.status !== next) {
+    const startsAt = visitStartsAt(own.date, own.time);
+    if (next === "completed" && Date.now() < startsAt - 10 * 60 * 1000) {
+      return c.json(
+        { error: "Cannot complete a visit before its scheduled time" },
+        409
+      );
+    }
+    if (next === "no_show" && Date.now() < startsAt + 15 * 60 * 1000) {
+      return c.json(
+        { error: "Cannot mark no-show before the 15-minute grace window ends" },
+        409
+      );
+    }
+  }
+
+  const { row } = await withStatusGuard(
+    db,
+    appointments,
+    id,
+    [own.status],
+    { status: next, notes: parsed.data.notes ?? own.notes }
+  );
+  if (!row) {
+    return c.json({ error: "Appointment was modified concurrently" }, 409);
+  }
 
   // Notify patient of status change — including cancelled so the patient
   // is never left wondering why the slot disappeared.
@@ -2275,6 +2377,13 @@ doctorPortalRouter.post("/appointments/:id/status", async (c) => {
     ["scheduled", "confirmed", "in_progress"].includes(own.status)
   ) {
     await compactQueue(db, own.doctorId, own.date, own.time);
+  }
+
+  // Closing the visit (completed/cancelled/no_show) must also close any
+  // live video room so a stale "Join call" CTA can't linger for an old
+  // session. Completed offline visits have no room; the timeout is a no-op.
+  if (["completed", "cancelled", "no_show"].includes(parsed.data.status)) {
+    await timeoutTeleconsultForAppointment(db, id).catch(() => {});
   }
 
   // Phase 4: billable event when the doctor marks the appointment
@@ -3082,6 +3191,16 @@ doctorPortalRouter.post("/appointments", async (c) => {
   const date = String(body?.date || "").trim();
   const time = String(body?.time || "").trim();
   const reason = body?.reason ? String(body.reason).trim() : null;
+  const mode = body?.mode === "video" ? "video" : "in_person";
+  if (mode === "video" && !(doctor as any).telemedicineEnabled) {
+    return c.json(
+      {
+        error: "Video consultations are not enabled for this doctor",
+        reason: "telemedicine_unavailable",
+      },
+      409
+    );
+  }
 
   // Validate inputs
   if (!patientId) return c.json({ error: "patientId is required" }, 400);
@@ -3094,15 +3213,10 @@ doctorPortalRouter.post("/appointments", async (c) => {
     return c.json({ error: "Access denied", reason: access.reason }, 403);
   }
 
-  // Reject past dates
-  const today = new Date().toISOString().slice(0, 10);
-  if (date < today) return c.json({ error: "Cannot book a past date" }, 400);
-  if (date === today) {
-    const [hh, mm] = time.split(":").map(Number);
-    const now = new Date();
-    if (hh * 60 + mm <= now.getHours() * 60 + now.getMinutes()) {
-      return c.json({ error: "Cannot book a time in the past" }, 400);
-    }
+  // Reject past dates (Asia/Colombo — matches visitStartsAt).
+  if (date < slTodayIso()) return c.json({ error: "Cannot book a past date" }, 400);
+  if (visitStartsAt(date, time) <= Date.now()) {
+    return c.json({ error: "Cannot book a time in the past" }, 400);
   }
 
   // Verify patient exists
@@ -3152,6 +3266,7 @@ doctorPortalRouter.post("/appointments", async (c) => {
           reason,
           queueNumber,
           status: "scheduled",
+          mode,
         } as any)
         .returning();
       return { row };
@@ -3212,15 +3327,11 @@ doctorPortalRouter.patch("/appointments/:id/reschedule", async (c) => {
     return c.json({ error: "date (YYYY-MM-DD) and time (HH:MM) required" }, 400);
   }
 
-  // Reject past dates
-  const today = new Date().toISOString().slice(0, 10);
-  if (date < today) return c.json({ error: "Cannot reschedule to a past date" }, 400);
-  if (date === today) {
-    const [hh, mm] = time.split(":").map(Number);
-    const now = new Date();
-    if (hh * 60 + mm <= now.getHours() * 60 + now.getMinutes()) {
-      return c.json({ error: "Cannot reschedule to a time in the past" }, 400);
-    }
+  // Reject past dates (Asia/Colombo — matches visitStartsAt).
+  if (date < slTodayIso())
+    return c.json({ error: "Cannot reschedule to a past date" }, 400);
+  if (visitStartsAt(date, time) <= Date.now()) {
+    return c.json({ error: "Cannot reschedule to a time in the past" }, 400);
   }
 
   // Ownership check

@@ -2,7 +2,9 @@
 //
 // auto-expire to no_show must (a) write an appointment_status_history
 // audit row (was: silent status flip), (b) return the expired count,
-// (c) leave in_progress/completed/cancelled rows alone.
+// (c) leave fresh in_progress/completed/cancelled rows alone, but expire
+// stuck in_progress (started >4h ago, doctor never closed it) so old
+// sessions can't linger as upcoming or block slot capacity.
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { MockD1 } from "./_mockDb";
@@ -26,35 +28,34 @@ beforeEach(() => {
 describe("autoExpireAppointments", () => {
   it("expires stale scheduled/confirmed rows and writes history", async () => {
     const expired = await autoExpireAppointments(db, "p1");
-    expect(expired).toBe(2);
+    // 2 stale scheduled/confirmed + 1 stuck in_progress (2 days old).
+    expect(expired).toBe(3);
 
     const rows = db.tables["appointments"].rows;
     expect(rows.find((r) => r.id === "apt-old-sched").status).toBe("no_show");
     expect(rows.find((r) => r.id === "apt-old-conf").status).toBe("no_show");
+    expect(rows.find((r) => r.id === "apt-old-prog").status).toBe("no_show");
 
     const hist = db.tables["appointmentStatusHistory"].rows;
-    expect(hist.length).toBe(2);
+    expect(hist.length).toBe(3);
     for (const h of hist) {
       expect(h.toStatus).toBe("no_show");
-      expect(h.fromStatus === "scheduled" || h.fromStatus === "confirmed").toBe(true);
       expect(h.reason).toBe("auto_expired");
     }
   });
 
-  it("leaves in_progress, completed and cancelled rows alone", async () => {
+  it("leaves completed and cancelled rows alone", async () => {
     await autoExpireAppointments(db, "p1");
     const rows = db.tables["appointments"].rows;
-    expect(rows.find((r) => r.id === "apt-old-prog").status).toBe("in_progress");
     expect(rows.find((r) => r.id === "apt-old-done").status).toBe("completed");
     expect(rows.find((r) => r.id === "apt-old-canc").status).toBe("cancelled");
-    const hist = db.tables["appointmentStatusHistory"].rows;
-    expect(hist.find((h) => h.appointmentId === "apt-old-prog")).toBeUndefined();
   });
 
   it("returns 0 and writes nothing when everything is fresh", async () => {
     const fresh = new MockD1();
     fresh.seed("appointments", [
       { id: "apt-fresh", patientId: "p1", doctorId: "d1", date: "2099-01-01", time: "10:00", status: "confirmed" },
+      { id: "apt-fresh-prog", patientId: "p1", doctorId: "d1", date: "2099-01-01", time: "10:00", status: "in_progress" },
     ]);
     fresh.seed("appointmentStatusHistory", []);
     const expired = await autoExpireAppointments(fresh, "p1");

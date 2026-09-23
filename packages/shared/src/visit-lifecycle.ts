@@ -45,6 +45,61 @@ export function visitStartsAt(date: string, time?: string | null): number {
   return Number.isNaN(ms) ? 0 : ms;
 }
 
+export const ACTIVE_VISIT_STATUSES = [
+  "scheduled",
+  "confirmed",
+  "in_progress",
+] as const;
+
+export const TERMINAL_VISIT_STATUSES = [
+  "completed",
+  "cancelled",
+  "no_show",
+] as const;
+
+export type ActiveVisitStatus = (typeof ACTIVE_VISIT_STATUSES)[number];
+export type TerminalVisitStatus = (typeof TERMINAL_VISIT_STATUSES)[number];
+
+export type VisitMode = "in_person" | "video";
+
+/** True for scheduled/confirmed/in_progress — a visit that still needs an outcome. */
+export function isActiveVisitStatus(status: string): boolean {
+  return (
+    status === "scheduled" || status === "confirmed" || status === "in_progress"
+  );
+}
+
+/** True for completed/cancelled/no_show — a visit with a final outcome. */
+export function isTerminalVisitStatus(status: string): boolean {
+  return (
+    status === "completed" || status === "cancelled" || status === "no_show"
+  );
+}
+
+/**
+ * Canonical status machine. Terminal states are final (no resurrection).
+ * `no_show` covers both cases the product needs:
+ *   - offline (in_person): patient didn't attend the session
+ *   - video: patient never joined / doctor waited and closed the room
+ */
+export const VISIT_TRANSITIONS: Record<string, string[]> = {
+  scheduled: ["confirmed", "in_progress", "cancelled", "no_show"],
+  confirmed: ["in_progress", "completed", "cancelled", "no_show"],
+  in_progress: ["completed", "cancelled", "no_show"],
+  waiting: ["in_consultation"],
+  in_consultation: ["completed"],
+  completed: [],
+  cancelled: [],
+  no_show: [],
+};
+
+export function canTransitionVisit(from: string, to: string): boolean {
+  if (from === to) return true;
+  const allowed = VISIT_TRANSITIONS[from];
+  if (!allowed) return false;
+  return allowed.includes(to);
+}
+
 export function computeVisitLifecycle(
   input: VisitLifecycleInput
 ): VisitLifecycle {
@@ -52,8 +107,7 @@ export function computeVisitLifecycle(
   const startsAt = visitStartsAt(input.date, input.time);
   const isPast = now > startsAt + GRACE_MS;
   const status = input.status;
-  const isActiveStatus =
-    status === "scheduled" || status === "confirmed" || status === "in_progress";
+  const isActiveStatus = isActiveVisitStatus(status);
   const isLive =
     isActiveStatus &&
     now >= startsAt - JOIN_OPEN_MS &&
@@ -65,18 +119,46 @@ export function computeVisitLifecycle(
   } else if (status === "cancelled") {
     bucket = "cancelled";
   } else if (status === "no_show") {
+    // Patient didn't attend (offline) or didn't join (video) — always missed.
     bucket = "missed";
-  } else if ((status === "scheduled" || status === "confirmed") && isPast) {
+  } else if (isActiveStatus && isPast) {
+    // Stale active visit past the grace window is missed, never upcoming.
+    // Covers scheduled/confirmed AND stuck in_progress (yesterday or
+    // earlier today) so old sessions can't show as "coming up".
     bucket = "missed";
   } else if (slDayDiff(input.date, now) === 0) {
     bucket = "today";
   } else if (now < startsAt) {
     bucket = "upcoming";
   } else {
+    // Unknown status with an elapsed start can never be upcoming.
     bucket = "missed";
   }
 
   return { startsAt, isPast, isLive, bucket };
+}
+
+/**
+ * Whether the "Join video visit" CTA may render for this appointment.
+ * Video-only, active status, and inside the today/live window.
+ * Offline (in_person) visits never join — they show queue/clinic info.
+ */
+export function canJoinVideoVisit(input: {
+  mode?: string | null;
+  status: string;
+  date: string;
+  time?: string | null;
+  now?: number;
+}): boolean {
+  if (input.mode !== "video") return false;
+  if (!isActiveVisitStatus(input.status)) return false;
+  const lc = computeVisitLifecycle({
+    date: input.date,
+    time: input.time,
+    status: input.status,
+    now: input.now,
+  });
+  return lc.isLive || lc.bucket === "today";
 }
 
 const slDateFormatter = new Intl.DateTimeFormat("en-CA", {

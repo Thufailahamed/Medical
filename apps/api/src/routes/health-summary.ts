@@ -17,6 +17,8 @@ import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
 import { bmi, bmiCategory, type VitalType } from "@healthcare/shared/vitals";
 import { derivedBlock, latestByType, classifyAlerts } from "../lib/vitals-derived";
+import { computeVisitLifecycle } from "@healthcare/shared/visit-lifecycle";
+import { autoExpireAppointments } from "../lib/booking";
 
 const summaryRouter = new Hono<AppEnvironment>();
 
@@ -85,24 +87,44 @@ summaryRouter.get("/me", authMiddleware, async (c) => {
       .limit(10)
       .catch(() => []);
 
+    // Expire stale rows first so old scheduled sessions can't surface
+    // as "upcoming" follow-ups.
+    await autoExpireAppointments(db, patient.id).catch(() => []);
+
     const upcomingAppts = await db
       .select()
       .from(appointments)
       .where(eq(appointments.patientId, patient.id))
       .orderBy(desc(appointments.date), desc(appointments.time))
-      .limit(10)
+      .limit(20)
       .catch(() => []);
 
+    const now = Date.now();
     const followUps = upcomingAppts
-      .filter((a: any) =>
-        ["scheduled", "confirmed", "rescheduled", "in_progress"].includes(
-          String(a.status || "").toLowerCase()
-        )
-      )
       .map((a: any) => ({
-        title: a.reason || "Appointment",
-        scheduledAt: a.date ? `${a.date}T${a.time || "00:00"}` : null,
-        status: a.status,
+        row: a,
+        lc: computeVisitLifecycle({
+          date: a.date,
+          time: a.time,
+          status: a.status,
+          now,
+        }),
+      }))
+      .filter(
+        ({ row, lc }: any) =>
+          ["scheduled", "confirmed", "in_progress"].includes(
+            String(row.status || "").toLowerCase()
+          ) &&
+          (lc.bucket === "upcoming" || lc.bucket === "today")
+      )
+      .sort((x: any, y: any) => x.lc.startsAt - y.lc.startsAt)
+      .map(({ row }: any) => ({
+        title: row.reason || "Appointment",
+        scheduledAt: row.date ? `${row.date}T${row.time || "00:00"}` : null,
+        status: row.status,
+        mode: row.mode ?? "in_person",
+        date: row.date,
+        time: row.time,
       }))
       .slice(0, 5);
 

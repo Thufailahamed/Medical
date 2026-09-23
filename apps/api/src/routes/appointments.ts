@@ -11,7 +11,7 @@ import { flattenTranslated } from "../lib/validation-error";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { ACTIVE_STATUSES, MAX_PER_SLOT, compactQueue, autoExpireAppointments } from "../lib/booking";
-import { computeVisitLifecycle } from "@healthcare/shared/visit-lifecycle";
+import { computeVisitLifecycle, slTodayIso, visitStartsAt, canTransitionVisit } from "@healthcare/shared/visit-lifecycle";
 import { upsertActiveCareTeam } from "../lib/status-guard";
 import { computeCancellationEstimate } from "../lib/cancellation";
 import { appointmentPayments } from "@healthcare/db";
@@ -62,18 +62,15 @@ appointmentsRouter.post("/", authMiddleware, async (c) => {
     );
   }
 
-  // 1. Reject past dates. Today is allowed.
-  const today = new Date().toISOString().slice(0, 10);
+  // 1. Reject past dates. Today is allowed. All calendar math is
+  // Asia/Colombo to match visitStartsAt — UTC date math rejects valid
+  // same-day SL bookings around midnight.
+  const today = slTodayIso();
   if (data.date < today) {
     return c.json({ error: "Cannot book a past date" }, 400);
   }
-  if (data.date === today) {
-    const [hh, mm] = (data.time || "00:00").split(":").map(Number);
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    if (hh * 60 + mm <= nowMin) {
-      return c.json({ error: "Cannot book a time in the past" }, 400);
-    }
+  if (visitStartsAt(data.date, data.time) <= Date.now()) {
+    return c.json({ error: "Cannot book a time in the past" }, 400);
   }
 
   // 2. Patient lookup. For caretakers, caretaker-context middleware
@@ -237,16 +234,12 @@ appointmentsRouter.patch(
       return c.json({ error: "date (YYYY-MM-DD) and time (HH:MM) required" }, 400);
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    if (date < today) {
+    const todaySl = slTodayIso();
+    if (date < todaySl) {
       return c.json({ error: "Cannot reschedule to a past date" }, 400);
     }
-    if (date === today) {
-      const [hh, mm] = time.split(":").map(Number);
-      const now = new Date();
-      if (hh * 60 + mm <= now.getHours() * 60 + now.getMinutes()) {
-        return c.json({ error: "Cannot reschedule to a time in the past" }, 400);
-      }
+    if (visitStartsAt(date, time) <= Date.now()) {
+      return c.json({ error: "Cannot reschedule to a time in the past" }, 400);
     }
 
     // Caretaker Profiles: resolve via context so caretakers can
@@ -291,7 +284,7 @@ appointmentsRouter.patch(
         const active = sameSlot.filter((r: any) =>
           ACTIVE_STATUSES.includes(r.status)
         ).length;
-        if (active >= 4) {
+        if (active >= MAX_PER_SLOT) {
           return { error: "This slot is fully booked" as const };
         }
         const [row] = await t
@@ -397,10 +390,10 @@ appointmentsRouter.get(
       conditions.push(eq(appointments.date, todayIso));
     }
 
-    // Auto-expire passed appointments first
-    if (activeHospitalId) {
-      await autoExpireAppointments(db, undefined, undefined);
-    }
+    // Auto-expire passed appointments first — always, not just when a
+    // tenant header is set, so stale scheduled/confirmed rows can never
+    // linger as "upcoming" on admin/doctor lists.
+    await autoExpireAppointments(db, undefined, undefined);
 
     const rows = await db
       .select({
@@ -408,6 +401,7 @@ appointmentsRouter.get(
         date: appointments.date,
         time: appointments.time,
         status: appointments.status,
+        mode: appointments.mode,
         patientId: appointments.patientId,
         patientName: users.name,
         doctorId: appointments.doctorId,
@@ -423,17 +417,30 @@ appointmentsRouter.get(
       .where(and(...conditions))
       .orderBy(appointments.date, appointments.time);
 
-    const mapped = rows.map((r: any) => ({
-      id: r.id,
-      startsAt: `${r.date}T${r.time || "00:00"}:00`,
-      date: r.date,
-      time: r.time,
-      patientId: r.patientId,
-      patientName: r.patientName,
-      doctorId: r.doctorId,
-      doctorName: r.doctorName || "—",
-      status: r.status,
-    }));
+    const now = Date.now();
+    const mapped = rows.map((r: any) => {
+      const lc = computeVisitLifecycle({
+        date: r.date,
+        time: r.time,
+        status: r.status,
+        now,
+      });
+      return {
+        id: r.id,
+        startsAt: lc.startsAt,
+        date: r.date,
+        time: r.time,
+        patientId: r.patientId,
+        patientName: r.patientName,
+        doctorId: r.doctorId,
+        doctorName: r.doctorName || "—",
+        status: r.status,
+        mode: r.mode ?? "in_person",
+        isPast: lc.isPast,
+        isLive: lc.isLive,
+        bucket: lc.bucket,
+      };
+    });
 
     return c.json({ appointments: mapped });
   }
@@ -460,7 +467,7 @@ appointmentsRouter.get("/me", authMiddleware, async (c) => {
     .select()
     .from(appointments)
     .where(eq(appointments.patientId, patient.id))
-    .orderBy(appointments.date);
+    .orderBy(appointments.date, appointments.time);
 
   // Annotate each row with recordCount PLUS the doctor and hospital names.
   // The doctor/hospital joins are additive: a missing doctor must not
@@ -615,6 +622,15 @@ appointmentsRouter.put(
 
     if (!existing || existing.doctorId !== doctor.id) {
       return c.json({ error: "Appointment not found or access denied" }, 404);
+    }
+
+    // Deprecated shim still enforces the canonical transition matrix so
+    // terminal visits (completed/cancelled/no_show) can't be resurrected.
+    if (!canTransitionVisit(existing.status, status)) {
+      return c.json(
+        { error: `Cannot transition appointment from ${existing.status} to ${status}` },
+        409
+      );
     }
 
     const [updated] = await db

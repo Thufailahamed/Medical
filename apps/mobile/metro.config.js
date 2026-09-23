@@ -77,15 +77,63 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       platform
     );
   }
+
+  // Intercept @healthcare/shared and its subpaths
+  if (moduleName === '@healthcare/shared') {
+    return context.resolveRequest(
+      context,
+      path.resolve(workspaceRoot, 'packages/shared/src/index.ts'),
+      platform
+    );
+  }
+
+  if (moduleName.startsWith('@healthcare/shared/')) {
+    const subpath = moduleName.slice('@healthcare/shared/'.length);
+    const candidateFile = path.resolve(workspaceRoot, 'packages/shared/src', `${subpath}.ts`);
+    if (fs.existsSync(candidateFile)) {
+      return context.resolveRequest(context, candidateFile, platform);
+    }
+    const candidateIndex = path.resolve(workspaceRoot, 'packages/shared/src', subpath, 'index.ts');
+    if (fs.existsSync(candidateIndex)) {
+      return context.resolveRequest(context, candidateIndex, platform);
+    }
+  }
+
   // Let Metro resolve everything else normally
   return context.resolveRequest(context, moduleName, platform);
 };
 
-// Add specific subpath mappings for @healthcare/shared to allow Metro to resolve them
-extraNodeModules['@healthcare/shared/vitals'] = path.resolve(workspaceRoot, 'packages/shared/src/vitals.ts');
-extraNodeModules['@healthcare/shared/types'] = path.resolve(workspaceRoot, 'packages/shared/src/types.ts');
-extraNodeModules['@healthcare/shared/validators'] = path.resolve(workspaceRoot, 'packages/shared/src/validators.ts');
-extraNodeModules['@healthcare/shared/records'] = path.resolve(workspaceRoot, 'packages/shared/src/records.ts');
+// Add mappings for @healthcare/shared to allow Metro extraNodeModules resolution
+const sharedPkgDir = path.resolve(workspaceRoot, 'packages/shared');
+const sharedSrcDir = path.resolve(sharedPkgDir, 'src');
+
+extraNodeModules['@healthcare/shared'] = path.resolve(sharedSrcDir, 'index.ts');
+extraNodeModules['@healthcare/shared/vitals'] = path.resolve(sharedSrcDir, 'vitals.ts');
+extraNodeModules['@healthcare/shared/types'] = path.resolve(sharedSrcDir, 'types.ts');
+extraNodeModules['@healthcare/shared/validators'] = path.resolve(sharedSrcDir, 'validators.ts');
+extraNodeModules['@healthcare/shared/records'] = path.resolve(sharedSrcDir, 'records.ts');
+extraNodeModules['@healthcare/shared/visit-lifecycle'] = path.resolve(sharedSrcDir, 'visit-lifecycle.ts');
+extraNodeModules['@healthcare/shared/doctor-badge'] = path.resolve(sharedSrcDir, 'doctor-badge.ts');
+extraNodeModules['@healthcare/shared/extractors'] = path.resolve(sharedSrcDir, 'extractors.ts');
+extraNodeModules['@healthcare/shared/coding'] = path.resolve(sharedSrcDir, 'coding.ts');
+extraNodeModules['@healthcare/shared/diagnostics'] = path.resolve(sharedSrcDir, 'diagnostics.ts');
+extraNodeModules['@healthcare/shared/contracts'] = path.resolve(sharedSrcDir, 'contracts/index.ts');
+
+if (fs.existsSync(sharedSrcDir)) {
+  for (const entry of fs.readdirSync(sharedSrcDir)) {
+    const full = path.join(sharedSrcDir, entry);
+    const stat = fs.statSync(full);
+    if (stat.isFile() && entry.endsWith('.ts') && !entry.endsWith('.test.ts') && !entry.endsWith('.d.ts')) {
+      const name = entry.replace(/\.ts$/, '');
+      extraNodeModules[`@healthcare/shared/${name}`] = full;
+    } else if (stat.isDirectory()) {
+      const indexCandidate = path.join(full, 'index.ts');
+      if (fs.existsSync(indexCandidate)) {
+        extraNodeModules[`@healthcare/shared/${entry}`] = indexCandidate;
+      }
+    }
+  }
+}
 
 config.resolver.extraNodeModules = extraNodeModules;
 

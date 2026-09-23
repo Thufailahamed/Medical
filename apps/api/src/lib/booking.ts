@@ -70,9 +70,16 @@ export async function slotCount(
 }
 
 /**
- * Auto-expire (mark as no_show) any scheduled/confirmed appointments
- * that have passed their start time by more than 15 minutes.
- * Writes an appointment_status_history audit row per transition.
+ * Auto-expire stale active appointments to `no_show` (patient didn't
+ * attend for offline, didn't join for video).
+ *
+ *   - scheduled/confirmed past start+15min → no_show
+ *   - in_progress stuck past start+4h → no_show (doctor started the
+ *     visit but never closed it; the slot must not block capacity
+ *     forever and the visit must not read as "upcoming").
+ *
+ * Writes an appointment_status_history audit row per transition and
+ * times out any live teleconsult sessions tied to the expired visit.
  * Returns the number of appointments expired.
  */
 export async function autoExpireAppointments(
@@ -97,20 +104,30 @@ export async function autoExpireAppointments(
       .where(
         and(
           ...conditions,
-          inArray(appointments.status, ["scheduled", "confirmed"])
+          inArray(appointments.status, ["scheduled", "confirmed", "in_progress"])
         )
       );
 
     for (const appt of pendingAppts) {
       const apptTime = visitStartsAt(appt.date, appt.time);
+      const elapsed = now - apptTime;
+      const isStuckInProgress =
+        appt.status === "in_progress" && elapsed > 4 * 60 * 60 * 1000;
+      const isPastGrace =
+        (appt.status === "scheduled" || appt.status === "confirmed") &&
+        elapsed > 15 * 60 * 1000;
 
-      // If 15 mins buffer time has passed
-      if (now - apptTime > 15 * 60 * 1000) {
+      // If 15 mins buffer time has passed (or 4h for stuck in_progress)
+      if (isPastGrace || isStuckInProgress) {
+        const fromStatuses =
+          appt.status === "in_progress"
+            ? ["in_progress"]
+            : ["scheduled", "confirmed"];
         const { changed } = await withStatusGuard(
           db,
           appointments,
           appt.id,
-          ["scheduled", "confirmed"],
+          fromStatuses,
           { status: "no_show" }
         );
         if (changed) {
@@ -122,6 +139,7 @@ export async function autoExpireAppointments(
             changedByUserId: null,
             reason: "auto_expired",
           } as any);
+          await timeoutTeleconsultForAppointment(db, appt.id).catch(() => {});
         }
       }
     }
@@ -129,4 +147,39 @@ export async function autoExpireAppointments(
     console.error("autoExpireAppointments failed:", err);
   }
   return expired;
+}
+
+/**
+ * Best-effort: close live teleconsult rooms (requested/ringing/active →
+ * timeout) when their appointment expires or is closed. The DB row is
+ * authoritative; the DO closes sockets on next message.
+ */
+export async function timeoutTeleconsultForAppointment(
+  db: any,
+  appointmentId: string
+): Promise<void> {
+  try {
+    const { teleconsultSessions } = await import("@healthcare/db");
+    const live = await db
+      .select({ id: teleconsultSessions.id })
+      .from(teleconsultSessions)
+      .where(
+        and(
+          eq(teleconsultSessions.appointmentId, appointmentId),
+          inArray(teleconsultSessions.status, ["requested", "ringing", "active"])
+        )
+      );
+    for (const row of live as any[]) {
+      await db
+        .update(teleconsultSessions)
+        .set({
+          status: "timeout",
+          endedAt: new Date().toISOString(),
+          lastError: "appointment closed without attendance",
+        })
+        .where(eq(teleconsultSessions.id, (row as any).id));
+    }
+  } catch (err) {
+    console.error("timeoutTeleconsultForAppointment failed:", err);
+  }
 }

@@ -9,7 +9,7 @@ import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Vi
 import { useMyAppointments, useCancelAppointment, useActiveTeleconsultSession } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
-import { slDayDiff } from "@healthcare/shared/visit-lifecycle";
+import { slDayDiff } from "@healthcare/shared";
 import {
   Screen,
   ScreenHeader,

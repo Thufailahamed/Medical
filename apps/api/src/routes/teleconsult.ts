@@ -478,6 +478,64 @@ teleconsultRouter.get("/sessions/me/active", async (c) => {
     .orderBy(desc(teleconsultSessions.createdAt))
     .limit(1);
 
+  // A live room is only joinable while its appointment is still an
+  // active visit inside the join window (or later today). Stale rooms
+  // tied to completed/cancelled/no_show or long-past visits are timed
+  // out here so old sessions can't surface a "Join call" CTA.
+  if (row) {
+    try {
+      const { computeVisitLifecycle } = await import("@healthcare/shared/visit-lifecycle");
+      const [appt] = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.id, row.appointmentId))
+        .limit(1);
+      if (!appt) {
+        await db
+          .update(teleconsultSessions)
+          .set({ status: "timeout", endedAt: new Date().toISOString(), lastError: "appointment not found" })
+          .where(eq(teleconsultSessions.id, row.id));
+        return c.json({ session: null });
+      }
+      const lc = computeVisitLifecycle({
+        date: appt.date,
+        time: appt.time,
+        status: appt.status,
+        now: Date.now(),
+      });
+      const terminal = ["completed", "cancelled", "no_show"].includes(appt.status);
+      const joinable =
+        !terminal &&
+        appt.mode === "video" &&
+        (lc.isLive || lc.bucket === "today");
+      if (!joinable) {
+        // Past-grace missed visits: also expire the appointment itself so
+        // it stops reading as upcoming everywhere else.
+        if (lc.bucket === "missed" && ["scheduled", "confirmed"].includes(appt.status)) {
+          const { withStatusGuard } = await import("./../lib/status-guard");
+          const { appointmentStatusHistory } = await import("@healthcare/db");
+          await withStatusGuard(db, appointments, appt.id, ["scheduled", "confirmed"], {
+            status: "no_show",
+          });
+          await db.insert(appointmentStatusHistory).values({
+            appointmentId: appt.id,
+            fromStatus: appt.status,
+            toStatus: "no_show",
+            changedByUserId: null,
+            reason: "auto_expired",
+          } as any).catch(() => {});
+        }
+        await db
+          .update(teleconsultSessions)
+          .set({ status: "timeout", endedAt: new Date().toISOString(), lastError: "visit window elapsed" })
+          .where(eq(teleconsultSessions.id, row.id));
+        return c.json({ session: null });
+      }
+    } catch {
+      // Fall through and return the row — validation is best-effort.
+    }
+  }
+
   return c.json({
     session: row
       ? {

@@ -78,13 +78,35 @@ export async function getPatientHealthContext(
       .orderBy(desc(vitals.recordedAt))
       .limit(1);
 
-    // 5. Fetch upcoming appointments
-    const apptList = await db
+    // 5. Fetch upcoming appointments — active statuses with a future
+    // (or today) lifecycle bucket only, so stale visits never read as
+    // upcoming. appointments has date/time columns (no scheduledAt).
+    const { computeVisitLifecycle } = await import("@healthcare/shared/visit-lifecycle");
+    const apptCandidates = await db
       .select()
       .from(appointments)
       .where(eq(appointments.patientId, patientId))
-      .orderBy(desc(appointments.scheduledAt))
-      .limit(5);
+      .orderBy(desc(appointments.date), desc(appointments.time))
+      .limit(20);
+    const nowMs = Date.now();
+    const apptList = apptCandidates
+      .map((a: any) => ({
+        row: a,
+        lc: computeVisitLifecycle({
+          date: a.date,
+          time: a.time,
+          status: a.status,
+          now: nowMs,
+        }),
+      }))
+      .filter(
+        (x: any) =>
+          ["scheduled", "confirmed", "in_progress"].includes(x.row.status) &&
+          (x.lc.bucket === "upcoming" || x.lc.bucket === "today")
+      )
+      .sort((x: any, y: any) => x.lc.startsAt - y.lc.startsAt)
+      .slice(0, 5)
+      .map((x: any) => x.row);
 
     // 6. Fetch recent medical records
     const recList = await db
@@ -169,7 +191,7 @@ export async function getPatientHealthContext(
         : undefined,
       upcomingAppointments: apptList.map((a: any) => ({
         doctorName: a.doctorName ?? a.providerName ?? "Doctor",
-        date: a.scheduledAt ? new Date(a.scheduledAt).toISOString().split("T")[0] : undefined,
+        date: a.date ?? undefined,
         time: a.time ?? undefined,
         reason: a.reason ?? undefined,
       })),

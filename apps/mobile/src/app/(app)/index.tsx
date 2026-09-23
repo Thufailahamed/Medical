@@ -623,7 +623,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Glassmorphism "Upcoming today" panel */}
-            {(nextMed || appointments[0]) && (
+            {(nextMed || upcomingAppointments[0]) && (
               <View
                 style={{
                   marginTop: spacing.lg,
@@ -687,7 +687,7 @@ export default function HomeScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 10,
-                        marginBottom: appointments[0] ? 8 : 0,
+                        marginBottom: upcomingAppointments[0] ? 8 : 0,
                       }}
                     >
                       <View
@@ -726,7 +726,7 @@ export default function HomeScreen() {
                     </View>
                   )}
 
-                  {appointments[0] && (
+                  {upcomingAppointments[0] && (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                       <View
                         style={{
@@ -751,12 +751,12 @@ export default function HomeScreen() {
                         }}
                       >
                         {(() => {
-                          const appt = appointments[0];
+                          const appt = upcomingAppointments[0];
                           const rawName = appt.doctorName || appt.providerName || appt.doctor?.name || appt.provider || appt.reason || appt.type || "";
                           const cleanName = String(rawName).replace(/^Dr\.?\s*/i, "").trim();
                           const doctorStr = cleanName ? `Dr. ${cleanName}` : "Doctor visit";
-                          const timeStr = appt.time || (appt.scheduledAt ? new Date(appt.scheduledAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "20:15");
-                          return `${doctorStr} at ${timeStr}`;
+                          const timeStr = appt.time || (appt.scheduledAt ? new Date(appt.scheduledAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : null);
+                          return timeStr ? `${doctorStr} at ${timeStr}` : doctorStr;
                         })()}
                       </Text>
                     </View>
