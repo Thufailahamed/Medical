@@ -254,17 +254,16 @@ describe("TeleconsultRoom — upgrade guards", () => {
     expect(res.status).toBe(401);
   });
 
-  it("rejects a 3rd peer with 101 (close on accept)", async () => {
+  it("rejects a 3rd peer pre-upgrade with 409", async () => {
     const { room } = makeRoom();
     // Two peers in.
     await room.fetch(upgradeReq({ userId: "doc-1", role: "doctor" }));
     await room.fetch(upgradeReq({ userId: "patient-user-1", role: "patient" }));
-    // Third peer — should NOT be accepted.
+    // Third peer — must be rejected BEFORE the upgrade (no fake 101).
     const res = await room.fetch(
       upgradeReq({ userId: "intruder", role: "doctor" })
     );
-    // DO returns 101 to satisfy the WS upgrade protocol but immediately closes.
-    expect(res.status).toBe(101);
+    expect(res.status).toBe(409);
   });
 
   it("rejects a duplicate userId (409)", async () => {
@@ -489,5 +488,34 @@ describe("TeleconsultRoom — patient-joined notification", () => {
     expect(db.notificationInserts[0].body).toBe(
       "රෝගීයා වීඩියෝ කාමරයට සම්බන්ධ වී බලා සිටී."
     );
+  });
+});
+
+// ─── Header hydration (plan Task 5) ─────────────────────
+// The route stamps session-context headers after participant
+// verification; the DO must trust them even with no D1 available.
+describe("TeleconsultRoom — header hydration", () => {
+  it("hydrates session context from X-Teleconsult-* headers without D1", async () => {
+    const state = new FakeState();
+    const env: any = { DB: undefined }; // no D1 — headers must be enough
+    const room = new TeleconsultRoom(state, env);
+
+    const req = new Request("https://do/upgrade", {
+      headers: {
+        Upgrade: "websocket",
+        "X-Teleconsult-User-Id": "doc-user-h",
+        "X-Teleconsult-Role": "doctor",
+        "X-Teleconsult-Session-Id": "sess-h",
+        "X-Teleconsult-Appointment-Id": "appt-h",
+        "X-Teleconsult-Doctor-Id": "doc-user-h",
+        "X-Teleconsult-Patient-Id": "pat-user-h",
+      },
+    });
+    const res = await room.fetch(req);
+    expect(res.status).toBe(101);
+    expect((room as any).sessionId).toBe("sess-h");
+    expect((room as any).appointmentId).toBe("appt-h");
+    expect((room as any).doctorUserId).toBe("doc-user-h");
+    expect((room as any).patientUserId).toBe("pat-user-h");
   });
 });

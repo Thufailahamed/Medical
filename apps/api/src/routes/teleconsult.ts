@@ -236,6 +236,10 @@ teleconsultRouter.get("/sessions/:id/ws", async (c) => {
       Upgrade: "websocket",
       "X-Teleconsult-User-Id": resolvedUserId,
       "X-Teleconsult-Role": participant.role,
+      "X-Teleconsult-Session-Id": row.id,
+      "X-Teleconsult-Appointment-Id": row.appointmentId,
+      "X-Teleconsult-Doctor-Id": row.doctorId,
+      "X-Teleconsult-Patient-Id": row.patientUserId,
     },
   });
   return stub.fetch(doReq);
@@ -667,7 +671,15 @@ teleconsultRouter.post("/sessions/:id/end", async (c) => {
     if (ns) {
       const doId = ns.idFromName(row.roomId);
       const stub = ns.get(doId);
-      await stub.fetch("https://do/close", { method: "POST" });
+      await stub.fetch("https://do/close", {
+        method: "POST",
+        headers: {
+          "X-Teleconsult-Session-Id": row.id,
+          "X-Teleconsult-Appointment-Id": row.appointmentId,
+          "X-Teleconsult-Doctor-Id": row.doctorId,
+          "X-Teleconsult-Patient-Id": row.patientUserId,
+        },
+      });
     }
   } catch (err) {
     // DO might be evicted; DB row is authoritative.

@@ -105,6 +105,15 @@ export class TeleconsultRoom {
     // sessionId/appointmentId. blockConcurrencyWhile guarantees no
     // concurrent fetches overlap this on CF.
     await this.hydrated;
+    // Header-stamped session context (set by the /teleconsult route
+    // after participant verification) wins over cold-start D1 lookup.
+    const h = (n: string) => request.headers.get(n);
+    if (h("X-Teleconsult-Session-Id")) {
+      this.sessionId = h("X-Teleconsult-Session-Id");
+      this.appointmentId = h("X-Teleconsult-Appointment-Id");
+      this.doctorUserId = h("X-Teleconsult-Doctor-Id");
+      this.patientUserId = h("X-Teleconsult-Patient-Id");
+    }
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname.endsWith("/close")) {
       // POST /close is the explicit API-initiated end. Persist as
@@ -134,14 +143,9 @@ export class TeleconsultRoom {
       return new Response("Expected WebSocket upgrade", { status: 426 });
     }
 
-    // Two-peer cap.
+    // Two-peer cap. Reject BEFORE the upgrade — never emit a fake 101.
     if (this.peers.size >= PARTY_MAX) {
-      return new Response("Room full", {
-        status: 101,
-        // Honoring 101 means we accept the upgrade but immediately
-        // close — the body is ignored by WebSocket protocol but a
-        // 101 lets us pass the close frame back.
-      });
+      return new Response("Room full", { status: 409 });
     }
 
     const userId = request.headers.get("X-Teleconsult-User-Id");
