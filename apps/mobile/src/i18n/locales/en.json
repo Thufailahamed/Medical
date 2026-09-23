@@ -4073,6 +4073,7 @@
   "consult": {
     "startVideoVisit": "Start video visit",
     "joinVideoVisit": "Join video visit",
+    "roomUnavailable": "This room is no longer available.",
     "endCall": "End call",
     "mute": "Mute",
     "unmute": "Unmute",

@@ -33,8 +33,9 @@ export default function AppointmentDetailPage({
   const [actionError, setActionError] = useState<string | null>(null);
 
   // Live teleconsult session — when the doctor has opened the room for
-  // this appointment, "Join video visit" goes straight to it; otherwise
-  // it lands on the waiting room ("__pending__") and auto-joins.
+  // this appointment, "Join video visit" goes straight to it. Fail
+  // closed: without a real session there is no join link (no fake
+  // "__pending__" room), just a waiting/disabled chip.
   const [activeSession, setActiveSession] = useState<{
     id: string;
     roomId: string;
@@ -77,10 +78,8 @@ export default function AppointmentDetailPage({
             const canJoinVideo =
               appointment.mode === "video" &&
               ["scheduled", "confirmed", "in_progress"].includes(appointment.status);
-            const joinRoomId =
-              activeSession?.appointmentId === id
-                ? activeSession.roomId
-                : "__pending__";
+            const hasLiveSession =
+              activeSession?.appointmentId === id && !!activeSession?.roomId;
             const onCancel = async () => {
               if (!window.confirm("Cancel this appointment?")) return;
               setActionError(null);
@@ -128,17 +127,24 @@ export default function AppointmentDetailPage({
 
                 {actionError ? <p role="alert" className="text-sm text-danger">{actionError}</p> : null}
 
-                {canJoinVideo ? (
+                {canJoinVideo && hasLiveSession ? (
                   <button
                     type="button"
-                    onClick={() => router.push(`/patient/teleconsult/${joinRoomId}`)}
+                    onClick={() => router.push(`/patient/teleconsult/${activeSession!.roomId}`)}
                     className="inline-flex items-center gap-2 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
+                    data-testid="join-video-visit"
                   >
                     <Video size={16} />
-                    {activeSession?.appointmentId === id
-                      ? "Join video visit"
-                      : "Enter waiting room"}
+                    Join video visit
                   </button>
+                ) : canJoinVideo ? (
+                  <span
+                    className="inline-flex items-center gap-2 rounded-pill bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-500"
+                    data-testid="join-waiting-chip"
+                  >
+                    <Video size={16} />
+                    Waiting for doctor to start
+                  </span>
                 ) : null}
 
                 {canManage && !editing ? (

@@ -55,71 +55,47 @@ export default function TeleconsultPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [waiting, setWaiting] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [tab, setTab] = useState<"records" | "prescriptions">("records");
   const apiBase = getApiBaseUrl();
 
-  // Round 5: when the patient lands here from the video-mode appointments
-  // list (`roomId === "__pending__"`, doctor hasn't opened a room yet),
-  // poll /me/active every 5s and auto-route to the real room when one
-  // appears. Otherwise (legacy entry: roomId is a real id) the original
-  // one-shot lookup runs — if the active session's roomId matches we
-  // connect, otherwise we fall through to the "waiting" UI.
+  // One entry mode (fail closed — no fake URLs): resolve the real
+  // roomId → session via /me/active before opening the room. An
+  // unknown/expired roomId (including "__pending__") renders an error
+  // state with retry — never a blank WebView, never polling a fake id.
   useEffect(() => {
     let cancelled = false;
-    if (roomId !== "__pending__") {
-      (async () => {
-        try {
-          const active: ActiveSessionResp = await api(
-            "/teleconsult/sessions/me/active"
-          );
-          if (cancelled) return;
-          if (!active.session || active.session.roomId !== roomId) {
-            setError(t("consult.waitingForDoctor"));
-            setWaiting(true);
-            setLoading(false);
-            return;
-          }
-          setSessionId(active.session.id);
-          setLoading(false);
-        } catch (err: any) {
-          if (cancelled) return;
-          setError(err?.message || t("consult.connectionLost"));
-          setLoading(false);
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
+    if (roomId === "__pending__" || !roomId) {
+      setError(t("consult.roomUnavailable"));
+      setLoading(false);
+      return;
     }
-
-    // Pending state: poll until the doctor creates a session, then
-    // replace this route with the real roomId.
-    setLoading(false);
-    setWaiting(true);
-    setError(t("consult.waitingForDoctor"));
-    const interval = setInterval(async () => {
-      if (cancelled) return;
+    setLoading(true);
+    setError(null);
+    (async () => {
       try {
         const active: ActiveSessionResp = await api(
           "/teleconsult/sessions/me/active"
         );
-        if (cancelled || !active.session) return;
-        clearInterval(interval);
-        router.replace({
-          pathname: "/(app)/teleconsult/[roomId]" as any,
-          params: { roomId: active.session.roomId },
-        });
-      } catch {
-        // network blip — keep polling
+        if (cancelled) return;
+        if (!active.session || active.session.roomId !== roomId) {
+          setError(t("consult.roomUnavailable"));
+          setLoading(false);
+          return;
+        }
+        setSessionId(active.session.id);
+        setLoading(false);
+      } catch (err: any) {
+        if (cancelled) return;
+        setError(err?.message || t("consult.connectionLost"));
+        setLoading(false);
       }
-    }, 5_000);
+    })();
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
-  }, [roomId, t, router]);
+  }, [roomId, retryToken, t]);
 
   if (loading) {
     return (
@@ -150,13 +126,6 @@ export default function TeleconsultPage() {
           paddingHorizontal: 24,
         }}
       >
-        {waiting ? (
-          <ActivityIndicator
-            size="large"
-            color="#fff"
-            style={{ marginBottom: 16 }}
-          />
-        ) : null}
         <Text
           style={{
             color: "#fff",
@@ -166,7 +135,7 @@ export default function TeleconsultPage() {
             marginBottom: 8,
           }}
         >
-          {t("consult.waitingForDoctor")}
+          {t("consult.roomUnavailable")}
         </Text>
         <Text
           style={{
@@ -178,6 +147,24 @@ export default function TeleconsultPage() {
         >
           {error}
         </Text>
+        {roomId !== "__pending__" && roomId ? (
+          <Pressable
+            onPress={() => setRetryToken((n) => n + 1)}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.retry", { defaultValue: "Try again" })}
+            style={{
+              paddingHorizontal: 22,
+              paddingVertical: 10,
+              borderRadius: radius.lg,
+              backgroundColor: colors.primary,
+              marginBottom: 12,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>
+              {t("common.retry", { defaultValue: "Try again" })}
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={() => router.back()}
           style={{

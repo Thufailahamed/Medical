@@ -7,18 +7,17 @@
  * roomId (the shareable token). Layout: remote video fills the screen
  * with a local self-view in the corner.
  *
- * Two entry modes (same contract as the mobile app):
- *   - Real roomId: resolves roomId → sessionId via
- *     GET /teleconsult/sessions/me/active, then mounts <TeleconsultRoom>.
- *   - roomId === "__pending__": the doctor hasn't opened the room yet —
- *     poll /me/active every 5s and swap to the real roomId when one
- *     appears.
+ * One entry mode (fail closed — no fake URLs):
+ *   - Real roomId: resolves roomId → session via
+ *     GET /teleconsult/sessions/by-room/:roomId, then mounts
+ *     <TeleconsultRoom>. Any failure renders an explicit error state
+ *     with retry — never a blank room, never polling on a fake id.
+ *   - roomId === "__pending__" (or any unknown roomId) is rejected.
  */
 
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, AlertTriangle, Video } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, Video, RotateCcw } from "lucide-react";
 
 import TeleconsultRoom from "@/portal/components/teleconsult/TeleconsultRoom";
 import { teleconsultApi } from "@/portal/lib/api";
@@ -31,53 +30,38 @@ export default function PatientTeleconsultPage({
   params: Promise<{ roomId: string }>;
 }) {
   const { roomId } = use(params);
-  const router = useRouter();
   const t = useT();
-  const isPending = roomId === "__pending__";
+  const invalidRoom = roomId === "__pending__";
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(() => !isPending);
+  const [error, setError] = useState<string | null>(
+    invalidRoom ? "Invalid room link." : null
+  );
+  const [loading, setLoading] = useState(() => !invalidRoom);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
+    if (invalidRoom) return;
     let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-    // Pending branch — poll until the doctor creates a session, then
-    // replace this route with the real roomId.
-    if (isPending) {
-      const interval = setInterval(async () => {
-        if (cancelled) return;
-        try {
-          const active = await teleconsultApi.getActiveForMe();
-          if (cancelled || !active.session) return;
-          clearInterval(interval);
-          router.replace(`/patient/teleconsult/${active.session.roomId}`);
-        } catch {
-          // network blip — keep polling
-        }
-      }, 5_000);
-      return () => {
-        cancelled = true;
-        clearInterval(interval);
-      };
-    }
-
-    // Real-room branch — one-shot lookup; mismatch means the link is
-    // stale or belongs to someone else.
     (async () => {
       try {
-        const active = await teleconsultApi.getActiveForMe();
+        const res = await teleconsultApi.getByRoom(roomId);
         if (cancelled) return;
-        if (!active.session || active.session.roomId !== roomId) {
-          setError("This video room is not active for you.");
+        if (!res.session) {
+          setError("This room is no longer available.");
           setLoading(false);
           return;
         }
-        setSessionId(active.session.id);
+        setSessionId(res.session.id);
         setLoading(false);
       } catch (err) {
         if (cancelled) return;
         setError(
-          err instanceof Error ? err.message : "Failed to load video room"
+          err instanceof Error && err.message
+            ? err.message
+            : "Couldn't join this room. Check your connection and try again."
         );
         setLoading(false);
       }
@@ -85,7 +69,7 @@ export default function PatientTeleconsultPage({
     return () => {
       cancelled = true;
     };
-  }, [roomId, isPending, router]);
+  }, [roomId, invalidRoom, retryToken]);
 
   if (loading) {
     return (
@@ -93,29 +77,6 @@ export default function PatientTeleconsultPage({
         <div className="flex items-center gap-2">
           <Loader2 size={18} className="animate-spin" />
           Loading video room…
-        </div>
-      </div>
-    );
-  }
-
-  if (isPending) {
-    return (
-      <div className="grid min-h-[60dvh] place-items-center p-6">
-        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-          <Loader2 size={32} className="animate-spin text-brand" />
-          <h2 className="text-base font-semibold text-text">
-            {t("consult.waitingForDoctor")}
-          </h2>
-          <p className="text-sm text-text-soft">
-            Keep this page open — you’ll join automatically when the call
-            starts.
-          </p>
-          <Link
-            href="/patient/appointments"
-            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-text-soft hover:text-brand"
-          >
-            <ArrowLeft size={14} aria-hidden /> Back to appointments
-          </Link>
         </div>
       </div>
     );
@@ -137,6 +98,16 @@ export default function PatientTeleconsultPage({
               Couldn’t join the call
             </h2>
             <p className="max-w-sm text-sm text-text-soft">{error}</p>
+            {!invalidRoom ? (
+              <button
+                type="button"
+                onClick={() => setRetryToken((n) => n + 1)}
+                className="mt-1 inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+                data-testid="retry-join"
+              >
+                <RotateCcw size={14} aria-hidden /> Try again
+              </button>
+            ) : null}
             <Link
               href="/patient/appointments"
               className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"

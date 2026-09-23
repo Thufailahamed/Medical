@@ -320,6 +320,15 @@ export const teleconsultApi = {
         createdAt: string;
       } | null;
     }>(`/teleconsult/sessions/me/active`),
+  getByRoom: (roomId: string) =>
+    api<{
+      session: {
+        id: string;
+        roomId: string;
+        status: string;
+        appointmentId: string;
+      } | null;
+    }>(`/teleconsult/sessions/by-room/${encodeURIComponent(roomId)}`),
   startSession: (id: string) =>
     api<{ ok: boolean; status: string }>(
       `/teleconsult/sessions/${encodeURIComponent(id)}/start`,
