@@ -11,6 +11,7 @@ import { flattenTranslated } from "../lib/validation-error";
 import { notify } from "../lib/notifications";
 import { audit } from "../lib/audit";
 import { ACTIVE_STATUSES, MAX_PER_SLOT, compactQueue, autoExpireAppointments } from "../lib/booking";
+import { computeVisitLifecycle } from "@healthcare/shared/visit-lifecycle";
 import { upsertActiveCareTeam } from "../lib/status-guard";
 import { computeCancellationEstimate } from "../lib/cancellation";
 import { appointmentPayments } from "@healthcare/db";
@@ -465,8 +466,24 @@ appointmentsRouter.get("/me", authMiddleware, async (c) => {
   // The doctor/hospital joins are additive: a missing doctor must not
   // drop the appointment, so the names fall through as null.
   const enriched = await enrichAppointmentsWithNames(db, upcoming);
+  const now = Date.now();
+  const appointmentsOut = enriched.map((r: any) => {
+    const lc = computeVisitLifecycle({
+      date: r.date,
+      time: r.time,
+      status: r.status,
+      now,
+    });
+    return {
+      ...r,
+      startsAt: lc.startsAt,
+      isPast: lc.isPast,
+      isLive: lc.isLive,
+      bucket: lc.bucket,
+    };
+  });
 
-  return c.json({ appointments: enriched });
+  return c.json({ appointments: appointmentsOut });
 });
 
 // Fetch doctors + users + hospitals for the rows returned by GET /me,

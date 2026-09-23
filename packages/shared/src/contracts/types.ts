@@ -191,6 +191,8 @@ export interface MedicineRow {
   notes: string | null;
 }
 
+import type { VisitBucket } from "../visit-lifecycle";
+
 /**
  * A row from GET /appointments/me.
  *
@@ -221,6 +223,14 @@ export interface AppointmentRow {
   doctorName: string | null;
   doctorSpecialization: string | null;
   hospitalName: string | null;
+  /** Derived (server) — Asia/Colombo epoch ms of visit start. */
+  startsAt: number;
+  /** Derived (server) — past the 15-minute grace window. */
+  isPast: boolean;
+  /** Derived (server) — inside the video join window. */
+  isLive: boolean;
+  /** Derived (server) — upcoming | today | completed | missed | cancelled. */
+  bucket: VisitBucket;
 }
 
 /** A row from GET /medical-records/me. */
