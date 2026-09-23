@@ -1376,6 +1376,8 @@
     "subtitleEmpty": "ඔබේ සියලු සිදුවීම් මෙහි",
     "subtitleCount_one": "{{count}} සිදුවීමක්",
     "subtitleCount_other": "{{count}} සිදුවීම්",
+    "heroTitle": "අඛණ්ඩ සෞඛ්‍ය ගලාගැනීම",
+    "heroBody": "සායනික හමුවීම්, නියම කළ ඖෂධ සහ සටහන් කළ වයිටල් එකට බැඳගන්නා කාලානුක්‍රමික සත්කාර වාර්තාව.",
     "filter": {
       "all": "සියල්ල",
       "record": "වාර්තා",
@@ -1600,6 +1602,12 @@
     "criticalBanner": "දරුණු ආසාත්මකතා ගොන්නේ",
     "subtitleEmpty": "Track drugs, food, and environmental triggers",
     "subtitleCount": "{{active}} active of {{total}}",
+    "heroTitle": "ඔබේ ඇලර්ජි පැතිකඩ",
+    "heroBody": "මෙහි ඇති සෑම සටහනක්ම ඖෂධ නියම කිරීමට හෝ ප්‍රතිකාරයට පෙර සේවාදායකයින්ට දන්වනු ලැබේ.",
+    "chipActive_one": "සක්‍රිය {{count}}",
+    "chipActive_other": "සක්‍රිය {{count}}",
+    "chipCritical_one": "බරපතළ {{count}}",
+    "chipCritical_other": "බරපතළ {{count}}",
     "status": {
       "inactive": "Inactive"
     },
@@ -1745,6 +1753,25 @@
       "title": "තවම සටහන් නැත",
       "message": "ඔබේ පළමු සටහන එකතු කරන්න",
       "action": "Write your first note"
+    },
+    "searchPlaceholder": "සටහන් සොයන්න...",
+    "filters": {
+      "all": "සියල්ල",
+      "pinned": "අමුණන ලද",
+      "questions": "ප්‍රශ්න",
+      "symptoms": "රෝග ලක්ෂණ"
+    },
+    "templates": {
+      "title": "ඉක්මන් ආකෘති",
+      "questions": "වෛද්‍ය ප්‍රශ්න",
+      "symptoms": "රෝග ලක්ෂණ",
+      "medications": "ඖෂධ සටහන්",
+      "daily": "දෛනික පරීක්ෂාව"
+    },
+    "emptySearch": {
+      "title": "සටහන් කිසිවක් හමු නොවීය",
+      "message": "වෙනත් වචනයකින් සොයන්න.",
+      "clear": "සෙවුම ඉවත් කරන්න"
     },
     "placeholder": "ඔබට මතක තියාගැනීමට අවශ්‍ය දේ සටහන් කරන්න...",
     "shareToggle": "මගේ වෛද්‍ය සමඟ බෙදාගන්න",
@@ -3787,10 +3814,28 @@
     "title": "My prescriptions",
     "subtitle": "{{count}} issued",
     "fallbackTitle": "Prescription",
+    "searchPlaceholder": "Search diagnosis, doctor, medicine…",
     "filters": {
-      "all": "All"
+      "all": "All",
+      "signed": "Active / Signed",
+      "dispensed": "Dispensed",
+      "cancelled": "Cancelled"
     },
     "medCount": "{{count}} medicines",
+    "medCount_one": "1 medicine",
+    "medCount_other": "{{count}} medicines",
+    "heroTitle": "Official e-Prescriptions",
+    "heroSubtitle": "Digitally signed with cryptographic verification for pharmacy dispensing.",
+    "requestRefill": "Request refill",
+    "viewDetails": "View details",
+    "clearSearch": "Clear search",
+    "status": {
+      "signed": "Digitally signed",
+      "dispensed": "Dispensed",
+      "cancelled": "Cancelled",
+      "active": "Active",
+      "draft": "Draft"
+    },
     "emptyTitle": "No prescriptions yet",
     "emptyBody": "When your doctor issues a signed e-prescription, it will appear here.",
     "emptySearchTitle": "No matches",

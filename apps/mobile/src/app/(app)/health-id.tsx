@@ -27,6 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
+  ArrowLeft,
   ScanLine,
   RefreshCcw,
   Power,
@@ -211,13 +212,63 @@ export default function HealthIdScreen() {
           />
         }
       >
+        {/* Top Navigation Bar with Back Button */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: spacing.md,
+          }}
+        >
+          <Pressable
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(app)" as any);
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back", { defaultValue: "Go back" })}
+            hitSlop={12}
+            style={({ pressed }) => ({
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.75 : 1,
+            })}
+          >
+            <ArrowLeft size={20} color={colors.text} strokeWidth={2.25} />
+          </Pressable>
+
+          <View
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: colors.primarySoft,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.borderSoft,
+            }}
+          >
+            <ScanLine size={20} color={colors.primary} />
+          </View>
+        </View>
+
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.kicker}>{t("healthId.kicker")}</Text>
             <Text style={styles.title}>{t("healthId.title")}</Text>
             <Text style={styles.subtitle}>{t("healthId.caption")}</Text>
           </View>
-          <ScanLine size={28} color={colors.primary} />
         </View>
 
         {isCaretaker ? (

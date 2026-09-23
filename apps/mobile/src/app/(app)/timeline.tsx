@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
   RefreshControl,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -16,51 +17,62 @@ import {
   Calendar,
   StickyNote,
   History,
+  HeartPulse,
+  ChevronRight,
+  Sparkles,
+  Clock,
+  Waypoints,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { useLocaleStore } from "@/stores/locale";
-import { fmtMonthYear, fmtDateTime } from "@/lib/format";
+import { fmtMonthYear, fmtDateLong, fmtTime } from "@/lib/format";
 import {
   useUnifiedTimeline,
   type TimelineEvent,
   type TimelineEventKind,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useTone, type Tone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
-  Chip,
-  ChipGroup,
-  Timeline,
   EmptyState,
   ErrorState,
   Skeleton,
   Card,
+  Pill as PillCmp,
+  Pressable,
 } from "@/components/ui";
 
-const FILTERS: { value: TimelineEventKind | "all"; key: string }[] = [
-  { value: "all", key: "timeline.filter.all" },
-  { value: "record", key: "timeline.filter.record" },
-  { value: "vital", key: "timeline.filter.vital" },
-  { value: "symptom", key: "timeline.filter.symptom" },
-  { value: "medicine_start", key: "timeline.filter.medicineStart" },
-  { value: "appointment", key: "timeline.filter.appointment" },
-  { value: "note", key: "timeline.filter.note" },
+interface FilterOption {
+  value: TimelineEventKind | "all";
+  key: string;
+  label: string;
+  icon: any;
+}
+
+const FILTERS: FilterOption[] = [
+  { value: "all", key: "timeline.filter.all", label: "All", icon: History },
+  { value: "appointment", key: "timeline.filter.appointment", label: "Visits", icon: Calendar },
+  { value: "vital", key: "timeline.filter.vital", label: "Vitals", icon: Activity },
+  { value: "medicine_start", key: "timeline.filter.medicineStart", label: "Meds", icon: Pill },
+  { value: "record", key: "timeline.filter.record", label: "Records", icon: FileText },
+  { value: "symptom", key: "timeline.filter.symptom", label: "Symptoms", icon: AlertTriangle },
+  { value: "note", key: "timeline.filter.note", label: "Notes", icon: StickyNote },
 ];
 
-const KIND_ICONS: Record<TimelineEventKind, any> = {
-  record: FileText,
-  vital: Activity,
-  symptom: AlertTriangle,
-  medicine_start: Pill,
-  medicine_stop: Pill,
-  appointment: Calendar,
-  note: StickyNote,
+const KIND_META: Record<string, { icon: any; tone: Tone; defaultLabel: string }> = {
+  record: { icon: FileText, tone: "accent", defaultLabel: "Record" },
+  vital: { icon: HeartPulse, tone: "primary", defaultLabel: "Vital" },
+  symptom: { icon: AlertTriangle, tone: "warning", defaultLabel: "Symptom" },
+  medicine_start: { icon: Pill, tone: "accent2", defaultLabel: "Started" },
+  medicine_stop: { icon: Pill, tone: "neutral", defaultLabel: "Stopped" },
+  appointment: { icon: Calendar, tone: "primary", defaultLabel: "Visit" },
+  note: { icon: StickyNote, tone: "neutral", defaultLabel: "Note" },
 };
 
-// Returns a stable i18n key for the group label rather than a raw string;
-// the display label is resolved at render time via t(). Date formatting for
-// older-than-30-days groups uses the active locale via fmtMonthYear.
 function groupKey(dateIso: string | null, locale: ReturnType<typeof useLocaleStore.getState>["locale"]): string {
   if (!dateIso) return "unknown";
   const d = new Date(dateIso);
@@ -87,16 +99,52 @@ function groupKey(dateIso: string | null, locale: ReturnType<typeof useLocaleSto
   return d.getFullYear().toString();
 }
 
-function filterLabel(t: (k: string) => string, value: string): string {
-  const humanized = value.replace(/_/g, " ");
-  const k = `timeline.filter.${value}`;
-  return t(k, { defaultValue: humanized });
+function resolveGroupTitle(group: string, t: (k: string, opts?: any) => string): string {
+  switch (group) {
+    case "today":
+      return t("timeline.group.today", "Today");
+    case "yesterday":
+      return t("timeline.group.yesterday", "Yesterday");
+    case "week":
+      return t("timeline.group.week", "Earlier this week");
+    case "month":
+      return t("timeline.group.month", "This Month");
+    case "unknown":
+      return t("timeline.group.unknown", "General");
+    default:
+      return group;
+  }
+}
+
+function humanizeStatus(status: string): string {
+  return status
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function statusTone(status: string): Tone {
+  const s = status.toLowerCase();
+  if (s === "confirmed" || s === "completed" || s === "active") return "success";
+  if (s === "no_show" || s === "no show" || s === "rescheduled") return "warning";
+  if (s === "cancelled" || s === "canceled" || s === "declined" || s === "missed")
+    return "danger";
+  if (s === "scheduled" || s === "pending" || s === "upcoming") return "info";
+  return "neutral";
+}
+
+function formatEventTimestamp(dateIso: string | null, locale: any): string {
+  if (!dateIso) return "—";
+  const d = new Date(dateIso);
+  if (isNaN(d.getTime())) return "—";
+  const dateStr = fmtDateLong(d, locale);
+  const timeStr = fmtTime(d, locale);
+  return `${dateStr} · ${timeStr}`;
 }
 
 export default function TimelineScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, shadow } = useTheme();
   const locale = useLocaleStore((s) => s.locale);
   const [filter, setFilter] = useState<TimelineEventKind | "all">("all");
 
@@ -107,35 +155,133 @@ export default function TimelineScreen() {
   const events: TimelineEvent[] = data?.events ?? [];
   const counts = data?.counts ?? {};
 
+  // Group events by time section
+  const groupedEvents = useMemo(() => {
+    const map = new Map<string, TimelineEvent[]>();
+    for (const e of events) {
+      const g = groupKey(e.date, locale);
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(e);
+    }
+    return Array.from(map.entries());
+  }, [events, locale]);
+
   const subtitle =
     events.length === 0
-      ? t("timeline.subtitleEmpty")
-      : t("timeline.subtitleCount", { count: events.length });
+      ? t("timeline.subtitleEmpty", "Your entire record, in one stream")
+      : t("timeline.subtitleCount", {
+          count: events.length,
+          defaultValue: `${events.length} events recorded`,
+        });
+
+  function handleFilterSelect(val: TimelineEventKind | "all") {
+    Haptics.selectionAsync().catch(() => {});
+    setFilter(val);
+  }
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
+      {/* Header */}
       <ScreenHeader
-        title={t("timeline.title")}
+        title={t("timeline.title", "Timeline")}
         subtitle={subtitle}
         onBack={() => router.back()}
         right={<History size={20} color={colors.textMuted} />}
       />
 
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.sm,
-        }}
-      >
-        <ChipGroup
-          options={FILTERS.map((f) => ({ value: f.value, label: t(f.key) }))}
-          value={filter}
-          onChange={(v) => setFilter(v as any)}
-        />
+      {/* Horizontal Filter Bar */}
+      <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border + "40" }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm,
+            gap: spacing.xs + 2,
+          }}
+        >
+          {FILTERS.map((f) => {
+            const isSelected = filter === f.value;
+            const Icon = f.icon;
+            const count =
+              f.value === "all"
+                ? events.length
+                : counts[f.value] ??
+                  events.filter(
+                    (e) =>
+                      e.kind === f.value ||
+                      (f.value === "medicine_start" && e.kind === "medicine_stop")
+                  ).length;
+
+            return (
+              <Pressable
+                key={f.value}
+                onPress={() => handleFilterSelect(f.value)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  backgroundColor: isSelected ? colors.primary : colors.surface,
+                  borderWidth: 1,
+                  borderColor: isSelected ? colors.primary : colors.border,
+                }}
+              >
+                <Icon
+                  size={14}
+                  color={isSelected ? colors.onPrimary : colors.textMuted}
+                  strokeWidth={isSelected ? 2.5 : 2}
+                />
+                <Text
+                  style={[
+                    typography.label.sm,
+                    {
+                      color: isSelected ? colors.onPrimary : colors.text,
+                      fontWeight: isSelected ? "700" : "500",
+                    },
+                  ]}
+                >
+                  {t(f.key, f.label)}
+                </Text>
+                {count > 0 && (
+                  <View
+                    style={{
+                      paddingHorizontal: 6,
+                      paddingVertical: 1,
+                      borderRadius: 10,
+                      backgroundColor: isSelected
+                        ? "rgba(255, 255, 255, 0.25)"
+                        : colors.surfaceSubtle,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.caption,
+                        {
+                          fontSize: 11,
+                          fontWeight: "700",
+                          color: isSelected ? colors.onPrimary : colors.textMuted,
+                        },
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}
+        contentContainerStyle={{
+          padding: spacing.lg,
+          paddingBottom: 120,
+          gap: spacing.xl,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -145,163 +291,425 @@ export default function TimelineScreen() {
           />
         }
       >
+        {/* Stream Health Journey Hero */}
+        {filter === "all" && events.length > 0 && (
+          <Card
+            padded={false}
+            elevated={false}
+            style={{
+              borderRadius: radius.xxxl,
+              borderWidth: 0,
+              overflow: "hidden",
+              ...shadow.hero,
+            }}
+          >
+            <LinearGradient
+              colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ padding: spacing.lg }}
+            >
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    backgroundColor: "#0C8B8C",
+                    opacity: 0.32,
+                    borderRadius: 200,
+                    transform: [{ translateX: 120 }, { translateY: -80 }],
+                  },
+                ]}
+                pointerEvents="none"
+              />
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 40,
+                  backgroundColor: "rgba(255, 255, 255, 0.10)",
+                }}
+                pointerEvents="none"
+              />
+              <Waypoints
+                size={140}
+                color="#FFFFFF"
+                strokeWidth={1}
+                style={{
+                  position: "absolute",
+                  right: -24,
+                  bottom: -24,
+                  opacity: 0.1,
+                }}
+                pointerEvents="none"
+              />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.md,
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(255, 255, 255, 0.16)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.30)",
+                  }}
+                >
+                  <Sparkles size={22} color="#FFFFFF" />
+                </View>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text
+                    style={[
+                      typography.title.sm,
+                      { color: "#FFFFFF", fontWeight: "800" },
+                    ]}
+                  >
+                    {t("timeline.heroTitle", "Continuous Health Stream")}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: "rgba(255,255,255,0.82)", lineHeight: 16 },
+                    ]}
+                  >
+                    {t(
+                      "timeline.heroBody",
+                      "Chronological care record connecting clinical visits, prescribed medicines, and logged vitals."
+                    )}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: spacing.sm + 2,
+                    paddingVertical: 5,
+                    borderRadius: 999,
+                    backgroundColor: "rgba(255, 255, 255, 0.16)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.30)",
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: "#FFFFFF", fontWeight: "700", fontSize: 11 },
+                    ]}
+                  >
+                    {events.length}
+                  </Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </Card>
+        )}
+
+        {/* Loading State */}
         {isLoading ? (
           <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
-            <Skeleton width={"100%"} height={88} radius={radius.lg} />
-            <Skeleton width={"100%"} height={88} radius={radius.lg} />
-            <Skeleton width={"100%"} height={88} radius={radius.lg} />
-            <Skeleton width={"40%"} height={16} radius={radius.sm} />
+            <Skeleton width={"100%"} height={96} radius={radius.lg} />
+            <Skeleton width={"100%"} height={96} radius={radius.lg} />
+            <Skeleton width={"100%"} height={96} radius={radius.lg} />
           </View>
         ) : isError ? (
           <ErrorState
-            title={t("recordDetail.errorTitle")}
-            message={t("recordDetail.errorBody")}
-            actionLabel={t("common.retry")}
+            title={t("recordDetail.errorTitle", "Could not load timeline")}
+            message={t("recordDetail.errorBody", "Please check your network and try again")}
+            actionLabel={t("common.retry", "Retry")}
             onAction={() => refetch()}
           />
         ) : events.length === 0 ? (
           <EmptyState
             icon={History}
-            title={t("timeline.empty.title")}
+            title={t("timeline.empty.title", "No events found")}
             message={
               filter === "all"
-                ? t("timeline.empty.allMessage")
+                ? t("timeline.empty.allMessage", "Your health timeline will automatically update as records and visits are recorded.")
                 : t("timeline.empty.filteredMessage", {
-                    filter: filterLabel(t, filter as string),
+                    filter: filter,
+                    defaultValue: `No ${filter} events recorded yet.`,
                   })
             }
           />
         ) : (
-          <Timeline
-            data={events}
-            groupBy={(e) => groupKey(e.date, locale)}
-            groupMeta={{
-              today: { label: t("timeline.group.today"), tone: "primary" },
-              yesterday: { label: t("timeline.group.yesterday"), tone: "info" },
-              week: { label: t("timeline.group.week"), tone: "info" },
-              month: { label: t("timeline.group.month"), tone: "neutral" },
-              unknown: { label: t("timeline.group.unknown"), tone: "neutral" },
-            }}
-            keyExtractor={(e) => e.id}
-            renderItem={(e) => {
-              const Icon = KIND_ICONS[e.kind] || FileText;
-              const toneColor =
-                e.color === "primary"
-                  ? colors.primary
-                  : e.color === "info"
-                  ? colors.info
-                  : e.color === "warning"
-                  ? colors.warning
-                  : e.color === "success"
-                  ? colors.success
-                  : e.color === "danger"
-                  ? colors.danger
-                  : colors.textMuted;
+          /* Timeline Sections */
+          <View style={{ gap: spacing.xl }}>
+            {groupedEvents.map(([gKey, groupList], gIdx) => {
+              const groupTitle = resolveGroupTitle(gKey, t);
 
               return (
-                <Card padded>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: spacing.md,
-                      alignItems: "flex-start",
-                    }}
-                  >
+                <View key={gKey} style={{ gap: spacing.md }}>
+                  {/* Group Header Badge */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
                     <View
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: toneColor + "22",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        paddingHorizontal: 12,
+                        paddingVertical: 4,
+                        borderRadius: 20,
+                        backgroundColor: colors.surfaceSubtle,
+                        borderWidth: 1,
+                        borderColor: colors.border,
                       }}
                     >
-                      <Icon size={18} color={toneColor} strokeWidth={2.25} />
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text
                         style={[
-                          typography.label.sm,
-                          {
-                            color: toneColor,
-                            textTransform: "uppercase",
-                            fontWeight: "700",
-                          },
+                          typography.overline,
+                          { color: colors.text, fontWeight: "700", letterSpacing: 0.6 },
                         ]}
                       >
-                        {e.label}
-                      </Text>
-                      <Text
-                        style={[
-                          typography.title.sm,
-                          { color: colors.text, marginTop: 2 },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {e.title}
-                      </Text>
-                      {!!e.subtitle && (
-                        <Text
-                          style={[
-                            typography.body.sm,
-                            { color: colors.textMuted, marginTop: 2 },
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {e.subtitle}
-                        </Text>
-                      )}
-                      <Text
-                        style={[
-                          typography.caption,
-                          { color: colors.textSubtle, marginTop: 4 },
-                        ]}
-                      >
-                        {e.date ? fmtDateTime(new Date(e.date), locale) : "—"}
+                        {groupTitle.toUpperCase()} · {groupList.length}
                       </Text>
                     </View>
+                    <View style={{ flex: 1, height: 1, backgroundColor: colors.border + "50" }} />
                   </View>
-                </Card>
-              );
-            }}
-          />
-        )}
 
-        {filter === "all" && Object.keys(counts).length > 0 && (
-          <View
-            style={{
-              marginTop: spacing.lg,
-              padding: spacing.md,
-              borderRadius: radius.lg,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Text style={[typography.overline, { color: colors.textMuted }]}>
-              {t("timeline.summary.heading")}
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: spacing.xs,
-                marginTop: spacing.xs,
-              }}
-            >
-              {Object.entries(counts).map(([k, n]) => (
-                <Chip
-                  key={k}
-                  label={`${k.replace(/_/g, " ")} · ${n}`}
-                  tone="neutral"
-                  size="sm"
-                />
-              ))}
-            </View>
+                  {/* Connected Timeline Feed */}
+                  <View style={{ gap: 0 }}>
+                    {groupList.map((item, idx) => {
+                      const isLastItem = idx === groupList.length - 1;
+                      return (
+                        <TimelineEventRow
+                          key={item.id || `${gKey}-${idx}`}
+                          event={item}
+                          isLast={isLastItem}
+                          locale={locale}
+                        />
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
           </View>
         )}
       </ScrollView>
     </Screen>
+  );
+}
+
+function TimelineEventRow({
+  event,
+  isLast,
+  locale,
+}: {
+  event: TimelineEvent;
+  isLast: boolean;
+  locale: any;
+}) {
+  const router = useRouter();
+  const { colors, spacing, typography, radius, shadow } = useTheme();
+  const meta = KIND_META[event.kind] || {
+    icon: FileText,
+    tone: "neutral" as Tone,
+    defaultLabel: "Update",
+  };
+  const palette = useTone(meta.tone);
+  const Icon = meta.icon;
+
+  const isVital = event.kind === "vital";
+  const isAppointment = event.kind === "appointment";
+  const isRecord = event.kind === "record";
+  const isMedicine = event.kind === "medicine_start" || event.kind === "medicine_stop";
+
+  // Nicely capitalized title
+  const cleanTitle = useMemo(() => {
+    if (!event.title) return "Health Event";
+    return event.title.charAt(0).toUpperCase() + event.title.slice(1);
+  }, [event.title]);
+
+  const timestampFormatted = formatEventTimestamp(event.date, locale);
+
+  function handlePress() {
+    Haptics.selectionAsync().catch(() => {});
+
+    if (isAppointment) {
+      const aptId = event.meta?.appointmentId || event.id.replace(/^apt-/, "");
+      router.push({
+        pathname: "/(app)/appointment-detail",
+        params: { id: aptId },
+      } as any);
+      return;
+    }
+
+    if (isRecord) {
+      const recId = (event as any).recordId || event.meta?.recordId || event.id.replace(/^rec-/, "");
+      router.push({
+        pathname: "/(app)/record-detail",
+        params: { id: recId },
+      } as any);
+      return;
+    }
+
+    if (isVital) {
+      router.push("/(app)/records/trends" as any);
+    }
+  }
+
+  const isInteractive = isAppointment || isRecord || isVital;
+
+  return (
+    <View style={{ flexDirection: "row", gap: spacing.md, position: "relative" }}>
+      {/* Left Continuous Timeline Spine */}
+      <View style={{ alignItems: "center", width: 38 }}>
+        {/* Connected Vertical Track Line */}
+        {!isLast && (
+          <View
+            style={{
+              position: "absolute",
+              top: 38,
+              bottom: 0,
+              width: 2,
+              backgroundColor: colors.border,
+            }}
+          />
+        )}
+
+        {/* Embedded Icon Node on Spine */}
+        <View
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 12,
+            backgroundColor: palette.bg,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1.5,
+            borderColor: palette.border + "40",
+            shadowColor: palette.fg,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 4,
+            elevation: 2,
+            zIndex: 2,
+          }}
+        >
+          <Icon size={18} color={palette.fg} strokeWidth={2.2} />
+        </View>
+      </View>
+
+      {/* Right Event Card Container */}
+      <View style={{ flex: 1, paddingBottom: spacing.md }}>
+        <Pressable
+          onPress={isInteractive ? handlePress : undefined}
+          style={{
+            borderRadius: radius.xl,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: spacing.md,
+            gap: spacing.xs + 2,
+            ...shadow.sm,
+          }}
+        >
+          {/* Card Top Strip: Category Pill + Formatted Timestamp */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: spacing.xs,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <PillCmp
+                label={event.label || meta.defaultLabel}
+                tone={meta.tone}
+                size="sm"
+              />
+              {event.meta?.status && (
+                <PillCmp
+                  label={humanizeStatus(event.meta.status)}
+                  tone={statusTone(event.meta.status)}
+                  size="sm"
+                />
+              )}
+            </View>
+
+            {isInteractive && (
+              <ChevronRight size={16} color={colors.textSubtle} />
+            )}
+          </View>
+
+          {/* Event Title */}
+          <Text
+            style={[
+              typography.title.sm,
+              { color: colors.text, fontWeight: "600", marginTop: 2 },
+            ]}
+            numberOfLines={2}
+          >
+            {cleanTitle}
+          </Text>
+
+          {/* Event Subtitle / Details */}
+          {!!event.subtitle && (
+            <Text
+              style={[
+                typography.body.sm,
+                { color: colors.textMuted, lineHeight: 18 },
+              ]}
+              numberOfLines={2}
+            >
+              {event.subtitle}
+            </Text>
+          )}
+
+          {/* Extracted Lab / Test Badges */}
+          {Array.isArray((event as any).extractedItems) &&
+            (event as any).extractedItems.length > 0 && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 4,
+                  marginTop: 2,
+                }}
+              >
+                {(event as any).extractedItems.slice(0, 3).map((item: any, i: number) => (
+                  <View
+                    key={i}
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                      backgroundColor: colors.surfaceSubtle,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <Text style={[typography.caption, { fontSize: 11, color: colors.text }]}>
+                      {item.name || item.modality || "Report item"}:{" "}
+                      <Text style={{ fontWeight: "700" }}>{item.value || item.impression || ""}</Text>
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+          {/* Formatted Date & Time */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              marginTop: 4,
+            }}
+          >
+            <Clock size={12} color={colors.textSubtle} />
+            <Text style={[typography.caption, { color: colors.textSubtle, fontSize: 11 }]}>
+              {timestampFormatted}
+            </Text>
+          </View>
+        </Pressable>
+      </View>
+    </View>
   );
 }

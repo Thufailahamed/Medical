@@ -648,6 +648,8 @@
     "subtitleEmpty": "Your entire record, in one stream",
     "subtitleCount_one": "{{count}} event",
     "subtitleCount_other": "{{count}} events",
+    "heroTitle": "Continuous Health Stream",
+    "heroBody": "Chronological care record connecting clinical visits, prescribed medicines, and logged vitals.",
     "filter": {
       "all": "All",
       "record": "Records",
@@ -677,6 +679,12 @@
     "title": "Allergies",
     "subtitleEmpty": "Track drugs, food, and environmental triggers",
     "subtitleCount": "{{active}} active of {{total}}",
+    "heroTitle": "Your allergy profile",
+    "heroBody": "Every entry here is flagged to providers before prescribing or treating.",
+    "chipActive_one": "{{count}} active",
+    "chipActive_other": "{{count}} active",
+    "chipCritical_one": "{{count}} critical",
+    "chipCritical_other": "{{count}} critical",
     "severity": {
       "mild": "Mild",
       "moderate": "Moderate",
@@ -760,10 +768,29 @@
       "editLabel": "Edit",
       "deleteLabel": "Delete"
     },
+    "searchPlaceholder": "Search notes, questions, symptoms…",
+    "filters": {
+      "all": "All",
+      "pinned": "Pinned",
+      "questions": "Questions",
+      "symptoms": "Symptoms"
+    },
+    "templates": {
+      "title": "Quick templates",
+      "questions": "Doctor Questions",
+      "symptoms": "Symptom Tracker",
+      "medications": "Medication Note",
+      "daily": "Daily Check-in"
+    },
     "empty": {
       "title": "No notes yet",
       "message": "Use notes to track symptoms, questions for your doctor, or anything else.",
       "action": "Write your first note"
+    },
+    "emptySearch": {
+      "title": "No matching notes",
+      "message": "Try searching with a different keyword or topic.",
+      "clear": "Clear search"
     },
     "validation": {
       "bodyRequired": "Note body cannot be empty"
@@ -3436,10 +3463,28 @@
     "title": "My prescriptions",
     "subtitle": "{{count}} issued",
     "fallbackTitle": "Prescription",
+    "searchPlaceholder": "Search diagnosis, doctor, medicine…",
     "filters": {
-      "all": "All"
+      "all": "All",
+      "signed": "Active / Signed",
+      "dispensed": "Dispensed",
+      "cancelled": "Cancelled"
     },
     "medCount": "{{count}} medicines",
+    "medCount_one": "1 medicine",
+    "medCount_other": "{{count}} medicines",
+    "heroTitle": "Official e-Prescriptions",
+    "heroSubtitle": "Digitally signed with cryptographic verification for pharmacy dispensing.",
+    "requestRefill": "Request refill",
+    "viewDetails": "View details",
+    "clearSearch": "Clear search",
+    "status": {
+      "signed": "Digitally signed",
+      "dispensed": "Dispensed",
+      "cancelled": "Cancelled",
+      "active": "Active",
+      "draft": "Draft"
+    },
     "emptyTitle": "No prescriptions yet",
     "emptyBody": "When your doctor issues a signed e-prescription, it will appear here.",
     "emptySearchTitle": "No matches",

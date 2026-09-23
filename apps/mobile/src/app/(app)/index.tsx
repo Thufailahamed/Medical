@@ -52,6 +52,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
 import { ActiveMemberPill } from "@/components/ActiveMemberPill";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
+import { HomePrescriptionsSection } from "@/components/HomePrescriptionsSection";
 import { intlLocale } from "@/lib/format";
 import {
   usePatientProfile,
@@ -875,6 +876,12 @@ export default function HomeScreen() {
                 }}
               >
                 <SmallAction
+                  icon={ClipboardList}
+                  label={t("myPrescriptions.title", "Prescriptions")}
+                  tone="primary"
+                  onPress={() => router.push("/(app)/prescriptions")}
+                />
+                <SmallAction
                   icon={FlaskConical}
                   label={t("home.bookTest", "Book a Test")}
                   tone="info"
@@ -1554,6 +1561,9 @@ export default function HomeScreen() {
 
           {/* Vitals at a glance — sparkline row */}
           <VitalsGlanceCard />
+
+          {/* Active Prescriptions Hub */}
+          <HomePrescriptionsSection />
 
           {/* Coming up */}
           {upcomingAppointments.length > 0 ? (
