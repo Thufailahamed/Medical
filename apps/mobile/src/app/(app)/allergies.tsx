@@ -249,23 +249,24 @@ export default function AllergiesScreen() {
             style={{
               marginHorizontal: spacing.lg,
               marginBottom: spacing.md,
-              borderRadius: radius.xxxl,
+              borderRadius: 28,
+              borderCurve: "continuous",
               borderWidth: 0,
               overflow: "hidden",
-              ...shadow.hero,
+              ...(isDark ? {} : shadow.hero),
             }}
           >
             <LinearGradient
-              colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{ padding: spacing.lg }}
+              style={{ padding: spacing.xl }}
             >
               <View
                 style={[
                   StyleSheet.absoluteFill,
                   {
-                    backgroundColor: "#0C8B8C",
+                    backgroundColor: "rgba(255,255,255,0.10)",
                     opacity: 0.32,
                     borderRadius: 200,
                     transform: [{ translateX: 120 }, { translateY: -80 }],
@@ -286,17 +287,18 @@ export default function AllergiesScreen() {
                 pointerEvents="none"
               />
 
-              <View style={{ gap: spacing.sm }}>
+              <View style={{ gap: spacing.md }}>
                 <View
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 14,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 15,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "rgba(255, 255, 255, 0.16)",
-                    borderWidth: 1,
-                    borderColor: "rgba(255, 255, 255, 0.30)",
+                    backgroundColor: "rgba(255, 255, 255, 0.18)",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255, 255, 255, 0.28)",
                   }}
                 >
                   <ShieldAlert size={22} color="#FFFFFF" strokeWidth={2.2} />
@@ -304,16 +306,16 @@ export default function AllergiesScreen() {
                 <View style={{ gap: 3 }}>
                   <Text
                     style={[
-                      typography.title.sm,
-                      { color: "#FFFFFF", fontWeight: "800" },
+                      typography.title.lg,
+                      { color: "#FFFFFF" },
                     ]}
                   >
                     {t("allergies.heroTitle", "Clinical Allergy Profile")}
                   </Text>
                   <Text
                     style={[
-                      typography.caption,
-                      { color: "rgba(255,255,255,0.85)", lineHeight: 16 },
+                      typography.body.sm,
+                      { color: "rgba(255,255,255,0.86)" },
                     ]}
                   >
                     {t(
@@ -326,7 +328,7 @@ export default function AllergiesScreen() {
                   style={{
                     flexDirection: "row",
                     flexWrap: "wrap",
-                    gap: spacing.xs,
+                    gap: spacing.sm,
                     marginTop: spacing.xs,
                   }}
                 >
@@ -356,13 +358,14 @@ export default function AllergiesScreen() {
             style={{
               marginHorizontal: spacing.lg,
               marginBottom: spacing.md,
-              padding: spacing.md,
-              borderRadius: radius.xl,
+              padding: spacing.lg,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
               backgroundColor: colors.danger,
               flexDirection: "row",
-              gap: spacing.sm,
+              gap: spacing.md,
               alignItems: "flex-start",
-              ...shadow.md,
+              ...(isDark ? {} : shadow.md),
             }}
             accessible
             accessibilityRole="alert"
@@ -372,9 +375,12 @@ export default function AllergiesScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 11,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
               <ShieldAlert size={19} color="#fff" strokeWidth={2.4} />
@@ -382,8 +388,8 @@ export default function AllergiesScreen() {
             <View style={{ flex: 1 }}>
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: "#fff", fontWeight: "800" },
+                  typography.title.md,
+                  { color: "#fff" },
                 ]}
               >
                 {t("allergies.banner.title", "Critical Allergies")}
@@ -391,7 +397,7 @@ export default function AllergiesScreen() {
               <Text
                 style={[
                   typography.body.sm,
-                  { color: "#fff", opacity: 0.95, marginTop: 2, fontWeight: "600" },
+                  { color: "#fff", opacity: 0.95, marginTop: 2, fontFamily: typography.label.lg.fontFamily },
                 ]}
               >
                 {critical.map((c) => c.substance).join(", ")}
@@ -410,7 +416,7 @@ export default function AllergiesScreen() {
 
         <View style={{ paddingHorizontal: spacing.lg }}>
           {isLoading ? (
-            <View style={{ gap: spacing.sm }}>
+            <View style={{ gap: spacing.md }}>
               {[0, 1, 2].map((i) => (
                 <Card key={i}>
                   <View
@@ -446,41 +452,40 @@ export default function AllergiesScreen() {
                     : [colors.primarySoft, colors.surface]
                 }
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 0.4, y: 1 }}
                 style={{
-                  borderRadius: 24,
-                  padding: spacing.lg,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  borderRadius: 28,
+                  borderCurve: "continuous",
+                  padding: spacing.xl,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: isDark ? colors.borderStrong : colors.separator,
                   alignItems: "center",
-                  gap: spacing.md,
+                  gap: spacing.lg,
                 }}
               >
                 {/* Frosted Glass Emblem */}
-                <View
+                <LinearGradient
+                  colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={{
-                    width: 64,
-                    height: 64,
+                    width: 68,
+                    height: 68,
                     borderRadius: 22,
-                    backgroundColor: colors.primary,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
-                    shadowColor: colors.primary,
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.28,
-                    shadowRadius: 10,
-                    elevation: 6,
                   }}
                 >
-                  <ShieldAlert size={32} color={colors.onPrimary} strokeWidth={2.2} />
-                </View>
+                  <ShieldAlert size={32} color="#FFFFFF" strokeWidth={2.2} />
+                </LinearGradient>
 
                 {/* Hero Headline & Subtitle */}
                 <View style={{ alignItems: "center", gap: 6 }}>
                   <Text
                     style={[
-                      typography.title.md,
-                      { color: colors.text, fontWeight: "800", textAlign: "center" },
+                      typography.title.lg,
+                      { color: colors.text, textAlign: "center" },
                     ]}
                   >
                     {t("allergies.empty.title", "No allergies recorded")}
@@ -491,7 +496,6 @@ export default function AllergiesScreen() {
                       {
                         color: colors.textMuted,
                         textAlign: "center",
-                        lineHeight: 20,
                         paddingHorizontal: spacing.sm,
                       },
                     ]}
@@ -507,7 +511,7 @@ export default function AllergiesScreen() {
                 <View
                   style={{
                     width: "100%",
-                    gap: spacing.xs + 2,
+                    gap: spacing.sm,
                     paddingTop: spacing.xs,
                   }}
                 >
@@ -532,16 +536,16 @@ export default function AllergiesScreen() {
                 </View>
 
                 {/* Quick-Add Presets Strip */}
-                <View style={{ width: "100%", gap: spacing.xs, paddingTop: spacing.xs }}>
+                <View style={{ width: "100%", gap: spacing.sm, paddingTop: spacing.xs }}>
                   <Text
                     style={[
-                      typography.caption,
-                      { color: colors.textSubtle, fontWeight: "700", textTransform: "uppercase", fontSize: 10 },
+                      typography.overline,
+                      { color: colors.textSubtle, textTransform: "uppercase" },
                     ]}
                   >
                     Common allergen shortcuts
                   </Text>
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
                     {COMMON_ALLERGENS.map((item) => (
                       <Pressable
                         key={item}
@@ -550,19 +554,17 @@ export default function AllergiesScreen() {
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 4,
-                          paddingHorizontal: 10,
-                          paddingVertical: 5,
-                          borderRadius: 14,
-                          backgroundColor: colors.surface,
-                          borderWidth: 1,
-                          borderColor: colors.border,
+                          paddingHorizontal: 12,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: colors.fill,
                         }}
                       >
                         <Plus size={12} color={colors.primary} />
                         <Text
                           style={[
-                            typography.caption,
-                            { color: colors.text, fontWeight: "600", fontSize: 11 },
+                            typography.label.sm,
+                            { color: colors.text },
                           ]}
                         >
                           {item}
@@ -584,7 +586,7 @@ export default function AllergiesScreen() {
               </LinearGradient>
             </View>
           ) : (
-            <View style={{ gap: spacing.sm }}>
+            <View style={{ gap: spacing.md }}>
               {allergies.map((a) => (
                 <AllergyCard
                   key={a.id}
@@ -608,11 +610,11 @@ export default function AllergiesScreen() {
             left: 0,
             right: 0,
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.sm,
+            paddingTop: spacing.md,
             paddingBottom: spacing.xl,
-            backgroundColor: colors.surface,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
+            backgroundColor: isDark ? colors.bgElevated : colors.surface,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
           }}
         >
           <Button
@@ -664,27 +666,24 @@ export default function AllergiesScreen() {
                 multiline
                 numberOfLines={2}
               />
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {COMMON_REACTIONS.map((r) => (
                   <Pressable
                     key={r}
                     onPress={() => setReaction(r)}
                     style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 3,
-                      borderRadius: 10,
-                      backgroundColor: reaction === r ? colors.primarySoft : colors.surfaceSubtle,
-                      borderWidth: 1,
-                      borderColor: reaction === r ? colors.primary : colors.border,
+                      paddingHorizontal: 10,
+                      height: 30,
+                      justifyContent: "center",
+                      borderRadius: 15,
+                      backgroundColor: reaction === r ? colors.primarySoft : colors.fill,
                     }}
                   >
                     <Text
                       style={[
-                        typography.caption,
+                        typography.label.sm,
                         {
-                          fontSize: 11,
                           color: reaction === r ? colors.primary : colors.textMuted,
-                          fontWeight: reaction === r ? "700" : "500",
                         },
                       ]}
                     >
@@ -761,12 +760,11 @@ function PillarRow({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: spacing.sm,
-        padding: spacing.sm,
-        borderRadius: 14,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        gap: spacing.md,
+        padding: spacing.md,
+        borderRadius: 16,
+        borderCurve: "continuous",
+        backgroundColor: colors.fill,
       }}
     >
       <View
@@ -774,20 +772,19 @@ function PillarRow({
           width: 34,
           height: 34,
           borderRadius: 10,
+          borderCurve: "continuous",
           backgroundColor: palette.bg,
           alignItems: "center",
           justifyContent: "center",
-          borderWidth: 1,
-          borderColor: palette.border + "30",
         }}
       >
         <Icon size={16} color={palette.fg} strokeWidth={2.2} />
       </View>
       <View style={{ flex: 1, gap: 1 }}>
-        <Text style={[typography.label.sm, { color: colors.text, fontWeight: "700" }]}>
+        <Text style={[typography.title.xs, { color: colors.text }]}>
           {title}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+        <Text style={[typography.caption, { color: colors.textMuted }]}>
           {desc}
         </Text>
       </View>
@@ -800,19 +797,19 @@ function HeroChip({ label }: { label: string }) {
   return (
     <View
       style={{
-        paddingHorizontal: spacing.sm + 2,
-        paddingVertical: 5,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "rgba(255, 255, 255, 0.16)",
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.30)",
+        backgroundColor: "rgba(255, 255, 255, 0.18)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255, 255, 255, 0.28)",
         alignSelf: "flex-start",
       }}
     >
       <Text
         style={[
-          typography.caption,
-          { color: "#FFFFFF", fontWeight: "700", fontSize: 11 },
+          typography.label.sm,
+          { color: "#FFFFFF" },
         ]}
         numberOfLines={1}
       >
@@ -847,9 +844,9 @@ function AllergyCard({
       accessibilityHint={t("allergies.accessibilityHint", "Double tap to edit")}
       style={{
         opacity: active ? 1 : 0.75,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: sev === "critical" ? colors.dangerSoft : colors.border,
+        ...(sev === "critical"
+          ? { borderWidth: 1, borderColor: colors.danger + "59" }
+          : null),
       }}
     >
       <View
@@ -862,17 +859,16 @@ function AllergyCard({
         {/* Soft Avatar */}
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: pal.bg,
-            borderWidth: 1,
-            borderColor: pal.border + "40",
           }}
         >
-          <AlertTriangle size={20} color={pal.fg} strokeWidth={2.3} />
+          <AlertTriangle size={19} color={pal.fg} strokeWidth={2.3} />
         </View>
 
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
@@ -886,8 +882,8 @@ function AllergyCard({
           >
             <Text
               style={[
-                typography.title.sm,
-                { color: colors.text, fontWeight: "700" },
+                typography.title.md,
+                { color: colors.text, flexShrink: 1 },
               ]}
               numberOfLines={1}
             >
@@ -905,7 +901,7 @@ function AllergyCard({
 
           {!!allergy.reaction && (
             <Text
-              style={[typography.body.sm, { color: colors.textMuted, lineHeight: 17 }]}
+              style={[typography.body.sm, { color: colors.textMuted }]}
               numberOfLines={2}
             >
               {allergy.reaction}
@@ -926,7 +922,7 @@ function AllergyCard({
         <Switch
           value={active}
           onValueChange={onToggle}
-          trackColor={{ false: colors.border, true: colors.success }}
+          trackColor={{ false: colors.fillStrong, true: colors.success }}
           thumbColor="#FFFFFF"
           style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
         />

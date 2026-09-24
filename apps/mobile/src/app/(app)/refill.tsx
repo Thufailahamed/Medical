@@ -191,6 +191,7 @@ export default function RefillScreen() {
               end={{ x: 1, y: 1 }}
               style={{
                 borderRadius: 20,
+                borderCurve: "continuous",
                 padding: spacing.md,
                 borderWidth: 1,
                 borderColor: overdue.length > 0 ? colors.warning + "40" : colors.border,
@@ -203,6 +204,7 @@ export default function RefillScreen() {
                     width: 46,
                     height: 46,
                     borderRadius: 15,
+                    borderCurve: "continuous",
                     backgroundColor: overdue.length > 0 ? colors.warning : colors.primary,
                     alignItems: "center",
                     justifyContent: "center",
@@ -263,6 +265,7 @@ export default function RefillScreen() {
                       paddingHorizontal: spacing.sm + 2,
                       paddingVertical: 5,
                       borderRadius: 14,
+                      borderCurve: "continuous",
                       backgroundColor: colors.primary,
                     }}
                   >
@@ -404,6 +407,7 @@ function RefillCard({
       style={{
         padding: spacing.md,
         borderRadius: 20,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: isOverdue ? colors.warningSoft : colors.border,
@@ -417,6 +421,7 @@ function RefillCard({
             width: 42,
             height: 42,
             borderRadius: 13,
+            borderCurve: "continuous",
             backgroundColor: isOverdue ? colors.warningSoft : colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",
@@ -460,6 +465,7 @@ function RefillCard({
           gap: spacing.xs,
           backgroundColor: colors.surfaceSubtle,
           borderRadius: 14,
+          borderCurve: "continuous",
           padding: spacing.sm,
           borderWidth: 1,
           borderColor: colors.border,
@@ -482,6 +488,7 @@ function RefillCard({
             gap: 6,
             paddingVertical: 10,
             borderRadius: 12,
+            borderCurve: "continuous",
             backgroundColor: colors.successSoft,
             borderWidth: 1,
             borderColor: colors.success + "30",

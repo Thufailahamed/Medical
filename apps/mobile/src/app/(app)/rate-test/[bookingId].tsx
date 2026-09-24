@@ -24,7 +24,7 @@ import {
 export default function RateTestScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
   const router = useRouter();
   const toast = useToast();
 
@@ -64,7 +64,7 @@ export default function RateTestScreen() {
       <Screen>
         <ScreenHeader title="Rate Experience" back />
         <View style={{ padding: 16 }}>
-          <Skeleton style={{ height: 200, borderRadius: 16 }} />
+          <Skeleton style={{ height: 200, borderRadius: radius.card }} />
         </View>
       </Screen>
     );
@@ -89,32 +89,30 @@ export default function RateTestScreen() {
     <Screen>
       <ScreenHeader title="Rate Experience" back />
 
-      <View style={{ padding: 16 }}>
+      <View style={{ paddingVertical: 12 }}>
         {/* Booking Info */}
-        <Card style={{ padding: 16, marginBottom: 16 }}>
+        <Card style={{ padding: 18, marginBottom: 14 }}>
           <Text
             style={{
-              fontSize: 16,
-              fontWeight: "600",
+              ...typography.title.md,
               color: colors.text,
               marginBottom: 4,
             }}
           >
             {booking.itemName || "Test Booking"}
           </Text>
-          <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+          <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
             {booking.scheduledDate} • {booking.scheduledTimeSlot}
           </Text>
         </Card>
 
         {/* Star Rating */}
-        <Card style={{ padding: 20, marginBottom: 16, alignItems: "center" }}>
+        <Card style={{ paddingVertical: 28, paddingHorizontal: 20, marginBottom: 14, alignItems: "center" }}>
           <Text
             style={{
-              fontSize: 16,
-              fontWeight: "600",
+              ...typography.title.lg,
               color: colors.text,
-              marginBottom: 16,
+              marginBottom: 18,
             }}
           >
             How was your experience?
@@ -135,14 +133,15 @@ export default function RateTestScreen() {
               >
                 <Star
                   size={40}
-                  color={i <= stars ? "#F59E0B" : colors.border}
+                  color={i <= stars ? "#F59E0B" : colors.borderStrong}
                   fill={i <= stars ? "#F59E0B" : "transparent"}
+                  strokeWidth={1.8}
                 />
               </Pressable>
             ))}
           </View>
 
-          <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+          <Text style={{ ...typography.label.md, color: stars === 0 ? colors.textSubtle : colors.warning }}>
             {stars === 0
               ? "Tap to rate"
               : stars === 1
@@ -158,11 +157,10 @@ export default function RateTestScreen() {
         </Card>
 
         {/* Comment */}
-        <Card style={{ padding: 16, marginBottom: 24 }}>
+        <Card style={{ padding: 18, marginBottom: 24 }}>
           <Text
             style={{
-              fontSize: 14,
-              fontWeight: "600",
+              ...typography.title.sm,
               color: colors.text,
               marginBottom: 10,
             }}
@@ -173,25 +171,25 @@ export default function RateTestScreen() {
             value={comment}
             onChangeText={setComment}
             placeholder="Tell us about your experience..."
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={colors.textSubtle}
             multiline
             numberOfLines={4}
             maxLength={500}
             style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 12,
+              backgroundColor: colors.fill,
+              borderRadius: radius.field,
+              borderCurve: "continuous",
               padding: 14,
-              fontSize: 15,
+              ...typography.body.md,
               color: colors.text,
-              minHeight: 100,
+              minHeight: 110,
               textAlignVertical: "top",
             }}
           />
           <Text
             style={{
-              fontSize: 12,
-              color: colors.textSecondary,
+              ...typography.caption,
+              color: colors.textSubtle,
               textAlign: "right",
               marginTop: 6,
             }}
@@ -202,16 +200,18 @@ export default function RateTestScreen() {
 
         {/* Submit Button */}
         <Button
+          title={
+            rateBooking.isPending
+              ? "Submitting..."
+              : existingRating
+              ? "Update Rating"
+              : "Submit Rating"
+          }
+          size="lg"
           onPress={handleSubmit}
           disabled={stars === 0 || rateBooking.isPending}
           style={{ width: "100%" }}
-        >
-          {rateBooking.isPending
-            ? "Submitting..."
-            : existingRating
-            ? "Update Rating"
-            : "Submit Rating"}
-        </Button>
+        />
 
         {existingRating && (
           <View
@@ -222,11 +222,11 @@ export default function RateTestScreen() {
               marginTop: 12,
             }}
           >
-            <CheckCircle2 size={16} color="#059669" />
+            <CheckCircle2 size={16} color={colors.success} />
             <Text
               style={{
-                fontSize: 13,
-                color: "#059669",
+                ...typography.label.md,
+                color: colors.success,
                 marginLeft: 6,
               }}
             >

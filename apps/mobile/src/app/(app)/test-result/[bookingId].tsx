@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { View, Text, ScrollView, Pressable, Linking } from "react-native";
+import { View, Text, ScrollView, Pressable, Linking, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,8 +38,9 @@ function formatDisplayDate(dateStr: string) {
 export default function TestResultScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
   const router = useRouter();
+  const sectionTitle = { ...typography.title.md, color: colors.text, marginBottom: 14 };
 
   const { data, isLoading, error } = useTestBookingDetail(bookingId);
 
@@ -48,8 +49,8 @@ export default function TestResultScreen() {
       <Screen padded={false} bottomInset={false}>
         <ScreenHeader title="Test Results" back />
         <View style={{ padding: 16 }}>
-          <Skeleton style={{ height: 160, borderRadius: 16, marginBottom: 16 }} />
-          <Skeleton style={{ height: 200, borderRadius: 12 }} />
+          <Skeleton style={{ height: 180, borderRadius: radius.card, marginBottom: 12 }} />
+          <Skeleton style={{ height: 200, borderRadius: radius.card }} />
         </View>
       </Screen>
     );
@@ -97,27 +98,39 @@ export default function TestResultScreen() {
             marginHorizontal: 16,
             marginTop: 8,
             marginBottom: 16,
-            backgroundColor: "#ECFDF5",
-            borderRadius: 16,
-            padding: 20,
+            backgroundColor: colors.successSoft,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            paddingVertical: 28,
+            paddingHorizontal: 20,
             alignItems: "center",
           }}
         >
-          <CheckCircle2 size={40} color="#059669" />
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              backgroundColor: colors.success,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CheckCircle2 size={34} color="#FFFFFF" strokeWidth={2.2} />
+          </View>
           <Text
             style={{
-              fontSize: 20,
-              fontWeight: "700",
-              color: "#059669",
-              marginTop: 12,
+              ...typography.display.sm,
+              color: colors.text,
+              marginTop: 14,
             }}
           >
             Results Ready!
           </Text>
           <Text
             style={{
-              fontSize: 14,
-              color: "#065F46",
+              ...typography.body.md,
+              color: colors.textMuted,
               marginTop: 4,
               textAlign: "center",
             }}
@@ -127,9 +140,9 @@ export default function TestResultScreen() {
           {booking.resultReadyAt && (
             <Text
               style={{
-                fontSize: 12,
-                color: "#059669",
-                marginTop: 8,
+                ...typography.label.sm,
+                color: colors.success,
+                marginTop: 10,
               }}
             >
               {formatDisplayDate(booking.resultReadyAt)}
@@ -139,7 +152,7 @@ export default function TestResultScreen() {
 
         {/* AI Summary */}
         {booking.resultSummary && (
-          <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
+          <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 18 }}>
             <View
               style={{
                 flexDirection: "row",
@@ -147,13 +160,24 @@ export default function TestResultScreen() {
                 marginBottom: 12,
               }}
             >
-              <Info size={18} color="#3B82F6" />
+              <View
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 9,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.infoSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Info size={16} color={colors.info} strokeWidth={2.4} />
+              </View>
               <Text
                 style={{
-                  fontSize: 16,
-                  fontWeight: "600",
+                  ...typography.title.md,
                   color: colors.text,
-                  marginLeft: 8,
+                  marginLeft: 10,
                 }}
               >
                 AI Summary
@@ -161,9 +185,9 @@ export default function TestResultScreen() {
             </View>
             <Text
               style={{
-                fontSize: 15,
+                ...typography.body.md,
                 color: colors.text,
-                lineHeight: 24,
+                lineHeight: 23,
               }}
             >
               {booking.resultSummary}
@@ -172,24 +196,26 @@ export default function TestResultScreen() {
         )}
 
         {/* Test Info */}
-        <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-          <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "600",
-              color: colors.text,
-              marginBottom: 12,
-            }}
-          >
+        <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 18 }}>
+          <Text style={sectionTitle}>
             Test Information
           </Text>
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-            <TestTube2 size={18} color={colors.primary} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingBottom: 12,
+              marginBottom: 12,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.separator,
+            }}
+          >
+            <TestTube2 size={18} color={colors.primary} strokeWidth={2.3} />
             <Text
               style={{
-                marginLeft: 10,
-                fontSize: 15,
+                marginLeft: 12,
+                ...typography.label.lg,
                 color: colors.text,
                 flex: 1,
               }}
@@ -199,12 +225,12 @@ export default function TestResultScreen() {
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Calendar size={18} color={colors.textSecondary} />
+            <Calendar size={18} color={colors.textSubtle} />
             <Text
               style={{
-                marginLeft: 10,
-                fontSize: 14,
-                color: colors.textSecondary,
+                marginLeft: 12,
+                ...typography.body.md,
+                color: colors.textMuted,
               }}
             >
               Sample collected on{" "}
@@ -215,15 +241,8 @@ export default function TestResultScreen() {
 
         {/* Download Actions */}
         {booking.resultPdfUrl && (
-          <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-            <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 12,
-              }}
-            >
+          <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 18 }}>
+            <Text style={sectionTitle}>
               Full Report
             </Text>
 
@@ -232,48 +251,55 @@ export default function TestResultScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: colors.primary + "10",
-                borderRadius: 12,
-                padding: 16,
+                backgroundColor: colors.primarySoft,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                padding: 14,
                 marginBottom: 12,
               }}
             >
-              <FileText size={24} color={colors.primary} />
-              <View style={{ marginLeft: 14, flex: 1 }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FileText size={22} color={colors.primary} strokeWidth={2.2} />
+              </View>
+              <View style={{ marginLeft: 12, flex: 1 }}>
                 <Text
                   style={{
-                    fontSize: 15,
-                    fontWeight: "600",
-                    color: colors.primary,
+                    ...typography.title.sm,
+                    color: colors.text,
                   }}
                 >
                   Download PDF Report
                 </Text>
                 <Text
                   style={{
-                    fontSize: 12,
-                    color: colors.textSecondary,
+                    ...typography.caption,
+                    color: colors.textMuted,
                     marginTop: 2,
                   }}
                 >
                   Full detailed lab report
                 </Text>
               </View>
-              <Download size={20} color={colors.primary} />
+              <Download size={20} color={colors.primary} strokeWidth={2.3} />
             </Pressable>
 
             <Button
-              variant="outline"
+              variant="secondary"
+              title="Share with Doctor"
+              icon={Share2}
               onPress={() => Linking.openURL(booking.resultPdfUrl!)}
               style={{ width: "100%" }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Share2 size={18} color={colors.primary} />
-                <Text style={{ color: colors.primary, marginLeft: 8 }}>
-                  Share with Doctor
-                </Text>
-              </View>
-            </Button>
+            />
           </Card>
         )}
 
@@ -282,21 +308,20 @@ export default function TestResultScreen() {
           style={{
             marginHorizontal: 16,
             marginBottom: 12,
-            padding: 14,
-            backgroundColor: "#FEF3C7",
-            borderColor: "#FCD34D",
-            borderWidth: 1,
+            padding: 16,
+            backgroundColor: colors.warningSoft,
+            borderWidth: 0,
           }}
+          elevated={false}
         >
           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-            <AlertCircle size={18} color="#D97706" style={{ marginTop: 2 }} />
+            <AlertCircle size={18} color={colors.warning} strokeWidth={2.3} style={{ marginTop: 1 }} />
             <Text
               style={{
                 flex: 1,
                 marginLeft: 10,
-                fontSize: 13,
-                color: "#92400E",
-                lineHeight: 20,
+                ...typography.body.sm,
+                color: colors.text,
               }}
             >
               This report is for informational purposes. Please consult your
@@ -310,9 +335,10 @@ export default function TestResultScreen() {
         <Text
           style={{
             textAlign: "center",
-            fontSize: 12,
-            color: colors.textSecondary,
+            ...typography.caption,
+            color: colors.textSubtle,
             marginTop: 8,
+            letterSpacing: 0.4,
           }}
         >
           Booking ID: {booking.id.slice(0, 8).toUpperCase()}

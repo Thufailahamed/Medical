@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -303,6 +304,7 @@ export default function AiChatScreen() {
                   end={{ x: 1, y: 1 }}
                   style={{
                     borderRadius: 28,
+                    borderCurve: "continuous",
                     padding: spacing.xl,
                     overflow: "hidden",
                     shadowColor: palette.sky[700],
@@ -328,11 +330,12 @@ export default function AiChatScreen() {
                       width: 54,
                       height: 54,
                       borderRadius: 18,
+                      borderCurve: "continuous",
                       alignItems: "center",
                       justifyContent: "center",
                       backgroundColor: colors.glassOnPrimary,
-                      borderWidth: 1,
-                      borderColor: colors.glassOnPrimary,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: "rgba(255,255,255,0.28)",
                       marginBottom: spacing.lg,
                     }}
                   >
@@ -446,9 +449,10 @@ export default function AiChatScreen() {
                         paddingVertical: 10,
                         backgroundColor: colors.surface,
                         borderRadius: 18,
+                        borderCurve: "continuous",
                         borderTopLeftRadius: 6,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: colors.separator,
                         marginTop: 4,
                       }}
                     >
@@ -487,8 +491,9 @@ export default function AiChatScreen() {
                 gap: spacing.sm,
                 minHeight: 54,
                 borderRadius: 22,
+                borderCurve: "continuous",
                 backgroundColor: colors.surface,
-                borderWidth: 1,
+                borderWidth: StyleSheet.hairlineWidth,
                 borderColor: canSend ? colors.borderStrong : colors.border,
                 paddingLeft: spacing.lg,
                 paddingRight: 6,
@@ -531,6 +536,7 @@ export default function AiChatScreen() {
                   width: 42,
                   height: 42,
                   borderRadius: 15,
+                  borderCurve: "continuous",
                   overflow: "hidden",
                   opacity: canSend ? (pressed ? 0.82 : 1) : 0.38,
                   transform: [{ scale: pressed && canSend ? 0.96 : 1 }],
@@ -589,6 +595,7 @@ export default function AiChatScreen() {
           end={{ x: 1, y: 1 }}
           style={{
             borderRadius: 28,
+            borderCurve: "continuous",
             padding: spacing.xl,
             gap: spacing.lg,
             overflow: "hidden",
@@ -627,11 +634,12 @@ export default function AiChatScreen() {
                 width: 52,
                 height: 52,
                 borderRadius: 17,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: colors.glassOnPrimary,
-                borderWidth: 1,
-                borderColor: colors.glassOnPrimary,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
               <Sparkles size={25} color={palette.white} strokeWidth={2.2} />
@@ -670,8 +678,8 @@ export default function AiChatScreen() {
                 paddingVertical: 7,
                 borderRadius: 999,
                 backgroundColor: colors.glassOnPrimary,
-                borderWidth: 1,
-                borderColor: colors.glassOnPrimary,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
               <Lock size={12} color={palette.white} strokeWidth={2.4} />
@@ -688,8 +696,8 @@ export default function AiChatScreen() {
                 paddingVertical: 7,
                 borderRadius: 999,
                 backgroundColor: colors.glassOnPrimary,
-                borderWidth: 1,
-                borderColor: colors.glassOnPrimary,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
               <Bot size={12} color={palette.white} strokeWidth={2.4} />
@@ -712,6 +720,7 @@ export default function AiChatScreen() {
               minHeight: 52,
               paddingHorizontal: spacing.md,
               borderRadius: 17,
+              borderCurve: "continuous",
               opacity: pressed || createSession.isPending ? 0.88 : 1,
               transform: [{ scale: pressed ? 0.985 : 1 }],
             })}
@@ -722,6 +731,7 @@ export default function AiChatScreen() {
                   width: 30,
                   height: 30,
                   borderRadius: 10,
+                  borderCurve: "continuous",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: palette.sky[100],
@@ -767,7 +777,8 @@ export default function AiChatScreen() {
                     minHeight: 144,
                     backgroundColor: colors.surface,
                     borderRadius: 22,
-                    borderWidth: 1,
+                    borderCurve: "continuous",
+                    borderWidth: StyleSheet.hairlineWidth,
                     borderColor: pressed ? topic.iconColor : colors.border,
                     padding: spacing.md,
                     justifyContent: "space-between",
@@ -787,6 +798,7 @@ export default function AiChatScreen() {
                       width: 72,
                       height: 72,
                       borderRadius: 36,
+                      borderCurve: "continuous",
                       right: -26,
                       top: -25,
                       backgroundColor: topic.iconBg,
@@ -799,6 +811,7 @@ export default function AiChatScreen() {
                         width: 42,
                         height: 42,
                         borderRadius: 14,
+                        borderCurve: "continuous",
                         backgroundColor: topic.iconBg,
                         alignItems: "center",
                         justifyContent: "center",
@@ -811,11 +824,12 @@ export default function AiChatScreen() {
                         width: 28,
                         height: 28,
                         borderRadius: 14,
+                        borderCurve: "continuous",
                         backgroundColor: colors.surface,
                         alignItems: "center",
                         justifyContent: "center",
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: colors.separator,
                       }}
                     >
                       <ArrowUpRight size={14} color={topic.iconColor} strokeWidth={2.3} />
@@ -904,6 +918,7 @@ export default function AiChatScreen() {
                     width: 48,
                     height: 48,
                     borderRadius: 24,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
@@ -955,8 +970,9 @@ export default function AiChatScreen() {
             gap: 12,
             padding: spacing.md,
             borderRadius: 18,
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.separator,
           }}
         >
           <View
@@ -964,11 +980,12 @@ export default function AiChatScreen() {
               width: 34,
               height: 34,
               borderRadius: 11,
+              borderCurve: "continuous",
               backgroundColor: colors.surface,
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.separator,
               marginTop: 1,
             }}
           >
@@ -1179,10 +1196,11 @@ function SessionRow({
             width: ICON_SIZE,
             height: ICON_SIZE,
             borderRadius: 14,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.separator,
           }}
         >
           <MessageSquare size={20} color={colors.primary} strokeWidth={2.2} />
@@ -1214,6 +1232,7 @@ function SessionRow({
               width: 32,
               height: 32,
               borderRadius: 11,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: pressed ? colors.dangerSoft : colors.surfaceMuted,
@@ -1226,6 +1245,7 @@ function SessionRow({
               width: 28,
               height: 28,
               borderRadius: 14,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colors.primarySoft,

@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, Alert } from "react-native";
+import { View, Text, ScrollView, Alert, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -138,7 +138,7 @@ export default function EditRecordScreen() {
       />
 
       <ScrollView
-        style={{ backgroundColor: "#FAF9FC" }}
+        style={{ backgroundColor: colors.bg }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 100 }}
       >
@@ -181,7 +181,7 @@ export default function EditRecordScreen() {
                     style={{
                       fontSize: 14,
                       fontWeight: "700",
-                      color: "#1D1B20",
+                      color: colors.text,
                       fontFamily: fontFamily.bodyBold,
                     }}
                   >
@@ -197,7 +197,7 @@ export default function EditRecordScreen() {
                 style={{
                   fontSize: 12,
                   fontWeight: "700",
-                  color: "#7F7B8C",
+                  color: colors.textMuted,
                   letterSpacing: 1,
                   marginBottom: spacing.xs,
                   fontFamily: fontFamily.displayBold,
@@ -221,7 +221,8 @@ export default function EditRecordScreen() {
                         paddingHorizontal: 12,
                         paddingVertical: 8,
                         borderRadius: 16,
-                        backgroundColor: isSel ? colors.primary : "#F4F2F8",
+                        borderCurve: "continuous",
+                        backgroundColor: isSel ? colors.primary : colors.fill,
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 4,
@@ -236,7 +237,7 @@ export default function EditRecordScreen() {
                         style={{
                           fontSize: 13,
                           fontWeight: "700",
-                          color: isSel ? "#FFFFFF" : "#1D1B20",
+                          color: isSel ? "#FFFFFF" : colors.text,
                           fontFamily: isSel
                             ? fontFamily.bodyBold
                             : fontFamily.body,

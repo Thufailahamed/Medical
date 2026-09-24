@@ -15,13 +15,13 @@ export function FormField({ label, helper, error, required, children, style }: P
   const { colors, spacing, typography } = useTheme();
 
   return (
-    <View style={[{ gap: spacing.xs }, style]}>
+    <View style={[{ gap: spacing.sm - 2 }, style]}>
       {label ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <Text
             style={[
               typography.label.md,
-              { color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.6 },
+              { color: colors.textMuted, marginLeft: 2 },
             ]}
           >
             {label}
@@ -34,13 +34,13 @@ export function FormField({ label, helper, error, required, children, style }: P
       {children}
       {error ? (
         <Text
-          style={[typography.caption, { color: colors.danger }]}
+          style={[typography.caption, { color: colors.danger, marginLeft: 2 }]}
           accessibilityLiveRegion="polite"
         >
           {error}
         </Text>
       ) : helper ? (
-        <Text style={[typography.caption, { color: colors.textSubtle }]}>{helper}</Text>
+        <Text style={[typography.caption, { color: colors.textSubtle, marginLeft: 2 }]}>{helper}</Text>
       ) : null}
     </View>
   );

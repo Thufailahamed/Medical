@@ -2,7 +2,7 @@
 // Policy detail. Premium status banner, coverage ring, dependents, ECARD link.
 
 import { useEffect, useMemo } from "react";
-import { Linking, View, ScrollView, Alert } from "react-native";
+import { Linking, View, Text, ScrollView, Alert, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -49,7 +49,7 @@ export default function PolicyDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const { data, isLoading } = useInsuranceEnrollment(id ?? "");
 
   const renewMut = useRenewInsuranceEnrollment();
@@ -78,8 +78,8 @@ export default function PolicyDetail() {
       <Screen>
         <ScreenHeader title="" subtitle="" />
         <View style={{ padding: 16, gap: 10 }}>
-          <Skeleton height={140} radius={16} />
-          <Skeleton height={120} radius={16} />
+          <Skeleton height={220} radius={radius.xxl} />
+          <Skeleton height={120} radius={radius.card} />
         </View>
       </Screen>
     );
@@ -143,28 +143,45 @@ export default function PolicyDetail() {
           ? "danger"
           : "neutral";
 
+  const hairline = scheme === "dark" ? colors.borderStrong : colors.separator;
+  const heroLabel = {
+    ...typography.overline,
+    fontSize: 10,
+    color: "rgba(255,255,255,0.66)",
+    textTransform: "uppercase" as const,
+  };
+
   return (
-    <Screen>
+    <Screen padded={false}>
       <ScreenHeader
         title={e.policyNumber ?? t("insurance.policy.policyNumber")}
         subtitle={e.providerName ?? t("insurance.provider.label")}
         kicker={t("insurance.policy.kicker")}
       />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* ─── Gradient hero ─── */}
+        <View
+          style={{
+            margin: 16,
+            marginTop: 8,
+            borderRadius: radius.xxl,
+            ...(scheme === "dark" ? {} : shadow.hero),
+          }}
+        >
         <LinearGradient
-          colors={[colors.primary, colors.primaryStrong ?? colors.primary]}
+          colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{
-            margin: 16,
-            borderRadius: 22,
-            padding: 18,
+            borderRadius: radius.xxl,
+            borderCurve: "continuous",
+            padding: 20,
             overflow: "hidden",
           }}
         >
           <View
+            pointerEvents="none"
             style={{
               position: "absolute",
               top: -60,
@@ -172,10 +189,11 @@ export default function PolicyDetail() {
               width: 200,
               height: 200,
               borderRadius: 999,
-              backgroundColor: "rgba(255,255,255,0.08)",
+              backgroundColor: "rgba(255,255,255,0.10)",
             }}
           />
           <View
+            pointerEvents="none"
             style={{
               position: "absolute",
               bottom: -90,
@@ -183,37 +201,49 @@ export default function PolicyDetail() {
               width: 240,
               height: 240,
               borderRadius: 999,
-              backgroundColor: "rgba(255,255,255,0.05)",
+              backgroundColor: "rgba(255,255,255,0.06)",
             }}
           />
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 10,
+              gap: 12,
             }}
           >
             <View
               style={{
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 borderRadius: 12,
-                backgroundColor: "rgba(255,255,255,0.15)",
+                borderCurve: "continuous",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Shield size={22} color="#FFFFFF" />
+              <Shield size={21} color="#FFFFFF" strokeWidth={2.3} />
             </View>
             <View style={{ flex: 1 }}>
-              <AppText weight="700" size="md" style={{ color: "#FFFFFF" }}>
+              <Text
+                style={{ ...typography.title.md, color: "#FFFFFF" }}
+                numberOfLines={2}
+              >
                 {e.planName ?? t("insurance.policy.summary")}
-              </AppText>
-              <AppText size="xs" style={{ color: "#FFFFFFCC" }}>
+              </Text>
+              <Text
+                style={{
+                  ...typography.caption,
+                  color: "rgba(255,255,255,0.8)",
+                  marginTop: 1,
+                }}
+              >
                 {e.planType
                   ? t(`insurance.planTypes.${e.planType}`, e.planType)
                   : ""}
-              </AppText>
+              </Text>
             </View>
             <Pill
               tone={statusTone}
@@ -226,36 +256,43 @@ export default function PolicyDetail() {
           <View
             style={{
               flexDirection: "row",
-              marginTop: 18,
+              marginTop: 22,
               gap: spacing.md,
             }}
           >
             <View style={{ flex: 1 }}>
-              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
-                {t("insurance.policy.coverage")}
-              </AppText>
-              <AppText
-                weight="700"
-                size="lg"
-                style={{ color: "#FFFFFF", marginTop: 2 }}
+              <Text style={heroLabel}>{t("insurance.policy.coverage")}</Text>
+              <Text
+                style={{
+                  ...typography.display.sm,
+                  color: "#FFFFFF",
+                  marginTop: 4,
+                }}
+                adjustsFontSizeToFit
+                numberOfLines={1}
               >
                 LKR {e.coverageAmountLkr.toLocaleString()}
-              </AppText>
+              </Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
-                {t("insurance.policy.premium")}
-              </AppText>
-              <AppText
-                weight="700"
-                size="lg"
-                style={{ color: "#FFFFFF", marginTop: 2 }}
+            <View style={{ flex: 1, alignItems: "flex-end" }}>
+              <Text style={heroLabel}>{t("insurance.policy.premium")}</Text>
+              <Text
+                style={{
+                  ...typography.title.lg,
+                  color: "#FFFFFF",
+                  marginTop: 4,
+                }}
               >
                 LKR {e.premiumAmountLkr.toLocaleString()}
-              </AppText>
-              <AppText size="xs" style={{ color: "#FFFFFFCC" }}>
+              </Text>
+              <Text
+                style={{
+                  ...typography.caption,
+                  color: "rgba(255,255,255,0.8)",
+                }}
+              >
                 / {e.billingCycle}
-              </AppText>
+              </Text>
             </View>
           </View>
 
@@ -265,31 +302,35 @@ export default function PolicyDetail() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 8,
-                marginTop: 14,
-                backgroundColor: "rgba(255,255,255,0.12)",
+                marginTop: 18,
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
                 paddingHorizontal: 12,
-                paddingVertical: 8,
+                paddingVertical: 9,
                 borderRadius: 12,
+                borderCurve: "continuous",
               }}
             >
-              <CalendarClock size={14} color="#FFFFFF" />
-              <AppText size="sm" style={{ color: "#FFFFFF" }}>
+              <CalendarClock size={14} color="#FFFFFF" strokeWidth={2.3} />
+              <Text style={{ ...typography.label.md, color: "#FFFFFF" }}>
                 {t("insurance.policy.nextPremium")}:{" "}
                 {new Date(e.nextPremiumDueAt).toLocaleDateString()}
-              </AppText>
+              </Text>
             </View>
           ) : null}
         </LinearGradient>
+        </View>
 
         {showPaymentBanner ? (
           <Card
+            elevated={false}
             style={{
               marginHorizontal: 16,
               marginTop: 4,
-              padding: 14,
-              gap: 10,
-              borderWidth: 1.5,
-              borderColor: colors.warning,
+              padding: 16,
+              gap: 12,
+              borderWidth: 0,
               backgroundColor: colors.warningSoft,
             }}
           >
@@ -297,7 +338,7 @@ export default function PolicyDetail() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 10,
+                gap: 12,
               }}
             >
               <View
@@ -305,25 +346,32 @@ export default function PolicyDetail() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
+                  borderCurve: "continuous",
                   backgroundColor: colors.warning,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <AlertTriangle size={18} color="#fff" />
+                <AlertTriangle size={18} color="#fff" strokeWidth={2.4} />
               </View>
               <View style={{ flex: 1 }}>
-                <AppText weight="700" size="sm">
+                <Text style={{ ...typography.title.sm, color: colors.text }}>
                   {isOverdue
                     ? t("insurance.policy.overdue") || "Payment overdue"
                     : t("insurance.policy.dueSoon") || "Premium due soon"}
-                </AppText>
-                <AppText size="xs" color="muted">
+                </Text>
+                <Text
+                  style={{
+                    ...typography.caption,
+                    color: colors.textMuted,
+                    marginTop: 1,
+                  }}
+                >
                   LKR {e.premiumAmountLkr.toLocaleString()} ·{" "}
                   {isOverdue
                     ? `${-dueIn}d overdue`
                     : `due in ${dueIn}d`}
-                </AppText>
+                </Text>
               </View>
             </View>
             <Button
@@ -332,7 +380,7 @@ export default function PolicyDetail() {
                   ? t("common.loading") || "Loading…"
                   : t("insurance.payNow") || "Pay now"
               }
-              leftIcon={<Wallet size={14} />}
+              icon={Wallet}
               onPress={onRenew}
               loading={renewMut.isPending}
             />
@@ -344,10 +392,8 @@ export default function PolicyDetail() {
             style={{
               marginHorizontal: 16,
               marginTop: 16,
-              padding: 14,
+              padding: 16,
               gap: 10,
-              borderWidth: 1,
-              borderColor: colors.border,
             }}
           >
             <View
@@ -358,18 +404,18 @@ export default function PolicyDetail() {
               }}
             >
               <CheckCircle2 size={16} color={colors.success} />
-              <AppText size="sm" weight="600">
+              <Text style={{ ...typography.title.sm, color: colors.text }}>
                 {t(`insurance.status.${e.status}`)}
-              </AppText>
+              </Text>
             </View>
-            <AppText size="xs" color="muted">
+            <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
               {t("insurance.policy.statusNote") ||
                 "Coverage is not active. Renew to restore benefits."}
-            </AppText>
+            </Text>
             <Button
               label={t("insurance.renew") || "Renew"}
-              variant="outline"
-              leftIcon={<Wallet size={14} />}
+              variant="secondary"
+              icon={Wallet}
               onPress={onRenew}
               loading={renewMut.isPending}
             />
@@ -378,7 +424,7 @@ export default function PolicyDetail() {
 
         <SectionHeader
           title={t("insurance.policy.actions")}
-          style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          style={{ paddingHorizontal: 16, paddingTop: 24 }}
         />
         <View
           style={{
@@ -390,22 +436,22 @@ export default function PolicyDetail() {
         >
           <Button
             label={t("insurance.ecard.view")}
-            leftIcon={<CreditCard size={14} />}
+            icon={CreditCard}
             onPress={() => router.push(`/insurance/ecard/${e.id}`)}
             style={{ flex: 1, minWidth: 140 }}
           />
           <Button
             label={t("insurance.renew")}
-            variant="outline"
-            leftIcon={<Wallet size={14} />}
+            variant="secondary"
+            icon={Wallet}
             onPress={onRenew}
             loading={renewMut.isPending}
             style={{ flex: 1, minWidth: 140 }}
           />
           <Button
             label={t("insurance.submitClaim")}
-            variant="outline"
-            leftIcon={<FilePlus size={14} />}
+            variant="secondary"
+            icon={FilePlus}
             onPress={() => router.push("/insurance/claims/new")}
             style={{ flex: 1, minWidth: 140 }}
           />
@@ -414,12 +460,12 @@ export default function PolicyDetail() {
         {/* Provider card */}
         <SectionHeader
           title={t("insurance.provider.label")}
-          style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          style={{ paddingHorizontal: 16, paddingTop: 24 }}
         />
         <Card
           style={{
             marginHorizontal: 16,
-            padding: 14,
+            padding: 16,
             flexDirection: "row",
             alignItems: "center",
             gap: 12,
@@ -430,31 +476,38 @@ export default function PolicyDetail() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              backgroundColor: colors.primaryMuted ?? colors.surfaceMuted,
+              borderCurve: "continuous",
+              backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Building2 size={22} color={colors.primary} />
+            <Building2 size={21} color={colors.primary} strokeWidth={2.3} />
           </View>
           <View style={{ flex: 1 }}>
-            <AppText weight="700" size="md">
+            <Text style={{ ...typography.title.md, color: colors.text }}>
               {e.providerName ?? t("insurance.provider.label")}
-            </AppText>
-            <AppText size="xs" color="muted">
+            </Text>
+            <Text
+              style={{
+                ...typography.body.sm,
+                color: colors.textMuted,
+                marginTop: 1,
+              }}
+            >
               {e.planName ?? t("insurance.policy.summary")}
-            </AppText>
+            </Text>
           </View>
         </Card>
 
         {/* Schedule card */}
         <SectionHeader
           title={t("insurance.policy.schedule", "Schedule")}
-          style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          style={{ paddingHorizontal: 16, paddingTop: 24 }}
         />
-        <Card style={{ marginHorizontal: 16, padding: 16, gap: 10 }}>
+        <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
           <Detail
-            icon={<CalendarClock size={14} />}
+            icon={<CalendarClock size={15} color={colors.primary} strokeWidth={2.3} />}
             label={t("insurance.policy.startDate")}
             value={
               e.startDate ? new Date(e.startDate).toLocaleDateString() : "—"
@@ -462,16 +515,18 @@ export default function PolicyDetail() {
           />
           {e.endDate ? (
             <Detail
-              icon={<CalendarClock size={14} />}
+              icon={<CalendarClock size={15} color={colors.primary} strokeWidth={2.3} />}
               label={t("insurance.policy.endDate")}
               value={new Date(e.endDate).toLocaleDateString()}
+              divider
             />
           ) : null}
           {e.lastPremiumPaidAt ? (
             <Detail
-              icon={<CheckCircle2 size={14} />}
+              icon={<CheckCircle2 size={15} color={colors.success} strokeWidth={2.3} />}
               label={t("insurance.policy.lastPaid") || "Last paid"}
               value={new Date(e.lastPremiumPaidAt).toLocaleDateString()}
+              divider
             />
           ) : null}
         </Card>
@@ -481,12 +536,12 @@ export default function PolicyDetail() {
           <>
             <SectionHeader
               title={t("insurance.policy.nominee", "Nominee")}
-              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+              style={{ paddingHorizontal: 16, paddingTop: 24 }}
             />
             <Card
               style={{
                 marginHorizontal: 16,
-                padding: 14,
+                padding: 16,
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 12,
@@ -496,22 +551,31 @@ export default function PolicyDetail() {
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 12,
-                  backgroundColor: colors.surfaceMuted,
+                  borderRadius: 20,
+                  backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <User2 size={20} color={colors.primary} />
+                <User2 size={19} color={colors.primary} strokeWidth={2.3} />
               </View>
               <View style={{ flex: 1 }}>
-                <AppText weight="700">{e.nomineeName}</AppText>
-                <AppText size="xs" color="muted">
+                <Text style={{ ...typography.title.sm, color: colors.text }}>
+                  {e.nomineeName}
+                </Text>
+                <Text
+                  style={{
+                    ...typography.caption,
+                    color: colors.textMuted,
+                    marginTop: 1,
+                    textTransform: "capitalize",
+                  }}
+                >
                   {e.nomineeRelation}
                   {e.nomineeDob
                     ? ` · ${new Date(e.nomineeDob).toLocaleDateString()}`
                     : ""}
-                </AppText>
+                </Text>
               </View>
             </Card>
           </>
@@ -522,22 +586,26 @@ export default function PolicyDetail() {
           <>
             <SectionHeader
               title={t("insurance.policy.dependents")}
-              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+              style={{ paddingHorizontal: 16, paddingTop: 24 }}
             />
-            <View
+            <Card
               style={{
+                marginHorizontal: 16,
+                paddingVertical: 4,
                 paddingHorizontal: 16,
-                gap: 8,
               }}
             >
-              {e.dependents.map((d: any) => (
-                <Card
+              {e.dependents.map((d: any, di: number) => (
+                <View
                   key={d.id ?? d.name}
                   style={{
-                    padding: 12,
+                    minHeight: 60,
+                    paddingVertical: 10,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 10,
+                    gap: 12,
+                    borderTopWidth: di === 0 ? 0 : StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
                   }}
                 >
                   <View
@@ -545,39 +613,48 @@ export default function PolicyDetail() {
                       width: 36,
                       height: 36,
                       borderRadius: 999,
-                      backgroundColor: colors.surfaceMuted,
+                      backgroundColor: colors.fill,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <AppText weight="700" size="sm">
+                    <Text style={{ ...typography.label.md, color: colors.text }}>
                       {(d.name ?? "?").charAt(0).toUpperCase()}
-                    </AppText>
+                    </Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <AppText weight="600">{d.name}</AppText>
-                    <AppText size="xs" color="muted">
+                    <Text style={{ ...typography.title.xs, fontSize: 15, color: colors.text }}>
+                      {d.name}
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.caption,
+                        color: colors.textMuted,
+                        marginTop: 1,
+                        textTransform: "capitalize",
+                      }}
+                    >
                       {d.relation}
                       {d.dob
                         ? ` · ${new Date(d.dob).toLocaleDateString()}`
                         : ""}
-                    </AppText>
+                    </Text>
                   </View>
                   {d.dob ? (
-                    <Cake size={14} color={colors.textMuted} />
+                    <Cake size={15} color={colors.textSubtle} />
                   ) : null}
-                </Card>
+                </View>
               ))}
-            </View>
+            </Card>
           </>
         ) : null}
 
         {e.status === "active" ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 24 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 28 }}>
             <Button
               label={t("insurance.policy.cancelPolicy") || "Cancel policy"}
-              variant="ghost"
-              leftIcon={<X size={14} />}
+              variant="danger"
+              icon={X}
               onPress={onCancel}
               loading={cancelMut.isPending}
               textStyle={{ color: colors.danger }}
@@ -593,36 +670,43 @@ function Detail({
   icon,
   label,
   value,
+  divider,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  divider?: boolean;
 }) {
-  const { colors } = useTheme();
+  const { colors, typography } = useTheme();
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
+        gap: 12,
+        minHeight: 52,
+        paddingVertical: 10,
+        borderTopWidth: divider ? StyleSheet.hairlineWidth : 0,
+        borderTopColor: colors.separator,
       }}
     >
       <View
         style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          backgroundColor: colors.surfaceMuted,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          borderCurve: "continuous",
+          backgroundColor: colors.primarySoft,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {icon}
       </View>
-      <AppText size="sm" color="muted" style={{ flex: 1 }}>
+      <Text style={{ ...typography.body.md, color: colors.textMuted, flex: 1 }}>
         {label}
-      </AppText>
-      <AppText weight="600">{value}</AppText>
+      </Text>
+      <Text style={{ ...typography.label.lg, color: colors.text }}>{value}</Text>
     </View>
   );
 }

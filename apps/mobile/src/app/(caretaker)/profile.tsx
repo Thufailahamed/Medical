@@ -132,7 +132,7 @@ export default function CaretakerProfile() {
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: spacing.xxxxl }}
+        contentContainerStyle={{ paddingBottom: 132 }}
       >
         {/* ─── Top bar ─── */}
         <View
@@ -142,19 +142,10 @@ export default function CaretakerProfile() {
             justifyContent: "space-between",
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
-            paddingBottom: spacing.sm,
+            paddingBottom: spacing.md,
           }}
         >
-          <Text
-            style={[
-              typography.display.sm,
-              {
-                color: colors.text,
-                fontWeight: "800",
-                letterSpacing: -0.5,
-              },
-            ]}
-          >
+          <Text style={[typography.display.lg, { color: colors.text }]}>
             {t("profile.title")}
           </Text>
           <IconButton
@@ -191,14 +182,7 @@ export default function CaretakerProfile() {
               />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
-                  style={[
-                    typography.title.lg,
-                    {
-                      color: colors.text,
-                      fontWeight: "800",
-                      letterSpacing: -0.4,
-                    },
-                  ]}
+                  style={[typography.title.lg, { color: colors.text }]}
                   numberOfLines={1}
                 >
                   {user?.name || "—"}
@@ -245,7 +229,7 @@ export default function CaretakerProfile() {
         {/* ─── Verified Caretaker Tier section ───
             Shown only to users with role='caretaker'. Surfaces the
             caller's own verified state plus a CTA when unverified. */}
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.xxl }}>
           <SectionHeader
             title={t("caretaker.verification.sheetTitle")}
             style={{ paddingHorizontal: spacing.lg }}
@@ -262,15 +246,27 @@ export default function CaretakerProfile() {
                     gap: spacing.sm,
                   }}
                 >
-                  <BadgeCheck size={18} color={colors.success} />
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.success,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <BadgeCheck size={18} color="#FFFFFF" />
+                  </View>
                   <Text
-                    style={{ ...typography.body, color: colors.text, flex: 1 }}
+                    style={{ ...typography.title.sm, color: colors.text, flex: 1 }}
                   >
                     {t("caretaker.verification.verified")}
                   </Text>
                 </View>
               ) : verification?.verification?.status === "pending" ? (
-                <View style={{ gap: spacing.xs }}>
+                <View style={{ gap: spacing.md }}>
                   <View
                     style={{
                       flexDirection: "row",
@@ -278,8 +274,20 @@ export default function CaretakerProfile() {
                       gap: spacing.sm,
                     }}
                   >
-                    <ShieldUser size={18} color={colors.textSecondary} />
-                    <Text style={{ ...typography.body, color: colors.text, flex: 1 }}>
+                    <View
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 10,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.warningSoft,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ShieldUser size={18} color={colors.warning} />
+                    </View>
+                    <Text style={{ ...typography.title.sm, color: colors.text, flex: 1 }}>
                       {t("caretaker.verification.pending")}
                     </Text>
                   </View>
@@ -304,14 +312,14 @@ export default function CaretakerProfile() {
                   />
                 </View>
               ) : verification?.verification?.status === "rejected" ? (
-                <View style={{ gap: spacing.xs }}>
-                  <Text style={{ ...typography.body, color: colors.danger }}>
+                <View style={{ gap: spacing.sm }}>
+                  <Text style={{ ...typography.body.md, color: colors.danger }}>
                     {t("caretaker.verification.rejected")}
                   </Text>
                   {verification.verification.decisionNote ? (
                     <Text
                       style={{
-                        ...typography.bodySmall,
+                        ...typography.body.sm,
                         color: colors.textSecondary,
                       }}
                     >
@@ -331,7 +339,7 @@ export default function CaretakerProfile() {
                 <View style={{ gap: spacing.sm }}>
                   <Text
                     style={{
-                      ...typography.bodySmall,
+                      ...typography.body.sm,
                       color: colors.textSecondary,
                     }}
                   >
@@ -351,7 +359,7 @@ export default function CaretakerProfile() {
         </View>
 
         {/* ─── Managing section ─── */}
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.xxl }}>
           <SectionHeader
             title={t("caretaker.profile.section.managing")}
             style={{ paddingHorizontal: spacing.lg }}
@@ -366,7 +374,7 @@ export default function CaretakerProfile() {
               <Card>
                 <Text
                   style={{
-                    ...typography.body,
+                    ...typography.body.md,
                     color: colors.textMuted,
                   }}
                 >
@@ -402,22 +410,16 @@ export default function CaretakerProfile() {
                       />
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text
-                          style={[
-                            typography.title.sm,
-                            {
-                              color: colors.text,
-                              fontWeight: "700",
-                            },
-                          ]}
+                          style={[typography.title.md, { color: colors.text }]}
                           numberOfLines={1}
                         >
                           {p.principalName}
                         </Text>
                         <Text
                           style={[
-                            typography.caption,
+                            typography.body.sm,
                             {
-                              color: colors.textSecondary,
+                              color: colors.textMuted,
                               marginTop: 2,
                             },
                           ]}
@@ -458,7 +460,7 @@ export default function CaretakerProfile() {
         </View>
 
         {/* ─── Account section ─── */}
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.xxl }}>
           <SectionHeader
             title={t("profile.section.account")}
             style={{ paddingHorizontal: spacing.lg }}
@@ -511,7 +513,7 @@ export default function CaretakerProfile() {
         </View>
 
         {/* ─── Support section ─── */}
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.xxl }}>
           <SectionHeader
             title={t("profile.section.support")}
             style={{ paddingHorizontal: spacing.lg }}
@@ -552,7 +554,7 @@ export default function CaretakerProfile() {
         >
           <Button
             title={t("profile.logout.confirm")}
-            variant="outline"
+            variant="danger"
             icon={LogOut}
             onPress={confirmLogout}
             fullWidth

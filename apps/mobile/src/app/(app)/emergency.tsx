@@ -15,6 +15,7 @@ import {
   Linking,
   ScrollView,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
@@ -40,6 +41,7 @@ import {
   useUnreadCount,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { withOpacity } from "@/constants/theme";
 import { useAuthStore } from "@/stores/auth";
 import {
   Screen,
@@ -94,7 +96,7 @@ export default function EmergencyScreen() {
   const { data: unread } = useUnreadCount();
   const { user } = useAuthStore();
   const toast = useToast();
-  const { spacing, colors, typography, radius, shadow } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
 
   useEffect(() => {
     if (user?.role === "doctor") {
@@ -252,11 +254,16 @@ export default function EmergencyScreen() {
               accessibilityRole="button"
               accessibilityLabel="Back"
               style={({ pressed }) => ({
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: "center",
+                justifyContent: "center",
                 marginRight: spacing.xs,
-                opacity: pressed ? 0.7 : 1,
+                backgroundColor: pressed ? colors.fillStrong : colors.fill,
               })}
             >
-              <ArrowLeft size={24} color={colors.text} />
+              <ArrowLeft size={20} color={colors.text} strokeWidth={2.4} />
             </Pressable>
           )}
           <Pressable
@@ -276,15 +283,15 @@ export default function EmergencyScreen() {
             <Text
               style={[
                 typography.overline,
-                { color: colors.textMuted, letterSpacing: 0.6 },
+                { color: colors.danger },
               ]}
             >
               {t("emergency.header.brand")}
             </Text>
             <Text
               style={[
-                typography.title.sm,
-                { color: colors.text, fontWeight: "800" },
+                typography.title.md,
+                { color: colors.text },
               ]}
               numberOfLines={1}
             >
@@ -303,9 +310,7 @@ export default function EmergencyScreen() {
             borderRadius: 999,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
           })}
         >
           <Bell size={18} color={colors.text} strokeWidth={2.25} />
@@ -319,6 +324,8 @@ export default function EmergencyScreen() {
                 height: 8,
                 borderRadius: 4,
                 backgroundColor: colors.danger,
+                borderWidth: 1.5,
+                borderColor: colors.bg,
               }}
             />
           ) : null}
@@ -352,9 +359,9 @@ export default function EmergencyScreen() {
                   width: size,
                   height: size,
                   borderRadius: size / 2,
-                  borderWidth: 1,
-                  borderColor: `rgba(186, 26, 26, ${opacities[idx]})`,
-                  backgroundColor: `rgba(186, 26, 26, ${fills[idx]})`,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: withOpacity(colors.danger, opacities[idx] * 2),
+                  backgroundColor: withOpacity(colors.danger, fills[idx] * (scheme === "dark" ? 2.4 : 1.6)),
                 }}
               />
             );
@@ -368,27 +375,33 @@ export default function EmergencyScreen() {
             accessibilityRole="button"
             accessibilityLabel={t("emergency.sos.accessibilityLabel")}
             style={({ pressed }) => ({
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: pressed || pressing ? "#93000a" : "#ba1a1a",
+              width: 128,
+              height: 128,
+              borderRadius: 64,
+              backgroundColor: pressed || pressing ? "#B3261E" : "#E5362F",
               alignItems: "center",
               justifyContent: "center",
-              shadowColor: "#ba1a1a",
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.3,
-              shadowRadius: 10,
+              borderWidth: 3,
+              borderColor: "rgba(255,255,255,0.22)",
+              shadowColor: "#E5362F",
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: scheme === "dark" ? 0 : 0.35,
+              shadowRadius: 20,
               elevation: 8,
               zIndex: 10,
+              transform: [{ scale: pressed || pressing ? 0.95 : 1 }],
             })}
           >
             <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 28,
-                fontWeight: "900",
-                letterSpacing: 1,
-              }}
+              style={[
+                typography.display.md,
+                {
+                  color: "#FFFFFF",
+                  fontSize: 32,
+                  lineHeight: 38,
+                  letterSpacing: 1.5,
+                },
+              ]}
             >
               SOS
             </Text>
@@ -397,12 +410,11 @@ export default function EmergencyScreen() {
 
         <Text
           style={[
-            typography.caption,
+            typography.label.md,
             {
               color: colors.textMuted,
               textAlign: "center",
               marginTop: spacing.md,
-              fontWeight: "600",
             },
           ]}
         >
@@ -426,18 +438,19 @@ export default function EmergencyScreen() {
           >
             <View
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: colors.primarySoft,
+                backgroundColor: colors.danger,
               }}
             >
-              <ShieldAlert size={20} color={colors.primary} strokeWidth={2.25} />
+              <ShieldAlert size={19} color="#FFFFFF" strokeWidth={2.25} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+              <Text style={[typography.title.md, { color: colors.text }]}>
                 {t("emergency.healthId.title")}
               </Text>
               <Text
@@ -448,74 +461,72 @@ export default function EmergencyScreen() {
               </Text>
             </View>
             {showHealthId ? (
-              <ChevronUp size={18} color={colors.textMuted} strokeWidth={2} />
+              <ChevronUp size={18} color={colors.textSubtle} strokeWidth={2.2} />
             ) : (
-              <ChevronDown size={18} color={colors.textMuted} strokeWidth={2} />
+              <ChevronDown size={18} color={colors.textSubtle} strokeWidth={2.2} />
             )}
           </Pressable>
 
           {showHealthId ? (
             <View
               style={{
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-                paddingBottom: spacing.sm,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
+                paddingBottom: spacing.xs,
               }}
             >
               <View
                 style={{
                   flexDirection: "row",
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
+                  gap: spacing.sm,
+                  padding: spacing.md,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.separator,
                 }}
               >
                 <View
                   style={{
                     flex: 1,
                     padding: spacing.md,
-                    borderRightWidth: 1,
-                    borderRightColor: colors.border,
+                    borderRadius: 16,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.dangerSoft,
                   }}
                 >
                   <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "700",
-                      color: colors.textMuted,
-                      letterSpacing: 0.5,
-                    }}
+                    style={[typography.caption, { color: colors.danger }]}
                   >
                     {t("emergency.healthId.bloodType")}
                   </Text>
                   <Text
-                    style={{
-                      fontSize: 20,
-                      fontWeight: "900",
-                      color: colors.danger,
-                      marginTop: 4,
-                    }}
+                    style={[
+                      typography.display.md,
+                      { color: colors.danger, marginTop: 2 },
+                    ]}
                   >
                     {bloodType || "—"}
                   </Text>
                 </View>
-                <View style={{ flex: 1, padding: spacing.md }}>
+                <View
+                  style={{
+                    flex: 1,
+                    padding: spacing.md,
+                    borderRadius: 16,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.fill,
+                    justifyContent: "space-between",
+                  }}
+                >
                   <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "700",
-                      color: colors.textMuted,
-                      letterSpacing: 0.5,
-                    }}
+                    style={[typography.caption, { color: colors.textSubtle }]}
                   >
                     {t("emergency.healthId.phone")}
                   </Text>
                   <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: colors.text,
-                      marginTop: 4,
-                    }}
+                    style={[
+                      typography.title.sm,
+                      { color: colors.text, marginTop: 4 },
+                    ]}
                     numberOfLines={1}
                   >
                     {phone || "—"}
@@ -564,18 +575,19 @@ export default function EmergencyScreen() {
           >
             <View
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: colors.accentSoft,
+                backgroundColor: colors.accent,
               }}
             >
-              <QrCode size={20} color={colors.accent} strokeWidth={2.25} />
+              <QrCode size={19} color="#FFFFFF" strokeWidth={2.25} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+              <Text style={[typography.title.md, { color: colors.text }]}>
                 {t("emergency.qr.title")}
               </Text>
               <Text
@@ -586,20 +598,20 @@ export default function EmergencyScreen() {
               </Text>
             </View>
             {showQr ? (
-              <ChevronUp size={18} color={colors.textMuted} strokeWidth={2} />
+              <ChevronUp size={18} color={colors.textSubtle} strokeWidth={2.2} />
             ) : (
-              <ChevronDown size={18} color={colors.textMuted} strokeWidth={2} />
+              <ChevronDown size={18} color={colors.textSubtle} strokeWidth={2.2} />
             )}
           </Pressable>
 
           {showQr ? (
             <View
               style={{
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-                padding: spacing.lg,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
+                padding: spacing.xl,
                 alignItems: "center",
-                gap: spacing.md,
+                gap: spacing.lg,
               }}
             >
               {!profileData && !cached ? (
@@ -607,33 +619,34 @@ export default function EmergencyScreen() {
               ) : (
                 <View
                   style={{
-                    padding: spacing.md,
-                    backgroundColor: colors.surface,
+                    padding: spacing.lg,
+                    backgroundColor: "#FFFFFF",
                     borderRadius: radius.xl,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    ...shadow.sm,
+                    borderCurve: "continuous",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: colors.separator,
+                    ...(scheme === "dark" ? null : shadow.sm),
                   }}
                 >
                   <QRCode
                     value={qrString}
                     size={200}
-                    color={colors.text}
-                    backgroundColor={colors.surface}
+                    color="#000000"
+                    backgroundColor="#FFFFFF"
                   />
                 </View>
               )}
               <View style={{ alignItems: "center", gap: 4 }}>
                 <Text
                   style={[
-                    typography.title.sm,
-                    { color: colors.text, fontWeight: "800" },
+                    typography.title.lg,
+                    { color: colors.text },
                   ]}
                 >
                   {profileName}
                 </Text>
                 <Text
-                  style={[typography.caption, { color: colors.textMuted }]}
+                  style={[typography.body.sm, { color: colors.textMuted }]}
                 >
                   {bloodType ? `${bloodType} • ` : ""}
                   {t("emergency.qr.contactsCount", { count: contacts.length })}
@@ -642,7 +655,7 @@ export default function EmergencyScreen() {
               <Text
                 style={[
                   typography.caption,
-                  { color: colors.textMuted, textAlign: "center" },
+                  { color: colors.textSubtle, textAlign: "center", maxWidth: 280 },
                 ]}
               >
                 {t("emergency.qr.footer")}
@@ -663,8 +676,8 @@ export default function EmergencyScreen() {
           >
             <Text
               style={[
-                typography.title.sm,
-                { color: colors.text, fontWeight: "800" },
+                typography.title.lg,
+                { color: colors.text },
               ]}
             >
               {t("emergency.contacts.title")}
@@ -678,19 +691,16 @@ export default function EmergencyScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 4,
-                paddingHorizontal: spacing.sm,
-                paddingVertical: 6,
+                height: 36,
+                paddingHorizontal: spacing.md,
                 borderRadius: 999,
-                backgroundColor: pressed ? colors.primaryMuted : colors.primarySoft,
+                backgroundColor: colors.primarySoft,
+                opacity: pressed ? 0.7 : 1,
               })}
             >
-              <Plus size={14} color={colors.primary} strokeWidth={2.5} />
+              <Plus size={15} color={colors.primary} strokeWidth={2.5} />
               <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "700",
-                  color: colors.primary,
-                }}
+                style={[typography.label.md, { color: colors.primary }]}
               >
                 {t("emergency.contacts.addButton")}
               </Text>
@@ -704,7 +714,8 @@ export default function EmergencyScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    padding: spacing.md,
+                    paddingVertical: spacing.md,
+                    paddingHorizontal: spacing.lg,
                     gap: spacing.md,
                   }}
                 >
@@ -713,7 +724,7 @@ export default function EmergencyScreen() {
                     <Text
                       style={[
                         typography.title.sm,
-                        { color: colors.text, fontWeight: "800" },
+                        { color: colors.text },
                       ]}
                       numberOfLines={1}
                     >
@@ -741,23 +752,37 @@ export default function EmergencyScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: 20,
-                      backgroundColor: pressed ? colors.surfaceMuted : colors.primarySoft,
+                      backgroundColor: colors.success,
+                      opacity: pressed ? 0.8 : 1,
                       alignItems: "center",
                       justifyContent: "center",
                     })}
                   >
-                    <Phone size={18} color={colors.primary} strokeWidth={2.5} />
+                    <Phone size={18} color="#FFFFFF" strokeWidth={2.5} />
                   </Pressable>
                 </View>
               </Card>
             ))
           ) : (
-            <Card style={{ padding: spacing.lg, alignItems: "center", gap: spacing.sm }}>
-              <UserRound size={22} color={colors.textMuted} strokeWidth={1.75} />
+            <Card style={{ padding: spacing.xl, alignItems: "center", gap: spacing.sm }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 18,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: spacing.xs,
+                }}
+              >
+                <UserRound size={26} color={colors.textMuted} strokeWidth={1.75} />
+              </View>
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "800" },
+                  typography.title.md,
+                  { color: colors.text },
                 ]}
               >
                 {t("emergency.contacts.noContactsTitle")}
@@ -793,7 +818,7 @@ export default function EmergencyScreen() {
           <Text
             style={[
               typography.body.md,
-              { color: colors.text, textAlign: "center", lineHeight: 22 },
+              { color: colors.textMuted, textAlign: "center" },
             ]}
           >
             {t("emergency.confirm.body")}
@@ -841,11 +866,10 @@ function DataRow({
   return (
     <View
       style={{
-        padding: spacing.md,
-        borderTopWidth: 1,
-        borderTopColor: colors.border,
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: colors.border,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+        borderBottomColor: colors.separator,
         flexDirection: "row",
         alignItems: "flex-start",
         gap: spacing.md,
@@ -855,8 +879,9 @@ function DataRow({
         style={{
           width: 32,
           height: 32,
-          borderRadius: 16,
-          backgroundColor: colors.surfaceMuted,
+          borderRadius: 9,
+          borderCurve: "continuous",
+          backgroundColor: colors.fill,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -865,19 +890,14 @@ function DataRow({
       </View>
       <View style={{ flex: 1 }}>
         <Text
-          style={{
-            fontSize: 11,
-            fontWeight: "700",
-            color: colors.textMuted,
-            letterSpacing: 0.5,
-          }}
+          style={[typography.caption, { color: colors.textSubtle }]}
         >
           {label}
         </Text>
         <Text
           style={[
-            typography.body.sm,
-            { color: colors.text, fontWeight: "700", marginTop: 2, lineHeight: 20 },
+            typography.title.xs,
+            { color: colors.text, marginTop: 2 },
           ]}
         >
           {value}

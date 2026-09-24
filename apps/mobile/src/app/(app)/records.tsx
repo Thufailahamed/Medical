@@ -590,7 +590,7 @@ export default function RecordsV2() {
   return (
     <Screen padded={false} tabBarOffset={false} bottomInset={false} edges={["top"]}>
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#F4F8FB" }}
+        style={{ flex: 1, backgroundColor: colors.bg }}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -640,9 +640,10 @@ export default function RecordsV2() {
               gap: 6,
               padding: 4,
               borderRadius: 24,
+              borderCurve: "continuous",
               backgroundColor: colors.surface,
               borderWidth: 1,
-              borderColor: "#E3EBF2",
+              borderColor: colors.separator,
               shadowColor: "#0F2742",
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.06,
@@ -663,6 +664,7 @@ export default function RecordsV2() {
                   width: 36,
                   height: 36,
                   borderRadius: 18,
+                  borderCurve: "continuous",
                   backgroundColor: pressed ? colors.primarySoft : "transparent",
                   alignItems: "center",
                   justifyContent: "center",
@@ -679,6 +681,7 @@ export default function RecordsV2() {
                 width: 36,
                 height: 36,
                 borderRadius: 18,
+                borderCurve: "continuous",
                 backgroundColor: pressed ? "#0876A5" : colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
@@ -738,8 +741,9 @@ export default function RecordsV2() {
               style={{
                 backgroundColor: colors.surface,
                 borderRadius: 24,
+                borderCurve: "continuous",
                 borderWidth: 1,
-                borderColor: "#E3EBF2",
+                borderColor: colors.separator,
                 padding: 16,
                 gap: 14,
                 shadowColor: "#16324A",
@@ -974,6 +978,7 @@ export default function RecordsV2() {
                   alignItems: "center",
                   backgroundColor: colors.surfaceMuted,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   padding: 3,
                   gap: 2,
                 }}
@@ -994,6 +999,7 @@ export default function RecordsV2() {
                         flex: 1,
                         paddingVertical: 8,
                         borderRadius: 10,
+                        borderCurve: "continuous",
                         alignItems: "center",
                         backgroundColor: isActive
                           ? colors.surface
@@ -1336,6 +1342,7 @@ function PremiumHero({
         marginHorizontal: spacing.lg,
         marginTop: spacing.sm,
         borderRadius: 28,
+        borderCurve: "continuous",
         overflow: "hidden",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.18)",
@@ -1538,6 +1545,7 @@ function PremiumHero({
           style={{
             marginTop: 18,
             borderRadius: 20,
+            borderCurve: "continuous",
             overflow: "hidden",
             borderWidth: 1,
             borderColor: "rgba(255,255,255,0.2)",
@@ -1712,6 +1720,7 @@ function PremiumHero({
                 gap: 7,
                 paddingHorizontal: 14,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 backgroundColor: pressed
                   ? "rgba(255,255,255,0.9)"
                   : "#FFFFFF",
@@ -1748,6 +1757,7 @@ function PremiumHero({
                 gap: 7,
                 paddingHorizontal: 14,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 backgroundColor: pressed
                   ? "rgba(255,255,255,0.28)"
                   : "rgba(255,255,255,0.18)",
@@ -1778,6 +1788,7 @@ function PremiumHero({
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: 14,
+                borderCurve: "continuous",
                 backgroundColor: pressed
                   ? "rgba(255,255,255,0.28)"
                   : "rgba(255,255,255,0.18)",
@@ -1903,6 +1914,7 @@ function PremiumQuickAction({
       style={({ pressed }) => ({
         flex: 1,
         borderRadius: radius.xl,
+        borderCurve: "continuous",
         backgroundColor: pressed ? v.soft : colors.surface,
         borderWidth: 1,
         borderColor: pressed ? v.ring[1] : colors.border,
@@ -1925,6 +1937,7 @@ function PremiumQuickAction({
               width: 44,
               height: 44,
               borderRadius: 14,
+              borderCurve: "continuous",
               overflow: "hidden",
               alignItems: "center",
               justifyContent: "center",
@@ -1992,6 +2005,7 @@ function SmartFolderTile({
           paddingVertical: spacing.sm,
           paddingHorizontal: 4,
           borderRadius: 14,
+          borderCurve: "continuous",
           backgroundColor: isActive ? visual.soft : colors.surface,
           borderWidth: isActive ? 1.5 : 1,
           borderColor: isActive ? visual.text : colors.border,
@@ -2083,7 +2097,7 @@ function SlidingTabs({
   onChange: (t: Tab) => void;
 }) {
   const { t } = useTranslation();
-  const { colors, fontFamily } = useTheme();
+  const { colors, fontFamily, shadow, scheme } = useTheme();
   const tabs: { value: Tab; label: string }[] = [
     { value: "all", label: t("recordsHub.tabs.all") },
     { value: "timeline", label: t("recordsHub.tabs.timeline") },
@@ -2093,17 +2107,11 @@ function SlidingTabs({
     <View
       style={{
         flexDirection: "row",
-        backgroundColor: "#E8F0F5",
-        borderRadius: 16,
-        padding: 4,
-        borderWidth: 1,
-        borderColor: "#DFE9F0",
+        backgroundColor: colors.fill,
+        borderRadius: 14,
+        borderCurve: "continuous",
+        padding: 3,
         width: "100%",
-        shadowColor: "transparent",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0,
-        shadowRadius: 0,
-        elevation: 0,
       }}
     >
       {tabs.map((tt) => {
@@ -2117,25 +2125,25 @@ function SlidingTabs({
             accessibilityLabel={tt.label}
             style={({ pressed }) => ({
               flex: 1,
-              minHeight: 42,
-              paddingVertical: 10,
-              borderRadius: 12,
+              minHeight: 38,
+              paddingVertical: 8,
+              borderRadius: 11,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
-              overflow: "hidden",
-              opacity: pressed && !active ? 0.7 : 1,
+              backgroundColor: active
+                ? scheme === "dark"
+                  ? colors.surfaceElevated
+                  : colors.surface
+                : "transparent",
+              ...(active && scheme !== "dark"
+                ? { ...shadow.xs, shadowOpacity: 0.1, shadowRadius: 6 }
+                : null),
+              opacity: pressed && !active ? 0.6 : 1,
             })}
           >
-            {active ? (
-              <LinearGradient
-                colors={["#0284C7", "#0F766E"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-            ) : null}
             <TextMuted
-              color={active ? "#FFFFFF" : colors.textMuted}
+              color={active ? colors.text : colors.textMuted}
               size={13}
               weight="800"
               fontFamily={active ? fontFamily.bodyBold : fontFamily.bodySemibold}
@@ -2170,16 +2178,15 @@ function PremiumSearchBar({
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.xs,
-        paddingHorizontal: 14,
-        paddingVertical: 2,
-        borderRadius: 16,
-        backgroundColor: "#F7FAFC",
-        borderWidth: 1,
-        borderColor: "#DFE8EF",
-        minHeight: 48,
+        paddingHorizontal: 12,
+        paddingVertical: 0,
+        borderRadius: 12,
+        borderCurve: "continuous",
+        backgroundColor: colors.fill,
+        minHeight: 42,
       }}
     >
-      <Search size={16} color={colors.textMuted} strokeWidth={2.25} />
+      <Search size={17} color={colors.textSubtle} strokeWidth={2.4} />
       <RNTextInput
         value={value}
         onChangeText={onChangeText}
@@ -2188,13 +2195,13 @@ function PremiumSearchBar({
         autoCorrect={false}
         style={{
           flex: 1,
-          fontSize: 14,
+          fontSize: 16,
           color: colors.text,
           fontFamily: fontFamily.body,
-          paddingVertical: 10,
+          paddingVertical: 9,
           paddingHorizontal: 4,
         }}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.textSubtle}
       />
       {value.length > 0 ? (
         <Pressable
@@ -2205,17 +2212,15 @@ function PremiumSearchBar({
         >
           <View
             style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: colors.surface,
+              width: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: colors.textSubtle,
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
             }}
           >
-            <X size={12} color={colors.textMuted} strokeWidth={2.5} />
+            <X size={11} color={colors.surface} strokeWidth={3} />
           </View>
         </Pressable>
       ) : null}
@@ -2252,9 +2257,11 @@ function RecordCard({
     typography,
     fontFamily,
     shadow: themeShadow,
+    scheme,
   } = useTheme();
   void radius;
   void typography;
+  const isDark = scheme === "dark";
   const kind = (item.kind ?? item.recordType) as RecordKind;
   const Icon = kindIcon(kind);
   const v = visualFor(kind);
@@ -2346,22 +2353,23 @@ function RecordCard({
       accessibilityState={{ selected: isSelected }}
       style={({ pressed }) => ({
         backgroundColor: colors.surface,
-        borderRadius: 20,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
         paddingVertical: 16,
         paddingHorizontal: 16,
         flexDirection: "row",
         alignItems: "center",
-        gap: 13,
+        gap: 14,
         overflow: "hidden",
-        opacity: pressed ? 0.9 : 1,
-        transform: [{ scale: pressed ? 0.992 : 1 }],
-        shadowColor: "#16324A",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.07,
-        shadowRadius: 18,
-        elevation: 3,
-        borderWidth: isSelected ? 1.5 : 1,
-        borderColor: isSelected ? colors.primary : "#E3EBF2",
+        opacity: pressed ? 0.92 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
+        ...(isDark ? null : themeShadow.sm),
+        borderWidth: isSelected ? 1.5 : StyleSheet.hairlineWidth,
+        borderColor: isSelected
+          ? colors.primary
+          : isDark
+          ? colors.borderStrong
+          : colors.separator,
       })}
     >
       <View
@@ -2374,7 +2382,7 @@ function RecordCard({
           borderTopRightRadius: 3,
           borderBottomRightRadius: 3,
           backgroundColor: customVisual.fg,
-          opacity: 0.75,
+          opacity: 0.55,
         }}
       />
       {/* Selection check circle (share-pack mode) */}
@@ -2384,6 +2392,7 @@ function RecordCard({
             width: 24,
             height: 24,
             borderRadius: 12,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: isSelected ? colors.primary : colors.surface,
@@ -2400,15 +2409,16 @@ function RecordCard({
       {/* Gradient kind icon tile */}
       <View
         style={{
-          width: 50,
-          height: 50,
-          borderRadius: 16,
+          width: 48,
+          height: 48,
+          borderRadius: 14,
+          borderCurve: "continuous",
           overflow: "hidden",
           alignItems: "center",
           justifyContent: "center",
           shadowColor: v.glow,
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.5,
+          shadowOpacity: isDark ? 0 : 0.35,
           shadowRadius: 10,
           elevation: 3,
         }}
@@ -2435,11 +2445,10 @@ function RecordCard({
           <AppText
             style={{
               flex: 1,
-              fontSize: 15.5,
-              fontWeight: "800",
+              fontSize: 16,
               color: colors.text,
               fontFamily: fontFamily.bodyBold,
-              letterSpacing: -0.2,
+              letterSpacing: -0.3,
             }}
             numberOfLines={1}
           >
@@ -2450,16 +2459,15 @@ function RecordCard({
               paddingHorizontal: 8,
               paddingVertical: 3,
               borderRadius: 999,
-              backgroundColor: customVisual.bg,
+              backgroundColor: isDark ? `${customVisual.fg}29` : customVisual.bg,
             }}
           >
             <AppText
               style={{
-                fontSize: 10,
-                fontWeight: "800",
+                fontSize: 9.5,
                 color: customVisual.fg,
                 fontFamily: fontFamily.bodyBold,
-                letterSpacing: 0.6,
+                letterSpacing: 0.5,
               }}
             >
               {customVisual.tag}
@@ -2513,7 +2521,7 @@ function RecordCard({
                 paddingHorizontal: 7,
                 paddingVertical: 2,
                 borderRadius: 999,
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: colors.fill,
               }}
             >
               <FileText size={10} color={colors.textMuted} strokeWidth={2.5} />
@@ -2578,10 +2586,11 @@ function PremiumRecordsEmpty({
     <View
       style={{
         borderRadius: 28,
+        borderCurve: "continuous",
         padding: 32,
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         alignItems: "center",
         overflow: "hidden",
         position: "relative",
@@ -2619,6 +2628,7 @@ function PremiumRecordsEmpty({
           width: 72,
           height: 72,
           borderRadius: 22,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
@@ -2672,6 +2682,7 @@ function PremiumRecordsEmpty({
           accessibilityLabel={primaryLabel}
           style={({ pressed }) => ({
             borderRadius: 14,
+            borderCurve: "continuous",
             overflow: "hidden",
             shadowColor: "#0EA5E9",
             shadowOffset: { width: 0, height: 6 },
@@ -2717,6 +2728,7 @@ function PremiumRecordsEmpty({
             accessibilityLabel={t("recordsHub.quickActions.import")}
             style={({ pressed }) => ({
               borderRadius: 14,
+              borderCurve: "continuous",
               paddingHorizontal: 18,
               paddingVertical: 12,
               alignItems: "center",
@@ -2786,9 +2798,10 @@ function TimelineEmptyState() {
       style={{
         padding: 28,
         borderRadius: 24,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         alignItems: "center",
         gap: spacing.sm,
       }}
@@ -2798,6 +2811,7 @@ function TimelineEmptyState() {
           width: 60,
           height: 60,
           borderRadius: 18,
+          borderCurve: "continuous",
           backgroundColor: colors.primarySoft,
           alignItems: "center",
           justifyContent: "center",
@@ -2844,6 +2858,7 @@ function SharingHeaderCard({
     <View
       style={{
         borderRadius: 22,
+        borderCurve: "continuous",
         padding: spacing.lg,
         backgroundColor: "#F0F9FF",
         borderWidth: 1,
@@ -2901,6 +2916,7 @@ function SharingHeaderCard({
           accessibilityLabel={t("recordsHub.sharing.issueNew")}
           style={({ pressed }) => ({
             borderRadius: 14,
+            borderCurve: "continuous",
             overflow: "hidden",
             shadowColor: "#0284C7",
             shadowOffset: { width: 0, height: 6 },
@@ -2981,9 +2997,10 @@ function ConsentsList({
         style={{
           padding: 24,
           borderRadius: 22,
+          borderCurve: "continuous",
           backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.separator,
           alignItems: "center",
           gap: 6,
         }}
@@ -3042,9 +3059,10 @@ function ConsentRow({
       style={{
         padding: spacing.md,
         borderRadius: 20,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.sm,
@@ -3055,6 +3073,7 @@ function ConsentRow({
           width: 38,
           height: 38,
           borderRadius: 12,
+          borderCurve: "continuous",
           backgroundColor: isActive ? "#DCFCE7" : colors.surfaceMuted,
           alignItems: "center",
           justifyContent: "center",
@@ -3114,13 +3133,14 @@ function ConsentRow({
             width: 36,
             height: 36,
             borderRadius: 12,
+            borderCurve: "continuous",
             backgroundColor: pressed ? "#FEE2E2" : colors.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Trash2 size={16} color="#DC2626" strokeWidth={2.25} />
+          <Trash2 size={16} color={colors.danger} strokeWidth={2.25} />
         </Pressable>
       ) : null}
     </View>

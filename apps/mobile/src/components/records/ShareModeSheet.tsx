@@ -421,6 +421,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     borderRadius: 12,
+    borderCurve: "continuous",
     borderWidth: 1,
     borderColor: "#e2e8f0",
     backgroundColor: "#fff",

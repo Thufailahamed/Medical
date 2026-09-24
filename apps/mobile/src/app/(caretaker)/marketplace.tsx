@@ -196,7 +196,7 @@ export default function CaretakerMarketplaceScreen() {
         contentContainerStyle={{
           padding: spacing.lg,
           gap: spacing.md,
-          paddingBottom: spacing.xxxxl,
+          paddingBottom: 132,
         }}
         refreshControl={
           <RefreshControl
@@ -224,6 +224,7 @@ export default function CaretakerMarketplaceScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: colors.warningSoft,
@@ -263,11 +264,12 @@ export default function CaretakerMarketplaceScreen() {
                     width: 40,
                     height: 40,
                     borderRadius: 12,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor: isAvailable
                       ? colors.successSoft
-                      : colors.surfaceMuted,
+                      : colors.fill,
                   }}
                 >
                   <HeartHandshake
@@ -276,16 +278,11 @@ export default function CaretakerMarketplaceScreen() {
                   />
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text
-                    style={[
-                      typography.body.md,
-                      { color: colors.text, fontWeight: "700" },
-                    ]}
-                  >
+                  <Text style={[typography.title.sm, { color: colors.text }]}>
                     {t("marketplace.listing.available")}
                   </Text>
                   <Text
-                    style={[typography.caption, { color: colors.textMuted }]}
+                    style={[typography.body.sm, { color: colors.textMuted }]}
                   >
                     {p
                       ? t("marketplace.listing.listedHint")
@@ -296,9 +293,10 @@ export default function CaretakerMarketplaceScreen() {
                   value={isAvailable}
                   onValueChange={setIsAvailable}
                   trackColor={{
-                    false: colors.border,
+                    false: colors.fillStrong,
                     true: colors.success,
                   }}
+                  ios_backgroundColor={colors.fillStrong}
                 />
               </View>
             </Card>
@@ -329,7 +327,7 @@ export default function CaretakerMarketplaceScreen() {
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: spacing.xs,
+                  gap: spacing.sm,
                 }}
               >
                 {LANGUAGE_OPTIONS.map((l) => (
@@ -354,7 +352,7 @@ export default function CaretakerMarketplaceScreen() {
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: spacing.xs,
+                  gap: spacing.sm,
                 }}
               >
                 {ROLE_OPTIONS.map((r) => (
@@ -379,7 +377,7 @@ export default function CaretakerMarketplaceScreen() {
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: spacing.xs,
+                  gap: spacing.sm,
                 }}
               >
                 {DISTRICT_OPTIONS.map((d) => (
@@ -441,28 +439,17 @@ export default function CaretakerMarketplaceScreen() {
         )}
 
         {/* ─── Incoming inquiries ─── */}
-        <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+        <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: spacing.xs,
+              gap: spacing.sm,
               paddingHorizontal: spacing.xs,
             }}
           >
-            <Inbox size={14} color={colors.textMuted} />
-            <Text
-              style={[
-                typography.label.md,
-                {
-                  color: colors.textMuted,
-                  fontWeight: "700",
-                  letterSpacing: 0.8,
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                },
-              ]}
-            >
+            <Inbox size={18} color={colors.textMuted} />
+            <Text style={[typography.title.lg, { color: colors.text }]}>
               {t("marketplace.listing.inquiriesTitle")}
             </Text>
             {incoming.filter((i) => i.status === "pending").length > 0 ? (
@@ -486,12 +473,12 @@ export default function CaretakerMarketplaceScreen() {
               {incoming.map((i, idx) => (
                 <View key={i.id}>
                   {idx > 0 ? (
-                    <Divider style={{ marginHorizontal: spacing.md }} />
+                    <Divider style={{ marginLeft: spacing.lg + 40 + spacing.sm }} />
                   ) : null}
                   <View
                     style={{
-                      padding: spacing.md,
-                      gap: spacing.sm,
+                      padding: spacing.lg,
+                      gap: spacing.md,
                     }}
                   >
                     <View
@@ -510,10 +497,7 @@ export default function CaretakerMarketplaceScreen() {
                       />
                       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                         <Text
-                          style={[
-                            typography.title.sm,
-                            { color: colors.text, fontWeight: "700" },
-                          ]}
+                          style={[typography.title.md, { color: colors.text }]}
                           numberOfLines={1}
                         >
                           {i.patientName ?? "—"}
@@ -524,27 +508,27 @@ export default function CaretakerMarketplaceScreen() {
                           )}
                           tone={inquiryTone(i.status)}
                           size="sm"
+                          style={{ alignSelf: "flex-start" }}
                         />
                       </View>
                     </View>
 
                     <View
                       style={{
-                        backgroundColor: colors.surfaceMuted,
-                        borderRadius: radius.md,
-                        padding: spacing.sm,
+                        backgroundColor: colors.fill,
+                        borderRadius: 14,
+                        borderCurve: "continuous",
+                        paddingVertical: spacing.md,
+                        paddingHorizontal: spacing.md,
                       }}
                     >
                       <Text
                         style={[
-                          typography.caption,
+                          typography.overline,
                           {
-                            color: colors.textMuted,
-                            fontWeight: "700",
+                            color: colors.textSubtle,
                             textTransform: "uppercase",
-                            letterSpacing: 0.6,
-                            fontSize: 10,
-                            marginBottom: 3,
+                            marginBottom: 4,
                           },
                         ]}
                       >
@@ -580,7 +564,7 @@ export default function CaretakerMarketplaceScreen() {
                           <Button
                             label={t("marketplace.listing.decline")}
                             onPress={() => confirmDecline(i.id)}
-                            variant="outline"
+                            variant="danger"
                             icon={X}
                             compact
                             fullWidth
@@ -617,24 +601,24 @@ function FormSectionHeader({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: spacing.xs,
+        gap: spacing.sm,
+        marginBottom: 2,
       }}
     >
       <View
         style={{
-          width: 26,
-          height: 26,
-          borderRadius: 8,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: colors.primarySoft,
         }}
       >
-        <Icon size={13} color={colors.primary} />
+        <Icon size={15} color={colors.primary} strokeWidth={2.2} />
       </View>
-      <Text
-        style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}
-      >
+      <Text style={[typography.title.sm, { color: colors.text }]}>
         {label}
       </Text>
     </View>

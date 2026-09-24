@@ -151,6 +151,7 @@ export default function AiOcrScreen() {
                 <View
                   style={{
                     borderRadius: 16,
+                    borderCurve: "continuous",
                     overflow: "hidden",
                     backgroundColor: colors.surfaceMuted,
                   }}
@@ -284,6 +285,7 @@ export default function AiOcrScreen() {
                         padding: spacing.sm,
                         backgroundColor: colors.surfaceMuted,
                         borderRadius: 12,
+                        borderCurve: "continuous",
                       }}
                     >
                       <Pill

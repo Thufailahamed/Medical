@@ -48,7 +48,7 @@ export default function MarketplaceCaretakerDetail() {
   const params = useLocalSearchParams<{ caretakerId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, shadow } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
   const toast = useToast();
 
   const detail = useMarketplaceCaretaker(params.caretakerId);
@@ -109,8 +109,8 @@ export default function MarketplaceCaretakerDetail() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           padding: spacing.lg,
-          paddingTop: spacing.xs,
-          gap: spacing.md,
+          paddingTop: spacing.sm,
+          gap: spacing.lg,
           paddingBottom: spacing.xxxxl,
         }}
       >
@@ -155,17 +155,18 @@ export default function MarketplaceCaretakerDetail() {
               padded={false}
               elevated={false}
               style={{
-                borderRadius: radius.xxxl,
+                borderRadius: radius.xxl,
+                borderCurve: "continuous",
                 borderWidth: 0,
                 overflow: "hidden",
-                ...shadow.hero,
+                ...(scheme === "dark" ? null : shadow.hero),
               }}
             >
               <LinearGradient
                 colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ padding: spacing.xl }}
+                style={{ padding: spacing.xl, paddingVertical: spacing.xxl }}
               >
                 <View
                   style={[
@@ -214,15 +215,15 @@ export default function MarketplaceCaretakerDetail() {
                     style={{
                       borderRadius: 999,
                       padding: 3,
-                      backgroundColor: "rgba(255, 255, 255, 0.22)",
-                      borderWidth: 1,
-                      borderColor: "rgba(255, 255, 255, 0.45)",
+                      backgroundColor: "rgba(255, 255, 255, 0.18)",
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: "rgba(255, 255, 255, 0.28)",
                     }}
                   >
                     <View
                       style={{
                         borderRadius: 999,
-                        backgroundColor: "#FFFFFF",
+                        backgroundColor: colors.surface,
                         padding: 3,
                       }}
                     >
@@ -243,8 +244,8 @@ export default function MarketplaceCaretakerDetail() {
                     >
                       <Text
                         style={[
-                          typography.title.lg,
-                          { color: "#FFFFFF", fontWeight: "800" },
+                          typography.display.sm,
+                          { color: "#FFFFFF", flexShrink: 1 },
                         ]}
                         numberOfLines={2}
                       >
@@ -277,18 +278,19 @@ export default function MarketplaceCaretakerDetail() {
                       <View
                         style={{
                           alignSelf: "flex-start",
-                          paddingHorizontal: spacing.sm + 2,
-                          paddingVertical: 4,
+                          marginTop: 2,
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: 5,
                           borderRadius: 999,
-                          backgroundColor: "rgba(143, 240, 196, 0.18)",
-                          borderWidth: 1,
-                          borderColor: "rgba(143, 240, 196, 0.45)",
+                          backgroundColor: "rgba(255, 255, 255, 0.18)",
+                          borderWidth: StyleSheet.hairlineWidth,
+                          borderColor: "rgba(255, 255, 255, 0.28)",
                         }}
                       >
                         <Text
                           style={[
-                            typography.caption,
-                            { color: "#8FF0C4", fontWeight: "700", fontSize: 11 },
+                            typography.label.sm,
+                            { color: "#FFFFFF" },
                           ]}
                         >
                           {t("marketplace.verified")}
@@ -309,9 +311,11 @@ export default function MarketplaceCaretakerDetail() {
             >
               <StatTile
                 label={t("marketplace.listing.rate")}
+                prefix={c.hourlyRateLkr ? "LKR" : null}
+                emphasis={!!c.hourlyRateLkr}
                 value={
                   c.hourlyRateLkr
-                    ? `LKR ${c.hourlyRateLkr}`
+                    ? `${c.hourlyRateLkr}`
                     : t("marketplace.rateOnRequest")
                 }
                 hint={c.hourlyRateLkr ? t("marketplace.perHour") : null}
@@ -334,15 +338,15 @@ export default function MarketplaceCaretakerDetail() {
 
             {/* ─── About ─── */}
             {c.bio ? (
-              <Card style={{ gap: spacing.sm }}>
+              <Card style={{ gap: spacing.md }}>
                 <SectionLabel
                   icon={Briefcase}
                   label={t("marketplace.listing.bio")}
                 />
                 <Text
                   style={[
-                    typography.body.sm,
-                    { color: colors.text, lineHeight: 20 },
+                    typography.body.md,
+                    { color: colors.textMuted },
                   ]}
                 >
                   {c.bio}
@@ -351,7 +355,7 @@ export default function MarketplaceCaretakerDetail() {
             ) : null}
 
             {/* ─── Care roles ─── */}
-            <Card style={{ gap: spacing.sm }}>
+            <Card style={{ gap: spacing.md }}>
               <SectionLabel
                 icon={ShieldCheck}
                 label={t("marketplace.listing.roles")}
@@ -360,7 +364,7 @@ export default function MarketplaceCaretakerDetail() {
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: spacing.xs,
+                  gap: spacing.sm,
                 }}
               >
                 {c.careRolesOffered.map((r) => (
@@ -375,7 +379,7 @@ export default function MarketplaceCaretakerDetail() {
 
             {/* ─── Languages ─── */}
             {c.languages.length ? (
-              <Card style={{ gap: spacing.sm }}>
+              <Card style={{ gap: spacing.md }}>
                 <SectionLabel
                   icon={Languages}
                   label={t("marketplace.listing.languages")}
@@ -384,7 +388,7 @@ export default function MarketplaceCaretakerDetail() {
                   style={{
                     flexDirection: "row",
                     flexWrap: "wrap",
-                    gap: spacing.xs,
+                    gap: spacing.sm,
                   }}
                 >
                   {c.languages.map((l) => (
@@ -401,36 +405,52 @@ export default function MarketplaceCaretakerDetail() {
             {/* ─── CTA / status ─── */}
             {acceptedInquiry ? (
               <Card
+                elevated={false}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: spacing.sm,
+                  gap: spacing.md,
+                  backgroundColor: colors.successSoft,
+                  borderWidth: 0,
                 }}
               >
-                <BadgeCheck size={18} color={colors.success} />
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 11,
+                    borderCurve: "continuous",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.success,
+                  }}
+                >
+                  <BadgeCheck size={18} color="#FFFFFF" />
+                </View>
                 <Text
                   style={[
-                    typography.body.sm,
-                    { color: colors.success, flex: 1, fontWeight: "600" },
+                    typography.title.sm,
+                    { color: colors.success, flex: 1 },
                   ]}
                 >
                   {t("marketplace.inquiry.alreadyLinked")}
                 </Text>
               </Card>
             ) : pendingInquiry ? (
-              <Card style={{ gap: spacing.sm }}>
+              <Card style={{ gap: spacing.lg }}>
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: spacing.sm,
+                    gap: spacing.md,
                   }}
                 >
                   <View
                     style={{
                       width: 36,
                       height: 36,
-                      borderRadius: 12,
+                      borderRadius: 11,
+                      borderCurve: "continuous",
                       alignItems: "center",
                       justifyContent: "center",
                       backgroundColor: colors.infoSoft,
@@ -440,8 +460,8 @@ export default function MarketplaceCaretakerDetail() {
                   </View>
                   <Text
                     style={[
-                      typography.body.sm,
-                      { color: colors.text, flex: 1, fontWeight: "600" },
+                      typography.title.sm,
+                      { color: colors.text, flex: 1 },
                     ]}
                   >
                     {t("marketplace.inquiry.alreadyPending")}
@@ -461,6 +481,7 @@ export default function MarketplaceCaretakerDetail() {
                 label={t("marketplace.ctaSendInquiry")}
                 onPress={() => setSheetOpen(true)}
                 icon={Send}
+                size="lg"
                 fullWidth
               />
             )}
@@ -471,11 +492,11 @@ export default function MarketplaceCaretakerDetail() {
       {/* ─── Inquiry sheet ─── */}
       <BottomSheet visible={sheetOpen} onDismiss={() => setSheetOpen(false)}>
         <ScrollView
-          contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+          contentContainerStyle={{ padding: spacing.xl, paddingTop: spacing.md, gap: spacing.md }}
           keyboardShouldPersistTaps="handled"
         >
           <Text
-            style={[typography.title.lg, { color: colors.text }]}
+            style={[typography.display.sm, { color: colors.text }]}
           >
             {t("marketplace.inquiry.title")}
           </Text>
@@ -516,10 +537,14 @@ function StatTile({
   label,
   value,
   hint,
+  prefix,
+  emphasis,
 }: {
   label: string;
   value: string;
   hint?: string | null;
+  prefix?: string | null;
+  emphasis?: boolean;
 }) {
   const { spacing, colors, typography } = useTheme();
   return (
@@ -527,18 +552,16 @@ function StatTile({
       style={{
         flex: 1,
         padding: spacing.md,
-        gap: 3,
+        paddingVertical: spacing.lg,
+        gap: 4,
         alignItems: "flex-start",
       }}
     >
       <Text
         style={[
-          typography.caption,
+          typography.overline,
           {
-            color: colors.textMuted,
-            fontWeight: "700",
-            fontSize: 10.5,
-            letterSpacing: 0.6,
+            color: colors.textSubtle,
             textTransform: "uppercase",
           },
         ]}
@@ -546,17 +569,24 @@ function StatTile({
       >
         {label}
       </Text>
+      {prefix ? (
+        <Text style={[typography.label.sm, { color: colors.textMuted }]}>
+          {prefix}
+        </Text>
+      ) : null}
       <Text
         style={[
-          typography.title.sm,
-          { color: colors.text, fontWeight: "800" },
+          emphasis ? typography.title.lg : typography.title.sm,
+          { color: colors.text },
         ]}
         numberOfLines={2}
+        adjustsFontSizeToFit={emphasis}
+        minimumFontScale={0.75}
       >
         {value}
       </Text>
       {hint ? (
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
+        <Text style={[typography.caption, { color: colors.textSubtle }]}>
           {hint}
         </Text>
       ) : null}
@@ -577,25 +607,26 @@ function SectionLabel({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: spacing.xs,
+        gap: spacing.sm,
       }}
     >
       <View
         style={{
-          width: 26,
-          height: 26,
-          borderRadius: 8,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: colors.primarySoft,
         }}
       >
-        <Icon size={13} color={colors.primary} />
+        <Icon size={15} color={colors.primary} />
       </View>
       <Text
         style={[
-          typography.label.md,
-          { color: colors.text, fontWeight: "700" },
+          typography.title.md,
+          { color: colors.text },
         ]}
       >
         {label}

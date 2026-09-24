@@ -78,6 +78,7 @@ export function AdminStepUpSheet() {
           gap: spacing.md,
           backgroundColor: colors.primarySoft,
           borderRadius: 16,
+          borderCurve: "continuous",
           padding: spacing.md,
           marginBottom: spacing.md,
         }}
@@ -87,6 +88,7 @@ export function AdminStepUpSheet() {
             width: 40,
             height: 40,
             borderRadius: 20,
+            borderCurve: "continuous",
             backgroundColor: colors.surface,
             alignItems: "center",
             justifyContent: "center",

@@ -157,14 +157,14 @@ export default function AdminDashboard() {
               accessibilityLabel="System health"
               hitSlop={8}
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 23,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(255,255,255,0.14)",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.18)",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
               <HeartPulse size={20} color="#FFFFFF" strokeWidth={2.25} />
@@ -193,8 +193,8 @@ export default function AdminDashboard() {
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          gap: spacing.xl,
-          marginTop: spacing.xl,
+          gap: spacing.xxl + 4,
+          marginTop: spacing.xxl,
         }}
       >
         {isError ? (
@@ -211,7 +211,7 @@ export default function AdminDashboard() {
               <AdminCard style={{ padding: 0 }}>
                 {attention.map((item, i) => (
                   <React.Fragment key={item.label}>
-                    {i > 0 ? <RowDivider inset={spacing.lg + 40 + spacing.md} /> : null}
+                    {i > 0 ? <RowDivider inset={spacing.lg + 34 + spacing.md} /> : null}
                     <AttentionRow
                       icon={item.icon}
                       tone={item.tone}
@@ -359,14 +359,14 @@ function AttentionRow({
         gap: spacing.md,
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
-        opacity: hot ? 1 : 0.55,
+        minHeight: 60,
       }}
     >
-      <IconTile icon={icon} tone={hot ? tone : "neutral"} size={40} />
+      <IconTile icon={icon} tone={hot ? tone : "neutral"} size={34} />
       <Text
         style={[
-          typography.body.sm,
-          { color: colors.text, flex: 1, fontWeight: "600" },
+          typography.title.sm,
+          { color: hot ? colors.text : colors.textMuted, flex: 1 },
         ]}
       >
         {label}

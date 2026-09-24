@@ -68,13 +68,12 @@ function ConversationCardSkeleton() {
     <Card
       padded={false}
       style={{
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: spacing.md,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        padding: spacing.lg,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
         <Skeleton width={48} height={48} radius={24} />
         <View style={{ flex: 1, gap: 8 }}>
           <View
@@ -112,7 +111,7 @@ function QuickActionCard({
   badge?: string;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography, radius } = useTheme();
+  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
 
   return (
     <Pressable
@@ -122,20 +121,26 @@ function QuickActionCard({
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        padding: 14,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
+        gap: spacing.md,
+        minHeight: 68,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
         backgroundColor: colors.surface,
-        opacity: pressed ? 0.9 : 1,
+        ...(scheme === "dark" ? null : shadow.sm),
+        opacity: pressed ? 0.85 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
       })}
     >
       <View
         style={{
-          width: 42,
-          height: 42,
+          width: 40,
+          height: 40,
           borderRadius: 12,
+          borderCurve: "continuous",
           backgroundColor: iconBg,
           alignItems: "center",
           justifyContent: "center",
@@ -148,8 +153,8 @@ function QuickActionCard({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text
             style={[
-              typography.title.xs,
-              { color: colors.text, fontWeight: "700", fontSize: 14.5 },
+              typography.title.sm,
+              { color: colors.text },
             ]}
           >
             {title}
@@ -157,12 +162,7 @@ function QuickActionCard({
           {badge ? <Pill label={badge} tone="accent" size="sm" /> : null}
         </View>
         <Text
-          style={{
-            fontSize: 12,
-            color: colors.textMuted,
-            marginTop: 2,
-            lineHeight: 16,
-          }}
+          style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}
           numberOfLines={1}
         >
           {subtitle}
@@ -199,47 +199,48 @@ function EmptyInbox({ onRefresh, isRefetching }: { onRefresh: () => void; isRefe
       {/* ── Main Empty State Card ── */}
       <Card
         style={{
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 20,
-          padding: spacing.xl,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
+          paddingHorizontal: spacing.xl,
+          paddingVertical: spacing.xxl + 4,
           alignItems: "center",
         }}
       >
         {/* Soft Layered Icon */}
         <View
           style={{
-            width: 72,
-            height: 72,
-            borderRadius: 36,
+            width: 76,
+            height: 76,
+            borderRadius: 24,
+            borderCurve: "continuous",
             backgroundColor: colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: spacing.md,
+            marginBottom: spacing.lg,
           }}
         >
-          <MessageCircle size={34} color={colors.primary} strokeWidth={2} />
+          <MessageCircle size={36} color={colors.primary} strokeWidth={2} />
         </View>
 
         <Text
           style={[
-            typography.title.md,
-            { color: colors.text, fontWeight: "700", textAlign: "center", marginBottom: 6 },
+            typography.title.lg,
+            { color: colors.text, textAlign: "center", marginBottom: 6 },
           ]}
         >
           {t("inbox.emptyTitle", { defaultValue: "No conversations yet" })}
         </Text>
 
         <Text
-          style={{
-            fontSize: 13,
-            color: colors.textMuted,
-            textAlign: "center",
-            lineHeight: 19,
-            maxWidth: 290,
-            marginBottom: 16,
-          }}
+          style={[
+            typography.body.md,
+            {
+              color: colors.textMuted,
+              textAlign: "center",
+              maxWidth: 300,
+              marginBottom: spacing.lg,
+            },
+          ]}
         >
           {t("patientInbox.emptyBody", {
             defaultValue:
@@ -253,47 +254,35 @@ function EmptyInbox({ onRefresh, isRefetching }: { onRefresh: () => void; isRefe
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            backgroundColor: withOpacity(colors.success || "#059669", 0.08),
+            backgroundColor: colors.successSoft,
             paddingHorizontal: 12,
             paddingVertical: 6,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: withOpacity(colors.success || "#059669", 0.2),
+            borderRadius: radius.full,
           }}
         >
-          <Lock size={12} color={colors.success || "#059669"} strokeWidth={2.4} />
-          <Text
-            style={{
-              fontSize: 11.5,
-              fontWeight: "600",
-              color: colors.success || "#059669",
-            }}
-          >
+          <Lock size={12} color={colors.success} strokeWidth={2.4} />
+          <Text style={[typography.label.sm, { color: colors.success }]}>
             End-to-End Encrypted & Private
           </Text>
         </View>
       </Card>
 
       {/* ── Helpful Action Pathways ── */}
-      <View style={{ gap: spacing.xs + 2 }}>
+      <View style={{ gap: spacing.md }}>
         <Text
-          style={{
-            fontSize: 11.5,
-            fontWeight: "700",
-            color: colors.textMuted,
-            letterSpacing: 0.8,
-            textTransform: "uppercase",
-            marginLeft: 2,
-          }}
+          style={[
+            typography.title.lg,
+            { color: colors.text, marginLeft: 2 },
+          ]}
         >
           Looking to connect?
         </Text>
 
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: spacing.md }}>
           <QuickActionCard
             icon={CalendarCheck}
-            iconTint="#0284C7"
-            iconBg="#E0F2FE"
+            iconTint={colors.primary}
+            iconBg={colors.primarySoft}
             title="Book an Appointment"
             subtitle="Schedule an in-person or video consultation"
             onPress={() => router.push("/(app)/book-appointment" as any)}
@@ -301,8 +290,8 @@ function EmptyInbox({ onRefresh, isRefetching }: { onRefresh: () => void; isRefe
 
           <QuickActionCard
             icon={Sparkles}
-            iconTint="#059669"
-            iconBg="#D1FAE5"
+            iconTint={colors.accent}
+            iconBg={colors.accentSoft}
             title="Ask AI Health Assistant"
             subtitle="Instant 24/7 symptom checks & health guidance"
             badge="Instant"
@@ -311,8 +300,8 @@ function EmptyInbox({ onRefresh, isRefetching }: { onRefresh: () => void; isRefe
 
           <QuickActionCard
             icon={Users}
-            iconTint="#D97706"
-            iconBg="#FEF3C7"
+            iconTint={colors.warning}
+            iconBg={colors.warningSoft}
             title="View Your Care Team"
             subtitle="See your connected doctors, specialists & clinic"
             onPress={() => router.push("/(app)/care-team" as any)}
@@ -326,7 +315,7 @@ function EmptyInbox({ onRefresh, isRefetching }: { onRefresh: () => void; isRefe
 export default function PatientInboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography, radius } = useTheme();
+  const { colors, spacing, typography, radius, scheme } = useTheme();
   const { data, isLoading, isError, refetch, isRefetching } = usePatientConversations();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -355,20 +344,20 @@ export default function PatientInboxScreen() {
           onPress={() => router.push(`/(app)/inbox/${item.id}` as any)}
           padded={false}
           style={{
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: unread > 0 ? colors.primary : colors.border,
-            backgroundColor: unread > 0
-              ? withOpacity(colors.primary, 0.04)
-              : colors.surface,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            borderWidth: unread > 0 ? 1 : StyleSheet.hairlineWidth,
+            borderColor: unread > 0 ? withOpacity(colors.primary, 0.35) : scheme === "dark" ? colors.borderStrong : colors.separator,
+            backgroundColor: colors.surface,
           }}
         >
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              padding: spacing.md,
-              gap: 12,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md + 2,
+              gap: spacing.md,
             }}
           >
             {/* Doctor Avatar with Optional Online/Unread Dot */}
@@ -384,11 +373,11 @@ export default function PatientInboxScreen() {
                     position: "absolute",
                     top: -1,
                     right: -1,
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
+                    width: 14,
+                    height: 14,
+                    borderRadius: 7,
                     backgroundColor: colors.primary,
-                    borderWidth: 2,
+                    borderWidth: 2.5,
                     borderColor: colors.surface,
                   }}
                 />
@@ -402,30 +391,29 @@ export default function PatientInboxScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginBottom: 2,
+                  marginBottom: 3,
                 }}
               >
                 <Text
                   numberOfLines={1}
                   style={[
-                    typography.title.xs,
+                    unread > 0 ? typography.title.md : typography.title.sm,
                     {
                       color: colors.text,
                       flex: 1,
-                      fontWeight: unread > 0 ? "800" : "700",
-                      fontSize: 15,
                     },
                   ]}
                 >
                   {item.doctor?.name || "Your Doctor"}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 11.5,
-                    color: unread > 0 ? colors.primary : colors.textSubtle,
-                    fontWeight: unread > 0 ? "700" : "500",
-                    marginLeft: 8,
-                  }}
+                  style={[
+                    unread > 0 ? typography.label.sm : typography.caption,
+                    {
+                      color: unread > 0 ? colors.primary : colors.textSubtle,
+                      marginLeft: 8,
+                    },
+                  ]}
                 >
                   {timeAgo(item.lastMessageAt)}
                 </Text>
@@ -440,13 +428,13 @@ export default function PatientInboxScreen() {
               >
                 <Text
                   numberOfLines={1}
-                  style={{
-                    fontSize: 12.5,
-                    color: unread > 0 ? colors.text : colors.textMuted,
-                    fontWeight: unread > 0 ? "600" : "400",
-                    flex: 1,
-                    lineHeight: 17,
-                  }}
+                  style={[
+                    unread > 0 ? typography.label.md : typography.body.sm,
+                    {
+                      color: unread > 0 ? colors.text : colors.textMuted,
+                      flex: 1,
+                    },
+                  ]}
                 >
                   {item.lastMessageSender === "patient" ? "You: " : ""}
                   {item.lastMessagePreview || t("inbox.noMessagesYet", { defaultValue: "No messages yet" })}
@@ -469,6 +457,7 @@ export default function PatientInboxScreen() {
                   minWidth: 22,
                   height: 22,
                   borderRadius: 11,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
@@ -476,11 +465,13 @@ export default function PatientInboxScreen() {
                 }}
               >
                 <Text
-                  style={{
-                    color: colors.onPrimary,
-                    fontSize: 11,
-                    fontWeight: "800",
-                  }}
+                  style={[
+                    typography.label.xs,
+                    {
+                      color: colors.onPrimary,
+                      letterSpacing: 0,
+                    },
+                  ]}
                 >
                   {unread > 99 ? "99+" : unread}
                 </Text>
@@ -492,7 +483,7 @@ export default function PatientInboxScreen() {
         </Card>
       );
     },
-    [colors, router, spacing, t, typography]
+    [colors, router, spacing, t, typography, radius, scheme]
   );
 
   return (
@@ -531,7 +522,7 @@ export default function PatientInboxScreen() {
       />
 
       {isLoading ? (
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm, paddingTop: spacing.xs }}>
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md, paddingTop: spacing.xs }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <ConversationCardSkeleton key={i} />
           ))}
@@ -552,7 +543,7 @@ export default function PatientInboxScreen() {
             style={{
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.xs,
-              paddingBottom: spacing.sm,
+              paddingBottom: spacing.md,
             }}
           >
             <TextInput
@@ -571,7 +562,7 @@ export default function PatientInboxScreen() {
             keyExtractor={(c) => c.id}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+            ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
             contentContainerStyle={{
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.xs,

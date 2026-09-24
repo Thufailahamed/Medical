@@ -7,7 +7,10 @@ import { withOpacity } from "@/constants/theme";
 type Props = {
   name?: string;
   source?: { uri: string } | number;
-  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  /** Convenience alias for `source={{ uri }}`. */
+  uri?: string | null;
+  /** Named size, or an explicit pixel size. */
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | number;
   tone?: Tone;
   ring?: boolean;
 };
@@ -29,7 +32,8 @@ function hashColor(name: string, colors: ReturnType<typeof useTheme>["colors"]) 
   return list[Math.abs(h) % list.length];
 }
 
-export function Avatar({ name, source, size = "md", tone = "primary", ring }: Props) {
+export function Avatar({ name, source: sourceProp, uri, size = "md", tone = "primary", ring }: Props) {
+  const source = sourceProp ?? (uri ? { uri } : undefined);
   const { colors, typography } = useTheme();
   const palette = useTone(tone);
 
@@ -41,7 +45,7 @@ export function Avatar({ name, source, size = "md", tone = "primary", ring }: Pr
     xl: 80,
     "2xl": 104,
   } as const;
-  const px = sizeMap[size];
+  const px = typeof size === "number" ? size : sizeMap[size] ?? sizeMap.md;
 
   const fontSize = px <= 24 ? 10 : px <= 32 ? 12 : px <= 40 ? 14 : px <= 56 ? 18 : px <= 80 ? 26 : 36;
 
@@ -65,9 +69,9 @@ export function Avatar({ name, source, size = "md", tone = "primary", ring }: Pr
           borderRadius: 9999,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: name ? withOpacity(colorForName, 0.13) : palette.bg,
-          borderWidth: ring ? 2 : 0,
-          borderColor: ring ? colorForName : "transparent",
+          backgroundColor: name ? withOpacity(colorForName, 0.14) : palette.bg,
+          borderWidth: ring ? 2.5 : StyleSheet.hairlineWidth,
+          borderColor: ring ? colors.surface : withOpacity(colorForName, 0.2),
           overflow: "hidden",
         },
       ]}
@@ -84,7 +88,7 @@ export function Avatar({ name, source, size = "md", tone = "primary", ring }: Pr
         <Text
           style={[
             typography.title.md,
-            { color: colorForName, fontSize, lineHeight: fontSize + 2, fontWeight: "700" },
+            { color: colorForName, fontSize, lineHeight: fontSize + 2, fontFamily: "PlusJakartaSans_700Bold", letterSpacing: -0.2 },
           ]}
         >
           {initials}

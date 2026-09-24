@@ -72,10 +72,16 @@ export function BottomSheet({ visible, onDismiss, title, children, height = "aut
             styles.sheet,
             {
               backgroundColor: colors.bgElevated,
-              borderTopLeftRadius: radius.xxl,
-              borderTopRightRadius: radius.xxl,
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.md,
+              borderTopLeftRadius: 34,
+              borderTopRightRadius: 34,
+              borderCurve: "continuous",
+              paddingHorizontal: spacing.xl,
+              paddingTop: spacing.sm,
+              shadowColor: colors.shadow,
+              shadowOffset: { width: 0, height: -8 },
+              shadowOpacity: 0.12,
+              shadowRadius: 30,
+              elevation: 24,
               paddingBottom: spacing.xl,
               maxHeight: typeof height === "number" ? height : undefined,
             },
@@ -85,10 +91,10 @@ export function BottomSheet({ visible, onDismiss, title, children, height = "aut
           <View
             style={{
               alignSelf: "center",
-              width: 44,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: colors.borderStrong,
+              width: 36,
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: colors.fillStrong,
               marginBottom: spacing.md,
             }}
           />

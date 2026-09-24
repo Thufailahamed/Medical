@@ -162,6 +162,7 @@ export function FamilyInviteSheet({ visible, onDismiss, onCreated }: Props) {
                   width: 40,
                   height: 40,
                   borderRadius: 20,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",

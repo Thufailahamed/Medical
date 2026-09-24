@@ -7,7 +7,9 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
+  StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -159,7 +161,7 @@ export default function RegisterScreen() {
   const inviteToken = typeof routeParams.invite === "string" ? routeParams.invite : null;
   const invitePreview = useStaffInvitePreview(inviteToken);
   const inviteData = invitePreview.data;
-  const { colors, spacing, typography, radius, fontFamily, shadow } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [role, setRole] = useState<"patient" | "doctor" | "hospital_staff">(
     inviteToken ? "hospital_staff" : "patient"
@@ -335,7 +337,7 @@ export default function RegisterScreen() {
       keyboard
       scroll
       edges={["top", "bottom"]}
-      style={{ backgroundColor: "#FFFFFF" }}
+      style={{ backgroundColor: colors.surface }}
       contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
     >
       {/* Branding Header with Back button */}
@@ -352,50 +354,58 @@ export default function RegisterScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
           style={({ pressed }) => ({
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: "center",
             justifyContent: "center",
-            marginRight: 8,
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-            marginLeft: -8,
+            marginRight: 12,
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
           })}
         >
-          <ChevronLeft size={24} color={colors.primary} />
+          <ChevronLeft size={22} color={colors.text} strokeWidth={2.25} />
         </Pressable>
-        <Heart size={26} color={colors.primary} strokeWidth={2.25} />
-        <Text
+        <View
           style={{
-            fontSize: 14,
-            fontWeight: "800",
-            color: "#1D1B20",
-            letterSpacing: 3,
-            fontFamily: fontFamily.displayBold,
-            marginLeft: 8,
+            width: 36,
+            height: 36,
+            borderRadius: 11,
+            borderCurve: "continuous",
+            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          HEALTHHUB
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Heart size={18} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
+        </View>
+        <Text
+          style={{
+            fontSize: 18,
+            color: colors.text,
+            letterSpacing: -0.4,
+            fontFamily: fontFamily.heavy,
+            marginLeft: 10,
+          }}
+        >
+          HealthHub
         </Text>
       </View>
 
       {/* Heading Section */}
-      <View style={{ marginTop: 36, marginBottom: 24 }}>
-        <Text
-          style={{
-            fontSize: 34,
-            fontWeight: "800",
-            color: "#1D1B20",
-            fontFamily: fontFamily.displayBold,
-            lineHeight: 42,
-          }}
-        >
+      <View style={{ marginTop: 40, marginBottom: 28 }}>
+        <Text style={[typography.display.lg, { color: colors.text }]}>
           Create account.
         </Text>
         <Text
           style={{
             fontSize: 15,
-            color: "#7F7B8C",
+            color: colors.textMuted,
             marginTop: 8,
             fontFamily: fontFamily.body,
             lineHeight: 22,
@@ -414,10 +424,9 @@ export default function RegisterScreen() {
       <View
         style={{
           flexDirection: "row",
-          backgroundColor: "#FFFFFF",
-          borderRadius: 24,
-          borderWidth: 1,
-          borderColor: "#E6E4EA",
+          backgroundColor: colors.fill,
+          borderRadius: 14,
+          borderCurve: "continuous",
           padding: 3,
           marginBottom: 28,
         }}
@@ -450,15 +459,25 @@ export default function RegisterScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 paddingVertical: 10,
-                borderRadius: 21,
-                backgroundColor: active ? colors.primarySoft : "transparent",
+                borderRadius: 11,
+                borderCurve: "continuous",
+                backgroundColor: active
+                  ? scheme === "dark"
+                    ? colors.surfaceElevated
+                    : colors.surface
+                  : "transparent",
+                shadowColor: colors.shadow,
+                shadowOpacity: active && scheme !== "dark" ? 0.1 : 0,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: active ? 2 : 0,
               }}
             >
               <Text
                 style={{
                   fontSize: 14,
                   fontWeight: "700",
-                  color: active ? colors.primary : "#7F7B8C",
+                  color: active ? colors.text : colors.textMuted,
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
@@ -474,32 +493,20 @@ export default function RegisterScreen() {
         <View
           style={{
             backgroundColor: colors.primarySoft,
-            borderRadius: radius.md,
-            padding: spacing.md,
-            marginBottom: 24,
-            gap: 6,
+            borderRadius: radius.lg,
+            borderCurve: "continuous",
+            paddingVertical: spacing.md,
+            paddingHorizontal: spacing.lg,
+            marginBottom: 28,
+            gap: 4,
           }}
         >
           <Text
-            style={{
-              fontSize: 11,
-              fontWeight: "800",
-              color: colors.primary,
-              letterSpacing: 0.8,
-              fontFamily: fontFamily.displayBold,
-              textTransform: "uppercase",
-            }}
+            style={[typography.overline, { color: colors.primary, textTransform: "uppercase" }]}
           >
             {`Joining ${inviteData?.hospitalName || "your hospital"}`}
           </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: colors.text,
-              fontFamily: fontFamily.bodyBold,
-            }}
-          >
+          <Text style={[typography.title.sm, { color: colors.text }]}>
             {`Role: ${inviteData?.role || role}`}
           </Text>
         </View>
@@ -716,12 +723,10 @@ export default function RegisterScreen() {
             <View style={{ marginBottom: 4 }}>
               <Text
                 style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  color: "#7F7B8C",
-                  letterSpacing: 0.8,
-                  fontFamily: fontFamily.displayBold,
-                  textTransform: "uppercase",
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.bodySemibold,
+                  marginLeft: 2,
                   marginBottom: 8,
                 }}
               >
@@ -731,8 +736,8 @@ export default function RegisterScreen() {
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: spacing.xs,
-                  marginBottom: spacing.xs,
+                  gap: spacing.sm,
+                  marginBottom: spacing.sm,
                 }}
               >
                 {specialties.map((s) => (
@@ -745,19 +750,20 @@ export default function RegisterScreen() {
                       setShowOtherSpecialty(false);
                     }}
                     style={{
-                      paddingHorizontal: spacing.md,
-                      paddingVertical: 6,
-                      borderRadius: radius.md,
+                      paddingHorizontal: 14,
+                      height: 34,
+                      justifyContent: "center",
+                      borderRadius: radius.full,
                       borderWidth: 1,
-                      borderColor: selectedSpecialization === s ? colors.primary : "#E6E4EA",
-                      backgroundColor: selectedSpecialization === s ? colors.primarySoft : "#FFFFFF",
+                      borderColor: selectedSpecialization === s ? colors.primary : "transparent",
+                      backgroundColor: selectedSpecialization === s ? colors.primarySoft : colors.fill,
                     }}
                   >
                     <Text
                       style={{
                         fontSize: 13,
                         fontWeight: "700",
-                        color: selectedSpecialization === s ? colors.primary : "#7F7B8C",
+                        color: selectedSpecialization === s ? colors.primary : colors.textMuted,
                       }}
                     >
                       {s}
@@ -772,19 +778,20 @@ export default function RegisterScreen() {
                     });
                   }}
                   style={{
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: 6,
-                    borderRadius: radius.md,
+                    paddingHorizontal: 14,
+                    height: 34,
+                    justifyContent: "center",
+                    borderRadius: radius.full,
                     borderWidth: 1,
-                    borderColor: showOtherSpecialty ? colors.primary : "#E6E4EA",
-                    backgroundColor: showOtherSpecialty ? colors.primarySoft : "#FFFFFF",
+                    borderColor: showOtherSpecialty ? colors.primary : "transparent",
+                    backgroundColor: showOtherSpecialty ? colors.primarySoft : colors.fill,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 13,
                       fontWeight: "700",
-                      color: showOtherSpecialty ? colors.primary : "#7F7B8C",
+                      color: showOtherSpecialty ? colors.primary : colors.textMuted,
                     }}
                   >
                     Other
@@ -833,12 +840,10 @@ export default function RegisterScreen() {
             <View style={{ marginBottom: 4 }}>
               <Text
                 style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  color: "#7F7B8C",
-                  letterSpacing: 0.8,
-                  fontFamily: fontFamily.displayBold,
-                  textTransform: "uppercase",
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.bodySemibold,
+                  marginLeft: 2,
                   marginBottom: 8,
                 }}
               >
@@ -848,21 +853,23 @@ export default function RegisterScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  paddingBottom: 8,
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#E6E4EA",
+                  minHeight: 44,
+                  paddingHorizontal: 12,
+                  borderRadius: radius.md,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
                 }}
               >
-                <Search size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+                <Search size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
                 <TextInput
                   value={hospitalQuery}
                   onChangeText={setHospitalQuery}
                   placeholder="Search hospitals"
-                  placeholderTextColor="#C4C0CC"
+                  placeholderTextColor={colors.textSubtle}
                   style={{
                     flex: 1,
                     fontSize: 15,
-                    color: "#1D1B20",
+                    color: colors.text,
                     fontFamily: fontFamily.body,
                     padding: 0,
                   }}
@@ -877,22 +884,14 @@ export default function RegisterScreen() {
                     alignItems: "center",
                     gap: spacing.sm,
                     paddingHorizontal: spacing.md,
-                    paddingVertical: 10,
+                    paddingVertical: 12,
                     borderRadius: radius.md,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                     marginTop: spacing.sm,
-                    borderWidth: 1,
-                    borderColor: colors.primary + "20",
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "600",
-                      color: colors.text,
-                      flex: 1,
-                    }}
-                  >
+                  <Text style={[typography.title.sm, { color: colors.text, flex: 1 }]}>
                     {hospitals.find((h) => h.id === selectedHospitalId)?.name || "Selected hospital"}
                   </Text>
                   <Pressable
@@ -908,10 +907,20 @@ export default function RegisterScreen() {
                   </Pressable>
                 </View>
               ) : hospitalsLoading ? (
-                <View style={{ marginTop: spacing.sm, height: 48, backgroundColor: colors.surfaceMuted, borderRadius: radius.md }} />
+                <View style={{ marginTop: spacing.sm, height: 56, backgroundColor: colors.fill, borderRadius: radius.md, borderCurve: "continuous" }} />
               ) : hospitals.length > 0 && hospitalQuery ? (
-                <View style={{ gap: spacing.xs, marginTop: spacing.sm }}>
-                  {hospitals.slice(0, 5).map((h: any) => (
+                <View
+                  style={{
+                    marginTop: spacing.sm,
+                    borderRadius: radius.lg,
+                    borderCurve: "continuous",
+                    overflow: "hidden",
+                    backgroundColor: colors.surface,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+                  }}
+                >
+                  {hospitals.slice(0, 5).map((h: any, idx: number) => (
                     <Pressable
                       key={h.id}
                       onPress={() =>
@@ -922,24 +931,24 @@ export default function RegisterScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`Select ${h.name}`}
                       style={({ pressed }) => ({
-                        paddingHorizontal: spacing.md,
-                        paddingVertical: spacing.sm,
-                        borderRadius: radius.md,
-                        backgroundColor: pressed ? colors.primarySoft : "#F9F8FA",
-                        borderWidth: 1,
-                        borderColor: "#E6E4EA",
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: 12,
+                        minHeight: 56,
+                        justifyContent: "center",
+                        backgroundColor: pressed ? colors.fill : "transparent",
+                        borderTopWidth: idx === 0 ? 0 : StyleSheet.hairlineWidth,
+                        borderTopColor: colors.separator,
                       })}
                     >
-                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#1D1B20" }}>
+                      <Text style={[typography.title.sm, { color: colors.text }]}>
                         {h.name}
                       </Text>
                       {h.address ? (
                         <Text
-                          style={{
-                            fontSize: 12,
-                            color: "#7F7B8C",
-                            marginTop: 2,
-                          }}
+                          style={[
+                            typography.body.sm,
+                            { color: colors.textMuted, marginTop: 2 },
+                          ]}
                           numberOfLines={1}
                         >
                           {h.address}
@@ -987,14 +996,24 @@ export default function RegisterScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: submitting ? `${colors.primary}80` : colors.primary,
-            height: 52,
-            borderRadius: 26,
-            marginTop: 20,
-            opacity: pressed ? 0.8 : 1,
+            backgroundColor: colors.primary,
+            height: 54,
+            borderRadius: radius.button,
+            borderCurve: "continuous",
+            overflow: "hidden",
+            marginTop: 16,
+            opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
             gap: 8,
           })}
         >
+          <LinearGradient
+            pointerEvents="none"
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
@@ -1021,7 +1040,7 @@ export default function RegisterScreen() {
           hitSlop={8}
           style={{ alignItems: "center", paddingVertical: spacing.xs, marginBottom: 60 }}
         >
-          <Text style={{ fontSize: 15, color: "#7F7B8C", fontFamily: fontFamily.body }}>
+          <Text style={{ fontSize: 15, color: colors.textMuted, fontFamily: fontFamily.body }}>
             Already have an account?{" "}
             <Text style={{ color: colors.primary, fontWeight: "700", fontFamily: fontFamily.bodyBold }}>
               Sign in
@@ -1058,21 +1077,19 @@ function CustomUnderlineInput({
   onBlur?: () => void;
   [key: string]: any;
 }) {
-  const { colors, fontFamily } = useTheme();
+  const { colors, fontFamily, radius } = useTheme();
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={{ marginBottom: 4 }}>
+    <View style={{ marginBottom: 2 }}>
       {/* Label */}
-      <View style={{ flexDirection: "row", marginBottom: 6 }}>
+      <View style={{ flexDirection: "row", marginBottom: 8 }}>
         <Text
           style={{
-            fontSize: 11,
-            fontWeight: "800",
-            color: "#7F7B8C",
-            letterSpacing: 0.8,
-            fontFamily: fontFamily.displayBold,
-            textTransform: "uppercase",
+            fontSize: 13,
+            color: colors.textMuted,
+            fontFamily: fontFamily.bodySemibold,
+            marginLeft: 2,
           }}
         >
           {label}
@@ -1085,18 +1102,22 @@ function CustomUnderlineInput({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingBottom: 8,
-          borderBottomWidth: focused ? 2 : 1,
-          borderBottomColor: focused ? colors.primary : "#E6E4EA",
+          minHeight: 54,
+          paddingHorizontal: 14,
+          borderRadius: radius.field,
+          borderCurve: "continuous",
+          backgroundColor: colors.fill,
+          borderWidth: 1.5,
+          borderColor: error ? colors.danger : focused ? colors.primary : "transparent",
         }}
       >
-        <Icon size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+        <Icon size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
         
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#C4C0CC"
+          placeholderTextColor={colors.textSubtle}
           secureTextEntry={secureTextEntry}
           onFocus={() => setFocused(true)}
           onBlur={() => {
@@ -1105,17 +1126,17 @@ function CustomUnderlineInput({
           }}
           style={{
             flex: 1,
-            fontSize: 15,
-            color: "#1D1B20",
+            fontSize: 16,
+            color: colors.text,
             fontFamily: fontFamily.body,
-            padding: 0,
+            paddingVertical: 14,
           }}
           {...props}
         />
 
         {RightIcon && (
           <Pressable onPress={onRightIconPress} hitSlop={8}>
-            <RightIcon size={18} color="#C4C0CC" />
+            <RightIcon size={18} color={colors.textSubtle} />
           </Pressable>
         )}
       </View>
@@ -1152,7 +1173,7 @@ function CustomUnderlineDatePicker({
   icon: any;
   error?: string;
 }) {
-  const { colors, fontFamily } = useTheme();
+  const { colors, fontFamily, radius } = useTheme();
   const [show, setShow] = useState(false);
 
   const dateValue = value ? new Date(value) : new Date();
@@ -1175,12 +1196,10 @@ function CustomUnderlineDatePicker({
       <View style={{ flexDirection: "row", marginBottom: 6 }}>
         <Text
           style={{
-            fontSize: 11,
-            fontWeight: "800",
-            color: "#7F7B8C",
-            letterSpacing: 0.8,
-            fontFamily: fontFamily.displayBold,
-            textTransform: "uppercase",
+            fontSize: 13,
+            color: colors.textMuted,
+            fontFamily: fontFamily.bodySemibold,
+            marginLeft: 2,
           }}
         >
           {label}
@@ -1196,20 +1215,24 @@ function CustomUnderlineDatePicker({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingBottom: 8,
-          borderBottomWidth: show ? 2 : 1,
-          borderBottomColor: show ? colors.primary : "#E6E4EA",
+          minHeight: 54,
+          paddingHorizontal: 14,
+          borderRadius: radius.field,
+          borderCurve: "continuous",
+          backgroundColor: colors.fill,
+          borderWidth: 1.5,
+          borderColor: error ? colors.danger : show ? colors.primary : "transparent",
         }}
       >
-        <Icon size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
-        
+        <Icon size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
+
         <Text
           style={{
             flex: 1,
-            fontSize: 15,
-            color: value ? "#1D1B20" : "#C4C0CC",
+            fontSize: 16,
+            color: value ? colors.text : colors.textSubtle,
             fontFamily: fontFamily.body,
-            paddingVertical: 2,
+            paddingVertical: 14,
           }}
         >
           {value || placeholder}

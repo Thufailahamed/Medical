@@ -12,6 +12,7 @@ import {
   ScrollView,
   RefreshControl,
   FlatList,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -97,6 +98,7 @@ export default function MarketplaceScreen() {
             label={t("marketplace.ctaMyInquiries")}
             onPress={() => router.push("/(app)/marketplace-inquiries" as any)}
             icon={Inbox}
+            variant="secondary"
             compact
           />
         }
@@ -105,15 +107,18 @@ export default function MarketplaceScreen() {
       {/* ─── Filter chips ─── */}
       <View
         style={{
-          paddingHorizontal: spacing.lg,
-          gap: spacing.xs,
+          gap: spacing.sm,
+          paddingTop: spacing.xs,
+          paddingBottom: spacing.sm,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.separator,
         }}
       >
         <FilterLabel label={t("marketplace.filters.district")} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.xs }}
+          contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}
         >
           {DISTRICTS.map((d) => (
             <Chip
@@ -128,12 +133,12 @@ export default function MarketplaceScreen() {
 
         <FilterLabel
           label={t("marketplace.filters.role")}
-          style={{ marginTop: spacing.xs }}
+          style={{ marginTop: spacing.sm }}
         />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.xs }}
+          contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}
         >
           <Chip
             label={t("marketplace.filters.any")}
@@ -154,12 +159,16 @@ export default function MarketplaceScreen() {
 
         <FilterLabel
           label={t("marketplace.filters.language")}
-          style={{ marginTop: spacing.xs }}
+          style={{ marginTop: spacing.sm }}
         />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.xs, paddingBottom: spacing.xs }}
+          contentContainerStyle={{
+            gap: spacing.sm,
+            paddingHorizontal: spacing.lg,
+            paddingBottom: spacing.xs,
+          }}
         >
           {LANGUAGES.map((l) => (
             <Chip
@@ -181,6 +190,7 @@ export default function MarketplaceScreen() {
         keyExtractor={(c) => c.caretakerUserId}
         contentContainerStyle={{
           padding: spacing.lg,
+          paddingTop: spacing.xl,
           gap: spacing.md,
           paddingBottom: spacing.xxxxl,
         }}
@@ -245,13 +255,11 @@ function FilterLabel({
   return (
     <Text
       style={[
-        typography.label.md,
+        typography.overline,
         {
-          color: colors.textMuted,
-          fontSize: 11,
-          letterSpacing: 0.8,
+          color: colors.textSubtle,
           textTransform: "uppercase",
-          marginBottom: 2,
+          paddingHorizontal: spacing.lg,
         },
         style,
       ]}
@@ -277,7 +285,7 @@ function CaretakerCard({
       <View
         style={{
           padding: spacing.lg,
-          gap: spacing.sm,
+          gap: spacing.md,
         }}
       >
         {/* Identity row */}
@@ -303,15 +311,15 @@ function CaretakerCard({
             >
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "700" },
+                  typography.title.md,
+                  { color: colors.text, flexShrink: 1 },
                 ]}
                 numberOfLines={1}
               >
                 {item.name}
               </Text>
               {item.verified ? (
-                <BadgeCheck size={15} color={colors.success} />
+                <BadgeCheck size={16} color={colors.success} />
               ) : null}
             </View>
             <View
@@ -321,9 +329,9 @@ function CaretakerCard({
                 gap: 4,
               }}
             >
-              <MapPin size={11} color={colors.textMuted} />
+              <MapPin size={12} color={colors.textSubtle} />
               <Text
-                style={[typography.caption, { color: colors.textMuted }]}
+                style={[typography.body.sm, { color: colors.textMuted, flexShrink: 1 }]}
                 numberOfLines={1}
               >
                 {item.district}
@@ -335,7 +343,7 @@ function CaretakerCard({
               </Text>
             </View>
           </View>
-          <ChevronRight size={18} color={colors.textMuted} />
+          <ChevronRight size={18} color={colors.textSubtle} />
         </View>
 
         {/* Role pills */}
@@ -364,23 +372,32 @@ function CaretakerCard({
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
+            alignItems: "flex-end",
             justifyContent: "space-between",
+            gap: spacing.md,
           }}
         >
-          <Text
-            style={[
-              typography.body.sm,
-              { color: colors.text, fontWeight: "800" },
-            ]}
-          >
-            {item.hourlyRateLkr
-              ? `LKR ${item.hourlyRateLkr}/hr`
-              : t("marketplace.rateOnRequest")}
-          </Text>
+          {item.hourlyRateLkr ? (
+            <Text style={[typography.title.lg, { color: colors.text }]}>
+              <Text style={[typography.label.sm, { color: colors.textMuted }]}>
+                {"LKR "}
+              </Text>
+              {`${item.hourlyRateLkr}`}
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                {"/hr"}
+              </Text>
+            </Text>
+          ) : (
+            <Text style={[typography.label.md, { color: colors.textMuted }]}>
+              {t("marketplace.rateOnRequest")}
+            </Text>
+          )}
           {item.languages.length ? (
             <Text
-              style={[typography.caption, { color: colors.textMuted }]}
+              style={[
+                typography.caption,
+                { color: colors.textSubtle, flexShrink: 1, textAlign: "right", paddingBottom: 2 },
+              ]}
               numberOfLines={1}
             >
               {item.languages.map((l: string) => languageName(l, t)).join(" · ")}

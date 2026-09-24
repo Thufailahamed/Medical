@@ -83,7 +83,7 @@ export default function PatientTenantDetail() {
   const name = tenantObj?.name || (isHospital ? "Hospital" : "Clinic");
 
   return (
-    <Screen>
+    <Screen padded={false}>
       <ScreenHeader
         title={name}
         kicker={isHospital ? "HOSPITAL PROFILE" : "CLINIC PROFILE"}
@@ -92,24 +92,21 @@ export default function PatientTenantDetail() {
       />
 
       <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.sm,
-          paddingBottom: spacing.xxl,
+          paddingBottom: spacing.xxxxl,
         }}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={load} />
+          <RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />
         }
       >
         {/* Facility Hero Card */}
         <Card
           style={{
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 20,
-            padding: spacing.md,
-            marginBottom: spacing.lg,
+            padding: spacing.lg,
+            marginBottom: spacing.xxl,
           }}
         >
           <View
@@ -117,62 +114,64 @@ export default function PatientTenantDetail() {
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.md,
-              marginBottom: spacing.md,
+              marginBottom: spacing.lg,
             }}
           >
             <View
               style={{
-                width: 50,
-                height: 50,
-                borderRadius: 25,
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               {isHospital ? (
-                <Building2 size={26} color={colors.primary} />
+                <Building2 size={28} color={colors.primary} />
               ) : (
-                <Stethoscope size={26} color={colors.primary} />
+                <Stethoscope size={28} color={colors.primary} />
               )}
             </View>
 
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "800", marginBottom: 4 },
+                  typography.title.lg,
+                  { color: colors.text, marginBottom: 6 },
                 ]}
               >
                 {name}
               </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <Pill
                   label={isHospital ? "Hospital" : "Clinic"}
                   tone={isHospital ? "primary" : "info"}
+                  size="sm"
                 />
-                <Pill label="Connected" tone="success" icon={CheckCircle2} />
+                <Pill label="Connected" tone="success" icon={CheckCircle2} size="sm" />
               </View>
             </View>
           </View>
 
           <View
             style={{
-              backgroundColor: colors.bg,
+              backgroundColor: colors.successSoft,
               borderRadius: 14,
-              padding: spacing.sm,
+              borderCurve: "continuous",
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm + 2,
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
-              borderWidth: 1,
-              borderColor: colors.borderSoft,
+              gap: spacing.sm,
             }}
           >
             <ShieldCheck size={16} color={colors.success} />
             <Text
               style={[
-                typography.body.xs,
-                { color: colors.textMuted, fontSize: 12, flex: 1 },
+                typography.body.sm,
+                { color: colors.textMuted, flex: 1 },
               ]}
             >
               Records, prescriptions, and lab tests from this facility are synchronized.
@@ -186,165 +185,160 @@ export default function PatientTenantDetail() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: spacing.sm,
+            marginBottom: spacing.md,
+            paddingHorizontal: 4,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
             <Users size={18} color={colors.primary} />
             <Text
               style={[
-                typography.title.sm,
-                { color: colors.text, fontWeight: "800" },
+                typography.title.lg,
+                { color: colors.text },
               ]}
             >
               My care team here
             </Text>
           </View>
-          <Text style={[typography.body.xs, { color: colors.textMuted, fontWeight: "600" }]}>
+          <Text style={[typography.label.sm, { color: colors.textSubtle }]}>
             {members.length} {members.length === 1 ? "Doctor" : "Doctors"}
           </Text>
         </View>
 
         {error ? (
           <Card
+            elevated={false}
             style={{
-              backgroundColor: colors.surface,
-              borderColor: colors.danger,
-              borderWidth: 1,
-              padding: spacing.md,
-              marginBottom: spacing.md,
+              backgroundColor: colors.dangerSoft,
+              borderWidth: 0,
+              padding: spacing.lg,
+              marginBottom: spacing.xxl,
             }}
           >
-            <Text style={{ color: colors.danger, fontSize: 13 }}>{error}</Text>
+            <Text style={[typography.body.sm, { color: colors.danger }]}>{error}</Text>
           </Card>
         ) : members.length === 0 ? (
           <Card
             style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSoft,
-              borderRadius: 16,
-              padding: spacing.lg,
+              paddingVertical: spacing.xxl,
+              paddingHorizontal: spacing.xl,
               alignItems: "center",
-              marginBottom: spacing.lg,
+              marginBottom: spacing.xxl,
             }}
           >
             <View
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
+                width: 56,
+                height: 56,
+                borderRadius: 28,
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: spacing.sm,
+                marginBottom: spacing.md,
               }}
             >
-              <Users size={22} color={colors.primary} />
+              <Users size={24} color={colors.primary} />
             </View>
             <Text
               style={[
-                typography.title.xs,
-                { color: colors.text, fontWeight: "700", marginBottom: 4 },
+                typography.title.md,
+                { color: colors.text, marginBottom: 6, textAlign: "center" },
               ]}
             >
               No care team linked yet
             </Text>
             <Text
               style={[
-                typography.body.xs,
+                typography.body.sm,
                 {
                   color: colors.textMuted,
                   textAlign: "center",
-                  lineHeight: 18,
-                  marginBottom: spacing.md,
-                  paddingHorizontal: spacing.sm,
+                  marginBottom: spacing.lg,
                 },
               ]}
             >
               Doctors you consult with at {name} will appear here when they access or contribute to your records.
             </Text>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
+              title="Manage Care Team"
+              fullWidth={false}
               onPress={() => router.push("/(app)/care-team" as any)}
             >
               Manage Care Team
             </Button>
           </Card>
         ) : (
-          members.map((m) => {
-            const displayName = m.doctorName || m.name || `Dr. ${m.id.slice(0, 6)}`;
-            const roleText = m.relationshipKind || m.role || "Consulting Doctor";
-            return (
-              <Card
-                key={m.id}
-                style={{
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 16,
-                  padding: spacing.md,
-                  marginBottom: spacing.sm,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.md,
-                  }}
-                >
-                  <Avatar name={displayName} size="md" />
+          <Card padded={false} style={{ marginBottom: spacing.xxl, overflow: "hidden" }}>
+            {members.map((m, idx) => {
+              const displayName = m.doctorName || m.name || `Dr. ${m.id.slice(0, 6)}`;
+              const roleText = m.relationshipKind || m.role || "Consulting Doctor";
+              return (
+                <View key={m.id}>
+                  {idx > 0 ? (
+                    <View
+                      style={{
+                        height: StyleSheet.hairlineWidth,
+                        backgroundColor: colors.separator,
+                        marginLeft: spacing.lg + 40 + spacing.md,
+                      }}
+                    />
+                  ) : null}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                      minHeight: 64,
+                    }}
+                  >
+                    <Avatar name={displayName} size="md" />
 
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        typography.title.xs,
-                        { color: colors.text, fontWeight: "700", marginBottom: 2 },
-                      ]}
-                    >
-                      {displayName}
-                    </Text>
-                    <Text
-                      style={[
-                        typography.body.xs,
-                        { color: colors.textMuted, fontSize: 12, marginBottom: 4 },
-                      ]}
-                    >
-                      {roleText}
-                    </Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text
+                        style={[
+                          typography.title.sm,
+                          { color: colors.text, marginBottom: 2 },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {displayName}
+                      </Text>
+                      <Text
+                        style={[
+                          typography.body.sm,
+                          { color: colors.textMuted },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {roleText}
+                      </Text>
+                    </View>
                     <Pill
                       label={m.status || "Active"}
                       tone={m.status === "pending" ? "warning" : "success"}
+                      size="sm"
                     />
                   </View>
                 </View>
-              </Card>
-            );
-          })
+              );
+            })}
+          </Card>
         )}
 
         {/* Quick Actions Card */}
-        <Card
-          style={{
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 16,
-            padding: spacing.md,
-            marginTop: spacing.sm,
-          }}
+        <Text
+          style={[
+            typography.title.lg,
+            { color: colors.text, marginBottom: spacing.md, paddingHorizontal: 4 },
+          ]}
         >
-          <Text
-            style={[
-              typography.title.xs,
-              { color: colors.text, fontWeight: "700", marginBottom: spacing.sm },
-            ]}
-          >
-            Facility Quick Actions
-          </Text>
-
+          Facility Quick Actions
+        </Text>
+        <Card padded={false} style={{ overflow: "hidden" }}>
           <Pressable
             onPress={() => router.push("/(app)/timeline" as any)}
             accessibilityRole="button"
@@ -352,21 +346,38 @@ export default function PatientTenantDetail() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              paddingVertical: 10,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.borderSoft,
-              opacity: pressed ? 0.7 : 1,
+              paddingHorizontal: spacing.lg,
+              minHeight: 56,
+              backgroundColor: pressed ? colors.fill : "transparent",
             })}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <FileText size={16} color={colors.primary} />
-              <Text style={[typography.body.xs, { color: colors.text, fontWeight: "600" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FileText size={17} color="#FFFFFF" />
+              </View>
+              <Text style={[typography.body.md, { color: colors.text, flex: 1 }]}>
                 View Medical Timeline & Records
               </Text>
             </View>
-            <ChevronRight size={16} color={colors.textMuted} />
+            <ChevronRight size={18} color={colors.textSubtle} />
           </Pressable>
-
+          <View
+            style={{
+              height: StyleSheet.hairlineWidth,
+              backgroundColor: colors.separator,
+              marginLeft: spacing.lg + 32 + spacing.md,
+            }}
+          />
           <Pressable
             onPress={() => router.push("/(app)/care-team" as any)}
             accessibilityRole="button"
@@ -374,17 +385,30 @@ export default function PatientTenantDetail() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              paddingVertical: 10,
-              opacity: pressed ? 0.7 : 1,
+              paddingHorizontal: spacing.lg,
+              minHeight: 56,
+              backgroundColor: pressed ? colors.fill : "transparent",
             })}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Users size={16} color={colors.primary} />
-              <Text style={[typography.body.xs, { color: colors.text, fontWeight: "600" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.accent,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Users size={17} color="#FFFFFF" />
+              </View>
+              <Text style={[typography.body.md, { color: colors.text, flex: 1 }]}>
                 Full Care Team Directory
               </Text>
             </View>
-            <ChevronRight size={16} color={colors.textMuted} />
+            <ChevronRight size={18} color={colors.textSubtle} />
           </Pressable>
         </Card>
       </ScrollView>

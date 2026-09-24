@@ -1,7 +1,8 @@
 // @ts-nocheck
 
 import { useEffect } from "react";
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { UserPlus, ShieldAlert, CheckCircle2, X } from "lucide-react-native";
@@ -85,22 +86,29 @@ export default function InviteScreen() {
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: 120 }}>
-        <View style={{ alignItems: "center", marginTop: spacing.xl, gap: spacing.sm }}>
+        <View style={{ alignItems: "center", marginTop: spacing.xxxl, marginBottom: spacing.sm, gap: spacing.md }}>
           <View
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: 32,
-              backgroundColor: colors.primarySoft,
+              width: 72,
+              height: 72,
+              borderRadius: 22,
+              borderCurve: "continuous",
+              overflow: "hidden",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <UserPlus size={28} color={colors.primary} strokeWidth={2.25} />
+            <LinearGradient
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <UserPlus size={32} color="#FFFFFF" strokeWidth={2.1} />
           </View>
           <Text
             style={[
-              typography.heading.h2,
+              typography.display.md,
               { color: colors.text, textAlign: "center" },
             ]}
           >
@@ -116,7 +124,19 @@ export default function InviteScreen() {
         ) : preview.error ? (
           <Card>
             <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
-              <ShieldAlert size={24} color={colors.danger} strokeWidth={2.25} />
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.dangerSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ShieldAlert size={20} color={colors.danger} strokeWidth={2.25} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={[typography.title.sm, { color: colors.text }]}>
                   {t("family.invite.invalidOrExpired")}
@@ -134,7 +154,7 @@ export default function InviteScreen() {
             <Card>
               <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
                 <Avatar
-                  size={48}
+                  size="lg"
                   uri={data.inviterPhoto ?? undefined}
                   name={data.inviterName}
                 />
@@ -150,8 +170,8 @@ export default function InviteScreen() {
 
               <View
                 style={{
-                  height: 1,
-                  backgroundColor: colors.border,
+                  height: StyleSheet.hairlineWidth,
+                  backgroundColor: colors.separator,
                   marginVertical: spacing.md,
                 }}
               />
@@ -228,13 +248,17 @@ function Row({ label, value }: { label: string; value: string }) {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingVertical: spacing.xs,
+        minHeight: 40,
+        gap: spacing.md,
       }}
     >
-      <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+      <Text style={[typography.body.md, { color: colors.textMuted }]}>
         {label}
       </Text>
-      <Text style={[typography.body.md, { color: colors.text, fontWeight: "600" }]}>
+      <Text
+        numberOfLines={1}
+        style={[typography.title.sm, { color: colors.text, flexShrink: 1, textAlign: "right" }]}
+      >
         {value}
       </Text>
     </View>

@@ -37,7 +37,7 @@ export function CaretakerPickerSheet({
         {principals.length === 0 ? (
           <Text
             style={{
-              ...typography.body,
+              ...typography.body.md,
               color: colors.textSecondary,
               textAlign: "center",
               paddingVertical: spacing.lg,
@@ -60,6 +60,7 @@ export function CaretakerPickerSheet({
                 paddingVertical: spacing.sm,
                 paddingHorizontal: spacing.sm,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: pressed
                   ? colors.surfaceMuted
                   : "transparent",
@@ -71,7 +72,7 @@ export function CaretakerPickerSheet({
                 size={36}
               />
               <View style={{ flex: 1 }}>
-                <Text style={{ ...typography.body, color: colors.text }}>
+                <Text style={{ ...typography.body.md, color: colors.text }}>
                   {p.principalName}
                 </Text>
                 <Text

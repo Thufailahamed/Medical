@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import {
   View,
+  StyleSheet,
   Text,
   ScrollView,
   Alert,
@@ -93,7 +94,7 @@ export default function NotesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { spacing, colors, typography, radius, scheme } = useTheme();
+  const { spacing, colors, typography, radius, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
   const toast = useToast();
 
@@ -284,24 +285,22 @@ export default function NotesScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.xs }}
+              contentContainerStyle={{ gap: spacing.sm }}
             >
               <Pressable
                 onPress={() => insertSnippet("• ")}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 4,
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: 5,
+                  gap: 5,
+                  paddingHorizontal: spacing.md,
+                  height: 32,
                   borderRadius: radius.full,
-                  backgroundColor: colors.surfaceMuted,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  backgroundColor: colors.fill,
                 }}
               >
                 <ListPlus size={12} color={colors.primary} />
-                <Text style={{ fontSize: 11, fontWeight: "700", color: colors.text }}>
+                <Text style={[typography.label.sm, { color: colors.text }]}>
                   + Bullet point
                 </Text>
               </Pressable>
@@ -311,17 +310,15 @@ export default function NotesScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 4,
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: 5,
+                  gap: 5,
+                  paddingHorizontal: spacing.md,
+                  height: 32,
                   borderRadius: radius.full,
-                  backgroundColor: colors.surfaceMuted,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  backgroundColor: colors.fill,
                 }}
               >
                 <Clock size={12} color={colors.primary} />
-                <Text style={{ fontSize: 11, fontWeight: "700", color: colors.text }}>
+                <Text style={[typography.label.sm, { color: colors.text }]}>
                   + Timestamp
                 </Text>
               </Pressable>
@@ -331,17 +328,15 @@ export default function NotesScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 4,
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: 5,
+                  gap: 5,
+                  paddingHorizontal: spacing.md,
+                  height: 32,
                   borderRadius: radius.full,
-                  backgroundColor: colors.surfaceMuted,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  backgroundColor: colors.fill,
                 }}
               >
                 <Activity size={12} color={colors.primary} />
-                <Text style={{ fontSize: 11, fontWeight: "700", color: colors.text }}>
+                <Text style={[typography.label.sm, { color: colors.text }]}>
                   + Severity scale
                 </Text>
               </Pressable>
@@ -378,40 +373,27 @@ export default function NotesScreen() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: spacing.md,
-              borderRadius: radius.lg,
-              backgroundColor: pinned
-                ? isDark
-                  ? "rgba(245, 158, 11, 0.15)"
-                  : "rgba(254, 243, 199, 0.5)"
-                : colors.surfaceMuted,
-              borderWidth: 1,
-              borderColor: pinned
-                ? isDark
-                  ? "rgba(245, 158, 11, 0.4)"
-                  : "rgba(245, 158, 11, 0.3)"
-                : colors.border,
+              padding: spacing.lg,
+              borderRadius: 18,
+              borderCurve: "continuous",
+              backgroundColor: pinned ? colors.warningSoft : colors.fill,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
               <Pin
                 size={18}
-                color={pinned ? "#D97706" : colors.textSubtle}
-                fill={pinned ? "#D97706" : "none"}
+                color={pinned ? colors.warning : colors.textSubtle}
+                fill={pinned ? colors.warning : "none"}
               />
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "700",
-                    color: pinned ? colors.text : colors.text,
-                  }}
+                  style={[typography.title.sm, { color: colors.text }]}
                 >
                   {pinned
                     ? t("notes.composing.pinToggle.on")
                     : t("notes.composing.pinToggle.off")}
                 </Text>
-                <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>
+                <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
                   Pinned notes stay at the top of your journal
                 </Text>
               </View>
@@ -419,15 +401,17 @@ export default function NotesScreen() {
 
             <View
               style={{
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                backgroundColor: pinned ? "#D97706" : colors.border,
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                backgroundColor: pinned ? colors.warning : "transparent",
+                borderWidth: pinned ? 0 : 1.5,
+                borderColor: colors.textSubtle,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              {pinned && <Check size={14} color="#FFF" strokeWidth={3} />}
+              {pinned && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
             </View>
           </Pressable>
 
@@ -472,15 +456,10 @@ export default function NotesScreen() {
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xs }}>
           <View
             style={{
-              backgroundColor: isDark
-                ? "rgba(59, 130, 246, 0.12)"
-                : colors.primarySoft,
-              borderRadius: radius.xl,
-              padding: spacing.md,
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(59, 130, 246, 0.25)"
-                : "rgba(37, 99, 235, 0.18)",
+              backgroundColor: colors.primarySoft,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              padding: spacing.lg,
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
@@ -489,6 +468,7 @@ export default function NotesScreen() {
                   width: 42,
                   height: 42,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
@@ -501,8 +481,8 @@ export default function NotesScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
                   <Text
                     style={[
-                      typography.title.sm,
-                      { color: colors.text, fontWeight: "800" },
+                      typography.title.md,
+                      { color: colors.text },
                     ]}
                   >
                     Personal Health Journal
@@ -512,7 +492,7 @@ export default function NotesScreen() {
                 <Text
                   style={[
                     typography.body.sm,
-                    { color: colors.textMuted, marginTop: 2, lineHeight: 18 },
+                    { color: colors.textMuted, marginTop: 2 },
                   ]}
                 >
                   Record symptoms, prepare questions for your doctor, or track daily wellness.
@@ -523,16 +503,14 @@ export default function NotesScreen() {
         </View>
 
         {/* Quick Starter Templates Carousel */}
-        <View style={{ marginTop: spacing.md }}>
+        <View style={{ marginTop: spacing.xl }}>
           <Text
             style={[
               typography.overline,
               {
                 color: colors.textSubtle,
-                letterSpacing: 1.2,
-                fontWeight: "700",
-                paddingHorizontal: spacing.lg,
-                marginBottom: spacing.xs,
+                paddingHorizontal: spacing.lg + 2,
+                marginBottom: spacing.sm,
               },
             ]}
           >
@@ -556,23 +534,20 @@ export default function NotesScreen() {
                   style={({ pressed }) => ({
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 8,
                     paddingHorizontal: spacing.md,
-                    paddingVertical: 8,
-                    borderRadius: radius.lg,
+                    height: 40,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
                     backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    opacity: pressed ? 0.8 : 1,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: isDark ? colors.borderStrong : colors.separator,
+                    opacity: pressed ? 0.75 : 1,
                   })}
                 >
-                  <Icon size={14} color={colors.primary} strokeWidth={2.2} />
+                  <Icon size={15} color={colors.primary} strokeWidth={2.2} />
                   <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: colors.text,
-                    }}
+                    style={[typography.label.md, { color: colors.text }]}
                   >
                     {tmpl.title}
                   </Text>
@@ -583,17 +558,16 @@ export default function NotesScreen() {
         </View>
 
         {/* Search Bar */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.surfaceMuted,
-              borderRadius: radius.xl,
-              borderWidth: 1,
-              borderColor: colors.border,
-              paddingHorizontal: spacing.md,
-              height: 44,
+              backgroundColor: colors.fill,
+              borderRadius: 12,
+              borderCurve: "continuous",
+              paddingHorizontal: 12,
+              height: 42,
             }}
           >
             <Search size={17} color={colors.textSubtle} strokeWidth={2.2} />
@@ -605,7 +579,8 @@ export default function NotesScreen() {
               style={{
                 flex: 1,
                 paddingHorizontal: spacing.sm,
-                fontSize: 13.5,
+                fontSize: 16,
+                fontFamily: typography.body.md.fontFamily,
                 color: colors.text,
                 height: "100%",
               }}
@@ -619,28 +594,28 @@ export default function NotesScreen() {
                 onPress={() => setSearchQuery("")}
                 hitSlop={8}
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  backgroundColor: colors.border,
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: colors.textSubtle,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <X size={13} color={colors.text} strokeWidth={2.4} />
+                <X size={12} color={colors.surface} strokeWidth={3} />
               </Pressable>
             )}
           </View>
         </View>
 
         {/* Category Filters Carousel */}
-        <View style={{ marginTop: spacing.sm }}>
+        <View style={{ marginTop: spacing.md }}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{
               paddingHorizontal: spacing.lg,
-              gap: spacing.xs,
+              gap: spacing.sm,
               paddingVertical: 4,
             }}
           >
@@ -680,9 +655,9 @@ export default function NotesScreen() {
         {/* Notes List Content */}
         {isLoading ? (
           <View style={{ padding: spacing.lg, gap: spacing.md }}>
-            <Skeleton height={120} radius={20} />
-            <Skeleton height={120} radius={20} />
-            <Skeleton height={120} radius={20} />
+            <Skeleton height={130} radius={radius.card} />
+            <Skeleton height={130} radius={radius.card} />
+            <Skeleton height={130} radius={radius.card} />
           </View>
         ) : isError ? (
           <View style={{ paddingHorizontal: spacing.lg }}>
@@ -727,7 +702,7 @@ export default function NotesScreen() {
           <View
             style={{
               paddingHorizontal: spacing.lg,
-              paddingTop: spacing.sm,
+              paddingTop: spacing.md,
               gap: spacing.md,
             }}
           >
@@ -739,28 +714,19 @@ export default function NotesScreen() {
                   key={n.id}
                   onPress={() => startEdit(n)}
                   style={({ pressed }) => ({
-                    backgroundColor: pressed
-                      ? colors.surfaceMuted
-                      : n.pinned
-                      ? isDark
-                        ? "rgba(245, 158, 11, 0.08)"
-                        : "rgba(254, 243, 199, 0.35)"
-                      : colors.surface,
-                    borderRadius: radius.xl,
-                    padding: spacing.md,
-                    borderWidth: 1,
+                    backgroundColor: colors.surface,
+                    borderRadius: radius.card,
+                    borderCurve: "continuous",
+                    padding: spacing.lg,
+                    borderWidth: n.pinned ? 1 : StyleSheet.hairlineWidth,
                     borderColor: n.pinned
-                      ? isDark
-                        ? "rgba(245, 158, 11, 0.35)"
-                        : "rgba(245, 158, 11, 0.3)"
+                      ? colors.warning + "59"
                       : isDark
-                      ? "rgba(255, 255, 255, 0.08)"
-                      : colors.border,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDark ? 0 : 0.03,
-                    shadowRadius: 5,
-                    elevation: 1,
+                      ? colors.borderStrong
+                      : colors.separator,
+                    ...(isDark ? null : shadow.sm),
+                    opacity: pressed ? 0.9 : 1,
+                    transform: [{ scale: pressed ? 0.985 : 1 }],
                   })}
                 >
                   {/* Top Note Row: Title + Pinned Badge */}
@@ -774,10 +740,9 @@ export default function NotesScreen() {
                   >
                     <Text
                       style={[
-                        typography.title.sm,
+                        typography.title.md,
                         {
                           color: colors.text,
-                          fontWeight: "800",
                           flex: 1,
                         },
                       ]}
@@ -793,24 +758,21 @@ export default function NotesScreen() {
                           alignItems: "center",
                           gap: 3,
                           paddingHorizontal: 8,
-                          paddingVertical: 2.5,
+                          paddingVertical: 3,
                           borderRadius: radius.full,
-                          backgroundColor: isDark
-                            ? "rgba(245, 158, 11, 0.25)"
-                            : "#FEF3C7",
-                          borderWidth: 1,
-                          borderColor: "rgba(245, 158, 11, 0.3)",
+                          backgroundColor: colors.warningSoft,
                         }}
                       >
-                        <Pin size={10} color="#D97706" fill="#D97706" />
+                        <Pin size={10} color={colors.warning} fill={colors.warning} />
                         <Text
-                          style={{
-                            fontSize: 10,
-                            fontWeight: "800",
-                            color: "#D97706",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.4,
-                          }}
+                          style={[
+                            typography.label.xs,
+                            {
+                              fontSize: 10,
+                              color: colors.warning,
+                              textTransform: "uppercase",
+                            },
+                          ]}
                         >
                           Pinned
                         </Text>
@@ -821,10 +783,9 @@ export default function NotesScreen() {
                   {/* Note Body Text */}
                   <Text
                     style={[
-                      typography.body.sm,
+                      typography.body.md,
                       {
-                        color: colors.text,
-                        lineHeight: 20,
+                        color: colors.textMuted,
                         marginTop: spacing.xs,
                       },
                     ]}
@@ -840,28 +801,22 @@ export default function NotesScreen() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       marginTop: spacing.md,
-                      paddingTop: spacing.xs,
-                      borderTopWidth: 1,
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.06)"
-                        : "rgba(0, 0, 0, 0.04)",
+                      paddingTop: spacing.md,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderColor: colors.separator,
                     }}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                      <CalendarDays size={11} color={colors.textSubtle} strokeWidth={2.2} />
+                      <CalendarDays size={12} color={colors.textSubtle} strokeWidth={2.2} />
                       <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "600",
-                          color: colors.textSubtle,
-                        }}
+                        style={[typography.caption, { color: colors.textSubtle }]}
                       >
                         {formattedDate}
                       </Text>
                     </View>
 
                     {/* Action buttons with isolated touch handlers */}
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       {/* Pin button */}
                       <Pressable
                         onPress={(e) => {
@@ -870,17 +825,20 @@ export default function NotesScreen() {
                         }}
                         hitSlop={6}
                         style={{
-                          padding: 5,
+                          width: 32,
+                          height: 32,
+                          alignItems: "center",
+                          justifyContent: "center",
                           borderRadius: radius.full,
                           backgroundColor: n.pinned
-                            ? "rgba(245, 158, 11, 0.15)"
-                            : colors.surfaceMuted,
+                            ? colors.warningSoft
+                            : colors.fill,
                         }}
                       >
                         <Pin
-                          size={13}
-                          color={n.pinned ? "#D97706" : colors.textSubtle}
-                          fill={n.pinned ? "#D97706" : "none"}
+                          size={14}
+                          color={n.pinned ? colors.warning : colors.textSubtle}
+                          fill={n.pinned ? colors.warning : "none"}
                         />
                       </Pressable>
 
@@ -892,12 +850,15 @@ export default function NotesScreen() {
                         }}
                         hitSlop={6}
                         style={{
-                          padding: 5,
+                          width: 32,
+                          height: 32,
+                          alignItems: "center",
+                          justifyContent: "center",
                           borderRadius: radius.full,
-                          backgroundColor: colors.surfaceMuted,
+                          backgroundColor: colors.primarySoft,
                         }}
                       >
-                        <Pencil size={13} color={colors.primary} />
+                        <Pencil size={14} color={colors.primary} />
                       </Pressable>
 
                       {/* Delete button */}
@@ -908,12 +869,15 @@ export default function NotesScreen() {
                         }}
                         hitSlop={6}
                         style={{
-                          padding: 5,
+                          width: 32,
+                          height: 32,
+                          alignItems: "center",
+                          justifyContent: "center",
                           borderRadius: radius.full,
-                          backgroundColor: colors.dangerSoft ?? colors.surfaceMuted,
+                          backgroundColor: colors.dangerSoft,
                         }}
                       >
-                        <Trash2 size={13} color={colors.danger} />
+                        <Trash2 size={14} color={colors.danger} />
                       </Pressable>
                     </View>
                   </View>
@@ -938,7 +902,7 @@ function FilterChip({
   active: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, typography } = useTheme();
 
   return (
     <Pressable
@@ -948,20 +912,17 @@ function FilterChip({
         alignItems: "center",
         gap: 6,
         paddingHorizontal: spacing.md,
-        paddingVertical: 6,
+        height: 36,
         borderRadius: radius.full,
-        backgroundColor: active ? colors.primary : colors.surfaceMuted,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : colors.border,
-        opacity: pressed ? 0.8 : 1,
+        backgroundColor: active ? colors.primary : colors.fill,
+        opacity: pressed ? 0.75 : 1,
       })}
     >
       <Text
-        style={{
-          fontSize: 13,
-          fontWeight: active ? "700" : "600",
-          color: active ? colors.onPrimary : colors.text,
-        }}
+        style={[
+          typography.label.md,
+          { color: active ? colors.onPrimary : colors.text },
+        ]}
       >
         {label}
       </Text>
@@ -972,15 +933,14 @@ function FilterChip({
           borderRadius: 999,
           backgroundColor: active
             ? "rgba(255, 255, 255, 0.25)"
-            : colors.border,
+            : colors.fillStrong,
         }}
       >
         <Text
-          style={{
-            fontSize: 11,
-            fontWeight: "700",
-            color: active ? colors.onPrimary : colors.textMuted,
-          }}
+          style={[
+            typography.label.xs,
+            { letterSpacing: 0, color: active ? colors.onPrimary : colors.textMuted },
+          ]}
         >
           {count}
         </Text>

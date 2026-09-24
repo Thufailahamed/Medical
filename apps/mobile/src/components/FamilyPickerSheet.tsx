@@ -52,6 +52,7 @@ export function FamilyPickerSheet({
             width: 40,
             height: 40,
             borderRadius: 20,
+            borderCurve: "continuous",
             backgroundColor: colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",

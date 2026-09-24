@@ -277,6 +277,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   card: {
     borderRadius: 16,
+    borderCurve: "continuous",
     borderWidth: 1,
     padding: 14,
     gap: 10,
@@ -284,6 +285,7 @@ const styles = StyleSheet.create({
   closeBtn: {
     paddingVertical: 12,
     borderRadius: 12,
+    borderCurve: "continuous",
     borderWidth: 1,
     alignItems: "center",
   },

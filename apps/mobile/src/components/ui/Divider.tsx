@@ -1,30 +1,33 @@
 import React from "react";
-import { View, type StyleProp, type ViewStyle } from "react-native";
+import { View, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 
 type Props = {
   spacing?: number;
+  /** Left inset in px — e.g. to align with row text after an icon tile (iOS grouped lists). */
+  inset?: number;
   vertical?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-export function Divider({ spacing: s = 0, vertical, style }: Props) {
+export function Divider({ spacing: s = 0, inset, vertical, style }: Props) {
   const { colors } = useTheme();
   return (
     <View
       style={[
         vertical
           ? {
-              width: 1,
+              width: StyleSheet.hairlineWidth,
               alignSelf: "stretch",
-              backgroundColor: colors.border,
+              backgroundColor: colors.separator,
               marginHorizontal: s,
             }
           : {
-              height: 1,
+              height: StyleSheet.hairlineWidth,
               alignSelf: "stretch",
-              backgroundColor: colors.border,
+              backgroundColor: colors.separator,
               marginVertical: s,
+              marginLeft: inset,
             },
         style,
       ]}

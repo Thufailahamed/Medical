@@ -32,6 +32,7 @@ export function SourceCitationCard({ citation }: Props) {
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 10,
+        borderCurve: "continuous",
         backgroundColor: pressed ? "#E0F2FE" : "#F0F9FF",
         borderWidth: 1,
         borderColor: "#BAE6FD",
@@ -56,7 +57,7 @@ export function SourceCitationCard({ citation }: Props) {
           style={{
             fontSize: 11.5,
             fontWeight: "700",
-            color: "#0369A1",
+            color: colors.primary,
             fontFamily: fontFamily.bodyBold,
           }}
           numberOfLines={1}
@@ -64,13 +65,13 @@ export function SourceCitationCard({ citation }: Props) {
           Source: {citation.title}
         </AppText>
         {citation.date ? (
-          <AppText style={{ fontSize: 10, color: "#0284C7" }}>
+          <AppText style={{ fontSize: 10, color: colors.primary }}>
             Recorded on {citation.date}
           </AppText>
         ) : null}
       </View>
 
-      <ChevronRight size={14} color="#0284C7" strokeWidth={2.5} />
+      <ChevronRight size={14} color={colors.primary} strokeWidth={2.5} />
     </Pressable>
   );
 }

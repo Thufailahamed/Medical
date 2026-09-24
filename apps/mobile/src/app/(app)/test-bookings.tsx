@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import {
   TestTube2,
@@ -31,15 +31,16 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; icon: any }
 > = {
-  pending: { label: "Pending", color: "#D97706", bg: "#FEF3C7", icon: Clock },
-  confirmed: { label: "Confirmed", color: "#2563EB", bg: "#DBEAFE", icon: CheckCircle2 },
-  phlebotomist_assigned: { label: "Assigned", color: "#7C3AED", bg: "#EDE9FE", icon: Home },
-  sample_collection_en_route: { label: "En Route", color: "#EA580C", bg: "#FFEDD5", icon: Truck },
-  sample_collected: { label: "Collected", color: "#0891B2", bg: "#CFFAFE", icon: FlaskConical },
-  in_progress: { label: "In Progress", color: "#7C3AED", bg: "#EDE9FE", icon: Loader2 },
-  completed: { label: "Completed", color: "#059669", bg: "#ECFDF5", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", color: "#DC2626", bg: "#FEE2E2", icon: XCircle },
-  rescheduled: { label: "Rescheduled", color: "#64748B", bg: "#F1F5F9", icon: Calendar },
+  // bg = status colour at ~12% alpha → tinted badge that works in dark mode.
+  pending: { label: "Pending", color: "#D97706", bg: "#D977061F", icon: Clock },
+  confirmed: { label: "Confirmed", color: "#2563EB", bg: "#2563EB1F", icon: CheckCircle2 },
+  phlebotomist_assigned: { label: "Assigned", color: "#7C3AED", bg: "#7C3AED1F", icon: Home },
+  sample_collection_en_route: { label: "En Route", color: "#EA580C", bg: "#EA580C1F", icon: Truck },
+  sample_collected: { label: "Collected", color: "#0891B2", bg: "#0891B21F", icon: FlaskConical },
+  in_progress: { label: "In Progress", color: "#7C3AED", bg: "#7C3AED1F", icon: Loader2 },
+  completed: { label: "Completed", color: "#059669", bg: "#0596691F", icon: CheckCircle2 },
+  cancelled: { label: "Cancelled", color: "#DC2626", bg: "#DC26261F", icon: XCircle },
+  rescheduled: { label: "Rescheduled", color: "#64748B", bg: "#64748B1F", icon: Calendar },
 };
 
 function getStatusConfig(status: string) {
@@ -47,7 +48,7 @@ function getStatusConfig(status: string) {
     STATUS_CONFIG[status] || {
       label: status,
       color: "#64748B",
-      bg: "#F1F5F9",
+      bg: "#64748B1F",
       icon: Clock,
     }
   );
@@ -73,7 +74,7 @@ const TABS = [
 ];
 
 export default function TestBookingsScreen() {
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors, spacing, fontFamily, typography, radius, shadow, scheme } = useTheme();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("active");
 
@@ -90,14 +91,17 @@ export default function TestBookingsScreen() {
           accessibilityRole="button"
           style={({ pressed }) => ({
             marginHorizontal: spacing.lg,
-            marginBottom: spacing.sm,
-            borderRadius: 18,
+            marginBottom: spacing.md,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: pressed ? colors.primary : colors.border,
-            padding: spacing.md,
-            gap: 12,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+            padding: spacing.lg,
+            gap: 14,
+            opacity: pressed ? 0.94 : 1,
             transform: [{ scale: pressed ? 0.985 : 1 }],
+            ...(scheme === "dark" ? {} : shadow.sm),
           })}
         >
           <View
@@ -122,10 +126,8 @@ export default function TestBookingsScreen() {
               <StatusIcon size={13} color={statusCfg.color} strokeWidth={2.4} />
               <Text
                 style={{
-                  fontSize: 12,
-                  fontWeight: "800",
+                  ...typography.label.sm,
                   color: statusCfg.color,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 {statusCfg.label}
@@ -134,22 +136,22 @@ export default function TestBookingsScreen() {
 
             <Text
               style={{
-                fontSize: 15,
-                fontWeight: "800",
+                ...typography.title.md,
+                letterSpacing: -0.4,
                 color: colors.text,
-                fontFamily: fontFamily.bodyBold,
               }}
             >
               {formatPrice(item.totalPrice)}
             </Text>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View
               style={{
                 width: 40,
                 height: 40,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -164,29 +166,34 @@ export default function TestBookingsScreen() {
             <Text
               numberOfLines={2}
               style={{
-                fontSize: 15,
-                fontWeight: "800",
+                ...typography.title.sm,
+                fontFamily: typography.title.md.fontFamily,
                 color: colors.text,
-                fontFamily: fontFamily.bodyBold,
                 flex: 1,
-                letterSpacing: -0.2,
               }}
             >
               {item.itemName || "Test Booking"}
             </Text>
           </View>
 
-          <View style={{ gap: 6 }}>
+          <View
+            style={{
+              gap: 8,
+              paddingTop: 12,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.separator,
+            }}
+          >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Calendar size={14} color={colors.textMuted} strokeWidth={2.3} />
-              <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600", flex: 1 }}>
+              <Calendar size={14} color={colors.textSubtle} strokeWidth={2.3} />
+              <Text style={{ ...typography.body.sm, color: colors.textMuted, flex: 1 }}>
                 {formatDisplayDate(item.scheduledDate)} · {item.scheduledTimeSlot}
               </Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <MapPin size={14} color={colors.textMuted} strokeWidth={2.3} />
+              <MapPin size={14} color={colors.textSubtle} strokeWidth={2.3} />
               <Text
-                style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600", flex: 1 }}
+                style={{ ...typography.body.sm, color: colors.textMuted, flex: 1 }}
                 numberOfLines={1}
               >
                 {item.collectionAddress?.line1}, {item.collectionAddress?.city}
@@ -197,7 +204,7 @@ export default function TestBookingsScreen() {
         </Pressable>
       );
     },
-    [colors, fontFamily, router, spacing]
+    [colors, fontFamily, router, spacing, typography, radius, shadow, scheme]
   );
 
   return (
@@ -208,12 +215,11 @@ export default function TestBookingsScreen() {
         style={{
           flexDirection: "row",
           marginHorizontal: spacing.lg,
-          marginBottom: spacing.md,
-          backgroundColor: colors.surface,
-          borderRadius: 14,
-          padding: 4,
-          borderWidth: 1,
-          borderColor: colors.border,
+          marginBottom: spacing.lg,
+          backgroundColor: colors.fill,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          padding: 3,
         }}
       >
         {TABS.map((tab) => {
@@ -224,18 +230,20 @@ export default function TestBookingsScreen() {
               onPress={() => setActiveTab(tab.key)}
               style={{
                 flex: 1,
-                paddingVertical: 10,
-                borderRadius: 11,
-                backgroundColor: active ? colors.primary : "transparent",
+                minHeight: 34,
+                justifyContent: "center",
+                borderRadius: 10,
+                borderCurve: "continuous",
+                backgroundColor: active ? colors.surface : "transparent",
                 alignItems: "center",
+                ...(active && scheme !== "dark" ? shadow.xs : {}),
               }}
             >
               <Text
                 style={{
-                  fontSize: 13,
-                  fontWeight: active ? "800" : "600",
-                  color: active ? colors.onPrimary : colors.textMuted,
-                  fontFamily: active ? fontFamily.bodyBold : fontFamily.bodySemibold,
+                  ...typography.label.md,
+                  color: active ? colors.text : colors.textMuted,
+                  fontFamily: active ? fontFamily.bodyBold : fontFamily.bodyMedium,
                 }}
               >
                 {tab.label}
@@ -248,7 +256,7 @@ export default function TestBookingsScreen() {
       {isLoading ? (
         <View style={{ padding: spacing.lg, gap: spacing.sm }}>
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} height={130} radius={18} />
+            <Skeleton key={i} height={150} radius={radius.card} />
           ))}
         </View>
       ) : error ? (

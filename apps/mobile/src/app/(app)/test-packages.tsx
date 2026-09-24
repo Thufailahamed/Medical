@@ -8,6 +8,7 @@ import {
   Pressable,
   TextInput,
   Image,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -70,25 +71,26 @@ export function PackageThumbnail({
     setFailed(false);
   }, [slug]);
 
-  let bg = "#F0F9FF";
-  let border = "#BAE6FD";
+  // Translucent tone tints (fg @ ~12% / ~24% alpha) — work in light & dark.
+  let bg = "#0284C71F";
+  let border = "#0284C73D";
   let iconColor = "#0284C7";
 
   if (slug.includes("diabet") || name.includes("diabet")) {
-    bg = "#ECFDF5";
-    border = "#A7F3D0";
+    bg = "#0596691F";
+    border = "#0596693D";
     iconColor = "#059669";
   } else if (slug.includes("cardiac") || name.includes("cardiac") || name.includes("heart")) {
-    bg = "#FFF1F2";
-    border = "#FECDD3";
+    bg = "#E11D481F";
+    border = "#E11D483D";
     iconColor = "#E11D48";
   } else if (slug.includes("senior") || name.includes("senior")) {
-    bg = "#FAF5FF";
-    border = "#E9D5FF";
+    bg = "#9333EA1F";
+    border = "#9333EA3D";
     iconColor = "#9333EA";
   } else if (slug.includes("essential") || name.includes("essential")) {
-    bg = "#FFFBEB";
-    border = "#FDE68A";
+    bg = "#D977061F";
+    border = "#D977063D";
     iconColor = "#D97706";
   }
 
@@ -100,9 +102,10 @@ export function PackageThumbnail({
         width: size,
         height: size,
         borderRadius,
+        borderCurve: "continuous",
         overflow: "hidden",
         backgroundColor: bg,
-        borderWidth: 1,
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: border,
         alignItems: "center",
         justifyContent: "center",
@@ -236,7 +239,7 @@ export const CURATED_PACKAGES = [
 
 export default function TestPackagesScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
   const router = useRouter();
 
   const [search, setSearch] = useState("");
@@ -274,13 +277,14 @@ export default function TestPackagesScreen() {
         <Pressable
           onPress={() => router.push(`/test-package-detail/${item.slug}`)}
           style={({ pressed }) => ({
-            opacity: pressed ? 0.7 : 1,
+            opacity: pressed ? 0.85 : 1,
+            transform: [{ scale: pressed ? 0.985 : 1 }],
           })}
         >
           <Card
             style={{
               marginHorizontal: 16,
-              marginBottom: 12,
+              marginBottom: 14,
               padding: 0,
               overflow: "hidden",
             }}
@@ -289,19 +293,18 @@ export default function TestPackagesScreen() {
             {hasSavings && (
               <View
                 style={{
-                  backgroundColor: "#059669",
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
+                  backgroundColor: colors.successSoft,
+                  paddingHorizontal: 16,
+                  paddingVertical: 7,
                   flexDirection: "row",
                   alignItems: "center",
                 }}
               >
-                <TrendingDown size={14} color="#fff" />
+                <TrendingDown size={14} color={colors.success} strokeWidth={2.4} />
                 <Text
                   style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: "#fff",
+                    ...typography.label.sm,
+                    color: colors.success,
                     marginLeft: 6,
                   }}
                 >
@@ -310,7 +313,7 @@ export default function TestPackagesScreen() {
               </View>
             )}
 
-            <View style={{ padding: 16 }}>
+            <View style={{ padding: 16, paddingVertical: 18 }}>
               <View
                 style={{
                   flexDirection: "row",
@@ -326,8 +329,7 @@ export default function TestPackagesScreen() {
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      fontSize: 16,
-                      fontWeight: "700",
+                      ...typography.title.md,
                       color: colors.text,
                       marginBottom: 4,
                     }}
@@ -338,10 +340,9 @@ export default function TestPackagesScreen() {
                   {item.description && (
                     <Text
                       style={{
-                        fontSize: 13,
+                        ...typography.body.sm,
                         color: colors.textMuted,
-                        marginBottom: 8,
-                        lineHeight: 18,
+                        marginBottom: 10,
                       }}
                       numberOfLines={2}
                     >
@@ -363,11 +364,11 @@ export default function TestPackagesScreen() {
                           alignItems: "center",
                         }}
                       >
-                        <TestTube2 size={14} color={colors.textMuted} />
+                        <TestTube2 size={13} color={colors.textSubtle} />
                         <Text
                           style={{
-                            fontSize: 12,
-                            color: colors.textMuted,
+                            ...typography.caption,
+                            color: colors.textSubtle,
                             marginLeft: 4,
                           }}
                         >
@@ -382,11 +383,11 @@ export default function TestPackagesScreen() {
                         alignItems: "center",
                       }}
                     >
-                      <Clock size={14} color={colors.textMuted} />
+                      <Clock size={13} color={colors.textSubtle} />
                       <Text
                         style={{
-                          fontSize: 12,
-                          color: colors.textMuted,
+                          ...typography.caption,
+                          color: colors.textSubtle,
                           marginLeft: 4,
                         }}
                       >
@@ -407,8 +408,8 @@ export default function TestPackagesScreen() {
                     <>
                       <Text
                         style={{
-                          fontSize: 11,
-                          color: colors.textMuted,
+                          ...typography.caption,
+                          color: colors.textSubtle,
                           textDecorationLine: "line-through",
                         }}
                       >
@@ -416,9 +417,8 @@ export default function TestPackagesScreen() {
                       </Text>
                       <Text
                         style={{
-                          fontSize: 18,
-                          fontWeight: "800",
-                          color: "#059669",
+                          ...typography.title.lg,
+                          color: colors.text,
                         }}
                       >
                         {formatPrice(item.discountPrice)}
@@ -427,19 +427,26 @@ export default function TestPackagesScreen() {
                   ) : (
                     <Text
                       style={{
-                        fontSize: 18,
-                        fontWeight: "800",
+                        ...typography.title.lg,
                         color: colors.text,
                       }}
                     >
                       {formatPrice(item.price)}
                     </Text>
                   )}
-                  <ChevronRight
-                    size={16}
-                    color={colors.textMuted}
-                    style={{ marginTop: 4 }}
-                  />
+                  <View
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: colors.primarySoft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginTop: 8,
+                    }}
+                  >
+                    <ChevronRight size={15} color={colors.primary} strokeWidth={2.5} />
+                  </View>
                 </View>
               </View>
             </View>
@@ -447,7 +454,7 @@ export default function TestPackagesScreen() {
         </Pressable>
       );
     },
-    [colors, router]
+    [colors, router, typography]
   );
 
   return (
@@ -465,30 +472,30 @@ export default function TestPackagesScreen() {
           marginBottom: 16,
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: colors.surface,
-          borderRadius: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 10,
-          borderWidth: 1,
-          borderColor: colors.border,
+          backgroundColor: colors.fill,
+          borderRadius: radius.md,
+          borderCurve: "continuous",
+          paddingHorizontal: 12,
+          minHeight: 44,
         }}
       >
-        <Search size={18} color={colors.textMuted} />
+        <Search size={17} color={colors.textSubtle} strokeWidth={2.25} />
         <TextInput
           placeholder="Search packages..."
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textSubtle}
           value={search}
           onChangeText={setSearch}
           style={{
             flex: 1,
-            marginLeft: 10,
-            fontSize: 15,
+            marginLeft: 8,
+            paddingVertical: 10,
+            ...typography.body.md,
             color: colors.text,
           }}
         />
         {search.length > 0 && (
-          <Pressable onPress={() => setSearch("")}>
-            <X size={18} color={colors.textMuted} />
+          <Pressable onPress={() => setSearch("")} hitSlop={8}>
+            <X size={17} color={colors.textSubtle} />
           </Pressable>
         )}
       </View>
@@ -500,8 +507,9 @@ export default function TestPackagesScreen() {
             <Skeleton
               key={i}
               style={{
-                height: 120,
-                borderRadius: 16,
+                height: 128,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
                 marginBottom: 12,
               }}
             />

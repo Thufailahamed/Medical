@@ -193,6 +193,7 @@ export default function DoctorTeleconsultPage() {
             paddingHorizontal: 22,
             paddingVertical: 10,
             borderRadius: radius.lg,
+            borderCurve: "continuous",
             backgroundColor: "rgba(255,255,255,0.18)",
           }}
         >

@@ -37,6 +37,7 @@ import {
 import { Screen, ErrorState, Skeleton } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { withOpacity } from "@/constants/theme";
+import { tonePalette, type Tone } from "@/theme/tone";
 
 const STARTER_TEMPLATES = [
   {
@@ -82,30 +83,37 @@ const STARTER_TEMPLATES = [
   },
 ];
 
-const SPECIALTY_PALETTES: Record<string, { bg: string; fg: string; border: string }> = {
-  Cardiology: { bg: "#FEF2F2", fg: "#EF4444", border: "#FECACA" },
-  Endocrinology: { bg: "#EFF6FF", fg: "#2563EB", border: "#BFDBFE" },
-  Gastroenterology: { bg: "#FFFBEB", fg: "#D97706", border: "#FDE68A" },
-  "General Practice": { bg: "#ECFDF5", fg: "#059669", border: "#A7F3D0" },
-  Pulmonology: { bg: "#F5F3FF", fg: "#7C3AED", border: "#DDD6FE" },
+// Specialty colour coding, expressed as theme tones so it adapts to dark mode.
+const SPECIALTY_TONES: Record<string, Tone> = {
+  Cardiology: "danger",
+  Endocrinology: "primary",
+  Gastroenterology: "warning",
+  "General Practice": "accent",
+  Pulmonology: "info",
 };
 
-function getTemplatePalette(specialty?: string, name?: string) {
-  if (specialty && SPECIALTY_PALETTES[specialty]) {
-    return SPECIALTY_PALETTES[specialty];
+function getTemplatePalette(specialty: string | undefined, name: string | undefined, colors: any) {
+  let tone: Tone;
+  if (specialty && SPECIALTY_TONES[specialty]) {
+    tone = SPECIALTY_TONES[specialty];
+  } else {
+    const tones = Object.values(SPECIALTY_TONES);
+    let hash = 0;
+    for (let i = 0; i < (name || "").length; i++) {
+      hash = (hash + name.charCodeAt(i)) % tones.length;
+    }
+    tone = tones[hash];
   }
-  const palettes = Object.values(SPECIALTY_PALETTES);
-  let hash = 0;
-  for (let i = 0; i < (name || "").length; i++) {
-    hash = (hash + name.charCodeAt(i)) % palettes.length;
-  }
-  return palettes[hash];
+  const tp = tonePalette(tone, colors);
+  return { bg: tp.bg, fg: tp.fg, border: "transparent" };
 }
 
 export default function RxTemplatesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const hairline = isDark ? colors.borderStrong : colors.separator;
 
   const { data, isLoading, isError, refetch, isRefetching } = useDoctorRxTemplates();
   const deleteMutation = useDeleteRxTemplate();
@@ -185,40 +193,36 @@ export default function RxTemplatesScreen() {
   const renderItem = useCallback(
     ({ item }: { item: any }) => {
       const meds = Array.isArray(item.medicines) ? item.medicines : [];
-      const palette = getTemplatePalette(item.specialty, item.name);
+      const palette = getTemplatePalette(item.specialty, item.name, colors);
 
       return (
         <Pressable
           onPress={() => router.push(`/(doctor)/rx-templates/${item.id}` as any)}
           style={({ pressed }) => ({
             backgroundColor: colors.surface,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: colors.borderSubtle ?? colors.border,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: hairline,
             padding: 16,
             marginHorizontal: spacing.lg,
             marginBottom: 12,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.03,
-            shadowRadius: 6,
-            elevation: 1.5,
-            opacity: pressed ? 0.92 : 1,
-            transform: [{ scale: pressed ? 0.995 : 1 }],
+            ...(isDark ? {} : shadow.sm),
+            opacity: pressed ? 0.94 : 1,
+            transform: [{ scale: pressed ? 0.99 : 1 }],
           })}
         >
           {/* Card Top: Icon, Title, Diagnosis, Usage Badge, Trash */}
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
             <View
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
+                width: 42,
+                height: 42,
+                borderRadius: 13,
+                borderCurve: "continuous",
                 backgroundColor: palette.bg,
                 alignItems: "center",
                 justifyContent: "center",
-                borderWidth: 1,
-                borderColor: palette.border,
               }}
             >
               <Pill size={20} color={palette.fg} strokeWidth={2.2} />
@@ -227,12 +231,7 @@ export default function RxTemplatesScreen() {
             <View style={{ flex: 1, minWidth: 0 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "700",
-                    color: colors.text,
-                    fontFamily: fontFamily.displayBold,
-                  }}
+                  style={[typography.title.md, { color: colors.text }]}
                   numberOfLines={1}
                 >
                   {item.name}
@@ -243,11 +242,7 @@ export default function RxTemplatesScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
                   <Stethoscope size={12} color={colors.textSubtle} />
                   <Text
-                    style={{
-                      fontSize: 12.5,
-                      color: colors.textMuted,
-                      fontFamily: fontFamily.body,
-                    }}
+                    style={[typography.body.sm, { color: colors.textMuted, flexShrink: 1 }]}
                     numberOfLines={1}
                   >
                     {item.diagnosis}
@@ -267,18 +262,12 @@ export default function RxTemplatesScreen() {
                     paddingHorizontal: 8,
                     paddingVertical: 3,
                     borderRadius: 12,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                   }}
                 >
                   <Flame size={11} color={colors.primary} />
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "800",
-                      color: colors.primary,
-                      fontFamily: fontFamily.bodyBold,
-                    }}
-                  >
+                  <Text style={[typography.label.xs, { color: colors.primary, fontVariant: ["tabular-nums"] }]}>
                     {item.useCount}x
                   </Text>
                 </View>
@@ -290,13 +279,14 @@ export default function RxTemplatesScreen() {
                 style={({ pressed }) => ({
                   width: 32,
                   height: 32,
-                  borderRadius: 10,
-                  backgroundColor: pressed ? (colors.dangerSoft || "#FEE2E2") : colors.surfaceMuted,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  backgroundColor: pressed ? colors.dangerSoft : colors.fill,
                   alignItems: "center",
                   justifyContent: "center",
                 })}
               >
-                <Trash2 size={14} color={colors.danger || "#EF4444"} strokeWidth={2} />
+                <Trash2 size={14} color={colors.danger} strokeWidth={2} />
               </Pressable>
             </View>
           </View>
@@ -310,7 +300,7 @@ export default function RxTemplatesScreen() {
               marginTop: 12,
               paddingTop: 10,
               borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: colors.borderSubtle ?? colors.border,
+              borderTopColor: colors.separator,
             }}
           >
             {meds.map((m: any, idx: number) => (
@@ -323,28 +313,20 @@ export default function RxTemplatesScreen() {
                   backgroundColor: colors.surfaceMuted,
                   paddingHorizontal: 9,
                   paddingVertical: 4,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: colors.borderSubtle ?? colors.border,
+                  borderRadius: 9,
+                  borderCurve: "continuous",
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: "600",
-                    color: colors.text,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
+                <Text style={[typography.label.sm, { color: colors.text }]}>
                   {m.name}
                 </Text>
                 {m.dosage ? (
-                  <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                  <Text style={[typography.caption, { fontSize: 11, color: colors.textMuted }]}>
                     {m.dosage}
                   </Text>
                 ) : null}
                 {m.frequency ? (
-                  <Text style={{ fontSize: 10, color: colors.textSubtle }}>
+                  <Text style={[typography.caption, { fontSize: 11, color: colors.textSubtle }]}>
                     • {m.frequency}
                   </Text>
                 ) : null}
@@ -362,18 +344,11 @@ export default function RxTemplatesScreen() {
               paddingTop: 8,
             }}
           >
-            <Text style={{ fontSize: 11.5, color: colors.textSubtle }}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               {meds.length} medication{meds.length === 1 ? "" : "s"} configured
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "700",
-                  color: colors.primary,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
+              <Text style={[typography.label.md, { color: colors.primary }]}>
                 View & Edit
               </Text>
               <ChevronRight size={13} color={colors.primary} strokeWidth={2.4} />
@@ -382,7 +357,7 @@ export default function RxTemplatesScreen() {
         </Pressable>
       );
     },
-    [colors, spacing, typography, fontFamily, radius, router, handleDelete]
+    [colors, spacing, typography, fontFamily, radius, router, handleDelete, hairline, isDark, shadow]
   );
 
   return (
@@ -409,47 +384,25 @@ export default function RxTemplatesScreen() {
               onPress={() => router.back()}
               hitSlop={8}
               style={({ pressed }) => ({
-                width: 38,
-                height: 38,
-                borderRadius: 13,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle ?? colors.border,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                borderCurve: "continuous",
+                backgroundColor: pressed ? colors.fillStrong : colors.fill,
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.8 : 1,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.04,
-                shadowRadius: 3,
-                elevation: 1,
               })}
             >
               <ChevronLeft size={20} color={colors.text} strokeWidth={2.4} />
             </Pressable>
 
             <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  typography.display.lg,
-                  {
-                    color: colors.text,
-                    fontFamily: fontFamily.displayBold,
-                    fontSize: 22,
-                    lineHeight: 28,
-                    letterSpacing: -0.4,
-                  },
-                ]}
-              >
+              <Text numberOfLines={1} style={[typography.display.sm, { color: colors.text }]}>
                 {t("rxTemplates.title", { defaultValue: "Rx Templates" })}
               </Text>
               <Text
-                style={{
-                  fontSize: 12.5,
-                  color: colors.textMuted,
-                  marginTop: 1,
-                  fontFamily: fontFamily.body,
-                }}
+                numberOfLines={1}
+                style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
               >
                 {t("rxTemplates.subtitle", {
                   defaultValue: "Saved prescriptions for quick prescribing",
@@ -467,26 +420,15 @@ export default function RxTemplatesScreen() {
               alignItems: "center",
               gap: 6,
               paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 20,
-              backgroundColor: colors.primary,
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 2,
-              opacity: pressed ? 0.85 : 1,
+              height: 36,
+              borderRadius: 999,
+              borderCurve: "continuous",
+              backgroundColor: colors.primarySoft,
+              opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Plus size={15} color="#FFFFFF" strokeWidth={2.6} />
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontWeight: "700",
-                fontSize: 13,
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
+            <Plus size={15} color={colors.primary} strokeWidth={2.6} />
+            <Text style={[typography.label.md, { color: colors.primary }]}>
               {t("rxTemplates.newCta", { defaultValue: "New" })}
             </Text>
           </Pressable>
@@ -500,16 +442,15 @@ export default function RxTemplatesScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: colors.surface,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle ?? colors.border,
-                paddingHorizontal: 14,
-                height: 44,
-                gap: 10,
+                backgroundColor: colors.fill,
+                borderRadius: 12,
+                borderCurve: "continuous",
+                paddingHorizontal: 12,
+                height: 40,
+                gap: 8,
               }}
             >
-              <Search size={16} color={colors.primary} strokeWidth={2.2} />
+              <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
               <RNTextInput
                 value={search}
                 onChangeText={setSearch}
@@ -517,9 +458,8 @@ export default function RxTemplatesScreen() {
                 placeholderTextColor={colors.textSubtle}
                 style={{
                   flex: 1,
-                  fontSize: 13.5,
+                  ...typography.body.md,
                   color: colors.text,
-                  fontFamily: fontFamily.body,
                   paddingVertical: 0,
                 }}
               />
@@ -531,12 +471,13 @@ export default function RxTemplatesScreen() {
                     width: 20,
                     height: 20,
                     borderRadius: 10,
-                    backgroundColor: colors.surfaceMuted,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.fillStrong,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <X size={12} color={colors.textMuted} strokeWidth={2.2} />
+                  <X size={12} color={colors.textMuted} strokeWidth={2.6} />
                 </Pressable>
               )}
             </View>
@@ -555,21 +496,19 @@ export default function RxTemplatesScreen() {
                       key={cat}
                       onPress={() => setSelectedCategory(cat)}
                       style={{
-                        paddingVertical: 5,
+                        height: 32,
+                        justifyContent: "center",
                         paddingHorizontal: 12,
-                        borderRadius: 16,
-                        backgroundColor: active ? colors.primary : colors.surface,
-                        borderWidth: 1,
-                        borderColor: active ? colors.primary : colors.borderSubtle ?? colors.border,
+                        borderRadius: 999,
+                        borderCurve: "continuous",
+                        backgroundColor: active ? colors.primarySoft : colors.fill,
                       }}
                     >
                       <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: active ? "700" : "600",
-                          color: active ? "#FFFFFF" : colors.textMuted,
-                          fontFamily: active ? fontFamily.bodyBold : fontFamily.body,
-                        }}
+                        style={[
+                          active ? typography.label.md : typography.body.sm,
+                          { color: active ? colors.primary : colors.textMuted },
+                        ]}
                       >
                         {cat}
                       </Text>
@@ -590,10 +529,11 @@ export default function RxTemplatesScreen() {
               key={i}
               style={{
                 padding: 16,
-                borderRadius: 20,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
                 backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle ?? colors.border,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
                 gap: 12,
               }}
             >
@@ -635,14 +575,11 @@ export default function RxTemplatesScreen() {
               alignItems: "center",
               padding: 24,
               backgroundColor: colors.surface,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.03,
-              shadowRadius: 8,
-              elevation: 2,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
+              ...(isDark ? {} : shadow.sm),
             }}
           >
             <View
@@ -650,9 +587,8 @@ export default function RxTemplatesScreen() {
                 width: 64,
                 height: 64,
                 borderRadius: 22,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
-                borderWidth: 1,
-                borderColor: withOpacity(colors.primary, 0.25),
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 16,
@@ -663,12 +599,9 @@ export default function RxTemplatesScreen() {
 
             <Text
               style={[
-                typography.title.md,
+                typography.title.lg,
                 {
                   color: colors.text,
-                  fontFamily: fontFamily.displayBold,
-                  fontSize: 19,
-                  fontWeight: "800",
                   textAlign: "center",
                   marginBottom: 6,
                 },
@@ -678,14 +611,10 @@ export default function RxTemplatesScreen() {
             </Text>
 
             <Text
-              style={{
-                fontSize: 13.5,
-                color: colors.textMuted,
-                textAlign: "center",
-                lineHeight: 20,
-                paddingHorizontal: 8,
-                marginBottom: 20,
-              }}
+              style={[
+                typography.body.sm,
+                { color: colors.textMuted, textAlign: "center", paddingHorizontal: 8, marginBottom: 20 },
+              ]}
             >
               Save standard drug combinations, dosages, and instructions to autofill your prescription composer with a single tap.
             </Text>
@@ -700,30 +629,20 @@ export default function RxTemplatesScreen() {
                 justifyContent: "center",
                 gap: 8,
                 width: "100%",
-                paddingVertical: 14,
-                borderRadius: 16,
+                height: 52,
+                borderRadius: radius.button,
+                borderCurve: "continuous",
                 backgroundColor: colors.primary,
                 opacity: pressed || isInstalling ? 0.85 : 1,
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.25,
-                shadowRadius: 6,
-                elevation: 3,
+                ...(isDark ? {} : shadow.primary),
               })}
             >
               {isInstalling ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={colors.onPrimary} size="small" />
               ) : (
-                <Sparkles size={16} color="#FFFFFF" strokeWidth={2.4} />
+                <Sparkles size={16} color={colors.onPrimary} strokeWidth={2.4} />
               )}
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 14,
-                  fontWeight: "700",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
+              <Text style={[typography.title.sm, { color: colors.onPrimary }]}>
                 {isInstalling ? "Installing Starter Protocols..." : "Install 4 Recommended Starters"}
               </Text>
             </Pressable>
@@ -737,48 +656,41 @@ export default function RxTemplatesScreen() {
                 justifyContent: "center",
                 gap: 6,
                 width: "100%",
-                paddingVertical: 12,
-                borderRadius: 16,
-                backgroundColor: colors.surfaceMuted,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle ?? colors.border,
+                height: 48,
+                borderRadius: radius.button,
+                borderCurve: "continuous",
+                backgroundColor: colors.primarySoft,
                 marginTop: 10,
-                opacity: pressed ? 0.85 : 1,
+                opacity: pressed ? 0.75 : 1,
               })}
             >
-              <Plus size={16} color={colors.text} strokeWidth={2.4} />
-              <Text
-                style={{
-                  color: colors.text,
-                  fontSize: 13.5,
-                  fontWeight: "700",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
+              <Plus size={16} color={colors.primary} strokeWidth={2.4} />
+              <Text style={[typography.title.sm, { color: colors.primary }]}>
                 Create Custom Template
               </Text>
             </Pressable>
           </View>
 
           {/* Starter Pack Preview Section */}
-          <View style={{ marginTop: 22 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 }}>
-              <Sparkles size={14} color={colors.primary} />
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: colors.textMuted,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.6,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
+          <View style={{ marginTop: spacing.xxl }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12, paddingHorizontal: 4 }}>
+              <Sparkles size={16} color={colors.primary} />
+              <Text style={[typography.title.lg, { color: colors.text }]}>
                 Included in Starter Pack
               </Text>
             </View>
 
-            <View style={{ gap: 10 }}>
+            <View
+              style={{
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
+                overflow: "hidden",
+                ...(isDark ? {} : shadow.sm),
+              }}
+            >
               {STARTER_TEMPLATES.map((st, i) => (
                 <View
                   key={i}
@@ -786,31 +698,22 @@ export default function RxTemplatesScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: 14,
-                    borderRadius: 16,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.borderSubtle ?? colors.border,
+                    minHeight: 60,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
                   }}
                 >
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "700",
-                        color: colors.text,
-                        fontFamily: fontFamily.bodyBold,
-                      }}
+                      style={[typography.title.sm, { color: colors.text }]}
                       numberOfLines={1}
                     >
                       {st.name}
                     </Text>
                     <Text
-                      style={{
-                        fontSize: 12,
-                        color: colors.textMuted,
-                        marginTop: 2,
-                      }}
+                      style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
                       numberOfLines={1}
                     >
                       {st.medicines.map((m) => m.name).join(", ")}
@@ -822,10 +725,11 @@ export default function RxTemplatesScreen() {
                       paddingHorizontal: 8,
                       paddingVertical: 3,
                       borderRadius: 10,
+                      borderCurve: "continuous",
                       marginLeft: 10,
                     }}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: "800", color: colors.primary }}>
+                    <Text style={[typography.label.xs, { color: colors.primary }]}>
                       {st.medicines.length} meds
                     </Text>
                   </View>
@@ -845,10 +749,11 @@ export default function RxTemplatesScreen() {
         >
           <View
             style={{
-              width: 52,
-              height: 52,
-              borderRadius: 26,
-              backgroundColor: colors.surfaceMuted,
+              width: 56,
+              height: 56,
+              borderRadius: 18,
+              borderCurve: "continuous",
+              backgroundColor: colors.fill,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 12,
@@ -856,25 +761,14 @@ export default function RxTemplatesScreen() {
           >
             <Search size={22} color={colors.textSubtle} strokeWidth={2} />
           </View>
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "700",
-              color: colors.text,
-              fontFamily: fontFamily.bodyBold,
-              marginBottom: 4,
-            }}
-          >
+          <Text style={[typography.title.md, { color: colors.text, marginBottom: 4 }]}>
             No matching templates
           </Text>
           <Text
-            style={{
-              fontSize: 13,
-              color: colors.textMuted,
-              textAlign: "center",
-              lineHeight: 18,
-              marginBottom: 16,
-            }}
+            style={[
+              typography.body.sm,
+              { color: colors.textMuted, textAlign: "center", marginBottom: 16 },
+            ]}
           >
             No template matched "{search}". Try searching for another medicine or condition.
           </Text>
@@ -882,12 +776,14 @@ export default function RxTemplatesScreen() {
             onPress={() => setSearch("")}
             style={{
               paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 16,
+              height: 36,
+              justifyContent: "center",
+              borderRadius: 999,
+              borderCurve: "continuous",
               backgroundColor: colors.primarySoft,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
+            <Text style={[typography.label.md, { color: colors.primary }]}>
               Clear Search
             </Text>
           </Pressable>

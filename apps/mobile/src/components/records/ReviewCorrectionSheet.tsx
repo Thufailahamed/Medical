@@ -68,8 +68,8 @@ export function ReviewCorrectionSheet({
           {/* Header */}
           <View style={[styles.header, { borderColor: colors.border }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <View style={[styles.sparkleBadge, { backgroundColor: "#FEF3C7" }]}>
-                <Sparkles size={16} color="#D97706" />
+              <View style={[styles.sparkleBadge, { backgroundColor: colors.warningSoft }]}>
+                <Sparkles size={16} color={colors.warning} />
               </View>
               <View>
                 <AppText style={[styles.title, { color: colors.text, fontFamily: fontFamily.bodyBold }]}>
@@ -184,6 +184,7 @@ const styles = StyleSheet.create({
   itemCard: {
     padding: 12,
     borderRadius: 14,
+    borderCurve: "continuous",
     borderWidth: 1,
     gap: 8,
   },

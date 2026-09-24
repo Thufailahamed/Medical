@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   BackHandler,
+  StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -73,6 +74,40 @@ function formatPrice(price: number) {
   return `Rs. ${price.toLocaleString("en-LK")}`;
 }
 
+// Section title with a tinted icon tile — presentation only.
+function StepTitle({ icon: Icon, children }: { icon?: any; children: any }) {
+  const { colors, typography } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 14,
+      }}
+    >
+      {Icon ? (
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 9,
+            borderCurve: "continuous",
+            backgroundColor: colors.primarySoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon size={16} color={colors.primary} strokeWidth={2.3} />
+        </View>
+      ) : null}
+      <Text style={{ ...typography.title.md, color: colors.text, flex: 1 }}>
+        {children}
+      </Text>
+    </View>
+  );
+}
+
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -117,8 +152,9 @@ export default function BookTestScreen() {
   }>();
 
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius, shadow, scheme } = useTheme();
   const router = useRouter();
+  const hairline = scheme === "dark" ? colors.borderStrong : colors.separator;
   const toast = useToast();
 
   const [step, setStep] = useState(0);
@@ -324,7 +360,7 @@ export default function BookTestScreen() {
         onBack={handleBack}
       />
 
-      <View style={{ marginBottom: 12 }}>
+      <View style={{ marginBottom: 16 }}>
         <Stepper steps={steps} current={step} />
       </View>
 
@@ -332,44 +368,48 @@ export default function BookTestScreen() {
       <View
         style={{
           marginHorizontal: 16,
-          marginBottom: 12,
+          marginBottom: 16,
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
-          padding: 12,
-          borderRadius: 14,
+          gap: 12,
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
           backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: hairline,
+          ...(scheme === "dark" ? {} : shadow.sm),
         }}
       >
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 11,
-            backgroundColor: colors.primary,
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            backgroundColor: colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
           {bookingType === "single_test" ? (
-            <TestTube2 size={16} color={colors.onPrimary} strokeWidth={2.3} />
+            <TestTube2 size={18} color={colors.primary} strokeWidth={2.3} />
           ) : (
-            <Package size={16} color={colors.onPrimary} strokeWidth={2.3} />
+            <Package size={18} color={colors.primary} strokeWidth={2.3} />
           )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             numberOfLines={1}
-            style={{ fontSize: 14, fontWeight: "800", color: colors.text }}
+            style={{ ...typography.title.sm, fontFamily: typography.title.md.fontFamily, color: colors.text }}
           >
             {itemName}
           </Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: "600", marginTop: 1 }}>
-            {formatPrice(price)}
-          </Text>
         </View>
+        <Text style={{ ...typography.title.md, letterSpacing: -0.4, color: colors.text }}>
+          {formatPrice(price)}
+        </Text>
       </View>
 
       <ScrollView
@@ -386,20 +426,19 @@ export default function BookTestScreen() {
                   marginHorizontal: 16,
                   marginBottom: 12,
                   padding: 14,
-                  backgroundColor: "#FEF3C7",
-                  borderColor: "#FCD34D",
-                  borderWidth: 1,
+                  backgroundColor: colors.warningSoft,
+                  borderWidth: 0,
                 }}
+                elevated={false}
               >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <AlertCircle size={18} color="#D97706" />
+                  <AlertCircle size={18} color={colors.warning} strokeWidth={2.3} />
                   <Text
                     style={{
                       flex: 1,
                       marginLeft: 10,
-                      fontSize: 13,
-                      color: "#92400E",
-                      lineHeight: 20,
+                      ...typography.body.sm,
+                      color: colors.text,
                     }}
                   >
                     This test requires {fastingHours} hours of fasting. Please
@@ -411,16 +450,7 @@ export default function BookTestScreen() {
 
             {/* Date Selection */}
             <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 12,
-                }}
-              >
-                <CalendarIcon size={16} color={colors.primary} /> Select Date
-              </Text>
+              <StepTitle icon={CalendarIcon}>Select Date</StepTitle>
 
               <ScrollView
                 horizontal
@@ -433,31 +463,29 @@ export default function BookTestScreen() {
                       key={d.value}
                       onPress={() => setValue("scheduledDate", d.value)}
                       style={{
-                        width: 60,
+                        width: 58,
                         alignItems: "center",
                         paddingVertical: 10,
-                        borderRadius: 12,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
                         marginRight: 8,
                         backgroundColor: selected
                           ? colors.primary
-                          : colors.surfaceMuted,
-                        borderWidth: selected ? 0 : 1,
-                        borderColor: colors.border,
+                          : colors.fill,
+                        ...(selected && scheme !== "dark" ? shadow.primary : {}),
                       }}
                     >
                       <Text
                         style={{
-                          fontSize: 12,
-                          fontWeight: "500",
-                          color: selected ? "#fff" : colors.textMuted,
+                          ...typography.label.xs,
+                          color: selected ? "rgba(255,255,255,0.85)" : colors.textMuted,
                         }}
                       >
                         {d.label}
                       </Text>
                       <Text
                         style={{
-                          fontSize: 20,
-                          fontWeight: "700",
+                          ...typography.title.lg,
                           color: selected ? "#fff" : colors.text,
                           marginVertical: 2,
                         }}
@@ -466,8 +494,9 @@ export default function BookTestScreen() {
                       </Text>
                       <Text
                         style={{
+                          ...typography.caption,
                           fontSize: 11,
-                          color: selected ? "#ffffffcc" : colors.textMuted,
+                          color: selected ? "rgba(255,255,255,0.8)" : colors.textSubtle,
                         }}
                       >
                         {d.month}
@@ -480,16 +509,7 @@ export default function BookTestScreen() {
 
             {/* Time Slot Selection */}
             <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 12,
-                }}
-              >
-                <Clock size={16} color={colors.primary} /> Select Time Slot
-              </Text>
+              <StepTitle icon={Clock}>Select Time Slot</StepTitle>
 
               <View
                 style={{
@@ -511,36 +531,36 @@ export default function BookTestScreen() {
                       }
                       style={{
                         width: "47%",
+                        flexGrow: 1,
                         padding: 14,
-                        borderRadius: 14,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
                         backgroundColor: selected
-                          ? colors.primary
-                          : colors.surfaceMuted,
-                        borderWidth: selected ? 0 : 1,
-                        borderColor: colors.border,
-                        gap: 6,
+                          ? colors.primarySoft
+                          : colors.fill,
+                        borderWidth: 1.5,
+                        borderColor: selected ? colors.primary : "transparent",
+                        gap: 4,
                       }}
                     >
                       <SlotIcon
                         size={18}
-                        color={selected ? "#fff" : colors.primary}
+                        color={selected ? colors.primary : colors.textMuted}
                         strokeWidth={2.3}
                       />
                       <Text
                         style={{
-                          fontSize: 13,
-                          fontWeight: "800",
-                          color: selected ? "#fff" : colors.text,
+                          ...typography.title.xs,
+                          color: colors.text,
+                          marginTop: 4,
                         }}
                       >
                         {slot.label}
                       </Text>
                       <Text
                         style={{
-                          fontSize: 12,
-                          fontWeight: "600",
-                          color: selected ? "#ffffffcc" : colors.textMuted,
-                          marginTop: 2,
+                          ...typography.caption,
+                          color: selected ? colors.primary : colors.textMuted,
                         }}
                       >
                         {slot.time}
@@ -557,16 +577,7 @@ export default function BookTestScreen() {
         {step === 1 && (
           <View>
             <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 16,
-                }}
-              >
-                <MapPin size={16} color={colors.primary} /> Collection Address
-              </Text>
+              <StepTitle icon={MapPin}>Collection Address</StepTitle>
 
               <Controller
                 control={control}
@@ -673,16 +684,7 @@ export default function BookTestScreen() {
           <View>
             {/* Booking Summary */}
             <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 14,
-                }}
-              >
-                Booking Summary
-              </Text>
+              <StepTitle>Booking Summary</StepTitle>
 
               {/* Test/Package */}
               <View
@@ -690,24 +692,39 @@ export default function BookTestScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   marginBottom: 12,
+                  padding: 12,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.surfaceMuted,
                 }}
               >
-                {bookingType === "single_test" ? (
-                  <TestTube2 size={20} color={colors.primary} />
-                ) : (
-                  <Package size={20} color={colors.primary} />
-                )}
-                <View style={{ marginLeft: 10, flex: 1 }}>
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {bookingType === "single_test" ? (
+                    <TestTube2 size={18} color={colors.primary} strokeWidth={2.3} />
+                  ) : (
+                    <Package size={18} color={colors.primary} strokeWidth={2.3} />
+                  )}
+                </View>
+                <View style={{ marginLeft: 12, flex: 1 }}>
                   <Text
                     style={{
-                      fontSize: 15,
-                      fontWeight: "600",
+                      ...typography.title.sm,
                       color: colors.text,
                     }}
                   >
                     {itemName}
                   </Text>
-                  <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                  <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 1 }}>
                     {bookingType === "single_test"
                       ? "Single Test"
                       : "Health Package"}
@@ -715,8 +732,7 @@ export default function BookTestScreen() {
                 </View>
                 <Text
                   style={{
-                    fontSize: 16,
-                    fontWeight: "700",
+                    ...typography.title.lg,
                     color: colors.text,
                   }}
                 >
@@ -729,16 +745,15 @@ export default function BookTestScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  paddingVertical: 10,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.border,
+                  paddingVertical: 12,
+                  minHeight: 48,
                 }}
               >
-                <CalendarIcon size={18} color={colors.textMuted} />
+                <CalendarIcon size={18} color={colors.textSubtle} />
                 <Text
                   style={{
-                    marginLeft: 10,
-                    fontSize: 14,
+                    marginLeft: 12,
+                    ...typography.label.lg,
                     color: colors.text,
                   }}
                 >
@@ -746,8 +761,8 @@ export default function BookTestScreen() {
                 </Text>
                 <Text
                   style={{
-                    marginLeft: 16,
-                    fontSize: 14,
+                    marginLeft: 12,
+                    ...typography.body.md,
                     color: colors.textMuted,
                   }}
                 >
@@ -760,19 +775,18 @@ export default function BookTestScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "flex-start",
-                  paddingVertical: 10,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.border,
+                  paddingVertical: 12,
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.separator,
                 }}
               >
-                <MapPin size={18} color={colors.textMuted} />
+                <MapPin size={18} color={colors.textSubtle} />
                 <Text
                   style={{
-                    marginLeft: 10,
-                    fontSize: 14,
+                    marginLeft: 12,
+                    ...typography.body.md,
                     color: colors.text,
                     flex: 1,
-                    lineHeight: 20,
                   }}
                 >
                   {formValues.addressLine1}
@@ -789,16 +803,16 @@ export default function BookTestScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  paddingVertical: 10,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.border,
+                  paddingVertical: 12,
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.separator,
                 }}
               >
-                <Phone size={18} color={colors.textMuted} />
+                <Phone size={18} color={colors.textSubtle} />
                 <Text
                   style={{
-                    marginLeft: 10,
-                    fontSize: 14,
+                    marginLeft: 12,
+                    ...typography.body.md,
                     color: colors.text,
                   }}
                 >
@@ -809,35 +823,26 @@ export default function BookTestScreen() {
 
             {/* Payment Method */}
             <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 12,
-                }}
-              >
-                Payment Method
-              </Text>
+              <StepTitle icon={CreditCard}>Payment Method</StepTitle>
 
               {[
                 {
                   value: "cash",
                   label: "Cash on Collection",
                   desc: "Pay when the phlebotomist arrives",
-                  icon: <Banknote size={20} color="#059669" />,
+                  icon: <Banknote size={18} color={colors.success} strokeWidth={2.3} />,
                 },
                 {
                   value: "card",
                   label: "Card Payment",
                   desc: "Pay now with your debit/credit card",
-                  icon: <CreditCard size={20} color="#3B82F6" />,
+                  icon: <CreditCard size={18} color={colors.info} strokeWidth={2.3} />,
                 },
                 {
                   value: "online",
                   label: "Online Payment",
                   desc: "Pay via PayHere gateway",
-                  icon: <Wallet size={20} color="#8B5CF6" />,
+                  icon: <Wallet size={18} color={colors.primary} strokeWidth={2.3} />,
                 },
               ].map((method) => (
                 <Pressable
@@ -852,25 +857,39 @@ export default function BookTestScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     padding: 14,
-                    borderRadius: 12,
+                    minHeight: 64,
+                    borderRadius: 16,
+                    borderCurve: "continuous",
                     backgroundColor:
                       formValues.paymentMethod === method.value
-                        ? colors.primary + "10"
+                        ? colors.primarySoft
                         : colors.surfaceMuted,
-                    borderWidth: 1,
+                    borderWidth: 1.5,
                     borderColor:
                       formValues.paymentMethod === method.value
                         ? colors.primary
-                        : colors.border,
+                        : "transparent",
                     marginBottom: 8,
                   }}
                 >
-                  {method.icon}
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.surface,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {method.icon}
+                  </View>
                   <View style={{ marginLeft: 12, flex: 1 }}>
                     <Text
                       style={{
+                        ...typography.title.xs,
                         fontSize: 14,
-                        fontWeight: "600",
                         color: colors.text,
                       }}
                     >
@@ -878,7 +897,7 @@ export default function BookTestScreen() {
                     </Text>
                     <Text
                       style={{
-                        fontSize: 12,
+                        ...typography.caption,
                         color: colors.textMuted,
                         marginTop: 2,
                       }}
@@ -889,9 +908,10 @@ export default function BookTestScreen() {
                   {formValues.paymentMethod === method.value && (
                     <View
                       style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 11,
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
                         backgroundColor: colors.primary,
                         alignItems: "center",
                         justifyContent: "center",
@@ -911,20 +931,19 @@ export default function BookTestScreen() {
                   marginHorizontal: 16,
                   marginBottom: 12,
                   padding: 14,
-                  backgroundColor: "#FEF3C7",
-                  borderColor: "#FCD34D",
-                  borderWidth: 1,
+                  backgroundColor: colors.warningSoft,
+                  borderWidth: 0,
                 }}
+                elevated={false}
               >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Info size={18} color="#D97706" />
+                  <Info size={18} color={colors.warning} strokeWidth={2.3} />
                   <Text
                     style={{
                       flex: 1,
                       marginLeft: 10,
-                      fontSize: 13,
-                      color: "#92400E",
-                      lineHeight: 20,
+                      ...typography.body.sm,
+                      color: colors.text,
                     }}
                   >
                     Remember: Do not eat or drink anything (except water) for{" "}
@@ -944,12 +963,12 @@ export default function BookTestScreen() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.bgElevated ?? colors.surface,
           paddingHorizontal: 16,
-          paddingVertical: 16,
+          paddingTop: 12,
           paddingBottom: 32,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
           flexDirection: "row",
           alignItems: "center",
           gap: 12,
@@ -958,7 +977,7 @@ export default function BookTestScreen() {
         {step > 0 && (
           <View style={{ flex: 1 }}>
             <Button
-              variant="outline"
+              variant="secondary"
               title="Back"
               icon={ChevronLeft}
               onPress={handleBack}

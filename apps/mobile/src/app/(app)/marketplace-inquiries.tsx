@@ -83,11 +83,11 @@ export default function MyMarketplaceInquiriesScreen() {
     <Screen padded={false} edges={["top"]} bottomInset>
       <ScreenHeader back title={t("marketplace.inquiriesMine.title")} />
 
-      <View style={{ paddingHorizontal: spacing.lg }}>
+      <View style={{ paddingTop: spacing.xs }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.xs }}
+          contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}
         >
           {STATUS_FILTERS.map((s) => (
             <Chip
@@ -109,6 +109,7 @@ export default function MyMarketplaceInquiriesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           padding: spacing.lg,
+          paddingTop: spacing.xl,
           gap: spacing.md,
           paddingBottom: spacing.xxxxl,
         }}
@@ -130,12 +131,12 @@ export default function MyMarketplaceInquiriesScreen() {
         ) : null}
 
         {inquiries.map((i) => (
-          <Card key={i.id} style={{ gap: spacing.sm }}>
+          <Card key={i.id} style={{ gap: spacing.md }}>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.sm,
+                gap: spacing.md,
               }}
             >
               <Pressable
@@ -148,7 +149,7 @@ export default function MyMarketplaceInquiriesScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: spacing.sm,
+                  gap: spacing.md,
                   flex: 1,
                 }}
               >
@@ -169,8 +170,8 @@ export default function MyMarketplaceInquiriesScreen() {
                   >
                     <Text
                       style={[
-                        typography.title.sm,
-                        { color: colors.text, fontWeight: "700" },
+                        typography.title.md,
+                        { color: colors.text, flexShrink: 1 },
                       ]}
                       numberOfLines={1}
                     >
@@ -178,7 +179,7 @@ export default function MyMarketplaceInquiriesScreen() {
                     </Text>
                   </View>
                   <Text
-                    style={[typography.caption, { color: colors.textMuted }]}
+                    style={[typography.caption, { color: colors.textSubtle }]}
                   >
                     {formatDate(i.createdAt)}
                   </Text>
@@ -193,9 +194,11 @@ export default function MyMarketplaceInquiriesScreen() {
 
             <View
               style={{
-                backgroundColor: colors.surfaceMuted,
-                borderRadius: radius.md,
-                padding: spacing.sm,
+                backgroundColor: colors.fill,
+                borderRadius: 14,
+                borderCurve: "continuous",
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm + 2,
               }}
             >
               <Text
@@ -211,14 +214,19 @@ export default function MyMarketplaceInquiriesScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 5,
+                  alignSelf: "flex-start",
+                  gap: 6,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: 6,
+                  borderRadius: radius.full,
+                  backgroundColor: colors.successSoft,
                 }}
               >
-                <BadgeCheck size={13} color={colors.success} />
+                <BadgeCheck size={14} color={colors.success} />
                 <Text
                   style={[
-                    typography.caption,
-                    { color: colors.success, fontWeight: "600" },
+                    typography.label.sm,
+                    { color: colors.success },
                   ]}
                 >
                   {t("marketplace.inquiry.alreadyLinked")}
@@ -244,17 +252,17 @@ export default function MyMarketplaceInquiriesScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 6,
-                      paddingHorizontal: spacing.sm + 2,
-                      paddingVertical: 7,
+                      height: 36,
+                      paddingHorizontal: spacing.lg,
                       borderRadius: radius.full,
                       backgroundColor: colors.dangerSoft,
                     }}
                   >
-                    <Undo2 size={12} color={colors.danger} />
+                    <Undo2 size={14} color={colors.danger} />
                     <Text
                       style={[
-                        typography.caption,
-                        { color: colors.danger, fontWeight: "700" },
+                        typography.label.md,
+                        { color: colors.danger },
                       ]}
                     >
                       {t("marketplace.inquiry.withdraw")}

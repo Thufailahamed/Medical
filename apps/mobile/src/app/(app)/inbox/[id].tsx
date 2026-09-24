@@ -15,6 +15,7 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -32,7 +33,9 @@ export default function PatientConversationScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ id: string }>();
   const id = params?.id;
-  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography, fontFamily, scheme } = useTheme();
+  const theirBubble = scheme === "dark" ? colors.surfaceElevated : colors.surface;
+  const barBg = scheme === "dark" ? colors.bgElevated : colors.surface;
 
   const { data, isLoading, isError, refetch } = usePatientConversation(id);
   const sendMutation = useSendPatientMessage(id);
@@ -67,27 +70,30 @@ export default function PatientConversationScreen() {
       <View
         style={{
           alignItems: isMine ? "flex-end" : "flex-start",
-          marginVertical: 3,
-          paddingHorizontal: spacing.lg,
+          marginVertical: 4,
+          paddingHorizontal: spacing.md,
         }}
       >
         <View
           style={{
-            maxWidth: "78%",
+            maxWidth: "80%",
             paddingHorizontal: 14,
-            paddingVertical: 10,
-            borderRadius: 18,
-            backgroundColor: isMine ? colors.primary : colors.surfaceMuted,
-            borderTopRightRadius: isMine ? 4 : 18,
-            borderTopLeftRadius: isMine ? 18 : 4,
+            paddingVertical: 9,
+            borderRadius: 20,
+            borderCurve: "continuous",
+            backgroundColor: isMine ? colors.primary : theirBubble,
+            borderBottomRightRadius: isMine ? 6 : 20,
+            borderBottomLeftRadius: isMine ? 20 : 6,
+            borderWidth: isMine || scheme === "dark" ? 0 : StyleSheet.hairlineWidth,
+            borderColor: colors.separator,
           }}
         >
-          <Text style={{ color: isMine ? "#FFFFFF" : colors.text, fontSize: 15, lineHeight: 21, fontFamily: fontFamily.body }}>
+          <Text style={{ color: isMine ? colors.onPrimary : colors.text, fontSize: 16, lineHeight: 22, letterSpacing: -0.2, fontFamily: fontFamily.body }}>
             {item.body}
           </Text>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3, marginHorizontal: 4 }}>
-          <Text style={{ fontSize: 10, color: colors.textSubtle, fontFamily: fontFamily.body }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4, marginHorizontal: 8 }}>
+          <Text style={[typography.caption, { fontSize: 11, lineHeight: 14, color: colors.textSubtle }]}>
             {new Date(item.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
           </Text>
           {isMine && (item.readAt
@@ -116,35 +122,35 @@ export default function PatientConversationScreen() {
         {/* Header */}
         <View style={{
           flexDirection: "row", alignItems: "center",
-          paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-          borderBottomWidth: 1, borderBottomColor: colors.border,
-          backgroundColor: colors.surface,
+          paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+          borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.separator,
+          backgroundColor: barBg,
         }}>
           <Pressable
             onPress={() => router.back()}
             hitSlop={8}
             style={({ pressed }) => ({
-              width: 36, height: 36, borderRadius: 18, alignItems: "center",
+              width: 40, height: 40, borderRadius: 20, alignItems: "center",
               justifyContent: "center", marginRight: spacing.sm,
-              backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+              backgroundColor: pressed ? colors.fillStrong : colors.fill,
             })}
           >
-            <ChevronLeft size={22} color={colors.primary} />
+            <ChevronLeft size={22} color={colors.text} strokeWidth={2.4} />
           </Pressable>
           <View style={{
-            width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primarySoft,
-            alignItems: "center", justifyContent: "center", marginRight: spacing.sm, overflow: "hidden",
+            width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primarySoft,
+            alignItems: "center", justifyContent: "center", marginRight: spacing.md, overflow: "hidden",
           }}>
             {doctor?.photo
-              ? <Image source={{ uri: doctor.photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-              : <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13, fontFamily: fontFamily.displayBold }}>{initials}</Text>
+              ? <Image source={{ uri: doctor.photo }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+              : <Text style={[typography.label.lg, { color: colors.primary, fontFamily: fontFamily.displayBold }]}>{initials}</Text>
             }
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text, fontFamily: fontFamily.bodyBold }} numberOfLines={1}>
+            <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
               {doctor?.name || "Your Doctor"}
             </Text>
-            <Text style={{ fontSize: 11, color: isClosed ? colors.danger ?? "#E53E3E" : colors.textSubtle }}>
+            <Text style={[typography.caption, { color: isClosed ? colors.danger : colors.textSubtle, marginTop: 1 }]}>
               {isClosed ? "Chat closed by doctor" : "Online"}
             </Text>
           </View>
@@ -153,12 +159,13 @@ export default function PatientConversationScreen() {
         {/* Closed banner */}
         {isClosed && (
           <View style={{
-            flexDirection: "row", alignItems: "center", gap: 8,
-            backgroundColor: "#FEF3C7", paddingHorizontal: spacing.lg, paddingVertical: 10,
-            borderBottomWidth: 1, borderBottomColor: "#FCD34D",
+            flexDirection: "row", alignItems: "center", gap: 10,
+            backgroundColor: colors.warningSoft, marginHorizontal: spacing.md, marginTop: spacing.md,
+            paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+            borderRadius: 16, borderCurve: "continuous",
           }}>
-            <Lock size={14} color="#92400E" />
-            <Text style={{ color: "#92400E", fontSize: 13, fontFamily: fontFamily.body, flex: 1 }}>
+            <Lock size={15} color={colors.warning} strokeWidth={2.4} />
+            <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
               This conversation has been closed by your doctor. You can read past messages but cannot send new ones.
             </Text>
           </View>
@@ -170,9 +177,9 @@ export default function PatientConversationScreen() {
             {Array.from({ length: 6 }).map((_, i) => (
               <View key={i} style={{
                 alignItems: i % 2 === 0 ? "flex-start" : "flex-end",
-                marginVertical: 4,
+                marginVertical: 5,
               }}>
-                <Skeleton width={`${55 + (i % 4) * 10}%`} height={36} radius={18} />
+                <Skeleton width={`${55 + (i % 4) * 10}%`} height={40} radius={20} />
               </View>
             ))}
           </View>
@@ -193,7 +200,7 @@ export default function PatientConversationScreen() {
             onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
             ListEmptyComponent={
               <View style={{ padding: spacing.xl, alignItems: "center" }}>
-                <Text style={{ color: colors.textSubtle, textAlign: "center" }}>No messages yet</Text>
+                <Text style={[typography.body.sm, { color: colors.textSubtle, textAlign: "center" }]}>No messages yet</Text>
               </View>
             }
           />
@@ -204,7 +211,7 @@ export default function PatientConversationScreen() {
           <View style={{
             flexDirection: "row", alignItems: "flex-end",
             paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg,
-            borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface,
+            borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator, backgroundColor: barBg,
           }}>
             <TextInput
               value={draft}
@@ -214,9 +221,10 @@ export default function PatientConversationScreen() {
               placeholderTextColor={colors.textSubtle}
               style={{
                 flex: 1, minHeight: 40, maxHeight: 120,
-                borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10,
-                paddingTop: 10, fontSize: 15, color: colors.text,
-                fontFamily: fontFamily.body, backgroundColor: colors.surfaceMuted, lineHeight: 20,
+                borderRadius: 20, borderCurve: "continuous", paddingHorizontal: 16, paddingVertical: 10,
+                paddingTop: 10, fontSize: 16, color: colors.text,
+                fontFamily: fontFamily.body, backgroundColor: colors.fill, lineHeight: 20,
+                borderWidth: StyleSheet.hairlineWidth, borderColor: colors.separator,
               }}
             />
             <Pressable
@@ -225,13 +233,14 @@ export default function PatientConversationScreen() {
               style={({ pressed }) => ({
                 width: 40, height: 40, borderRadius: 20, marginLeft: 8,
                 alignItems: "center", justifyContent: "center",
-                backgroundColor: draft.trim() ? colors.primary : colors.surfaceMuted,
+                backgroundColor: draft.trim() ? colors.primary : colors.fill,
                 opacity: pressed ? 0.85 : 1,
+                transform: [{ scale: pressed ? 0.92 : 1 }],
               })}
             >
               {sendMutation.isPending
-                ? <ActivityIndicator color="#FFFFFF" size="small" />
-                : <Send size={18} color={draft.trim() ? "#FFFFFF" : colors.textSubtle} strokeWidth={2.25} />
+                ? <ActivityIndicator color={colors.onPrimary} size="small" />
+                : <Send size={18} color={draft.trim() ? colors.onPrimary : colors.textSubtle} strokeWidth={2.25} />
               }
             </Pressable>
           </View>
@@ -239,11 +248,11 @@ export default function PatientConversationScreen() {
           /* Locked footer when conversation is closed */
           <View style={{
             flexDirection: "row", alignItems: "center", justifyContent: "center",
-            paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border,
-            backgroundColor: colors.surfaceMuted, gap: 6,
+            paddingTop: spacing.md, paddingBottom: spacing.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator,
+            backgroundColor: barBg, gap: 6,
           }}>
             <Lock size={14} color={colors.textSubtle} />
-            <Text style={{ color: colors.textSubtle, fontSize: 13, fontFamily: fontFamily.body }}>
+            <Text style={[typography.body.sm, { color: colors.textSubtle }]}>
               Replies disabled — conversation closed
             </Text>
           </View>

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useTranslation } from "react-i18next";
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, StyleSheet } from "react-native";
 import { ChevronRight, Hospital, Percent } from "lucide-react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { Pill } from "@/components/ui/Pill";
@@ -89,7 +89,7 @@ export interface InsurancePlanCardProps {
 
 export function InsurancePlanCard({ plan, onPress }: InsurancePlanCardProps) {
   const { t } = useTranslation();
-  const { colors, fontFamily } = useTheme();
+  const { colors, fontFamily, typography, radius, shadow, scheme } = useTheme();
   const imgSrc = insurancePlanImage(plan.planType);
 
   return (
@@ -97,12 +97,14 @@ export function InsurancePlanCard({ plan, onPress }: InsurancePlanCardProps) {
       onPress={onPress}
       haptic="light"
       style={({ pressed }) => ({
-        padding: 16,
-        gap: 10,
-        borderRadius: 18,
+        padding: 18,
+        gap: 12,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
         backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+        ...(scheme === "dark" ? {} : shadow.sm),
       })}
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -114,17 +116,14 @@ export function InsurancePlanCard({ plan, onPress }: InsurancePlanCardProps) {
 
           <Text
             style={{
-              fontWeight: "800",
-              fontSize: 16,
+              ...typography.title.md,
               color: colors.text,
-              fontFamily: fontFamily.bodyBold,
-              letterSpacing: -0.3,
             }}
           >
             {plan.name}
           </Text>
 
-          <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600", marginTop: 4 }}>
+          <Text style={{ ...typography.body.sm, color: colors.textMuted, marginTop: 3 }}>
             {t("insurance.plan.coverageLabel", {
               amount: plan.coverageSummaryLkr.toLocaleString(),
             })}
@@ -138,9 +137,10 @@ export function InsurancePlanCard({ plan, onPress }: InsurancePlanCardProps) {
               width: 64,
               height: 64,
               borderRadius: 16,
+              borderCurve: "continuous",
               overflow: "hidden",
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.separator,
               backgroundColor: colors.surfaceMuted,
               flexShrink: 0,
             }}
@@ -159,23 +159,23 @@ export function InsurancePlanCard({ plan, onPress }: InsurancePlanCardProps) {
           flexDirection: "row",
           alignItems: "flex-end",
           justifyContent: "space-between",
-          marginTop: 2,
+          paddingTop: 12,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
         }}
       >
         <View>
           <Text
             style={{
-              fontWeight: "800",
-              fontSize: 18,
-              color: colors.primary,
-              fontFamily: fontFamily.bodyBold,
+              ...typography.display.sm,
+              color: colors.text,
             }}
           >
             {t("insurance.plan.monthly", {
               amount: plan.monthlyPremiumLkr.toLocaleString(),
             })}
           </Text>
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2, fontWeight: "600" }}>
+          <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 2 }}>
             {t("insurance.plan.annual", {
               amount: plan.annualPremiumLkr.toLocaleString(),
             })}
@@ -183,10 +183,11 @@ export function InsurancePlanCard({ plan, onPress }: InsurancePlanCardProps) {
         </View>
         <View
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            backgroundColor: colors.surfaceMuted,
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            borderCurve: "continuous",
+            backgroundColor: colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -196,7 +197,18 @@ export function InsurancePlanCard({ plan, onPress }: InsurancePlanCardProps) {
       </View>
 
       {plan.annualDiscountPct > 0 ? (
-        <Text style={{ fontSize: 12, color: "#059669", fontWeight: "700" }}>
+        <Text
+          style={{
+            ...typography.label.sm,
+            color: colors.success,
+            alignSelf: "flex-start",
+            backgroundColor: colors.successSoft,
+            paddingHorizontal: 10,
+            paddingVertical: 3,
+            borderRadius: 999,
+            overflow: "hidden",
+          }}
+        >
           {t("insurance.plan.save", {
             pct: plan.annualDiscountPct.toFixed(0),
           })}
@@ -228,20 +240,22 @@ function Meta({
   label: string;
   colors: any;
 }) {
+  const { typography } = useTheme();
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
-        backgroundColor: colors.surfaceMuted,
-        paddingHorizontal: 8,
+        gap: 5,
+        backgroundColor: colors.fill,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 8,
+        borderRadius: 999,
+        borderCurve: "continuous",
       }}
     >
       {icon}
-      <Text style={{ fontSize: 11, fontWeight: "700", color: colors.textMuted }}>
+      <Text style={{ ...typography.label.xs, color: colors.textMuted }}>
         {label}
       </Text>
     </View>

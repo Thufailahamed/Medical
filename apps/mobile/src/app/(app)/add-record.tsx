@@ -51,7 +51,7 @@ export default function AddRecordScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const { spacing, colors, typography, fontFamily } = useTheme();
+  const { spacing, colors, typography, fontFamily, scheme } = useTheme();
   const toast = useToast();
 
   const createRec = useCreateMedicalRecord();
@@ -202,7 +202,7 @@ export default function AddRecordScreen() {
       />
 
       <ScrollView
-        style={{ backgroundColor: "#FAF9FC" }}
+        style={{ backgroundColor: colors.bg }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
@@ -214,34 +214,36 @@ export default function AddRecordScreen() {
             marginBottom: spacing.md,
           }}
         >
-          <Card style={{ padding: spacing.md }}>
+          <Card style={{ padding: spacing.lg }}>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.xs,
+                gap: spacing.sm,
                 marginBottom: spacing.xs,
               }}
             >
-              <Upload size={16} color={colors.primary} strokeWidth={2.25} />
-              <Text
+              <View
                 style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: "#1D1B20",
-                  fontFamily: fontFamily.bodyBold,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
+              >
+                <Upload size={16} color={colors.primary} strokeWidth={2.25} />
+              </View>
+              <Text
+                style={[typography.title.md, { color: colors.text }]}
               >
                 {t("addRecord.attachOptional")}
               </Text>
             </View>
             <Text
-              style={{
-                fontSize: 12,
-                color: colors.textMuted,
-                marginBottom: spacing.sm,
-                fontFamily: fontFamily.body,
-              }}
+              style={[typography.body.sm, { color: colors.textMuted, marginBottom: spacing.md }]}
             >
               {t("addRecord.attachHelper")}
             </Text>
@@ -251,18 +253,20 @@ export default function AddRecordScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: spacing.sm,
-                  padding: spacing.sm,
-                  borderRadius: 12,
-                  backgroundColor: "#F4F2F8",
+                  gap: spacing.md,
+                  padding: spacing.md,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
                 }}
               >
                 <View
                   style={{
                     width: 44,
                     height: 44,
-                    borderRadius: 10,
-                    backgroundColor: "#FFFFFF",
+                    borderRadius: 12,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -275,28 +279,30 @@ export default function AddRecordScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "700",
-                      color: "#1D1B20",
-                      fontFamily: fontFamily.bodyBold,
-                    }}
+                    style={[typography.title.xs, { color: colors.text }]}
                     numberOfLines={1}
                   >
                     {file.name}
                   </Text>
                   <Text
-                    style={{
-                      fontSize: 12,
-                      color: colors.textMuted,
-                      fontFamily: fontFamily.body,
-                    }}
+                    style={[typography.caption, { color: colors.textSubtle, marginTop: 2 }]}
                   >
                     {(file.size / 1024).toFixed(1)} KB · {file.type}
                   </Text>
                 </View>
-                <Pressable onPress={() => setFile(null)} hitSlop={6}>
-                  <X size={18} color={colors.danger || "#FF3B30"} />
+                <Pressable
+                  onPress={() => setFile(null)}
+                  hitSlop={6}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.fillStrong,
+                  }}
+                >
+                  <X size={16} color={colors.textMuted} strokeWidth={2.5} />
                 </Pressable>
               </View>
             ) : (
@@ -335,21 +341,17 @@ export default function AddRecordScreen() {
         {/* Record type chips */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
           <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "700",
-              color: "#7F7B8C",
-              letterSpacing: 1,
-              marginBottom: spacing.xs,
-              fontFamily: fontFamily.displayBold,
-            }}
+            style={[
+              typography.overline,
+              { color: colors.textSubtle, marginBottom: spacing.sm, marginLeft: 2 },
+            ]}
           >
             {t("addRecord.recordTypeLabel").toUpperCase()}
           </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: spacing.xs }}
+            contentContainerStyle={{ gap: spacing.sm }}
           >
             {RECORD_TYPE_VALUES.map((rv) => {
               const meta = metaFor(rv);
@@ -359,29 +361,26 @@ export default function AddRecordScreen() {
                   key={rv}
                   onPress={() => setType(rv)}
                   style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderRadius: 16,
-                    backgroundColor: isSel ? colors.primary : "#F4F2F8",
+                    paddingHorizontal: 14,
+                    height: 36,
+                    borderRadius: 18,
+                    borderCurve: "continuous",
+                    backgroundColor: isSel ? colors.primary : colors.fill,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 6,
                   }}
                 >
                   <meta.icon
-                    size={13}
-                    color={isSel ? "#FFFFFF" : colors.text}
+                    size={14}
+                    color={isSel ? colors.onPrimary : colors.textMuted}
                     strokeWidth={2.25}
                   />
                   <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "700",
-                      color: isSel ? "#FFFFFF" : "#1D1B20",
-                      fontFamily: isSel
-                        ? fontFamily.bodyBold
-                        : fontFamily.body,
-                    }}
+                    style={[
+                      typography.label.md,
+                      { color: isSel ? colors.onPrimary : colors.text },
+                    ]}
                   >
                     {t(`records.type.${rv}`)}
                   </Text>
@@ -448,14 +447,15 @@ export default function AddRecordScreen() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "#FFFFFF",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            borderCurve: "continuous",
             padding: spacing.lg,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.12,
-            shadowRadius: 12,
+            shadowOpacity: scheme === "dark" ? 0 : 0.12,
+            shadowRadius: 16,
             elevation: 8,
           }}
         >
@@ -463,9 +463,9 @@ export default function AddRecordScreen() {
             style={{
               alignSelf: "center",
               width: 40,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: "#E6E4EA",
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: colors.fillStrong,
               marginBottom: spacing.md,
             }}
           />
@@ -479,23 +479,13 @@ export default function AddRecordScreen() {
           >
             <Pill size={18} color={colors.primary} />
             <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "800",
-                color: "#1D1B20",
-                fontFamily: fontFamily.displayBold,
-              }}
+              style={[typography.title.lg, { color: colors.text }]}
             >
               {t("addRecord.ocrSheet.title")}
             </Text>
           </View>
           <Text
-            style={{
-              fontSize: 13,
-              color: colors.textMuted,
-              marginBottom: spacing.sm,
-              fontFamily: fontFamily.body,
-            }}
+            style={[typography.body.sm, { color: colors.textMuted, marginBottom: spacing.md }]}
           >
             {t("addRecord.ocrSheet.readMedicines", {
               count: extractedMeds.length,
@@ -516,19 +506,16 @@ export default function AddRecordScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: spacing.sm,
-                  padding: spacing.sm,
-                  borderRadius: 10,
-                  backgroundColor: "#F4F2F8",
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm + 2,
+                  borderRadius: 14,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
                 }}
               >
                 <Pill size={14} color={colors.primary} />
                 <Text
-                  style={{
-                    flex: 1,
-                    fontSize: 14,
-                    color: "#1D1B20",
-                    fontFamily: fontFamily.body,
-                  }}
+                  style={[typography.body.md, { flex: 1, color: colors.text }]}
                 >
                   {m.name}
                   {m.dosage ? ` · ${m.dosage}` : ""}
@@ -593,7 +580,7 @@ export default function AddRecordScreen() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: colors.scrim,
             alignItems: "center",
             justifyContent: "center",
           }}

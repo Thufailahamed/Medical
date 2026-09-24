@@ -16,7 +16,7 @@ import {
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { spacing, colors, typography, radius, shadow } = useTheme();
+  const { spacing, colors, typography, radius, shadow, fontFamily } = useTheme();
   const toast = useToast();
   const forgot = useForgotPassword();
 
@@ -60,25 +60,19 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <Screen scroll keyboard padded={false} edges={["top", "bottom"]} contentContainerStyle={{ flexGrow: 1 }}>
-      {/* Soft top gradient backdrop */}
-      <LinearGradient
-        colors={["#EEF2FF", "transparent"]}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 240,
-        }}
-      />
-
+    <Screen
+      scroll
+      keyboard
+      padded={false}
+      edges={["top", "bottom"]}
+      style={{ backgroundColor: colors.surface }}
+      contentContainerStyle={{ flexGrow: 1 }}
+    >
       {/* Header Navigation */}
       <View
         style={{
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.sm,
+          paddingHorizontal: spacing.xl,
+          marginTop: 40,
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
@@ -90,53 +84,49 @@ export default function ForgotPasswordScreen() {
           onPress={() => router.replace("/(auth)/login")}
           variant="ghost"
           accessibilityLabel="Go back"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.fill }}
         />
-        <View style={{ flex: 1 }}>
-          <Text style={[typography.overline, { color: colors.primary, letterSpacing: 1, fontWeight: "700" }]}>
-            HEALTHHUB
-          </Text>
-          <Text style={[typography.title.lg, { color: colors.text, fontWeight: "700" }]}>
-            Reset password
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.lg }}>
-        <Text style={[typography.body.md, { color: colors.textMuted, marginTop: -spacing.xs }]}>
-          Enter the email on your account. We'll send a password reset link. The link works for a short time.
-        </Text>
-
-        {/* Form Card */}
-        <View
+        <Text
           style={[
-            {
-              backgroundColor: colors.surface,
-              borderRadius: radius.xxl,
-              padding: spacing.xl,
-              borderWidth: 1,
-              borderColor: colors.border,
-              gap: spacing.lg,
-            },
-            shadow.lg,
+            typography.title.lg,
+            { color: colors.text, fontFamily: fontFamily.heavy, letterSpacing: -0.4 },
           ]}
         >
-          <View style={{ alignItems: "center", marginVertical: spacing.xs }}>
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: radius.xl,
-                backgroundColor: colors.primarySoft,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.primary + "15",
-              }}
-            >
-              <KeyRound size={26} color={colors.primary} strokeWidth={2.25} />
-            </View>
-          </View>
+          HealthHub
+        </Text>
+      </View>
+
+      <View style={{ paddingHorizontal: spacing.xl, paddingTop: 40, paddingBottom: spacing.xxl, gap: 20 }}>
+        <View
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 17,
+            borderCurve: "continuous",
+            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+          <KeyRound size={26} color="#FFFFFF" strokeWidth={2.25} />
+        </View>
+        <View style={{ gap: 10, marginBottom: 8 }}>
+          <Text style={[typography.display.lg, { color: colors.text }]}>
+            Reset password
+          </Text>
+          <Text style={[typography.body.md, { color: colors.textMuted, lineHeight: 22 }]}>
+            Enter the email on your account. We'll send a password reset link. The link works for a short time.
+          </Text>
+        </View>
+
+        {/* Form */}
+        <View style={{ gap: spacing.lg }}>
 
           <FormField label="Email" required>
             <TextInput
@@ -154,11 +144,10 @@ export default function ForgotPasswordScreen() {
           {sent ? (
             <View
               style={{
-                padding: spacing.md,
-                borderRadius: radius.md,
+                padding: spacing.lg,
+                borderRadius: radius.lg,
+                borderCurve: "continuous",
                 backgroundColor: colors.successSoft,
-                borderWidth: 1,
-                borderColor: colors.success + "20",
               }}
             >
               <Text style={[typography.body.md, { color: colors.text, lineHeight: 22 }]}>

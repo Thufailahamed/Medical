@@ -151,7 +151,7 @@ export function AdminHero({
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { colors, spacing, typography, radius } = useTheme();
+  const { colors, spacing, typography, radius, scheme } = useTheme();
   const router = useRouter();
 
   return (
@@ -160,9 +160,10 @@ export function AdminHero({
         {
           marginHorizontal: spacing.lg,
           borderRadius: 28,
+          borderCurve: "continuous",
           overflow: "hidden",
         },
-        shadowHero,
+        scheme === "dark" ? null : shadowHero,
         style,
       ]}
       accessibilityRole="header"
@@ -225,15 +226,15 @@ export function AdminHero({
             accessibilityLabel="Go back"
             hitSlop={8}
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 19,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "rgba(255,255,255,0.14)",
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.18)",
-              marginBottom: spacing.md,
+              backgroundColor: "rgba(255,255,255,0.18)",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: "rgba(255,255,255,0.28)",
+              marginBottom: spacing.lg,
               marginLeft: -4,
             }}
           >
@@ -253,7 +254,7 @@ export function AdminHero({
               <Text
                 style={[
                   typography.overline,
-                  { color: "rgba(255,255,255,0.72)", marginBottom: 4 },
+                  { color: "rgba(255,255,255,0.72)", marginBottom: 6 },
                 ]}
                 numberOfLines={1}
               >
@@ -262,7 +263,7 @@ export function AdminHero({
             ) : null}
             <Text
               style={[
-                compact ? typography.title.lg : typography.display.sm,
+                compact ? typography.display.sm : typography.display.md,
                 { color: "#FFFFFF" },
               ]}
               numberOfLines={2}
@@ -272,8 +273,8 @@ export function AdminHero({
             {subtitle ? (
               <Text
                 style={[
-                  typography.body.sm,
-                  { color: "rgba(255,255,255,0.78)", marginTop: 3 },
+                  typography.body.md,
+                  { color: "rgba(255,255,255,0.78)", marginTop: 4 },
                 ]}
                 numberOfLines={2}
               >
@@ -285,17 +286,18 @@ export function AdminHero({
           {Icon ? (
             <View
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 23,
+                width: 48,
+                height: 48,
+                borderRadius: 15,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(255,255,255,0.14)",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.18)",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
-              <Icon size={21} color="#FFFFFF" strokeWidth={2.25} />
+              <Icon size={22} color="#FFFFFF" strokeWidth={2.1} />
             </View>
           ) : null}
           {right}
@@ -329,11 +331,12 @@ function HeroStatChip({ stat }: { stat: HeroStat }) {
       style={{
         flex: 1,
         borderRadius: 16,
+        borderCurve: "continuous",
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm + 2,
-        backgroundColor: "rgba(255,255,255,0.10)",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.14)",
+        paddingVertical: spacing.sm + 4,
+        backgroundColor: "rgba(255,255,255,0.14)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.28)",
       }}
     >
       <View
@@ -344,16 +347,13 @@ function HeroStatChip({ stat }: { stat: HeroStat }) {
         }}
       >
         {Icon ? (
-          <Icon size={11} color="rgba(255,255,255,0.85)" strokeWidth={2.5} />
+          <Icon size={12} color="rgba(255,255,255,0.85)" strokeWidth={2.4} />
         ) : null}
         <Text
-          style={{
-            fontSize: 10,
-            fontWeight: "700",
-            letterSpacing: 0.6,
-            color: "rgba(255,255,255,0.72)",
-            textTransform: "uppercase",
-          }}
+          style={[
+            typography.label.xs,
+            { color: "rgba(255,255,255,0.78)" },
+          ]}
           numberOfLines={1}
         >
           {stat.label}
@@ -361,8 +361,8 @@ function HeroStatChip({ stat }: { stat: HeroStat }) {
       </View>
       <Text
         style={[
-          typography.title.lg,
-          { color: "#FFFFFF", marginTop: 2 },
+          typography.display.sm,
+          { color: "#FFFFFF", marginTop: 4, fontVariant: ["tabular-nums"] },
         ]}
         numberOfLines={1}
       >
@@ -401,41 +401,36 @@ export function AdminSection({
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: spacing.sm + 2,
-          paddingHorizontal: 2,
+          marginBottom: spacing.md,
+          paddingHorizontal: 4,
         },
         style,
       ]}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flexShrink: 1 }}>
         <Text
-          style={[
-            typography.overline,
-            { color: colors.textMuted, fontSize: 12 },
-          ]}
+          style={[typography.title.lg, { color: colors.text }]}
+          numberOfLines={1}
         >
-          {title.toUpperCase()}
+          {title}
         </Text>
         {count !== undefined ? (
           <View
             style={{
-              minWidth: 22,
+              minWidth: 24,
               height: 22,
               borderRadius: 11,
-              paddingHorizontal: 7,
+              paddingHorizontal: 8,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: colors.surfaceMuted,
-              borderWidth: 1,
-              borderColor: colors.border,
+              backgroundColor: colors.fill,
             }}
           >
             <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "800",
-                color: colors.textMuted,
-              }}
+              style={[
+                typography.label.sm,
+                { color: colors.textMuted, fontVariant: ["tabular-nums"] },
+              ]}
             >
               {count}
             </Text>
@@ -466,15 +461,15 @@ export function AdminStat({
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { colors, spacing, radius, typography, shadow } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const { bg, fg } = useTone(tone);
 
   const body = (
     <View
       style={{
         padding: spacing.lg,
-        gap: spacing.sm,
-        minHeight: 108,
+        gap: spacing.md,
+        minHeight: 116,
         justifyContent: "space-between",
       }}
     >
@@ -487,9 +482,10 @@ export function AdminStat({
       >
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: bg,
@@ -498,21 +494,23 @@ export function AdminStat({
           <Icon size={17} color={fg} strokeWidth={2.25} />
         </View>
         {onPress ? (
-          <ChevronRight size={15} color={colors.textSubtle} />
+          <ChevronRight size={16} color={colors.textSubtle} />
         ) : null}
       </View>
       <View>
         <Text
           style={[
-            typography.display.sm,
-            { color: colors.text, fontSize: 24, lineHeight: 30 },
+            typography.display.md,
+            { color: colors.text, fontVariant: ["tabular-nums"] },
           ]}
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
         >
           {value}
         </Text>
         <Text
-          style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}
+          style={[typography.label.md, { color: colors.textMuted, marginTop: 2 }]}
           numberOfLines={1}
         >
           {label}
@@ -535,12 +533,13 @@ export function AdminStat({
   const container: StyleProp<ViewStyle> = [
     {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderRadius: radius.card,
+      borderCurve: "continuous",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
       overflow: "hidden",
     },
-    shadow.sm,
+    scheme === "dark" ? null : shadow.sm,
     style,
   ];
 
@@ -608,7 +607,8 @@ export function IconTile({
       style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
+        borderRadius: Math.round(size * 0.3),
+        borderCurve: "continuous",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: bg,
@@ -633,15 +633,13 @@ export function CountBadge({
   return (
     <View
       style={{
-        minWidth: 26,
-        height: 26,
-        borderRadius: 13,
+        minWidth: 24,
+        height: 24,
+        borderRadius: 12,
         paddingHorizontal: 8,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: isHot ? colors.danger : colors.surfaceMuted,
-        borderWidth: isHot ? 0 : 1,
-        borderColor: colors.border,
+        backgroundColor: isHot ? colors.danger : colors.fill,
       }}
     >
       <Text
@@ -649,6 +647,7 @@ export function CountBadge({
           fontSize: 12,
           fontWeight: "800",
           color: isHot ? colors.onDanger : colors.textMuted,
+          fontVariant: ["tabular-nums"],
         }}
       >
         {count}
@@ -670,18 +669,19 @@ export function AdminCard({
   style?: StyleProp<ViewStyle>;
   tone?: Tone;
 }) {
-  const { colors, spacing, radius, shadow } = useTheme();
+  const { colors, spacing, radius, shadow, scheme } = useTheme();
   const palette = tone ? tonePalette(tone, colors) : null;
   const container: StyleProp<ViewStyle> = [
     {
       backgroundColor: palette ? palette.bg : colors.surface,
-      borderRadius: radius.xl,
+      borderRadius: radius.card,
+      borderCurve: "continuous",
       padding: spacing.lg,
-      borderWidth: palette ? 0 : 1,
-      borderColor: colors.border,
+      borderWidth: palette ? 0 : StyleSheet.hairlineWidth,
+      borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
       overflow: "hidden",
     },
-    shadow.sm,
+    scheme === "dark" || palette ? null : shadow.sm,
     style,
   ];
   if (onPress) {
@@ -722,9 +722,8 @@ export function InfoPanel({
         {
           backgroundColor: colors.surfaceMuted,
           borderRadius: radius.lg,
+          borderCurve: "continuous",
           padding: spacing.md,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.border,
         },
         style,
       ]}
@@ -735,16 +734,11 @@ export function InfoPanel({
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            marginBottom: 2,
+            marginBottom: 4,
           }}
         >
-          {Icon ? <Icon size={13} color={fg} strokeWidth={2.5} /> : null}
-          <Text
-            style={[
-              typography.caption,
-              { color: fg, fontWeight: "700", letterSpacing: 0.3 },
-            ]}
-          >
+          {Icon ? <Icon size={14} color={fg} strokeWidth={2.4} /> : null}
+          <Text style={[typography.label.md, { color: fg }]}>
             {title}
           </Text>
         </View>
@@ -762,7 +756,7 @@ export function RowDivider({ inset = 0 }: { inset?: number }) {
     <View
       style={{
         height: StyleSheet.hairlineWidth,
-        backgroundColor: colors.border,
+        backgroundColor: colors.separator,
         marginLeft: inset,
       }}
     />
@@ -865,15 +859,15 @@ export function KV({
         justifyContent: "space-between",
         alignItems: "flex-start",
         gap: spacing.md,
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.sm + 3,
       }}
     >
-      <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+      <Text style={[typography.body.md, { color: colors.textMuted }]}>
         {label}
       </Text>
       <Text
         style={[
-          typography.body.sm,
+          typography.body.md,
           {
             color: colors.text,
             fontWeight: "600",
@@ -893,7 +887,7 @@ export function KV({
 // ─── Loading skeleton rows ──────────────────────────────────
 
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, scheme } = useTheme();
   return (
     <View style={{ gap: spacing.md }}>
       {Array.from({ length: rows }).map((_, i) => (
@@ -904,13 +898,14 @@ export function ListSkeleton({ rows = 4 }: { rows?: number }) {
             gap: spacing.md,
             alignItems: "center",
             backgroundColor: colors.surface,
-            borderRadius: radius.xl,
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
             padding: spacing.lg,
           }}
         >
-          <Skeleton width={44} height={44} radius={22} />
+          <Skeleton width={40} height={40} radius={12} />
           <View style={{ flex: 1, gap: spacing.xs }}>
             <Skeleton height={14} width="60%" />
             <Skeleton height={11} width="40%" />

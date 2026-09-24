@@ -11,6 +11,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -29,7 +30,9 @@ export default function ConversationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const id = params?.id;
-  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography, fontFamily, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const hairline = isDark ? colors.borderStrong : colors.separator;
 
   const { data, isLoading, isError, refetch } = useDoctorConversation(id);
   const sendMutation = useSendDoctorMessage(id);
@@ -86,34 +89,49 @@ export default function ConversationScreen() {
     }
   }, [draft, sendMutation]);
 
-  const renderBubble = ({ item }: { item: any }) => {
+  const renderBubble = ({ item, index }: { item: any; index: number }) => {
     const isMine = item.senderRole === "doctor";
+    const list = data?.messages || [];
+    const prev = list[index - 1];
+    const next = list[index + 1];
+    const groupedWithPrev = prev && prev.senderRole === item.senderRole;
+    const groupedWithNext = next && next.senderRole === item.senderRole;
+    const R = 20;
+    const TAIL = 6;
     return (
       <View
         style={{
           alignItems: isMine ? "flex-end" : "flex-start",
-          marginVertical: 3,
-          paddingHorizontal: spacing.lg,
+          marginTop: groupedWithPrev ? 1 : 10,
+          paddingHorizontal: spacing.md,
         }}
       >
         <View
           style={{
             maxWidth: "78%",
             paddingHorizontal: 14,
-            paddingVertical: 10,
-            borderRadius: 18,
-            backgroundColor: isMine ? colors.primary : colors.surfaceMuted,
-            borderTopRightRadius: isMine ? 4 : 18,
-            borderTopLeftRadius: isMine ? 18 : 4,
+            paddingVertical: 9,
+            borderRadius: R,
+            borderCurve: "continuous",
+            backgroundColor: isMine ? colors.primary : colors.surface,
+            borderWidth: isMine ? 0 : StyleSheet.hairlineWidth,
+            borderColor: hairline,
+            borderTopRightRadius: isMine && groupedWithPrev ? TAIL : R,
+            // Sender-side corners tighten within a run; the last bubble keeps a tail corner.
+            borderBottomRightRadius: isMine ? (groupedWithNext ? TAIL : 4) : R,
+            borderTopLeftRadius: !isMine && groupedWithPrev ? TAIL : R,
+            borderBottomLeftRadius: !isMine ? (groupedWithNext ? TAIL : 4) : R,
           }}
         >
           <Text
-            style={{
-              color: isMine ? "#FFFFFF" : colors.text,
-              fontSize: 15,
-              lineHeight: 21,
-              fontFamily: fontFamily.body,
-            }}
+            style={[
+              typography.body.md,
+              {
+                fontSize: 16,
+                lineHeight: 21,
+                color: isMine ? colors.onPrimary : colors.text,
+              },
+            ]}
           >
             {item.body}
           </Text>
@@ -123,16 +141,15 @@ export default function ConversationScreen() {
             flexDirection: "row",
             alignItems: "center",
             gap: 3,
-            marginTop: 3,
-            marginHorizontal: 4,
+            marginTop: 2,
+            marginHorizontal: 6,
           }}
         >
           <Text
-            style={{
-              fontSize: 10,
-              color: colors.textSubtle,
-              fontFamily: fontFamily.body,
-            }}
+            style={[
+              typography.caption,
+              { fontSize: 10.5, color: colors.textSubtle, fontVariant: ["tabular-nums"] },
+            ]}
           >
             {new Date(item.createdAt).toLocaleTimeString(undefined, {
               hour: "2-digit",
@@ -182,10 +199,10 @@ export default function ConversationScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.md,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: spacing.sm,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: hairline,
             backgroundColor: colors.surface,
           }}
         >
@@ -195,50 +212,47 @@ export default function ConversationScreen() {
             accessibilityRole="button"
             accessibilityLabel="Back"
             style={({ pressed }) => ({
-              width: 36,
-              height: 36,
-              borderRadius: 18,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
-              marginRight: spacing.sm,
-              backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+              marginRight: 2,
+              backgroundColor: pressed ? colors.fill : "transparent",
             })}
           >
-            <ChevronLeft size={22} color={colors.primary} />
+            <ChevronLeft size={26} color={colors.primary} strokeWidth={2.4} />
           </Pressable>
           <View
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              borderCurve: "continuous",
               backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
-              marginRight: spacing.sm,
+              marginRight: spacing.md,
               overflow: "hidden",
             }}
           >
             {patient?.photo ? (
-              <Image source={{ uri: patient.photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+              <Image source={{ uri: patient.photo }} style={{ width: 38, height: 38, borderRadius: 19 }} />
             ) : (
-              <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13, fontFamily: fontFamily.displayBold }}>
+              <Text style={[typography.label.md, { color: colors.primary }]}>
                 {initials}
               </Text>
             )}
           </View>
           <View style={{ flex: 1 }}>
             <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "700",
-                color: colors.text,
-                fontFamily: fontFamily.bodyBold,
-              }}
+              style={[typography.title.md, { color: colors.text }]}
               numberOfLines={1}
             >
               {patient?.name || "…"}
             </Text>
-            <Text style={{ fontSize: 11, color: isClosed ? "#B45309" : colors.textSubtle }}>
+            <Text style={[typography.caption, { color: isClosed ? colors.warning : colors.textSubtle }]}>
               {isClosed ? "Chat closed" : patient?.phone || "Patient"}
             </Text>
           </View>
@@ -251,12 +265,14 @@ export default function ConversationScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: 4,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 16,
-              backgroundColor: isClosed ? colors.primarySoft : "#FEF3C7",
+              height: 32,
+              paddingHorizontal: 12,
+              borderRadius: 999,
+              borderCurve: "continuous",
+              backgroundColor: isClosed ? colors.primarySoft : colors.fill,
               opacity: pressed || setStatus.isPending ? 0.7 : 1,
               marginLeft: spacing.sm,
+              marginRight: spacing.xs,
             })}
           >
             {setStatus.isPending ? (
@@ -264,14 +280,14 @@ export default function ConversationScreen() {
             ) : isClosed ? (
               <>
                 <Unlock size={13} color={colors.primary} />
-                <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary, fontFamily: fontFamily.bodyBold }}>
+                <Text style={[typography.label.sm, { color: colors.primary }]}>
                   Reopen
                 </Text>
               </>
             ) : (
               <>
-                <Lock size={13} color="#92400E" />
-                <Text style={{ fontSize: 12, fontWeight: "700", color: "#92400E", fontFamily: fontFamily.bodyBold }}>
+                <Lock size={13} color={colors.textMuted} />
+                <Text style={[typography.label.sm, { color: colors.textMuted }]}>
                   Close Chat
                 </Text>
               </>
@@ -283,11 +299,11 @@ export default function ConversationScreen() {
         {isClosed && (
           <View style={{
             flexDirection: "row", alignItems: "center", gap: 8,
-            backgroundColor: "#FEF3C7", paddingHorizontal: spacing.lg, paddingVertical: 10,
-            borderBottomWidth: 1, borderBottomColor: "#FCD34D",
+            backgroundColor: colors.warningSoft, paddingHorizontal: spacing.lg, paddingVertical: 10,
+            borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: hairline,
           }}>
-            <Lock size={14} color="#92400E" />
-            <Text style={{ color: "#92400E", fontSize: 13, fontFamily: fontFamily.body, flex: 1 }}>
+            <Lock size={14} color={colors.warning} />
+            <Text style={[typography.body.sm, { color: colors.warning, flex: 1 }]}>
               Chat is closed. Patient cannot send new messages. Tap "Reopen" to re-enable replies.
             </Text>
           </View>
@@ -301,7 +317,7 @@ export default function ConversationScreen() {
                 alignItems: i % 2 === 0 ? "flex-end" : "flex-start",
                 marginVertical: 4,
               }}>
-                <Skeleton width={`${55 + (i % 4) * 10}%`} height={36} radius={18} />
+                <Skeleton width={`${55 + (i % 4) * 10}%`} height={38} radius={20} />
               </View>
             ))}
           </View>
@@ -318,11 +334,11 @@ export default function ConversationScreen() {
             data={messages}
             keyExtractor={(m) => m.id}
             renderItem={renderBubble}
-            contentContainerStyle={{ paddingVertical: spacing.md, paddingBottom: spacing.xl }}
+            contentContainerStyle={{ paddingTop: spacing.sm, paddingBottom: spacing.lg }}
             onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
             ListEmptyComponent={
               <View style={{ padding: spacing.xl, alignItems: "center" }}>
-                <Text style={{ color: colors.textSubtle, textAlign: "center" }}>
+                <Text style={[typography.body.sm, { color: colors.textSubtle, textAlign: "center" }]}>
                   {t("inbox.noMessagesYet")}
                 </Text>
               </View>
@@ -338,8 +354,8 @@ export default function ConversationScreen() {
             paddingHorizontal: spacing.md,
             paddingTop: spacing.sm,
             paddingBottom: spacing.lg,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: hairline,
             backgroundColor: colors.surface,
           }}
         >
@@ -352,17 +368,20 @@ export default function ConversationScreen() {
             editable={!isClosed}
             style={{
               flex: 1,
-              minHeight: 40,
+              minHeight: 38,
               maxHeight: 120,
-              borderRadius: 20,
+              borderRadius: 19,
+              borderCurve: "continuous",
               paddingHorizontal: 14,
-              paddingVertical: 10,
-              paddingTop: 10,
-              fontSize: 15,
-              color: colors.text,
-              fontFamily: fontFamily.body,
-              backgroundColor: isClosed ? colors.border : colors.surfaceMuted,
+              paddingVertical: 9,
+              paddingTop: 9,
+              ...typography.body.md,
+              fontSize: 16,
               lineHeight: 20,
+              color: colors.text,
+              backgroundColor: colors.fill,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
               opacity: isClosed ? 0.5 : 1,
             }}
           />
@@ -370,22 +389,24 @@ export default function ConversationScreen() {
             onPress={handleSend}
             disabled={!draft.trim() || sendMutation.isPending || isClosed}
             style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 20,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              borderCurve: "continuous",
               marginLeft: 8,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: draft.trim() && !isClosed ? colors.primary : colors.surfaceMuted,
+              backgroundColor: draft.trim() && !isClosed ? colors.primary : colors.fill,
               opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.94 : 1 }],
             })}
           >
             {sendMutation.isPending ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <ActivityIndicator color={colors.onPrimary} size="small" />
             ) : (
               <Send
-                size={18}
-                color={draft.trim() && !isClosed ? "#FFFFFF" : colors.textSubtle}
+                size={17}
+                color={draft.trim() && !isClosed ? colors.onPrimary : colors.textSubtle}
                 strokeWidth={2.25}
               />
             )}

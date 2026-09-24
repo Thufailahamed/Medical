@@ -4,7 +4,7 @@
 // patient share the card.
 
 import { useMemo } from "react";
-import { View, Share, Alert } from "react-native";
+import { View, Text, Share, Alert, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -37,7 +37,7 @@ import { useInsuranceEcard } from "@/hooks/useApi";
 export default function Ecard() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const { data, isLoading } = useInsuranceEcard(id ?? "");
 
   const card = data?.ecard;
@@ -81,7 +81,7 @@ export default function Ecard() {
       <Screen>
         <ScreenHeader title="" subtitle="" />
         <View style={{ padding: 16 }}>
-          <Skeleton height={220} radius={20} />
+          <Skeleton height={440} radius={radius.xxl} />
         </View>
       </Screen>
     );
@@ -98,9 +98,22 @@ export default function Ecard() {
     );
   }
 
-  // Brand colour as gradient. Fallback to a single-color gradient.
-  const gradA = colors.primary ?? "#0B1F3A";
-  const gradB = colors.primaryStrong ?? "#1E3A8A";
+  // Wallet-style card: a fixed deep brand gradient so the card reads the
+  // same (and keeps white-text contrast) in both light and dark mode.
+  const gradA = "#0B1F3A";
+  const gradB = "#0B4F6C";
+  const gradC = "#0E7490";
+  const labelStyle = {
+    ...typography.overline,
+    fontSize: 10,
+    color: "rgba(255,255,255,0.62)",
+    textTransform: "uppercase" as const,
+  };
+  const valueStyle = {
+    ...typography.title.sm,
+    color: "#FFFFFF",
+    marginTop: 3,
+  };
 
   return (
     <Screen>
@@ -110,43 +123,56 @@ export default function Ecard() {
         kicker={t("insurance.ecard.kicker")}
       />
 
-      <View style={{ padding: 16, gap: 16 }}>
+      <View style={{ paddingVertical: 8, gap: 20 }}>
+        <View
+          style={{
+            borderRadius: radius.xxl,
+            ...(scheme === "dark" ? {} : shadow.hero),
+          }}
+        >
         <LinearGradient
-          colors={[gradA, gradB]}
+          colors={[gradA, gradB, gradC]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{
-            borderRadius: 24,
-            padding: 20,
+            borderRadius: radius.xxl,
+            borderCurve: "continuous",
+            padding: 22,
             overflow: "hidden",
-            shadowColor: "#000",
-            shadowOpacity: 0.18,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 6,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "rgba(255,255,255,0.14)",
           }}
         >
-          {/* Decorative blobs */}
+          {/* Decorative sheen + orbs */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={["rgba(255,255,255,0.16)", "rgba(255,255,255,0)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.6, y: 0.6 }}
+            style={StyleSheet.absoluteFillObject}
+          />
           <View
+            pointerEvents="none"
             style={{
               position: "absolute",
-              top: -50,
-              right: -50,
-              width: 180,
-              height: 180,
+              top: -60,
+              right: -60,
+              width: 200,
+              height: 200,
               borderRadius: 999,
-              backgroundColor: "rgba(255,255,255,0.08)",
+              backgroundColor: "rgba(255,255,255,0.07)",
             }}
           />
           <View
+            pointerEvents="none"
             style={{
               position: "absolute",
-              bottom: -80,
-              left: -40,
-              width: 220,
-              height: 220,
+              bottom: -90,
+              left: -50,
+              width: 240,
+              height: 240,
               borderRadius: 999,
-              backgroundColor: "rgba(255,255,255,0.05)",
+              backgroundColor: "rgba(20,184,166,0.16)",
             }}
           />
 
@@ -158,32 +184,69 @@ export default function Ecard() {
             }}
           >
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
             >
-              <ShieldCheck size={20} color="#FFFFFF" />
-              <AppText weight="700" size="md" style={{ color: "#FFFFFF" }}>
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ShieldCheck size={18} color="#FFFFFF" strokeWidth={2.3} />
+              </View>
+              <Text style={{ ...typography.label.lg, color: "#FFFFFF" }}>
                 {t("insurance.ecard.healthCard")}
-              </AppText>
+              </Text>
             </View>
-            <Pill tone={valid ? "accent" : "danger"}>
-              {valid
-                ? t("insurance.ecard.valid")
-                : t("insurance.ecard.expired")}
-            </Pill>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 999,
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
+              }}
+            >
+              <View
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: 4,
+                  backgroundColor: valid ? "#34D399" : "#F87171",
+                }}
+              />
+              <Text style={{ ...typography.label.xs, color: "#FFFFFF" }}>
+                {valid
+                  ? t("insurance.ecard.valid")
+                  : t("insurance.ecard.expired")}
+              </Text>
+            </View>
           </View>
 
-          <View style={{ marginTop: 14, gap: 4 }}>
-            <AppText
-              weight="700"
-              size="lg"
-              style={{ color: "#FFFFFF" }}
+          <View style={{ marginTop: 22, gap: 2 }}>
+            <Text
+              style={{ ...typography.display.sm, color: "#FFFFFF" }}
+              numberOfLines={2}
             >
               {card.providerName ?? t("insurance.provider.label")}
-            </AppText>
+            </Text>
             {card.planName ? (
-              <AppText size="sm" style={{ color: "#FFFFFFCC" }}>
+              <Text
+                style={{ ...typography.body.sm, color: "rgba(255,255,255,0.78)" }}
+              >
                 {card.planName}
-              </AppText>
+              </Text>
             ) : null}
           </View>
 
@@ -191,40 +254,39 @@ export default function Ecard() {
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              marginTop: 16,
+              marginTop: 20,
+              gap: 12,
             }}
           >
             <View style={{ flex: 1 }}>
-              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
+              <Text style={labelStyle}>
                 {t("insurance.policy.policyNumber")}
-              </AppText>
-              <AppText
-                size="sm"
-                weight="700"
-                style={{ color: "#FFFFFF", letterSpacing: 1 }}
-              >
+              </Text>
+              <Text style={{ ...valueStyle, letterSpacing: 1 }}>
                 {card.policyNumber ?? "—"}
-              </AppText>
+              </Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
+            <View style={{ flex: 1, alignItems: "flex-end" }}>
+              <Text style={labelStyle}>
                 {t("insurance.policy.coverage")}
-              </AppText>
-              <AppText size="sm" weight="700" style={{ color: "#FFFFFF" }}>
+              </Text>
+              <Text style={valueStyle}>
                 LKR{" "}
                 {(card.coverageAmountLkr ?? 0).toLocaleString()}
-              </AppText>
+              </Text>
             </View>
           </View>
 
           <View
             style={{
               alignItems: "center",
-              paddingVertical: 14,
+              paddingTop: 18,
+              paddingBottom: 14,
               paddingHorizontal: 12,
               backgroundColor: "#FFFFFF",
-              borderRadius: 16,
-              marginTop: 18,
+              borderRadius: 20,
+              borderCurve: "continuous",
+              marginTop: 20,
             }}
           >
             <QRCode
@@ -233,69 +295,73 @@ export default function Ecard() {
                 p: card.policyNumber,
                 c: card.cardNumber,
               })}
-              size={180}
+              size={188}
               backgroundColor="#FFFFFF"
               color="#0B1F3A"
               ecl="M"
             />
             <View
               style={{
-                marginTop: 10,
+                marginTop: 12,
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 8,
               }}
             >
-              <AppText
-                weight="700"
-                size="md"
-                style={{ color: colors.text, letterSpacing: 2 }}
+              <Text
+                style={{
+                  ...typography.title.md,
+                  color: "#0B1F3A",
+                  letterSpacing: 2.4,
+                }}
               >
                 {card.cardNumber}
-              </AppText>
+              </Text>
             </View>
-            <AppText size="xs" color="muted" style={{ marginTop: 4 }}>
+            <Text style={{ ...typography.caption, color: "#64748B", marginTop: 2 }}>
               {t("insurance.ecard.scan")}
-            </AppText>
+            </Text>
           </View>
 
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              marginTop: 14,
+              marginTop: 18,
+              gap: 12,
             }}
           >
-            <View>
-              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
+            <View style={{ flex: 1 }}>
+              <Text style={labelStyle}>
                 {t("insurance.ecard.holder")}
-              </AppText>
-              <AppText size="sm" weight="700" style={{ color: "#FFFFFF" }}>
+              </Text>
+              <Text style={valueStyle} numberOfLines={1}>
                 {card.holderName ?? ""}
-              </AppText>
+              </Text>
             </View>
-            <View>
-              <AppText size="xs" style={{ color: "#FFFFFFAA" }}>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={labelStyle}>
                 {t("insurance.ecard.validUntil")}
-              </AppText>
-              <AppText size="sm" weight="700" style={{ color: "#FFFFFF" }}>
+              </Text>
+              <Text style={valueStyle}>
                 {new Date(card.validUntil).toLocaleDateString()}
-              </AppText>
+              </Text>
             </View>
           </View>
         </LinearGradient>
+        </View>
 
-        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+        <View style={{ flexDirection: "row", gap: spacing.md }}>
           <Button
             label={t("insurance.ecard.share")}
-            leftIcon={<Share2 size={14} />}
+            icon={Share2}
             onPress={onShare}
             style={{ flex: 1 }}
           />
           <Button
-            variant="outline"
+            variant="secondary"
             label={t("insurance.ecard.copy") || "Copy"}
-            leftIcon={<Copy size={14} />}
+            icon={Copy}
             onPress={onCopy}
             style={{ flex: 1 }}
           />

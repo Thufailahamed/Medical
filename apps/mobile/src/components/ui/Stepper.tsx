@@ -35,7 +35,8 @@ export function Stepper({ steps, current }: Props) {
         style={{
           backgroundColor: colors.surface,
           borderRadius: 22,
-          borderWidth: 1,
+          borderCurve: "continuous",
+          borderWidth: StyleSheet.hairlineWidth,
           borderColor: colors.border,
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.md,

@@ -6,7 +6,9 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import {
   Wallet,
@@ -77,10 +79,9 @@ function BarChart({
                 style={{
                   width: "100%",
                   height: `${heightPct}%`,
-                  backgroundColor: colors.primary,
-                  opacity: 0.85,
-                  borderTopLeftRadius: 4,
-                  borderTopRightRadius: 4,
+                  backgroundColor: idx === visible.length - 1 ? colors.primary : colors.primarySoft,
+                  borderRadius: 5,
+                  borderCurve: "continuous",
                 }}
               />
             </View>
@@ -105,9 +106,10 @@ function BarChart({
             {idx % labelStride === 0 || idx === visible.length - 1 ? (
               <Text
                 style={{
-                  fontSize: 9,
+                  fontSize: 10,
                   color: colors.textSubtle,
-                  fontFamily: fontFamily.bodyBold,
+                  fontFamily: fontFamily.bodyMedium ?? fontFamily.body,
+                  fontVariant: ["tabular-nums"],
                 }}
                 numberOfLines={1}
               >
@@ -123,7 +125,17 @@ function BarChart({
 
 export default function EarningsScreen() {
   const { t } = useTranslation();
-  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const card = {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    borderCurve: "continuous" as const,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: hairline,
+    ...(isDark ? {} : shadow.sm),
+  };
   const [period, setPeriod] = useState<"week" | "month" | "quarter" | "year">("month");
 
   const { data: summary, isLoading, isError, refetch } = useDoctorEarningsSummary(period);
@@ -171,23 +183,13 @@ export default function EarningsScreen() {
             paddingBottom: spacing.md,
           }}
         >
-          <Text
-            style={[
-              typography.display.lg,
-              {
-                color: colors.text,
-                fontFamily: fontFamily.displayBold,
-                fontSize: 28,
-                lineHeight: 34,
-              },
-            ]}
-          >
+          <Text style={[typography.display.lg, { color: colors.text }]}>
             {t("earnings.title")}
           </Text>
           <Text
             style={[
-              typography.body,
-              { color: colors.textSubtle, marginTop: 4 },
+              typography.body.sm,
+              { color: colors.textMuted, marginTop: 2 },
             ]}
           >
             {t("earnings.subtitle")}
@@ -198,9 +200,13 @@ export default function EarningsScreen() {
         <View
           style={{
             flexDirection: "row",
-            paddingHorizontal: spacing.lg,
-            gap: 8,
-            marginBottom: spacing.md,
+            marginHorizontal: spacing.lg,
+            padding: 3,
+            gap: 2,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            backgroundColor: colors.fill,
+            marginBottom: spacing.lg,
           }}
         >
           {PERIODS.map((p) => {
@@ -210,25 +216,22 @@ export default function EarningsScreen() {
                 key={p.key}
                 onPress={() => handlePeriod(p.key)}
                 style={({ pressed }) => ({
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: radius.full,
-                  backgroundColor: active
-                    ? colors.primary
-                    : pressed
-                    ? colors.surfaceMuted
-                    : colors.surface,
-                  borderWidth: 1,
-                  borderColor: active ? colors.primary : colors.border,
+                  flex: 1,
+                  height: 32,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 9,
+                  borderCurve: "continuous",
+                  backgroundColor: active ? colors.surface : "transparent",
+                  opacity: pressed && !active ? 0.6 : 1,
+                  ...(active ? shadow.xs : shadow.none),
                 })}
               >
                 <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: active ? "#FFFFFF" : colors.text,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
+                  style={[
+                    active ? typography.label.md : typography.body.sm,
+                    { color: active ? colors.text : colors.textMuted },
+                  ]}
                 >
                   {t(`earnings.period.${p.key}`)}
                 </Text>
@@ -241,12 +244,33 @@ export default function EarningsScreen() {
         <View
           style={{
             marginHorizontal: spacing.lg,
-            borderRadius: 20,
-            padding: spacing.lg,
-            backgroundColor: colors.primary,
+            borderRadius: radius.xxl,
+            borderCurve: "continuous",
+            padding: spacing.xl,
             overflow: "hidden",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "rgba(255,255,255,0.22)",
+            ...(isDark ? {} : shadow.hero),
           }}
         >
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: -60,
+              right: -40,
+              width: 180,
+              height: 180,
+              borderRadius: 90,
+              backgroundColor: "rgba(255,255,255,0.08)",
+            }}
+          />
           <Text
             style={{
               fontSize: 11,
@@ -263,14 +287,19 @@ export default function EarningsScreen() {
             <ActivityIndicator color="#FFFFFF" style={{ marginTop: 8 }} />
           ) : (
             <Text
-              style={{
-                fontSize: 36,
-                fontWeight: "800",
-                color: "#FFFFFF",
-                fontFamily: fontFamily.displayBold,
-                marginTop: 6,
-                letterSpacing: -1,
-              }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={[
+                typography.display.lg,
+                {
+                  fontSize: 40,
+                  lineHeight: 46,
+                  color: "#FFFFFF",
+                  marginTop: 6,
+                  letterSpacing: -1.4,
+                  fontVariant: ["tabular-nums"],
+                },
+              ]}
             >
               {fmtLkr(summary?.totalLkr ?? 0)}
             </Text>
@@ -279,8 +308,15 @@ export default function EarningsScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              marginTop: 8,
+              alignSelf: "flex-start",
+              marginTop: 10,
               gap: 6,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 999,
+              backgroundColor: "rgba(255,255,255,0.18)",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: "rgba(255,255,255,0.28)",
             }}
           >
             {trendPositive ? (
@@ -313,8 +349,11 @@ export default function EarningsScreen() {
           <View
             style={{
               flexDirection: "row",
-              marginTop: spacing.md,
+              marginTop: spacing.lg,
+              paddingTop: spacing.md,
               gap: spacing.md,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: "rgba(255,255,255,0.24)",
             }}
           >
             <View style={{ flex: 1 }}>
@@ -331,13 +370,10 @@ export default function EarningsScreen() {
                 {t("earnings.visits")}
               </Text>
               <Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: "800",
-                  color: "#FFFFFF",
-                  fontFamily: fontFamily.displayBold,
-                  marginTop: 2,
-                }}
+                style={[
+                  typography.display.sm,
+                  { color: "#FFFFFF", marginTop: 2, fontVariant: ["tabular-nums"] },
+                ]}
               >
                 {summary?.visitCount ?? 0}
               </Text>
@@ -356,13 +392,10 @@ export default function EarningsScreen() {
                 {t("earnings.avgPerVisit")}
               </Text>
               <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "800",
-                  color: "#FFFFFF",
-                  fontFamily: fontFamily.displayBold,
-                  marginTop: 2,
-                }}
+                style={[
+                  typography.display.sm,
+                  { color: "#FFFFFF", marginTop: 2, fontVariant: ["tabular-nums"] },
+                ]}
               >
                 {fmtLkr(summary?.avgPerVisitLkr ?? 0)}
               </Text>
@@ -374,31 +407,19 @@ export default function EarningsScreen() {
         <View
           style={{
             marginHorizontal: spacing.lg,
-            marginTop: spacing.md,
-            borderRadius: 16,
-            padding: spacing.md,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
+            marginTop: spacing.lg,
+            padding: spacing.lg,
+            ...card,
           }}
         >
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: "800",
-              color: colors.textSubtle,
-              fontFamily: fontFamily.displayBold,
-              letterSpacing: 1.2,
-              textTransform: "uppercase",
-            }}
-          >
+          <Text style={[typography.title.md, { color: colors.text }]}>
             {t("earnings.chart")}
           </Text>
           {tsData?.series && tsData.series.length > 0 ? (
             <BarChart series={tsData.series} />
           ) : (
             <View style={{ paddingVertical: spacing.lg, alignItems: "center" }}>
-              <Text style={{ color: colors.textSubtle, fontSize: 13 }}>
+              <Text style={[typography.body.sm, { color: colors.textSubtle }]}>
                 {t("earnings.noChart")}
               </Text>
             </View>
@@ -412,22 +433,16 @@ export default function EarningsScreen() {
               marginHorizontal: spacing.lg,
               marginTop: spacing.md,
               padding: spacing.md,
-              borderRadius: radius.md,
-              backgroundColor: colors.warningSoft || colors.primarySoft,
+              borderRadius: 16,
+              borderCurve: "continuous",
+              backgroundColor: colors.warningSoft,
               flexDirection: "row",
               alignItems: "center",
             }}
           >
-            <Clock size={20} color={colors.text} strokeWidth={2} />
+            <Clock size={20} color={colors.warning} strokeWidth={2.2} />
             <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: colors.text,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
+              <Text style={[typography.label.md, { color: colors.text }]}>
                 {t("earnings.pendingTitle", { amount: fmtLkr(summary.pendingPayoutLkr) })}
               </Text>
             </View>
@@ -435,17 +450,12 @@ export default function EarningsScreen() {
         ) : null}
 
         {/* Payout history */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xxl }}>
           <Text
-            style={{
-              fontSize: 10,
-              fontWeight: "800",
-              color: colors.textSubtle,
-              fontFamily: fontFamily.displayBold,
-              letterSpacing: 1.2,
-              textTransform: "uppercase",
-              marginBottom: spacing.sm,
-            }}
+            style={[
+              typography.title.lg,
+              { color: colors.text, marginBottom: spacing.md, paddingHorizontal: 4 },
+            ]}
           >
             {t("earnings.payoutsTitle")}
           </Text>
@@ -455,26 +465,36 @@ export default function EarningsScreen() {
           ) : payouts.length === 0 ? (
             <View
               style={{
-                padding: spacing.lg,
+                padding: spacing.xl,
                 alignItems: "center",
-                backgroundColor: colors.surfaceMuted,
-                borderRadius: radius.md,
+                ...card,
               }}
             >
-              <Wallet size={28} color={colors.textSubtle} strokeWidth={1.5} />
-              <Text
+              <View
                 style={{
-                  fontSize: 13,
-                  color: colors.textSubtle,
-                  marginTop: 6,
-                  textAlign: "center",
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
+              >
+                <Wallet size={24} color={colors.textMuted} strokeWidth={1.8} />
+              </View>
+              <Text
+                style={[
+                  typography.body.sm,
+                  { color: colors.textMuted, marginTop: spacing.md, textAlign: "center" },
+                ]}
               >
                 {t("earnings.noPayouts")}
               </Text>
             </View>
           ) : (
-            payouts.map((p) => {
+            <View style={{ ...card, overflow: "hidden" }}>
+            {payouts.map((p, pIdx) => {
               const isPaid = p.status === "paid";
               const isFailed = p.status === "failed";
               return (
@@ -483,73 +503,90 @@ export default function EarningsScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    padding: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    marginBottom: spacing.sm,
+                    minHeight: 64,
+                    paddingVertical: spacing.md,
+                    paddingHorizontal: spacing.lg,
                   }}
                 >
+                  {pIdx < payouts.length - 1 ? (
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        left: spacing.lg + 36 + spacing.md,
+                        height: StyleSheet.hairlineWidth,
+                        backgroundColor: colors.separator,
+                      }}
+                    />
+                  ) : null}
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      borderCurve: "continuous",
                       backgroundColor: isPaid
-                        ? "rgba(16, 185, 129, 0.12)"
+                        ? colors.successSoft
                         : isFailed
-                        ? "rgba(244, 63, 94, 0.12)"
-                        : "rgba(245, 158, 11, 0.12)",
+                        ? colors.dangerSoft
+                        : colors.warningSoft,
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: spacing.md,
                     }}
                   >
                     {isPaid ? (
-                      <CheckCircle2 size={18} color="#10B981" strokeWidth={2} />
+                      <CheckCircle2 size={18} color={colors.success} strokeWidth={2} />
                     ) : isFailed ? (
-                      <Receipt size={18} color="#F43F5E" strokeWidth={2} />
+                      <Receipt size={18} color={colors.danger} strokeWidth={2} />
                     ) : (
-                      <Calendar size={18} color="#F59E0B" strokeWidth={2} />
+                      <Calendar size={18} color={colors.warning} strokeWidth={2} />
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "700",
-                        color: colors.text,
-                        fontFamily: fontFamily.bodyBold,
-                      }}
+                      style={[
+                        typography.title.sm,
+                        { color: colors.text, fontVariant: ["tabular-nums"] },
+                      ]}
                     >
                       {fmtLkr(p.amountLkr)}
                     </Text>
-                    <Text style={{ fontSize: 11, color: colors.textSubtle, marginTop: 2 }}>
+                    <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
                       {t(`earnings.payoutStatus.${p.status}`)} · {p.eventCount} {t("earnings.events")}
                     </Text>
-                    <Text style={{ fontSize: 10, color: colors.textSubtle, marginTop: 2 }}>
+                    <Text style={[typography.caption, { fontSize: 11, color: colors.textSubtle, marginTop: 1 }]}>
                       {p.periodStart} → {p.periodEnd}
                     </Text>
                   </View>
                   <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "800",
-                      color: isPaid
-                        ? "#10B981"
-                        : isFailed
-                        ? "#F43F5E"
-                        : "#F59E0B",
-                      fontFamily: fontFamily.displayBold,
-                      letterSpacing: 0.6,
-                    }}
+                    style={[
+                      typography.label.xs,
+                      {
+                        overflow: "hidden",
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 8,
+                        color: isPaid
+                          ? colors.success
+                          : isFailed
+                          ? colors.danger
+                          : colors.warning,
+                        backgroundColor: isPaid
+                          ? colors.successSoft
+                          : isFailed
+                          ? colors.dangerSoft
+                          : colors.warningSoft,
+                      },
+                    ]}
                   >
                     {p.status.toUpperCase()}
                   </Text>
                 </View>
               );
-            })
+            })}
+            </View>
           )}
         </View>
       </ScrollView>

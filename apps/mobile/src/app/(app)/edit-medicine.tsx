@@ -7,6 +7,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -129,10 +130,11 @@ function SuggestionRow({
       accessibilityLabel={t("addMedicine.a11y.use", { name: s.name })}
       style={({ pressed }) => ({
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-        borderTopWidth: 1,
-        borderTopColor: colors.border,
+        paddingVertical: spacing.sm + 2,
+        minHeight: 56,
+        backgroundColor: pressed ? colors.fill : "transparent",
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.separator,
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.sm,
@@ -140,12 +142,13 @@ function SuggestionRow({
     >
       <View
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: 15,
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          borderCurve: "continuous",
           backgroundColor: isHistory
             ? colors.primarySoft
-            : "rgba(14, 165, 183, 0.12)",
+            : colors.accentSoft,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -153,14 +156,14 @@ function SuggestionRow({
         {isHistory ? (
           <History size={14} color={colors.primary} strokeWidth={2.25} />
         ) : (
-          <Sparkles size={14} color="#0EA5B7" strokeWidth={2.25} />
+          <Sparkles size={14} color={colors.accent} strokeWidth={2.25} />
         )}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={[
             typography.title.sm,
-            { color: colors.text, fontWeight: "700" },
+            { color: colors.text },
           ]}
           numberOfLines={1}
         >
@@ -191,7 +194,7 @@ export default function EditMedicineScreen() {
   const id = (params.id as string) || "";
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, scheme } = useTheme();
   const toast = useToast();
 
   const { data, isLoading, error } = useMedicine(id);
@@ -487,9 +490,10 @@ export default function EditMedicineScreen() {
                     width: 52,
                     height: 30,
                     borderRadius: 16,
+                    borderCurve: "continuous",
                     backgroundColor: value
-                      ? colors.primary
-                      : colors.surfaceMuted,
+                      ? colors.success
+                      : colors.fillStrong,
                     padding: 3,
                     justifyContent: "center",
                     opacity: pressed ? 0.85 : 1,
@@ -500,7 +504,8 @@ export default function EditMedicineScreen() {
                       width: 24,
                       height: 24,
                       borderRadius: 12,
-                      backgroundColor: "#fff",
+                      borderCurve: "continuous",
+                      backgroundColor: colors.surface,
                       transform: [{ translateX: value ? 22 : 0 }],
                     }}
                   />
@@ -552,11 +557,12 @@ export default function EditMedicineScreen() {
                   {showDropdown ? (
                     <View
                       style={{
-                        marginTop: 6,
-                        backgroundColor: colors.surface,
-                        borderRadius: radius.lg,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        marginTop: 8,
+                        backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                         overflow: "hidden",
                         maxHeight: 280,
                       }}
@@ -651,22 +657,20 @@ export default function EditMedicineScreen() {
                       accessibilityLabel={t("editMedicine.a11y.noTiming")}
                       style={({ pressed }) => ({
                         paddingHorizontal: spacing.md,
-                        paddingVertical: 8,
+                        height: 36,
+                        justifyContent: "center",
                         borderRadius: 999,
                         backgroundColor: !value
                           ? colors.primary
-                          : colors.surfaceMuted,
-                        borderWidth: 1,
-                        borderColor: !value ? colors.primary : colors.border,
-                        opacity: pressed ? 0.85 : 1,
+                          : colors.fill,
+                        opacity: pressed ? 0.75 : 1,
                       })}
                     >
                       <Text
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "700",
-                          color: !value ? colors.onPrimary : colors.text,
-                        }}
+                        style={[
+                          typography.label.md,
+                          { color: !value ? colors.onPrimary : colors.text },
+                        ]}
                       >
                         {t("editMedicine.timingNone")}
                       </Text>
@@ -682,22 +686,20 @@ export default function EditMedicineScreen() {
                           accessibilityLabel={tt.label}
                           style={({ pressed }) => ({
                             paddingHorizontal: spacing.md,
-                            paddingVertical: 8,
+                            height: 36,
+                            justifyContent: "center",
                             borderRadius: 999,
                             backgroundColor: sel
                               ? colors.primary
-                              : colors.surfaceMuted,
-                            borderWidth: 1,
-                            borderColor: sel ? colors.primary : colors.border,
-                            opacity: pressed ? 0.85 : 1,
+                              : colors.fill,
+                            opacity: pressed ? 0.75 : 1,
                           })}
                         >
                           <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: "700",
-                              color: sel ? colors.onPrimary : colors.text,
-                            }}
+                            style={[
+                              typography.label.md,
+                              { color: sel ? colors.onPrimary : colors.text },
+                            ]}
                           >
                             {tt.label}
                           </Text>

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { View, Text, ScrollView, Platform } from "react-native";
+import { View, Text, ScrollView, Platform, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -44,7 +44,9 @@ import { useTheme } from "@/theme/ThemeProvider";
 export default function DoctorDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, shadow } = useTheme();
+  const { spacing, colors, typography, shadow, scheme } = useTheme();
+  const cardShadow = scheme === "dark" ? null : shadow.sm;
+  const cardEdge = scheme === "dark" ? colors.borderStrong : colors.separator;
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const doctorId = id || "";
@@ -63,10 +65,10 @@ export default function DoctorDetailScreen() {
             paddingTop: spacing.md,
           }}
         >
-          <Skeleton height={180} radius={24} />
-          <Skeleton height={80} radius={20} />
-          <Skeleton height={140} radius={20} />
-          <Skeleton height={100} radius={20} />
+          <Skeleton height={220} radius={28} />
+          <Skeleton height={96} radius={22} />
+          <Skeleton height={160} radius={22} />
+          <Skeleton height={100} radius={22} />
         </View>
       </Screen>
     );
@@ -108,7 +110,7 @@ export default function DoctorDetailScreen() {
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.sm,
           paddingBottom: spacing.xl + 20,
-          gap: spacing.md,
+          gap: spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -116,13 +118,16 @@ export default function DoctorDetailScreen() {
         <View
           style={{
             backgroundColor: colors.surface,
-            borderRadius: 24,
-            borderWidth: 1,
-            borderColor: colors.border,
-            padding: spacing.lg,
+            borderRadius: 28,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: cardEdge,
+            paddingHorizontal: spacing.xl,
+            paddingTop: spacing.xxl,
+            paddingBottom: spacing.xl,
             alignItems: "center",
-            gap: spacing.sm + 2,
-            ...shadow.sm,
+            gap: spacing.md,
+            ...cardShadow,
           }}
         >
           <View style={{ position: "relative", marginBottom: 2 }}>
@@ -151,8 +156,8 @@ export default function DoctorDetailScreen() {
           <View style={{ alignItems: "center", gap: 4 }}>
             <Text
               style={[
-                typography.title.lg,
-                { color: colors.text, fontWeight: "800", textAlign: "center", letterSpacing: -0.4 },
+                typography.display.sm,
+                { color: colors.text, textAlign: "center" },
               ]}
             >
               {doctor.name}
@@ -190,8 +195,8 @@ export default function DoctorDetailScreen() {
                   marginTop: 4,
                 }}
               >
-                <Building2 size={14} color={colors.textMuted} />
-                <Text style={[typography.body.sm, { color: colors.textMuted, fontWeight: "500" }]}>
+                <Building2 size={14} color={colors.textSubtle} />
+                <Text style={[typography.body.sm, { color: colors.textMuted }]}>
                   {doctor.hospitalName}
                 </Text>
               </View>
@@ -204,12 +209,13 @@ export default function DoctorDetailScreen() {
           style={{
             flexDirection: "row",
             backgroundColor: colors.surface,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: colors.border,
-            paddingVertical: spacing.md,
+            borderRadius: 22,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: cardEdge,
+            paddingVertical: spacing.lg,
             paddingHorizontal: spacing.xs,
-            ...shadow.sm,
+            ...cardShadow,
           }}
         >
           {/* Stat 1: Experience */}
@@ -219,6 +225,7 @@ export default function DoctorDetailScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -227,19 +234,19 @@ export default function DoctorDetailScreen() {
               <Sparkles size={18} color={colors.primary} strokeWidth={2.2} />
             </View>
             <Text
-              style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}
+              style={[typography.title.md, { color: colors.text, marginTop: 2 }]}
               numberOfLines={1}
             >
               {doctor.experience != null && Number(doctor.experience) > 0
                 ? t("doctorDetail.experienceYears", { years: doctor.experience })
                 : "Verified"}
             </Text>
-            <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               {t("doctorDetail.experience")}
             </Text>
           </View>
 
-          <View style={{ width: 1, backgroundColor: colors.borderSoft, marginVertical: 4 }} />
+          <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginVertical: 6 }} />
 
           {/* Stat 2: Fee */}
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
@@ -248,6 +255,7 @@ export default function DoctorDetailScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -256,7 +264,7 @@ export default function DoctorDetailScreen() {
               <Wallet size={18} color={colors.primary} strokeWidth={2.2} />
             </View>
             <Text
-              style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}
+              style={[typography.title.md, { color: colors.text, marginTop: 2 }]}
               numberOfLines={1}
             >
               {doctor.consultationFee != null
@@ -265,12 +273,12 @@ export default function DoctorDetailScreen() {
                   })
                 : "At Clinic"}
             </Text>
-            <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               {t("doctorDetail.fee")}
             </Text>
           </View>
 
-          <View style={{ width: 1, backgroundColor: colors.borderSoft, marginVertical: 4 }} />
+          <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginVertical: 6 }} />
 
           {/* Stat 3: Consultation Mode */}
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
@@ -279,7 +287,8 @@ export default function DoctorDetailScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 12,
-                backgroundColor: telemedicineEnabled ? colors.successSoft : colors.surfaceMuted,
+                borderCurve: "continuous",
+                backgroundColor: telemedicineEnabled ? colors.successSoft : colors.fill,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -293,13 +302,13 @@ export default function DoctorDetailScreen() {
             <Text
               numberOfLines={1}
               style={[
-                typography.title.sm,
-                { color: telemedicineEnabled ? colors.success : colors.text, fontWeight: "800" },
+                typography.title.md,
+                { color: telemedicineEnabled ? colors.success : colors.text, marginTop: 2 },
               ]}
             >
               {telemedicineEnabled ? "Video & Visit" : "In-Person"}
             </Text>
-            <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               Consultation
             </Text>
           </View>
@@ -309,15 +318,16 @@ export default function DoctorDetailScreen() {
         <View
           style={{
             backgroundColor: colors.surface,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderRadius: 22,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: cardEdge,
             padding: spacing.lg,
             gap: spacing.md,
-            ...shadow.sm,
+            ...cardShadow,
           }}
         >
-          <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+          <Text style={[typography.title.md, { color: colors.text }]}>
             Consultation Options
           </Text>
 
@@ -330,28 +340,28 @@ export default function DoctorDetailScreen() {
                 gap: spacing.md,
                 padding: spacing.md,
                 borderRadius: 16,
-                backgroundColor: colors.surfaceMuted,
+                borderCurve: "continuous",
+                backgroundColor: colors.fill,
               }}
             >
               <View
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: colors.surface,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: colors.borderSoft,
                 }}
               >
                 <Building2 size={19} color={colors.primary} strokeWidth={2.2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+                <Text style={[typography.title.xs, { color: colors.text }]}>
                   Hospital Clinic Visit
                 </Text>
-                <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+                <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}>
                   {doctor.hospitalName || "In-person clinical appointment"}
                 </Text>
               </View>
@@ -366,34 +376,34 @@ export default function DoctorDetailScreen() {
                 gap: spacing.md,
                 padding: spacing.md,
                 borderRadius: 16,
-                backgroundColor: telemedicineEnabled ? colors.successSoft : colors.surfaceMuted,
+                borderCurve: "continuous",
+                backgroundColor: telemedicineEnabled ? colors.successSoft : colors.fill,
               }}
             >
               <View
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: colors.surface,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: telemedicineEnabled ? colors.success : colors.fillStrong,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: telemedicineEnabled ? colors.success : colors.borderSoft,
                 }}
               >
                 <Video
                   size={19}
-                  color={telemedicineEnabled ? colors.success : colors.textSubtle}
+                  color={telemedicineEnabled ? colors.onPrimary : colors.textSubtle}
                   strokeWidth={2.2}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+                <Text style={[typography.title.xs, { color: colors.text }]}>
                   {telemedicineEnabled
                     ? t("doctorDetail.onlineAvailable")
                     : t("doctorDetail.onlineUnavailable")}
                 </Text>
-                <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+                <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}>
                   {telemedicineEnabled
                     ? "Secure video call directly in app"
                     : "Only in-person visits supported"}
@@ -414,20 +424,22 @@ export default function DoctorDetailScreen() {
           <View
             style={{
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderRadius: 22,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: cardEdge,
               padding: spacing.lg,
               gap: spacing.sm,
-              ...shadow.sm,
+              ...cardShadow,
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
               <View
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 14,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -436,16 +448,16 @@ export default function DoctorDetailScreen() {
                 <Building2 size={20} color={colors.primary} strokeWidth={2.2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600" }]}>
+                <Text style={[typography.caption, { color: colors.textSubtle }]}>
                   {t("doctorDetail.hospital")}
                 </Text>
-                <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700", marginTop: 2 }]}>
+                <Text style={[typography.title.md, { color: colors.text, marginTop: 2 }]}>
                   {doctor.hospitalName}
                 </Text>
                 {doctor.hospitalAddress ? (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-                    <MapPin size={13} color={colors.textMuted} />
-                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    <MapPin size={13} color={colors.textSubtle} />
+                    <Text style={[typography.body.sm, { color: colors.textMuted, flex: 1 }]}>
                       {doctor.hospitalAddress}
                     </Text>
                   </View>
@@ -460,20 +472,22 @@ export default function DoctorDetailScreen() {
           <View
             style={{
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderRadius: 22,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: cardEdge,
               padding: spacing.lg,
               gap: spacing.sm,
-              ...shadow.sm,
+              ...cardShadow,
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
               <View
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 14,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -482,10 +496,10 @@ export default function DoctorDetailScreen() {
                 <GraduationCap size={20} color={colors.primary} strokeWidth={2.2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600" }]}>
+                <Text style={[typography.caption, { color: colors.textSubtle }]}>
                   {t("doctorDetail.qualifications")}
                 </Text>
-                <Text style={[typography.body.md, { color: colors.text, fontWeight: "600", marginTop: 2 }]}>
+                <Text style={[typography.body.md, { color: colors.text, marginTop: 2 }]}>
                   {doctor.qualification}
                 </Text>
               </View>
@@ -503,28 +517,30 @@ export default function DoctorDetailScreen() {
           paddingHorizontal: spacing.lg,
           paddingTop: 12,
           paddingBottom: Math.max(insets.bottom, 16),
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: -3 },
-              shadowOpacity: 0.05,
-              shadowRadius: 8,
-            },
-            android: {
-              elevation: 8,
-            },
-          }),
+          backgroundColor: scheme === "dark" ? colors.bgElevated : colors.surface,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
+          ...(scheme === "dark"
+            ? null
+            : Platform.select({
+                ios: {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: -3 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 10,
+                },
+                android: {
+                  elevation: 8,
+                },
+              })),
         }}
       >
         {doctor.consultationFee != null ? (
           <View style={{ gap: 1 }}>
-            <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600", fontSize: 11 }]}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               {t("doctorDetail.fee")}
             </Text>
-            <Text style={[typography.title.md, { color: colors.primary, fontWeight: "800" }]}>
+            <Text style={[typography.display.sm, { color: colors.text, fontSize: 20, lineHeight: 25 }]}>
               {`LKR ${Number(doctor.consultationFee).toLocaleString()}`}
             </Text>
           </View>

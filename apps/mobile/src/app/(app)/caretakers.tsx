@@ -125,6 +125,7 @@ export default function CaretakersScreen() {
           elevated={false}
           style={{
             borderRadius: radius.xxxl,
+            borderCurve: "continuous",
             borderWidth: 0,
             overflow: "hidden",
             ...shadow.hero,
@@ -152,7 +153,7 @@ export default function CaretakersScreen() {
               style={[
                 StyleSheet.absoluteFill,
                 {
-                  backgroundColor: "#FFFFFF",
+                  backgroundColor: colors.surface,
                   opacity: 0.06,
                   borderRadius: 160,
                   transform: [{ scale: 1.1 }],
@@ -190,6 +191,7 @@ export default function CaretakersScreen() {
                   width: 44,
                   height: 44,
                   borderRadius: 14,
+                  borderCurve: "continuous",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: "rgba(255, 255, 255, 0.16)",
@@ -561,6 +563,7 @@ function CaretakerAction({
           width: 34,
           height: 34,
           borderRadius: 12,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: pal.bg,

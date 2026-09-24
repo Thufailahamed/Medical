@@ -6,6 +6,7 @@ import {
   Pressable,
   RefreshControl,
   Platform,
+  StyleSheet,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -56,6 +57,7 @@ import {
   ErrorState,
   Button,
   Skeleton,
+  DoseRing,
 } from "@/components/ui";
 
 // M1: third tab "All" surfaces stopped/paused medicines so users can
@@ -151,7 +153,8 @@ function subtitleForMed(t: (k: string) => string, m: any): string {
 export default function MedicinesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, fontFamily, shadow: themeShadow } = useTheme();
+  const { spacing, colors, typography, radius, fontFamily, shadow: themeShadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const toast = useToast();
   const { user } = useAuthStore();
 
@@ -376,6 +379,7 @@ export default function MedicinesScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
                     borderWidth: 2,
@@ -388,6 +392,7 @@ export default function MedicinesScreen() {
                       width: "100%",
                       height: "100%",
                       borderRadius: 22,
+                      borderCurve: "continuous",
                       overflow: "hidden",
                     }}
                   />
@@ -416,6 +421,7 @@ export default function MedicinesScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
                     borderWidth: 2,
@@ -475,6 +481,7 @@ export default function MedicinesScreen() {
                 width: 40,
                 height: 40,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: pressed ? 0.85 : 1,
@@ -495,6 +502,7 @@ export default function MedicinesScreen() {
                 width: 40,
                 height: 40,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: pressed ? 0.85 : 1,
@@ -529,6 +537,7 @@ export default function MedicinesScreen() {
             <View
               style={{
                 borderRadius: 32,
+                borderCurve: "continuous",
                 overflow: "hidden",
                 ...themeShadow.hero,
               }}
@@ -647,6 +656,7 @@ export default function MedicinesScreen() {
                       width: 76,
                       height: 76,
                       borderRadius: 38,
+                      borderCurve: "continuous",
                       alignItems: "center",
                       justifyContent: "center",
                       shadowColor: "#38BDF8",
@@ -665,6 +675,7 @@ export default function MedicinesScreen() {
                   style={{
                     marginTop: spacing.lg,
                     borderRadius: 18,
+                    borderCurve: "continuous",
                     overflow: "hidden",
                     borderWidth: 1,
                     borderColor: "rgba(255,255,255,0.18)",
@@ -785,11 +796,10 @@ export default function MedicinesScreen() {
             <View
               style={{
                 flexDirection: "row",
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: colors.fill,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 padding: 3,
-                borderWidth: 1,
-                borderColor: colors.border,
                 flex: 1,
               }}
             >
@@ -806,13 +816,18 @@ export default function MedicinesScreen() {
                       flex: 1,
                       paddingVertical: 8,
                       borderRadius: 11,
+                      borderCurve: "continuous",
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: active ? colors.surface : "transparent",
-                      shadowColor: active ? "#0F172A" : "transparent",
+                      backgroundColor: active
+                        ? scheme === "dark"
+                          ? colors.surfaceElevated
+                          : colors.surface
+                        : "transparent",
+                      shadowColor: active ? colors.shadow : "transparent",
                       shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: active ? 0.08 : 0,
-                      shadowRadius: 4,
+                      shadowOpacity: active && scheme !== "dark" ? 0.1 : 0,
+                      shadowRadius: 6,
                       elevation: active ? 2 : 0,
                       opacity: pressed && !active ? 0.7 : 1,
                     })}
@@ -821,7 +836,7 @@ export default function MedicinesScreen() {
                       style={[
                         typography.label.md,
                         {
-                          color: active ? colors.primary : colors.textMuted,
+                          color: active ? colors.text : colors.textMuted,
                           fontWeight: active ? "700" : "600",
                         },
                       ]}
@@ -843,6 +858,7 @@ export default function MedicinesScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: pressed ? colors.primarySoft : colors.surface,
@@ -865,6 +881,7 @@ export default function MedicinesScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: pressed ? colors.primarySoft : colors.surface,
@@ -926,6 +943,7 @@ export default function MedicinesScreen() {
                         width: 40,
                         height: 40,
                         borderRadius: 14,
+                        borderCurve: "continuous",
                         overflow: "hidden",
                         shadowColor: period.color,
                         shadowOffset: { width: 0, height: 4 },
@@ -980,14 +998,14 @@ export default function MedicinesScreen() {
                         paddingHorizontal: 10,
                         paddingVertical: 5,
                         borderRadius: 999,
-                        backgroundColor: period.soft,
+                        backgroundColor: scheme === "dark" ? `${period.color}29` : period.soft,
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 11,
                           fontWeight: "800",
-                          color: period.softText,
+                          color: scheme === "dark" ? period.color : period.softText,
                           letterSpacing: 0.4,
                         }}
                       >
@@ -997,7 +1015,7 @@ export default function MedicinesScreen() {
                         style={{
                           fontSize: 10,
                           fontWeight: "600",
-                          color: period.softText,
+                          color: scheme === "dark" ? period.color : period.softText,
                           opacity: 0.7,
                         }}
                       >
@@ -1058,6 +1076,7 @@ export default function MedicinesScreen() {
                 width: 56,
                 height: 56,
                 borderRadius: 18,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -1225,6 +1244,7 @@ function MedicineCard({
           alignItems: "center",
           padding: spacing.md,
           borderRadius: 20,
+          borderCurve: "continuous",
           backgroundColor: colors.surface,
           borderWidth: 1,
           borderColor: isTaken ? colors.successSoft : colors.border,
@@ -1255,6 +1275,7 @@ function MedicineCard({
             width: 48,
             height: 48,
             borderRadius: 16,
+            borderCurve: "continuous",
             marginLeft: 8,
             alignItems: "center",
             justifyContent: "center",
@@ -1418,6 +1439,7 @@ function MedicineCard({
               width: 32,
               height: 32,
               borderRadius: 12,
+              borderCurve: "continuous",
               backgroundColor: pressed ? colors.primarySoft : colors.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
@@ -1457,10 +1479,11 @@ function PremiumEmptyState({
     <View
       style={{
         borderRadius: 28,
+        borderCurve: "continuous",
         padding: 32,
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         alignItems: "center",
         overflow: "hidden",
         position: "relative",
@@ -1498,6 +1521,7 @@ function PremiumEmptyState({
           width: 72,
           height: 72,
           borderRadius: 22,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: colors.primarySoft,
@@ -1558,6 +1582,7 @@ function PremiumEmptyState({
             paddingHorizontal: 22,
             paddingVertical: 12,
             borderRadius: 14,
+            borderCurve: "continuous",
             flexDirection: "row",
             alignItems: "center",
             gap: 6,

@@ -2,6 +2,7 @@
 
 import React, { useMemo, useCallback, useState } from "react";
 import { View, Text, LayoutRectangle } from "react-native";
+import { Activity } from "lucide-react-native";
 import Svg, { Rect, Line, Path, Circle, Text as SvgText } from "react-native-svg";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -247,6 +248,7 @@ export function VitalsChart({
           gap: spacing.xs,
           backgroundColor: colors.surfaceSubtle,
           borderRadius: 16,
+          borderCurve: "continuous",
           padding: spacing.md,
         }}
       >

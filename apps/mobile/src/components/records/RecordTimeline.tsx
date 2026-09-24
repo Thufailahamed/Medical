@@ -332,9 +332,10 @@ export function RecordTimeline() {
         style={({ pressed }) => ({
           backgroundColor: pressed ? "#F0F9FF" : colors.surface,
           borderRadius: 22,
+          borderCurve: "continuous",
           padding: 16,
           borderWidth: 1,
-          borderColor: "#DDE9F1",
+          borderColor: colors.separator,
           flexDirection: "row",
           alignItems: "center",
           gap: 13,
@@ -350,6 +351,7 @@ export function RecordTimeline() {
             width: 44,
             height: 44,
             borderRadius: 15,
+            borderCurve: "continuous",
             overflow: "hidden",
             alignItems: "center",
             justifyContent: "center",
@@ -405,7 +407,7 @@ export function RecordTimeline() {
             borderColor: "#CDEBF8",
           }}
         >
-          <Bot size={12} color="#0284C7" />
+          <Bot size={12} color={colors.primary} />
           <AppText
             style={{
               fontSize: 11,
@@ -582,7 +584,7 @@ export function RecordTimeline() {
                             width: 2,
                             height: 10,
                             borderRadius: 1,
-                            backgroundColor: "#D6E4ED",
+                            backgroundColor: colors.surfaceMuted,
                           }}
                         />
                       ) : (
@@ -610,7 +612,7 @@ export function RecordTimeline() {
                             width: 5,
                             height: 5,
                             borderRadius: 2.5,
-                            backgroundColor: "#fff",
+                            backgroundColor: colors.surface,
                           }}
                         />
                       </View>
@@ -621,7 +623,7 @@ export function RecordTimeline() {
                             width: 2,
                             minHeight: 12,
                             borderRadius: 1,
-                            backgroundColor: "#D6E4ED",
+                            backgroundColor: colors.surfaceMuted,
                             marginTop: 3,
                           }}
                         />
@@ -642,6 +644,7 @@ export function RecordTimeline() {
                         backgroundColor:
                           pressed || isPressed ? colors.surfaceMuted : colors.surface,
                         borderRadius: 20,
+                        borderCurve: "continuous",
                         paddingVertical: 14,
                         paddingHorizontal: 14,
                         borderWidth: 1,
@@ -669,6 +672,7 @@ export function RecordTimeline() {
                             justifyContent: "center",
                             backgroundColor: meta.bg,
                             borderRadius: 13,
+                            borderCurve: "continuous",
                             paddingHorizontal: 8,
                             paddingVertical: 7,
                             minWidth: 48,

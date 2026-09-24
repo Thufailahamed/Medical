@@ -56,6 +56,7 @@ export function SaveFilterSheet({
               : colors.surfaceMuted,
             paddingVertical: spacing.md,
             borderRadius: 12,
+            borderCurve: "continuous",
             alignItems: "center",
           })}
         >

@@ -69,11 +69,11 @@ export function PinPad({
     onChange(value.slice(0, -1));
   }
 
-  const dotSize = 14;
-  const dotGap = 16;
+  const dotSize = 13;
+  const dotGap = 20;
 
   return (
-    <View style={{ alignItems: "center", gap: 32 }}>
+    <View style={{ alignItems: "center", gap: 28 }}>
       {/* Dot indicator */}
       <Animated.View
         style={{
@@ -96,7 +96,8 @@ export function PinPad({
                   ? colors.danger
                   : filled
                     ? colors.primary
-                    : colors.border,
+                    : colors.borderStrong,
+                transform: [{ scale: filled ? 1.08 : 1 }],
                 backgroundColor: filled
                   ? error
                     ? colors.danger
@@ -113,7 +114,9 @@ export function PinPad({
           style={{
             color: colors.danger,
             fontSize: 13,
-            fontFamily: fontFamily.body,
+            fontFamily: fontFamily.bodySemibold,
+            textAlign: "center",
+            minHeight: 18,
           }}
         >
           {hint}
@@ -123,13 +126,13 @@ export function PinPad({
       )}
 
       {/* Keypad */}
-      <View style={{ gap: 14 }}>
+      <View style={{ gap: 16 }}>
         {[
           ["1", "2", "3"],
           ["4", "5", "6"],
           ["7", "8", "9"],
         ].map((row, ri) => (
-          <View key={ri} style={{ flexDirection: "row", gap: 24 }}>
+          <View key={ri} style={{ flexDirection: "row", gap: 26 }}>
             {row.map((d) => (
               <KeyButton
                 key={d}
@@ -140,8 +143,8 @@ export function PinPad({
             ))}
           </View>
         ))}
-        <View style={{ flexDirection: "row", gap: 24, justifyContent: "center" }}>
-          <View style={{ width: 72 }} />
+        <View style={{ flexDirection: "row", gap: 26, justifyContent: "center" }}>
+          <View style={{ width: 76 }} />
           <KeyButton label="0" onPress={() => press("0")} disabled={disabled} />
           <Pressable
             onPress={back}
@@ -149,16 +152,17 @@ export function PinPad({
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel="Backspace"
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
+            style={({ pressed }) => ({
+              width: 76,
+              height: 76,
+              borderRadius: 38,
               alignItems: "center",
               justifyContent: "center",
+              backgroundColor: pressed ? colors.fill : "transparent",
               opacity: value.length === 0 || disabled ? 0.3 : 1,
-            }}
+            })}
           >
-            <Delete size={26} color={colors.text} />
+            <Delete size={26} color={colors.text} strokeWidth={1.9} />
           </Pressable>
         </View>
       </View>
@@ -185,24 +189,24 @@ function KeyButton({
       accessibilityLabel={`Digit ${label}`}
       style={({ pressed }) => [
         {
-          width: 72,
-          height: 72,
-          borderRadius: 36,
+          width: 76,
+          height: 76,
+          borderRadius: 38,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
+          backgroundColor: pressed ? colors.fillStrong : colors.fill,
+          transform: [{ scale: pressed ? 0.96 : 1 }],
         },
         disabled && { opacity: 0.4 },
       ]}
     >
       <Text
         style={{
-          fontSize: 28,
-          fontWeight: "600",
+          fontSize: 32,
+          lineHeight: 38,
           color: colors.text,
-          fontFamily: fontFamily.displayBold,
+          fontFamily: fontFamily.body,
+          fontVariant: ["tabular-nums"],
         }}
       >
         {label}

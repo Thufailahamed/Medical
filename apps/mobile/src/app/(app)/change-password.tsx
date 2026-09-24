@@ -150,9 +150,10 @@ export default function ChangePasswordScreen() {
           end={{ x: 1, y: 1 }}
           style={{
             borderRadius: 20,
+            borderCurve: "continuous",
             padding: spacing.md,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: colors.separator,
             flexDirection: "row",
             alignItems: "center",
             gap: spacing.md,
@@ -163,6 +164,7 @@ export default function ChangePasswordScreen() {
               width: 48,
               height: 48,
               borderRadius: 16,
+              borderCurve: "continuous",
               backgroundColor: colors.primary,
               alignItems: "center",
               justifyContent: "center",
@@ -191,10 +193,11 @@ export default function ChangePasswordScreen() {
           style={{
             padding: spacing.lg,
             borderRadius: 20,
+            borderCurve: "continuous",
             gap: spacing.lg,
             backgroundColor: colors.surface,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: colors.separator,
           }}
         >
           {/* Current Password */}
@@ -208,12 +211,10 @@ export default function ChangePasswordScreen() {
             >
               <Text
                 style={[
-                  typography.label.sm,
+                  typography.label.md,
                   {
-                    color: colors.textSubtle,
-                    fontWeight: "600",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
+                    color: colors.textMuted,
+                    marginLeft: 2,
                   },
                 ]}
               >
@@ -249,12 +250,10 @@ export default function ChangePasswordScreen() {
           <View style={{ gap: spacing.xs }}>
             <Text
               style={[
-                typography.label.sm,
+                typography.label.md,
                 {
-                  color: colors.textSubtle,
-                  fontWeight: "600",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
+                  color: colors.textMuted,
+                  marginLeft: 2,
                 },
               ]}
             >
@@ -337,12 +336,10 @@ export default function ChangePasswordScreen() {
             >
               <Text
                 style={[
-                  typography.label.sm,
+                  typography.label.md,
                   {
-                    color: colors.textSubtle,
-                    fontWeight: "600",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
+                    color: colors.textMuted,
+                    marginLeft: 2,
                   },
                 ]}
               >
@@ -399,6 +396,7 @@ export default function ChangePasswordScreen() {
             gap: spacing.sm,
             padding: spacing.md,
             borderRadius: 14,
+            borderCurve: "continuous",
             backgroundColor: colors.surfaceSubtle,
             borderWidth: 1,
             borderColor: colors.border,

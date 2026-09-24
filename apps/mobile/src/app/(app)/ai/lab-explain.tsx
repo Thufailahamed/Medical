@@ -96,6 +96,7 @@ export default function LabExplainScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 14,
+                    borderCurve: "continuous",
                     backgroundColor: colors.infoSoft,
                     alignItems: "center",
                     justifyContent: "center",

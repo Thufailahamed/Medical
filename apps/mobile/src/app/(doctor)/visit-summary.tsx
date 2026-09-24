@@ -194,8 +194,8 @@ export default function VisitSummaryScreen() {
           <Card>
             <Text
               style={[
-                typography.label.md,
-                { color: colors.text, fontWeight: "700", marginBottom: spacing.sm },
+                typography.title.md,
+                { color: colors.text, marginBottom: spacing.md },
               ]}
             >
               {t("visitSummary.cardVisit")}
@@ -296,8 +296,10 @@ export default function VisitSummaryScreen() {
                     alignItems: "center",
                     gap: spacing.sm,
                     backgroundColor: colors.surfaceMuted,
-                    padding: spacing.sm,
-                    borderRadius: radius.md,
+                    paddingVertical: spacing.sm + 2,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
                   }}
                 >
                   <PillCmp icon={Pill} label={r.name} tone="primary" size="sm" />
@@ -318,7 +320,7 @@ export default function VisitSummaryScreen() {
                       setRxList((prev) => prev.filter((_, j) => j !== i))
                     }
                   >
-                    <Trash2 size={16} color={colors.danger} />
+                    <Trash2 size={16} color={colors.danger} strokeWidth={2} />
                   </Pressable>
                 </View>
               ))}
@@ -401,8 +403,10 @@ export default function VisitSummaryScreen() {
                     alignItems: "center",
                     gap: spacing.sm,
                     backgroundColor: colors.surfaceMuted,
-                    padding: spacing.sm,
-                    borderRadius: radius.md,
+                    paddingVertical: spacing.sm + 2,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
                   }}
                 >
                   <PillCmp
@@ -426,7 +430,7 @@ export default function VisitSummaryScreen() {
                       setLabList((prev) => prev.filter((_, j) => j !== i))
                     }
                   >
-                    <Trash2 size={16} color={colors.danger} />
+                    <Trash2 size={16} color={colors.danger} strokeWidth={2} />
                   </Pressable>
                 </View>
               ))}
@@ -474,16 +478,16 @@ export default function VisitSummaryScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.sm,
-                paddingVertical: spacing.xs,
+                gap: spacing.md,
+                minHeight: 44,
               }}
             >
               <CheckCircle2
-                size={18}
+                size={22}
                 color={followUpEnabled ? colors.primary : colors.textSubtle}
                 strokeWidth={2.2}
               />
-              <Text style={[typography.body.md, { color: colors.text }]}>
+              <Text style={[typography.label.lg, { color: colors.text }]}>
                 {t("visitSummary.scheduleFollowUp")}
               </Text>
             </Pressable>
@@ -528,15 +532,16 @@ export default function VisitSummaryScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: spacing.sm,
+                  gap: spacing.md,
+                  minHeight: 44,
                 }}
               >
                 <CheckCircle2
-                  size={18}
+                  size={22}
                   color={markCompleted ? colors.primary : colors.textSubtle}
                   strokeWidth={2.2}
                 />
-                <Text style={[typography.body.md, { color: colors.text }]}>
+                <Text style={[typography.label.lg, { color: colors.text, flex: 1 }]}>
                   {t("visitSummary.markAppointment")}
                 </Text>
               </Pressable>

@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import React, { useMemo, useState } from "react";
-import { View, Text, ScrollView, Alert, Dimensions, TextInput as RNTextInput } from "react-native";
+import { View, Text, ScrollView, Alert, Dimensions, StyleSheet, TextInput as RNTextInput } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -156,8 +156,26 @@ const RANGES = [7, 30, 90, 365];
 export default function VitalsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
+  const { spacing, colors, typography, radius, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
+  const cardSurface = {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    borderCurve: "continuous" as const,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: isDark ? colors.borderStrong : colors.separator,
+    ...(isDark ? {} : shadow.sm),
+  };
+  const overlineStyle = [typography.overline, { color: colors.textSubtle }];
+  const fieldWell = {
+    backgroundColor: colors.fill,
+    borderRadius: 14,
+    borderCurve: "continuous" as const,
+  };
+  const segOn = {
+    backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
+    ...(isDark ? {} : shadow.xs),
+  };
   const toast = useToast();
   const locale = useLocaleStore((s) => s.locale);
   const { data, isLoading, isError, refetch } = useVitals();
@@ -354,10 +372,7 @@ export default function VitalsScreen() {
           {/* Categorized Metric Selector */}
           <View style={{ gap: spacing.xs }}>
             <Text
-              style={[
-                typography.caption,
-                { color: colors.textMuted, fontWeight: "700", letterSpacing: 0.8 },
-              ]}
+              style={overlineStyle}
             >
               {t("vitals.compose.typeLabel", "SELECT METRIC").toUpperCase()}
             </Text>
@@ -366,11 +381,12 @@ export default function VitalsScreen() {
             <View
               style={{
                 flexDirection: "row",
-                backgroundColor: colors.surfaceMuted,
-                borderRadius: radius.lg,
+                backgroundColor: colors.fill,
+                borderRadius: 12,
+                borderCurve: "continuous",
                 padding: 3,
-                borderWidth: 1,
-                borderColor: colors.border,
+                gap: 2,
+                marginTop: spacing.xs,
               }}
             >
               {[
@@ -385,20 +401,20 @@ export default function VitalsScreen() {
                     onPress={() => setComposeCategory(cat.key as any)}
                     style={{
                       flex: 1,
+                      minHeight: 34,
                       paddingVertical: 7,
                       alignItems: "center",
-                      borderRadius: radius.md,
-                      backgroundColor: isActive ? colors.surface : "transparent",
-                      borderWidth: isActive ? 1 : 0,
-                      borderColor: colors.border,
+                      justifyContent: "center",
+                      borderRadius: 10,
+                      borderCurve: "continuous",
+                      ...(isActive ? segOn : { backgroundColor: "transparent" }),
                     }}
                   >
                     <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: isActive ? "800" : "600",
-                        color: isActive ? colors.primary : colors.textMuted,
-                      }}
+                      style={[
+                        typography.label.md,
+                        { color: isActive ? colors.text : colors.textMuted },
+                      ]}
                     >
                       {cat.label}
                     </Text>
@@ -408,7 +424,7 @@ export default function VitalsScreen() {
             </View>
 
             {/* Metric Chips with designated Icons */}
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginTop: spacing.xs }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.sm }}>
               {(composeCategory === "core"
                 ? CORE_VITALS
                 : composeCategory === "body"
@@ -428,13 +444,12 @@ export default function VitalsScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 6,
+                      minHeight: 36,
                       paddingHorizontal: spacing.md,
                       paddingVertical: 7,
                       borderRadius: radius.full,
-                      backgroundColor: isSelected ? colors.primary : colors.surface,
-                      borderWidth: 1,
-                      borderColor: isSelected ? colors.primary : colors.border,
-                      opacity: pressed ? 0.8 : 1,
+                      backgroundColor: isSelected ? colors.primary : colors.fill,
+                      opacity: pressed ? 0.75 : 1,
                     })}
                   >
                     <VIcon
@@ -443,11 +458,10 @@ export default function VitalsScreen() {
                       strokeWidth={2.4}
                     />
                     <Text
-                      style={{
-                        fontSize: 12.5,
-                        fontWeight: isSelected ? "700" : "600",
-                        color: isSelected ? colors.onPrimary : colors.text,
-                      }}
+                      style={[
+                        typography.label.md,
+                        { color: isSelected ? colors.onPrimary : colors.text },
+                      ]}
                     >
                       {t(`vitals.type.${vt}.label`, VITAL_REGISTRY[vt]?.label || vt.replace(/_/g, " "))}
                     </Text>
@@ -463,11 +477,10 @@ export default function VitalsScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.md,
-              backgroundColor: isDark ? "rgba(59, 130, 246, 0.12)" : colors.primarySoft,
-              borderRadius: radius.xl,
-              padding: spacing.md,
-              borderWidth: 1,
-              borderColor: isDark ? "rgba(59, 130, 246, 0.25)" : "rgba(37, 99, 235, 0.18)",
+              backgroundColor: colors.primarySoft,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              padding: spacing.lg,
             }}
           >
             <View
@@ -475,6 +488,7 @@ export default function VitalsScreen() {
                 width: 44,
                 height: 44,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 backgroundColor: colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
@@ -485,26 +499,24 @@ export default function VitalsScreen() {
 
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+                <Text style={[typography.title.md, { color: colors.text }]}>
                   {meta.label}
                 </Text>
                 <View
                   style={{
-                    paddingHorizontal: 7,
-                    paddingVertical: 2,
-                    borderRadius: radius.xs,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: radius.full,
                     backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: "800", color: colors.primary }}>
+                  <Text style={[typography.label.xs, { color: colors.primary }]}>
                     {meta.unit}
                   </Text>
                 </View>
               </View>
 
-              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2, fontWeight: "500" }}>
+              <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
                 {targetGuide}
               </Text>
             </View>
@@ -514,22 +526,14 @@ export default function VitalsScreen() {
           {type === "blood_pressure" ? (
             <View
               style={{
-                backgroundColor: colors.surface,
-                borderRadius: radius.xl,
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.border,
-                padding: spacing.md,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDark ? 0 : 0.03,
-                shadowRadius: 5,
-                elevation: 1,
+                ...cardSurface,
+                padding: spacing.lg,
               }}
             >
               <Text
                 style={[
-                  typography.caption,
-                  { color: colors.textMuted, fontWeight: "700", letterSpacing: 0.8, marginBottom: spacing.sm },
+                  typography.overline,
+                  { color: colors.textSubtle, marginBottom: spacing.md },
                 ]}
               >
                 BLOOD PRESSURE VALUES (MMHG) *
@@ -538,19 +542,16 @@ export default function VitalsScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md }}>
                 {/* Systolic */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: colors.textSubtle, marginBottom: 4 }}>
+                  <Text style={[typography.label.xs, { color: colors.textSubtle, marginBottom: 6 }]}>
                     SYSTOLIC (TOP)
                   </Text>
                   <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: colors.surfaceMuted,
-                      borderRadius: radius.lg,
-                      borderWidth: 1,
-                      borderColor: colors.border,
+                      ...fieldWell,
                       paddingHorizontal: spacing.md,
-                      height: 54,
+                      height: 60,
                     }}
                   >
                     <RNTextInput
@@ -559,14 +560,12 @@ export default function VitalsScreen() {
                       placeholder="120"
                       placeholderTextColor={colors.textSubtle}
                       keyboardType="numeric"
-                      style={{
-                        flex: 1,
-                        fontSize: 22,
-                        fontWeight: "800",
-                        color: colors.text,
-                      }}
+                      style={[
+                        typography.display.md,
+                        { flex: 1, color: colors.text, paddingVertical: 0 },
+                      ]}
                     />
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: colors.textMuted }}>
+                    <Text style={[typography.label.sm, { color: colors.textMuted }]}>
                       mmHg
                     </Text>
                   </View>
@@ -574,26 +573,23 @@ export default function VitalsScreen() {
 
                 {/* Slash Divider */}
                 <View style={{ paddingTop: 18 }}>
-                  <Text style={{ fontSize: 26, fontWeight: "300", color: colors.textMuted }}>
+                  <Text style={{ fontSize: 28, fontWeight: "300", color: colors.textSubtle }}>
                     /
                   </Text>
                 </View>
 
                 {/* Diastolic */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: colors.textSubtle, marginBottom: 4 }}>
+                  <Text style={[typography.label.xs, { color: colors.textSubtle, marginBottom: 6 }]}>
                     DIASTOLIC (BOTTOM)
                   </Text>
                   <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: colors.surfaceMuted,
-                      borderRadius: radius.lg,
-                      borderWidth: 1,
-                      borderColor: colors.border,
+                      ...fieldWell,
                       paddingHorizontal: spacing.md,
-                      height: 54,
+                      height: 60,
                     }}
                   >
                     <RNTextInput
@@ -602,14 +598,12 @@ export default function VitalsScreen() {
                       placeholder="80"
                       placeholderTextColor={colors.textSubtle}
                       keyboardType="numeric"
-                      style={{
-                        flex: 1,
-                        fontSize: 22,
-                        fontWeight: "800",
-                        color: colors.text,
-                      }}
+                      style={[
+                        typography.display.md,
+                        { flex: 1, color: colors.text, paddingVertical: 0 },
+                      ]}
                     />
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: colors.textMuted }}>
+                    <Text style={[typography.label.sm, { color: colors.textMuted }]}>
                       mmHg
                     </Text>
                   </View>
@@ -625,14 +619,15 @@ export default function VitalsScreen() {
                     gap: 6,
                     marginTop: spacing.md,
                     paddingHorizontal: spacing.md,
-                    paddingVertical: 8,
-                    borderRadius: radius.md,
+                    paddingVertical: 10,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
                     backgroundColor:
                       liveClassification.classification === "normal"
                         ? colors.successSoft
                         : liveClassification.classification === "critical"
-                        ? (colors.dangerSoft ?? "rgba(239, 68, 68, 0.15)")
-                        : "rgba(245, 158, 11, 0.15)",
+                        ? colors.dangerSoft
+                        : colors.warningSoft,
                   }}
                 >
                   {liveClassification.classification === "normal" ? (
@@ -640,19 +635,21 @@ export default function VitalsScreen() {
                   ) : liveClassification.classification === "critical" ? (
                     <AlertCircle size={15} color={colors.danger} />
                   ) : (
-                    <AlertTriangle size={15} color="#D97706" />
+                    <AlertTriangle size={15} color={colors.warning} />
                   )}
                   <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color:
-                        liveClassification.classification === "normal"
-                          ? colors.success
-                          : liveClassification.classification === "critical"
-                          ? colors.danger
-                          : "#D97706",
-                    }}
+                    style={[
+                      typography.label.sm,
+                      {
+                        flex: 1,
+                        color:
+                          liveClassification.classification === "normal"
+                            ? colors.success
+                            : liveClassification.classification === "critical"
+                            ? colors.danger
+                            : colors.warning,
+                      },
+                    ]}
                   >
                     {liveClassification.classification.toUpperCase()} · {liveClassification.note}
                   </Text>
@@ -662,22 +659,14 @@ export default function VitalsScreen() {
           ) : (
             <View
               style={{
-                backgroundColor: colors.surface,
-                borderRadius: radius.xl,
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.border,
-                padding: spacing.md,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDark ? 0 : 0.03,
-                shadowRadius: 5,
-                elevation: 1,
+                ...cardSurface,
+                padding: spacing.lg,
               }}
             >
               <Text
                 style={[
-                  typography.caption,
-                  { color: colors.textMuted, fontWeight: "700", letterSpacing: 0.8, marginBottom: spacing.xs },
+                  typography.overline,
+                  { color: colors.textSubtle, marginBottom: spacing.sm },
                 ]}
               >
                 MEASURED VALUE ({meta.unit}) *
@@ -687,12 +676,9 @@ export default function VitalsScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  backgroundColor: colors.surfaceMuted,
-                  borderRadius: radius.lg,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  ...fieldWell,
                   paddingHorizontal: spacing.md,
-                  height: 54,
+                  height: 64,
                   marginTop: 4,
                 }}
               >
@@ -702,24 +688,20 @@ export default function VitalsScreen() {
                   placeholder={type === "blood_pressure" ? "120" : "72"}
                   placeholderTextColor={colors.textSubtle}
                   keyboardType="numeric"
-                  style={{
-                    flex: 1,
-                    fontSize: 22,
-                    fontWeight: "800",
-                    color: colors.text,
-                  }}
+                  style={[
+                    typography.display.md,
+                    { flex: 1, color: colors.text, paddingVertical: 0 },
+                  ]}
                 />
                 <View
                   style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: radius.sm,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.primarySoft,
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: colors.text }}>
+                  <Text style={[typography.label.sm, { color: colors.primary }]}>
                     {meta.unit}
                   </Text>
                 </View>
@@ -734,14 +716,15 @@ export default function VitalsScreen() {
                     gap: 6,
                     marginTop: spacing.md,
                     paddingHorizontal: spacing.md,
-                    paddingVertical: 8,
-                    borderRadius: radius.md,
+                    paddingVertical: 10,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
                     backgroundColor:
                       liveClassification.classification === "normal"
                         ? colors.successSoft
                         : liveClassification.classification === "critical"
-                        ? (colors.dangerSoft ?? "rgba(239, 68, 68, 0.15)")
-                        : "rgba(245, 158, 11, 0.15)",
+                        ? colors.dangerSoft
+                        : colors.warningSoft,
                   }}
                 >
                   {liveClassification.classification === "normal" ? (
@@ -749,19 +732,21 @@ export default function VitalsScreen() {
                   ) : liveClassification.classification === "critical" ? (
                     <AlertCircle size={15} color={colors.danger} />
                   ) : (
-                    <AlertTriangle size={15} color="#D97706" />
+                    <AlertTriangle size={15} color={colors.warning} />
                   )}
                   <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color:
-                        liveClassification.classification === "normal"
-                          ? colors.success
-                          : liveClassification.classification === "critical"
-                          ? colors.danger
-                          : "#D97706",
-                    }}
+                    style={[
+                      typography.label.sm,
+                      {
+                        flex: 1,
+                        color:
+                          liveClassification.classification === "normal"
+                            ? colors.success
+                            : liveClassification.classification === "critical"
+                            ? colors.danger
+                            : colors.warning,
+                      },
+                    ]}
                   >
                     {liveClassification.classification.toUpperCase()} · {liveClassification.note}
                   </Text>
@@ -774,14 +759,11 @@ export default function VitalsScreen() {
           {availableContexts.length > 0 && (
             <View style={{ gap: spacing.xs }}>
               <Text
-                style={[
-                  typography.caption,
-                  { color: colors.textMuted, fontWeight: "700", letterSpacing: 0.8 },
-                ]}
+                style={overlineStyle}
               >
                 {t("vitals.compose.contextLabel", "MEASUREMENT CONTEXT").toUpperCase()}
               </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.xs }}>
                 {availableContexts.map((ctx) => {
                   const metaCtx = CONTEXT_META[ctx] || { label: ctx, icon: Activity };
                   const CtxIcon = metaCtx.icon;
@@ -795,22 +777,20 @@ export default function VitalsScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 5,
+                        minHeight: 34,
                         paddingHorizontal: spacing.md,
                         paddingVertical: 6,
                         borderRadius: radius.full,
-                        backgroundColor: isSelected ? colors.primarySoft : colors.surfaceMuted,
-                        borderWidth: 1,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                        opacity: pressed ? 0.8 : 1,
+                        backgroundColor: isSelected ? colors.primarySoft : colors.fill,
+                        opacity: pressed ? 0.75 : 1,
                       })}
                     >
-                      <CtxIcon size={12} color={isSelected ? colors.primary : colors.textSubtle} />
+                      <CtxIcon size={13} color={isSelected ? colors.primary : colors.textSubtle} />
                       <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: isSelected ? "700" : "600",
-                          color: isSelected ? colors.primary : colors.text,
-                        }}
+                        style={[
+                          typography.label.md,
+                          { color: isSelected ? colors.primary : colors.text },
+                        ]}
                       >
                         {t(`vitals.context.${ctx}`, metaCtx.label)}
                       </Text>
@@ -825,10 +805,7 @@ export default function VitalsScreen() {
           {/* Notes / Circumstances */}
           <View style={{ gap: spacing.xs }}>
             <Text
-              style={[
-                typography.caption,
-                { color: colors.textMuted, fontWeight: "700", letterSpacing: 0.8 },
-              ]}
+              style={overlineStyle}
             >
               {t("vitals.compose.notesLabel", "NOTES").toUpperCase()} (OPTIONAL)
             </Text>
@@ -840,14 +817,12 @@ export default function VitalsScreen() {
               multiline
               numberOfLines={3}
               style={{
-                backgroundColor: colors.surfaceMuted,
-                borderRadius: radius.lg,
-                borderWidth: 1,
-                borderColor: colors.border,
+                ...fieldWell,
+                marginTop: spacing.xs,
                 padding: spacing.md,
-                fontSize: 13.5,
+                ...typography.body.md,
                 color: colors.text,
-                minHeight: 70,
+                minHeight: 88,
                 textAlignVertical: "top",
               }}
             />
@@ -901,9 +876,9 @@ export default function VitalsScreen() {
 
       {isLoading ? (
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
-          <Skeleton height={96} radius={18} />
-          <Skeleton height={260} radius={18} />
-          <Skeleton height={120} radius={18} />
+          <Skeleton height={112} radius={28} />
+          <Skeleton height={300} radius={radius.card} />
+          <Skeleton height={120} radius={radius.card} />
         </View>
       ) : isError ? (
         <ErrorState
@@ -925,52 +900,46 @@ export default function VitalsScreen() {
           <LinearGradient
             colors={
               alertsCount > 0
-                ? isDark
-                  ? [colors.surfaceElevated, colors.surface]
-                  : [colors.warningSoft, colors.surface]
-                : isDark
-                ? [colors.surfaceElevated, colors.surface]
-                : [colors.primarySoft, colors.surface]
+                ? [colors.warning, colors.accent2]
+                : [colors.primaryGradientStart, colors.primaryGradientEnd]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              borderRadius: 20,
-              padding: spacing.md,
-              borderWidth: 1,
-              borderColor: alertsCount > 0 ? colors.warning + "40" : colors.border,
+              borderRadius: 28,
+              borderCurve: "continuous",
+              padding: spacing.xl,
               flexDirection: "row",
               alignItems: "center",
-              gap: spacing.md,
+              gap: spacing.lg,
+              ...(isDark ? {} : shadow.hero),
             }}
           >
             <View
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 15,
-                backgroundColor: alertsCount > 0 ? colors.warning : colors.primary,
+                width: 52,
+                height: 52,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
                 alignItems: "center",
                 justifyContent: "center",
-                shadowColor: alertsCount > 0 ? colors.warning : colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                elevation: 4,
               }}
             >
               {alertsCount > 0 ? (
-                <AlertTriangle size={24} color={colors.onPrimary} />
+                <AlertTriangle size={26} color="#FFFFFF" />
               ) : (
-                <Heart size={24} color={colors.onPrimary} />
+                <Heart size={26} color="#FFFFFF" />
               )}
             </View>
 
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>
                 {alertsCount > 0 ? "Vital Alerts Detected" : "Vitals Healthy"}
               </Text>
-              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 17 }]}>
+              <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)" }]}>
                 {alertsCount > 0
                   ? `${alertsCount} reading requires attention. Review recent trends below.`
                   : `${latestByType.length} biometric indicator${latestByType.length > 1 ? "s" : ""} monitored and up to date.`}
@@ -980,7 +949,7 @@ export default function VitalsScreen() {
 
           {/* ── Latest + classification ───────────────────────── */}
           {latestForChart?.latest ? (
-            <Card style={{ padding: spacing.md, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
+            <Card style={{ padding: spacing.lg }}>
               <View
                 style={{
                   flexDirection: "row",
@@ -991,18 +960,18 @@ export default function VitalsScreen() {
                 }}
               >
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600", textTransform: "uppercase" }]}>
+                  <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase" }]}>
                     Latest {t(`vitals.type.${chartType}.label`, chartType)}
                   </Text>
-                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 2 }}>
                     <Text
-                      style={[typography.title.lg, { color: colors.text, fontWeight: "800" }]}
+                      style={[typography.display.lg, { color: colors.text, letterSpacing: -1.2 }]}
                     >
                       {latestForChart.latest.secondary != null
                         ? `${latestForChart.latest.value}/${latestForChart.latest.secondary}`
                         : latestForChart.latest.value}
                     </Text>
-                    <Text style={[typography.body.md, { color: colors.textMuted }]}>
+                    <Text style={[typography.label.lg, { color: colors.textMuted }]}>
                       {latestForChart.latest.unit}
                     </Text>
                   </View>
@@ -1022,9 +991,10 @@ export default function VitalsScreen() {
                   style={{
                     flexDirection: "row",
                     gap: spacing.md,
-                    paddingTop: spacing.sm,
-                    borderTopWidth: 1,
-                    borderTopColor: colors.border,
+                    marginTop: spacing.sm,
+                    paddingTop: spacing.md,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
                   }}
                 >
                   {derived?.map != null ? (
@@ -1047,12 +1017,12 @@ export default function VitalsScreen() {
           ) : null}
 
           {/* ── Trend chart card ─────────────────────────────── */}
-          <Card style={{ padding: spacing.md, borderRadius: 20, borderWidth: 1, borderColor: colors.border, gap: spacing.sm }}>
+          <Card style={{ padding: spacing.md, gap: spacing.md }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "800" },
+                  typography.title.lg,
+                  { color: colors.text },
                 ]}
               >
                 {t("vitals.chart.trendHeading", "Biometric Trends")}
@@ -1087,13 +1057,12 @@ export default function VitalsScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 5,
-                      paddingHorizontal: 12,
+                      gap: 6,
+                      minHeight: 34,
+                      paddingHorizontal: 14,
                       paddingVertical: 6,
-                      borderRadius: 18,
-                      backgroundColor: isSelected ? colors.primary : colors.surfaceSubtle,
-                      borderWidth: 1,
-                      borderColor: isSelected ? colors.primary : colors.border,
+                      borderRadius: 999,
+                      backgroundColor: isSelected ? colors.primary : colors.fill,
                     }}
                   >
                     {hasData && (
@@ -1108,11 +1077,9 @@ export default function VitalsScreen() {
                     )}
                     <Text
                       style={[
-                        typography.label.sm,
+                        typography.label.md,
                         {
                           color: isSelected ? colors.onPrimary : colors.text,
-                          fontWeight: isSelected ? "700" : "500",
-                          fontSize: 12,
                         },
                       ]}
                     >
@@ -1166,7 +1133,7 @@ export default function VitalsScreen() {
 
             {/* Chart Canvas */}
             {seriesLoading ? (
-              <Skeleton height={240} radius={12} />
+              <Skeleton height={240} radius={16} />
             ) : glucoseFocus && chartType === "blood_sugar" ? (
               <GlucoseChart
                 points={points}
@@ -1191,9 +1158,9 @@ export default function VitalsScreen() {
                   flexDirection: "row",
                   justifyContent: "space-between",
                   marginTop: spacing.xs,
-                  paddingTop: spacing.sm,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.border,
+                  paddingTop: spacing.md,
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.separator,
                   gap: spacing.xs,
                 }}
               >
@@ -1266,15 +1233,15 @@ export default function VitalsScreen() {
             />
           ) : (
             Object.entries(grouped).map(([month, items]) => (
-              <View key={month} style={{ gap: spacing.sm }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-                  <Text style={[typography.overline, { color: colors.textMuted, fontWeight: "700" }]}>
+              <View key={month} style={{ gap: spacing.sm + 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: 4 }}>
+                  <Text style={[typography.overline, { color: colors.textSubtle }]}>
                     {month} · {items.length}
                   </Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border + "60" }} />
+                  <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.separator }} />
                 </View>
 
-                <Card padded={false} style={{ borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
+                <Card padded={false} style={{ overflow: "hidden" }}>
                   {items.map((v: any, idx: number) => {
                     const vType = v.type as VitalType;
                     const VIcon = ICON_BY_TYPE[vType] ?? Activity;
@@ -1292,20 +1259,23 @@ export default function VitalsScreen() {
                       <View
                         key={v.id}
                         style={{
-                          padding: spacing.md,
+                          paddingVertical: spacing.md,
+                          paddingLeft: spacing.lg,
+                          paddingRight: spacing.sm,
                           flexDirection: "row",
                           alignItems: "center",
                           gap: spacing.md,
-                          borderBottomWidth: idx < items.length - 1 ? 1 : 0,
-                          borderBottomColor: colors.border,
+                          borderBottomWidth: idx < items.length - 1 ? StyleSheet.hairlineWidth : 0,
+                          borderBottomColor: colors.separator,
                         }}
                       >
                         {/* 42x42 Soft Icon Avatar */}
                         <View
                           style={{
-                            width: 42,
-                            height: 42,
-                            borderRadius: 14,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 12,
+                            borderCurve: "continuous",
                             alignItems: "center",
                             justifyContent: "center",
                             backgroundColor: isNormal
@@ -1313,12 +1283,6 @@ export default function VitalsScreen() {
                               : isCritical
                               ? colors.dangerSoft
                               : colors.warningSoft,
-                            borderWidth: 1,
-                            borderColor: isNormal
-                              ? colors.primary + "30"
-                              : isCritical
-                              ? colors.danger + "30"
-                              : colors.warning + "30",
                           }}
                         >
                           <VIcon
@@ -1345,7 +1309,7 @@ export default function VitalsScreen() {
                               gap: spacing.xs,
                             }}
                           >
-                            <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+                            <Text style={[typography.title.sm, { color: colors.text, flexShrink: 1 }]}>
                               {t(`vitals.type.${vType}.label`, vType.replace(/_/g, " "))}
                             </Text>
                             <ClassificationBadge classification={cls.classification} size="sm" />
@@ -1353,12 +1317,12 @@ export default function VitalsScreen() {
 
                           {/* Row 2: Prominent Value + Unit + Context */}
                           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-                            <Text style={[typography.title.md, { color: colors.text, fontWeight: "800" }]}>
+                            <Text style={[typography.display.sm, { color: colors.text, fontSize: 20, lineHeight: 25 }]}>
                               {v.secondaryValue != null
                                 ? `${v.value}/${v.secondaryValue}`
                                 : `${v.value}`}
                             </Text>
-                            <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "600" }]}>
+                            <Text style={[typography.label.sm, { color: colors.textMuted }]}>
                               {v.unit}
                             </Text>
                             {v.context ? (
@@ -1369,7 +1333,7 @@ export default function VitalsScreen() {
                           </View>
 
                           {/* Row 3: Timestamp */}
-                          <Text style={[typography.caption, { color: colors.textSubtle, fontSize: 11 }]}>
+                          <Text style={[typography.caption, { color: colors.textSubtle }]}>
                             {fmtDateTime(new Date(v.recordedAt || v.createdAt), locale)}
                           </Text>
 
@@ -1378,7 +1342,7 @@ export default function VitalsScreen() {
                             <Text
                               style={[
                                 typography.body.sm,
-                                { color: colors.textMuted, marginTop: 2, lineHeight: 17 },
+                                { color: colors.textMuted, marginTop: 2 },
                               ]}
                               numberOfLines={2}
                             >
@@ -1412,9 +1376,9 @@ function DerivedLine({ label, value, unit }: { label: string; value: string; uni
   const { spacing, typography, colors } = useTheme();
   return (
     <View style={{ flex: 1, gap: 2 }}>
-      <Text style={[typography.overline, { color: colors.textMuted }]}>{label}</Text>
+      <Text style={[typography.caption, { color: colors.textSubtle }]}>{label}</Text>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+        <Text style={[typography.title.lg, { color: colors.text }]}>
           {value}
         </Text>
         <Text style={[typography.caption, { color: colors.textMuted }]}>{unit}</Text>
@@ -1439,19 +1403,19 @@ function StatCell({
   const { spacing, colors, typography } = useTheme();
   return (
     <View style={{ alignItems: "center", flex: 1, gap: 2 }}>
-      <Text style={[typography.caption, { color: colors.textMuted }]}>{label}</Text>
+      <Text style={[typography.caption, { color: colors.textSubtle }]}>{label}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
         {Icon ? <Icon size={12} color={valueColor || colors.text} /> : null}
         <Text
           style={[
-            typography.title.sm,
-            { color: valueColor || colors.text, fontWeight: "800" },
+            typography.title.md,
+            { color: valueColor || colors.text },
           ]}
         >
           {value}
         </Text>
         {unit ? (
-          <Text style={[typography.caption, { color: colors.textMuted, fontSize: 10 }]}>
+          <Text style={[typography.caption, { color: colors.textSubtle, fontSize: 10 }]}>
             {unit}
           </Text>
         ) : null}

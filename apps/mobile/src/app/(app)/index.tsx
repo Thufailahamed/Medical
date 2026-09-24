@@ -67,6 +67,7 @@ import {
   useVitalsSparkline,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { withOpacity } from "@/constants/theme";
 import { useTone, type Tone } from "@/theme/tone";
 import { Sparkline } from "@/components/vitals";
 import { VITAL_REGISTRY, type VitalType } from "@healthcare/shared/vitals";
@@ -117,8 +118,12 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { spacing, typography, colors, radius, fontFamily, layout, shadow } = useTheme();
+  const { spacing, typography, colors, radius, fontFamily, layout, shadow, scheme } = useTheme();
   const toast = useToast();
+  // Presentation helpers: soft shadow in light, hairline-only in dark.
+  const isDark = scheme === "dark";
+  const cardShadow = isDark ? null : shadow.sm;
+  const hairline = isDark ? colors.borderStrong : colors.separator;
 
   const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = usePatientProfile();
   const { data: medsData, isLoading: medsLoading, refetch: refetchMeds } = useTodayMedicines();
@@ -250,36 +255,42 @@ export default function HomeScreen() {
               style={{
                 marginHorizontal: spacing.lg,
                 marginTop: spacing.sm,
-                borderRadius: radius.lg,
+                borderRadius: radius.xl,
+                borderCurve: "continuous",
                 overflow: "hidden",
+                ...(isDark ? null : shadow.md),
               }}
             >
               <LinearGradient
-                colors={["#DC2626", "#B91C1C"]}
+                colors={["#EF4444", "#B91C1C"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
-                  padding: spacing.md,
+                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.lg,
                   flexDirection: "row",
-                  gap: spacing.sm,
-                  alignItems: "flex-start",
+                  gap: spacing.md,
+                  alignItems: "center",
                 }}
               >
                 <View
                   style={{
-                    width: 32,
-                    height: 32,
+                    width: 34,
+                    height: 34,
                     borderRadius: 10,
-                    backgroundColor: "rgba(255,255,255,0.2)",
+                    borderCurve: "continuous",
+                    backgroundColor: "rgba(255,255,255,0.18)",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255,255,255,0.28)",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <ShieldAlert size={16} color="#fff" strokeWidth={2.5} />
+                  <ShieldAlert size={17} color="#fff" strokeWidth={2.4} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={[typography.title.sm, { color: "#fff", fontWeight: "800" }]}
+                    style={[typography.title.sm, { color: "#fff" }]}
                   >
                     {criticalAllergies.length === 1
                       ? t("home.criticalAllergy_one", {
@@ -290,7 +301,7 @@ export default function HomeScreen() {
                         })}
                   </Text>
                   <Text
-                    style={[typography.caption, { color: "#fff", opacity: 0.9, marginTop: 2 }]}
+                    style={[typography.caption, { color: "rgba(255,255,255,0.85)", marginTop: 2 }]}
                   >
                     {t("home.viewDetails")}
                   </Text>
@@ -309,7 +320,7 @@ export default function HomeScreen() {
             justifyContent: "space-between",
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
-            paddingBottom: spacing.sm,
+            paddingBottom: spacing.md,
           }}
         >
           <Pressable
@@ -326,22 +337,23 @@ export default function HomeScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
+                    borderCurve: "continuous",
                     backgroundColor: colors.surfaceMuted,
-                    borderWidth: 2,
-                    borderColor: colors.surface,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: hairline,
                   }}
                 />
                 <View
                   style={{
                     position: "absolute",
-                    bottom: -1,
-                    right: -1,
-                    width: 14,
-                    height: 14,
-                    borderRadius: 7,
-                    backgroundColor: "#10B981",
-                    borderWidth: 2.5,
-                    borderColor: colors.surface,
+                    bottom: 0,
+                    right: 0,
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: colors.success,
+                    borderWidth: 2,
+                    borderColor: colors.bg,
                   }}
                 />
               </View>
@@ -353,21 +365,23 @@ export default function HomeScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
-                    borderWidth: 2,
-                    borderColor: colors.surface,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.surfaceMuted,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: hairline,
                   }}
                 />
                 <View
                   style={{
                     position: "absolute",
-                    bottom: -1,
-                    right: -1,
-                    width: 14,
-                    height: 14,
-                    borderRadius: 7,
-                    backgroundColor: "#10B981",
-                    borderWidth: 2.5,
-                    borderColor: colors.surface,
+                    bottom: 0,
+                    right: 0,
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: colors.success,
+                    borderWidth: 2,
+                    borderColor: colors.bg,
                   }}
                 />
               </View>
@@ -377,13 +391,11 @@ export default function HomeScreen() {
           <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
             <Text
               style={[
-                typography.title.lg,
+                typography.title.md,
                 {
-                  color: colors.primary,
-                  fontWeight: "800",
-                  fontSize: 17,
+                  color: colors.text,
                   fontFamily: fontFamily.displayBold,
-                  letterSpacing: -0.3,
+                  letterSpacing: -0.4,
                 },
               ]}
             >
@@ -401,17 +413,19 @@ export default function HomeScreen() {
               style={({ pressed }) => ({
                 width: 40,
                 height: 40,
-                borderRadius: 14,
+                borderRadius: 20,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.85 : 1,
-                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                ...shadow.sm,
+                opacity: pressed ? 0.7 : 1,
+                transform: [{ scale: pressed ? 0.94 : 1 }],
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
+                ...(isDark ? null : shadow.xs),
               })}
             >
-              <Plus size={20} color={colors.primary} strokeWidth={2.5} />
+              <Plus size={20} color={colors.primary} strokeWidth={2.4} />
             </Pressable>
 
             <Pressable
@@ -422,27 +436,29 @@ export default function HomeScreen() {
               style={({ pressed }) => ({
                 width: 40,
                 height: 40,
-                borderRadius: 14,
+                borderRadius: 20,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.85 : 1,
-                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                ...shadow.sm,
+                opacity: pressed ? 0.7 : 1,
+                transform: [{ scale: pressed ? 0.94 : 1 }],
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
+                ...(isDark ? null : shadow.xs),
               })}
             >
-              <Bell size={18} color={colors.text} strokeWidth={2} />
+              <Bell size={19} color={colors.text} strokeWidth={2} />
               {unread?.count ? (
                 <View
                   style={{
                     position: "absolute",
                     top: 8,
-                    right: 8,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: "#DC2626",
+                    right: 9,
+                    width: 9,
+                    height: 9,
+                    borderRadius: 4.5,
+                    backgroundColor: colors.danger,
                     borderWidth: 1.5,
                     borderColor: colors.surface,
                   }}
@@ -456,16 +472,17 @@ export default function HomeScreen() {
         <View
           style={{
             marginHorizontal: spacing.lg,
-            borderRadius: radius.xxxl,
+            borderRadius: 30,
+            borderCurve: "continuous",
             overflow: "hidden",
-            ...shadow.hero,
+            ...(isDark ? null : shadow.hero),
           }}
         >
           {/* Base gradient — deeper, more saturated than before */}
           <LinearGradient
-            colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+            colors={["#0A2A5E", "#0B5E93", "#0A8A9A"]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 1.1 }}
             style={StyleSheet.absoluteFill}
           />
 
@@ -478,7 +495,7 @@ export default function HomeScreen() {
               width: 280,
               height: 280,
               borderRadius: 140,
-              backgroundColor: "rgba(56, 189, 248, 0.35)",
+              backgroundColor: "rgba(56, 189, 248, 0.28)",
             }}
           />
           {/* Radial accent overlay (bottom-left) */}
@@ -490,7 +507,7 @@ export default function HomeScreen() {
               width: 300,
               height: 300,
               borderRadius: 150,
-              backgroundColor: "rgba(14, 165, 233, 0.3)",
+              backgroundColor: "rgba(45, 212, 191, 0.18)",
             }}
           />
           {/* Soft white sheen top */}
@@ -544,15 +561,10 @@ export default function HomeScreen() {
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={0.7}
-                  style={{
-                    color: "#FFFFFF",
-                    fontSize: 34,
-                    lineHeight: 40,
-                    letterSpacing: -0.8,
-                    fontWeight: "800",
-                    marginTop: 4,
-                    fontFamily: fontFamily.displayBold,
-                  }}
+                  style={[
+                    typography.display.lg,
+                    { color: "#FFFFFF", marginTop: 4 },
+                  ]}
                 >
                   {firstName}
                 </Text>
@@ -628,22 +640,23 @@ export default function HomeScreen() {
                 style={{
                   marginTop: spacing.lg,
                   borderRadius: 20,
+                  borderCurve: "continuous",
                   overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor: "rgba(255, 255, 255, 0.18)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255, 255, 255, 0.28)",
                 }}
               >
                 {Platform.OS === "ios" ? (
                   <BlurView
-                    intensity={30}
-                    tint="dark"
+                    intensity={24}
+                    tint="light"
                     style={StyleSheet.absoluteFill}
                   />
                 ) : (
                   <View
                     style={[
                       StyleSheet.absoluteFill,
-                      { backgroundColor: "rgba(255,255,255,0.12)" },
+                      { backgroundColor: "rgba(255,255,255,0.14)" },
                     ]}
                   />
                 )}
@@ -669,13 +682,10 @@ export default function HomeScreen() {
                       }}
                     />
                     <Text
-                      style={{
-                        fontSize: 10,
-                        fontWeight: "800",
-                        color: "rgba(255, 255, 255, 0.85)",
-                        letterSpacing: 1.4,
-                        fontFamily: fontFamily.displayBold,
-                      }}
+                      style={[
+                        typography.overline,
+                        { color: "rgba(255, 255, 255, 0.85)" },
+                      ]}
                     >
                       {t("home.upcomingTodayLabel")}
                     </Text>
@@ -692,10 +702,11 @@ export default function HomeScreen() {
                     >
                       <View
                         style={{
-                          width: 28,
-                          height: 28,
+                          width: 30,
+                          height: 30,
                           borderRadius: 9,
-                          backgroundColor: "rgba(255, 255, 255, 0.18)",
+                          borderCurve: "continuous",
+                          backgroundColor: "rgba(255, 255, 255, 0.2)",
                           alignItems: "center",
                           justifyContent: "center",
                         }}
@@ -730,10 +741,11 @@ export default function HomeScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                       <View
                         style={{
-                          width: 28,
-                          height: 28,
+                          width: 30,
+                          height: 30,
                           borderRadius: 9,
-                          backgroundColor: "rgba(255, 255, 255, 0.18)",
+                          borderCurve: "continuous",
+                          backgroundColor: "rgba(255, 255, 255, 0.2)",
                           alignItems: "center",
                           justifyContent: "center",
                         }}
@@ -798,8 +810,8 @@ export default function HomeScreen() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            marginTop: spacing.lg,
-            gap: spacing.xl,
+            marginTop: spacing.xl,
+            gap: spacing.xxl + 4,
           }}
         >
           {/* Quick Actions */}
@@ -844,13 +856,14 @@ export default function HomeScreen() {
             <View
               style={{
                 marginTop: spacing.xs,
-                borderRadius: 20,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
                 backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                paddingVertical: spacing.sm,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
+                paddingVertical: spacing.md,
                 paddingLeft: spacing.sm,
-                ...shadow.sm,
+                ...cardShadow,
               }}
             >
               <Text
@@ -858,10 +871,8 @@ export default function HomeScreen() {
                   typography.overline,
                   {
                     color: colors.textSubtle,
-                    letterSpacing: 1.2,
-                    fontWeight: "700",
                     paddingHorizontal: spacing.sm,
-                    marginBottom: spacing.xs,
+                    marginBottom: spacing.sm,
                   },
                 ]}
               >
@@ -949,19 +960,20 @@ export default function HomeScreen() {
                     key={pkg.id}
                     onPress={() => router.push(`/(app)/test-package-detail/${pkg.slug}`)}
                     style={({ pressed }) => ({
-                      width: 240,
-                      borderRadius: 20,
+                      width: 248,
+                      borderRadius: radius.card,
+                      borderCurve: "continuous",
                       backgroundColor: colors.surface,
-                      borderWidth: 1,
-                      borderColor: colors.border,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: colors.separator,
                       overflow: "hidden",
                       opacity: pressed ? 0.85 : 1,
                       ...shadow.sm,
                     })}
                   >
                     {/* Image Banner */}
-                    <View style={{ height: 115, width: "100%", position: "relative", backgroundColor: "#E0F2FE", alignItems: "center", justifyContent: "center" }}>
-                      <FlaskConical size={36} color="#0284C7" />
+                    <View style={{ height: 115, width: "100%", position: "relative", backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" }}>
+                      <FlaskConical size={36} color={colors.primary} />
                       <Image
                         source={packageImage(pkg)}
                         resizeMode="cover"
@@ -1102,11 +1114,12 @@ export default function HomeScreen() {
                     key={plan.id}
                     onPress={() => router.push(`/insurance/plans/${plan.id}`)}
                     style={({ pressed }) => ({
-                      width: 240,
-                      borderRadius: 20,
+                      width: 248,
+                      borderRadius: radius.card,
+                      borderCurve: "continuous",
                       backgroundColor: colors.surface,
-                      borderWidth: 1,
-                      borderColor: colors.border,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: colors.separator,
                       overflow: "hidden",
                       opacity: pressed ? 0.85 : 1,
                       ...shadow.sm,
@@ -1118,12 +1131,12 @@ export default function HomeScreen() {
                         height: 115,
                         width: "100%",
                         position: "relative",
-                        backgroundColor: "#F0FDF4",
+                        backgroundColor: colors.successSoft,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <ShieldCheck size={36} color="#059669" />
+                      <ShieldCheck size={36} color={colors.success} />
                       {planImg ? (
                         <Image
                           source={planImg}
@@ -1221,7 +1234,7 @@ export default function HomeScreen() {
                           marginTop: 4,
                         }}
                       >
-                        <ShieldCheck size={12} color="#059669" />
+                        <ShieldCheck size={12} color={colors.success} />
                         <Text
                           style={{
                             fontSize: 11,
@@ -1314,23 +1327,20 @@ export default function HomeScreen() {
             />
             <View
               style={{
-                borderRadius: 24,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
                 overflow: "hidden",
-                shadowColor: "#6366F1",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.08,
-                shadowRadius: 18,
-                elevation: 4,
-                borderWidth: 1,
-                borderColor: "rgba(99, 102, 241, 0.22)",
+                ...(isDark ? null : { ...shadow.md, shadowColor: "#4F46E5", shadowOpacity: 0.08 }),
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : "rgba(99, 102, 241, 0.22)",
                 backgroundColor: colors.surface,
               }}
             >
               <LinearGradient
-                colors={["#FFFFFF", "#F8FAFF"]}
+                colors={[colors.surface, isDark ? colors.surface : "rgba(238, 242, 255, 0.55)"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
-                style={{ padding: spacing.md, gap: 14 }}
+                style={{ padding: spacing.lg, gap: 14 }}
               >
                 {/* ─── Top Header: Title, Live Status & Quick Action ─── */}
                 <View
@@ -1346,6 +1356,7 @@ export default function HomeScreen() {
                         width: 42,
                         height: 42,
                         borderRadius: 14,
+                        borderCurve: "continuous",
                         alignItems: "center",
                         justifyContent: "center",
                         shadowColor: "#6366F1",
@@ -1368,12 +1379,7 @@ export default function HomeScreen() {
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                         <Text
                           numberOfLines={1}
-                          style={{
-                            fontSize: 16,
-                            fontWeight: "800",
-                            color: colors.text,
-                            letterSpacing: -0.3,
-                          }}
+                          style={[typography.title.md, { color: colors.text }]}
                         >
                           {t("home.aiTitle")}
                         </Text>
@@ -1382,10 +1388,10 @@ export default function HomeScreen() {
                             paddingHorizontal: 6,
                             paddingVertical: 2,
                             borderRadius: 6,
-                            backgroundColor: "rgba(99, 102, 241, 0.1)",
+                            backgroundColor: "rgba(99, 102, 241, 0.14)",
                           }}
                         >
-                          <Text style={{ fontSize: 9.5, fontWeight: "800", color: "#6366F1" }}>
+                          <Text style={[typography.label.xs, { fontSize: 9.5, color: isDark ? "#A5B4FC" : "#6366F1" }]}>
                             INTELLIGENCE
                           </Text>
                         </View>
@@ -1396,14 +1402,14 @@ export default function HomeScreen() {
                             width: 7,
                             height: 7,
                             borderRadius: 3.5,
-                            backgroundColor: "#10B981",
+                            backgroundColor: colors.success,
                           }}
                         />
                         <Text
                           numberOfLines={1}
                           style={{
                             fontSize: 11,
-                            color: "#64748B",
+                            color: colors.textMuted,
                             fontWeight: "600",
                           }}
                         >
@@ -1422,13 +1428,14 @@ export default function HomeScreen() {
                       paddingHorizontal: 10,
                       paddingVertical: 5,
                       borderRadius: 10,
-                      backgroundColor: pressed ? "rgba(99, 102, 241, 0.16)" : "rgba(99, 102, 241, 0.08)",
+                      borderCurve: "continuous",
+                      backgroundColor: pressed ? "rgba(99, 102, 241, 0.2)" : "rgba(99, 102, 241, 0.12)",
                     })}
                   >
-                    <Text style={{ fontSize: 11.5, fontWeight: "700", color: "#4F46E5" }}>
+                    <Text style={[typography.label.md, { color: isDark ? "#A5B4FC" : "#4F46E5" }]}>
                       Chat Now
                     </Text>
-                    <ChevronRight size={13} color="#4F46E5" strokeWidth={2.5} />
+                    <ChevronRight size={13} color={isDark ? "#A5B4FC" : "#4F46E5"} strokeWidth={2.5} />
                   </Pressable>
                 </View>
 
@@ -1441,10 +1448,9 @@ export default function HomeScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 10,
-                    backgroundColor: pressed ? "#E2E8F0" : "#F8FAFC",
-                    borderWidth: 1,
-                    borderColor: "rgba(203, 213, 225, 0.8)",
-                    borderRadius: 16,
+                    backgroundColor: pressed ? colors.fillStrong : colors.fill,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
                     paddingVertical: 10,
                     paddingHorizontal: 12,
                   })}
@@ -1454,7 +1460,8 @@ export default function HomeScreen() {
                       width: 28,
                       height: 28,
                       borderRadius: 9,
-                      backgroundColor: "#EEF2FF",
+                      borderCurve: "continuous",
+                      backgroundColor: colors.surface,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -1466,7 +1473,7 @@ export default function HomeScreen() {
                     style={{
                       flex: 1,
                       fontSize: 12.5,
-                      color: "#64748B",
+                      color: colors.textMuted,
                       fontWeight: "500",
                     }}
                   >
@@ -1476,7 +1483,8 @@ export default function HomeScreen() {
                     style={{
                       paddingHorizontal: 9,
                       paddingVertical: 4,
-                      borderRadius: 8,
+                      borderRadius: 9,
+                      borderCurve: "continuous",
                       backgroundColor: "#6366F1",
                       flexDirection: "row",
                       alignItems: "center",
@@ -1496,16 +1504,16 @@ export default function HomeScreen() {
                     icon={MessageSquare}
                     title={t("home.aiChat")}
                     desc="Symptom check & Q&A"
-                    iconColor="#2563EB"
-                    bgColor="#EFF6FF"
+                    iconColor="#3B82F6"
+                    bgColor="rgba(59, 130, 246, 0.12)"
                     onPress={() => router.push("/(app)/ai/chat")}
                   />
                   <AiToolCard
                     icon={ScanText}
                     title={t("home.aiLabExplain")}
                     desc="Decode medical tests"
-                    iconColor="#0D9488"
-                    bgColor="#F0FDFA"
+                    iconColor="#14B8A6"
+                    bgColor="rgba(20, 184, 166, 0.12)"
                     onPress={() => router.push("/(app)/ai/lab-explain")}
                   />
                   <AiToolCard
@@ -1513,15 +1521,15 @@ export default function HomeScreen() {
                     title={t("home.aiDrugCheck")}
                     desc="Interaction checks"
                     iconColor="#6366F1"
-                    bgColor="#EEF2FF"
+                    bgColor="rgba(99, 102, 241, 0.12)"
                     onPress={() => router.push("/(app)/ai/drug-check")}
                   />
                   <AiToolCard
                     icon={FileSearch}
                     title={t("home.aiOcrLabel", "Prescription OCR")}
                     desc="Scan paper scripts"
-                    iconColor="#7C3AED"
-                    bgColor="#F5F3FF"
+                    iconColor="#8B5CF6"
+                    bgColor="rgba(139, 92, 246, 0.12)"
                     onPress={() => router.push("/(app)/ai/ocr")}
                   />
                 </View>
@@ -1705,11 +1713,11 @@ function GlassPill({ label, dot }: { label: string; dot?: boolean }) {
         alignItems: "center",
         gap: 6,
         paddingHorizontal: spacing.md,
-        paddingVertical: 6,
+        paddingVertical: 7,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.14)",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.16)",
+        backgroundColor: "rgba(255,255,255,0.16)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.32)",
       }}
     >
       {dot ? (
@@ -1730,7 +1738,7 @@ function GlassPill({ label, dot }: { label: string; dot?: boolean }) {
         numberOfLines={1}
         style={[
           typography.label.md,
-          { color: "#FFFFFF", fontWeight: "700" },
+          { color: "#FFFFFF" },
         ]}
       >
         {label}
@@ -1755,16 +1763,15 @@ function SectionLabel({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: spacing.xs,
+        paddingTop: spacing.xs,
       }}
     >
       <Text
         numberOfLines={1}
-        style={[
-          typography.overline,
-          { color: colors.textSubtle, letterSpacing: 1.4, fontWeight: "700" },
-        ]}
+        style={[typography.title.lg, { color: colors.text, flexShrink: 1 }]}
+        accessibilityRole="header"
       >
-        {title.toUpperCase()}
+        {title}
       </Text>
       {action ? (
         <Pressable
@@ -1772,10 +1779,17 @@ function SectionLabel({
           hitSlop={8}
           accessibilityRole="link"
           accessibilityLabel={action.label}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 1,
+            opacity: pressed ? 0.6 : 1,
+          })}
         >
-          <Text style={[typography.label.md, { color: colors.primary, fontWeight: "700" }]}>
-            {action.label}
+          <Text style={[typography.label.lg, { color: colors.primary }]}>
+            {action.label.replace(/\s*[→›>]\s*$/, "")}
           </Text>
+          <ChevronRight size={16} color={colors.primary} strokeWidth={2.5} />
         </Pressable>
       ) : null}
     </View>
@@ -1800,7 +1814,7 @@ function QuickTile({
   badge?: string;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography, fontFamily, radius, scheme } = useTheme();
   const palette = useTone(tone);
   const isEmergency = tone === "danger";
 
@@ -1812,18 +1826,27 @@ function QuickTile({
       style={({ pressed }) => ({
         flexBasis: "48%",
         flexGrow: 1,
-        borderRadius: 22,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: isEmergency ? "rgba(239, 68, 68, 0.25)" : colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isEmergency
+          ? "rgba(239, 68, 68, 0.35)"
+          : scheme === "dark"
+          ? colors.borderStrong
+          : colors.separator,
         overflow: "hidden",
         opacity: pressed ? 0.94 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-        shadowColor: isEmergency ? "#EF4444" : "rgba(0, 0, 0, 0.08)",
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: isEmergency ? 0.16 : 0.08,
-        shadowRadius: 12,
-        elevation: 3,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
+        ...(scheme === "dark"
+          ? null
+          : {
+              shadowColor: isEmergency ? "#EF4444" : colors.shadow,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: isEmergency ? 0.14 : 0.06,
+              shadowRadius: 16,
+              elevation: 3,
+            }),
       })}
     >
       {/* Full width hero image at top */}
@@ -1859,14 +1882,15 @@ function QuickTile({
             left: 10,
             width: 36,
             height: 36,
-            borderRadius: 12,
-            backgroundColor: "rgba(255, 255, 255, 0.92)",
+            borderRadius: 11,
+            borderCurve: "continuous",
+            backgroundColor: "rgba(255, 255, 255, 0.94)",
             alignItems: "center",
             justifyContent: "center",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.15,
-            shadowRadius: 5,
+            shadowColor: "#0B1B3A",
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.14,
+            shadowRadius: 8,
             elevation: 3,
           }}
         >
@@ -1948,14 +1972,10 @@ function QuickTile({
         >
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: 15.5,
-              fontWeight: "700",
-              color: isEmergency ? palette.fg : colors.text,
-              letterSpacing: -0.2,
-              fontFamily: fontFamily.bodyBold,
-              flex: 1,
-            }}
+            style={[
+              typography.title.md,
+              { fontSize: 16, color: isEmergency ? palette.fg : colors.text, flex: 1 },
+            ]}
           >
             {label}
           </Text>
@@ -1964,6 +1984,7 @@ function QuickTile({
               width: 22,
               height: 22,
               borderRadius: 11,
+              borderCurve: "continuous",
               backgroundColor: isEmergency ? "rgba(239, 68, 68, 0.12)" : colors.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
@@ -2012,6 +2033,8 @@ function AiToolCard({
   bgColor: string;
   onPress: () => void;
 }) {
+  const { colors, typography, scheme } = useTheme();
+  const isDark = scheme === "dark";
   return (
     <Pressable
       onPress={onPress}
@@ -2020,17 +2043,23 @@ function AiToolCard({
       style={({ pressed }) => ({
         flexBasis: "48%",
         flexGrow: 1,
-        padding: 12,
+        padding: 14,
         borderRadius: 18,
-        backgroundColor: pressed ? "#F8FAFC" : "#FFFFFF",
-        borderWidth: 1,
-        borderColor: pressed ? "#C7D2FE" : "rgba(226, 232, 240, 0.9)",
-        gap: 10,
-        shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 5,
-        elevation: 2,
+        borderCurve: "continuous",
+        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.separator,
+        gap: 12,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
+        ...(isDark
+          ? null
+          : {
+              shadowColor: colors.shadow,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.04,
+              shadowRadius: 6,
+              elevation: 1,
+            }),
       })}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -2039,6 +2068,7 @@ function AiToolCard({
             width: 36,
             height: 36,
             borderRadius: 12,
+            borderCurve: "continuous",
             backgroundColor: bgColor,
             alignItems: "center",
             justifyContent: "center",
@@ -2051,33 +2081,25 @@ function AiToolCard({
             width: 24,
             height: 24,
             borderRadius: 12,
-            backgroundColor: "#F1F5F9",
+            borderCurve: "continuous",
+            backgroundColor: colors.fill,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <ChevronRight size={13} color="#64748B" strokeWidth={2.5} />
+          <ChevronRight size={13} color={colors.textMuted} strokeWidth={2.5} />
         </View>
       </View>
       <View style={{ gap: 2 }}>
         <Text
           numberOfLines={1}
-          style={{
-            fontSize: 13,
-            fontWeight: "800",
-            color: "#0F172A",
-            letterSpacing: -0.2,
-          }}
+          style={[typography.title.xs, { fontFamily: typography.title.md.fontFamily, color: colors.text }]}
         >
           {title}
         </Text>
         <Text
           numberOfLines={1}
-          style={{
-            fontSize: 11,
-            color: "#64748B",
-            fontWeight: "500",
-          }}
+          style={[typography.caption, { color: colors.textMuted }]}
         >
           {desc}
         </Text>
@@ -2096,6 +2118,7 @@ function AiChip({
   label: string;
   onPress: () => void;
 }) {
+  const { colors, typography, scheme } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -2104,19 +2127,19 @@ function AiChip({
         alignItems: "center",
         flexShrink: 0,
         gap: 6,
-        paddingVertical: 7,
+        paddingVertical: 8,
         paddingHorizontal: 12,
-        borderRadius: 12,
-        backgroundColor: pressed ? "#EEF2FF" : "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "rgba(226, 232, 240, 0.9)",
+        borderRadius: 999,
+        backgroundColor: pressed ? "rgba(99, 102, 241, 0.12)" : colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
       })}
     >
       <Icon size={13} color="#6366F1" strokeWidth={2.2} />
-      <Text style={{ fontSize: 11.5, fontWeight: "700", color: "#334155" }}>
+      <Text style={[typography.label.sm, { color: colors.text }]}>
         {label}
       </Text>
-      <ChevronRight size={11} color="#94A3B8" strokeWidth={2.2} />
+      <ChevronRight size={11} color={colors.textSubtle} strokeWidth={2.2} />
     </Pressable>
   );
 }
@@ -2159,6 +2182,7 @@ function SmallAction({
           width: 30,
           height: 30,
           borderRadius: 15,
+          borderCurve: "continuous",
           backgroundColor: palette.bgStrong,
           alignItems: "center",
           justifyContent: "center",
@@ -2205,9 +2229,10 @@ function ScheduleCard({
         paddingBottom: 14,
         paddingHorizontal: 14,
         borderRadius: 22,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         alignItems: "center",
         gap: 4,
         position: "relative",
@@ -2261,6 +2286,7 @@ function ScheduleCard({
           width: 56,
           height: 56,
           borderRadius: 28,
+          borderCurve: "continuous",
           marginTop: 4,
           alignItems: "center",
           justifyContent: "center",
@@ -2306,6 +2332,7 @@ function WellnessScoreRing({
   tone?: Tone;
   size?: number;
 }) {
+  const { colors: c, fontFamily: ff } = useTheme();
   const strokeWidth = 7.5;
   const center = size / 2;
   const radius = center - strokeWidth / 2 - 2;
@@ -2358,7 +2385,7 @@ function WellnessScoreRing({
           cx={center}
           cy={center}
           r={radius}
-          stroke="rgba(2, 132, 199, 0.12)"
+          stroke={c.fill}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -2389,10 +2416,10 @@ function WellnessScoreRing({
           numberOfLines={1}
           style={{
             color: gradColors[1],
-            fontWeight: "800",
+            fontFamily: ff.heavy,
             fontSize: 26,
-            lineHeight: 28,
-            letterSpacing: -0.5,
+            lineHeight: 30,
+            letterSpacing: -0.9,
           }}
         >
           {score}
@@ -2400,10 +2427,10 @@ function WellnessScoreRing({
         <Text
           style={{
             fontSize: 9.5,
-            color: "#64748B",
-            fontWeight: "800",
+            color: c.textMuted,
+            fontFamily: ff.bodyBold,
             marginTop: 1,
-            letterSpacing: 0.5,
+            letterSpacing: 0.3,
           }}
         >
           /100
@@ -2480,18 +2507,20 @@ function WellnessMetricTile({
   };
   const Icon = config.icon;
   const pct = max > 0 ? Math.min(100, Math.round((score / max) * 100)) : 0;
+  const { colors, typography, scheme } = useTheme();
 
   return (
     <View
       style={{
         flexBasis: "48%",
         flexGrow: 1,
-        padding: 12,
-        borderRadius: 16,
-        backgroundColor: "#F8FAFC",
-        borderWidth: 1,
-        borderColor: "rgba(226, 232, 240, 0.85)",
-        gap: 8,
+        padding: 14,
+        borderRadius: 18,
+        borderCurve: "continuous",
+        backgroundColor: colors.surfaceMuted,
+        borderWidth: scheme === "dark" ? StyleSheet.hairlineWidth : 0,
+        borderColor: colors.borderStrong,
+        gap: 10,
       }}
     >
       {/* Top Header: Icon + Percentage */}
@@ -2504,10 +2533,11 @@ function WellnessMetricTile({
       >
         <View
           style={{
-            width: 28,
-            height: 28,
+            width: 30,
+            height: 30,
             borderRadius: 9,
-            backgroundColor: config.bgColor,
+            borderCurve: "continuous",
+            backgroundColor: `${config.colors[0]}24`,
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -2520,15 +2550,11 @@ function WellnessMetricTile({
             paddingHorizontal: 6,
             paddingVertical: 2,
             borderRadius: 6,
-            backgroundColor: `${config.colors[0]}15`,
+            backgroundColor: `${config.colors[0]}1F`,
           }}
         >
           <Text
-            style={{
-              fontSize: 11,
-              fontWeight: "800",
-              color: config.colors[1],
-            }}
+            style={[typography.label.xs, { color: scheme === "dark" ? config.colors[0] : config.colors[1] }]}
           >
             {pct}%
           </Text>
@@ -2538,11 +2564,7 @@ function WellnessMetricTile({
       {/* Metric Title (Full width) */}
       <Text
         numberOfLines={1}
-        style={{
-          fontSize: 12.5,
-          fontWeight: "700",
-          color: "#1E293B",
-        }}
+        style={[typography.title.xs, { fontFamily: typography.title.md.fontFamily, color: colors.text }]}
       >
         {config.title}
       </Text>
@@ -2550,18 +2572,18 @@ function WellnessMetricTile({
       {/* Bottom: Score fraction + sleek progress bar */}
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Text style={{ fontSize: 10, color: "#64748B", fontWeight: "600" }}>
+          <Text style={[typography.caption, { color: colors.textMuted }]}>
             Score
           </Text>
-          <Text style={{ fontSize: 11, color: "#475569", fontWeight: "700" }}>
+          <Text style={[typography.label.sm, { color: colors.textMuted }]}>
             {score}/{max}
           </Text>
         </View>
         <View
           style={{
-            height: 5,
+            height: 6,
             borderRadius: 3,
-            backgroundColor: "rgba(0,0,0,0.06)",
+            backgroundColor: colors.fill,
             overflow: "hidden",
           }}
         >
@@ -2585,7 +2607,7 @@ function WellnessMetricTile({
 function WellnessCard() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, typography, radius, shadow: themeShadow } = useTheme();
+  const { colors, spacing, typography, radius, shadow: themeShadow, scheme } = useTheme();
   const { data, isLoading } = useWellness();
   const tone: Tone = data?.level?.tone ?? "info";
   const palette = useTone(tone);
@@ -2614,17 +2636,8 @@ function WellnessCard() {
   return (
     <Card
       style={{
-        padding: spacing.lg,
+        padding: spacing.xl,
         gap: spacing.lg,
-        backgroundColor: colors.surface,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: "rgba(226, 232, 240, 0.8)",
-        shadowColor: "#0284C7",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.08,
-        shadowRadius: 18,
-        elevation: 4,
       }}
     >
       {/* ─── Hero Header: Circular Gauge + Status ─── */}
@@ -2653,6 +2666,7 @@ function WellnessCard() {
                 paddingHorizontal: 10,
                 paddingVertical: 3,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: palette.bg,
                 borderWidth: 1,
                 borderColor: `${palette.fg}33`,
@@ -2676,7 +2690,7 @@ function WellnessCard() {
             <Text
               style={{
                 fontSize: 11,
-                color: "#64748B",
+                color: colors.textMuted,
                 fontWeight: "600",
               }}
             >
@@ -2687,12 +2701,7 @@ function WellnessCard() {
           {/* Headline */}
           <Text
             numberOfLines={1}
-            style={{
-              color: colors.text,
-              fontWeight: "800",
-              fontSize: 20,
-              letterSpacing: -0.4,
-            }}
+            style={[typography.title.lg, { color: colors.text }]}
           >
             {score >= 75
               ? t("home.wellnessDoingGreat")
@@ -2711,15 +2720,15 @@ function WellnessCard() {
                 paddingHorizontal: 8,
                 paddingVertical: 3,
                 borderRadius: 8,
-                backgroundColor: "#F1F5F9",
+                backgroundColor: colors.surfaceMuted,
               }}
             >
-              <Scale size={11} color="#64748B" strokeWidth={2.2} />
+              <Scale size={11} color={colors.textMuted} strokeWidth={2.2} />
               <Text
                 numberOfLines={1}
                 style={{
                   fontSize: 11,
-                  color: "#475569",
+                  color: colors.textMuted,
                   fontWeight: "700",
                 }}
               >
@@ -2728,7 +2737,7 @@ function WellnessCard() {
                   : t("home.a11y.bmiNeeded")}
               </Text>
             </View>
-            <ChevronRight size={14} color="#94A3B8" strokeWidth={2.5} />
+            <ChevronRight size={14} color={colors.textMuted} strokeWidth={2.5} />
           </View>
         </View>
       </Pressable>
@@ -2755,7 +2764,7 @@ function WellnessCard() {
           })}
         >
           <LinearGradient
-            colors={["#F0F9FF", "#E0F2FE"]}
+            colors={scheme === "dark" ? [colors.primarySoft, colors.primarySoft] : ["#F0F9FF", "#E0F2FE"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -2764,13 +2773,9 @@ function WellnessCard() {
               gap: 12,
               padding: 13,
               borderRadius: 16,
-              borderWidth: 1,
-              borderColor: "rgba(56, 189, 248, 0.4)",
-              shadowColor: "#0284C7",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 6,
-              elevation: 1,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: "rgba(56, 189, 248, 0.45)",
             }}
           >
             <View
@@ -2778,6 +2783,7 @@ function WellnessCard() {
                 width: 36,
                 height: 36,
                 borderRadius: 11,
+                borderCurve: "continuous",
                 backgroundColor: "#0284C7",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2794,7 +2800,7 @@ function WellnessCard() {
                 style={{
                   fontSize: 10,
                   fontWeight: "800",
-                  color: "#0369A1",
+                  color: colors.primary,
                   letterSpacing: 0.7,
                   textTransform: "uppercase",
                 }}
@@ -2806,7 +2812,7 @@ function WellnessCard() {
                 style={{
                   fontSize: 12,
                   fontWeight: "600",
-                  color: "#0F172A",
+                  color: colors.text,
                   lineHeight: 16,
                 }}
               >
@@ -2818,12 +2824,13 @@ function WellnessCard() {
                 width: 28,
                 height: 28,
                 borderRadius: 14,
-                backgroundColor: "rgba(255, 255, 255, 0.85)",
+                borderCurve: "continuous",
+                backgroundColor: colors.surface,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <ChevronRight size={15} color="#0284C7" strokeWidth={2.5} />
+              <ChevronRight size={15} color={colors.primary} strokeWidth={2.5} />
             </View>
           </LinearGradient>
         </Pressable>
@@ -2884,18 +2891,20 @@ function MiniStatCard({
   onPress?: () => void;
 }) {
   const p = useTone(tone);
+  const { colors, typography, scheme } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
         minWidth: 0,
-        paddingVertical: 10,
+        paddingVertical: 12,
         paddingHorizontal: 8,
-        borderRadius: 16,
-        backgroundColor: pressed ? "#F1F5F9" : "#F8FAFC",
-        borderWidth: 1,
-        borderColor: "rgba(226, 232, 240, 0.8)",
+        borderRadius: 18,
+        borderCurve: "continuous",
+        backgroundColor: pressed ? colors.fill : colors.surfaceMuted,
+        borderWidth: scheme === "dark" ? StyleSheet.hairlineWidth : 0,
+        borderColor: colors.borderStrong,
         alignItems: "center",
         justifyContent: "center",
         gap: 4,
@@ -2904,9 +2913,10 @@ function MiniStatCard({
     >
       <View
         style={{
-          width: 28,
-          height: 28,
+          width: 30,
+          height: 30,
           borderRadius: 9,
+          borderCurve: "continuous",
           backgroundColor: p.bg,
           alignItems: "center",
           justifyContent: "center",
@@ -2916,23 +2926,13 @@ function MiniStatCard({
       </View>
       <Text
         numberOfLines={1}
-        style={{
-          fontSize: 10,
-          fontWeight: "600",
-          color: "#64748B",
-          textAlign: "center",
-        }}
+        style={[typography.caption, { fontSize: 10.5, color: colors.textMuted, textAlign: "center" }]}
       >
         {label}
       </Text>
       <Text
         numberOfLines={1}
-        style={{
-          fontSize: 14,
-          fontWeight: "800",
-          color: "#0F172A",
-          textAlign: "center",
-        }}
+        style={[typography.title.md, { color: colors.text, textAlign: "center", letterSpacing: -0.4 }]}
       >
         {value}
       </Text>
@@ -3012,9 +3012,10 @@ function VitalsGlanceCard() {
                 width: 140,
                 padding: spacing.md,
                 borderRadius: 18,
+                borderCurve: "continuous",
                 backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.separator,
                 gap: spacing.sm,
                 opacity: pressed ? 0.92 : 1,
                 ...themeShadow.sm,
@@ -3032,6 +3033,7 @@ function VitalsGlanceCard() {
                     width: 30,
                     height: 30,
                     borderRadius: 10,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor: palette.bg,
@@ -3158,6 +3160,7 @@ function AppointmentTimelineRow({
       style={({ pressed }) => ({
         opacity: pressed ? 0.95 : 1,
         borderRadius: 18,
+        borderCurve: "continuous",
         ...(pressed ? { backgroundColor: colors.surfaceMuted } : null),
       })}
     >
@@ -3168,9 +3171,10 @@ function AppointmentTimelineRow({
           gap: spacing.md,
           padding: 14,
           borderRadius: 18,
+          borderCurve: "continuous",
           backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.separator,
           ...themeShadow.sm,
         }}
       >
@@ -3182,6 +3186,7 @@ function AppointmentTimelineRow({
             width: 52,
             height: 56,
             borderRadius: 14,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -3289,6 +3294,7 @@ function FabAction({
         gap: spacing.md,
         padding: spacing.md,
         borderRadius: radius.lg,
+        borderCurve: "continuous",
         backgroundColor: pressed ? colors.surfaceMuted : "transparent",
       })}
     >
@@ -3297,6 +3303,7 @@ function FabAction({
           width: 44,
           height: 44,
           borderRadius: 22,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: palette.bg,

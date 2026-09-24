@@ -7,7 +7,9 @@ import {
   ScrollView,
   TextInput,
   RefreshControl,
+  StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -51,7 +53,7 @@ function formatDate(iso: string | null | undefined, locale: any): string {
 export default function MyPrescriptionsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
+  const { spacing, colors, typography, radius, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
   const locale = useLocaleStore((s) => s.locale);
 
@@ -138,49 +140,50 @@ export default function MyPrescriptionsScreen() {
       >
         {/* Top Clinical Hero Hub */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xs }}>
-          <View
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={{
-              backgroundColor: isDark
-                ? "rgba(59, 130, 246, 0.12)"
-                : colors.primarySoft,
-              borderRadius: radius.xl,
-              padding: spacing.md,
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(59, 130, 246, 0.25)"
-                : "rgba(37, 99, 235, 0.18)",
+              borderRadius: 28,
+              borderCurve: "continuous",
+              padding: spacing.xl,
+              ...(isDark ? null : shadow.hero),
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.lg }}>
               <View
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
-                  backgroundColor: colors.primary,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 15,
+                  borderCurve: "continuous",
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <ShieldCheck size={22} color={colors.onPrimary} strokeWidth={2.4} />
+                <ShieldCheck size={22} color="#FFFFFF" strokeWidth={2.4} />
               </View>
 
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Text
                     style={[
-                      typography.title.sm,
-                      { color: colors.text, fontWeight: "800" },
+                      typography.title.lg,
+                      { color: "#FFFFFF", flexShrink: 1 },
                     ]}
                   >
                     {t("myPrescriptions.heroTitle")}
                   </Text>
-                  <Sparkles size={14} color={colors.primary} />
+                  <Sparkles size={14} color="#FFFFFF" />
                 </View>
                 <Text
                   style={[
                     typography.body.sm,
-                    { color: colors.textMuted, marginTop: 2, lineHeight: 18 },
+                    { color: "rgba(255,255,255,0.86)", marginTop: 4 },
                   ]}
                 >
                   {t("myPrescriptions.heroSubtitle")}
@@ -192,7 +195,7 @@ export default function MyPrescriptionsScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: spacing.sm,
-                    marginTop: spacing.sm,
+                    marginTop: spacing.md,
                   }}
                 >
                   <Pressable
@@ -201,20 +204,18 @@ export default function MyPrescriptionsScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 6,
-                      backgroundColor: colors.primary,
+                      backgroundColor: "rgba(255,255,255,0.18)",
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: "rgba(255,255,255,0.28)",
                       paddingHorizontal: spacing.md,
-                      paddingVertical: 7,
+                      height: 36,
                       borderRadius: radius.full,
-                      opacity: pressed ? 0.85 : 1,
+                      opacity: pressed ? 0.8 : 1,
                     })}
                   >
-                    <Repeat size={13} color={colors.onPrimary} strokeWidth={2.4} />
+                    <Repeat size={14} color="#FFFFFF" strokeWidth={2.4} />
                     <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: colors.onPrimary,
-                      }}
+                      style={[typography.label.md, { color: "#FFFFFF" }]}
                     >
                       {t("myPrescriptions.requestRefill")}
                     </Text>
@@ -222,21 +223,20 @@ export default function MyPrescriptionsScreen() {
                 </View>
               </View>
             </View>
-          </View>
+          </LinearGradient>
         </View>
 
         {/* Real Search Bar */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.surfaceMuted,
-              borderRadius: radius.xl,
-              borderWidth: 1,
-              borderColor: colors.border,
-              paddingHorizontal: spacing.md,
-              height: 46,
+              backgroundColor: colors.fill,
+              borderRadius: 12,
+              borderCurve: "continuous",
+              paddingHorizontal: 12,
+              height: 42,
             }}
           >
             <Search size={18} color={colors.textSubtle} strokeWidth={2.2} />
@@ -248,7 +248,8 @@ export default function MyPrescriptionsScreen() {
               style={{
                 flex: 1,
                 paddingHorizontal: spacing.sm,
-                fontSize: 14,
+                fontSize: 16,
+                fontFamily: typography.body.md.fontFamily,
                 color: colors.text,
                 height: "100%",
               }}
@@ -262,28 +263,28 @@ export default function MyPrescriptionsScreen() {
                 onPress={() => setSearchQuery("")}
                 hitSlop={8}
                 style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: colors.border,
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: colors.textSubtle,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <X size={14} color={colors.text} strokeWidth={2.4} />
+                <X size={12} color={colors.surface} strokeWidth={3} />
               </Pressable>
             )}
           </View>
         </View>
 
         {/* Filter Chips Horizontal Carousel */}
-        <View style={{ marginTop: spacing.sm }}>
+        <View style={{ marginTop: spacing.md }}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{
               paddingHorizontal: spacing.lg,
-              gap: spacing.xs,
+              gap: spacing.sm,
               paddingVertical: 4,
             }}
           >
@@ -320,7 +321,7 @@ export default function MyPrescriptionsScreen() {
         {isLoading ? (
           <View style={{ padding: spacing.lg, gap: spacing.md }}>
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} height={130} radius={18} />
+              <Skeleton key={i} height={150} radius={radius.card} />
             ))}
           </View>
         ) : isError ? (
@@ -368,7 +369,7 @@ export default function MyPrescriptionsScreen() {
           <View
             style={{
               paddingHorizontal: spacing.lg,
-              paddingTop: spacing.sm,
+              paddingTop: spacing.md,
               gap: spacing.md,
             }}
           >
@@ -403,7 +404,7 @@ function FilterChip({
   active: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, typography } = useTheme();
 
   return (
     <Pressable
@@ -413,20 +414,17 @@ function FilterChip({
         alignItems: "center",
         gap: 6,
         paddingHorizontal: spacing.md,
-        paddingVertical: 6,
+        height: 36,
         borderRadius: radius.full,
-        backgroundColor: active ? colors.primary : colors.surfaceMuted,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : colors.border,
-        opacity: pressed ? 0.8 : 1,
+        backgroundColor: active ? colors.primary : colors.fill,
+        opacity: pressed ? 0.75 : 1,
       })}
     >
       <Text
-        style={{
-          fontSize: 13,
-          fontWeight: active ? "700" : "600",
-          color: active ? colors.onPrimary : colors.text,
-        }}
+        style={[
+          typography.label.md,
+          { color: active ? colors.onPrimary : colors.text },
+        ]}
       >
         {label}
       </Text>
@@ -437,15 +435,14 @@ function FilterChip({
           borderRadius: 999,
           backgroundColor: active
             ? "rgba(255, 255, 255, 0.25)"
-            : colors.border,
+            : colors.fillStrong,
         }}
       >
         <Text
-          style={{
-            fontSize: 11,
-            fontWeight: "700",
-            color: active ? colors.onPrimary : colors.textMuted,
-          }}
+          style={[
+            typography.label.xs,
+            { letterSpacing: 0, color: active ? colors.onPrimary : colors.textMuted },
+          ]}
         >
           {count}
         </Text>
@@ -465,7 +462,7 @@ function PrescriptionCard({
 }) {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
+  const { spacing, colors, typography, radius, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
 
   const r = prescription;
@@ -481,16 +478,15 @@ function PrescriptionCard({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-        borderRadius: radius.xl,
-        padding: spacing.md,
-        borderWidth: 1,
-        borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: isDark ? 0 : 0.04,
-        shadowRadius: 6,
-        elevation: 1,
+        backgroundColor: colors.surface,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        padding: spacing.lg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.separator,
+        ...(isDark ? null : shadow.sm),
+        opacity: pressed ? 0.9 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
       })}
     >
       {/* Card Header: Rx Icon Avatar + Title + Status Pill */}
@@ -507,10 +503,9 @@ function PrescriptionCard({
             style={{
               width: 44,
               height: 44,
-              borderRadius: 14,
-              backgroundColor: isDark
-                ? "rgba(59, 130, 246, 0.15)"
-                : colors.primarySoft,
+              borderRadius: 13,
+              borderCurve: "continuous",
+              backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -525,8 +520,8 @@ function PrescriptionCard({
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text
               style={[
-                typography.title.sm,
-                { color: colors.text, fontWeight: "700" },
+                typography.title.md,
+                { color: colors.text },
               ]}
               numberOfLines={1}
             >
@@ -550,7 +545,7 @@ function PrescriptionCard({
               <Text
                 style={[
                   typography.body.sm,
-                  { color: colors.textMuted, flex: 1, fontWeight: "500" },
+                  { color: colors.textMuted, flex: 1 },
                 ]}
                 numberOfLines={1}
               >
@@ -584,11 +579,7 @@ function PrescriptionCard({
             strokeWidth={2.2}
           />
           <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "600",
-              color: colors.textSubtle,
-            }}
+            style={[typography.caption, { color: colors.textSubtle }]}
           >
             {dateFormatted}
           </Text>
@@ -601,11 +592,7 @@ function PrescriptionCard({
             strokeWidth={2.2}
           />
           <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "600",
-              color: colors.textSubtle,
-            }}
+            style={[typography.caption, { color: colors.textSubtle }]}
           >
             {medCount === 1
               ? t("myPrescriptions.medCount_one")
@@ -618,10 +605,11 @@ function PrescriptionCard({
       {medicines.length > 0 && (
         <View
           style={{
-            marginTop: spacing.sm,
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : colors.surfaceMuted,
-            borderRadius: radius.md,
-            padding: spacing.xs + 2,
+            marginTop: spacing.md,
+            backgroundColor: colors.fill,
+            borderRadius: 14,
+            borderCurve: "continuous",
+            padding: spacing.sm,
           }}
         >
           <View
@@ -638,13 +626,12 @@ function PrescriptionCard({
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 4,
-                  backgroundColor: colors.surface,
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: 3,
-                  borderRadius: radius.sm,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  gap: 5,
+                  backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
+                  paddingHorizontal: spacing.sm + 2,
+                  paddingVertical: 4,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
                 }}
               >
                 <View
@@ -656,11 +643,7 @@ function PrescriptionCard({
                   }}
                 />
                 <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "600",
-                    color: colors.text,
-                  }}
+                  style={[typography.label.sm, { color: colors.text }]}
                   numberOfLines={1}
                 >
                   {med.name}
@@ -672,18 +655,14 @@ function PrescriptionCard({
             {medicines.length > 3 && (
               <View
                 style={{
-                  paddingHorizontal: spacing.xs + 2,
-                  paddingVertical: 3,
-                  borderRadius: radius.sm,
-                  backgroundColor: colors.border,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: 4,
+                  borderRadius: 10,
+                  backgroundColor: colors.fillStrong,
                 }}
               >
                 <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: "700",
-                    color: colors.textMuted,
-                  }}
+                  style={[typography.label.xs, { color: colors.textMuted }]}
                 >
                   +{medicines.length - 3} more
                 </Text>
@@ -699,18 +678,14 @@ function PrescriptionCard({
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          marginTop: spacing.sm,
-          paddingTop: spacing.xs,
-          borderTopWidth: 1,
-          borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+          marginTop: spacing.md,
+          paddingTop: spacing.md,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.separator,
         }}
       >
         <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "700",
-            color: colors.primary,
-          }}
+          style={[typography.label.md, { color: colors.primary }]}
         >
           {t("myPrescriptions.viewDetails")}
         </Text>
@@ -727,22 +702,16 @@ function PrescriptionCard({
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 4,
-                paddingHorizontal: spacing.sm,
-                paddingVertical: 2,
+                paddingHorizontal: spacing.md,
+                height: 30,
                 borderRadius: radius.full,
-                backgroundColor: isDark
-                  ? "rgba(59, 130, 246, 0.15)"
-                  : colors.primarySoft,
+                backgroundColor: colors.primarySoft,
                 marginRight: spacing.xs,
               }}
             >
-              <Repeat size={11} color={colors.primary} strokeWidth={2.4} />
+              <Repeat size={12} color={colors.primary} strokeWidth={2.4} />
               <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color: colors.primary,
-                }}
+                style={[typography.label.sm, { color: colors.primary }]}
               >
                 {t("myPrescriptions.requestRefill")}
               </Text>
@@ -757,7 +726,7 @@ function PrescriptionCard({
 
 function StatusBadge({ status }: { status: string }) {
   const { t } = useTranslation();
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, typography } = useTheme();
 
   const isSigned = status === "signed" || status === "active";
   const isDispensed = status === "dispensed" || status === "completed";
@@ -778,13 +747,7 @@ function StatusBadge({ status }: { status: string }) {
       >
         <ShieldCheck size={12} color={colors.success} strokeWidth={2.6} />
         <Text
-          style={{
-            fontSize: 10,
-            fontWeight: "800",
-            color: colors.success,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
+          style={[typography.label.xs, { color: colors.success, textTransform: "uppercase" }]}
         >
           {t("myPrescriptions.status.signed")}
         </Text>

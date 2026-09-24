@@ -2,7 +2,7 @@
 // Pre-treatment coverage check. Procedure + hospital → out-of-pocket estimate.
 
 import { useState } from "react";
-import { View, ScrollView, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Activity, AlertCircle, CheckCircle2 } from "lucide-react-native";
 import {
@@ -15,7 +15,6 @@ import {
   SectionHeader,
   Pill,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useCoverageCheck, useMyInsuranceEnrollments } from "@/hooks/useApi";
 
@@ -30,7 +29,16 @@ const TREATMENT_TYPES = [
 
 export default function CoverageCheck() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
+  const fieldStyle = {
+    backgroundColor: colors.fill,
+    borderRadius: radius.field,
+    borderCurve: "continuous" as const,
+    paddingHorizontal: 14,
+    minHeight: 48,
+    color: colors.text,
+    ...typography.body.md,
+  };
   const [enrollmentId, setEnrollmentId] = useState("");
   const [treatmentType, setTreatmentType] = useState("hospitalization");
   const [hospital, setHospital] = useState("");
@@ -64,11 +72,11 @@ export default function CoverageCheck() {
         kicker={t("insurance.coverage.kicker")}
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ paddingVertical: 12, gap: 16, paddingBottom: 40 }}>
         <SectionHeader title={t("insurance.coverage.planned")} />
-        <Card style={{ padding: 16, gap: 12 }}>
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+        <Card style={{ padding: 20, gap: 18 }}>
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.coverage.policy", "Policy")}
             </AppText>
             <ChipGroup>
@@ -88,8 +96,8 @@ export default function CoverageCheck() {
             ) : null}
           </View>
 
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.coverage.procedure")}
             </AppText>
             <ChipGroup>
@@ -104,26 +112,21 @@ export default function CoverageCheck() {
             </ChipGroup>
           </View>
 
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.coverage.hospital")}
             </AppText>
             <TextInput
               value={hospital}
               onChangeText={setHospital}
               placeholder={t("insurance.coverage.hospitalPlaceholder")}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
-              }}
+              placeholderTextColor={colors.textSubtle}
+              style={fieldStyle}
             />
           </View>
 
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.coverage.estimatedAmount")}
             </AppText>
             <TextInput
@@ -131,19 +134,14 @@ export default function CoverageCheck() {
               onChangeText={setEstimated}
               keyboardType="numeric"
               placeholder="0"
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
-              }}
+              placeholderTextColor={colors.textSubtle}
+              style={{ ...fieldStyle, ...typography.title.md, color: colors.text }}
             />
           </View>
 
           <Button
             label={t("insurance.coverage.check")}
-            leftIcon={<Activity size={14} />}
+            icon={Activity}
             onPress={onCheck}
             loading={mut.isPending}
             disabled={!estimated || !effectiveEnrollmentId}
@@ -153,19 +151,31 @@ export default function CoverageCheck() {
         {result ? (
           <Card
             style={{
-              padding: 16,
-              gap: 10,
+              padding: 20,
+              gap: 12,
               backgroundColor: result.covered
                 ? colors.surface
-                : colors.danger + "15",
+                : colors.dangerSoft,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              {result.covered ? (
-                <CheckCircle2 size={18} color={colors.accent} />
-              ) : (
-                <AlertCircle size={18} color={colors.danger} />
-              )}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: result.covered ? colors.accentSoft : colors.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {result.covered ? (
+                  <CheckCircle2 size={18} color={colors.accent} strokeWidth={2.3} />
+                ) : (
+                  <AlertCircle size={18} color={colors.danger} strokeWidth={2.3} />
+                )}
+              </View>
               <AppText weight="700" size="md">
                 {result.covered
                   ? t("insurance.coverage.coveredTitle")
@@ -180,20 +190,29 @@ export default function CoverageCheck() {
                 {result.planName} · {result.coverageType ?? ""}
               </AppText>
             ) : null}
-            <View style={{ flexDirection: "row", gap: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 12,
+                backgroundColor: result.covered ? colors.surfaceMuted : colors.surface,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                padding: 14,
+              }}
+            >
               <View style={{ flex: 1 }}>
-                <AppText size="xs" color="muted">
+                <AppText size="xs" color="subtle">
                   {t("insurance.coverage.outOfPocket")}
                 </AppText>
-                <AppText weight="700" size="md" style={{ color: colors.danger }}>
+                <AppText weight="700" size="xl" style={{ color: colors.danger, marginTop: 2 }}>
                   LKR {result.estimatedOutOfPocketLkr.toLocaleString()}
                 </AppText>
               </View>
-              <View style={{ flex: 1 }}>
-                <AppText size="xs" color="muted">
+              <View style={{ flex: 1, alignItems: "flex-end" }}>
+                <AppText size="xs" color="subtle">
                   Copay {result.copayPct}% · Deductible
                 </AppText>
-                <AppText weight="700" size="md" style={{ color: colors.accent }}>
+                <AppText weight="700" size="lg" style={{ color: colors.accent, marginTop: 4 }}>
                   LKR {result.deductibleLkr.toLocaleString()}
                 </AppText>
               </View>
@@ -212,5 +231,69 @@ export default function CoverageCheck() {
         ) : null}
       </ScrollView>
     </Screen>
+  );
+}
+
+// Theme-aware text used by this screen: maps the terse size/weight/color
+// props onto typography tokens + theme colours so text stays legible in dark
+// mode (the shared AppText hard-codes light-mode hex colours).
+function AppText({
+  size,
+  weight,
+  color,
+  style,
+  ...rest
+}: {
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  weight?: string;
+  color?: "muted" | "subtle" | "primary" | "accent" | "danger" | "text";
+  style?: any;
+  [key: string]: any;
+}) {
+  const { colors, typography, fontFamily } = useTheme();
+  const tone =
+    color === "muted"
+      ? colors.textMuted
+      : color === "subtle"
+        ? colors.textSubtle
+        : color === "primary"
+          ? colors.primary
+          : color === "accent"
+            ? colors.accent
+            : color === "danger"
+              ? colors.danger
+              : colors.text;
+  const bold = weight === "700" || weight === "800" || weight === "900" || weight === "bold";
+  const semi = weight === "600" || weight === "500";
+  const base =
+    size === "2xl"
+      ? typography.display.md
+      : size === "xl"
+        ? typography.display.sm
+        : size === "lg"
+          ? bold
+            ? typography.title.lg
+            : typography.body.lg
+          : size === "md"
+            ? bold
+              ? typography.title.md
+              : typography.body.md
+            : size === "xs"
+              ? typography.caption
+              : bold
+                ? typography.title.xs
+                : typography.body.sm;
+  const family = bold
+    ? size === "xl" || size === "2xl" || size === "lg" || size === "md"
+      ? base.fontFamily
+      : fontFamily.bodyBold
+    : semi
+      ? fontFamily.bodySemibold
+      : base.fontFamily;
+  return (
+    <Text
+      {...rest}
+      style={[{ ...base, fontFamily: family, color: tone }, style]}
+    />
   );
 }

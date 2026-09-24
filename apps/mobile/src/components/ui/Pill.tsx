@@ -33,7 +33,9 @@ export function Pill({ label, children, tone = "neutral", icon: Icon, size = "md
   const isMd = size === "md";
   const padH = isMd ? spacing.sm + 2 : spacing.sm;
   const padV = isMd ? 4 : 2;
-  const font = isMd ? typography.caption : { ...typography.caption, fontSize: 10 };
+  const font = isMd
+    ? { ...typography.caption, fontFamily: typography.label.xs.fontFamily }
+    : { ...typography.caption, fontSize: 10.5, lineHeight: 14, fontFamily: typography.label.xs.fontFamily };
   const iconSize = isMd ? 11 : 10;
 
   const containerStyle: ViewStyle = {
@@ -46,6 +48,7 @@ export function Pill({ label, children, tone = "neutral", icon: Icon, size = "md
     borderColor: fg,
     borderWidth: outlined ? 1 : 0,
     borderRadius: radius.full,
+    borderCurve: "continuous",
     alignSelf: "flex-start",
   };
 

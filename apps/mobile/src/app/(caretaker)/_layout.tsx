@@ -16,34 +16,19 @@ import {
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
+import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { useRealtime } from "@/hooks/useRealtime";
 
 export default function CaretakerLayout() {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const tabOptions = useFloatingTabBarOptions();
 
   useRealtime();
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSubtle,
-        tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          height: Platform.OS === "ios" ? 88 : 72,
-          paddingBottom: Platform.OS === "ios" ? 28 : 12,
-          paddingTop: 10,
-          elevation: 8,
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 4,
-        },
-      }}
+      screenOptions={tabOptions}
     >
       <Tabs.Screen
         name="index"

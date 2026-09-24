@@ -4,13 +4,11 @@ import {
   StyleSheet,
   Text,
   View,
-  StyleSheet as RNStyleSheet,
   type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from "react-native";
-import type { LucideIcon } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Pressable } from "./Pressable";
 
@@ -34,6 +32,14 @@ type Props = {
   accessibilityHint?: string;
 };
 
+/**
+ * iOS-style button family:
+ *  - primary   → filled, brand gradient with a soft coloured lift
+ *  - secondary → tinted (brand-soft fill, brand label)
+ *  - outline   → bordered on surface
+ *  - danger    → tinted destructive
+ *  - ghost     → plain text button
+ */
 export function Button({
   title,
   onPress,
@@ -50,60 +56,78 @@ export function Button({
   accessibilityLabel,
   accessibilityHint,
   ...rest
-}: Props & { label?: string; compact?: boolean }) {
-  const { colors, spacing, radius, typography } = useTheme();
+}: Props & {
+  label?: string;
+  compact?: boolean;
+  /** Aliases accepted for compatibility with call sites. */
+  leftIcon?: any;
+  rightIcon?: any;
+  children?: React.ReactNode;
+}) {
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
 
-  const displayTitle = title ?? rest.label ?? "";
+  // Children may carry the label (string) or custom content.
+  const childText =
+    typeof rest.children === "string" || typeof rest.children === "number"
+      ? String(rest.children)
+      : undefined;
+  const childNode = childText === undefined ? rest.children : undefined;
+  const displayTitle = title ?? rest.label ?? childText ?? "";
+  if (!Icon && rest.leftIcon) Icon = rest.leftIcon;
+  if (!IconRight && rest.rightIcon) IconRight = rest.rightIcon;
   const actualSize = rest.compact ? "sm" : size;
   const isFullWidth = rest.compact ? false : fullWidth;
 
   const sizeMap = {
-    sm: { height: 40, px: spacing.md, font: typography.label.md },
-    md: { height: 48, px: spacing.lg, font: typography.title.sm },
-    lg: { height: 56, px: spacing.xl, font: typography.title.md },
+    sm: { height: 38, px: spacing.md + 2, font: typography.label.md, r: 12, icon: 16 },
+    md: { height: 50, px: spacing.xl, font: typography.title.sm, r: radius.button, icon: 18 },
+    lg: { height: 56, px: spacing.xxl, font: typography.title.md, r: 18, icon: 20 },
   } as const;
   const s = sizeMap[actualSize];
 
-  // High-visibility Liquid Glass parameters
-  let textColor = colors.primary;
-  let glassTintColors = ["rgba(255, 255, 255, 0.8)", "rgba(248, 250, 252, 0.4)", "rgba(241, 245, 249, 0.2)"];
-  let outerBorderColor = "rgba(255, 255, 255, 0.95)";
-  let innerBorderColor = "rgba(255, 255, 255, 0.65)";
-  let glowColor = "rgba(0, 0, 0, 0.1)";
+  let textColor: string = colors.primary;
+  let bg: string = "transparent";
+  let borderColor: string = "transparent";
+  let lift: ViewStyle | null = null;
 
-  if (variant === "primary") {
-    textColor = "#1E3B8B"; // High contrast Brand Blue text
-    // Sky-blue crystal glass tint (higher visibility, beautiful refraction)
-    glassTintColors = ["rgba(240, 249, 255, 0.8)", "rgba(224, 242, 254, 0.4)", "rgba(186, 230, 253, 0.2)"];
-    outerBorderColor = "rgba(255, 255, 255, 0.98)";
-    innerBorderColor = "rgba(255, 255, 255, 0.75)";
-    glowColor = "#0284C7"; // Cyan-blue glowing drop shadow
-  } else if (variant === "secondary") {
-    textColor = "#0F766E"; // High contrast Teal text
-    // Mint-teal crystal glass tint
-    glassTintColors = ["rgba(240, 253, 250, 0.8)", "rgba(204, 251, 241, 0.4)", "rgba(153, 246, 228, 0.2)"];
-    outerBorderColor = "rgba(255, 255, 255, 0.95)";
-    innerBorderColor = "rgba(255, 255, 255, 0.7)";
-    glowColor = "#0D9488"; // Teal glowing drop shadow
-  } else if (variant === "danger") {
-    textColor = "#DC2626"; // Red text
-    // Rose-red crystal glass tint
-    glassTintColors = ["rgba(254, 242, 242, 0.8)", "rgba(254, 226, 226, 0.4)", "rgba(252, 165, 165, 0.2)"];
-    outerBorderColor = "rgba(255, 255, 255, 0.95)";
-    innerBorderColor = "rgba(255, 255, 255, 0.7)";
-    glowColor = "#EF4444"; // Red glowing drop shadow
-  } else if (variant === "outline") {
-    textColor = colors.primary;
-    glassTintColors = ["rgba(255, 255, 255, 0.85)", "rgba(248, 250, 252, 0.45)", "rgba(241, 245, 249, 0.25)"];
-    outerBorderColor = "rgba(255, 255, 255, 0.85)";
-    innerBorderColor = "rgba(255, 255, 255, 0.55)";
-    glowColor = "rgba(0, 0, 0, 0.08)";
+  switch (variant) {
+    case "primary":
+      textColor = colors.onPrimary;
+      bg = colors.primary;
+      lift = scheme === "dark" ? null : shadow.primary;
+      break;
+    case "secondary":
+      textColor = colors.primary;
+      bg = colors.primarySoft;
+      break;
+    case "outline":
+      textColor = colors.primary;
+      bg = colors.surface;
+      borderColor = colors.borderStrong;
+      lift = shadow.xs;
+      break;
+    case "danger":
+      textColor = colors.danger;
+      bg = colors.dangerSoft;
+      break;
+    case "ghost":
+    default:
+      textColor = colors.primary;
+      break;
   }
 
   const isDisabled = disabled || loading;
-  const iconSize = actualSize === "sm" ? 16 : actualSize === "lg" ? 22 : 18;
+  const isPrimary = variant === "primary";
 
-  const isGlass = variant !== "ghost";
+  const labelStyle: TextStyle = {
+    ...s.font,
+    fontFamily: typography.title.md.fontFamily,
+    color: textColor,
+    textAlign: "center",
+  };
+
+  const renderIcon = (I: any) =>
+    React.isValidElement(I) ? I : <I size={s.icon} color={textColor} strokeWidth={2.4} />;
 
   return (
     <Pressable
@@ -111,8 +135,8 @@ export function Button({
       disabled={isDisabled}
       haptic={isDisabled ? "none" : haptic}
       hapticOnPress={hapticOnPress}
-      pressedScale={0.98}
-      pressedOpacity={0.92}
+      pressedScale={0.97}
+      pressedOpacity={0.9}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       accessibilityLabel={accessibilityLabel ?? displayTitle}
@@ -120,111 +144,61 @@ export function Button({
       style={[
         {
           minHeight: s.height,
-          paddingHorizontal: s.px,
-          borderColor: outerBorderColor,
-          borderWidth: variant === "ghost" ? 0 : 1.75, // Slightly thicker border for high definition
-          borderRadius: radius.full,
+          paddingHorizontal: variant === "ghost" ? spacing.sm : s.px,
+          borderRadius: s.r,
+          borderCurve: "continuous",
+          backgroundColor: bg,
+          borderWidth: borderColor === "transparent" ? 0 : StyleSheet.hairlineWidth * 2,
+          borderColor,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
           gap: spacing.sm,
           alignSelf: isFullWidth ? "stretch" : "auto",
-          opacity: isDisabled ? 0.55 : 1,
-          overflow: "hidden", // Clips the blur and gradients to pill shape
-
-          // Premium glowing glass outer shadow
-          shadowColor: glowColor,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: variant === "ghost" ? 0 : 0.16,
-          shadowRadius: 10.0,
-          elevation: 4,
+          opacity: isDisabled ? 0.45 : 1,
         },
+        !isDisabled && lift,
         style,
       ]}
     >
-      {/* 1. Backdrop Blur View for Translucent Glass */}
-      {isGlass && (
-        <BlurView
-          intensity={75} // Higher intensity for more frosted premium look
-          tint="light"
-          style={StyleSheet.absoluteFillObject}
-        />
-      )}
-
-      {/* 2. Glass Base Color Overlay */}
-      {isGlass && (
-        <LinearGradient
-          colors={glassTintColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-      )}
-
-      {/* 3. Refracting Inner Ring Border */}
-      {isGlass && (
+      {isPrimary ? (
         <View
           pointerEvents="none"
-          style={{
-            ...StyleSheet.absoluteFillObject,
-            margin: 1.5,
-            borderWidth: 1.25,
-            borderColor: innerBorderColor,
-            borderRadius: radius.full,
-          }}
-        />
-      )}
-
-      {/* 4. Glossy Top-Half Highlight/Sheen */}
-      {isGlass && (
-        <LinearGradient
-          colors={["rgba(255, 255, 255, 0.35)", "rgba(255, 255, 255, 0.0)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "50%",
-          }}
-        />
-      )}
+          style={[StyleSheet.absoluteFill, { borderRadius: s.r, borderCurve: "continuous", overflow: "hidden" }]}
+        >
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Top sheen — the subtle lit edge on iOS filled buttons */}
+          <LinearGradient
+            colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 0.6 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      ) : null}
 
       {loading ? (
         <ActivityIndicator size="small" color={textColor} />
       ) : Icon ? (
-        React.isValidElement(Icon) ? (
-          Icon
-        ) : (
-          <Icon size={iconSize} color={textColor} strokeWidth={2.5} />
-        )
+        renderIcon(Icon)
       ) : null}
-      
-      <Text
-        style={[
-          s.font,
-          {
-            color: textColor,
-            textAlign: "center",
-            fontFamily: typography.title.sm.fontFamily,
-            letterSpacing: 0.25,
-          },
-        ]}
-        numberOfLines={1}
-      >
-        {displayTitle}
-      </Text>
-      
-      {IconRight && !loading ? (
-        React.isValidElement(IconRight) ? (
-          IconRight
-        ) : (
-          <IconRight size={iconSize} color={textColor} strokeWidth={2.5} />
-        )
+
+      {displayTitle ? (
+        <Text style={labelStyle} numberOfLines={1}>
+          {displayTitle}
+        </Text>
       ) : null}
+
+      {!displayTitle && childNode && !loading ? childNode : null}
+
+      {IconRight && !loading ? renderIcon(IconRight) : null}
     </Pressable>
   );
 }
 
-export const buttonStyles = RNStyleSheet.create({});
+export const buttonStyles = StyleSheet.create({});

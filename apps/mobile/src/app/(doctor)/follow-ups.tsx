@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState } from "react";
-import { View, Text, Pressable, Alert } from "react-native";
+import { View, Text, Pressable, Alert, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -169,12 +169,13 @@ export default function FollowUpsScreen() {
                       style={{
                         width: 36,
                         height: 36,
-                        borderRadius: 12,
+                        borderRadius: 11,
+                        borderCurve: "continuous",
                         backgroundColor:
                           isDone
-                            ? "rgba(16, 185, 129, 0.14)"
+                            ? colors.successSoft
                             : isCancelled
-                            ? "rgba(239, 68, 68, 0.12)"
+                            ? colors.dangerSoft
                             : colors.primarySoft,
                         alignItems: "center",
                         justifyContent: "center",
@@ -184,7 +185,7 @@ export default function FollowUpsScreen() {
                         size={16}
                         color={
                           isDone
-                            ? "#10B981"
+                            ? colors.success
                             : isCancelled
                             ? colors.danger
                             : colors.primary
@@ -194,7 +195,7 @@ export default function FollowUpsScreen() {
                     </View>
                     <Text
                       style={[
-                        typography.title.sm,
+                        typography.title.md,
                         {
                           color: isCancelled ? colors.textMuted : colors.text,
                           flex: 1,
@@ -251,9 +252,10 @@ export default function FollowUpsScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: spacing.sm,
-                      paddingTop: spacing.sm,
-                      borderTopWidth: 1,
-                      borderTopColor: colors.border,
+                      paddingTop: spacing.md,
+                      marginTop: spacing.xs,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.separator,
                     }}
                   >
                     {!isDone && !isCancelled ? (
@@ -268,23 +270,15 @@ export default function FollowUpsScreen() {
                             alignItems: "center",
                             justifyContent: "center",
                             gap: 6,
-                            paddingVertical: 8,
-                            borderRadius: radius.md,
-                            backgroundColor: pressed
-                              ? colors.success
-                              : "rgba(16, 185, 129, 0.14)",
-                            borderWidth: 1,
-                            borderColor: "rgba(16, 185, 129, 0.4)",
+                            height: 36,
+                            borderRadius: 999,
+                            borderCurve: "continuous",
+                            backgroundColor: colors.successSoft,
+                            opacity: pressed ? 0.7 : 1,
                           })}
                         >
-                          <Check size={14} color="#10B981" strokeWidth={2.6} />
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: "800",
-                              color: "#10B981",
-                            }}
-                          >
+                          <Check size={14} color={colors.success} strokeWidth={2.6} />
+                          <Text style={[typography.label.md, { color: colors.success }]}>
                             {t("doctorFollowUps.markComplete")}
                           </Text>
                         </Pressable>
@@ -297,9 +291,10 @@ export default function FollowUpsScreen() {
                             width: 36,
                             height: 36,
                             borderRadius: 18,
+                            borderCurve: "continuous",
                             backgroundColor: pressed
-                              ? colors.danger
-                              : colors.surfaceMuted,
+                              ? colors.dangerSoft
+                              : colors.fill,
                             alignItems: "center",
                             justifyContent: "center",
                           })}
@@ -322,11 +317,11 @@ export default function FollowUpsScreen() {
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 6,
-                          paddingVertical: 8,
-                          borderRadius: radius.md,
-                          backgroundColor: pressed
-                            ? colors.primary
-                            : colors.surfaceMuted,
+                          height: 36,
+                          borderRadius: 999,
+                          borderCurve: "continuous",
+                          backgroundColor: colors.primarySoft,
+                          opacity: pressed ? 0.7 : 1,
                         })}
                       >
                         <RotateCcw
@@ -334,13 +329,7 @@ export default function FollowUpsScreen() {
                           color={colors.primary}
                           strokeWidth={2.6}
                         />
-                        <Text
-                          style={{
-                            fontSize: 13,
-                            fontWeight: "800",
-                            color: colors.primary,
-                          }}
-                        >
+                        <Text style={[typography.label.md, { color: colors.primary }]}>
                           {t("doctorFollowUps.reopenAction")}
                         </Text>
                       </Pressable>
@@ -361,16 +350,17 @@ export default function FollowUpsScreen() {
                           width: 36,
                           height: 36,
                           borderRadius: 18,
+                          borderCurve: "continuous",
                           backgroundColor: pressed
-                            ? colors.primarySoft
-                            : colors.bg,
+                            ? colors.fillStrong
+                            : colors.fill,
                           alignItems: "center",
                           justifyContent: "center",
                         })}
                       >
                         <ChevronRight
                           size={16}
-                          color={colors.primary}
+                          color={colors.textMuted}
                           strokeWidth={2.4}
                         />
                       </Pressable>

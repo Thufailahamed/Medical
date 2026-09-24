@@ -55,7 +55,7 @@ const PURPOSES: HealthIdPurpose[] = ["checkin", "dispense", "id", "all"];
 
 export default function HealthIdScreen() {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
   const toast = useToast();
   const router = useRouter();
 
@@ -198,7 +198,7 @@ export default function HealthIdScreen() {
     current.refetch();
   }, [current]);
 
-  const styles = makeStyles({ colors, spacing, typography });
+  const styles = makeStyles({ colors, spacing, typography, shadow, scheme });
 
   return (
     <Screen>
@@ -233,15 +233,12 @@ export default function HealthIdScreen() {
             accessibilityLabel={t("common.back", { defaultValue: "Go back" })}
             hitSlop={12}
             style={({ pressed }) => ({
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: pressed ? colors.fillStrong : colors.fill,
               alignItems: "center",
               justifyContent: "center",
-              opacity: pressed ? 0.75 : 1,
             })}
           >
             <ArrowLeft size={20} color={colors.text} strokeWidth={2.25} />
@@ -249,14 +246,12 @@ export default function HealthIdScreen() {
 
           <View
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 21,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
               backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.borderSoft,
             }}
           >
             <ScanLine size={20} color={colors.primary} />
@@ -295,15 +290,14 @@ export default function HealthIdScreen() {
                   {
                     backgroundColor: active
                       ? colors.primary
-                      : colors.surface,
-                    borderColor: active ? colors.primary : colors.border,
+                      : colors.fill,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.chipText,
-                    { color: active ? "#FFFFFF" : colors.text },
+                    { color: active ? colors.onPrimary : colors.text },
                   ]}
                 >
                   {t(`healthId.purpose.${p}`)}
@@ -350,9 +344,9 @@ export default function HealthIdScreen() {
         {/* Actions */}
         <View style={styles.actionsRow}>
           <Pressable
-            style={[
+            style={({ pressed }) => [
               styles.actionBtn,
-              { borderColor: colors.border, backgroundColor: colors.surface },
+              { backgroundColor: colors.fill, opacity: pressed ? 0.7 : 1 },
             ]}
             onPress={handleRotate}
             disabled={issue.isPending}
@@ -365,9 +359,9 @@ export default function HealthIdScreen() {
             <Text style={styles.actionLabel}>{t("healthId.rotateNow")}</Text>
           </Pressable>
           <Pressable
-            style={[
+            style={({ pressed }) => [
               styles.actionBtn,
-              { borderColor: colors.danger, backgroundColor: colors.surface },
+              { backgroundColor: colors.dangerSoft, opacity: pressed ? 0.7 : 1 },
             ]}
             onPress={handleRevoke}
             disabled={revoke.isPending}
@@ -397,7 +391,7 @@ export default function HealthIdScreen() {
 
 // ─── Styles ───────────────────────────────────────────────
 
-function makeStyles({ colors, spacing, typography }: any) {
+function makeStyles({ colors, spacing, typography, shadow, scheme }: any) {
   return StyleSheet.create({
     scroll: {
       padding: spacing.lg,
@@ -409,22 +403,19 @@ function makeStyles({ colors, spacing, typography }: any) {
       marginBottom: spacing.md,
     },
     kicker: {
-      fontSize: 12,
-      fontWeight: "700",
-      letterSpacing: 0.5,
+      ...typography.overline,
       textTransform: "uppercase",
       color: colors.primary,
     },
     title: {
-      fontSize: 22,
-      fontWeight: "800",
+      ...typography.display.md,
       color: colors.text,
-      marginTop: 2,
+      marginTop: 4,
     },
     subtitle: {
-      fontSize: 13,
-      color: colors.textSubtle,
-      marginTop: 4,
+      ...typography.body.md,
+      color: colors.textMuted,
+      marginTop: 6,
     },
     principalRow: {
       flexDirection: "row",
@@ -437,58 +428,59 @@ function makeStyles({ colors, spacing, typography }: any) {
       paddingVertical: spacing.sm,
     },
     chip: {
-      paddingHorizontal: spacing.md,
+      minHeight: 36,
+      justifyContent: "center",
+      paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
       borderRadius: 999,
-      borderWidth: 1,
-      marginRight: spacing.sm,
     },
     chipText: {
-      fontSize: 13,
-      fontWeight: "700",
+      ...typography.label.md,
     },
     cardShell: {
       backgroundColor: colors.surface,
-      borderRadius: 20,
-      padding: spacing.lg,
+      borderRadius: 28,
+      borderCurve: "continuous",
+      padding: spacing.xl,
       alignItems: "center",
       justifyContent: "center",
       minHeight: 320,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+      ...(scheme === "dark" ? null : shadow.sm),
     },
     emptyCard: {
       gap: spacing.md,
     },
     emptyTitle: {
-      fontSize: 18,
-      fontWeight: "700",
+      ...typography.title.lg,
       color: colors.text,
       textAlign: "center",
     },
     emptyBody: {
-      fontSize: 13,
-      color: colors.textSubtle,
+      ...typography.body.sm,
+      color: colors.textMuted,
       textAlign: "center",
       paddingHorizontal: spacing.md,
     },
     actionsRow: {
       flexDirection: "row",
-      gap: spacing.sm,
-      marginTop: spacing.md,
+      gap: spacing.md,
+      marginTop: spacing.lg,
     },
     actionBtn: {
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
+      minHeight: 50,
       paddingVertical: spacing.md,
-      borderRadius: 14,
-      borderWidth: 1,
+      borderRadius: 16,
+      borderCurve: "continuous",
     },
     actionLabel: {
-      fontSize: 13,
-      fontWeight: "700",
+      ...typography.label.lg,
+      color: colors.text,
     },
     caretakersRow: {
       flexDirection: "row",
@@ -498,12 +490,11 @@ function makeStyles({ colors, spacing, typography }: any) {
       marginTop: spacing.sm,
     },
     caretakersLabel: {
-      fontSize: 13,
-      color: colors.textSubtle,
-      fontWeight: "600",
+      ...typography.label.md,
+      color: colors.textMuted,
     },
     footnote: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSubtle,
       textAlign: "center",
       marginTop: spacing.md,

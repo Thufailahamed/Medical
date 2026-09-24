@@ -101,7 +101,7 @@ function buildTypeMeta(
     lab_report: {
       label: base("lab_report", "Lab Report"),
       icon: FileText,
-      tone: "#9A7228",
+      tone: colors.warning,
     },
     prescription: {
       label: base("prescription", "Prescription"),
@@ -111,7 +111,7 @@ function buildTypeMeta(
     imaging: {
       label: base("imaging", "Imaging"),
       icon: ImageIcon,
-      tone: "#4A90E2",
+      tone: colors.info,
     },
     hospital_visit: {
       label: base("hospital_visit", "Visit"),
@@ -121,22 +121,22 @@ function buildTypeMeta(
     vaccination: {
       label: base("vaccination", "Vaccination"),
       icon: Pill,
-      tone: "#3E8E41",
+      tone: colors.success,
     },
     surgery: {
       label: base("surgery", "Surgery"),
       icon: Hospital,
-      tone: "#C4441A",
+      tone: colors.danger,
     },
     op_note: {
       label: base("op_note", "Op Note"),
       icon: FileText,
-      tone: "#7A6A20",
+      tone: colors.warning,
     },
     discharge_summary: {
       label: base("discharge_summary", "Discharge"),
       icon: FileText,
-      tone: "#7A6A20",
+      tone: colors.warning,
     },
     referral: {
       label: base("referral", "Referral"),
@@ -146,17 +146,17 @@ function buildTypeMeta(
     insurance: {
       label: base("insurance", "Insurance"),
       icon: FileText,
-      tone: "#3E8E41",
+      tone: colors.success,
     },
     pathology: {
       label: base("pathology", "Pathology"),
       icon: FileText,
-      tone: "#9A7228",
+      tone: colors.warning,
     },
     dental: {
       label: base("dental", "Dental"),
       icon: FileText,
-      tone: "#4A90E2",
+      tone: colors.info,
     },
     other: {
       label: base("other", "Other"),
@@ -189,8 +189,10 @@ export default function RecordDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { spacing, colors, typography, fontFamily } = useTheme();
+  const { spacing, colors, typography, fontFamily, radius, shadow, scheme } = useTheme();
   const toast = useToast();
+  const isDark = scheme === "dark";
+  const cardLift = isDark ? null : shadow.sm;
 
   const TYPE_META = useMemo(() => buildTypeMeta(t, colors), [t, colors]);
 
@@ -495,7 +497,7 @@ export default function RecordDetailScreen() {
           }}
         >
           <Card style={{ margin: spacing.lg, padding: spacing.lg }}>
-            <Text style={[typography.title.md, { fontWeight: "700" }]}>
+            <Text style={[typography.title.md, { color: colors.text }]}>
               {t("recordDetail.notFound.title")}
             </Text>
             <Text
@@ -542,11 +544,9 @@ export default function RecordDetailScreen() {
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
-          paddingBottom: 14,
-          backgroundColor: "#F4F8FB",
-          borderBottomWidth: 1,
-          borderBottomColor: "#E2EBF1",
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.sm,
+          backgroundColor: colors.bg,
         }}
       >
         <IconButton
@@ -563,58 +563,37 @@ export default function RecordDetailScreen() {
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            paddingHorizontal: 11,
-            paddingVertical: 6,
-            borderRadius: 999,
-            backgroundColor: "#FFFFFF",
-            borderWidth: 1,
-            borderColor: "#E2EBF1",
-            shadowColor: "#0F2742",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.05,
-            shadowRadius: 10,
-            elevation: 1,
+            paddingHorizontal: 12,
+            height: 30,
+            borderRadius: radius.full,
+            backgroundColor: `${meta.tone}1F`,
           }}
         >
-          <IconComp size={15} color={meta.tone} strokeWidth={2.5} />
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "800",
-              color: meta.tone,
-              letterSpacing: 1,
-              fontFamily: fontFamily.displayBold,
-            }}
-          >
-            {meta.label.toUpperCase()}
+          <IconComp size={14} color={meta.tone} strokeWidth={2.5} />
+          <Text style={[typography.label.sm, { color: meta.tone }]}>
+            {meta.label}
           </Text>
         </View>
 
         <Pressable
           onPress={() => setShowSheet(true)}
           accessibilityLabel={t("recordDetail.a11y.moreOptions")}
-          style={{
+          style={({ pressed }) => ({
             width: 40,
             height: 40,
             borderRadius: 20,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#FFFFFF",
-            borderWidth: 1,
-            borderColor: "#E2EBF1",
-            shadowColor: "#0F2742",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.05,
-            shadowRadius: 10,
-            elevation: 1,
-          }}
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
+          })}
         >
-          <MoreHorizontal size={20} color={colors.primary} strokeWidth={2.5} />
+          <MoreHorizontal size={20} color={colors.text} strokeWidth={2.25} />
         </Pressable>
       </View>
 
       <ScrollView
-        style={{ backgroundColor: "#F4F8FB" }}
+        style={{ backgroundColor: colors.bg }}
         contentContainerStyle={{ paddingBottom: 148 }}
         showsVerticalScrollIndicator={false}
       >
@@ -622,40 +601,35 @@ export default function RecordDetailScreen() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.lg,
-            paddingBottom: spacing.md,
+            paddingTop: spacing.sm,
+            paddingBottom: spacing.xl,
           }}
         >
           <View
-            style={{
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              padding: 20,
-              borderWidth: 1,
-              borderColor: "#E2EBF1",
-              shadowColor: "#16324A",
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.08,
-              shadowRadius: 22,
-              elevation: 4,
-              gap: 14,
-            }}
+            style={[
+              isDark ? null : shadow.md,
+              {
+                backgroundColor: colors.surface,
+                borderRadius: radius.xxl,
+                borderCurve: "continuous",
+                padding: spacing.xl,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : colors.separator,
+                gap: spacing.lg,
+              },
+            ]}
           >
             {/* Kind identity row — gradient icon tile + type + owner/date */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
               <View
                 style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 16,
+                  width: 56,
+                  height: 56,
+                  borderRadius: 18,
+                  borderCurve: "continuous",
                   overflow: "hidden",
                   alignItems: "center",
                   justifyContent: "center",
-                  shadowColor: meta.tone,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 10,
-                  elevation: 3,
                 }}
               >
                 <LinearGradient
@@ -664,29 +638,17 @@ export default function RecordDetailScreen() {
                   end={{ x: 1, y: 1 }}
                   style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
                 />
-                <IconComp size={21} color="#FFFFFF" strokeWidth={2.25} />
+                <IconComp size={24} color="#FFFFFF" strokeWidth={2.25} />
               </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 <Text
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: "800",
-                    color: meta.tone,
-                    letterSpacing: 1.1,
-                    fontFamily: fontFamily.displayBold,
-                  }}
+                  style={[typography.overline, { color: meta.tone }]}
                   numberOfLines={1}
                 >
                   {meta.label.toUpperCase()}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: "600",
-                    color: "#64748B",
-                    fontFamily: fontFamily.body,
-                    marginTop: 2,
-                  }}
+                  style={[typography.body.sm, { color: colors.textMuted }]}
                   numberOfLines={1}
                 >
                   {ownerLabel} · {formatDate(record.date, locale)}
@@ -694,41 +656,34 @@ export default function RecordDetailScreen() {
               </View>
             </View>
 
-            <Text
-              style={{
-                fontSize: 24,
-                fontWeight: "800",
-                color: "#0F172A",
-                lineHeight: 30,
-                fontFamily: fontFamily.displayBold,
-                letterSpacing: -0.4,
-              }}
-            >
+            <Text style={[typography.display.sm, { color: colors.text }]}>
               {record.title}
             </Text>
 
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: spacing.sm,
+                paddingTop: spacing.lg,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
+              }}
+            >
               {record.doctor?.name ? (
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 5,
-                    backgroundColor: "#E0F2FE",
+                    gap: 6,
+                    backgroundColor: colors.infoSoft,
                     paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 999,
+                    height: 32,
+                    borderRadius: radius.full,
                   }}
                 >
-                  <User size={13} color="#0369A1" strokeWidth={2.5} />
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: "#0369A1",
-                      fontFamily: fontFamily.bodyBold,
-                    }}
-                  >
+                  <User size={14} color={colors.info} strokeWidth={2.25} />
+                  <Text style={[typography.label.md, { color: colors.info }]}>
                     {record.doctor.name}
                   </Text>
                 </View>
@@ -738,22 +693,15 @@ export default function RecordDetailScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 5,
-                    backgroundColor: "#CCFBF1",
+                    gap: 6,
+                    backgroundColor: colors.accentSoft,
                     paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 999,
+                    height: 32,
+                    borderRadius: radius.full,
                   }}
                 >
-                  <Hospital size={13} color="#0F766E" strokeWidth={2.5} />
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: "#0F766E",
-                      fontFamily: fontFamily.bodyBold,
-                    }}
-                  >
+                  <Hospital size={14} color={colors.accent} strokeWidth={2.25} />
+                  <Text style={[typography.label.md, { color: colors.accent }]}>
                     {record.hospital.name}
                   </Text>
                 </View>
@@ -762,22 +710,15 @@ export default function RecordDetailScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 5,
-                  backgroundColor: "#F1F5F9",
+                  gap: 6,
+                  backgroundColor: colors.fill,
                   paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 999,
+                  height: 32,
+                  borderRadius: radius.full,
                 }}
               >
-                <Calendar size={13} color="#475569" strokeWidth={2.5} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: "#475569",
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
+                <Calendar size={14} color={colors.textMuted} strokeWidth={2.25} />
+                <Text style={[typography.label.md, { color: colors.textMuted }]}>
                   {formatDate(record.date, locale)}
                 </Text>
               </View>
@@ -843,23 +784,24 @@ export default function RecordDetailScreen() {
           }}
         >
           {[
-            { key: "diagnosis", value: record.diagnosis, icon: Stethoscope, color: "#0D9488" },
-            { key: "summary", value: record.summary, icon: FileText, color: "#0284C7" },
-            { key: "notes", value: record.notes, icon: Pencil, color: "#9333EA" },
-            { key: "followUp", value: record.followUpDate, icon: Calendar, color: "#EA580C" },
+            { key: "diagnosis", value: record.diagnosis, icon: Stethoscope, color: colors.accent },
+            { key: "summary", value: record.summary, icon: FileText, color: colors.primary },
+            { key: "notes", value: record.notes, icon: Pencil, color: colors.info },
+            { key: "followUp", value: record.followUpDate, icon: Calendar, color: colors.warning },
           ].map((sec) => {
             if (!sec.value || (sec.key === "followUp" && !record.followUpDate))
               return null;
             const SecIcon = sec.icon;
             return (
-              <Card key={sec.key} style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 }}>
+              <Card key={sec.key} style={{ padding: spacing.lg + 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
                   <View
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 12,
-                      backgroundColor: `${sec.color}16`,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 10,
+                      borderCurve: "continuous",
+                      backgroundColor: `${sec.color}1F`,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -867,36 +809,20 @@ export default function RecordDetailScreen() {
                     <SecIcon size={15} color={sec.color} strokeWidth={2.5} />
                   </View>
                   <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "800",
-                      color: colors.textMuted,
-                      letterSpacing: 1.1,
-                      fontFamily: fontFamily.displayBold,
-                    }}
+                    style={[typography.overline, { color: colors.textSubtle }]}
                   >
                     {t(`recordDetail.sections.${sec.key}`).toUpperCase()}
                   </Text>
                 </View>
                 {sec.key === "followUp" ? (
                   <Text
-                    style={{
-                      fontSize: 15,
-                      fontWeight: "700",
-                      color: "#1D1B20",
-                      fontFamily: fontFamily.displayBold,
-                    }}
+                    style={[typography.title.md, { color: colors.text }]}
                   >
                     {new Date(sec.value).toDateString()}
                   </Text>
                 ) : (
                   <Text
-                    style={{
-                      fontSize: 15,
-                      color: "#1E293B",
-                      lineHeight: 22,
-                      fontFamily: fontFamily.body,
-                    }}
+                    style={[typography.body.md, { color: colors.text, lineHeight: 22 }]}
                   >
                     {sec.value}
                   </Text>
@@ -927,14 +853,15 @@ export default function RecordDetailScreen() {
             accessibilityLabel={t("recordDetail.a11y.editTags", "Edit tags")}
             style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
-            <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
+            <Card style={{ padding: spacing.lg + 2 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
                 <View
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 12,
-                    backgroundColor: `${colors.primary}16`,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -942,14 +869,7 @@ export default function RecordDetailScreen() {
                   <Tag size={15} color={colors.primary} strokeWidth={2.5} />
                 </View>
                 <Text
-                  style={{
-                    flex: 1,
-                    fontSize: 11,
-                    fontWeight: "800",
-                    color: colors.textMuted,
-                    letterSpacing: 1.1,
-                    fontFamily: fontFamily.displayBold,
-                  }}
+                  style={[typography.overline, { flex: 1, color: colors.textSubtle }]}
                 >
                   {t("recordDetail.tagsHeading").toUpperCase()}
                 </Text>
@@ -958,6 +878,7 @@ export default function RecordDetailScreen() {
                     width: 30,
                     height: 30,
                     borderRadius: 15,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
@@ -981,20 +902,15 @@ export default function RecordDetailScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 4,
-                        paddingHorizontal: 10,
-                        paddingVertical: 5,
+                        paddingHorizontal: 12,
+                        height: 30,
                         borderRadius: 999,
-                        backgroundColor: `${colors.primary}14`,
+                        backgroundColor: colors.primarySoft,
                       }}
                     >
                       <Tag size={11} color={colors.primary} strokeWidth={2.5} />
                       <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "700",
-                          color: colors.primary,
-                          fontFamily: fontFamily.bodyBold,
-                        }}
+                        style={[typography.label.sm, { color: colors.primary }]}
                       >
                         {tag}
                       </Text>
@@ -1005,22 +921,18 @@ export default function RecordDetailScreen() {
                 <View
                   style={{
                     borderRadius: 16,
+                    borderCurve: "continuous",
                     borderWidth: 1,
                     borderStyle: "dashed",
-                    borderColor: "#CBD8E2",
-                    backgroundColor: "#F8FBFD",
+                    borderColor: colors.borderStrong,
+                    backgroundColor: colors.fill,
                     paddingVertical: 16,
                     paddingHorizontal: 14,
                     alignItems: "center",
                   }}
                 >
                   <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "600",
-                      color: colors.textMuted,
-                      fontFamily: fontFamily.body,
-                    }}
+                    style={[typography.body.sm, { color: colors.textMuted }]}
                   >
                     {t("recordDetail.noTags")}
                   </Text>
@@ -1032,28 +944,23 @@ export default function RecordDetailScreen() {
 
         {/* Details — extracted fields as key/value rows */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
+          <Card style={{ padding: spacing.lg + 2 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
               <View
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 12,
-                  backgroundColor: "#E8F0F5",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <ListChecks size={16} color="#475569" strokeWidth={2.5} />
+                <ListChecks size={16} color={colors.textMuted} strokeWidth={2.5} />
               </View>
               <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  color: colors.textMuted,
-                  letterSpacing: 1.1,
-                  fontFamily: fontFamily.displayBold,
-                }}
+                style={[typography.overline, { color: colors.textSubtle }]}
               >
                 {t("recordDetail.detailsHeading").toUpperCase()}
               </Text>
@@ -1069,33 +976,33 @@ export default function RecordDetailScreen() {
                         flexDirection: "row",
                         alignItems: "flex-start",
                         gap: 12,
-                        paddingVertical: 8,
+                        paddingVertical: 11,
                         borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-                        borderTopColor: "#E2E8F0",
+                        borderTopColor: colors.separator,
                       }}
                     >
                       <Text
-                        style={{
-                          flex: 1,
-                          fontSize: 12.5,
-                          fontWeight: "600",
-                          color: colors.textMuted,
-                          fontFamily: fontFamily.body,
-                          textTransform: "capitalize",
-                        }}
+                        style={[
+                          typography.body.sm,
+                          {
+                            flex: 1,
+                            color: colors.textMuted,
+                            textTransform: "capitalize",
+                          },
+                        ]}
                         numberOfLines={1}
                       >
                         {prettifyDetailKey(key)}
                       </Text>
                       <Text
-                        style={{
-                          flex: 1.4,
-                          fontSize: 12.5,
-                          fontWeight: "700",
-                          color: "#1E293B",
-                          fontFamily: fontFamily.body,
-                          textAlign: "right",
-                        }}
+                        style={[
+                          typography.label.md,
+                          {
+                            flex: 1.4,
+                            color: colors.text,
+                            textAlign: "right",
+                          },
+                        ]}
                         numberOfLines={3}
                       >
                         {formatDetailValue(val)}
@@ -1107,23 +1014,18 @@ export default function RecordDetailScreen() {
               <View
                 style={{
                   borderRadius: 16,
+                  borderCurve: "continuous",
                   borderWidth: 1,
                   borderStyle: "dashed",
-                  borderColor: "#CBD8E2",
-                  backgroundColor: "#F8FBFD",
+                  borderColor: colors.borderStrong,
+                  backgroundColor: colors.fill,
                   paddingVertical: 16,
                   paddingHorizontal: 14,
                   alignItems: "center",
                 }}
               >
                 <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "600",
-                    color: colors.textMuted,
-                    fontFamily: fontFamily.body,
-                    textAlign: "center",
-                  }}
+                  style={[typography.body.sm, { color: colors.textMuted, textAlign: "center" }]}
                 >
                   {t("recordDetail.emptyDetails")}
                 </Text>
@@ -1164,16 +1066,9 @@ export default function RecordDetailScreen() {
         {/* Attachments */}
         {attachments.length ? (
           <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-            <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
+            <Card style={{ padding: spacing.lg + 2 }}>
               <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  color: colors.textMuted,
-                  letterSpacing: 1.1,
-                  marginBottom: 8,
-                  fontFamily: fontFamily.displayBold,
-                }}
+                style={[typography.overline, { color: colors.textSubtle, marginBottom: 12 }]}
               >
                 {t("recordDetail.attachments", {
                   count: attachments.length,
@@ -1204,9 +1099,8 @@ export default function RecordDetailScreen() {
                         gap: 12,
                         padding: 12,
                         borderRadius: 16,
-                        backgroundColor: pressed ? "#EDF4F8" : "#F8FBFD",
-                        borderWidth: 1,
-                        borderColor: "#DFE9F0",
+                        borderCurve: "continuous",
+                        backgroundColor: pressed ? colors.fillStrong : colors.fill,
                       })}
                     >
                       {isImage && att.id && signedUrls[att.id] ? (
@@ -1218,6 +1112,7 @@ export default function RecordDetailScreen() {
                             width: 52,
                             height: 52,
                             borderRadius: 14,
+                            borderCurve: "continuous",
                           }}
                           resizeMode="cover"
                         />
@@ -1227,37 +1122,28 @@ export default function RecordDetailScreen() {
                             width: 48,
                             height: 48,
                             borderRadius: 14,
-                            backgroundColor: "#E0F2FE",
+                            borderCurve: "continuous",
+                            backgroundColor: colors.primarySoft,
                             alignItems: "center",
                             justifyContent: "center",
                           }}
                         >
                           <FileText
                             size={20}
-                            color="#0284C7"
+                            color={colors.primary}
                             strokeWidth={2.25}
                           />
                         </View>
                       )}
                       <View style={{ flex: 1 }}>
                         <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "700",
-                            color: "#0F172A",
-                            fontFamily: fontFamily.bodyBold,
-                          }}
+                          style={[typography.title.xs, { color: colors.text }]}
                           numberOfLines={1}
                         >
                           {displayName}
                         </Text>
                         <Text
-                          style={{
-                            fontSize: 12,
-                            color: "#64748B",
-                            fontFamily: fontFamily.body,
-                            marginTop: 2,
-                          }}
+                          style={[typography.caption, { color: colors.textSubtle, marginTop: 2 }]}
                         >
                           {sizeKb != null
                             ? `${sizeKb.toFixed(1)} KB · ${att.type}`
@@ -1268,8 +1154,8 @@ export default function RecordDetailScreen() {
                         style={{
                           width: 32,
                           height: 32,
-                          borderRadius: 8,
-                          backgroundColor: "#F1F5F9",
+                          borderRadius: 16,
+                          backgroundColor: colors.primarySoft,
                           alignItems: "center",
                           justifyContent: "center",
                         }}
@@ -1296,10 +1182,11 @@ export default function RecordDetailScreen() {
           bottom: 12,
           left: 12,
           right: 12,
-          backgroundColor: "rgba(255,255,255,0.98)",
-          borderWidth: 1,
-          borderColor: "#DFE9F0",
+          backgroundColor: colors.glassStrong,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: isDark ? colors.borderStrong : colors.separator,
           borderRadius: 24,
+          borderCurve: "continuous",
           paddingHorizontal: 10,
           paddingTop: 10,
           paddingBottom: 10,
@@ -1309,7 +1196,7 @@ export default function RecordDetailScreen() {
           gap: 10,
           shadowColor: "#0B2942",
           shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.14,
+          shadowOpacity: isDark ? 0 : 0.14,
           shadowRadius: 24,
           elevation: 12,
         }}
@@ -1353,14 +1240,15 @@ export default function RecordDetailScreen() {
         onRequestClose={() => setShowSheet(false)}
       >
         <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)" }}
+          style={{ flex: 1, backgroundColor: colors.scrim }}
           onPress={() => setShowSheet(false)}
         />
         <View
           style={{
-            backgroundColor: "#FFFFFF",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            borderCurve: "continuous",
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
             paddingBottom: spacing.xl,
@@ -1370,20 +1258,14 @@ export default function RecordDetailScreen() {
             style={{
               alignSelf: "center",
               width: 40,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: "#E6E4EA",
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: colors.fillStrong,
               marginBottom: spacing.md,
             }}
           />
           <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "800",
-              color: "#1D1B20",
-              marginBottom: spacing.md,
-              fontFamily: fontFamily.displayBold,
-            }}
+            style={[typography.title.lg, { color: colors.text, marginBottom: spacing.sm }]}
           >
             {t("recordDetail.actions.title")}
           </Text>
@@ -1424,7 +1306,7 @@ export default function RecordDetailScreen() {
             onPress={() => onAction("share")}
           />
           <SheetRow
-            icon={<Trash2 size={20} color={colors.danger || "#FF3B30"} />}
+            icon={<Trash2 size={20} color={colors.danger} />}
             label={t("recordDetail.actions.delete")}
             destructive
             onPress={() => onAction("delete")}
@@ -1449,7 +1331,7 @@ export default function RecordDetailScreen() {
         <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.45)",
+            backgroundColor: colors.scrim,
             alignItems: "center",
             justifyContent: "center",
             paddingHorizontal: spacing.lg,
@@ -1457,23 +1339,12 @@ export default function RecordDetailScreen() {
         >
           <Card style={{ width: "100%" }}>
             <Text
-              style={{
-                fontSize: 17,
-                fontWeight: "800",
-                color: "#1D1B20",
-                fontFamily: fontFamily.displayBold,
-              }}
+              style={[typography.title.lg, { color: colors.text }]}
             >
               {t("recordDetail.deleteConfirm.title")}
             </Text>
             <Text
-              style={{
-                fontSize: 14,
-                color: colors.textMuted,
-                lineHeight: 20,
-                fontFamily: fontFamily.body,
-                marginTop: spacing.xs,
-              }}
+              style={[typography.body.md, { color: colors.textMuted, marginTop: spacing.xs }]}
             >
               {t("recordDetail.deleteConfirm.body")}
             </Text>
@@ -1529,7 +1400,7 @@ function SheetRow({
   onPress: () => void;
   destructive?: boolean;
 }) {
-  const { spacing, fontFamily } = useTheme();
+  const { spacing, fontFamily, colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -1537,15 +1408,18 @@ function SheetRow({
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.md,
+        minHeight: 52,
         paddingVertical: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.separator,
       }}
     >
       {icon}
       <Text
         style={{
-          fontSize: 15,
+          fontSize: 16,
           fontWeight: "600",
-          color: destructive ? "#FF3B30" : "#1D1B20",
+          color: destructive ? colors.danger : colors.text,
           fontFamily: fontFamily.bodySemibold,
         }}
       >
@@ -1687,7 +1561,7 @@ function StructuredDataCard({
 
   return (
     <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <Card style={{ borderRadius: 22, borderColor: "#E2EBF1", padding: 18 }}>
+      <Card style={{ padding: spacing.lg + 2 }}>
         <View
           style={{
             flexDirection: "row",
@@ -1698,24 +1572,19 @@ function StructuredDataCard({
         >
           <View
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 12,
-              backgroundColor: "#CCFBF1",
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              borderCurve: "continuous",
+              backgroundColor: colors.accentSoft,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Sparkles size={16} color="#0D9488" strokeWidth={2.5} />
+            <Sparkles size={16} color={colors.accent} strokeWidth={2.5} />
           </View>
           <Text
-            style={{
-              fontSize: 11,
-              fontWeight: "800",
-              color: colors.textMuted,
-              letterSpacing: 1.1,
-              fontFamily: fontFamily.displayBold,
-            }}
+            style={[typography.overline, { color: colors.textSubtle }]}
           >
             {t("recordDetail.structured.title", "STRUCTURED DATA").toUpperCase()}
           </Text>
@@ -1726,7 +1595,7 @@ function StructuredDataCard({
           </Text>
         ) : totalCount === 0 ? (
           <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 18, fontFamily: fontFamily.body }}>
+            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
               {t(
                 "recordDetail.structured.empty",
                 "No structured medical rows extracted yet. Tap below to run AI Multimodal Extraction.",
@@ -1760,7 +1629,7 @@ function StructuredDataCard({
                     <Text
                       style={[
                         typography.body.sm,
-                        { color: "#1E293B", fontFamily: fontFamily.body, fontWeight: "600" },
+                        { color: colors.text, fontFamily: fontFamily.body, fontWeight: "600" },
                       ]}
                     >
                       {c.label}
@@ -1771,16 +1640,11 @@ function StructuredDataCard({
                         paddingHorizontal: 10,
                         paddingVertical: 3,
                         borderRadius: 999,
-                        backgroundColor: `${colors.primary}14`,
+                        backgroundColor: colors.primarySoft,
                       }}
                     >
                       <Text
-                        style={{
-                          fontSize: 12.5,
-                          fontWeight: "800",
-                          color: colors.primary,
-                          fontFamily: fontFamily.bodyBold,
-                        }}
+                        style={[typography.label.md, { color: colors.primary }]}
                       >
                         {c.n}
                       </Text>

@@ -25,6 +25,11 @@ type PressableProps = CommonProps & {
 
 export type CardProps = StaticProps | PressableProps;
 
+/**
+ * Inset-grouped iOS card: continuous corners, a whisper of shadow in light
+ * mode, and a hairline edge that keeps it crisp on the grouped background
+ * (and carries the elevation on its own in dark mode).
+ */
 export function Card(props: CardProps) {
   const {
     children,
@@ -35,20 +40,24 @@ export function Card(props: CardProps) {
     accessibilityLabel,
     accessibilityHint,
   } = props;
-  const { colors, spacing, radius, shadow } = useTheme();
+  const { colors, spacing, radius, shadow, scheme } = useTheme();
 
   const isDefault = tone === "default";
-  const palette = tone === "default" ? { bg: colors.surface } : tonePalette(tone, colors);
-  const bg = palette.bg;
+  const bg = isDefault ? colors.surface : tonePalette(tone, colors).bg;
 
   const containerStyle: ViewStyle = {
     backgroundColor: bg,
-    borderRadius: radius.xl,
+    borderRadius: radius.card,
+    borderCurve: "continuous",
     padding: padded ? spacing.lg : 0,
-    borderWidth: isDefault ? 1 : 0,
-    borderColor: colors.border,
+    borderWidth: isDefault ? StyleSheet.hairlineWidth : 0,
+    borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
     overflow: "hidden",
   };
+
+  // Shadows are clipped by overflow:hidden on iOS, so put them on the
+  // outer (animated) wrapper via the style prop order below.
+  const lift = elevated && scheme !== "dark" ? shadow.sm : null;
 
   if (props.onPress) {
     return (
@@ -56,10 +65,13 @@ export function Card(props: CardProps) {
         onPress={props.onPress}
         haptic={props.haptic ?? "light"}
         disabled={props.disabled}
+        pressedScale={0.98}
+        pressedOpacity={0.94}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
-        style={[containerStyle, elevated ? shadow.sm : null, style]}
+        style={[containerStyle, style]}
+        wrapperStyle={lift}
       >
         {children}
       </Pressable>
@@ -67,13 +79,42 @@ export function Card(props: CardProps) {
   }
 
   return (
-    <View
-      style={[containerStyle, elevated ? shadow.sm : null, style]}
-      accessibilityLabel={accessibilityLabel}
-    >
-      {children}
+    <View style={[lift, { borderRadius: radius.card }, extractOuter(style)]}>
+      <View style={[containerStyle, stripOuter(style)]} accessibilityLabel={accessibilityLabel}>
+        {children}
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({});
+// Margins / flex sizing belong on the shadow wrapper so layout is unchanged.
+const OUTER_KEYS = [
+  "margin", "marginTop", "marginBottom", "marginLeft", "marginRight",
+  "marginHorizontal", "marginVertical", "flex", "flexGrow", "flexShrink",
+  "flexBasis", "alignSelf", "width", "minWidth", "maxWidth", "position",
+  "top", "left", "right", "bottom", "zIndex",
+] as const;
+
+function extractOuter(style: StyleProp<ViewStyle>): ViewStyle {
+  const flat = (StyleSheet.flatten(style) ?? {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const k of OUTER_KEYS) if (flat[k] != null) out[k] = flat[k];
+  return out as ViewStyle;
+}
+
+function stripOuter(style: StyleProp<ViewStyle>): ViewStyle {
+  const flat = { ...((StyleSheet.flatten(style) ?? {}) as Record<string, unknown>) };
+  for (const k of OUTER_KEYS) {
+    if (k === "flex" || k === "flexGrow") {
+      // Keep inner filling the wrapper when the card is flex-sized.
+      if (flat[k] != null) flat[k] = 1;
+      continue;
+    }
+    if (k === "width" || k === "minWidth" || k === "maxWidth" || k === "alignSelf") {
+      delete flat[k];
+      continue;
+    }
+    delete flat[k];
+  }
+  return flat as ViewStyle;
+}

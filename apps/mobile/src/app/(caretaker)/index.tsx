@@ -11,9 +11,9 @@ import { View, Text, ScrollView } from "react-native";
 import { useRouter, Redirect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BadgeCheck } from "lucide-react-native";
+import { BadgeCheck, ChevronRight, Users } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Card, Pill, Avatar } from "@/components/ui";
+import { Card, Pill, Avatar, EmptyState } from "@/components/ui";
 import {
   useMyPrincipals,
   useSetActivePrincipal,
@@ -52,18 +52,20 @@ export default function CaretakerIndex() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: 132, gap: spacing.md }}
       >
-        <Text style={{ ...typography.h2, color: colors.text }}>
-          {t("caretaker.title")}
-        </Text>
-        <Text
-          style={{ ...typography.body, color: colors.textSecondary }}
-        >
-          {t("caretaker.subtitle")}
-        </Text>
+        <View style={{ gap: 6, marginBottom: spacing.sm }}>
+          <Text style={{ ...typography.display.lg, color: colors.text }}>
+            {t("caretaker.title")}
+          </Text>
+          <Text
+            style={{ ...typography.body.md, color: colors.textMuted, lineHeight: 22 }}
+          >
+            {t("caretaker.subtitle")}
+          </Text>
+        </View>
 
         {/* Verified Caretaker Tier banner — caretakers see their own
             status at the top of the picker so it's visible the first
@@ -73,20 +75,17 @@ export default function CaretakerIndex() {
             label={t("caretaker.verification.verified")}
             tone="success"
             icon={<BadgeCheck size={12} />}
+            style={{ alignSelf: "flex-start" }}
           />
         ) : null}
 
         {(data?.principals ?? []).length === 0 ? (
-          <Card>
-            <Text
-              style={{
-                ...typography.body,
-                color: colors.textMuted,
-              }}
-            >
-              {t("caretaker.noPrincipals")}
-            </Text>
-          </Card>
+          <EmptyState
+            icon={Users}
+            title={t("caretaker.noPrincipals")}
+            tone="primary"
+            style={{ marginTop: spacing.xl }}
+          />
         ) : null}
 
         {(data?.principals ?? []).map((p) => (
@@ -96,22 +95,23 @@ export default function CaretakerIndex() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: spacing.sm,
+              gap: spacing.md,
+              minHeight: 76,
             }}
           >
             <Avatar
               uri={p.principalPhoto ?? undefined}
               name={p.principalName}
-              size={42}
+              size="md"
             />
-            <View style={{ flex: 1 }}>
-              <Text style={{ ...typography.body, color: colors.text }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text numberOfLines={1} style={{ ...typography.title.md, color: colors.text }}>
                 {p.principalName}
               </Text>
               <Text
                 style={{
-                  ...typography.caption,
-                  color: colors.textSecondary,
+                  ...typography.body.sm,
+                  color: colors.textMuted,
                 }}
               >
                 {t(`caretaker.role.${p.careRole}`)}
@@ -120,7 +120,9 @@ export default function CaretakerIndex() {
             <Pill
               label={t("caretaker.link.active")}
               tone="primary"
+              size="sm"
             />
+            <ChevronRight size={18} color={colors.textSubtle} />
           </Card>
         ))}
       </ScrollView>

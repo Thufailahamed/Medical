@@ -32,7 +32,7 @@ export function StatCard({
   size = "md",
   style,
 }: Props) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const { fg, bg } = useTone(tone);
 
   const compact = size === "sm";
@@ -43,12 +43,16 @@ export function StatCard({
         {
           flex: 1,
           padding: compact ? spacing.md : spacing.lg,
-          backgroundColor: bg,
-          borderRadius: radius.xl,
-          gap: spacing.sm,
-          minHeight: compact ? 84 : 110,
+          backgroundColor: colors.surface,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+          gap: compact ? spacing.sm : spacing.md,
+          minHeight: compact ? 88 : 116,
           justifyContent: "space-between",
         },
+        scheme === "dark" ? null : shadow.sm,
         style,
       ]}
       accessibilityRole="text"
@@ -56,12 +60,13 @@ export function StatCard({
     >
       <View
         style={{
-          width: compact ? 32 : 36,
-          height: compact ? 32 : 36,
-          borderRadius: 999,
+          width: compact ? 30 : 36,
+          height: compact ? 30 : 36,
+          borderRadius: compact ? 9 : 11,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: colors.bg,
+          backgroundColor: bg,
         }}
       >
         <Icon
@@ -73,11 +78,8 @@ export function StatCard({
       <View>
         <Text
           style={[
-            compact ? typography.title.md : typography.display.sm,
-            {
-              color: colors.text,
-              fontFamily: typography.title.lg.fontFamily,
-            },
+            compact ? typography.title.lg : typography.display.md,
+            { color: colors.text },
           ]}
           numberOfLines={1}
         >
@@ -85,7 +87,7 @@ export function StatCard({
         </Text>
         <Text
           style={[
-            typography.caption,
+            typography.label.md,
             { color: colors.textMuted, marginTop: 2 },
           ]}
           numberOfLines={1}

@@ -86,6 +86,7 @@ export function DsarRequestSheet({ open, onClose }: Props) {
             padding: spacing.md,
             backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
             borderRadius: 14,
+            borderCurve: "continuous",
             borderWidth: 1,
             borderColor: colors.border,
             gap: spacing.md,
@@ -97,12 +98,13 @@ export function DsarRequestSheet({ open, onClose }: Props) {
               width: 36,
               height: 36,
               borderRadius: 18,
-              backgroundColor: "#FEF3C7", // Amber
+              borderCurve: "continuous",
+              backgroundColor: colors.warningSoft, // Amber
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Download size={16} color="#D97706" strokeWidth={2.25} />
+            <Download size={16} color={colors.warning} strokeWidth={2.25} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
             <AppText
@@ -140,6 +142,7 @@ export function DsarRequestSheet({ open, onClose }: Props) {
             padding: spacing.md,
             backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
             borderRadius: 14,
+            borderCurve: "continuous",
             borderWidth: 1,
             borderColor: colors.border,
             gap: spacing.md,
@@ -151,12 +154,13 @@ export function DsarRequestSheet({ open, onClose }: Props) {
               width: 36,
               height: 36,
               borderRadius: 18,
-              backgroundColor: "#FEF2F2", // Red
+              borderCurve: "continuous",
+              backgroundColor: colors.dangerSoft, // Red
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Trash2 size={16} color="#EF4444" strokeWidth={2.25} />
+            <Trash2 size={16} color={colors.danger} strokeWidth={2.25} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
             <AppText
@@ -194,6 +198,7 @@ export function DsarRequestSheet({ open, onClose }: Props) {
             padding: spacing.md,
             backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
             borderRadius: 14,
+            borderCurve: "continuous",
             borderWidth: 1,
             borderColor: colors.border,
             gap: spacing.md,
@@ -205,6 +210,7 @@ export function DsarRequestSheet({ open, onClose }: Props) {
               width: 36,
               height: 36,
               borderRadius: 18,
+              borderCurve: "continuous",
               backgroundColor: "#E0E7FF", // Indigo/Teal
               alignItems: "center",
               justifyContent: "center",

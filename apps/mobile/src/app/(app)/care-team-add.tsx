@@ -141,6 +141,7 @@ export default function CareTeamAddScreen() {
               marginTop: 12,
               padding: 12,
               borderRadius: 12,
+              borderCurve: "continuous",
               backgroundColor:
                 selected?.doctorId === h.doctorId
                   ? colors.surfaceMuted

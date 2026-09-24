@@ -65,8 +65,10 @@ export default function DoctorHub() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, fontFamily, layout } =
+  const { spacing, colors, typography, radius, fontFamily, layout, shadow, scheme } =
     useTheme();
+  const isDark = scheme === "dark";
+  const hairline = isDark ? colors.borderStrong : colors.separator;
   const user = useAuthStore((s) => s.user);
 
   const {
@@ -242,35 +244,32 @@ export default function DoctorHub() {
                 <Image
                   source={{ uri: userPhoto }}
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 16,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    borderCurve: "continuous",
                     backgroundColor: colors.surfaceMuted,
-                    borderWidth: 2,
-                    borderColor: colors.surface,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: hairline,
                   }}
                 />
               ) : (
                 <View
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 16,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
-                    borderWidth: 1.5,
-                    borderColor: "rgba(14, 165, 233, 0.3)",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
                   <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "800",
-                      color: colors.primary,
-                      fontFamily: fontFamily.displayBold,
-                      letterSpacing: -0.2,
-                    }}
+                    style={[
+                      typography.title.sm,
+                      { color: colors.primary, fontFamily: fontFamily.displayBold },
+                    ]}
                   >
                     {doctorInitials}
                   </Text>
@@ -280,13 +279,7 @@ export default function DoctorHub() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Text
                     numberOfLines={1}
-                    style={{
-                      color: colors.text,
-                      fontWeight: "800",
-                      fontSize: 19,
-                      fontFamily: fontFamily.displayBold,
-                      letterSpacing: -0.4,
-                    }}
+                    style={[typography.title.md, { color: colors.text }]}
                   >
                     {t("doctor.brand", "Healers")}
                   </Text>
@@ -298,14 +291,7 @@ export default function DoctorHub() {
                       backgroundColor: colors.primarySoft,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 9,
-                        fontWeight: "800",
-                        color: colors.primary,
-                        letterSpacing: 0.8,
-                      }}
-                    >
+                    <Text style={[typography.overline, { fontSize: 9, lineHeight: 12, color: colors.primary }]}>
                       MD
                     </Text>
                   </View>
@@ -326,34 +312,28 @@ export default function DoctorHub() {
               accessibilityLabel={t("doctor.notificationsA11y", "Notifications")}
               hitSlop={8}
               style={({ pressed }) => ({
-                width: 44,
-                height: 44,
-                borderRadius: 15,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: pressed ? colors.primarySoft : colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                shadowColor: "#062238",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.04,
-                shadowRadius: 5,
-                elevation: 1,
+                backgroundColor: pressed ? colors.fillStrong : colors.fill,
               })}
             >
-              <Bell size={20} color={colors.primary} strokeWidth={2.2} />
+              <Bell size={19} color={colors.text} strokeWidth={2} />
               {unreadN > 0 ? (
                 <View
                   style={{
                     position: "absolute",
                     top: 8,
-                    right: 8,
-                    minWidth: 8,
-                    height: 8,
-                    borderRadius: 4,
+                    right: 9,
+                    minWidth: 9,
+                    height: 9,
+                    borderRadius: 4.5,
                     backgroundColor: colors.danger,
                     borderWidth: 1.5,
-                    borderColor: colors.surface,
+                    borderColor: colors.bg,
                   }}
                 />
               ) : null}
@@ -374,14 +354,10 @@ export default function DoctorHub() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Building2 size={13} color={colors.textMuted} />
               <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  letterSpacing: 1.1,
-                  color: colors.textSubtle,
-                  fontFamily: fontFamily.bodyBold,
-                  textTransform: "uppercase",
-                }}
+                style={[
+                  typography.overline,
+                  { color: colors.textSubtle, textTransform: "uppercase" },
+                ]}
               >
                 {t("doctor.workspaceLabel", "Workspace")}
               </Text>
@@ -396,16 +372,13 @@ export default function DoctorHub() {
             marginHorizontal: spacing.lg,
             marginTop: spacing.xs,
             borderRadius: 28,
+            borderCurve: "continuous",
             overflow: "hidden",
             padding: spacing.xl,
             paddingBottom: spacing.lg,
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.16)",
-            elevation: 8,
-            shadowColor: "#001B3F",
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.22,
-            shadowRadius: 20,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "rgba(255,255,255,0.22)",
+            ...(isDark ? {} : shadow.hero),
           }}
         >
           <LinearGradient
@@ -490,9 +463,9 @@ export default function DoctorHub() {
                   paddingHorizontal: 10,
                   paddingVertical: 5,
                   borderRadius: 999,
-                  backgroundColor: "rgba(255,255,255,0.14)",
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.18)",
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
                 }}
               >
                 <View
@@ -569,9 +542,10 @@ export default function DoctorHub() {
               marginTop: spacing.lg,
               paddingVertical: spacing.md,
               borderRadius: 18,
-              backgroundColor: "rgba(255,255,255,0.10)",
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.14)",
+              borderCurve: "continuous",
+              backgroundColor: "rgba(255,255,255,0.12)",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: "rgba(255,255,255,0.24)",
             }}
           >
             <HeroMetric
@@ -710,49 +684,41 @@ export default function DoctorHub() {
             ) : queueList.length === 0 ? (
               <View
                 style={{
-                  padding: spacing.xl,
-                  borderRadius: 20,
+                  paddingVertical: spacing.xxl,
+                  paddingHorizontal: spacing.xl,
+                  borderRadius: radius.card,
+                  borderCurve: "continuous",
                   backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: hairline,
                   alignItems: "center",
                   justifyContent: "center",
                   gap: spacing.sm,
-                  shadowColor: "#062238",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.03,
-                  shadowRadius: 5,
-                  elevation: 1,
+                  ...(isDark ? {} : shadow.sm),
                 }}
               >
                 <View
                   style={{
-                    width: 52,
-                    height: 52,
+                    width: 56,
+                    height: 56,
                     borderRadius: 18,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
+                    marginBottom: spacing.xs,
                   }}
                 >
-                  <Clock4 size={24} color={colors.primary} strokeWidth={2} />
+                  <CheckCircle2 size={26} color={colors.primary} strokeWidth={2} />
                 </View>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "800",
-                    fontFamily: fontFamily.displayBold,
-                    color: colors.text,
-                  }}
-                >
+                <Text style={[typography.title.md, { color: colors.text }]}>
                   {t("doctor.emptyQueueTitle", "Queue is clear")}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 13,
-                    color: colors.textMuted,
-                    textAlign: "center",
-                  }}
+                  style={[
+                    typography.body.sm,
+                    { color: colors.textMuted, textAlign: "center", maxWidth: 260 },
+                  ]}
                 >
                   {t(
                     "doctor.emptyQueueBody",
@@ -762,24 +728,24 @@ export default function DoctorHub() {
                 <Pressable
                   onPress={() => router.push("/schedule" as any)}
                   style={({ pressed }) => ({
-                    marginTop: spacing.xs,
+                    marginTop: spacing.sm,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 6,
-                    paddingVertical: 8,
-                    paddingHorizontal: 14,
-                    borderRadius: 12,
+                    height: 36,
+                    paddingHorizontal: 16,
+                    borderRadius: 999,
+                    borderCurve: "continuous",
                     backgroundColor: pressed ? colors.primary : colors.primarySoft,
                   })}
                 >
                   {({ pressed }) => (
                     <>
                       <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "800",
-                          color: pressed ? colors.onPrimary : colors.primary,
-                        }}
+                        style={[
+                          typography.label.md,
+                          { color: pressed ? colors.onPrimary : colors.primary },
+                        ]}
                       >
                         View schedule
                       </Text>
@@ -816,16 +782,13 @@ export default function DoctorHub() {
             <SectionLabel title={t("doctor.sectionQuickLinks", "Management & Records")} />
             <View
               style={{
-                borderRadius: 22,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
                 backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
                 overflow: "hidden",
-                shadowColor: "#062238",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.05,
-                shadowRadius: 10,
-                elevation: 2,
+                ...(isDark ? {} : shadow.sm),
               }}
             >
               <LinkTile
@@ -968,7 +931,7 @@ function SectionLabel({
   title: string;
   action?: { label: string; onPress: () => void };
 }) {
-  const { colors, typography, spacing, fontFamily } = useTheme();
+  const { colors, typography, spacing } = useTheme();
   return (
     <View
       style={{
@@ -980,15 +943,7 @@ function SectionLabel({
     >
       <Text
         numberOfLines={1}
-        style={{
-          flex: 1,
-          fontSize: 17,
-          lineHeight: 22,
-          fontWeight: "800",
-          letterSpacing: -0.3,
-          color: colors.text,
-          fontFamily: fontFamily.displayBold,
-        }}
+        style={[typography.title.lg, { flex: 1, color: colors.text }]}
       >
         {title}
       </Text>
@@ -1001,24 +956,15 @@ function SectionLabel({
           style={({ pressed }) => ({
             flexDirection: "row",
             alignItems: "center",
-            gap: 2,
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            borderRadius: 999,
-            backgroundColor: colors.primarySoft,
-            opacity: pressed ? 0.7 : 1,
+            gap: 1,
+            paddingVertical: 4,
+            opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "700",
-              color: colors.primary,
-            }}
-          >
+          <Text style={[typography.label.lg, { color: colors.primary }]}>
             {action.label}
           </Text>
-          <ChevronRight size={13} color={colors.primary} strokeWidth={2.6} />
+          <ChevronRight size={16} color={colors.primary} strokeWidth={2.4} />
         </Pressable>
       ) : null}
     </View>
@@ -1040,8 +986,9 @@ function QuickTile({
   badge?: number;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius, typography, shadow, fontFamily } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const palette = useTone(tone);
+  const isDark = scheme === "dark";
 
   return (
     <Pressable
@@ -1051,19 +998,16 @@ function QuickTile({
       style={({ pressed }) => ({
         flex: 1,
         padding: spacing.lg,
-        borderRadius: 22,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: pressed ? palette.fg : colors.border,
-        opacity: pressed ? 0.9 : 1,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.separator,
+        opacity: pressed ? 0.92 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
-        minHeight: 128,
+        minHeight: 132,
         justifyContent: "space-between",
-        shadowColor: "#062238",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        ...(isDark ? {} : shadow.sm),
       })}
     >
       <View
@@ -1075,35 +1019,31 @@ function QuickTile({
       >
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            borderCurve: "continuous",
             backgroundColor: palette.bg,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon size={21} color={palette.fg} strokeWidth={2.2} />
+          <Icon size={20} color={palette.fg} strokeWidth={2.2} />
         </View>
         {badge !== undefined && badge > 0 ? (
           <View
             style={{
-              minWidth: 24,
-              height: 24,
+              minWidth: 22,
+              height: 22,
               paddingHorizontal: 7,
-              borderRadius: 12,
+              borderRadius: 11,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: palette.fg,
+              backgroundColor: palette.bg,
             }}
           >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 11,
-                fontWeight: "800",
-              }}
-            >
+            <Text style={[typography.label.xs, { color: palette.fg }]}>
               {badge > 99 ? "99+" : badge}
             </Text>
           </View>
@@ -1121,41 +1061,20 @@ function QuickTile({
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: 16,
-              fontWeight: "800",
-              color: colors.text,
-              fontFamily: fontFamily.displayBold,
-              letterSpacing: -0.2,
-            }}
+            style={[typography.title.md, { color: colors.text }]}
           >
             {label}
           </Text>
           {subtitle ? (
             <Text
               numberOfLines={1}
-              style={{
-                fontSize: 12,
-                color: colors.textMuted,
-                fontWeight: "500",
-              }}
+              style={[typography.caption, { color: colors.textMuted }]}
             >
               {subtitle}
             </Text>
           ) : null}
         </View>
-        <View
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 13,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: palette.bg,
-          }}
-        >
-          <ChevronRight size={14} color={palette.fg} strokeWidth={2.6} />
-        </View>
+        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
       </View>
     </Pressable>
   );
@@ -1176,115 +1095,68 @@ function StatTile({
   tone?: "primary" | "info" | "accent" | "warning" | "success";
   onPress?: () => void;
 }) {
-  const { colors, spacing, radius, fontFamily } = useTheme();
-  const tones: Record<string, { bg: string; fg: string; border: string }> = {
-    primary: {
-      bg: "rgba(14, 165, 233, 0.08)",
-      fg: "#0284C7",
-      border: "rgba(14, 165, 233, 0.18)",
-    },
-    info: {
-      bg: "rgba(99, 102, 241, 0.08)",
-      fg: "#4F46E5",
-      border: "rgba(99, 102, 241, 0.18)",
-    },
-    accent: {
-      bg: "rgba(16, 185, 129, 0.08)",
-      fg: "#059669",
-      border: "rgba(16, 185, 129, 0.18)",
-    },
-    warning: {
-      bg: "rgba(245, 158, 11, 0.08)",
-      fg: "#D97706",
-      border: "rgba(245, 158, 11, 0.18)",
-    },
-    success: {
-      bg: "rgba(16, 185, 129, 0.08)",
-      fg: "#10B981",
-      border: "rgba(16, 185, 129, 0.18)",
-    },
-  };
-  const tn = tones[tone] ?? tones.primary;
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const tn = useTone(tone);
 
   const Body = (
     <View
       style={{
         flex: 1,
-        minHeight: 118,
+        minHeight: 124,
         backgroundColor: colors.surface,
-        borderRadius: 20,
-        padding: spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderRadius: radius.xl,
+        borderCurve: "continuous",
+        padding: spacing.md + 2,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.separator,
         justifyContent: "space-between",
         overflow: "hidden",
-        shadowColor: "#062238",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        ...(isDark ? {} : shadow.sm),
       }}
     >
-      <View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: spacing.md,
-          right: spacing.md,
-          height: 3,
-          borderBottomLeftRadius: 3,
-          borderBottomRightRadius: 3,
-          backgroundColor: tn.fg,
-          opacity: 0.85,
-        }}
-      />
-      <View
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 11,
-          backgroundColor: tn.bg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={17} color={tn.fg} strokeWidth={2.3} />
-      </View>
-      <View style={{ marginTop: spacing.sm }}>
-        <Text
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <View
           style={{
-            fontSize: 28,
-            lineHeight: 32,
-            fontWeight: "800",
-            color: colors.text,
-            fontFamily: fontFamily.displayBold,
-            letterSpacing: -0.6,
+            width: 24,
+            height: 24,
+            borderRadius: 7,
+            borderCurve: "continuous",
+            backgroundColor: tn.bg,
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {value}
-        </Text>
+          <Icon size={13} color={tn.fg} strokeWidth={2.5} />
+        </View>
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
-          minimumFontScale={0.85}
-          style={{
-            fontSize: 12,
-            fontWeight: "700",
-            color: colors.text,
-            marginTop: 2,
-          }}
+          minimumFontScale={0.8}
+          style={[typography.label.sm, { flex: 1, color: tn.fg }]}
         >
           {label}
+        </Text>
+      </View>
+      <View style={{ marginTop: spacing.md }}>
+        <Text
+          style={[
+            typography.display.md,
+            {
+              fontSize: 32,
+              lineHeight: 36,
+              letterSpacing: -1.1,
+              color: colors.text,
+              fontVariant: ["tabular-nums"],
+            },
+          ]}
+        >
+          {value}
         </Text>
         {sub ? (
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: 11,
-              fontWeight: "500",
-              color: colors.textMuted,
-              marginTop: 1,
-            }}
+            style={[typography.caption, { color: colors.textSubtle, marginTop: 2 }]}
           >
             {sub}
           </Text>
@@ -1302,7 +1174,7 @@ function StatTile({
       style={({ pressed }) => ({
         flex: 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
-        opacity: pressed ? 0.88 : 1,
+        opacity: pressed ? 0.9 : 1,
       })}
     >
       {Body}
@@ -1320,7 +1192,8 @@ function QueuePreviewRow({
   onPress: () => void;
 }) {
   const { t } = useTranslation();
-  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
 
   const isVideo = item.mode === "video";
   const statusLabel =
@@ -1336,6 +1209,7 @@ function QueuePreviewRow({
       : item.status === "completed"
         ? "success"
         : "primary";
+  const stn = useTone(statusTone);
 
   return (
     <Pressable
@@ -1343,26 +1217,39 @@ function QueuePreviewRow({
       accessibilityRole="button"
       style={({ pressed }) => ({
         transform: [{ scale: pressed ? 0.99 : 1 }],
-        opacity: pressed ? 0.9 : 1,
+        opacity: pressed ? 0.92 : 1,
       })}
     >
       <View
         style={{
-          padding: spacing.md,
-          borderRadius: 20,
+          paddingVertical: spacing.md,
+          paddingLeft: spacing.md + 4,
+          paddingRight: spacing.md,
+          borderRadius: radius.xl,
+          borderCurve: "continuous",
           backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: isDark ? colors.borderStrong : colors.separator,
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
-          shadowColor: "#062238",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.04,
-          shadowRadius: 5,
-          elevation: 1,
+          overflow: "hidden",
+          ...(isDark ? {} : shadow.xs),
         }}
       >
+        {/* timeline accent rail */}
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            top: spacing.md,
+            bottom: spacing.md,
+            width: 3,
+            borderTopRightRadius: 3,
+            borderBottomRightRadius: 3,
+            backgroundColor: stn.fg,
+          }}
+        />
         <Avatar
           name={item.patientName || "Patient"}
           size="md"
@@ -1373,13 +1260,7 @@ function QueuePreviewRow({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text
               numberOfLines={1}
-              style={{
-                fontSize: 16,
-                fontWeight: "800",
-                color: colors.text,
-                fontFamily: fontFamily.displayBold,
-                flex: 1,
-              }}
+              style={[typography.title.sm, { color: colors.text, flexShrink: 1 }]}
             >
               {item.patientName || "Patient"}
             </Text>
@@ -1392,11 +1273,12 @@ function QueuePreviewRow({
                   paddingHorizontal: 6,
                   paddingVertical: 2,
                   borderRadius: 6,
-                  backgroundColor: "rgba(16, 185, 129, 0.10)",
+                  borderCurve: "continuous",
+                  backgroundColor: colors.successSoft,
                 }}
               >
-                <Video size={10} color="#059669" />
-                <Text style={{ fontSize: 10, fontWeight: "700", color: "#059669" }}>
+                <Video size={10} color={colors.success} />
+                <Text style={[typography.label.xs, { fontSize: 10, color: colors.success }]}>
                   Video
                 </Text>
               </View>
@@ -1405,10 +1287,7 @@ function QueuePreviewRow({
 
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: 12,
-              color: colors.textMuted,
-            }}
+            style={[typography.body.sm, { color: colors.textMuted }]}
           >
             {item.reason || item.notes || "Regular consultation"}
           </Text>
@@ -1416,7 +1295,12 @@ function QueuePreviewRow({
 
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           <Pill label={statusLabel} tone={statusTone} size="sm" />
-          <Text style={{ fontSize: 10, color: colors.textSubtle, fontWeight: "700" }}>
+          <Text
+            style={[
+              typography.label.xs,
+              { color: colors.textSubtle, fontVariant: ["tabular-nums"] },
+            ]}
+          >
             Queue #{item.queueNumber ?? index + 1}
           </Text>
         </View>
@@ -1442,7 +1326,7 @@ function LinkTile({
   last?: boolean;
   onPress: () => void;
 }) {
-  const { spacing, colors, fontFamily } = useTheme();
+  const { spacing, colors, typography } = useTheme();
   const palette = useTone(tone);
 
   return (
@@ -1451,11 +1335,12 @@ function LinkTile({
       accessibilityRole="button"
       accessibilityLabel={title}
       style={({ pressed }) => ({
-        backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+        backgroundColor: pressed ? colors.fill : "transparent",
       })}
     >
       <View
         style={{
+          minHeight: 60,
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.lg,
           flexDirection: "row",
@@ -1469,42 +1354,35 @@ function LinkTile({
               position: "absolute",
               bottom: 0,
               right: 0,
-              left: spacing.lg + 42 + spacing.md,
+              left: spacing.lg + 32 + spacing.md,
               height: StyleSheet.hairlineWidth,
-              backgroundColor: colors.border,
+              backgroundColor: colors.separator,
             }}
           />
         ) : null}
         <View
           style={{
-            width: 42,
-            height: 42,
-            borderRadius: 13,
-            backgroundColor: palette.bg,
+            width: 32,
+            height: 32,
+            borderRadius: 9,
+            borderCurve: "continuous",
+            backgroundColor: palette.bgStrong,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon size={20} color={palette.fg} strokeWidth={2.2} />
+          <Icon size={17} color={palette.onBgStrong} strokeWidth={2.3} />
         </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: 15,
-              fontWeight: "800",
-              color: colors.text,
-              fontFamily: fontFamily.displayBold,
-            }}
+            style={[typography.title.sm, { color: colors.text }]}
           >
             {title}
           </Text>
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: 12,
-              color: colors.textMuted,
-            }}
+            style={[typography.body.sm, { color: colors.textMuted }]}
           >
             {subtitle}
           </Text>

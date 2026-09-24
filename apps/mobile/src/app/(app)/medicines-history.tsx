@@ -257,7 +257,7 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
     <View style={{ gap: spacing.md }}>
       {/* Top stat row */}
       <View style={{ flexDirection: "row", gap: spacing.md }}>
-        <View style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+        <View style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg, backgroundColor: colors.surface, borderRadius: 22, borderCurve: "continuous", borderWidth: 1, borderColor: colors.separator }}>
           <Text style={[typography.overline, { color: colors.textMuted }]}>
             {t("medicinesHistory.stats.streak")}
           </Text>
@@ -275,7 +275,7 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
             {t("medicinesHistory.stats.streakSubtitle")}
           </Text>
         </View>
-        <View style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+        <View style={{ flex: 1, alignItems: "center", paddingVertical: spacing.lg, backgroundColor: colors.surface, borderRadius: 22, borderCurve: "continuous", borderWidth: 1, borderColor: colors.separator }}>
           <Text style={[typography.overline, { color: colors.textMuted }]}>
             {t("medicinesHistory.stats.adherence")}
           </Text>
@@ -296,7 +296,7 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
       </View>
 
       {/* Bar chart */}
-      <View style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+      <View style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: 22, borderCurve: "continuous", borderWidth: 1, borderColor: colors.separator }}>
         <View
           style={{
             flexDirection: "row",
@@ -362,7 +362,7 @@ function OverviewTab({ stats, days }: { stats: any; days: number }) {
       </View>
 
       {/* Missed/skipped totals */}
-      <View style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+      <View style={{ padding: spacing.md, backgroundColor: colors.surface, borderRadius: 22, borderCurve: "continuous", borderWidth: 1, borderColor: colors.separator }}>
         <Text
           style={[
             typography.title.sm,
@@ -432,7 +432,7 @@ function MissedTab({
   const locale = useLocaleStore((s) => s.locale);
   if (doses.length === 0) {
     return (
-      <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+      <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 22, borderCurve: "continuous", borderWidth: 1, borderColor: colors.separator }}>
         <Check size={36} color={colors.success} strokeWidth={2.5} />
         <Text
           style={[
@@ -532,7 +532,7 @@ function AllTab({
   const locale = useLocaleStore((s) => s.locale);
   if (doses.length === 0) {
     return (
-      <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+      <View style={{ alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.surface, borderRadius: 22, borderCurve: "continuous", borderWidth: 1, borderColor: colors.separator }}>
         <Pill size={36} color={colors.textMuted} strokeWidth={1.5} />
         <Text
           style={[

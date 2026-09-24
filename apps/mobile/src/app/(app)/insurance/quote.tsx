@@ -2,7 +2,7 @@
 // Personalized quote calculator. 3-step wizard: age/gender -> members -> pre-existing.
 
 import { useState, useCallback, useEffect } from "react";
-import { View, TextInput, ScrollView, BackHandler } from "react-native";
+import { View, Text, TextInput, ScrollView, BackHandler, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2, UserPlus, HeartPulse } from "lucide-react-native";
@@ -15,7 +15,6 @@ import {
   Chip,
   ChipGroup,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useInsuranceStore } from "@/stores/insurance-store";
 import { useInsuranceQuote } from "@/hooks/useApi";
@@ -32,8 +31,17 @@ const PRE_EXISTING = [
 export default function Quote() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
   const quote = useInsuranceStore((s) => s.quote);
+  const fieldStyle = {
+    backgroundColor: colors.fill,
+    borderRadius: radius.field,
+    borderCurve: "continuous" as const,
+    paddingHorizontal: 14,
+    minHeight: 48,
+    color: colors.text,
+    ...typography.body.md,
+  };
   const setAge = useInsuranceStore((s) => s.setAge);
   const setGender = useInsuranceStore((s) => s.setGender);
   const addMember = useInsuranceStore((s) => s.addMember);
@@ -118,8 +126,8 @@ export default function Quote() {
     return (
       <Screen>
         <ScreenHeader back onBack={() => router.replace("/insurance/marketplace")} title={t("insurance.quote.title")} subtitle="" />
-        <View style={{ padding: 16 }}>
-          <AppText size="sm" color="muted">
+        <View style={{ paddingVertical: 16 }}>
+          <AppText size="md" color="muted">
             {t("insurance.quote.noPlan")}
           </AppText>
           <Button
@@ -142,33 +150,28 @@ export default function Quote() {
         kicker={t("insurance.quote.kicker")}
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingVertical: 12, gap: 16, paddingBottom: 120 }}>
         {step === 1 ? (
-          <Card style={{ padding: 16, gap: 14 }}>
+          <Card style={{ padding: 20, gap: 18 }}>
             <AppText weight="700" size="md">
               {t("insurance.quote.aboutYou")}
             </AppText>
 
-            <View style={{ gap: 6 }}>
-              <AppText size="sm" color="muted">
+            <View style={{ gap: 8 }}>
+              <AppText size="sm" weight="600" color="muted">
                 {t("insurance.quote.age")}
               </AppText>
               <TextInput
                 value={age}
                 onChangeText={setAgeLocal}
                 keyboardType="number-pad"
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 10,
-                  padding: 12,
-                  color: colors.text,
-                }}
+                placeholderTextColor={colors.textSubtle}
+                style={fieldStyle}
               />
             </View>
 
-            <View style={{ gap: 6 }}>
-              <AppText size="sm" color="muted">
+            <View style={{ gap: 8 }}>
+              <AppText size="sm" weight="600" color="muted">
                 {t("insurance.quote.gender")}
               </AppText>
               <ChipGroup>
@@ -189,11 +192,11 @@ export default function Quote() {
 
         {step === 2 ? (
           <>
-            <Card style={{ padding: 16, gap: 12 }}>
+            <Card style={{ padding: 20, gap: 14 }}>
               <AppText weight="700" size="md">
                 {t("insurance.quote.members")}
               </AppText>
-              <AppText size="xs" color="muted">
+              <AppText size="sm" color="muted" style={{ marginTop: -8 }}>
                 {t("insurance.quote.membersHelp")}
               </AppText>
 
@@ -204,18 +207,21 @@ export default function Quote() {
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    paddingVertical: 6,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border,
+                    minHeight: 48,
+                    paddingVertical: 4,
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.separator,
                   }}
                 >
-                  <AppText size="sm">
+                  <AppText size="md" style={{ textTransform: "capitalize" }}>
                     {m.name} · {m.relation}
                   </AppText>
                   <Button
-                    variant="ghost"
+                    variant="danger"
+                    size="sm"
                     label=""
-                    leftIcon={<Trash2 size={14} color={colors.danger} />}
+                    icon={Trash2}
+                    fullWidth={false}
                     onPress={() => removeMember(idx)}
                   />
                 </View>
@@ -226,40 +232,30 @@ export default function Quote() {
                   placeholder={t("insurance.quote.name")}
                   value={memberName}
                   onChangeText={setMemberName}
-                  style={{
-                    flex: 1,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 10,
-                    padding: 10,
-                    color: colors.text,
-                  }}
+                  placeholderTextColor={colors.textSubtle}
+                  style={{ ...fieldStyle, flex: 1 }}
                 />
                 <TextInput
                   placeholder={t("insurance.quote.age")}
                   value={memberAge}
                   onChangeText={setMemberAge}
                   keyboardType="number-pad"
-                  style={{
-                    width: 70,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 10,
-                    padding: 10,
-                    color: colors.text,
-                  }}
+                  placeholderTextColor={colors.textSubtle}
+                  style={{ ...fieldStyle, width: 76 }}
                 />
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   label=""
-                  leftIcon={<UserPlus size={14} />}
+                  icon={UserPlus}
+                  fullWidth={false}
                   onPress={addNewMember}
+                  style={{ minHeight: 48, height: 48, paddingHorizontal: 14 }}
                 />
               </View>
 
               <View style={{ flexDirection: "row", gap: 10 }}>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   label={t("common.back", "Back")}
                   onPress={handleBack}
                   style={{ flex: 1 }}
@@ -279,11 +275,11 @@ export default function Quote() {
 
         {step === 3 ? (
           <>
-            <Card style={{ padding: 16, gap: 12 }}>
+            <Card style={{ padding: 20, gap: 14 }}>
               <AppText weight="700" size="md">
                 {t("insurance.quote.preExisting")}
               </AppText>
-              <AppText size="xs" color="muted">
+              <AppText size="sm" color="muted" style={{ marginTop: -8 }}>
                 {t("insurance.quote.preExistingHelp")}
               </AppText>
               <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
@@ -300,12 +296,12 @@ export default function Quote() {
 
             <Card
               style={{
-                padding: 16,
+                padding: 20,
                 gap: 8,
                 backgroundColor: colors.surface,
               }}
             >
-              <AppText size="sm" color="muted">
+              <AppText size="sm" weight="600" color="muted">
                 {t("insurance.quote.estimate")}
               </AppText>
               {isFetching ? (
@@ -314,7 +310,7 @@ export default function Quote() {
                 </AppText>
               ) : data?.adjustedPremiumLkr ? (
                 <>
-                  <AppText weight="700" size="xl" style={{ color: colors.primary }}>
+                  <AppText weight="700" size="2xl" style={{ color: colors.text }}>
                     LKR {data.adjustedPremiumLkr.toLocaleString()}
                   </AppText>
                   <AppText size="xs" color="muted">
@@ -342,7 +338,7 @@ export default function Quote() {
                     </Pill>
                   ) : null}
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     label={t("insurance.quote.recalculate", "Recalculate")}
                     onPress={requestQuote}
                   />
@@ -353,7 +349,7 @@ export default function Quote() {
                     {t("insurance.quote.unavailable")}
                   </AppText>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     label={t("insurance.quote.retry", "Retry")}
                     onPress={requestQuote}
                   />
@@ -367,7 +363,7 @@ export default function Quote() {
 
             <View style={{ flexDirection: "row", gap: 10 }}>
               <Button
-                variant="outline"
+                variant="secondary"
                 label={t("common.back", "Back")}
                 onPress={handleBack}
                 style={{ flex: 1 }}
@@ -390,5 +386,69 @@ export default function Quote() {
         ) : null}
       </ScrollView>
     </Screen>
+  );
+}
+
+// Theme-aware text used by this screen: maps the terse size/weight/color
+// props onto typography tokens + theme colours so text stays legible in dark
+// mode (the shared AppText hard-codes light-mode hex colours).
+function AppText({
+  size,
+  weight,
+  color,
+  style,
+  ...rest
+}: {
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  weight?: string;
+  color?: "muted" | "subtle" | "primary" | "accent" | "danger" | "text";
+  style?: any;
+  [key: string]: any;
+}) {
+  const { colors, typography, fontFamily } = useTheme();
+  const tone =
+    color === "muted"
+      ? colors.textMuted
+      : color === "subtle"
+        ? colors.textSubtle
+        : color === "primary"
+          ? colors.primary
+          : color === "accent"
+            ? colors.accent
+            : color === "danger"
+              ? colors.danger
+              : colors.text;
+  const bold = weight === "700" || weight === "800" || weight === "900" || weight === "bold";
+  const semi = weight === "600" || weight === "500";
+  const base =
+    size === "2xl"
+      ? typography.display.md
+      : size === "xl"
+        ? typography.display.sm
+        : size === "lg"
+          ? bold
+            ? typography.title.lg
+            : typography.body.lg
+          : size === "md"
+            ? bold
+              ? typography.title.md
+              : typography.body.md
+            : size === "xs"
+              ? typography.caption
+              : bold
+                ? typography.title.xs
+                : typography.body.sm;
+  const family = bold
+    ? size === "xl" || size === "2xl" || size === "lg" || size === "md"
+      ? base.fontFamily
+      : fontFamily.bodyBold
+    : semi
+      ? fontFamily.bodySemibold
+      : base.fontFamily;
+  return (
+    <Text
+      {...rest}
+      style={[{ ...base, fontFamily: family, color: tone }, style]}
+    />
   );
 }

@@ -130,6 +130,7 @@ export default function DoctorRecordsV2() {
                       width: 32,
                       height: 32,
                       borderRadius: 16,
+                      borderCurve: "continuous",
                       alignItems: "center",
                       justifyContent: "center",
                       backgroundColor: colors.primarySoft,

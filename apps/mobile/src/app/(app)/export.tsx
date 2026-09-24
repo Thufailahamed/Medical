@@ -68,7 +68,7 @@ const FORMAT_OPTIONS: FormatConfig[] = [
     description: "Complete raw clinical data for personal backups & software import",
     icon: FileCode,
     tint: "#D97706",
-    bg: "#FEF3C7",
+    bg: "rgba(217, 119, 6, 0.14)",
   },
   {
     id: "txt",
@@ -78,7 +78,7 @@ const FORMAT_OPTIONS: FormatConfig[] = [
     description: "Structured chronological text document, easy to read and print",
     icon: FileText,
     tint: "#0284C7",
-    bg: "#E0F2FE",
+    bg: "rgba(2, 132, 199, 0.14)",
   },
   {
     id: "fhir-bundle",
@@ -88,7 +88,7 @@ const FORMAT_OPTIONS: FormatConfig[] = [
     description: "International healthcare format for importing into hospital EHRs",
     icon: HeartPulse,
     tint: "#059669",
-    bg: "#D1FAE5",
+    bg: "rgba(5, 150, 105, 0.14)",
   },
 ];
 
@@ -254,9 +254,10 @@ export default function ExportScreen() {
         <Card
           style={{
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.separator,
             borderRadius: 16,
+            borderCurve: "continuous",
             paddingHorizontal: spacing.md,
             paddingVertical: 12,
           }}
@@ -338,6 +339,7 @@ export default function ExportScreen() {
                   style={({ pressed }) => ({
                     padding: 14,
                     borderRadius: 16,
+                    borderCurve: "continuous",
                     borderWidth: isSelected ? 1.5 : 1,
                     borderColor: isSelected ? colors.primary : colors.border,
                     backgroundColor: isSelected
@@ -355,6 +357,7 @@ export default function ExportScreen() {
                       width: 42,
                       height: 42,
                       borderRadius: 12,
+                      borderCurve: "continuous",
                       backgroundColor: isSelected
                         ? colors.primary
                         : opt.bg,
@@ -415,9 +418,10 @@ export default function ExportScreen() {
                       width: 20,
                       height: 20,
                       borderRadius: 10,
+                      borderCurve: "continuous",
                       borderWidth: isSelected ? 5 : 1.5,
                       borderColor: isSelected ? colors.primary : colors.borderStrong,
-                      backgroundColor: isSelected ? "#FFFFFF" : "transparent",
+                      backgroundColor: isSelected ? colors.surface : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -432,9 +436,10 @@ export default function ExportScreen() {
         <Card
           style={{
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.separator,
             borderRadius: 16,
+            borderCurve: "continuous",
             padding: 14,
           }}
         >
@@ -550,6 +555,7 @@ export default function ExportScreen() {
                       paddingVertical: 6,
                       paddingHorizontal: 10,
                       borderRadius: 10,
+                      borderCurve: "continuous",
                       borderWidth: 1,
                       borderColor: colors.borderSoft,
                     }}
@@ -606,6 +612,7 @@ export default function ExportScreen() {
             paddingHorizontal: 12,
             paddingVertical: 10,
             borderRadius: 14,
+            borderCurve: "continuous",
             borderWidth: 1,
             borderColor: withOpacity(colors.success || "#059669", 0.2),
           }}

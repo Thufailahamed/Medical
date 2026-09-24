@@ -324,6 +324,7 @@ function AuditRow({
           width: 40,
           height: 40,
           borderRadius: radius.lg,
+          borderCurve: "continuous",
           backgroundColor: pal.bg,
           alignItems: "center",
           justifyContent: "center",

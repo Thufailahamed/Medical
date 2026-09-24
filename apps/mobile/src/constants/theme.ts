@@ -1,4 +1,5 @@
-// Healthcare theme tokens — calm sky/blue palette, WCAG AAA light + dark.
+// Healthcare theme tokens — premium iOS-style system: grouped backgrounds,
+// continuous corners, hairline separators, soft layered depth. Light + dark.
 // All UI components must consume `useTheme()`; raw hex belongs only here.
 
 import { Easing } from "react-native-reanimated";
@@ -109,22 +110,41 @@ export const palette = {
 } as const;
 
 // ---------- Semantic color tokens ----------
+// Premium iOS-style semantics: grouped backgrounds, elevated surfaces,
+// hairline separators and translucent fills (mirrors UIKit system colors).
 
 type ColorScheme = {
   bg: string;
   bgElevated: string;
+  bgMuted: string;
+  background: string;
   surface: string;
   surfaceMuted: string;
+  surfaceSubtle: string;
+  surfaceElevated: string;
+  surface2: string;
+  card: string;
+  fill: string;
+  fillStrong: string;
+  separator: string;
   text: string;
   textMuted: string;
+  textSecondary: string;
   textSubtle: string;
   textInverse: string;
   border: string;
+  borderSubtle: string;
+  borderSoft: string;
+  borderMuted: string;
   borderStrong: string;
   borderFocus: string;
+  brand: string;
   primary: string;
+  primaryStrong: string;
   primaryMuted: string;
   primarySoft: string;
+  primaryGradientStart: string;
+  primaryGradientEnd: string;
   onPrimary: string;
   secondary: string;
   secondaryMuted: string;
@@ -141,6 +161,8 @@ type ColorScheme = {
   orb: string;
   orbDeep: string;
   glass: string;
+  glassStrong: string;
+  glassBorder: string;
   glassOnPrimary: string;
   glassOnPrimarySoft: string;
   danger: string;
@@ -150,6 +172,7 @@ type ColorScheme = {
   success: string;
   successSoft: string;
   successMuted: string;
+  successBorder: string;
   onSuccess: string;
   warning: string;
   warningSoft: string;
@@ -161,23 +184,41 @@ type ColorScheme = {
   onInfo: string;
   overlay: string;
   scrim: string;
+  shadow: string;
 };
 
 const lightColors: ColorScheme = {
-  bg: palette.sky[50],
+  bg: "#F2F4F8",
   bgElevated: palette.white,
+  bgMuted: "#EBEEF3",
+  background: "#F2F4F8",
   surface: palette.white,
-  surfaceMuted: palette.slate[50],
-  text: palette.slate[900],
-  textMuted: palette.slate[600],
-  textSubtle: palette.slate[400],
+  surfaceMuted: "#F4F6F9",
+  surfaceSubtle: "#F7F8FA",
+  surfaceElevated: palette.white,
+  surface2: "#F4F6F9",
+  card: palette.white,
+  fill: "rgba(118, 118, 128, 0.10)",
+  fillStrong: "rgba(118, 118, 128, 0.18)",
+  separator: "rgba(60, 60, 67, 0.14)",
+  text: "#0B1220",
+  textMuted: "#586174",
+  textSecondary: "#586174",
+  textSubtle: "#98A0AE",
   textInverse: palette.white,
-  border: palette.slate[200],
-  borderStrong: palette.slate[300],
+  border: "#E7EAF0",
+  borderSubtle: "#EEF0F4",
+  borderSoft: "#EEF0F4",
+  borderMuted: "#EEF0F4",
+  borderStrong: "#D3D8E0",
   borderFocus: palette.sky[500],
+  brand: palette.sky[600],
   primary: palette.sky[600],
+  primaryStrong: palette.sky[700],
   primaryMuted: palette.sky[700],
-  primarySoft: palette.sky[100],
+  primarySoft: "#E4F2FC",
+  primaryGradientStart: "#0EA5E9",
+  primaryGradientEnd: "#0369A1",
   onPrimary: palette.white,
   secondary: palette.sky[400],
   secondaryMuted: palette.sky[500],
@@ -185,88 +226,113 @@ const lightColors: ColorScheme = {
   onSecondary: palette.slate[900],
   accent: palette.emerald[600],
   accentMuted: palette.emerald[700],
-  accentSoft: palette.emerald[50],
+  accentSoft: "#E6F7EF",
   onAccent: palette.white,
   accent2: palette.coral[500],
   accent2Muted: palette.coral[700],
-  accent2Soft: palette.coral[50],
+  accent2Soft: "#FFF1EB",
   onAccent2: palette.white,
   orb: palette.sky[300],
   orbDeep: palette.sky[700],
-  glass: "rgba(255, 255, 255, 0.72)",
+  glass: "rgba(255, 255, 255, 0.78)",
+  glassStrong: "rgba(255, 255, 255, 0.92)",
+  glassBorder: "rgba(255, 255, 255, 0.9)",
   glassOnPrimary: "rgba(255, 255, 255, 0.18)",
   glassOnPrimarySoft: "rgba(255, 255, 255, 0.85)",
-  danger: palette.red[600],
-  dangerSoft: palette.red[50],
+  danger: "#E5383B",
+  dangerSoft: "#FDECEC",
   dangerMuted: palette.red[700],
   onDanger: palette.white,
   success: palette.emerald[600],
-  successSoft: palette.emerald[50],
+  successSoft: "#E6F7EF",
   successMuted: palette.emerald[700],
+  successBorder: palette.emerald[200],
   onSuccess: palette.white,
   warning: palette.amber[600],
-  warningSoft: palette.amber[50],
+  warningSoft: "#FFF6E0",
   warningMuted: palette.amber[700],
   onWarning: palette.white,
   info: palette.sky[600],
-  infoSoft: palette.sky[50],
+  infoSoft: "#E4F2FC",
   infoMuted: palette.sky[700],
   onInfo: palette.white,
-  overlay: "rgba(15, 23, 42, 0.5)",
-  scrim: "rgba(15, 23, 42, 0.6)",
+  overlay: "rgba(11, 18, 32, 0.40)",
+  scrim: "rgba(11, 18, 32, 0.55)",
+  shadow: "#0B1B3A",
 };
 
 const darkColors: ColorScheme = {
-  bg: palette.slate[950],
-  bgElevated: palette.slate[900],
-  surface: palette.slate[900],
-  surfaceMuted: palette.slate[800],
-  text: palette.slate[50],
-  textMuted: palette.slate[300],
-  textSubtle: palette.slate[500],
-  textInverse: palette.slate[900],
-  border: palette.slate[800],
-  borderStrong: palette.slate[700],
+  bg: "#000000",
+  bgElevated: "#1C1C1E",
+  bgMuted: "#0E0E10",
+  background: "#000000",
+  surface: "#1C1C1E",
+  surfaceMuted: "#2C2C2E",
+  surfaceSubtle: "#242426",
+  surfaceElevated: "#2C2C2E",
+  surface2: "#2C2C2E",
+  card: "#1C1C1E",
+  fill: "rgba(118, 118, 128, 0.24)",
+  fillStrong: "rgba(118, 118, 128, 0.36)",
+  separator: "rgba(84, 84, 88, 0.60)",
+  text: "#F5F7FA",
+  textMuted: "#A9B0BC",
+  textSecondary: "#A9B0BC",
+  textSubtle: "#6E7582",
+  textInverse: "#0B1220",
+  border: "#2C2C2E",
+  borderSubtle: "#242426",
+  borderSoft: "#242426",
+  borderMuted: "#242426",
+  borderStrong: "#3A3A3C",
   borderFocus: palette.sky[400],
+  brand: palette.sky[400],
   primary: palette.sky[400],
+  primaryStrong: palette.sky[300],
   primaryMuted: palette.sky[300],
-  primarySoft: "rgba(14, 165, 233, 0.14)",
-  onPrimary: palette.slate[950],
+  primarySoft: "rgba(56, 189, 248, 0.16)",
+  primaryGradientStart: "#38BDF8",
+  primaryGradientEnd: "#0284C7",
+  onPrimary: "#04121F",
   secondary: palette.sky[300],
   secondaryMuted: palette.sky[200],
   secondarySoft: "rgba(14, 165, 233, 0.10)",
   onSecondary: palette.slate[950],
   accent: palette.emerald[400],
   accentMuted: palette.emerald[300],
-  accentSoft: "rgba(16, 185, 129, 0.12)",
+  accentSoft: "rgba(16, 185, 129, 0.16)",
   onAccent: palette.slate[950],
   accent2: palette.coral[400],
   accent2Muted: palette.coral[300],
-  accent2Soft: "rgba(255, 122, 89, 0.14)",
+  accent2Soft: "rgba(255, 122, 89, 0.16)",
   onAccent2: palette.slate[950],
   orb: palette.sky[500],
   orbDeep: palette.sky[900],
-  glass: "rgba(15, 23, 42, 0.72)",
+  glass: "rgba(28, 28, 30, 0.78)",
+  glassStrong: "rgba(28, 28, 30, 0.92)",
+  glassBorder: "rgba(255, 255, 255, 0.10)",
   glassOnPrimary: "rgba(255, 255, 255, 0.10)",
   glassOnPrimarySoft: "rgba(255, 255, 255, 0.78)",
-  danger: palette.red[400],
-  dangerSoft: "rgba(248, 113, 113, 0.14)",
+  danger: "#FF6B6B",
+  dangerSoft: "rgba(255, 107, 107, 0.16)",
   dangerMuted: palette.red[300],
   onDanger: palette.slate[950],
   success: palette.emerald[400],
-  successSoft: "rgba(52, 211, 153, 0.14)",
+  successSoft: "rgba(52, 211, 153, 0.16)",
   successMuted: palette.emerald[300],
+  successBorder: "rgba(52, 211, 153, 0.35)",
   onSuccess: palette.slate[950],
   warning: palette.amber[400],
-  warningSoft: "rgba(251, 191, 36, 0.14)",
+  warningSoft: "rgba(251, 191, 36, 0.16)",
   warningMuted: palette.amber[300],
   onWarning: palette.slate[950],
   info: palette.sky[400],
-  infoSoft: "rgba(56, 189, 248, 0.14)",
+  infoSoft: "rgba(56, 189, 248, 0.16)",
   infoMuted: palette.sky[300],
   onInfo: palette.slate[950],
   overlay: "rgba(0, 0, 0, 0.6)",
   scrim: "rgba(0, 0, 0, 0.75)",
+  shadow: "#000000",
 };
 
 export const colors = {
@@ -301,6 +367,10 @@ export const radius = {
   xxxxl: 40,
   xxxxxl: 56,
   glass: 24,
+  card: 22,
+  button: 16,
+  field: 14,
+  pill: 9999,
   full: 9999,
 } as const;
 
@@ -325,93 +395,46 @@ type TypeStyle = {
   fontWeight?: "400" | "500" | "600" | "700";
 };
 
+const t = (
+  fontFamily: string,
+  fontSize: number,
+  lineHeight: number,
+  letterSpacing: number
+): TypeStyle => ({ fontFamily, fontSize, lineHeight, letterSpacing });
+
+// iOS-inspired type ramp (Large Title 34 -> Caption 12) with tight tracking
+// on display sizes, the way SF Pro Display tightens as it grows.
 export const typography = {
   display: {
-    lg: {
-      fontFamily: fontFamily.displayBold,
-      fontSize: 36,
-      lineHeight: 44,
-      letterSpacing: -0.5,
-    } as TypeStyle,
-    md: {
-      fontFamily: fontFamily.displayBold,
-      fontSize: 28,
-      lineHeight: 36,
-      letterSpacing: -0.4,
-    } as TypeStyle,
-    sm: {
-      fontFamily: fontFamily.display,
-      fontSize: 22,
-      lineHeight: 30,
-      letterSpacing: -0.2,
-    } as TypeStyle,
+    lg: t(fontFamily.heavy, 34, 41, -0.9),
+    md: t(fontFamily.displayBold, 28, 34, -0.7),
+    sm: t(fontFamily.displayBold, 22, 28, -0.45),
+  },
+  heading: {
+    h1: t(fontFamily.heavy, 34, 41, -0.9),
+    h2: t(fontFamily.displayBold, 28, 34, -0.7),
+    h3: t(fontFamily.displayBold, 22, 28, -0.45),
   },
   title: {
-    lg: {
-      fontFamily: fontFamily.display,
-      fontSize: 20,
-      lineHeight: 28,
-      letterSpacing: -0.1,
-    } as TypeStyle,
-    md: {
-      fontFamily: fontFamily.bodySemibold,
-      fontSize: 17,
-      lineHeight: 24,
-      letterSpacing: 0,
-    } as TypeStyle,
-    sm: {
-      fontFamily: fontFamily.bodySemibold,
-      fontSize: 15,
-      lineHeight: 22,
-      letterSpacing: 0,
-    } as TypeStyle,
+    lg: t(fontFamily.displayBold, 20, 25, -0.35),
+    md: t(fontFamily.bodyBold, 17, 22, -0.25),
+    sm: t(fontFamily.bodySemibold, 15, 20, -0.15),
+    xs: t(fontFamily.bodySemibold, 13, 18, -0.05),
   },
   body: {
-    lg: {
-      fontFamily: fontFamily.body,
-      fontSize: 17,
-      lineHeight: 26,
-      letterSpacing: 0,
-    } as TypeStyle,
-    md: {
-      fontFamily: fontFamily.body,
-      fontSize: 15,
-      lineHeight: 22,
-      letterSpacing: 0,
-    } as TypeStyle,
-    sm: {
-      fontFamily: fontFamily.body,
-      fontSize: 13,
-      lineHeight: 20,
-      letterSpacing: 0,
-    } as TypeStyle,
+    lg: t(fontFamily.body, 17, 24, -0.2),
+    md: t(fontFamily.body, 15, 21, -0.1),
+    sm: t(fontFamily.body, 13, 18, 0),
+    xs: t(fontFamily.body, 12, 16, 0),
   },
   label: {
-    lg: {
-      fontFamily: fontFamily.bodySemibold,
-      fontSize: 15,
-      lineHeight: 20,
-      letterSpacing: 0,
-    } as TypeStyle,
-    md: {
-      fontFamily: fontFamily.bodySemibold,
-      fontSize: 13,
-      lineHeight: 18,
-      letterSpacing: 0.2,
-    } as TypeStyle,
+    lg: t(fontFamily.bodySemibold, 15, 20, -0.1),
+    md: t(fontFamily.bodySemibold, 13, 18, 0),
+    sm: t(fontFamily.bodySemibold, 12, 16, 0),
+    xs: t(fontFamily.bodyBold, 11, 14, 0.2),
   },
-  caption: {
-    fontFamily: fontFamily.body,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.1,
-  } as TypeStyle,
-  overline: {
-    fontFamily: fontFamily.bodyBold,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 1.2,
-  } as TypeStyle,
+  caption: t(fontFamily.bodyMedium, 12, 16, 0),
+  overline: t(fontFamily.bodyBold, 11, 14, 0.8),
 } as const;
 
 // ---------- Shadow / elevation ----------
@@ -424,6 +447,9 @@ type ShadowStyle = {
   elevation: number;
 };
 
+const SHADOW_INK = "#0B1B3A";
+
+// Soft, wide, low-opacity shadows: iOS cards float, they don't cast.
 export const shadow = {
   none: {
     shadowColor: "transparent",
@@ -432,46 +458,53 @@ export const shadow = {
     shadowRadius: 0,
     elevation: 0,
   } as ShadowStyle,
-  sm: {
-    shadowColor: palette.slate[900],
+  xs: {
+    shadowColor: SHADOW_INK,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
     elevation: 1,
   } as ShadowStyle,
-  md: {
-    shadowColor: palette.slate[900],
+  sm: {
+    shadowColor: SHADOW_INK,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 2,
+  } as ShadowStyle,
+  md: {
+    shadowColor: SHADOW_INK,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 24,
+    elevation: 4,
   } as ShadowStyle,
   lg: {
-    shadowColor: palette.slate[900],
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 32,
-    elevation: 6,
+    shadowColor: SHADOW_INK,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.12,
+    shadowRadius: 40,
+    elevation: 8,
   } as ShadowStyle,
   hero: {
     shadowColor: palette.sky[700],
-    shadowOffset: { width: 0, height: 12 },
+    shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.22,
-    shadowRadius: 28,
+    shadowRadius: 30,
     elevation: 10,
   } as ShadowStyle,
   glass: {
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: SHADOW_INK,
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.10,
-    shadowRadius: 18,
-    elevation: 5,
+    shadowRadius: 28,
+    elevation: 12,
   } as ShadowStyle,
   primary: {
     shadowColor: palette.sky[600],
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
     elevation: 6,
   } as ShadowStyle,
   sos: {
@@ -502,6 +535,7 @@ export const motion = {
   },
   spring: {
     snappy: { damping: 18, stiffness: 240, mass: 0.6 },
+    press: { damping: 20, stiffness: 420, mass: 0.5 },
     gentle: { damping: 22, stiffness: 180, mass: 0.8 },
     soft: { damping: 26, stiffness: 160, mass: 1 },
   },
@@ -522,6 +556,7 @@ export const layout = {
   hitSlop: { top: 12, bottom: 12, left: 12, right: 12 },
   minTouch: 44,
   tabBarHeight: 84,
+  tabBarRadius: 30,
   headerHeight: 56,
   heroHeightRatio: 0.4,
   fabSize: 56,

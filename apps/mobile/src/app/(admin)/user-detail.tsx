@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Alert, ScrollView } from "react-native";
+import { View, Text, Alert, ScrollView, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Ban,
@@ -186,10 +186,18 @@ export default function AdminUserDetail() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: spacing.md,
-                marginTop: spacing.md,
+                marginTop: spacing.lg,
               }}
             >
-              <Avatar name={u.name ?? "?"} size="lg" />
+              <View
+                style={{
+                  borderRadius: 999,
+                  padding: 2,
+                  backgroundColor: "rgba(255,255,255,0.28)",
+                }}
+              >
+                <Avatar name={u.name ?? "?"} size="lg" />
+              </View>
               <View
                 style={{
                   flexDirection: "row",
@@ -210,9 +218,9 @@ export default function AdminUserDetail() {
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          gap: spacing.xl,
-          paddingBottom: spacing.xxl,
-          marginTop: spacing.xl,
+          gap: spacing.xxl + 4,
+          paddingBottom: spacing.xxxl,
+          marginTop: spacing.xxl,
         }}
       >
         {isError ? <AdminError message="Couldn't load this user." /> : null}
@@ -223,7 +231,7 @@ export default function AdminUserDetail() {
             {/* Contact & identity */}
             <View>
               <AdminSection title="Identity" />
-              <AdminCard>
+              <AdminCard style={{ paddingVertical: spacing.sm }}>
                 <KV label="Email" value={u.email} />
                 <KV label="Phone" value={u.phone} />
                 <KV label="NIC" value={u.nic} />
@@ -390,6 +398,7 @@ export default function AdminUserDetail() {
                       onChangeText={setNoteText}
                       placeholder="Add an internal note…"
                       leadingIcon={StickyNote}
+                      tone="soft"
                     />
                   </View>
                   <Button
@@ -409,8 +418,8 @@ export default function AdminUserDetail() {
                     style={{
                       paddingHorizontal: spacing.lg,
                       paddingVertical: spacing.md,
-                      borderTopWidth: 1,
-                      borderTopColor: colors.border,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.separator,
                     }}
                   >
                     <View
@@ -422,8 +431,8 @@ export default function AdminUserDetail() {
                     >
                       <Text
                         style={[
-                          typography.caption,
-                          { color: colors.textSubtle, fontWeight: "600" },
+                          typography.label.sm,
+                          { color: colors.textSubtle, flexShrink: 1 },
                         ]}
                       >
                         {n.adminName ?? "Admin"} ·{" "}
@@ -448,7 +457,7 @@ export default function AdminUserDetail() {
                     </View>
                     <Text
                       style={[
-                        typography.body.sm,
+                        typography.body.md,
                         { color: colors.text, marginTop: 4 },
                       ]}
                     >
@@ -459,9 +468,9 @@ export default function AdminUserDetail() {
                 {(notes?.items ?? []).length === 0 ? (
                   <View
                     style={{
-                      padding: spacing.lg,
-                      borderTopWidth: 1,
-                      borderTopColor: colors.border,
+                      padding: spacing.xl,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.separator,
                     }}
                   >
                     <Text
@@ -571,13 +580,11 @@ function FieldLabel({ children }: { children: string }) {
   return (
     <Text
       style={[
-        typography.caption,
+        typography.label.md,
         {
           color: colors.textMuted,
-          fontWeight: "700",
-          textTransform: "uppercase",
-          letterSpacing: 0.6,
-          marginBottom: 6,
+          marginBottom: 8,
+          marginLeft: 2,
         },
       ]}
     >

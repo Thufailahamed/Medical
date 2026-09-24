@@ -3,7 +3,7 @@
 
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { View, ScrollView, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -26,7 +26,6 @@ import {
   EmptyState,
   SectionHeader,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
 
 const STATUS_TONE: Record<string, "accent" | "warning" | "danger" | "neutral"> = {
@@ -42,7 +41,7 @@ const STATUS_TONE: Record<string, "accent" | "warning" | "danger" | "neutral"> =
 export default function ClaimDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius, shadow, scheme } = useTheme();
   const { data, isLoading } = useClaim(id ?? "");
   const postMut = useSendInsuranceClaimMessage();
   const [msg, setMsg] = useState("");
@@ -52,8 +51,8 @@ export default function ClaimDetail() {
       <Screen>
         <ScreenHeader title="" subtitle="" />
         <View style={{ padding: 16, gap: 10 }}>
-          <Skeleton height={120} radius={16} />
-          <Skeleton height={200} radius={16} />
+          <Skeleton height={96} radius={radius.xxl} />
+          <Skeleton height={200} radius={radius.card} />
         </View>
       </Screen>
     );
@@ -82,7 +81,7 @@ export default function ClaimDetail() {
   };
 
   return (
-    <Screen>
+    <Screen padded={false}>
       <ScreenHeader
         title={claim.claimNumber ?? t("insurance.claim.detail")}
         subtitle={
@@ -92,7 +91,7 @@ export default function ClaimDetail() {
         kicker={t("insurance.claim.kicker")}
       />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Status banner */}
         <LinearGradient
           colors={
@@ -107,11 +106,24 @@ export default function ClaimDetail() {
           style={{
             margin: 16,
             marginTop: 8,
-            borderRadius: 20,
-            padding: 16,
+            borderRadius: radius.xxl,
+            borderCurve: "continuous",
+            padding: 20,
             overflow: "hidden",
           }}
         >
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: -50,
+              right: -40,
+              width: 150,
+              height: 150,
+              borderRadius: 75,
+              backgroundColor: "rgba(255,255,255,0.12)",
+            }}
+          />
           <View
             style={{
               flexDirection: "row",
@@ -121,10 +133,13 @@ export default function ClaimDetail() {
           >
             <View
               style={{
-                width: 44,
-                height: 44,
+                width: 46,
+                height: 46,
                 borderRadius: 14,
-                backgroundColor: "rgba(255,255,255,0.2)",
+                borderCurve: "continuous",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -141,12 +156,12 @@ export default function ClaimDetail() {
             <View style={{ flex: 1 }}>
               <AppText
                 weight="700"
-                size="md"
-                style={{ color: "#FFFFFF" }}
+                size="lg"
+                style={{ color: "#FFFFFF", textTransform: "capitalize" }}
               >
                 {t(`insurance.claim.statuses.${claim.status}`, claim.status)}
               </AppText>
-              <AppText size="xs" style={{ color: "#FFFFFFCC" }}>
+              <AppText size="sm" style={{ color: "rgba(255,255,255,0.82)", marginTop: 1 }}>
                 {claim.treatmentType
                   ? t(
                       `insurance.claim.treatments.${claim.treatmentType}`,
@@ -158,25 +173,35 @@ export default function ClaimDetail() {
         </LinearGradient>
 
         {/* Amounts card */}
-        <Card style={{ marginHorizontal: 16, padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: "row", gap: 12 }}>
+        <Card style={{ marginHorizontal: 16, padding: 18, gap: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 12,
+              backgroundColor: colors.surfaceMuted,
+              borderRadius: 16,
+              borderCurve: "continuous",
+              padding: 14,
+              marginBottom: 8,
+            }}
+          >
             <View style={{ flex: 1 }}>
-              <AppText size="xs" color="muted">
+              <AppText size="xs" color="subtle">
                 {t("insurance.claim.amount")}
               </AppText>
-              <AppText weight="700" size="md">
+              <AppText weight="700" size="xl" style={{ marginTop: 2 }}>
                 LKR {claim.amountRequestedLkr.toLocaleString()}
               </AppText>
             </View>
             {typeof claim.amountApprovedLkr === "number" ? (
-              <View style={{ flex: 1 }}>
-                <AppText size="xs" color="muted">
+              <View style={{ flex: 1, alignItems: "flex-end" }}>
+                <AppText size="xs" color="subtle">
                   {t("insurance.claim.approved")}
                 </AppText>
                 <AppText
                   weight="700"
-                  size="md"
-                  style={{ color: colors.success ?? "#10B981" }}
+                  size="xl"
+                  style={{ color: colors.success ?? "#10B981", marginTop: 2 }}
                 >
                   LKR {claim.amountApprovedLkr.toLocaleString()}
                 </AppText>
@@ -186,28 +211,28 @@ export default function ClaimDetail() {
 
           {claim.providerName ? (
             <Detail
-              icon={<Building2 size={14} />}
+              icon={<Building2 size={15} color={colors.primary} strokeWidth={2.3} />}
               label={t("insurance.provider.label")}
               value={claim.providerName}
             />
           ) : null}
           {claim.policyNumber ? (
             <Detail
-              icon={<FileText size={14} />}
+              icon={<FileText size={15} color={colors.primary} strokeWidth={2.3} />}
               label={t("insurance.policy.policyNumber")}
               value={claim.policyNumber}
             />
           ) : null}
           {claim.incurringFacility ? (
             <Detail
-              icon={<Building2 size={14} />}
+              icon={<Building2 size={15} color={colors.primary} strokeWidth={2.3} />}
               label={t("insurance.claim.facility")}
               value={claim.incurringFacility}
             />
           ) : null}
           {claim.admissionDate || claim.dischargeDate ? (
             <Detail
-              icon={<Calendar size={14} />}
+              icon={<Calendar size={15} color={colors.primary} strokeWidth={2.3} />}
               label={t("insurance.claim.dates", "Dates")}
               value={
                 [
@@ -224,11 +249,18 @@ export default function ClaimDetail() {
             />
           ) : null}
           {claim.diagnosis ? (
-            <View style={{ marginTop: 4 }}>
-              <AppText size="xs" color="muted">
+            <View
+              style={{
+                marginTop: 4,
+                paddingTop: 12,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
+              }}
+            >
+              <AppText size="xs" color="subtle">
                 {t("insurance.claim.diagnosis")}
               </AppText>
-              <AppText size="sm">{claim.diagnosis}</AppText>
+              <AppText size="md" style={{ marginTop: 2 }}>{claim.diagnosis}</AppText>
             </View>
           ) : null}
         </Card>
@@ -238,39 +270,39 @@ export default function ClaimDetail() {
           <>
             <SectionHeader
               title={t("insurance.claim.documents", "Documents")}
-              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+              style={{ paddingHorizontal: 16, paddingTop: 24 }}
             />
             <View
               style={{
                 paddingHorizontal: 16,
-                gap: 8,
+                gap: 10,
               }}
             >
               {claim.documents.map((d: any) => (
                 <Card
                   key={d.id}
                   style={{
-                    padding: 12,
+                    padding: 14,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 10,
+                    gap: 12,
                   }}
                 >
                   <View
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      backgroundColor:
-                        colors.surfaceMuted ?? colors.surface,
+                      width: 38,
+                      height: 38,
+                      borderRadius: 11,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.primarySoft,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <FileText size={16} color={colors.primary} />
+                    <FileText size={17} color={colors.primary} strokeWidth={2.3} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <AppText weight="600">
+                    <AppText weight="700" size="sm" style={{ textTransform: "capitalize" }}>
                       {t(
                         `insurance.claim.docKinds.${d.kind}`,
                         d.kind,
@@ -289,16 +321,24 @@ export default function ClaimDetail() {
         {/* Messages */}
         <SectionHeader
           title={t("insurance.claim.messages")}
-          style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          style={{ paddingHorizontal: 16, paddingTop: 24 }}
         />
-        <View style={{ paddingHorizontal: 16, gap: 10 }}>
+        <View style={{ paddingHorizontal: 16, gap: 12 }}>
           {messages.length === 0 ? (
             <AppText size="sm" color="muted">
               {t("insurance.claim.noMessages")}
             </AppText>
           ) : (
             messages.map((m: any, idx: number) => (
-              <View key={m.id ?? idx} style={{ gap: 4 }}>
+              <View
+                key={m.id ?? idx}
+                style={{
+                  gap: 4,
+                  maxWidth: "86%",
+                  alignSelf: m.senderRole === "patient" ? "flex-end" : "flex-start",
+                  alignItems: m.senderRole === "patient" ? "flex-end" : "flex-start",
+                }}
+              >
                 <AppText
                   size="xs"
                   weight="700"
@@ -307,7 +347,7 @@ export default function ClaimDetail() {
                       m.senderRole === "patient"
                         ? colors.primary
                         : colors.accent ?? colors.primary,
-                    marginLeft: 6,
+                    marginHorizontal: 8,
                   }}
                 >
                   {m.senderRole === "patient"
@@ -315,24 +355,23 @@ export default function ClaimDetail() {
                     : t("insurance.claim.operator", "Insurer")}
                 </AppText>
                 <Card
+                  elevated={m.senderRole !== "patient"}
                   style={{
-                    padding: 12,
+                    paddingVertical: 10,
+                    paddingHorizontal: 14,
+                    borderRadius: 20,
+                    borderWidth: m.senderRole === "patient" ? 0 : StyleSheet.hairlineWidth,
                     backgroundColor:
                       m.senderRole === "patient"
-                        ? colors.surface
-                        : colors.surfaceMuted ?? colors.surface,
-                    borderLeftWidth: 3,
-                    borderLeftColor:
-                      m.senderRole === "patient"
-                        ? colors.primary
-                        : colors.accent ?? colors.primary,
+                        ? colors.primarySoft
+                        : colors.surface,
                   }}
                 >
-                  <AppText size="sm">{m.body}</AppText>
+                  <AppText size="md">{m.body}</AppText>
                   <AppText
                     size="xs"
-                    color="muted"
-                    style={{ marginTop: 6 }}
+                    color="subtle"
+                    style={{ marginTop: 4 }}
                   >
                     {new Date(m.createdAt).toLocaleString()}
                   </AppText>
@@ -342,24 +381,28 @@ export default function ClaimDetail() {
           )}
         </View>
 
-        <Card style={{ margin: 16, padding: 12, gap: 8 }}>
+        <Card style={{ margin: 16, marginTop: 20, padding: 14, gap: 10 }}>
           <TextInput
             value={msg}
             onChangeText={setMsg}
             placeholder={t("insurance.claim.messagePlaceholder")}
+            placeholderTextColor={colors.textSubtle}
             multiline
             style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 10,
-              padding: 10,
+              backgroundColor: colors.fill,
+              borderRadius: radius.field,
+              borderCurve: "continuous",
+              paddingHorizontal: 14,
+              paddingVertical: 12,
               color: colors.text,
-              minHeight: 60,
+              minHeight: 72,
+              textAlignVertical: "top",
+              ...typography.body.md,
             }}
           />
           <Button
             label={t("insurance.claim.send")}
-            leftIcon={<Send size={14} />}
+            icon={Send}
             onPress={onSend}
             loading={postMut.isPending}
             disabled={!msg.trim()}
@@ -385,27 +428,94 @@ function Detail({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 12,
+        minHeight: 48,
+        paddingVertical: 8,
       }}
     >
       <View
         style={{
-          width: 26,
-          height: 26,
-          borderRadius: 8,
-          backgroundColor: colors.surfaceMuted,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          borderCurve: "continuous",
+          backgroundColor: colors.primarySoft,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {icon}
       </View>
-      <AppText size="sm" color="muted" style={{ flex: 1 }}>
+      <AppText size="md" color="muted" style={{ flex: 1 }}>
         {label}
       </AppText>
-      <AppText weight="600" size="sm" numberOfLines={1}>
+      <AppText weight="600" size="md" numberOfLines={1} style={{ maxWidth: "55%" }}>
         {value}
       </AppText>
     </View>
+  );
+}
+
+// Theme-aware text used by this screen: maps the terse size/weight/color
+// props onto typography tokens + theme colours so text stays legible in dark
+// mode (the shared AppText hard-codes light-mode hex colours).
+function AppText({
+  size,
+  weight,
+  color,
+  style,
+  ...rest
+}: {
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  weight?: string;
+  color?: "muted" | "subtle" | "primary" | "accent" | "danger" | "text";
+  style?: any;
+  [key: string]: any;
+}) {
+  const { colors, typography, fontFamily } = useTheme();
+  const tone =
+    color === "muted"
+      ? colors.textMuted
+      : color === "subtle"
+        ? colors.textSubtle
+        : color === "primary"
+          ? colors.primary
+          : color === "accent"
+            ? colors.accent
+            : color === "danger"
+              ? colors.danger
+              : colors.text;
+  const bold = weight === "700" || weight === "800" || weight === "900" || weight === "bold";
+  const semi = weight === "600" || weight === "500";
+  const base =
+    size === "2xl"
+      ? typography.display.md
+      : size === "xl"
+        ? typography.display.sm
+        : size === "lg"
+          ? bold
+            ? typography.title.lg
+            : typography.body.lg
+          : size === "md"
+            ? bold
+              ? typography.title.md
+              : typography.body.md
+            : size === "xs"
+              ? typography.caption
+              : bold
+                ? typography.title.xs
+                : typography.body.sm;
+  const family = bold
+    ? size === "xl" || size === "2xl" || size === "lg" || size === "md"
+      ? base.fontFamily
+      : fontFamily.bodyBold
+    : semi
+      ? fontFamily.bodySemibold
+      : base.fontFamily;
+  return (
+    <Text
+      {...rest}
+      style={[{ ...base, fontFamily: family, color: tone }, style]}
+    />
   );
 }

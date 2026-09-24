@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -114,7 +114,7 @@ export default function DoctorQueue() {
           />
         </View>
       ) : (
-        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.md }}>
           {queue.map((q: any) => {
             const tone = statusTone(q.status);
             const canStart = q.status === "scheduled" || q.status === "confirmed";
@@ -137,8 +137,8 @@ export default function DoctorQueue() {
                       tone={isWalkIn ? "warning" : "primary"}
                       source={q.patientPhoto ? { uri: q.patientPhoto } : undefined}
                     />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[typography.title.sm, { color: colors.text }]}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text numberOfLines={1} style={[typography.title.md, { color: colors.text }]}>
                         {q.patientName || t("doctorQueue.patientFallback")}
                       </Text>
                       <Text
@@ -151,7 +151,7 @@ export default function DoctorQueue() {
                         {q.reason || t("doctorQueue.noReason")}
                       </Text>
                     </View>
-                    <View style={{ flexDirection: "row", gap: 6 }}>
+                    <View style={{ flexDirection: "row", gap: 6, flexShrink: 0 }}>
                       {isWalkIn ? (
                         <Pill
                           icon={UserPlus}
@@ -196,6 +196,9 @@ export default function DoctorQueue() {
                       flexDirection: "row",
                       gap: spacing.sm,
                       flexWrap: "wrap",
+                      paddingTop: spacing.md,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.separator,
                     }}
                   >
                     <Button

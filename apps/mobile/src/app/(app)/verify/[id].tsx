@@ -141,6 +141,7 @@ export default function VerifyScreen() {
                   width: 56,
                   height: 56,
                   borderRadius: 18,
+                  borderCurve: "continuous",
                   backgroundColor: valid
                     ? colors.successSoft
                     : colors.warningSoft ?? colors.dangerSoft,
@@ -208,6 +209,7 @@ export default function VerifyScreen() {
                     width: 40,
                     height: 40,
                     borderRadius: 14,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
@@ -297,6 +299,7 @@ export default function VerifyScreen() {
                         width: 36,
                         height: 36,
                         borderRadius: 12,
+                        borderCurve: "continuous",
                         backgroundColor: colors.primarySoft,
                         alignItems: "center",
                         justifyContent: "center",

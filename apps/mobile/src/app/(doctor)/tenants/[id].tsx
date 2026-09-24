@@ -169,6 +169,7 @@ export default function DoctorTenantDetail() {
                 borderColor: colors.danger,
                 paddingVertical: spacing.md,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 alignItems: "center",
                 opacity: deleting ? 0.6 : 1,
               })}

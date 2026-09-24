@@ -103,16 +103,16 @@ export default function RateVisitScreen() {
           </Text>
         </Card>
 
-        <Card>
+        <Card style={{ alignItems: "center", paddingVertical: spacing.xxl }}>
           <Text
             style={[
-              typography.title.sm,
-              { color: colors.text, marginBottom: spacing.sm, fontWeight: "700" },
+              typography.title.lg,
+              { color: colors.text, marginBottom: spacing.lg, textAlign: "center" },
             ]}
           >
             {t("rateVisit.tapStars")}
           </Text>
-          <View style={{ flexDirection: "row", gap: spacing.xs }}>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
             {[1, 2, 3, 4, 5].map((n) => {
               const active = n <= stars;
               return (
@@ -128,7 +128,7 @@ export default function RateVisitScreen() {
                 >
                   <Star
                     size={42}
-                    color={active ? colors.warning : colors.border}
+                    color={active ? colors.warning : colors.borderStrong}
                     fill={active ? colors.warning : "transparent"}
                     strokeWidth={1.8}
                   />
@@ -139,8 +139,8 @@ export default function RateVisitScreen() {
           {stars > 0 ? (
             <Text
               style={[
-                typography.body.sm,
-                { color: colors.textMuted, marginTop: spacing.sm },
+                typography.label.md,
+                { color: colors.warning, marginTop: spacing.md },
               ]}
             >
               {t(`rateVisit.label.${stars}`)}
@@ -151,8 +151,8 @@ export default function RateVisitScreen() {
         <Card>
           <Text
             style={[
-              typography.title.sm,
-              { color: colors.text, marginBottom: spacing.xs, fontWeight: "700" },
+              typography.title.md,
+              { color: colors.text, marginBottom: spacing.sm },
             ]}
           >
             {t("rateVisit.optionalComment")}
@@ -161,19 +161,19 @@ export default function RateVisitScreen() {
             value={comment}
             onChangeText={setComment}
             placeholder={t("rateVisit.commentPlaceholder")}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.textSubtle}
             multiline
             numberOfLines={4}
             maxLength={500}
             style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: radius.md,
-              padding: spacing.md,
-              minHeight: 96,
+              backgroundColor: colors.fill,
+              borderRadius: radius.field,
+              borderCurve: "continuous",
+              padding: spacing.md + 2,
+              minHeight: 110,
+              ...typography.body.md,
               color: colors.text,
               textAlignVertical: "top",
-              fontSize: 15,
             }}
           />
         </Card>

@@ -526,10 +526,7 @@ export default function ProfileScreen() {
           }}
         >
           <Text
-            style={[
-              typography.display.sm,
-              { color: colors.text, fontWeight: "800", letterSpacing: -0.5 },
-            ]}
+            style={[typography.display.lg, { color: colors.text }]}
           >
             {t("profile.title")}
           </Text>
@@ -539,24 +536,22 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             accessibilityLabel={t("profile.item.notifications.label")}
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 15,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              ...shadow.sm,
+              backgroundColor: colors.fill,
             }}
           >
-            <Bell size={18} color={colors.text} strokeWidth={2} />
+            <Bell size={19} color={colors.text} strokeWidth={2.1} />
             {unreadCount > 0 ? (
               <View
                 style={{
                   position: "absolute",
-                  top: -5,
-                  right: -5,
+                  top: -3,
+                  right: -3,
                   minWidth: 18,
                   height: 18,
                   paddingHorizontal: 4,
@@ -569,7 +564,10 @@ export default function ProfileScreen() {
                 }}
               >
                 <Text
-                  style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "800" }}
+                  style={[
+                    typography.label.xs,
+                    { color: "#FFFFFF", fontSize: 10, lineHeight: 12, letterSpacing: 0 },
+                  ]}
                   numberOfLines={1}
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -589,6 +587,7 @@ export default function ProfileScreen() {
           <View
             style={{
               borderRadius: radius.xxxl,
+              borderCurve: "continuous",
               overflow: "hidden",
               ...shadow.hero,
             }}
@@ -660,6 +659,7 @@ export default function ProfileScreen() {
                   width: 36,
                   height: 36,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: "rgba(255, 255, 255, 0.16)",
@@ -700,7 +700,7 @@ export default function ProfileScreen() {
                     <View
                       style={{
                         borderRadius: 9999,
-                        backgroundColor: "#FFFFFF",
+                        backgroundColor: colors.surface,
                         overflow: "hidden",
                       }}
                     >
@@ -721,6 +721,7 @@ export default function ProfileScreen() {
                         width: 22,
                         height: 22,
                         borderRadius: 11,
+                        borderCurve: "continuous",
                         backgroundColor: "#10B981",
                         borderWidth: 2.5,
                         borderColor: "#FFFFFF",
@@ -902,6 +903,7 @@ export default function ProfileScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: radius.lg,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor: colors.warningSoft,
@@ -1013,7 +1015,7 @@ export default function ProfileScreen() {
                     showChevron
                     bordered={false}
                   />
-                  {i < accountItems.length - 1 ? <Divider /> : null}
+                  {i < accountItems.length - 1 ? <Divider inset={60} /> : null}
                 </View>
               ))}
             </Card>
@@ -1063,7 +1065,7 @@ export default function ProfileScreen() {
                       showChevron
                       bordered={false}
                     />
-                    {i < healthItems.length - 1 ? <Divider /> : null}
+                    {i < healthItems.length - 1 ? <Divider inset={60} /> : null}
                   </View>
                 ))}
               </Card>
@@ -1175,8 +1177,9 @@ function StatTile({
         flex: 1,
         backgroundColor: colors.surface,
         borderRadius: radius.xl,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         padding: spacing.md,
         gap: spacing.sm,
         ...shadow.md,
@@ -1189,6 +1192,7 @@ function StatTile({
           width: 30,
           height: 30,
           borderRadius: 10,
+          borderCurve: "continuous",
           backgroundColor: pal.bg,
           alignItems: "center",
           justifyContent: "center",
@@ -1249,6 +1253,7 @@ function QuickAction({
           width: 52,
           height: 52,
           borderRadius: radius.lg,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: pal.bg,

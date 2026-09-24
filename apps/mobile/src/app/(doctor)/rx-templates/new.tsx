@@ -115,6 +115,7 @@ export default function NewTemplateScreen() {
             width: 36,
             height: 36,
             borderRadius: 18,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
             marginRight: 8,

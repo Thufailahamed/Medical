@@ -8,6 +8,7 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
@@ -176,11 +177,7 @@ export default function SupportScreen() {
         {/* ── 1. Hero Card with Search & Availability Indicator ── */}
         <Card
           style={{
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 20,
-            padding: spacing.md,
+            padding: spacing.lg,
           }}
         >
           {/* Header Row */}
@@ -189,20 +186,21 @@ export default function SupportScreen() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 12,
+              marginBottom: spacing.md,
             }}
           >
             <View
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
-                backgroundColor: colors.primarySoft,
+                borderRadius: 13,
+                borderCurve: "continuous",
+                backgroundColor: colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Headphones size={22} color={colors.primary} />
+              <Headphones size={22} color={colors.onPrimary} />
             </View>
 
             {/* Live Support Indicator */}
@@ -211,12 +209,11 @@ export default function SupportScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
-                backgroundColor: withOpacity(colors.success || "#059669", 0.08),
+                backgroundColor: colors.successSoft,
                 paddingHorizontal: 10,
                 paddingVertical: 5,
                 borderRadius: 20,
-                borderWidth: 1,
-                borderColor: withOpacity(colors.success || "#059669", 0.2),
+                borderCurve: "continuous",
               }}
             >
               <View
@@ -224,15 +221,11 @@ export default function SupportScreen() {
                   width: 7,
                   height: 7,
                   borderRadius: 4,
-                  backgroundColor: colors.success || "#059669",
+                  backgroundColor: colors.success,
                 }}
               />
               <Text
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: "700",
-                  color: colors.success || "#059669",
-                }}
+                style={[typography.label.sm, { color: colors.success }]}
               >
                 Support Online
               </Text>
@@ -241,19 +234,14 @@ export default function SupportScreen() {
 
           <Text
             style={[
-              typography.title.sm,
-              { color: colors.text, fontWeight: "700", fontSize: 17, marginBottom: 3 },
+              typography.display.sm,
+              { color: colors.text, marginBottom: 4 },
             ]}
           >
             {t("support.heroTitle", { defaultValue: "How can we help?" })}
           </Text>
           <Text
-            style={{
-              fontSize: 12.5,
-              color: colors.textMuted,
-              lineHeight: 18,
-              marginBottom: 14,
-            }}
+            style={[typography.body.sm, { color: colors.textMuted, marginBottom: spacing.lg }]}
           >
             {t("support.heroSubtitle", {
               defaultValue: "Reach our care team or search common questions below.",
@@ -269,7 +257,6 @@ export default function SupportScreen() {
             tone="soft"
             trailingIcon={searchQuery ? X : undefined}
             onTrailingIconPress={() => setSearchQuery("")}
-            style={{ fontSize: 13.5 }}
           />
         </Card>
 
@@ -278,25 +265,18 @@ export default function SupportScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 10,
-            backgroundColor: withOpacity(colors.danger || "#EF4444", 0.06),
-            paddingHorizontal: 14,
-            paddingVertical: 10,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: withOpacity(colors.danger || "#EF4444", 0.2),
+            gap: spacing.md,
+            backgroundColor: colors.dangerSoft,
+            padding: spacing.md,
+            borderRadius: 18,
+            borderCurve: "continuous",
           }}
         >
-          <AlertTriangle size={18} color={colors.danger || "#EF4444"} />
+          <AlertTriangle size={18} color={colors.danger} />
           <Text
-            style={{
-              fontSize: 11.5,
-              color: colors.text,
-              flex: 1,
-              lineHeight: 16,
-            }}
+            style={[typography.body.sm, { color: colors.text, flex: 1 }]}
           >
-            <Text style={{ fontWeight: "700", color: colors.danger || "#EF4444" }}>
+            <Text style={[typography.label.md, { color: colors.danger }]}>
               Medical Emergency?
             </Text>{" "}
             Call emergency services (1990 / 911) or visit the nearest emergency room immediately.
@@ -304,71 +284,60 @@ export default function SupportScreen() {
         </View>
 
         {/* ── 3. Contact Channels ── */}
-        <View style={{ gap: spacing.xs + 2 }}>
+        <View style={{ gap: spacing.md }}>
           <Text
-            style={{
-              fontSize: 11.5,
-              fontWeight: "700",
-              color: colors.textMuted,
-              letterSpacing: 0.8,
-              textTransform: "uppercase",
-              marginLeft: 2,
-            }}
+            style={[typography.title.lg, { color: colors.text, marginLeft: 2 }]}
           >
             {t("support.contactHeading", { defaultValue: "Contact Us" })}
           </Text>
 
-          <View style={{ gap: 10 }}>
+          <Card padded={false}>
             {/* Email Support */}
             <Pressable
               onPress={openEmail}
               accessibilityRole="button"
               accessibilityLabel={t("support.contactEmailLabel")}
               style={({ pressed }) => ({
-                padding: 14,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-                backgroundColor: colors.surface,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+                minHeight: 64,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.separator,
+                backgroundColor: pressed ? colors.fill : "transparent",
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 12,
-                opacity: pressed ? 0.9 : 1,
+                gap: spacing.md,
               })}
             >
               <View
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
-                  backgroundColor: colors.primarySoft,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Mail size={20} color={colors.primary} />
+                <Mail size={18} color={colors.onPrimary} />
               </View>
 
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
-                  style={{
-                    fontSize: 14.5,
-                    fontWeight: "700",
-                    color: colors.text,
-                    marginBottom: 2,
-                  }}
+                  style={[typography.title.sm, { color: colors.text, marginBottom: 2 }]}
                 >
                   {t("support.contactEmailLabel", { defaultValue: "Email support" })}
                 </Text>
                 <Text
-                  style={{ fontSize: 12, color: colors.textMuted }}
+                  style={[typography.caption, { color: colors.textMuted }]}
                   numberOfLines={1}
                 >
                   {CONTACT.email}
                 </Text>
               </View>
 
-              <ExternalLink size={16} color={colors.textMuted} />
+              <ExternalLink size={16} color={colors.textSubtle} />
             </Pressable>
 
             {/* WhatsApp Support (if configured) */}
@@ -378,45 +347,42 @@ export default function SupportScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t("support.contactChatLabel")}
                 style={({ pressed }) => ({
-                  padding: 14,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: withOpacity("#10B981", 0.3),
-                  backgroundColor: withOpacity("#10B981", 0.04),
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
+                  minHeight: 64,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.separator,
+                  backgroundColor: pressed ? colors.fill : "transparent",
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 12,
-                  opacity: pressed ? 0.9 : 1,
+                  gap: spacing.md,
                 })}
               >
                 <View
                   style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
-                    backgroundColor: "#DCFCE7",
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.success,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <MessageCircle size={20} color="#15803D" />
+                  <MessageCircle size={18} color="#FFFFFF" />
                 </View>
 
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
                     <Text
-                      style={{
-                        fontSize: 14.5,
-                        fontWeight: "700",
-                        color: colors.text,
-                      }}
+                      style={[typography.title.sm, { color: colors.text }]}
                     >
                       {t("support.contactChatLabel", { defaultValue: "Chat on WhatsApp" })}
                     </Text>
                     <Pill label="Fastest" tone="success" size="sm" />
                   </View>
                   <Text
-                    style={{ fontSize: 12, color: colors.textMuted }}
+                    style={[typography.caption, { color: colors.textMuted }]}
                     numberOfLines={1}
                   >
                     {t("support.contactChatSubtitle", {
@@ -425,7 +391,7 @@ export default function SupportScreen() {
                   </Text>
                 </View>
 
-                <ExternalLink size={16} color={colors.textMuted} />
+                <ExternalLink size={16} color={colors.textSubtle} />
               </Pressable>
             ) : null}
 
@@ -435,56 +401,50 @@ export default function SupportScreen() {
               accessibilityRole="button"
               accessibilityLabel={t("support.contactCallLabel")}
               style={({ pressed }) => ({
-                padding: 14,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-                backgroundColor: colors.surface,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+                minHeight: 64,
+                backgroundColor: pressed ? colors.fill : "transparent",
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 12,
-                opacity: pressed ? 0.9 : 1,
+                gap: spacing.md,
               })}
             >
               <View
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
-                  backgroundColor: "#E0F2FE",
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.accent,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Phone size={20} color="#0284C7" />
+                <Phone size={18} color="#FFFFFF" />
               </View>
 
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
-                  style={{
-                    fontSize: 14.5,
-                    fontWeight: "700",
-                    color: colors.text,
-                    marginBottom: 2,
-                  }}
+                  style={[typography.title.sm, { color: colors.text, marginBottom: 2 }]}
                 >
                   {t("support.contactCallLabel", { defaultValue: "Call support" })}
                 </Text>
                 <Text
-                  style={{ fontSize: 12, color: colors.textMuted }}
+                  style={[typography.caption, { color: colors.textMuted }]}
                   numberOfLines={1}
                 >
                   {CONTACT.phone} · {t("support.hoursLabel", { defaultValue: "Mon–Fri, 9:00–18:00 IST" })}
                 </Text>
               </View>
 
-              <ExternalLink size={16} color={colors.textMuted} />
+              <ExternalLink size={16} color={colors.textSubtle} />
             </Pressable>
-          </View>
+          </Card>
         </View>
 
         {/* ── 4. Frequently Asked Questions (FAQ) ── */}
-        <View style={{ gap: spacing.sm }}>
+        <View style={{ gap: spacing.md }}>
           <View
             style={{
               flexDirection: "row",
@@ -494,18 +454,12 @@ export default function SupportScreen() {
             }}
           >
             <Text
-              style={{
-                fontSize: 11.5,
-                fontWeight: "700",
-                color: colors.textMuted,
-                letterSpacing: 0.8,
-                textTransform: "uppercase",
-              }}
+              style={[typography.title.lg, { color: colors.text }]}
             >
               {t("support.faqHeading", { defaultValue: "Frequently Asked" })}
             </Text>
             {searchQuery ? (
-              <Text style={{ fontSize: 11.5, color: colors.textMuted }}>
+              <Text style={[typography.caption, { color: colors.textSubtle }]}>
                 {filteredFaqs.length} results
               </Text>
             ) : null}
@@ -515,7 +469,7 @@ export default function SupportScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6, paddingVertical: 2 }}
+            contentContainerStyle={{ gap: spacing.sm, paddingVertical: 2 }}
           >
             {CATEGORIES.map((cat) => {
               const isSelected = activeCategory === cat.id;
@@ -538,26 +492,18 @@ export default function SupportScreen() {
                 padding: spacing.xl,
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: 16,
               }}
             >
               <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 6,
-                }}
+                style={[typography.title.md, { color: colors.text, marginBottom: 6 }]}
               >
                 No matching questions found
               </Text>
               <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textMuted,
-                  textAlign: "center",
-                  marginBottom: 12,
-                }}
+                style={[
+                  typography.body.sm,
+                  { color: colors.textMuted, textAlign: "center", marginBottom: spacing.lg },
+                ]}
               >
                 Try searching with different keywords or contact our support team.
               </Text>
@@ -573,7 +519,7 @@ export default function SupportScreen() {
               />
             </Card>
           ) : (
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: spacing.sm + 2 }}>
               {filteredFaqs.map((item, idx) => {
                 const isOpen = open === idx;
                 const questionKey = `support.faq.${item.key}.question`;
@@ -586,12 +532,9 @@ export default function SupportScreen() {
                     key={item.key}
                     padded={false}
                     style={{
-                      borderRadius: 16,
-                      borderWidth: 1,
-                      borderColor: isOpen ? colors.primary : colors.border,
-                      backgroundColor: isOpen
-                        ? withOpacity(colors.primary, 0.02)
-                        : colors.surface,
+                      borderRadius: 18,
+                      borderCurve: "continuous",
+                      ...(isOpen ? { borderWidth: 1, borderColor: withOpacity(colors.primary, 0.35) } : null),
                       overflow: "hidden",
                     }}
                   >
@@ -600,8 +543,8 @@ export default function SupportScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={t(questionKey)}
                       style={{
-                        paddingHorizontal: spacing.md,
-                        paddingVertical: 14,
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.md + 2,
                       }}
                     >
                       <View
@@ -617,7 +560,8 @@ export default function SupportScreen() {
                             width: 32,
                             height: 32,
                             borderRadius: 10,
-                            backgroundColor: isOpen ? colors.primarySoft : colors.bg,
+                            borderCurve: "continuous",
+                            backgroundColor: isOpen ? colors.primarySoft : colors.fill,
                             alignItems: "center",
                             justifyContent: "center",
                           }}
@@ -630,11 +574,9 @@ export default function SupportScreen() {
 
                         <Text
                           style={[
-                            typography.title.xs,
+                            typography.title.sm,
                             {
-                              color: isOpen ? colors.primary : colors.text,
-                              fontWeight: "700",
-                              fontSize: 14,
+                              color: colors.text,
                               flex: 1,
                             },
                           ]}
@@ -645,26 +587,24 @@ export default function SupportScreen() {
                         {isOpen ? (
                           <ChevronUp size={18} color={colors.primary} />
                         ) : (
-                          <ChevronDown size={18} color={colors.textMuted} />
+                          <ChevronDown size={18} color={colors.textSubtle} />
                         )}
                       </View>
 
                       {isOpen ? (
                         <View
                           style={{
-                            marginTop: 10,
-                            paddingTop: 10,
-                            borderTopWidth: 1,
-                            borderTopColor: colors.borderSoft,
+                            marginTop: spacing.md,
+                            paddingTop: spacing.md,
+                            borderTopWidth: StyleSheet.hairlineWidth,
+                            borderTopColor: colors.separator,
                           }}
                         >
                           <Text
-                            style={{
-                              fontSize: 12.5,
-                              color: colors.textMuted,
-                              lineHeight: 19,
-                              marginBottom: 12,
-                            }}
+                            style={[
+                              typography.body.sm,
+                              { color: colors.textMuted, lineHeight: 20, marginBottom: spacing.md },
+                            ]}
                           >
                             {t(answerKey)}
                           </Text>
@@ -675,13 +615,14 @@ export default function SupportScreen() {
                               flexDirection: "row",
                               alignItems: "center",
                               justifyContent: "space-between",
-                              backgroundColor: colors.bg,
-                              paddingHorizontal: 10,
-                              paddingVertical: 6,
-                              borderRadius: 10,
+                              backgroundColor: colors.fill,
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 12,
+                              borderCurve: "continuous",
                             }}
                           >
-                            <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                            <Text style={[typography.caption, { color: colors.textMuted }]}>
                               {userRating
                                 ? "Thanks for your feedback!"
                                 : "Was this answer helpful?"}
@@ -694,16 +635,16 @@ export default function SupportScreen() {
                                   hitSlop={6}
                                   style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
                                 >
-                                  <ThumbsUp size={12} color={colors.textMuted} />
-                                  <Text style={{ fontSize: 11, color: colors.textMuted }}>Yes</Text>
+                                  <ThumbsUp size={13} color={colors.primary} />
+                                  <Text style={[typography.label.sm, { color: colors.primary }]}>Yes</Text>
                                 </Pressable>
                                 <Pressable
                                   onPress={() => handleFeedback(item.key, "no")}
                                   hitSlop={6}
                                   style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
                                 >
-                                  <ThumbsDown size={12} color={colors.textMuted} />
-                                  <Text style={{ fontSize: 11, color: colors.textMuted }}>No</Text>
+                                  <ThumbsDown size={13} color={colors.textMuted} />
+                                  <Text style={[typography.label.sm, { color: colors.textMuted }]}>No</Text>
                                 </Pressable>
                               </View>
                             ) : null}
@@ -721,11 +662,7 @@ export default function SupportScreen() {
         {/* ── 5. Reassuring Footer ── */}
         <View style={{ alignItems: "center", gap: 4, marginTop: 4 }}>
           <Text
-            style={{
-              fontSize: 11.5,
-              fontWeight: "600",
-              color: colors.textMuted,
-            }}
+            style={[typography.label.sm, { color: colors.textSubtle }]}
           >
             HealthHub Patient Care • Version 1.0
           </Text>

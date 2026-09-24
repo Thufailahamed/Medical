@@ -65,7 +65,11 @@ export default function ShareScreen() {
     prefillFmName?: string;
   }>();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
+  const segOn = {
+    backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+    ...(scheme === "dark" ? null : shadow.xs),
+  };
   const toast = useToast();
   const locale = useLocaleStore((s) => s.locale);
   const { data, isLoading, isError, refetch, isFetching } = useShareLinks();
@@ -234,7 +238,7 @@ export default function ShareScreen() {
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.xs,
           paddingBottom: 120,
-          gap: spacing.md,
+          gap: spacing.lg,
         }}
         refreshControl={
           <RefreshControl
@@ -248,11 +252,7 @@ export default function ShareScreen() {
         {/* ── Clinical Sharing Overview Hero Card ── */}
         <Card
           style={{
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            borderWidth: 1,
-            borderRadius: 20,
-            padding: spacing.md,
+            padding: spacing.lg,
           }}
         >
           <View
@@ -260,35 +260,36 @@ export default function ShareScreen() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 10,
+              marginBottom: spacing.md,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flexShrink: 1 }}>
               <View
                 style={{
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
                   borderRadius: 12,
-                  backgroundColor: colors.primarySoft,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Globe size={20} color={colors.primary} />
+                <Globe size={20} color={colors.onPrimary} />
               </View>
-              <View>
+              <View style={{ flexShrink: 1 }}>
                 <Text
                   style={[
-                    typography.title.xs,
-                    { color: colors.text, fontWeight: "800", fontSize: 16 },
+                    typography.title.md,
+                    { color: colors.text },
                   ]}
                 >
                   Zero-Login Web Access
                 </Text>
                 <Text
                   style={[
-                    typography.body.xs,
-                    { color: colors.textMuted, fontSize: 11 },
+                    typography.caption,
+                    { color: colors.textSubtle },
                   ]}
                 >
                   Direct Clinical Sharing
@@ -303,16 +304,11 @@ export default function ShareScreen() {
                 gap: 5,
                 backgroundColor:
                   activeLinks.length > 0
-                    ? colors.successSoft || "#ECFDF5"
-                    : colors.surfaceMuted,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
+                    ? colors.successSoft
+                    : colors.fill,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
                 borderRadius: 999,
-                borderWidth: 1,
-                borderColor:
-                  activeLinks.length > 0
-                    ? colors.successBorder || "#A7F3D0"
-                    : colors.borderSoft,
               }}
             >
               <View
@@ -327,14 +323,15 @@ export default function ShareScreen() {
                 }}
               />
               <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color:
-                    activeLinks.length > 0
-                      ? colors.success || "#059669"
-                      : colors.textMuted,
-                }}
+                style={[
+                  typography.label.xs,
+                  {
+                    color:
+                      activeLinks.length > 0
+                        ? colors.success
+                        : colors.textMuted,
+                  },
+                ]}
               >
                 {activeLinks.length}{" "}
                 {activeLinks.length === 1 ? "Active Link" : "Active Links"}
@@ -344,11 +341,10 @@ export default function ShareScreen() {
 
           <Text
             style={[
-              typography.body.xs,
+              typography.body.sm,
               {
                 color: colors.textMuted,
-                lineHeight: 18,
-                marginBottom: spacing.md,
+                marginBottom: spacing.lg,
               },
             ]}
           >
@@ -361,21 +357,20 @@ export default function ShareScreen() {
           <View
             style={{
               flexDirection: "row",
-              gap: 10,
-              marginBottom: spacing.md,
+              gap: spacing.md,
+              marginBottom: spacing.lg,
             }}
           >
             <View
               style={{
                 flex: 1,
-                backgroundColor: colors.bg,
-                borderRadius: 14,
-                padding: 10,
-                borderWidth: 1,
-                borderColor: colors.borderSoft,
+                backgroundColor: colors.fill,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                padding: spacing.md,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 10,
+                gap: spacing.md,
               }}
             >
               <View
@@ -383,29 +378,22 @@ export default function ShareScreen() {
                   width: 32,
                   height: 32,
                   borderRadius: 10,
-                  backgroundColor: colors.successSoft || "#ECFDF5",
+                  borderCurve: "continuous",
+                  backgroundColor: colors.successSoft,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Share2 size={16} color={colors.success || "#059669"} />
+                <Share2 size={16} color={colors.success} />
               </View>
               <View>
                 <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "800",
-                    color: colors.text,
-                  }}
+                  style={[typography.display.sm, { color: colors.text }]}
                 >
                   {activeLinks.length}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 11,
-                    color: colors.textMuted,
-                    fontWeight: "600",
-                  }}
+                  style={[typography.caption, { color: colors.textSubtle }]}
                 >
                   Active Now
                 </Text>
@@ -415,14 +403,13 @@ export default function ShareScreen() {
             <View
               style={{
                 flex: 1,
-                backgroundColor: colors.bg,
-                borderRadius: 14,
-                padding: 10,
-                borderWidth: 1,
-                borderColor: colors.borderSoft,
+                backgroundColor: colors.fill,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                padding: spacing.md,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 10,
+                gap: spacing.md,
               }}
             >
               <View
@@ -430,6 +417,7 @@ export default function ShareScreen() {
                   width: 32,
                   height: 32,
                   borderRadius: 10,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -439,20 +427,12 @@ export default function ShareScreen() {
               </View>
               <View>
                 <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "800",
-                    color: colors.text,
-                  }}
+                  style={[typography.display.sm, { color: colors.text }]}
                 >
                   {links.length}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 11,
-                    color: colors.textMuted,
-                    fontWeight: "600",
-                  }}
+                  style={[typography.caption, { color: colors.textSubtle }]}
                 >
                   Total Created
                 </Text>
@@ -477,31 +457,31 @@ export default function ShareScreen() {
         <View
           style={{
             flexDirection: "row",
-            backgroundColor: colors.surface,
-            padding: 4,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: colors.border,
+            backgroundColor: colors.fill,
+            padding: 3,
+            gap: 2,
+            borderRadius: 12,
+            borderCurve: "continuous",
           }}
         >
           <Pressable
             onPress={() => setFilterTab("all")}
             style={{
               flex: 1,
+              minHeight: 34,
               paddingVertical: 8,
               borderRadius: 10,
-              backgroundColor:
-                filterTab === "all" ? colors.primary : "transparent",
+              borderCurve: "continuous",
+              ...(filterTab === "all" ? segOn : { backgroundColor: "transparent" }),
               alignItems: "center",
               justifyContent: "center",
             }}
           >
             <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: filterTab === "all" ? "#FFFFFF" : colors.textMuted,
-              }}
+              style={[
+                typography.label.md,
+                { color: filterTab === "all" ? colors.text : colors.textMuted },
+              ]}
             >
               All ({links.length})
             </Text>
@@ -511,20 +491,20 @@ export default function ShareScreen() {
             onPress={() => setFilterTab("active")}
             style={{
               flex: 1,
+              minHeight: 34,
               paddingVertical: 8,
               borderRadius: 10,
-              backgroundColor:
-                filterTab === "active" ? colors.primary : "transparent",
+              borderCurve: "continuous",
+              ...(filterTab === "active" ? segOn : { backgroundColor: "transparent" }),
               alignItems: "center",
               justifyContent: "center",
             }}
           >
             <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: filterTab === "active" ? "#FFFFFF" : colors.textMuted,
-              }}
+              style={[
+                typography.label.md,
+                { color: filterTab === "active" ? colors.text : colors.textMuted },
+              ]}
             >
               Active ({activeLinks.length})
             </Text>
@@ -534,20 +514,20 @@ export default function ShareScreen() {
             onPress={() => setFilterTab("expired")}
             style={{
               flex: 1,
+              minHeight: 34,
               paddingVertical: 8,
               borderRadius: 10,
-              backgroundColor:
-                filterTab === "expired" ? colors.primary : "transparent",
+              borderCurve: "continuous",
+              ...(filterTab === "expired" ? segOn : { backgroundColor: "transparent" }),
               alignItems: "center",
               justifyContent: "center",
             }}
           >
             <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: filterTab === "expired" ? "#FFFFFF" : colors.textMuted,
-              }}
+              style={[
+                typography.label.md,
+                { color: filterTab === "expired" ? colors.text : colors.textMuted },
+              ]}
             >
               Expired ({expiredLinks.length})
             </Text>
@@ -557,8 +537,8 @@ export default function ShareScreen() {
         {/* ── Links List ── */}
         {isLoading ? (
           <View style={{ gap: spacing.md }}>
-            <Skeleton width="100%" height={90} radius={16} />
-            <Skeleton width="100%" height={90} radius={16} />
+            <Skeleton width="100%" height={110} radius={radius.card} />
+            <Skeleton width="100%" height={110} radius={radius.card} />
           </View>
         ) : isError ? (
           <ErrorState
@@ -572,31 +552,28 @@ export default function ShareScreen() {
         ) : displayedLinks.length === 0 ? (
           <Card
             style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSoft,
-              borderRadius: 16,
               padding: spacing.xl,
               alignItems: "center",
             }}
           >
             <View
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
+                width: 60,
+                height: 60,
+                borderRadius: 20,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: spacing.sm,
+                marginBottom: spacing.md,
               }}
             >
-              <Share2 size={22} color={colors.primary} />
+              <Share2 size={26} color={colors.primary} />
             </View>
             <Text
               style={[
-                typography.title.xs,
-                { color: colors.text, fontWeight: "700", marginBottom: 4 },
+                typography.title.md,
+                { color: colors.text, marginBottom: 4, textAlign: "center" },
               ]}
             >
               {filterTab === "active"
@@ -607,12 +584,11 @@ export default function ShareScreen() {
             </Text>
             <Text
               style={[
-                typography.body.xs,
+                typography.body.sm,
                 {
                   color: colors.textMuted,
                   textAlign: "center",
-                  lineHeight: 18,
-                  marginBottom: filterTab === "all" ? spacing.md : 0,
+                  marginBottom: filterTab === "all" ? spacing.lg : 0,
                   paddingHorizontal: spacing.md,
                 },
               ]}
@@ -644,11 +620,7 @@ export default function ShareScreen() {
               <Card
                 key={l.id}
                 style={{
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: isLinkActive ? colors.primary : colors.border,
-                  borderRadius: 18,
-                  padding: spacing.md,
+                  padding: spacing.lg,
                 }}
               >
                 <View
@@ -661,24 +633,23 @@ export default function ShareScreen() {
                   {/* Status-aware Icon */}
                   <View
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      borderCurve: "continuous",
                       backgroundColor: isLinkActive
-                        ? colors.successSoft || "#ECFDF5"
-                        : colors.bg,
+                        ? colors.successSoft
+                        : isRevoked
+                        ? colors.dangerSoft
+                        : colors.fill,
                       alignItems: "center",
                       justifyContent: "center",
-                      borderWidth: 1,
-                      borderColor: isLinkActive
-                        ? colors.successBorder || "#A7F3D0"
-                        : colors.borderSoft,
                     }}
                   >
                     {isLinkActive ? (
-                      <Share2 size={20} color={colors.success || "#059669"} />
+                      <Share2 size={19} color={colors.success} />
                     ) : isRevoked ? (
-                      <XCircle size={20} color={colors.danger || "#DC2626"} />
+                      <XCircle size={19} color={colors.danger} />
                     ) : (
                       <Clock size={20} color={colors.textMuted} />
                     )}
@@ -697,11 +668,9 @@ export default function ShareScreen() {
                     >
                       <Text
                         style={[
-                          typography.title.sm,
+                          typography.title.md,
                           {
                             color: colors.text,
-                            fontWeight: "700",
-                            fontSize: 15,
                             flex: 1,
                           },
                         ]}
@@ -768,8 +737,8 @@ export default function ShareScreen() {
                         gap: 5,
                       }}
                     >
-                      <Clock size={12} color={colors.textMuted} />
-                      <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                      <Clock size={12} color={colors.textSubtle} />
+                      <Text style={[typography.caption, { color: colors.textSubtle }]}>
                         {isLinkActive
                           ? `Expires ${fmtDateTime(
                               new Date(l.expiresAt),
@@ -794,9 +763,9 @@ export default function ShareScreen() {
                       alignItems: "center",
                       gap: 8,
                       marginTop: spacing.md,
-                      paddingTop: spacing.sm,
-                      borderTopWidth: 1,
-                      borderTopColor: colors.borderSoft,
+                      paddingTop: spacing.md,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.separator,
                     }}
                   >
                     <Pressable
@@ -809,18 +778,14 @@ export default function ShareScreen() {
                         justifyContent: "center",
                         gap: 6,
                         backgroundColor: colors.primary,
-                        paddingVertical: 9,
-                        borderRadius: 10,
+                        height: 38,
+                        borderRadius: 19,
                         opacity: pressed ? 0.85 : 1,
                       })}
                     >
-                      <Share2 size={14} color="#FFFFFF" />
+                      <Share2 size={14} color={colors.onPrimary} />
                       <Text
-                        style={{
-                          color: "#FFFFFF",
-                          fontWeight: "700",
-                          fontSize: 12,
-                        }}
+                        style={[typography.label.md, { color: colors.onPrimary }]}
                       >
                         Share
                       </Text>
@@ -836,18 +801,14 @@ export default function ShareScreen() {
                         justifyContent: "center",
                         gap: 6,
                         backgroundColor: colors.primarySoft,
-                        paddingVertical: 9,
-                        borderRadius: 10,
+                        height: 38,
+                        borderRadius: 19,
                         opacity: pressed ? 0.85 : 1,
                       })}
                     >
                       <Copy size={14} color={colors.primary} />
                       <Text
-                        style={{
-                          color: colors.primary,
-                          fontWeight: "700",
-                          fontSize: 12,
-                        }}
+                        style={[typography.label.md, { color: colors.primary }]}
                       >
                         Copy Link
                       </Text>
@@ -859,16 +820,16 @@ export default function ShareScreen() {
                       accessibilityLabel="Revoke link"
                       hitSlop={8}
                       style={({ pressed }) => ({
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        backgroundColor: colors.dangerSoft || "#FEE2E2",
+                        width: 38,
+                        height: 38,
+                        borderRadius: 19,
+                        backgroundColor: colors.dangerSoft,
                         alignItems: "center",
                         justifyContent: "center",
                         opacity: pressed ? 0.75 : 1,
                       })}
                     >
-                      <Trash2 size={16} color={colors.danger || "#DC2626"} />
+                      <Trash2 size={16} color={colors.danger} />
                     </Pressable>
                   </View>
                 )}
@@ -880,10 +841,6 @@ export default function ShareScreen() {
         {/* ── What Doctors See Transparency Card ── */}
         <Card
           style={{
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 20,
             padding: spacing.lg,
           }}
         >
@@ -891,15 +848,16 @@ export default function ShareScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 10,
-              marginBottom: 8,
+              gap: spacing.md,
+              marginBottom: spacing.sm,
             }}
           >
             <View
               style={{
-                width: 34,
-                height: 34,
+                width: 32,
+                height: 32,
                 borderRadius: 10,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -909,8 +867,8 @@ export default function ShareScreen() {
             </View>
             <Text
               style={[
-                typography.title.xs,
-                { color: colors.text, fontWeight: "800", fontSize: 15 },
+                typography.title.md,
+                { color: colors.text, flex: 1 },
               ]}
             >
               What data does the doctor see?
@@ -918,26 +876,17 @@ export default function ShareScreen() {
           </View>
 
           <Text
-            style={{
-              fontSize: 12,
-              color: colors.textMuted,
-              lineHeight: 18,
-              marginBottom: 12,
-            }}
+            style={[typography.body.sm, { color: colors.textMuted, marginBottom: spacing.md }]}
           >
             Links provide a clean, read-only summary optimized for clinical
             review:
           </Text>
 
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <CheckCircle2 size={15} color={colors.success || "#10B981"} />
               <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.text,
-                  fontWeight: "600",
-                }}
+                style={[typography.label.md, { color: colors.text, flex: 1 }]}
               >
                 Active prescriptions, dosages & schedules
               </Text>
@@ -945,11 +894,7 @@ export default function ShareScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <CheckCircle2 size={15} color={colors.success || "#10B981"} />
               <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.text,
-                  fontWeight: "600",
-                }}
+                style={[typography.label.md, { color: colors.text, flex: 1 }]}
               >
                 Documented drug & food allergies
               </Text>
@@ -957,11 +902,7 @@ export default function ShareScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <CheckCircle2 size={15} color={colors.success || "#10B981"} />
               <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.text,
-                  fontWeight: "600",
-                }}
+                style={[typography.label.md, { color: colors.text, flex: 1 }]}
               >
                 Vital trends & diagnostic lab reports
               </Text>
@@ -969,11 +910,7 @@ export default function ShareScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <CheckCircle2 size={15} color={colors.success || "#10B981"} />
               <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.text,
-                  fontWeight: "600",
-                }}
+                style={[typography.label.md, { color: colors.text, flex: 1 }]}
               >
                 Medical timeline entries & consultation summaries
               </Text>
@@ -985,20 +922,15 @@ export default function ShareScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: 8,
-              marginTop: 12,
-              paddingTop: 10,
-              borderTopWidth: 1,
-              borderTopColor: colors.borderSoft,
+              marginTop: spacing.lg,
+              paddingTop: spacing.md,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.separator,
             }}
           >
-            <Lock size={14} color={colors.textMuted} />
+            <Lock size={14} color={colors.textSubtle} />
             <Text
-              style={{
-                fontSize: 11,
-                color: colors.textMuted,
-                flex: 1,
-                lineHeight: 16,
-              }}
+              style={[typography.caption, { color: colors.textSubtle, flex: 1 }]}
             >
               Account credentials, payment data, and private personal notes are
               strictly excluded.
@@ -1023,10 +955,11 @@ export default function ShareScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.xs,
-                padding: spacing.sm,
+                gap: spacing.sm,
+                padding: spacing.md,
                 backgroundColor: colors.primarySoft,
-                borderRadius: radius.md,
+                borderRadius: 14,
+                borderCurve: "continuous",
               }}
             >
               <User size={16} color={colors.primary} />
@@ -1052,13 +985,13 @@ export default function ShareScreen() {
               placeholder="e.g. Dr. Silva Consultation"
               placeholderTextColor={colors.textSubtle}
               style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderWidth: 1,
-                borderRadius: radius.md,
+                backgroundColor: colors.fill,
+                borderRadius: 14,
+                borderCurve: "continuous",
                 padding: spacing.md,
+                minHeight: 48,
                 color: colors.text,
-                fontSize: 15,
+                fontSize: 16,
               }}
             />
             {/* Quick Suggestion Chips */}
@@ -1066,8 +999,8 @@ export default function ShareScreen() {
               style={{
                 flexDirection: "row",
                 flexWrap: "wrap",
-                gap: 6,
-                marginTop: 6,
+                gap: spacing.sm,
+                marginTop: spacing.sm,
               }}
             >
               {QUICK_LABELS.map((item) => (
@@ -1075,20 +1008,15 @@ export default function ShareScreen() {
                   key={item}
                   onPress={() => setLabel(item)}
                   style={{
-                    backgroundColor: colors.bg,
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: colors.borderSoft,
+                    backgroundColor: colors.fill,
+                    paddingHorizontal: 12,
+                    height: 30,
+                    justifyContent: "center",
+                    borderRadius: 15,
                   }}
                 >
                   <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "600",
-                      color: colors.textMuted,
-                    }}
+                    style={[typography.label.sm, { color: colors.textMuted }]}
                   >
                     + {item}
                   </Text>
@@ -1099,31 +1027,30 @@ export default function ShareScreen() {
 
           {/* Scope Selector */}
           <FormField label="Records Included">
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <Pressable
                 onPress={() => setScope("all")}
                 style={{
                   flex: 1,
-                  padding: 10,
-                  borderRadius: 12,
+                  padding: spacing.md,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
                   backgroundColor:
-                    scope === "all" ? colors.primarySoft : colors.surface,
-                  borderWidth: 1,
+                    scope === "all" ? colors.primarySoft : colors.fill,
+                  borderWidth: 1.5,
                   borderColor:
-                    scope === "all" ? colors.primary : colors.border,
+                    scope === "all" ? colors.primary : "transparent",
                 }}
               >
                 <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "700",
-                    color: scope === "all" ? colors.primary : colors.text,
-                    marginBottom: 2,
-                  }}
+                  style={[
+                    typography.title.xs,
+                    { color: scope === "all" ? colors.primary : colors.text, marginBottom: 2 },
+                  ]}
                 >
                   Full History
                 </Text>
-                <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                <Text style={[typography.caption, { color: colors.textMuted }]}>
                   Complete medical timeline
                 </Text>
               </Pressable>
@@ -1132,29 +1059,27 @@ export default function ShareScreen() {
                 onPress={() => setScope("recent6m")}
                 style={{
                   flex: 1,
-                  padding: 10,
-                  borderRadius: 12,
+                  padding: spacing.md,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
                   backgroundColor:
                     scope === "recent6m"
                       ? colors.primarySoft
-                      : colors.surface,
-                  borderWidth: 1,
+                      : colors.fill,
+                  borderWidth: 1.5,
                   borderColor:
-                    scope === "recent6m" ? colors.primary : colors.border,
+                    scope === "recent6m" ? colors.primary : "transparent",
                 }}
               >
                 <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "700",
-                    color:
-                      scope === "recent6m" ? colors.primary : colors.text,
-                    marginBottom: 2,
-                  }}
+                  style={[
+                    typography.title.xs,
+                    { color: scope === "recent6m" ? colors.primary : colors.text, marginBottom: 2 },
+                  ]}
                 >
                   Last 6 Months
                 </Text>
-                <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                <Text style={[typography.caption, { color: colors.textMuted }]}>
                   Recent care & medications
                 </Text>
               </Pressable>
@@ -1179,32 +1104,30 @@ export default function ShareScreen() {
                       flex: 1,
                       paddingVertical: 10,
                       paddingHorizontal: 4,
-                      borderRadius: 12,
+                      borderRadius: 14,
+                      borderCurve: "continuous",
                       alignItems: "center",
                       backgroundColor: isSelected
                         ? colors.primary
-                        : colors.surface,
-                      borderWidth: 1,
-                      borderColor: isSelected ? colors.primary : colors.border,
+                        : colors.fill,
                     }}
                   >
                     <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "800",
-                        color: isSelected ? "#FFFFFF" : colors.text,
-                        marginBottom: 2,
-                      }}
+                      style={[
+                        typography.label.md,
+                        { color: isSelected ? colors.onPrimary : colors.text, marginBottom: 2 },
+                      ]}
                     >
                       {d.label}
                     </Text>
                     <Text
                       style={{
-                        fontSize: 9.5,
+                        fontSize: 10,
                         fontWeight: "600",
                         color: isSelected
-                          ? "rgba(255,255,255,0.8)"
+                          ? colors.onPrimary
                           : colors.textMuted,
+                        opacity: isSelected ? 0.8 : 1,
                       }}
                     >
                       {d.sub}
@@ -1220,17 +1143,18 @@ export default function ShareScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: spacing.xs,
-              padding: spacing.sm,
-              backgroundColor: colors.warningSoft || "#FEF3C7",
-              borderRadius: radius.md,
+              gap: spacing.sm,
+              padding: spacing.md,
+              backgroundColor: colors.warningSoft,
+              borderRadius: 14,
+              borderCurve: "continuous",
             }}
           >
-            <Lock size={15} color={colors.warning || "#D97706"} />
+            <Lock size={15} color={colors.warning} />
             <Text
               style={[
                 typography.caption,
-                { color: colors.text, flex: 1, lineHeight: 17, fontSize: 11 },
+                { color: colors.text, flex: 1 },
               ]}
             >
               Anyone with this link can view the selected records until it

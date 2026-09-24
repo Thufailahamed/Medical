@@ -10,6 +10,7 @@ import {
   RefreshControl,
   StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
   Building2,
@@ -43,7 +44,7 @@ import {
 type FilterTab = "all" | "hospitals" | "clinics";
 
 export default function PatientTenants() {
-  const { colors, spacing, typography, radius } = useTheme();
+  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
   const router = useRouter();
 
   const myHospitals = useActiveTenantStore((s) => s.myHospitals);
@@ -128,12 +129,10 @@ export default function PatientTenants() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderCurve: "continuous",
+              backgroundColor: pressed ? colors.fillStrong : colors.fill,
               alignItems: "center",
               justifyContent: "center",
-              opacity: pressed ? 0.75 : 1,
             })}
           >
             <QrCode size={19} color={colors.primary} />
@@ -144,8 +143,8 @@ export default function PatientTenants() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.xs,
-          paddingBottom: spacing.xxl,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xxxxl,
         }}
         refreshControl={
           <RefreshControl
@@ -159,253 +158,269 @@ export default function PatientTenants() {
       >
         {/* ── Healthcare Network Hub Card ── */}
         <Card
+          padded={false}
+          elevated={false}
           style={{
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            borderWidth: 1,
-            borderRadius: 20,
-            padding: spacing.md,
-            marginBottom: spacing.md,
+            borderRadius: radius.xxl,
+            borderCurve: "continuous",
+            borderWidth: 0,
+            overflow: "hidden",
+            marginBottom: spacing.xl,
+            ...(scheme === "dark" ? null : shadow.hero),
           }}
         >
-          {/* Header Row */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
-            }}
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ padding: spacing.xl }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <View
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ShieldCheck size={20} color={colors.primary} />
-              </View>
-              <View>
-                <Text
-                  style={[
-                    typography.title.xs,
-                    { color: colors.text, fontWeight: "800", fontSize: 16 },
-                  ]}
-                >
-                  Connected Care Network
-                </Text>
-                <Text
-                  style={[
-                    typography.body.xs,
-                    { color: colors.textMuted, fontSize: 11 },
-                  ]}
-                >
-                  Synchronized EHR & Digital Records
-                </Text>
-              </View>
-            </View>
-
+            <ShieldCheck
+              size={150}
+              color="#FFFFFF"
+              strokeWidth={1}
+              style={{
+                position: "absolute",
+                right: -30,
+                top: -24,
+                opacity: 0.08,
+              }}
+              pointerEvents="none"
+            />
+            {/* Header Row */}
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 5,
-                backgroundColor:
-                  totalCount > 0
-                    ? colors.successSoft || "#ECFDF5"
-                    : colors.surfaceMuted,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor:
-                  totalCount > 0
-                    ? colors.successBorder || "#A7F3D0"
-                    : colors.borderSoft,
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor:
-                    totalCount > 0
-                      ? colors.success || "#10B981"
-                      : colors.textMuted,
-                }}
-              />
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color:
-                    totalCount > 0
-                      ? colors.success || "#059669"
-                      : colors.textMuted,
-                }}
-              >
-                {totalCount} {totalCount === 1 ? "Facility" : "Facilities"}
-              </Text>
-            </View>
-          </View>
-
-          <Text
-            style={[
-              typography.body.xs,
-              {
-                color: colors.textMuted,
-                lineHeight: 18,
+                justifyContent: "space-between",
                 marginBottom: spacing.md,
-              },
-            ]}
-          >
-            Medical records, lab tests, prescriptions, and consult notes
-            automatically synchronize between your linked providers and your
-            timeline.
-          </Text>
+                gap: spacing.sm,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    borderCurve: "continuous",
+                    backgroundColor: "rgba(255,255,255,0.18)",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255,255,255,0.28)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ShieldCheck size={20} color="#FFFFFF" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={[
+                      typography.title.md,
+                      { color: "#FFFFFF" },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Connected Care Network
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: "rgba(255,255,255,0.78)" },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Synchronized EHR & Digital Records
+                  </Text>
+                </View>
+              </View>
 
-          {/* Dual Stat Metrics Strip */}
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 10,
-              marginBottom: spacing.md,
-            }}
-          >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
+                }}
+              >
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor:
+                      totalCount > 0
+                        ? "#8FF0C4"
+                        : "rgba(255,255,255,0.55)",
+                  }}
+                />
+                <Text
+                  style={[
+                    typography.label.sm,
+                    { color: "#FFFFFF" },
+                  ]}
+                >
+                  {totalCount} {totalCount === 1 ? "Facility" : "Facilities"}
+                </Text>
+              </View>
+            </View>
+
+            <Text
+              style={[
+                typography.body.sm,
+                {
+                  color: "rgba(255,255,255,0.82)",
+                  marginBottom: spacing.lg,
+                },
+              ]}
+            >
+              Medical records, lab tests, prescriptions, and consult notes
+              automatically synchronize between your linked providers and your
+              timeline.
+            </Text>
+
+            {/* Dual Stat Metrics Strip */}
             <View
               style={{
-                flex: 1,
-                backgroundColor: colors.bg,
-                borderRadius: 14,
-                padding: 10,
-                borderWidth: 1,
-                borderColor: colors.borderSoft,
                 flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
+                gap: spacing.sm,
+                marginBottom: spacing.lg,
               }}
             >
               <View
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  backgroundColor: colors.primarySoft,
+                  flex: 1,
+                  backgroundColor: "rgba(255,255,255,0.14)",
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  padding: spacing.md,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
+                  gap: spacing.md,
                 }}
               >
-                <Building2 size={16} color={colors.primary} />
-              </View>
-              <View>
-                <Text
+                <View
                   style={{
-                    fontSize: 16,
-                    fontWeight: "800",
-                    color: colors.text,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {myHospitals.length}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: colors.textMuted,
-                    fontWeight: "600",
-                  }}
-                >
-                  {myHospitals.length === 1 ? "Hospital" : "Hospitals"}
-                </Text>
+                  <Building2 size={17} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text
+                    style={[
+                      typography.display.sm,
+                      { color: "#FFFFFF" },
+                    ]}
+                  >
+                    {myHospitals.length}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: "rgba(255,255,255,0.78)" },
+                    ]}
+                  >
+                    {myHospitals.length === 1 ? "Hospital" : "Hospitals"}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: colors.bg,
-                borderRadius: 14,
-                padding: 10,
-                borderWidth: 1,
-                borderColor: colors.borderSoft,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
               <View
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  backgroundColor: colors.infoSoft || "#E0F2FE",
+                  flex: 1,
+                  backgroundColor: "rgba(255,255,255,0.14)",
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  padding: spacing.md,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
+                  gap: spacing.md,
                 }}
               >
-                <Stethoscope size={16} color={colors.info || "#0284C7"} />
-              </View>
-              <View>
-                <Text
+                <View
                   style={{
-                    fontSize: 16,
-                    fontWeight: "800",
-                    color: colors.text,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {myClinics.length}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: colors.textMuted,
-                    fontWeight: "600",
-                  }}
-                >
-                  {myClinics.length === 1 ? "Clinic" : "Clinics"}
-                </Text>
+                  <Stethoscope size={17} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text
+                    style={[
+                      typography.display.sm,
+                      { color: "#FFFFFF" },
+                    ]}
+                  >
+                    {myClinics.length}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: "rgba(255,255,255,0.78)" },
+                    ]}
+                  >
+                    {myClinics.length === 1 ? "Clinic" : "Clinics"}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Quick Action Button: Show Health ID at reception */}
-          <Pressable
-            onPress={() => router.push("/(app)/health-id" as any)}
-            accessibilityRole="button"
-            haptic="light"
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              backgroundColor: colors.primarySoft,
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: colors.primarySoft,
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            {/* Quick Action Button: Show Health ID at reception */}
+            <Pressable
+              onPress={() => router.push("/(app)/health-id" as any)}
+              accessibilityRole="button"
+              haptic="light"
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: "#FFFFFF",
+                minHeight: 46,
+                paddingHorizontal: spacing.lg,
+                borderRadius: 14,
+                borderCurve: "continuous",
+                opacity: pressed ? 0.85 : 1,
+              })}
             >
-              <QrCode size={16} color={colors.primary} />
-              <Text
-                style={[
-                  typography.body.xs,
-                  { color: colors.primary, fontWeight: "700", fontSize: 12 },
-                ]}
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}
               >
-                Show Health ID QR at reception to link
-              </Text>
-            </View>
-            <ChevronRight size={15} color={colors.primary} />
-          </Pressable>
+                <QrCode size={17} color={colors.primaryGradientEnd} />
+                <Text
+                  style={[
+                    typography.label.md,
+                    { color: colors.primaryGradientEnd, flex: 1 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  Show Health ID QR at reception to link
+                </Text>
+              </View>
+              <ChevronRight size={16} color={colors.primaryGradientEnd} />
+            </Pressable>
+          </LinearGradient>
         </Card>
 
         {/* ── Search Bar ── */}
@@ -416,39 +431,49 @@ export default function PatientTenants() {
           leadingIcon={Search}
           trailingIcon={searchQuery ? X : undefined}
           onTrailingIconPress={() => setSearchQuery("")}
-          containerStyle={{ marginBottom: spacing.md }}
+          tone="soft"
+          containerStyle={{
+            marginBottom: spacing.md,
+            minHeight: 44,
+            borderRadius: 12,
+            paddingHorizontal: spacing.md,
+          }}
+          style={{ fontSize: 16, paddingVertical: 10 }}
         />
 
         {/* ── Segmented Filter Control ── */}
         <View
           style={{
             flexDirection: "row",
-            backgroundColor: colors.surface,
-            padding: 4,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: colors.border,
-            marginBottom: spacing.lg,
+            backgroundColor: colors.fill,
+            padding: 3,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            marginBottom: spacing.xxl,
           }}
         >
           <Pressable
             onPress={() => setActiveTab("all")}
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 10,
-              backgroundColor:
-                activeTab === "all" ? colors.primary : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={[
+              {
+                flex: 1,
+                paddingVertical: 8,
+                borderRadius: 9,
+                borderCurve: "continuous",
+                backgroundColor:
+                  activeTab === "all" ? colors.surface : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+              activeTab === "all" && scheme !== "dark" ? shadow.xs : null,
+            ]}
           >
             <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: activeTab === "all" ? "#FFFFFF" : colors.textMuted,
-              }}
+              style={[
+                activeTab === "all" ? typography.label.md : typography.label.sm,
+                { color: activeTab === "all" ? colors.text : colors.textMuted },
+              ]}
+              numberOfLines={1}
             >
               All ({totalCount})
             </Text>
@@ -456,22 +481,26 @@ export default function PatientTenants() {
 
           <Pressable
             onPress={() => setActiveTab("hospitals")}
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 10,
-              backgroundColor:
-                activeTab === "hospitals" ? colors.primary : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={[
+              {
+                flex: 1,
+                paddingVertical: 8,
+                borderRadius: 9,
+                borderCurve: "continuous",
+                backgroundColor:
+                  activeTab === "hospitals" ? colors.surface : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+              activeTab === "hospitals" && scheme !== "dark" ? shadow.xs : null,
+            ]}
           >
             <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: activeTab === "hospitals" ? "#FFFFFF" : colors.textMuted,
-              }}
+              style={[
+                activeTab === "hospitals" ? typography.label.md : typography.label.sm,
+                { color: activeTab === "hospitals" ? colors.text : colors.textMuted },
+              ]}
+              numberOfLines={1}
             >
               Hospitals ({myHospitals.length})
             </Text>
@@ -479,22 +508,26 @@ export default function PatientTenants() {
 
           <Pressable
             onPress={() => setActiveTab("clinics")}
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 10,
-              backgroundColor:
-                activeTab === "clinics" ? colors.primary : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={[
+              {
+                flex: 1,
+                paddingVertical: 8,
+                borderRadius: 9,
+                borderCurve: "continuous",
+                backgroundColor:
+                  activeTab === "clinics" ? colors.surface : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+              activeTab === "clinics" && scheme !== "dark" ? shadow.xs : null,
+            ]}
           >
             <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: activeTab === "clinics" ? "#FFFFFF" : colors.textMuted,
-              }}
+              style={[
+                activeTab === "clinics" ? typography.label.md : typography.label.sm,
+                { color: activeTab === "clinics" ? colors.text : colors.textMuted },
+              ]}
+              numberOfLines={1}
             >
               Clinics ({myClinics.length})
             </Text>
@@ -503,7 +536,7 @@ export default function PatientTenants() {
 
         {/* ── Hospitals Section ── */}
         {(activeTab === "all" || activeTab === "hospitals") && (
-          <View style={{ marginBottom: spacing.xl, gap: spacing.sm }}>
+          <View style={{ marginBottom: spacing.xxl, gap: spacing.md }}>
             <SectionHeader
               icon={Building2}
               title="Hospitals I'm registered at"
@@ -554,7 +587,7 @@ export default function PatientTenants() {
 
         {/* ── Clinics Section ── */}
         {(activeTab === "all" || activeTab === "clinics") && (
-          <View style={{ marginBottom: spacing.xl, gap: spacing.sm }}>
+          <View style={{ marginBottom: spacing.xxl, gap: spacing.md }}>
             <SectionHeader
               icon={Stethoscope}
               title="Clinics I visit"
@@ -604,19 +637,15 @@ export default function PatientTenants() {
         {/* ── How to Link New Facilities Guide ── */}
         <Card
           style={{
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 20,
-            padding: spacing.lg,
+            padding: spacing.xl,
           }}
         >
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 10,
-              marginBottom: 8,
+              gap: spacing.md,
+              marginBottom: spacing.sm,
             }}
           >
             <View
@@ -624,6 +653,7 @@ export default function PatientTenants() {
                 width: 34,
                 height: 34,
                 borderRadius: 10,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -633,8 +663,8 @@ export default function PatientTenants() {
             </View>
             <Text
               style={[
-                typography.title.xs,
-                { color: colors.text, fontWeight: "800", fontSize: 15 },
+                typography.title.md,
+                { color: colors.text, flex: 1 },
               ]}
             >
               How to link a new facility
@@ -643,11 +673,10 @@ export default function PatientTenants() {
 
           <Text
             style={[
-              typography.body.xs,
+              typography.body.sm,
               {
                 color: colors.textMuted,
-                lineHeight: 18,
-                marginBottom: spacing.md,
+                marginBottom: spacing.lg,
               },
             ]}
           >
@@ -655,7 +684,7 @@ export default function PatientTenants() {
             simple steps:
           </Text>
 
-          <View style={{ gap: 12, marginBottom: spacing.lg }}>
+          <View style={{ gap: spacing.lg, marginBottom: spacing.xl }}>
             <GuideStep
               n={1}
               icon={QrCode}
@@ -679,6 +708,8 @@ export default function PatientTenants() {
           <Button
             variant="primary"
             size="md"
+            title="Open My Health ID"
+            icon={QrCode}
             onPress={() => router.push("/(app)/health-id" as any)}
             style={{ width: "100%" }}
           >
@@ -706,24 +737,20 @@ function SectionHeader({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: spacing.xs,
-        paddingHorizontal: 2,
-        marginBottom: 2,
+        gap: spacing.sm,
+        paddingHorizontal: 4,
       }}
     >
-      <Icon size={14} color={colors.textMuted} />
+      <Icon size={18} color={colors.primary} />
       <Text
         style={[
-          typography.label.md,
+          typography.title.lg,
           {
-            color: colors.textMuted,
-            fontWeight: "700",
-            letterSpacing: 0.8,
-            textTransform: "uppercase",
-            fontSize: 11,
+            color: colors.text,
             flex: 1,
           },
         ]}
+        numberOfLines={1}
       >
         {title}
       </Text>
@@ -751,8 +778,8 @@ function FacilityCard({
   onPress: () => void;
 }) {
   const { colors, spacing, typography } = useTheme();
-  const iconBg = tone === "primary" ? colors.primarySoft : (colors.infoSoft || "#E0F2FE");
-  const iconFg = tone === "primary" ? colors.primary : (colors.info || "#0284C7");
+  const iconBg = tone === "primary" ? colors.primarySoft : colors.infoSoft;
+  const iconFg = tone === "primary" ? colors.primary : colors.info;
 
   return (
     <Pressable
@@ -764,13 +791,12 @@ function FacilityCard({
       })}
     >
       <Card
-        style={{
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: isActive ? colors.primary : colors.border,
-          borderRadius: 16,
-          padding: spacing.md,
-        }}
+        style={[
+          { padding: spacing.lg },
+          isActive
+            ? { borderWidth: 1.5, borderColor: colors.primary }
+            : null,
+        ]}
       >
         <View
           style={{
@@ -782,9 +808,10 @@ function FacilityCard({
           {/* Facility Icon */}
           <View
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
+              width: 52,
+              height: 52,
+              borderRadius: 15,
+              borderCurve: "continuous",
               backgroundColor: iconBg,
               alignItems: "center",
               justifyContent: "center",
@@ -805,8 +832,8 @@ function FacilityCard({
             >
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "700", fontSize: 15 },
+                  typography.title.md,
+                  { color: colors.text, flexShrink: 1 },
                 ]}
                 numberOfLines={1}
               >
@@ -824,8 +851,8 @@ function FacilityCard({
 
             <Text
               style={[
-                typography.body.xs,
-                { color: colors.textMuted, fontSize: 12, marginBottom: 6 },
+                typography.body.sm,
+                { color: colors.textMuted, marginBottom: spacing.sm },
               ]}
               numberOfLines={1}
             >
@@ -847,17 +874,12 @@ function FacilityCard({
           {/* Chevron Action */}
           <View
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: colors.bg,
+              width: 24,
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.borderSoft,
             }}
           >
-            <ChevronRight size={16} color={colors.textMuted} />
+            <ChevronRight size={18} color={colors.textSubtle} />
           </View>
         </View>
       </Card>
@@ -877,28 +899,31 @@ function CompactEmptyStrip({
   subtitle: string;
   onPress: () => void;
 }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, typography, radius } = useTheme();
 
   return (
     <View
       style={{
         backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: colors.borderSoft,
+        borderColor: colors.border,
         borderStyle: "dashed",
-        borderRadius: 14,
-        padding: 12,
+        borderRadius: 18,
+        borderCurve: "continuous",
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        minHeight: 64,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: 10,
+        gap: spacing.md,
       }}
     >
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
+          gap: spacing.md,
           flex: 1,
         }}
       >
@@ -906,20 +931,21 @@ function CompactEmptyStrip({
           style={{
             width: 36,
             height: 36,
-            borderRadius: 10,
-            backgroundColor: colors.primarySoft,
+            borderRadius: 11,
+            borderCurve: "continuous",
+            backgroundColor: colors.fill,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon size={18} color={colors.primary} />
+          <Icon size={18} color={colors.textMuted} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[typography.title.sm, { color: colors.text }]}>
             {title}
           </Text>
           <Text
-            style={{ fontSize: 11, color: colors.textMuted }}
+            style={[typography.caption, { color: colors.textMuted }]}
             numberOfLines={1}
           >
             {subtitle}
@@ -931,18 +957,18 @@ function CompactEmptyStrip({
         onPress={onPress}
         accessibilityRole="button"
         style={{
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-          borderRadius: 8,
+          height: 32,
+          justifyContent: "center",
+          paddingHorizontal: spacing.md,
+          borderRadius: radius.full,
           backgroundColor: colors.primarySoft,
         }}
       >
         <Text
-          style={{
-            fontSize: 11,
-            fontWeight: "700",
-            color: colors.primary,
-          }}
+          style={[
+            typography.label.sm,
+            { color: colors.primary },
+          ]}
         >
           Show QR
         </Text>
@@ -970,51 +996,52 @@ function FullEmptyCard({
   return (
     <Card
       style={{
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.borderSoft,
-        borderRadius: 16,
-        padding: spacing.lg,
+        paddingVertical: spacing.xxl,
+        paddingHorizontal: spacing.xl,
         alignItems: "center",
       }}
     >
       <View
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: 26,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
           backgroundColor: colors.primarySoft,
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: spacing.sm,
+          marginBottom: spacing.md,
         }}
       >
         <Icon size={24} color={colors.primary} />
       </View>
       <Text
         style={[
-          typography.title.xs,
-          { color: colors.text, fontWeight: "700", marginBottom: 4 },
+          typography.title.md,
+          { color: colors.text, marginBottom: 6, textAlign: "center" },
         ]}
       >
         {title}
       </Text>
       <Text
         style={[
-          typography.body.xs,
+          typography.body.sm,
           {
             color: colors.textMuted,
             textAlign: "center",
-            lineHeight: 18,
-            marginBottom: showCta ? spacing.md : 0,
-            paddingHorizontal: spacing.md,
+            marginBottom: showCta ? spacing.lg : 0,
           },
         ]}
       >
         {body}
       </Text>
       {showCta && (
-        <Button variant="outline" size="sm" onPress={onCtaPress}>
+        <Button
+          variant="secondary"
+          size="sm"
+          title="View My Health ID"
+          fullWidth={false}
+          onPress={onCtaPress}
+        >
           View My Health ID
         </Button>
       )}
@@ -1037,41 +1064,39 @@ function GuideStep({
   const { colors, typography } = useTheme();
 
   return (
-    <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+    <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
       <View
         style={{
           width: 28,
           height: 28,
           borderRadius: 14,
-          backgroundColor: colors.primarySoft,
+          backgroundColor: colors.primary,
           alignItems: "center",
           justifyContent: "center",
-          marginTop: 1,
         }}
       >
         <Text
-          style={{
-            color: colors.primary,
-            fontSize: 12,
-            fontWeight: "800",
-          }}
+          style={[
+            typography.label.sm,
+            { color: colors.onPrimary },
+          ]}
         >
           {n}
         </Text>
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: 3 }}>
         <Text
           style={[
-            typography.body.xs,
-            { color: colors.text, fontWeight: "700", marginBottom: 2 },
+            typography.title.sm,
+            { color: colors.text, marginBottom: 2 },
           ]}
         >
           {title}
         </Text>
         <Text
           style={[
-            typography.body.xs,
-            { color: colors.textMuted, fontSize: 12, lineHeight: 16 },
+            typography.body.sm,
+            { color: colors.textMuted },
           ]}
         >
           {body}

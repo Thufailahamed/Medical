@@ -123,7 +123,8 @@ export default function BookAppointmentScreen() {
     prefillHospitalId?: string;
   }>();
   const { t } = useTranslation();
-  const { spacing, colors, typography, shadow } = useTheme();
+  const { spacing, colors, typography, shadow, scheme } = useTheme();
+  const cardShadow = scheme === "dark" ? null : shadow.sm;
   const bookAppointment = useBookAppointment();
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -484,15 +485,12 @@ export default function BookAppointmentScreen() {
               style={{
                 backgroundColor: colors.surface,
                 borderRadius: 22,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                 padding: spacing.lg,
-                gap: spacing.md,
-                shadowColor: colors.text,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.04,
-                shadowRadius: 8,
-                elevation: 2,
+                gap: spacing.lg,
+                ...cardShadow,
               }}
             >
               <View style={{ gap: 4 }}>
@@ -509,12 +507,10 @@ export default function BookAppointmentScreen() {
                 </View>
                 <Text
                   style={[
-                    typography.title.lg,
+                    typography.display.sm,
                     {
                       color: colors.text,
-                      fontWeight: "800",
-                      fontSize: 20,
-                      letterSpacing: -0.3,
+                      marginTop: 4,
                     },
                   ]}
                 >
@@ -529,8 +525,8 @@ export default function BookAppointmentScreen() {
                 </Text>
                 <Text
                   style={[
-                    typography.body.sm,
-                    { color: colors.textMuted, lineHeight: 19 },
+                    typography.body.md,
+                    { color: colors.textMuted },
                   ]}
                 >
                   {step1View === "doctors"
@@ -568,7 +564,7 @@ export default function BookAppointmentScreen() {
                     style={{
                       flexDirection: "row",
                       flexWrap: "wrap",
-                      gap: spacing.sm,
+                      gap: spacing.md,
                     }}
                   >
                     {filteredSpecialties.map((s, i) => (
@@ -598,7 +594,7 @@ export default function BookAppointmentScreen() {
                     style={{
                       flexDirection: "row",
                       flexWrap: "wrap",
-                      gap: spacing.xs,
+                      gap: spacing.sm,
                       alignItems: "center",
                     }}
                   >
@@ -633,10 +629,10 @@ export default function BookAppointmentScreen() {
                   </View>
 
                   {doctorsLoading ? (
-                    <View style={{ gap: spacing.sm }}>
-                      <Skeleton height={88} radius={16} />
-                      <Skeleton height={88} radius={16} />
-                      <Skeleton height={88} radius={16} />
+                    <View style={{ gap: spacing.md }}>
+                      <Skeleton height={92} radius={20} />
+                      <Skeleton height={92} radius={20} />
+                      <Skeleton height={92} radius={20} />
                     </View>
                   ) : isError ? (
                     <ErrorState
@@ -659,7 +655,7 @@ export default function BookAppointmentScreen() {
                       tone="neutral"
                     />
                   ) : (
-                    <View style={{ gap: spacing.sm }}>
+                    <View style={{ gap: spacing.md }}>
                       {filteredDoctors.map((d, i) => (
                         <DoctorRow
                           key={`${d.doctorId}-${i}`}
@@ -703,10 +699,10 @@ export default function BookAppointmentScreen() {
         {step === 2 ? (
           <View style={{ gap: spacing.md }}>
             <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.title.lg, { color: colors.text, fontWeight: "800" }]}>
+              <Text style={[typography.display.sm, { color: colors.text }]}>
                 {t("bookAppointment.step2Heading", "Choose your visit time")}
               </Text>
-              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+              <Text style={[typography.body.md, { color: colors.textMuted }]}>
                 {t(
                   "bookAppointment.step2Subtitle",
                   "Pick a date and an available slot that works for you."
@@ -717,12 +713,13 @@ export default function BookAppointmentScreen() {
             {selectedDoctor ? (
               <View
                 style={{
-                  borderRadius: 20,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  borderRadius: 22,
+                  borderCurve: "continuous",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                   backgroundColor: colors.surface,
-                  padding: spacing.md + 4,
-                  ...shadow.sm,
+                  padding: spacing.lg,
+                  ...cardShadow,
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
@@ -730,7 +727,7 @@ export default function BookAppointmentScreen() {
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                     <Text
                       numberOfLines={1}
-                      style={[typography.title.md, { color: colors.text, fontWeight: "800", letterSpacing: -0.3 }]}
+                      style={[typography.title.md, { color: colors.text }]}
                     >
                       {selectedDoctor.name}
                     </Text>
@@ -755,14 +752,12 @@ export default function BookAppointmentScreen() {
                       "View full doctor profile"
                     )}
                     style={({ pressed }) => ({
-                      width: 38,
-                      height: 38,
-                      borderRadius: 12,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceMuted,
-                      borderWidth: 1,
-                      borderColor: colors.border,
+                      backgroundColor: pressed ? colors.fillStrong : colors.fill,
                     })}
                   >
                     <Info size={18} color={colors.primary} strokeWidth={2.2} />
@@ -776,9 +771,9 @@ export default function BookAppointmentScreen() {
                     gap: 6,
                     alignItems: "center",
                     marginTop: spacing.md,
-                    paddingTop: spacing.sm + 2,
-                    borderTopWidth: 1,
-                    borderTopColor: colors.borderSoft,
+                    paddingTop: spacing.md,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
                   }}
                 >
                   {selectedDoctor.slmcVerifiedAt ? (
@@ -821,37 +816,39 @@ export default function BookAppointmentScreen() {
             <View
               style={{
                 backgroundColor: colors.surface,
-                borderRadius: 24,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderRadius: 22,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                 padding: spacing.lg,
                 gap: spacing.lg,
-                ...shadow.sm,
+                ...cardShadow,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                 <View
                   style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: colors.primarySoft,
+                    backgroundColor: colors.primary,
                   }}
                 >
-                  <CalendarIcon size={19} color={colors.primary} strokeWidth={2.3} />
+                  <CalendarIcon size={18} color={colors.onPrimary} strokeWidth={2.3} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
                     style={[
                       typography.title.md,
-                      { color: colors.text, fontWeight: "800" },
+                      { color: colors.text },
                     ]}
                   >
                     {t("bookAppointment.step2Title", "Pick a time")}
                   </Text>
-                  <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+                  <Text style={[typography.caption, { color: colors.textSubtle, marginTop: 1 }]}>
                     {t("bookAppointment.timezoneNote", "Times shown in your local timezone")}
                   </Text>
                 </View>
@@ -880,8 +877,9 @@ export default function BookAppointmentScreen() {
                 <View
                   style={{
                     flexDirection: "row",
-                    backgroundColor: colors.surfaceMuted,
+                    backgroundColor: colors.fill,
                     borderRadius: 12,
+                    borderCurve: "continuous",
                     padding: 3,
                     gap: 2,
                   }}
@@ -923,37 +921,39 @@ export default function BookAppointmentScreen() {
               style={{
                 backgroundColor: colors.surface,
                 borderRadius: 22,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                 padding: spacing.lg,
-                gap: spacing.md,
-                ...shadow.sm,
+                gap: spacing.lg,
+                ...cardShadow,
               }}
             >
               {/* Summary Header */}
               <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                 <View
                   style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    backgroundColor: colors.primarySoft,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.success,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Check size={20} color={colors.primary} strokeWidth={2.6} />
+                  <Check size={19} color={colors.onPrimary} strokeWidth={2.8} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
                     style={[
                       typography.title.md,
-                      { color: colors.text, fontWeight: "800", letterSpacing: -0.3 },
+                      { color: colors.text },
                     ]}
                   >
                     {t("bookAppointment.step3Title", "Appointment summary")}
                   </Text>
-                  <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+                  <Text style={[typography.caption, { color: colors.textSubtle, marginTop: 1 }]}>
                     {t("bookAppointment.step3Subtitle", "Review your visit details before submitting.")}
                   </Text>
                 </View>
@@ -967,16 +967,15 @@ export default function BookAppointmentScreen() {
                   gap: spacing.md,
                   padding: spacing.md,
                   borderRadius: 16,
-                  backgroundColor: colors.surfaceMuted,
-                  borderWidth: 1,
-                  borderColor: colors.borderSoft,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
                 }}
               >
                 <Avatar name={doctorDisplayName} size="md" tone="primary" />
                 <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                   <Text
                     numberOfLines={1}
-                    style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}
+                    style={[typography.title.sm, { color: colors.text }]}
                   >
                     {doctorDisplayName}
                   </Text>
@@ -994,19 +993,19 @@ export default function BookAppointmentScreen() {
               </View>
 
               {/* Appointment Schedule & Location Rows */}
-              <View style={{ gap: spacing.sm }}>
+              <View style={{ gap: spacing.md }}>
                 <SummaryRow
                   icon={CalendarIcon}
                   label={t("bookAppointment.summaryDate")}
                   value={formattedDate}
                 />
-                <View style={{ height: 1, backgroundColor: colors.borderSoft }} />
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginLeft: 36 + spacing.md }} />
                 <SummaryRow
                   icon={Clock}
                   label={t("bookAppointment.summaryTime")}
                   value={values.time || "—"}
                 />
-                <View style={{ height: 1, backgroundColor: colors.borderSoft }} />
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginLeft: 36 + spacing.md }} />
                 <SummaryRow
                   icon={Building2}
                   label={t("bookAppointment.summaryHospital")}
@@ -1014,33 +1013,37 @@ export default function BookAppointmentScreen() {
                 />
                 {selectedDoctor?.consultationFee ? (
                   <>
-                    <View style={{ height: 1, backgroundColor: colors.borderSoft }} />
+                    <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginLeft: 36 + spacing.md }} />
                     <SummaryRow
                       icon={Wallet}
                       label={t("bookAppointment.summaryFee")}
                       value={`LKR ${Number(selectedDoctor.consultationFee).toLocaleString()}`}
                     />
-                    <View style={{ height: 1, backgroundColor: colors.borderSoft }} />
+                    <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginLeft: 36 + spacing.md }} />
                     <View
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        paddingTop: 4,
+                        marginTop: spacing.xs,
+                        padding: spacing.md,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.primarySoft,
                       }}
                     >
                       <Text
                         style={[
-                          typography.label.md,
-                          { color: colors.text, fontWeight: "800" },
+                          typography.title.sm,
+                          { color: colors.text },
                         ]}
                       >
                         {t("bookAppointment.summaryTotal")}
                       </Text>
                       <Text
                         style={[
-                          typography.title.md,
-                          { color: colors.primary, fontWeight: "800" },
+                          typography.display.sm,
+                          { color: colors.primary },
                         ]}
                       >
                         {`LKR ${Number(selectedDoctor.consultationFee).toLocaleString()}`}
@@ -1056,11 +1059,12 @@ export default function BookAppointmentScreen() {
               style={{
                 backgroundColor: colors.surface,
                 borderRadius: 22,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                 padding: spacing.lg,
                 gap: spacing.md,
-                ...shadow.sm,
+                ...cardShadow,
               }}
             >
               <FormField
@@ -1086,7 +1090,7 @@ export default function BookAppointmentScreen() {
               </FormField>
 
               <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
-                <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+                <Text style={[typography.title.md, { color: colors.text }]}>
                   {t("bookAppointment.step3ModeTitle")}
                 </Text>
                 <Text style={[typography.body.sm, { color: colors.textMuted }]}>
@@ -1115,18 +1119,17 @@ export default function BookAppointmentScreen() {
                             flexDirection: "row",
                             alignItems: "center",
                             gap: spacing.sm,
-                            padding: spacing.sm + 2,
-                            borderRadius: 12,
-                            backgroundColor: colors.surfaceMuted,
-                            borderWidth: 1,
-                            borderColor: colors.borderSoft,
+                            padding: spacing.md,
+                            borderRadius: 14,
+                            borderCurve: "continuous",
+                            backgroundColor: colors.fill,
                           }}
                         >
-                          <Info size={16} color={colors.textMuted} />
+                          <Info size={16} color={colors.textSubtle} />
                           <Text
                             style={[
-                              typography.caption,
-                              { color: colors.textMuted, flex: 1, fontWeight: "500" },
+                              typography.body.sm,
+                              { color: colors.textMuted, flex: 1 },
                             ]}
                           >
                             {t("bookAppointment.videoUnavailableTitle")}: {t("bookAppointment.videoUnavailableBody")}
@@ -1158,15 +1161,10 @@ export default function BookAppointmentScreen() {
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
             paddingBottom: Math.max(insets.bottom, 16),
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            backgroundColor: colors.surface,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
+            backgroundColor: scheme === "dark" ? colors.bgElevated : colors.surface,
             marginTop: spacing.md,
-            shadowColor: colors.text,
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.05,
-            shadowRadius: 12,
-            elevation: 6,
           }}
         >
           <Button
@@ -1209,12 +1207,20 @@ export default function BookAppointmentScreen() {
       >
         <View style={{ gap: spacing.md }}>
           <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" }}>
-            <AlertCircle size={20} color={colors.warning || "#FF9500"} strokeWidth={2} />
+            <AlertCircle size={20} color={colors.warning} strokeWidth={2} />
             <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
               {t("bookAppointment.policyIntro")}
             </Text>
           </View>
-          <View style={{ gap: spacing.xs, paddingLeft: spacing.lg }}>
+          <View
+            style={{
+              gap: spacing.sm,
+              padding: spacing.md,
+              borderRadius: 14,
+              borderCurve: "continuous",
+              backgroundColor: colors.fill,
+            }}
+          >
             <Text style={[typography.body.sm, { color: colors.text }]}>
               {t("bookAppointment.policyFull")}
             </Text>
@@ -1273,9 +1279,10 @@ function SummaryRow({
     >
       <View
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: colors.primarySoft,
@@ -1287,7 +1294,7 @@ function SummaryRow({
         <Text
           style={[
             typography.caption,
-            { color: colors.textMuted, marginBottom: 2, fontWeight: "600" },
+            { color: colors.textSubtle, marginBottom: 2 },
           ]}
         >
           {label}
@@ -1295,7 +1302,7 @@ function SummaryRow({
         <Text
           style={[
             typography.title.sm,
-            { color: colors.text, fontWeight: "700" },
+            { color: colors.text },
           ]}
         >
           {value}
@@ -1331,28 +1338,23 @@ function SpecialtyCard({
       })}
       testID={`specialty-${name}`}
       style={({ pressed }) => ({
-        padding: spacing.md,
-        borderRadius: 18,
-        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-        borderWidth: 1,
-        borderColor: pressed ? colors.primary : colors.border,
-        gap: spacing.sm,
-        minHeight: 114,
+        padding: spacing.lg,
+        borderRadius: 20,
+        borderCurve: "continuous",
+        backgroundColor: pressed ? colors.fillStrong : colors.fill,
+        gap: spacing.md,
+        minHeight: 120,
         justifyContent: "space-between",
-        shadowColor: colors.text,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-        elevation: 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
+        transform: [{ scale: pressed ? 0.97 : 1 }],
       })}
     >
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 13,
-          backgroundColor: withOpacity(accent, 0.12),
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          backgroundColor: withOpacity(accent, 0.16),
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -1363,13 +1365,13 @@ function SpecialtyCard({
         <Text
           style={[
             typography.title.sm,
-            { color: colors.text, fontWeight: "700", letterSpacing: -0.2, fontSize: 14.5 },
+            { color: colors.text },
           ]}
           numberOfLines={1}
         >
           {name}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "500" }]}>
+        <Text style={[typography.caption, { color: colors.textSubtle }]}>
           {count > 0
             ? `${count} doctor${count > 1 ? "s" : ""}`
             : t("bookAppointment.tapToChoose", { defaultValue: "Tap to view" })}
@@ -1390,7 +1392,7 @@ function FilterPill({
   onPress: () => void;
   flex?: boolean;
 }) {
-  const { colors, typography } = useTheme();
+  const { colors, typography, shadow, scheme } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -1400,17 +1402,19 @@ function FilterPill({
       style={({ pressed }) => ({
         flex: flex ? 1 : undefined,
         paddingHorizontal: flex ? 8 : 14,
-        paddingVertical: 9,
+        paddingVertical: 8,
+        minHeight: 34,
         borderRadius: 10,
+        borderCurve: "continuous",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: active
-          ? colors.surface
-          : pressed
-            ? "rgba(255,255,255,0.5)"
-            : "transparent",
-        borderWidth: active ? 1 : 0,
-        borderColor: active ? colors.border : "transparent",
+          ? scheme === "dark"
+            ? colors.surfaceElevated
+            : colors.surface
+          : "transparent",
+        ...(active && scheme !== "dark" ? shadow.xs : null),
+        opacity: pressed && !active ? 0.6 : 1,
       })}
     >
       <Text
@@ -1418,8 +1422,6 @@ function FilterPill({
           typography.label.md,
           {
             color: active ? colors.text : colors.textMuted,
-            fontWeight: active ? "800" : "600",
-            fontSize: 12.5,
           },
         ]}
       >
@@ -1454,22 +1456,25 @@ function ModeOptionCard({
         alignItems: "center",
         gap: spacing.md,
         padding: spacing.md,
-        borderRadius: 16,
-        borderWidth: active ? 2 : 1,
-        borderColor: active ? colors.primary : colors.border,
+        minHeight: 72,
+        borderRadius: 18,
+        borderCurve: "continuous",
+        borderWidth: active ? 1.5 : StyleSheet.hairlineWidth,
+        borderColor: active ? colors.primary : colors.separator,
         backgroundColor: active
           ? colors.primarySoft
           : pressed
-            ? colors.surfaceMuted
-            : colors.surface,
+            ? colors.fillStrong
+            : colors.fill,
       })}
     >
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          backgroundColor: active ? colors.primary : colors.surfaceMuted,
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          backgroundColor: active ? colors.primary : colors.primarySoft,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -1481,7 +1486,7 @@ function ModeOptionCard({
         />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+        <Text style={[typography.title.sm, { color: colors.text }]}>
           {label}
         </Text>
         <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
@@ -1508,7 +1513,7 @@ function ModeOptionCard({
             height: 24,
             borderRadius: 999,
             borderWidth: 1.5,
-            borderColor: colors.borderStrong,
+            borderColor: colors.textSubtle,
           }}
         />
       )}
@@ -1533,6 +1538,7 @@ function DoctorRow({
   spacing: any;
   onPick: () => void;
 }) {
+  const { scheme } = useTheme();
   const accent = getSpecialtyAccent(d.specialization || "");
   const Icon = getSpecialtyIcon(d.specialization || "");
   const feeStr =
@@ -1553,26 +1559,23 @@ function DoctorRow({
         gap: spacing.md,
         padding: spacing.lg,
         borderRadius: 20,
+        borderCurve: "continuous",
         backgroundColor: selected
           ? colors.primarySoft
           : pressed
-            ? colors.surfaceMuted
-            : colors.surface,
-        borderWidth: selected ? 2 : 1,
-        borderColor: selected ? colors.primary : colors.border,
-        shadowColor: colors.text,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: selected ? 0.1 : 0.05,
-        shadowRadius: 10,
-        elevation: selected ? 3 : 2,
-        transform: [{ scale: pressed ? 0.99 : 1 }],
+            ? colors.fillStrong
+            : colors.fill,
+        borderWidth: selected ? 1.5 : StyleSheet.hairlineWidth,
+        borderColor: selected ? colors.primary : scheme === "dark" ? colors.borderStrong : "transparent",
+        transform: [{ scale: pressed ? 0.985 : 1 }],
       })}
     >
       <View
         style={{
           width: 48,
           height: 48,
-          borderRadius: 16,
+          borderRadius: 14,
+          borderCurve: "continuous",
           backgroundColor: accent,
           alignItems: "center",
           justifyContent: "center",
@@ -1585,7 +1588,7 @@ function DoctorRow({
           numberOfLines={1}
           style={[
             typography.title.sm,
-            { color: colors.text, fontWeight: "800", letterSpacing: -0.2 },
+            { color: colors.text },
           ]}
         >
           {d.name || t("bookAppointment.doctorFallback")}
@@ -1602,18 +1605,18 @@ function DoctorRow({
               <View
                 style={{
                   paddingHorizontal: 8,
-                  paddingVertical: 4,
+                  paddingVertical: 3,
                   borderRadius: 999,
                   backgroundColor: colors.warningSoft,
                 }}
               >
-                <Text style={[typography.caption, { color: colors.warningMuted, fontWeight: "800" }]}>
+                <Text style={[typography.label.xs, { color: colors.warningMuted }]}>
                   {`★ ${ratingStr}`}
                 </Text>
               </View>
             ) : null}
             {feeStr ? (
-              <Text style={[typography.caption, { color: colors.text, fontWeight: "700" }]}>
+              <Text style={[typography.label.sm, { color: colors.text }]}>
                 {feeStr}
               </Text>
             ) : null}

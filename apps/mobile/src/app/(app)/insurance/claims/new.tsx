@@ -3,7 +3,7 @@
 // upload via expo-document-picker / expo-image-picker → /files/upload.
 
 import { useState } from "react";
-import { View, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, ScrollView, TextInput, Alert } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -25,7 +25,6 @@ import {
   ChipGroup,
   Pill,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   useMyInsuranceEnrollments,
@@ -63,7 +62,16 @@ type AttachedDoc = {
 export default function NewClaim() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
+  const fieldStyle = {
+    backgroundColor: colors.fill,
+    borderRadius: radius.field,
+    borderCurve: "continuous" as const,
+    paddingHorizontal: 14,
+    minHeight: 48,
+    color: colors.text,
+    ...typography.body.md,
+  };
   const { data: enrollmentsData } = useMyInsuranceEnrollments();
   const createMut = useCreateInsuranceClaim();
   const submitMut = useSubmitInsuranceClaim();
@@ -209,10 +217,10 @@ export default function NewClaim() {
       />
 
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingVertical: 12, gap: 14, paddingBottom: 120 }}
       >
         <SectionHeader title={t("insurance.claim.policy")} />
-        <Card style={{ padding: 12, gap: 8 }}>
+        <Card style={{ padding: 16, gap: 8 }}>
           {activeEnrollments.length === 0 ? (
             <AppText size="sm" color="muted">
               {t("insurance.claim.noActivePolicy")}
@@ -235,9 +243,9 @@ export default function NewClaim() {
         </Card>
 
         <SectionHeader title={t("insurance.claim.treatment")} />
-        <Card style={{ padding: 16, gap: 12 }}>
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+        <Card style={{ padding: 20, gap: 18 }}>
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.claim.treatmentType")}
             </AppText>
             <ChipGroup>
@@ -252,27 +260,24 @@ export default function NewClaim() {
             </ChipGroup>
           </View>
 
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.claim.facility")}
             </AppText>
             <TextInput
               value={facility}
               onChangeText={setFacility}
               placeholder={t("insurance.claim.facilityPlaceholder")}
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
+                ...fieldStyle,
               }}
             />
           </View>
 
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1, gap: 6 }}>
-              <AppText size="sm" color="muted">
+            <View style={{ flex: 1, gap: 8 }}>
+              <AppText size="sm" weight="600" color="muted">
                 {t("insurance.claim.admissionDate")}
               </AppText>
               <TextInput
@@ -280,17 +285,14 @@ export default function NewClaim() {
                 onChangeText={setAdmissionDate}
                 placeholder="YYYY-MM-DD"
                 autoCapitalize="none"
+                placeholderTextColor={colors.textSubtle}
                 style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 10,
-                  padding: 12,
-                  color: colors.text,
+                  ...fieldStyle,
                 }}
               />
             </View>
-            <View style={{ flex: 1, gap: 6 }}>
-              <AppText size="sm" color="muted">
+            <View style={{ flex: 1, gap: 8 }}>
+              <AppText size="sm" weight="600" color="muted">
                 {t("insurance.claim.dischargeDate")}
               </AppText>
               <TextInput
@@ -298,19 +300,16 @@ export default function NewClaim() {
                 onChangeText={setDischargeDate}
                 placeholder="YYYY-MM-DD"
                 autoCapitalize="none"
+                placeholderTextColor={colors.textSubtle}
                 style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 10,
-                  padding: 12,
-                  color: colors.text,
+                  ...fieldStyle,
                 }}
               />
             </View>
           </View>
 
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.claim.diagnosis")}
             </AppText>
             <TextInput
@@ -318,19 +317,18 @@ export default function NewClaim() {
               onChangeText={setDiagnosis}
               placeholder={t("insurance.claim.diagnosisPlaceholder")}
               multiline
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
-                minHeight: 70,
+                ...fieldStyle,
+                minHeight: 88,
+                paddingTop: 12,
+                textAlignVertical: "top",
               }}
             />
           </View>
 
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.claim.amount")}
             </AppText>
             <TextInput
@@ -338,38 +336,34 @@ export default function NewClaim() {
               onChangeText={setAmount}
               keyboardType="numeric"
               placeholder="0"
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
+                ...fieldStyle,
               }}
             />
           </View>
 
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.claim.remarks")}
             </AppText>
             <TextInput
               value={remarks}
               onChangeText={setRemarks}
               multiline
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
-                minHeight: 70,
+                ...fieldStyle,
+                minHeight: 88,
+                paddingTop: 12,
+                textAlignVertical: "top",
               }}
             />
           </View>
         </Card>
 
         <SectionHeader title={t("insurance.claim.documents")} />
-        <Card style={{ padding: 16, gap: 10 }}>
+        <Card style={{ padding: 20, gap: 14 }}>
           <AppText size="xs" color="muted">
             {t("insurance.claim.docKindHint") ||
               "Pick the document type before adding."}
@@ -386,17 +380,17 @@ export default function NewClaim() {
           </View>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Button
-              variant="outline"
+              variant="secondary"
               label={t("insurance.claim.uploadDoc") || "Upload file"}
-              leftIcon={<Upload size={14} />}
+              icon={Upload}
               onPress={onPickDocument}
               loading={uploadMut.isPending}
               style={{ flex: 1 }}
             />
             <Button
-              variant="outline"
+              variant="secondary"
               label={t("insurance.claim.takePhoto") || "Photo"}
-              leftIcon={<Camera size={14} />}
+              icon={Camera}
               onPress={onTakePhoto}
               loading={uploadMut.isPending}
               style={{ flex: 1 }}
@@ -413,16 +407,27 @@ export default function NewClaim() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 8,
-                  backgroundColor: colors.surface,
-                  borderRadius: 10,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  gap: 12,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: colors.surfaceMuted,
+                  borderRadius: 14,
+                  borderCurve: "continuous",
                 }}
               >
-                <FileText size={14} color={colors.primary} />
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <FileText size={15} color={colors.primary} strokeWidth={2.3} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <AppText size="sm" weight="600">
                     {t(`insurance.claim.docKinds.${d.kind}`)}
@@ -445,11 +450,76 @@ export default function NewClaim() {
 
         <Button
           label={t("insurance.claim.submit")}
+          size="lg"
           onPress={onSubmit}
           disabled={!enrollmentId || !amount}
           loading={createMut.isPending || submitMut.isPending}
         />
       </ScrollView>
     </Screen>
+  );
+}
+
+// Theme-aware text used by this screen: maps the terse size/weight/color
+// props onto typography tokens + theme colours so text stays legible in dark
+// mode (the shared AppText hard-codes light-mode hex colours).
+function AppText({
+  size,
+  weight,
+  color,
+  style,
+  ...rest
+}: {
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  weight?: string;
+  color?: "muted" | "subtle" | "primary" | "accent" | "danger" | "text";
+  style?: any;
+  [key: string]: any;
+}) {
+  const { colors, typography, fontFamily } = useTheme();
+  const tone =
+    color === "muted"
+      ? colors.textMuted
+      : color === "subtle"
+        ? colors.textSubtle
+        : color === "primary"
+          ? colors.primary
+          : color === "accent"
+            ? colors.accent
+            : color === "danger"
+              ? colors.danger
+              : colors.text;
+  const bold = weight === "700" || weight === "800" || weight === "900" || weight === "bold";
+  const semi = weight === "600" || weight === "500";
+  const base =
+    size === "2xl"
+      ? typography.display.md
+      : size === "xl"
+        ? typography.display.sm
+        : size === "lg"
+          ? bold
+            ? typography.title.lg
+            : typography.body.lg
+          : size === "md"
+            ? bold
+              ? typography.title.md
+              : typography.body.md
+            : size === "xs"
+              ? typography.caption
+              : bold
+                ? typography.title.xs
+                : typography.body.sm;
+  const family = bold
+    ? size === "xl" || size === "2xl" || size === "lg" || size === "md"
+      ? base.fontFamily
+      : fontFamily.bodyBold
+    : semi
+      ? fontFamily.bodySemibold
+      : base.fontFamily;
+  return (
+    <Text
+      {...rest}
+      style={[{ ...base, fontFamily: family, color: tone }, style]}
+    />
   );
 }

@@ -62,9 +62,10 @@ function ConversationCardSkeleton({ colors }: { colors: any }) {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: colors.surface,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle ?? colors.border,
+        borderRadius: 20,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         padding: 14,
         marginBottom: 10,
         gap: 12,
@@ -100,7 +101,8 @@ function DoctorPathwayCard({
   badge?: string;
   onPress: () => void;
 }) {
-  const { colors, typography } = useTheme();
+  const { colors, typography, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
 
   return (
     <Pressable
@@ -112,19 +114,23 @@ function DoctorPathwayCard({
         alignItems: "center",
         gap: 12,
         padding: 14,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle ?? colors.border,
+        minHeight: 64,
+        borderRadius: 20,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.separator,
         backgroundColor: colors.surface,
+        ...(isDark ? {} : shadow.xs),
         opacity: pressed ? 0.88 : 1,
         transform: [{ scale: pressed ? 0.99 : 1 }],
       })}
     >
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 14,
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          borderCurve: "continuous",
           backgroundColor: iconBg,
           alignItems: "center",
           justifyContent: "center",
@@ -137,8 +143,8 @@ function DoctorPathwayCard({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text
             style={[
-              typography.bodyBold,
-              { color: colors.text, fontWeight: "700", fontSize: 14.5 },
+              typography.title.sm,
+              { color: colors.text },
             ]}
           >
             {title}
@@ -146,19 +152,14 @@ function DoctorPathwayCard({
           {badge ? <Pill label={badge} tone="accent" size="sm" /> : null}
         </View>
         <Text
-          style={{
-            fontSize: 12,
-            color: colors.textMuted,
-            marginTop: 2,
-            lineHeight: 16,
-          }}
+          style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}
           numberOfLines={1}
         >
           {subtitle}
         </Text>
       </View>
 
-      <ChevronRight size={18} color={colors.textSubtle} />
+      <ChevronRight size={17} color={colors.textSubtle} strokeWidth={2.4} />
     </Pressable>
   );
 }
@@ -166,7 +167,24 @@ function DoctorPathwayCard({
 export default function DoctorInboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography, fontFamily, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const segStyle = (active: boolean) => ({
+    flex: 1,
+    height: 32,
+    paddingHorizontal: 6,
+    borderRadius: 9,
+    borderCurve: "continuous" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: active ? colors.surface : "transparent",
+    ...(active ? shadow.xs : shadow.none),
+  });
+  const segText = (active: boolean) => [
+    active ? typography.label.sm : typography.body.xs,
+    { color: active ? colors.text : colors.textMuted },
+  ];
   const locale = useLocaleStore((s) => s.locale);
   const { data, isLoading, isError, refetch, isRefetching } = useDoctorConversations();
 
@@ -224,18 +242,17 @@ export default function DoctorInboxScreen() {
           style={({ pressed }) => ({
             flexDirection: "row",
             alignItems: "center",
-            padding: 14,
+            paddingVertical: 14,
+            paddingHorizontal: 14,
             marginBottom: 10,
-            borderRadius: 18,
-            borderWidth: 1,
-            borderColor: isUnread
-              ? withOpacity(colors.primary, 0.3)
-              : (colors.borderSubtle ?? colors.border),
-            backgroundColor: isUnread
-              ? withOpacity(colors.primary, 0.04)
-              : colors.surface,
-            opacity: pressed ? 0.9 : 1,
-            transform: [{ scale: pressed ? 0.995 : 1 }],
+            minHeight: 76,
+            borderRadius: 20,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isUnread ? withOpacity(colors.primary, 0.35) : hairline,
+            backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+            transform: [{ scale: pressed ? 0.99 : 1 }],
+            ...(isDark ? {} : shadow.xs),
           })}
         >
           {/* Avatar with Active Online Status Dot */}
@@ -254,8 +271,8 @@ export default function DoctorInboxScreen() {
                   width: 13,
                   height: 13,
                   borderRadius: 7,
-                  backgroundColor: colors.success || "#10B981",
-                  borderWidth: 2,
+                  backgroundColor: colors.success,
+                  borderWidth: 2.5,
                   borderColor: colors.surface,
                 }}
               />
@@ -276,11 +293,9 @@ export default function DoctorInboxScreen() {
               <Text
                 numberOfLines={1}
                 style={[
-                  typography.bodyBold,
+                  isUnread ? typography.title.md : typography.title.sm,
                   {
                     color: colors.text,
-                    fontWeight: isUnread ? "800" : "600",
-                    fontSize: 15,
                     flex: 1,
                     marginRight: 8,
                   },
@@ -293,31 +308,23 @@ export default function DoctorInboxScreen() {
                 {isClosed && (
                   <View
                     style={{
-                      backgroundColor: withOpacity(colors.warning || "#F59E0B", 0.15),
+                      backgroundColor: colors.fill,
                       borderRadius: 6,
+                      borderCurve: "continuous",
                       paddingHorizontal: 6,
                       paddingVertical: 2,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontWeight: "700",
-                        color: colors.warning || "#B45309",
-                        fontFamily: fontFamily.bodyBold,
-                      }}
-                    >
+                    <Text style={[typography.label.xs, { fontSize: 10, color: colors.textMuted }]}>
                       Closed
                     </Text>
                   </View>
                 )}
                 <Text
-                  style={{
-                    fontSize: 11.5,
-                    color: isUnread ? colors.primary : colors.textSubtle,
-                    fontFamily: isUnread ? fontFamily.bodyBold : fontFamily.body,
-                    fontWeight: isUnread ? "700" : "500",
-                  }}
+                  style={[
+                    isUnread ? typography.label.sm : typography.caption,
+                    { color: isUnread ? colors.primary : colors.textSubtle },
+                  ]}
                 >
                   {timeAgo(item.lastMessageAt, locale)}
                 </Text>
@@ -334,16 +341,13 @@ export default function DoctorInboxScreen() {
             >
               <Text
                 numberOfLines={1}
-                style={{
-                  fontSize: 13,
-                  color: isUnread ? colors.text : colors.textMuted,
-                  fontWeight: isUnread ? "600" : "400",
-                  flex: 1,
-                  lineHeight: 18,
-                }}
+                style={[
+                  isUnread ? typography.label.md : typography.body.sm,
+                  { color: isUnread ? colors.text : colors.textMuted, flex: 1 },
+                ]}
               >
                 {item.lastMessageSender === "doctor" ? (
-                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                  <Text style={{ color: colors.textSubtle }}>
                     {t("inbox.youPrefix", { defaultValue: "You:" })}{" "}
                   </Text>
                 ) : null}
@@ -356,6 +360,7 @@ export default function DoctorInboxScreen() {
                     minWidth: 20,
                     height: 20,
                     borderRadius: 10,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primary,
                     alignItems: "center",
                     justifyContent: "center",
@@ -363,14 +368,7 @@ export default function DoctorInboxScreen() {
                     marginLeft: 8,
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "#FFFFFF",
-                      fontSize: 11,
-                      fontWeight: "800",
-                      fontFamily: fontFamily.displayBold,
-                    }}
-                  >
+                  <Text style={[typography.label.xs, { color: colors.onPrimary }]}>
                     {unread > 99 ? "99+" : unread}
                   </Text>
                 </View>
@@ -382,7 +380,7 @@ export default function DoctorInboxScreen() {
         </Pressable>
       );
     },
-    [colors, typography, fontFamily, locale, router, t]
+    [colors, typography, fontFamily, locale, router, t, hairline, isDark, shadow]
   );
 
   return (
@@ -411,6 +409,7 @@ export default function DoctorInboxScreen() {
                   width: 32,
                   height: 32,
                   borderRadius: 10,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -418,17 +417,7 @@ export default function DoctorInboxScreen() {
               >
                 <MessageSquare size={17} color={colors.primary} strokeWidth={2.4} />
               </View>
-              <Text
-                style={[
-                  typography.display.lg,
-                  {
-                    color: colors.text,
-                    fontFamily: fontFamily.displayBold,
-                    fontSize: 26,
-                    lineHeight: 32,
-                  },
-                ]}
-              >
+              <Text style={[typography.display.md, { color: colors.text }]}>
                 {t("inbox.title", { defaultValue: "Inbox" })}
               </Text>
             </View>
@@ -439,16 +428,10 @@ export default function DoctorInboxScreen() {
                   width: 7,
                   height: 7,
                   borderRadius: 4,
-                  backgroundColor: totalUnread > 0 ? colors.primary : colors.success || "#10B981",
+                  backgroundColor: totalUnread > 0 ? colors.primary : colors.success,
                 }}
               />
-              <Text
-                style={{
-                  fontSize: 12.5,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.body,
-                }}
-              >
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
                 {totalUnread > 0
                   ? t("inbox.subtitleWithUnread", {
                       count: totalUnread,
@@ -470,28 +453,17 @@ export default function DoctorInboxScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: 6,
-              backgroundColor: colors.primary,
-              paddingVertical: 9,
+              backgroundColor: colors.primarySoft,
+              height: 36,
               paddingHorizontal: 14,
-              borderRadius: 22,
-              opacity: pressed ? 0.88 : 1,
+              borderRadius: 999,
+              borderCurve: "continuous",
+              opacity: pressed ? 0.75 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.25,
-              shadowRadius: 5,
-              elevation: 3,
             })}
           >
-            <MessageSquarePlus size={16} color="#FFFFFF" strokeWidth={2.4} />
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 13,
-                fontWeight: "700",
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
+            <MessageSquarePlus size={16} color={colors.primary} strokeWidth={2.4} />
+            <Text style={[typography.label.md, { color: colors.primary }]}>
               New Chat
             </Text>
           </Pressable>
@@ -503,13 +475,12 @@ export default function DoctorInboxScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.surface,
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              backgroundColor: colors.fill,
+              borderRadius: 12,
+              borderCurve: "continuous",
               paddingHorizontal: 12,
-              height: 42,
-              marginTop: spacing.md,
+              height: 40,
+              marginTop: spacing.lg,
             }}
           >
             <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
@@ -521,9 +492,8 @@ export default function DoctorInboxScreen() {
               style={{
                 flex: 1,
                 marginLeft: 8,
-                fontSize: 13.5,
+                ...typography.body.md,
                 color: colors.text,
-                fontFamily: fontFamily.body,
                 paddingVertical: 0,
               }}
             />
@@ -541,62 +511,36 @@ export default function DoctorInboxScreen() {
 
         {/* ── Filter Segment Tabs ── */}
         {conversations.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
+          <View
+            style={{
               flexDirection: "row",
-              gap: 8,
-              paddingTop: spacing.sm,
-              paddingBottom: 4,
+              gap: 2,
+              padding: 3,
+              marginTop: spacing.sm,
+              borderRadius: 12,
+              borderCurve: "continuous",
+              backgroundColor: colors.fill,
             }}
           >
             <Pressable
               onPress={() => setActiveFilter("all")}
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
-                backgroundColor:
-                  activeFilter === "all" ? colors.primary : colors.surfaceMuted,
-              }}
+              style={segStyle(activeFilter === "all")}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: activeFilter === "all" ? "700" : "500",
-                  color: activeFilter === "all" ? "#FFFFFF" : colors.textMuted,
-                }}
-              >
+              <Text numberOfLines={1} style={segText(activeFilter === "all")}>
                 All ({conversations.length})
               </Text>
             </Pressable>
 
             <Pressable
               onPress={() => setActiveFilter("unread")}
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
-                backgroundColor:
-                  activeFilter === "unread"
-                    ? colors.primary
-                    : totalUnread > 0
-                    ? withOpacity(colors.primary, 0.1)
-                    : colors.surfaceMuted,
-              }}
+              style={segStyle(activeFilter === "unread")}
             >
               <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: activeFilter === "unread" ? "700" : "500",
-                  color:
-                    activeFilter === "unread"
-                      ? "#FFFFFF"
-                      : totalUnread > 0
-                      ? colors.primary
-                      : colors.textMuted,
-                }}
+                numberOfLines={1}
+                style={[
+                  ...segText(activeFilter === "unread"),
+                  activeFilter !== "unread" && totalUnread > 0 ? { color: colors.primary } : null,
+                ]}
               >
                 Unread ({totalUnread})
               </Text>
@@ -604,46 +548,22 @@ export default function DoctorInboxScreen() {
 
             <Pressable
               onPress={() => setActiveFilter("active")}
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
-                backgroundColor:
-                  activeFilter === "active" ? colors.primary : colors.surfaceMuted,
-              }}
+              style={segStyle(activeFilter === "active")}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: activeFilter === "active" ? "700" : "500",
-                  color: activeFilter === "active" ? "#FFFFFF" : colors.textMuted,
-                }}
-              >
+              <Text numberOfLines={1} style={segText(activeFilter === "active")}>
                 Active ({activeCount})
               </Text>
             </Pressable>
 
             <Pressable
               onPress={() => setActiveFilter("closed")}
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
-                backgroundColor:
-                  activeFilter === "closed" ? colors.primary : colors.surfaceMuted,
-              }}
+              style={segStyle(activeFilter === "closed")}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: activeFilter === "closed" ? "700" : "500",
-                  color: activeFilter === "closed" ? "#FFFFFF" : colors.textMuted,
-                }}
-              >
+              <Text numberOfLines={1} style={segText(activeFilter === "closed")}>
                 Closed ({closedCount})
               </Text>
             </Pressable>
-          </ScrollView>
+          </View>
         )}
       </View>
 
@@ -684,31 +604,22 @@ export default function DoctorInboxScreen() {
           {/* Hero Empty Card */}
           <Card
             style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
-              borderRadius: 22,
               padding: spacing.xl,
+              paddingVertical: spacing.xxl,
               alignItems: "center",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.04,
-              shadowRadius: 10,
-              elevation: 2,
             }}
           >
             {/* Layered Icon Well */}
             <View
               style={{
-                width: 76,
-                height: 76,
-                borderRadius: 38,
+                width: 72,
+                height: 72,
+                borderRadius: 24,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: spacing.md,
-                borderWidth: 4,
-                borderColor: withOpacity(colors.primary, 0.08),
+                marginBottom: spacing.lg,
               }}
             >
               <Inbox size={34} color={colors.primary} strokeWidth={2} />
@@ -716,12 +627,10 @@ export default function DoctorInboxScreen() {
 
             <Text
               style={[
-                typography.title.md,
+                typography.title.lg,
                 {
                   color: colors.text,
-                  fontWeight: "800",
                   textAlign: "center",
-                  fontSize: 18,
                   marginBottom: 6,
                 },
               ]}
@@ -730,14 +639,10 @@ export default function DoctorInboxScreen() {
             </Text>
 
             <Text
-              style={{
-                fontSize: 13,
-                color: colors.textMuted,
-                textAlign: "center",
-                lineHeight: 19,
-                maxWidth: 290,
-                marginBottom: 20,
-              }}
+              style={[
+                typography.body.sm,
+                { color: colors.textMuted, textAlign: "center", maxWidth: 290, marginBottom: 20 },
+              ]}
             >
               {t("inbox.emptyBody", {
                 defaultValue:
@@ -755,28 +660,18 @@ export default function DoctorInboxScreen() {
                 alignItems: "center",
                 gap: 8,
                 backgroundColor: colors.primary,
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                borderRadius: 24,
+                height: 48,
+                paddingHorizontal: 22,
+                borderRadius: 16,
+                borderCurve: "continuous",
                 marginBottom: 16,
                 opacity: pressed ? 0.9 : 1,
                 transform: [{ scale: pressed ? 0.98 : 1 }],
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 4,
+                ...(isDark ? {} : shadow.primary),
               })}
             >
-              <MessageSquarePlus size={18} color="#FFFFFF" strokeWidth={2.4} />
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 14,
-                  fontWeight: "700",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
+              <MessageSquarePlus size={18} color={colors.onPrimary} strokeWidth={2.4} />
+              <Text style={[typography.title.sm, { color: colors.onPrimary }]}>
                 {t("inbox.startCta", { defaultValue: "Start a Conversation" })}
               </Text>
             </Pressable>
@@ -787,22 +682,15 @@ export default function DoctorInboxScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
-                backgroundColor: withOpacity(colors.success || "#059669", 0.08),
+                backgroundColor: colors.successSoft,
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 20,
-                borderWidth: 1,
-                borderColor: withOpacity(colors.success || "#059669", 0.2),
+                borderCurve: "continuous",
               }}
             >
-              <Lock size={12} color={colors.success || "#059669"} strokeWidth={2.4} />
-              <Text
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: "600",
-                  color: colors.success || "#059669",
-                }}
-              >
+              <Lock size={12} color={colors.success} strokeWidth={2.4} />
+              <Text style={[typography.label.sm, { color: colors.success }]}>
                 HIPAA Compliant • End-to-End Encrypted
               </Text>
             </View>
@@ -811,14 +699,10 @@ export default function DoctorInboxScreen() {
           {/* Quick Clinical Pathways */}
           <View style={{ gap: spacing.xs + 3 }}>
             <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: colors.textSubtle,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                paddingHorizontal: 4,
-              }}
+              style={[
+                typography.title.lg,
+                { color: colors.text, paddingHorizontal: 4, marginBottom: 2 },
+              ]}
             >
               Quick Pathways
             </Text>
@@ -835,8 +719,8 @@ export default function DoctorInboxScreen() {
 
             <DoctorPathwayCard
               icon={Stethoscope}
-              iconTint={colors.accent || "#0891B2"}
-              iconBg={withOpacity(colors.accent || "#0891B2", 0.12)}
+              iconTint={colors.accent}
+              iconBg={colors.accentSoft}
               title="Browse Patient Directory"
               subtitle="Find clinical charts, lab results, and patient profiles"
               onPress={() => router.push("/(doctor)/patients" as any)}
@@ -844,8 +728,8 @@ export default function DoctorInboxScreen() {
 
             <DoctorPathwayCard
               icon={CalendarCheck}
-              iconTint={colors.success || "#059669"}
-              iconBg={withOpacity(colors.success || "#059669", 0.12)}
+              iconTint={colors.info}
+              iconBg={colors.infoSoft}
               title="Check Today's Schedule"
               subtitle="View confirmed appointments and waiting room queue"
               onPress={() => router.push("/(doctor)/schedule" as any)}
@@ -865,10 +749,11 @@ export default function DoctorInboxScreen() {
         >
           <View
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: colors.surfaceMuted,
+              width: 60,
+              height: 60,
+              borderRadius: 20,
+              borderCurve: "continuous",
+              backgroundColor: colors.fill,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 12,
@@ -878,19 +763,17 @@ export default function DoctorInboxScreen() {
           </View>
           <Text
             style={[
-              typography.title.sm,
-              { color: colors.text, fontWeight: "700", marginBottom: 4 },
+              typography.title.md,
+              { color: colors.text, marginBottom: 4 },
             ]}
           >
             No conversations found
           </Text>
           <Text
-            style={{
-              fontSize: 13,
-              color: colors.textMuted,
-              textAlign: "center",
-              marginBottom: 16,
-            }}
+            style={[
+              typography.body.sm,
+              { color: colors.textMuted, textAlign: "center", marginBottom: 16 },
+            ]}
           >
             {searchQuery
               ? `No results matching "${searchQuery}"`
@@ -902,13 +785,15 @@ export default function DoctorInboxScreen() {
               setActiveFilter("all");
             }}
             style={{
-              paddingVertical: 8,
+              height: 36,
+              justifyContent: "center",
               paddingHorizontal: 16,
-              borderRadius: 18,
+              borderRadius: 999,
+              borderCurve: "continuous",
               backgroundColor: colors.primarySoft,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>
+            <Text style={[typography.label.md, { color: colors.primary }]}>
               Reset Filters
             </Text>
           </Pressable>

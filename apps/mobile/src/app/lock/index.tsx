@@ -18,7 +18,8 @@
 // so the first-time flow happens exactly once.
 
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, Alert } from "react-native";
+import { View, Text, Pressable, Alert, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
@@ -41,7 +42,7 @@ type Mode = "biometric" | "pin";
 export default function LockScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, fontFamily, spacing, radius } = useTheme();
+  const { colors, fontFamily, spacing, radius, typography } = useTheme();
 
   const hasPin = useAppLockStore((s) => !!s.pinHash);
   const biometricEnabled = useAppLockStore((s) => s.biometricEnabled);
@@ -159,7 +160,12 @@ export default function LockScreen() {
     biometricEnabled && biometricStatus === "available" && mode === "pin";
 
   return (
-    <Screen padded={false} scroll={false} edges={["top", "bottom"]}>
+    <Screen
+      padded={false}
+      scroll={false}
+      edges={["top", "bottom"]}
+      style={{ backgroundColor: colors.surface }}
+    >
       <View
         style={{
           flex: 1,
@@ -168,27 +174,29 @@ export default function LockScreen() {
           paddingBottom: spacing.xl,
         }}
       >
-        <View style={{ alignItems: "center", gap: spacing.sm }}>
+        <View style={{ alignItems: "center", gap: spacing.sm, marginTop: spacing.lg }}>
           <View
             style={{
               width: 64,
               height: 64,
-              borderRadius: 32,
-              backgroundColor: colors.primarySoft,
+              borderRadius: 19,
+              borderCurve: "continuous",
+              overflow: "hidden",
               alignItems: "center",
               justifyContent: "center",
+              marginBottom: spacing.sm,
             }}
           >
-            <Fingerprint size={32} color={colors.primary} />
+            <LinearGradient
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Fingerprint size={32} color="#FFFFFF" strokeWidth={2} />
           </View>
           <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "700",
-              color: colors.text,
-              fontFamily: fontFamily.displayBold,
-              textAlign: "center",
-            }}
+            style={[typography.display.sm, { color: colors.text, textAlign: "center" }]}
           >
             {t("appLock.unlock.title")}
           </Text>
@@ -198,7 +206,8 @@ export default function LockScreen() {
               color: colors.textMuted,
               fontFamily: fontFamily.body,
               textAlign: "center",
-              maxWidth: 320,
+              lineHeight: 21,
+              maxWidth: 300,
             }}
           >
             {mode === "biometric"
@@ -220,18 +229,19 @@ export default function LockScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={biometricName_}
                 hitSlop={8}
-                style={{
-                  width: 96,
-                  height: 96,
-                  borderRadius: 48,
+                style={({ pressed }) => ({
+                  width: 112,
+                  height: 112,
+                  borderRadius: 56,
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 2,
-                  borderColor: colors.primary,
-                }}
+                  borderWidth: 6,
+                  borderColor: colors.fill,
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                })}
               >
-                <Fingerprint size={48} color={colors.primary} />
+                <Fingerprint size={52} color={colors.primary} strokeWidth={1.8} />
               </Pressable>
               <Pressable
                 onPress={() => setMode("pin")}
@@ -240,13 +250,19 @@ export default function LockScreen() {
                 accessibilityLabel={t("appLock.unlock.useBiometric", {
                   name: "PIN",
                 })}
-                style={{ padding: spacing.sm }}
+                style={{
+                  paddingHorizontal: spacing.lg,
+                  height: 36,
+                  justifyContent: "center",
+                  borderRadius: radius.full,
+                  backgroundColor: colors.fill,
+                }}
               >
                 <Text
                   style={{
-                    color: colors.textMuted,
+                    color: colors.text,
                     fontSize: 14,
-                    fontFamily: fontFamily.body,
+                    fontFamily: fontFamily.bodySemibold,
                   }}
                 >
                   {t("appLock.unlock.subtitle")}
@@ -281,19 +297,17 @@ export default function LockScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.xs,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
+                gap: spacing.sm,
+                paddingHorizontal: spacing.lg,
+                height: 40,
                 borderRadius: radius.full,
-                borderWidth: 1,
-                borderColor: colors.border,
-                backgroundColor: colors.surface,
+                backgroundColor: colors.primarySoft,
               }}
             >
               <Fingerprint size={18} color={colors.primary} />
               <Text
                 style={{
-                  color: colors.text,
+                  color: colors.primary,
                   fontSize: 14,
                   fontWeight: "600",
                   fontFamily: fontFamily.bodyBold,
@@ -315,7 +329,7 @@ export default function LockScreen() {
               style={{
                 color: colors.danger,
                 fontSize: 14,
-                fontFamily: fontFamily.body,
+                fontFamily: fontFamily.bodySemibold,
               }}
             >
               {t("appLock.unlock.forgotPin")}

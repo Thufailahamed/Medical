@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
-import { View, Text, ScrollView, Pressable, TextInput as RNTextInput } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput as RNTextInput, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -39,6 +39,7 @@ import {
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTheme } from "@/theme/ThemeProvider";
 import { withOpacity } from "@/constants/theme";
+import { tonePalette, type Tone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
@@ -70,21 +71,16 @@ const PRESET_MEDS = [
 
 const COMMON_DOSAGES = ["250mg", "500mg", "1g", "5mg", "10mg", "20mg"];
 
-const AVATAR_PALETTES = [
-  { bg: "#EFF6FF", fg: "#2563EB", border: "#BFDBFE" }, // Sapphire
-  { bg: "#ECFDF5", fg: "#059669", border: "#A7F3D0" }, // Emerald
-  { bg: "#F5F3FF", fg: "#7C3AED", border: "#DDD6FE" }, // Violet
-  { bg: "#FFF7ED", fg: "#EA580C", border: "#FED7AA" }, // Amber / Coral
-  { bg: "#ECFEFF", fg: "#0891B2", border: "#A5F3FC" }, // Cyan
-  { bg: "#FDF2F8", fg: "#DB2777", border: "#FBCFE8" }, // Rose
-];
+// Avatar tints derive from theme tones so they adapt to dark mode.
+const AVATAR_TONES: Tone[] = ["primary", "accent", "info", "accent2", "success", "warning"];
 
-function getAvatarPalette(name: string) {
+function getAvatarPalette(name: string, colors: any) {
   let hash = 0;
   for (let i = 0; i < (name || "").length; i++) {
-    hash = (hash + name.charCodeAt(i)) % AVATAR_PALETTES.length;
+    hash = (hash + name.charCodeAt(i)) % AVATAR_TONES.length;
   }
-  return AVATAR_PALETTES[hash];
+  const tp = tonePalette(AVATAR_TONES[hash], colors);
+  return { bg: tp.bg, fg: tp.fg, border: "transparent" };
 }
 
 function getInitials(name: string): string {
@@ -154,7 +150,34 @@ function slotsToFrequency(s: Slots): string | null {
 export default function PrescriptionScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { spacing, colors, typography, radius, fontFamily } = useTheme();
+  const { spacing, colors, typography, radius, fontFamily, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const chipStyle = (active: boolean) => ({
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderCurve: "continuous" as const,
+    backgroundColor: active ? colors.primarySoft : colors.fill,
+  });
+  const chipText = (active: boolean) => [
+    active ? typography.label.md : typography.body.sm,
+    { color: active ? colors.primary : colors.textMuted },
+  ];
+  const chipCount = (active: boolean) => ({
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    borderCurve: "continuous" as const,
+    backgroundColor: active ? colors.primary : colors.fillStrong,
+  });
+  const chipCountText = (active: boolean) => [
+    typography.label.xs,
+    { fontSize: 10.5, color: active ? colors.onPrimary : colors.textMuted },
+  ];
   const { t } = useTranslation();
 
   const toast = useToast();
@@ -571,44 +594,26 @@ export default function PrescriptionScreen() {
               onPress={() => setSelectedPatient(null)}
               hitSlop={8}
               style={({ pressed }) => ({
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle ?? colors.border,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                borderCurve: "continuous",
+                backgroundColor: pressed ? colors.fillStrong : colors.fill,
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.8 : 1,
               })}
             >
               <ChevronRight
-                size={18}
+                size={20}
                 color={colors.text}
                 style={{ transform: [{ rotate: "180deg" }] }}
               />
             </Pressable>
             <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  typography.display.lg,
-                  {
-                    color: colors.text,
-                    fontFamily: fontFamily.displayBold,
-                    fontSize: 22,
-                    lineHeight: 28,
-                  },
-                ]}
-              >
+              <Text numberOfLines={1} style={[typography.display.sm, { color: colors.text }]}>
                 {t("doctorPrescription.newTitle", { defaultValue: "New Prescription" })}
               </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.body,
-                }}
-              >
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
                 E-Prescription • Clinical Order
               </Text>
             </View>
@@ -627,18 +632,15 @@ export default function PrescriptionScreen() {
             marginHorizontal: spacing.lg,
             marginTop: spacing.xs,
             marginBottom: spacing.md,
-            padding: 14,
-            borderRadius: 20,
+            padding: spacing.lg,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.borderSubtle ?? colors.border,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: hairline,
             flexDirection: "row",
             alignItems: "center",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.03,
-            shadowRadius: 6,
-            elevation: 2,
+            ...(isDark ? {} : shadow.sm),
           }}
         >
           <Avatar
@@ -651,28 +653,20 @@ export default function PrescriptionScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text
                 numberOfLines={1}
-                style={[
-                  typography.bodyBold,
-                  { color: colors.text, fontWeight: "700", fontSize: 15 },
-                ]}
+                style={[typography.title.md, { color: colors.text, flexShrink: 1 }]}
               >
                 {patientName}
               </Text>
               <View
                 style={{
-                  backgroundColor: withOpacity(colors.primary, 0.12),
+                  backgroundColor: colors.primarySoft,
                   paddingHorizontal: 6,
                   paddingVertical: 1.5,
-                  borderRadius: 8,
+                  borderRadius: 6,
+                  borderCurve: "continuous",
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: "700",
-                    color: colors.primary,
-                  }}
-                >
+                <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
                   Patient
                 </Text>
               </View>
@@ -699,23 +693,16 @@ export default function PrescriptionScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: 4,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 14,
-              backgroundColor: colors.surfaceMuted,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
-              opacity: pressed ? 0.8 : 1,
+              paddingHorizontal: 12,
+              height: 32,
+              borderRadius: 999,
+              borderCurve: "continuous",
+              backgroundColor: colors.fill,
+              opacity: pressed ? 0.7 : 1,
             })}
           >
-            <X size={13} color={colors.textSubtle} />
-            <Text
-              style={{
-                fontSize: 11.5,
-                fontWeight: "600",
-                color: colors.textMuted,
-              }}
-            >
+            <X size={13} color={colors.textMuted} />
+            <Text style={[typography.label.sm, { color: colors.textMuted }]}>
               Change
             </Text>
           </Pressable>
@@ -726,9 +713,10 @@ export default function PrescriptionScreen() {
             padded={false}
             style={{
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
               overflow: "hidden",
             }}
           >
@@ -740,8 +728,8 @@ export default function PrescriptionScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 8,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.borderSubtle ?? colors.border,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.separator,
               }}
             >
               <View
@@ -848,23 +836,20 @@ export default function PrescriptionScreen() {
                       onPress={() => applyTemplate(tpl as any)}
                       style={({ pressed }) => ({
                         paddingHorizontal: 14,
-                        paddingVertical: 10,
-                        borderRadius: radius.pill,
+                        height: 36,
+                        borderRadius: 999,
+                        borderCurve: "continuous",
                         backgroundColor: pressed ? colors.primary : colors.primarySoft,
-                        borderWidth: 1,
-                        borderColor: colors.primary,
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 6,
                       })}
                     >
                       <Text
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "700",
-                          color: pressed ? "#FFFFFF" : colors.primary,
-                          fontFamily: fontFamily.bodyBold,
-                        }}
+                        style={[
+                          typography.label.md,
+                          { color: colors.primary },
+                        ]}
                         numberOfLines={1}
                       >
                         {tpl.name}
@@ -874,17 +859,10 @@ export default function PrescriptionScreen() {
                           paddingHorizontal: 6,
                           paddingVertical: 1,
                           borderRadius: 999,
-                          backgroundColor: pressed ? "rgba(255,255,255,0.25)" : colors.primary,
+                          backgroundColor: colors.primary,
                         }}
                       >
-                        <Text
-                          style={{
-                            fontSize: 10,
-                            fontWeight: "800",
-                            color: "#FFFFFF",
-                            fontFamily: fontFamily.displayBold,
-                          }}
-                        >
+                        <Text style={[typography.label.xs, { fontSize: 10, color: colors.onPrimary }]}>
                           {count}
                         </Text>
                       </View>
@@ -904,9 +882,10 @@ export default function PrescriptionScreen() {
             padded={false}
             style={{
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
               overflow: "hidden",
             }}
           >
@@ -918,8 +897,8 @@ export default function PrescriptionScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                borderBottomWidth: 1,
-                borderBottomColor: colors.borderSubtle ?? colors.border,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.separator,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -953,6 +932,7 @@ export default function PrescriptionScreen() {
                   paddingHorizontal: 8,
                   paddingVertical: 2,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                 }}
               >
                 <Text
@@ -1080,37 +1060,21 @@ export default function PrescriptionScreen() {
                 width: 40,
                 height: 40,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
-                borderWidth: 1,
-                borderColor: withOpacity(colors.primary, 0.2),
               }}
             >
               <FilePenLine size={20} color={colors.primary} strokeWidth={2.4} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  typography.display.lg,
-                  {
-                    color: colors.text,
-                    fontFamily: fontFamily.displayBold,
-                    fontSize: 22,
-                    lineHeight: 28,
-                    letterSpacing: -0.4,
-                  },
-                ]}
-              >
+              <Text style={[typography.display.md, { color: colors.text }]}>
                 {t("doctorPrescription.title", { defaultValue: "Prescribe" })}
               </Text>
               <Text
-                style={{
-                  fontSize: 12.5,
-                  color: colors.textMuted,
-                  marginTop: 1,
-                  fontFamily: fontFamily.body,
-                }}
+                numberOfLines={1}
+                style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
               >
                 {t("doctorPrescription.subtitle", {
                   defaultValue: "Select a patient to issue an electronic Rx",
@@ -1128,40 +1092,28 @@ export default function PrescriptionScreen() {
               alignItems: "center",
               gap: 6,
               paddingHorizontal: 12,
-              paddingVertical: 7,
-              borderRadius: 20,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.04,
-              shadowRadius: 3,
-              elevation: 1,
-              opacity: pressed ? 0.8 : 1,
+              height: 36,
+              borderRadius: 999,
+              borderCurve: "continuous",
+              backgroundColor: colors.primarySoft,
+              opacity: pressed ? 0.7 : 1,
             })}
           >
             <Layers size={14} color={colors.primary} strokeWidth={2.4} />
-            <Text
-              style={{
-                fontSize: 12.5,
-                fontWeight: "700",
-                color: colors.text,
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
+            <Text style={[typography.label.md, { color: colors.primary }]}>
               Templates
             </Text>
             {templates.length > 0 && (
               <View
                 style={{
-                  backgroundColor: colors.primarySoft,
+                  backgroundColor: colors.primary,
                   paddingHorizontal: 6,
                   paddingVertical: 1,
                   borderRadius: 10,
+                  borderCurve: "continuous",
                 }}
               >
-                <Text style={{ fontSize: 10.5, fontWeight: "800", color: colors.primary }}>
+                <Text style={[typography.label.xs, { fontSize: 10.5, color: colors.onPrimary }]}>
                   {templates.length}
                 </Text>
               </View>
@@ -1178,21 +1130,15 @@ export default function PrescriptionScreen() {
               justifyContent: "space-between",
               padding: 12,
               borderRadius: 16,
-              backgroundColor: withOpacity(colors.warning || "#F59E0B", 0.1),
-              borderWidth: 1,
-              borderColor: withOpacity(colors.warning || "#F59E0B", 0.28),
+              borderCurve: "continuous",
+              backgroundColor: colors.warningSoft,
               marginTop: 14,
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
-              <Sparkles size={16} color={colors.warning || "#B45309"} strokeWidth={2.4} />
+              <Sparkles size={16} color={colors.warning} strokeWidth={2.4} />
               <Text
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: "600",
-                  color: colors.warning || "#B45309",
-                  flex: 1,
-                }}
+                style={[typography.label.md, { color: colors.warning, flex: 1 }]}
                 numberOfLines={1}
               >
                 Unfinished Rx draft ({medicines.filter((m) => m.name.trim()).length} med
@@ -1210,13 +1156,7 @@ export default function PrescriptionScreen() {
               }}
               hitSlop={6}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "700",
-                  color: colors.danger || "#DC2626",
-                }}
-              >
+              <Text style={[typography.label.md, { color: colors.danger }]}>
                 Discard
               </Text>
             </Pressable>
@@ -1228,22 +1168,16 @@ export default function PrescriptionScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.surface,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: colors.borderSubtle ?? colors.border,
-            paddingHorizontal: 14,
-            height: 48,
-            marginTop: 14,
-            gap: 10,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.03,
-            shadowRadius: 3,
-            elevation: 1,
+            backgroundColor: colors.fill,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            paddingHorizontal: 12,
+            height: 42,
+            marginTop: spacing.lg,
+            gap: 8,
           }}
         >
-          <Search size={18} color={colors.primary} strokeWidth={2.2} />
+          <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
           <RNTextInput
             placeholder={t("doctorPrescription.searchPlaceholder", {
               defaultValue: "Search by patient name, phone, or NIC...",
@@ -1254,9 +1188,8 @@ export default function PrescriptionScreen() {
             autoCapitalize="none"
             style={{
               flex: 1,
-              fontSize: 14,
+              ...typography.body.md,
               color: colors.text,
-              fontFamily: fontFamily.body,
               paddingVertical: 0,
             }}
           />
@@ -1268,7 +1201,8 @@ export default function PrescriptionScreen() {
                 width: 22,
                 height: 22,
                 borderRadius: 11,
-                backgroundColor: colors.surfaceMuted,
+                borderCurve: "continuous",
+                backgroundColor: colors.fillStrong,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -1291,44 +1225,13 @@ export default function PrescriptionScreen() {
         >
           <Pressable
             onPress={() => setPatientFilter("all")}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 20,
-              backgroundColor: patientFilter === "all" ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor: patientFilter === "all" ? colors.primary : colors.borderSubtle ?? colors.border,
-            }}
+            style={chipStyle(patientFilter === "all")}
           >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: patientFilter === "all" ? "700" : "600",
-                color: patientFilter === "all" ? "#FFFFFF" : colors.textMuted,
-                fontFamily: patientFilter === "all" ? fontFamily.bodyBold : fontFamily.body,
-              }}
-            >
+            <Text style={chipText(patientFilter === "all")}>
               All Patients
             </Text>
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 10,
-                backgroundColor:
-                  patientFilter === "all" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: "800",
-                  color: patientFilter === "all" ? "#FFFFFF" : colors.textMuted,
-                }}
-              >
+            <View style={chipCount(patientFilter === "all")}>
+              <Text style={chipCountText(patientFilter === "all")}>
                 {results.length}
               </Text>
             </View>
@@ -1336,49 +1239,18 @@ export default function PrescriptionScreen() {
 
           <Pressable
             onPress={() => setPatientFilter("careTeam")}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 20,
-              backgroundColor: patientFilter === "careTeam" ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor: patientFilter === "careTeam" ? colors.primary : colors.borderSubtle ?? colors.border,
-            }}
+            style={chipStyle(patientFilter === "careTeam")}
           >
             <Users
               size={13}
-              color={patientFilter === "careTeam" ? "#FFFFFF" : colors.primary}
+              color={patientFilter === "careTeam" ? colors.primary : colors.textMuted}
               strokeWidth={2.4}
             />
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: patientFilter === "careTeam" ? "700" : "600",
-                color: patientFilter === "careTeam" ? "#FFFFFF" : colors.textMuted,
-                fontFamily: patientFilter === "careTeam" ? fontFamily.bodyBold : fontFamily.body,
-              }}
-            >
+            <Text style={chipText(patientFilter === "careTeam")}>
               Care Team
             </Text>
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 10,
-                backgroundColor:
-                  patientFilter === "careTeam" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: "800",
-                  color: patientFilter === "careTeam" ? "#FFFFFF" : colors.textMuted,
-                }}
-              >
+            <View style={chipCount(patientFilter === "careTeam")}>
+              <Text style={chipCountText(patientFilter === "careTeam")}>
                 {consentPatients.length}
               </Text>
             </View>
@@ -1387,44 +1259,13 @@ export default function PrescriptionScreen() {
           {recentPatients.length > 0 && (
             <Pressable
               onPress={() => setPatientFilter("recent")}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
-                backgroundColor: patientFilter === "recent" ? colors.primary : colors.surface,
-                borderWidth: 1,
-                borderColor: patientFilter === "recent" ? colors.primary : colors.borderSubtle ?? colors.border,
-              }}
+              style={chipStyle(patientFilter === "recent")}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: patientFilter === "recent" ? "700" : "600",
-                  color: patientFilter === "recent" ? "#FFFFFF" : colors.textMuted,
-                  fontFamily: patientFilter === "recent" ? fontFamily.bodyBold : fontFamily.body,
-                }}
-              >
+              <Text style={chipText(patientFilter === "recent")}>
                 Recent
               </Text>
-              <View
-                style={{
-                  paddingHorizontal: 6,
-                  paddingVertical: 1,
-                  borderRadius: 10,
-                  backgroundColor:
-                    patientFilter === "recent" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: "800",
-                    color: patientFilter === "recent" ? "#FFFFFF" : colors.textMuted,
-                  }}
-                >
+              <View style={chipCount(patientFilter === "recent")}>
+                <Text style={chipCountText(patientFilter === "recent")}>
                   {recentPatients.length}
                 </Text>
               </View>
@@ -1451,7 +1292,7 @@ export default function PrescriptionScreen() {
             const isCareTeam = consentPatients.some(
               (a: any) => (a.patient?.id || a.id) === pId
             );
-            const palette = getAvatarPalette(pName);
+            const palette = getAvatarPalette(pName, colors);
             const initials = getInitials(pName);
 
             return (
@@ -1460,17 +1301,14 @@ export default function PrescriptionScreen() {
                 onPress={() => setSelectedPatient(p)}
                 style={({ pressed }) => ({
                   backgroundColor: colors.surface,
-                  borderRadius: 20,
-                  borderWidth: 1,
-                  borderColor: colors.borderSubtle ?? colors.border,
+                  borderRadius: radius.xl,
+                  borderCurve: "continuous",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: hairline,
                   padding: 14,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.03,
-                  shadowRadius: 6,
-                  elevation: 1.5,
-                  opacity: pressed ? 0.9 : 1,
-                  transform: [{ scale: pressed ? 0.995 : 1 }],
+                  ...(isDark ? {} : shadow.xs),
+                  opacity: pressed ? 0.92 : 1,
+                  transform: [{ scale: pressed ? 0.99 : 1 }],
                 })}
               >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -1479,22 +1317,14 @@ export default function PrescriptionScreen() {
                     style={{
                       width: 44,
                       height: 44,
-                      borderRadius: 14,
+                      borderRadius: 22,
+                      borderCurve: "continuous",
                       backgroundColor: palette.bg,
-                      borderWidth: 1,
-                      borderColor: palette.border,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontWeight: "800",
-                        color: palette.fg,
-                        fontFamily: fontFamily.displayBold,
-                      }}
-                    >
+                    <Text style={[typography.title.sm, { color: palette.fg }]}>
                       {initials}
                     </Text>
                   </View>
@@ -1504,32 +1334,21 @@ export default function PrescriptionScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "nowrap" }}>
                       <Text
                         numberOfLines={1}
-                        style={{
-                          color: colors.text,
-                          fontWeight: "700",
-                          fontSize: 15,
-                          fontFamily: fontFamily.bodyBold,
-                          flexShrink: 1,
-                        }}
+                        style={[typography.title.sm, { color: colors.text, flexShrink: 1 }]}
                       >
                         {pName}
                       </Text>
                       {isCareTeam && (
                         <View
                           style={{
-                            backgroundColor: withOpacity(colors.primary, 0.1),
+                            backgroundColor: colors.primarySoft,
                             paddingHorizontal: 6,
                             paddingVertical: 1.5,
                             borderRadius: 6,
+                            borderCurve: "continuous",
                           }}
                         >
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              fontWeight: "700",
-                              color: colors.primary,
-                            }}
-                          >
+                          <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
                             Care Team
                           </Text>
                         </View>
@@ -1547,11 +1366,7 @@ export default function PrescriptionScreen() {
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                         <Phone size={11} color={colors.textSubtle} strokeWidth={2} />
                         <Text
-                          style={{
-                            fontSize: 12.5,
-                            color: colors.textMuted,
-                            fontFamily: fontFamily.body,
-                          }}
+                          style={[typography.body.sm, { color: colors.textMuted }]}
                           numberOfLines={1}
                         >
                           {pPhone || "No phone on file"}
@@ -1560,10 +1375,7 @@ export default function PrescriptionScreen() {
 
                       {pNic ? (
                         <Text
-                          style={{
-                            fontSize: 11.5,
-                            color: colors.textSubtle,
-                          }}
+                          style={[typography.caption, { color: colors.textSubtle }]}
                           numberOfLines={1}
                         >
                           • NIC: {pNic}
@@ -1578,26 +1390,15 @@ export default function PrescriptionScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 5,
-                      backgroundColor: colors.primary,
+                      backgroundColor: colors.primarySoft,
                       paddingHorizontal: 12,
-                      paddingVertical: 7,
-                      borderRadius: 14,
-                      shadowColor: colors.primary,
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 4,
-                      elevation: 2,
+                      height: 32,
+                      borderRadius: 999,
+                      borderCurve: "continuous",
                     }}
                   >
-                    <FilePenLine size={13} color="#FFFFFF" strokeWidth={2.4} />
-                    <Text
-                      style={{
-                        color: "#FFFFFF",
-                        fontSize: 12,
-                        fontWeight: "700",
-                        fontFamily: fontFamily.bodyBold,
-                      }}
-                    >
+                    <FilePenLine size={13} color={colors.primary} strokeWidth={2.4} />
+                    <Text style={[typography.label.sm, { color: colors.primary }]}>
                       Prescribe
                     </Text>
                   </View>
@@ -1613,9 +1414,10 @@ export default function PrescriptionScreen() {
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colors.surface,
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
               marginTop: 10,
               gap: 8,
             }}
@@ -1625,6 +1427,7 @@ export default function PrescriptionScreen() {
                 width: 48,
                 height: 48,
                 borderRadius: 24,
+                borderCurve: "continuous",
                 backgroundColor: colors.surfaceMuted,
                 alignItems: "center",
                 justifyContent: "center",
@@ -1661,6 +1464,7 @@ export default function PrescriptionScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 7,
                 borderRadius: 16,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
               }}
             >
@@ -1677,9 +1481,10 @@ export default function PrescriptionScreen() {
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colors.surface,
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
               marginTop: 10,
               gap: 8,
             }}
@@ -1689,6 +1494,7 @@ export default function PrescriptionScreen() {
                 width: 48,
                 height: 48,
                 borderRadius: 24,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -1811,8 +1617,9 @@ function MedicineCard({
     <View
       style={{
         borderRadius: 18,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle ?? colors.border,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         backgroundColor: colors.surfaceMuted,
         padding: 16,
         gap: spacing.md,
@@ -1838,6 +1645,7 @@ function MedicineCard({
               width: 28,
               height: 28,
               borderRadius: 14,
+              borderCurve: "continuous",
               backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
@@ -1867,6 +1675,7 @@ function MedicineCard({
               width: 32,
               height: 32,
               borderRadius: 10,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: pressed ? colors.dangerSoft : "transparent",
@@ -1896,9 +1705,10 @@ function MedicineCard({
         <View
           style={{
             borderRadius: radius.md,
+            borderCurve: "continuous",
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.separator,
             paddingVertical: spacing.xs,
           }}
         >

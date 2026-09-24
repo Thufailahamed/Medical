@@ -4,6 +4,7 @@ import { Folder, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone } from "@/theme/tone";
 import { Button } from "./Button";
+import { withOpacity } from "@/constants/theme";
 
 type Props = {
   icon?: LucideIcon | React.ReactElement;
@@ -35,7 +36,7 @@ export function EmptyState({
       return Icon;
     }
     const Component = Icon as any;
-    return <Component size={40} color={fg} strokeWidth={1.5} />;
+    return <Component size={34} color={fg} strokeWidth={1.75} />;
   };
 
   return (
@@ -52,22 +53,37 @@ export function EmptyState({
       ]}
       accessibilityRole="summary"
     >
+      {/* Concentric halo: the soft layered glyph used for empty lists on iOS */}
       <View
         style={{
-          width: 88,
-          height: 88,
-          borderRadius: radius.full,
+          width: 116,
+          height: 116,
+          borderRadius: 58,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: bg,
+          backgroundColor: withOpacity(fg, 0.06),
         }}
       >
-        {renderIcon()}
+        <View
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 26,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: bg,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: withOpacity(fg, 0.18),
+          }}
+        >
+          {renderIcon()}
+        </View>
       </View>
       <View style={{ alignItems: "center", gap: spacing.xs }}>
         <Text
           style={[
-            typography.title.md,
+            typography.title.lg,
             { color: colors.text, textAlign: "center" },
           ]}
         >
@@ -77,7 +93,7 @@ export function EmptyState({
           <Text
             style={[
               typography.body.md,
-              { color: colors.textMuted, textAlign: "center" },
+              { color: colors.textMuted, textAlign: "center", maxWidth: 300 },
             ]}
           >
             {displayMessage}

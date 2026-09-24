@@ -156,6 +156,7 @@ export default function TeleconsultPage() {
               paddingHorizontal: 22,
               paddingVertical: 10,
               borderRadius: radius.lg,
+              borderCurve: "continuous",
               backgroundColor: colors.primary,
               marginBottom: 12,
             }}
@@ -171,6 +172,7 @@ export default function TeleconsultPage() {
             paddingHorizontal: 22,
             paddingVertical: 10,
             borderRadius: radius.lg,
+            borderCurve: "continuous",
             backgroundColor: "rgba(255,255,255,0.18)",
           }}
         >

@@ -144,7 +144,11 @@ const HEREDITARY_CONDITIONS = [
 export default function FamilyScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, shadow } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
+  const segOn = {
+    backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+    ...(scheme === "dark" ? null : shadow.xs),
+  };
   const toast = useToast();
   const { data, isLoading, isError, refetch } = useFamilyMembers();
   const addMember = useAddFamilyMember();
@@ -348,8 +352,6 @@ export default function FamilyScreen() {
             style={{
               padding: spacing.lg,
               gap: spacing.md,
-              borderWidth: 1,
-              borderColor: colors.border,
             }}
           >
             <FormSectionHeader
@@ -369,17 +371,17 @@ export default function FamilyScreen() {
 
             {/* Living vs Deceased Segmented Control */}
             <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.label.md, { color: colors.text, fontWeight: "600" }]}>
+              <Text style={[typography.title.xs, { color: colors.text }]}>
                 {t("family.compose.deceasedLabel", "Status")}
               </Text>
               <View
                 style={{
                   flexDirection: "row",
                   padding: 3,
-                  borderRadius: radius.md,
-                  backgroundColor: colors.surfaceMuted,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  gap: 2,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
                 }}
               >
                 <Pressable
@@ -387,15 +389,13 @@ export default function FamilyScreen() {
                   haptic="light"
                   style={{
                     flex: 1,
+                    minHeight: 34,
                     paddingVertical: 8,
-                    borderRadius: radius.sm,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: !isDeceased ? colors.surface : "transparent",
-                    shadowColor: "#000",
-                    shadowOpacity: !isDeceased ? 0.08 : 0,
-                    shadowRadius: 3,
-                    elevation: !isDeceased ? 1 : 0,
+                    ...(!isDeceased ? segOn : { backgroundColor: "transparent" }),
                   }}
                 >
                   <Text
@@ -403,7 +403,6 @@ export default function FamilyScreen() {
                       typography.label.md,
                       {
                         color: !isDeceased ? colors.text : colors.textMuted,
-                        fontWeight: !isDeceased ? "700" : "500",
                       },
                     ]}
                   >
@@ -415,15 +414,13 @@ export default function FamilyScreen() {
                   haptic="light"
                   style={{
                     flex: 1,
+                    minHeight: 34,
                     paddingVertical: 8,
-                    borderRadius: radius.sm,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: isDeceased ? colors.dangerSoft : "transparent",
-                    shadowColor: "#000",
-                    shadowOpacity: isDeceased ? 0.08 : 0,
-                    shadowRadius: 3,
-                    elevation: isDeceased ? 1 : 0,
+                    ...(isDeceased ? segOn : { backgroundColor: "transparent" }),
                   }}
                 >
                   <Text
@@ -431,7 +428,6 @@ export default function FamilyScreen() {
                       typography.label.md,
                       {
                         color: isDeceased ? colors.danger : colors.textMuted,
-                        fontWeight: isDeceased ? "700" : "500",
                       },
                     ]}
                   >
@@ -457,21 +453,21 @@ export default function FamilyScreen() {
             {/* Relationship Field with Categorized Selector */}
             <View style={{ gap: spacing.xs }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text style={[typography.label.md, { color: colors.text, fontWeight: "600" }]}>
+                <Text style={[typography.title.xs, { color: colors.text }]}>
                   {t("family.compose.relationshipLabel", "Relationship")}
                 </Text>
                 <View
                   style={{
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: 2,
+                    paddingHorizontal: spacing.sm + 2,
+                    paddingVertical: 3,
                     borderRadius: radius.full,
                     backgroundColor: colors.primarySoft,
                   }}
                 >
                   <Text
                     style={[
-                      typography.caption,
-                      { color: colors.primary, fontWeight: "700" },
+                      typography.label.sm,
+                      { color: colors.primary },
                     ]}
                   >
                     {t(`family.relationship.${relationship}`, { defaultValue: relationship })}
@@ -483,9 +479,11 @@ export default function FamilyScreen() {
               <View
                 style={{
                   flexDirection: "row",
-                  borderRadius: radius.md,
-                  backgroundColor: colors.surfaceMuted,
-                  padding: 2,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
+                  padding: 3,
+                  gap: 2,
                   marginBottom: spacing.xs,
                 }}
               >
@@ -494,18 +492,19 @@ export default function FamilyScreen() {
                   haptic="light"
                   style={{
                     flex: 1,
+                    minHeight: 32,
+                    justifyContent: "center",
                     paddingVertical: 6,
-                    borderRadius: radius.sm,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
                     alignItems: "center",
-                    backgroundColor:
-                      relationCategory === "immediate" ? colors.surface : "transparent",
+                    ...(relationCategory === "immediate" ? segOn : { backgroundColor: "transparent" }),
                   }}
                 >
                   <Text
                     style={[
-                      typography.caption,
+                      typography.label.sm,
                       {
-                        fontWeight: relationCategory === "immediate" ? "700" : "500",
                         color:
                           relationCategory === "immediate" ? colors.text : colors.textMuted,
                       },
@@ -519,18 +518,19 @@ export default function FamilyScreen() {
                   haptic="light"
                   style={{
                     flex: 1,
+                    minHeight: 32,
+                    justifyContent: "center",
                     paddingVertical: 6,
-                    borderRadius: radius.sm,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
                     alignItems: "center",
-                    backgroundColor:
-                      relationCategory === "extended" ? colors.surface : "transparent",
+                    ...(relationCategory === "extended" ? segOn : { backgroundColor: "transparent" }),
                   }}
                 >
                   <Text
                     style={[
-                      typography.caption,
+                      typography.label.sm,
                       {
-                        fontWeight: relationCategory === "extended" ? "700" : "500",
                         color:
                           relationCategory === "extended" ? colors.text : colors.textMuted,
                       },
@@ -545,7 +545,7 @@ export default function FamilyScreen() {
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: spacing.xs,
+                  gap: spacing.sm,
                 }}
               >
                 {activeRelations.map((r) => {
@@ -556,25 +556,22 @@ export default function FamilyScreen() {
                       onPress={() => setRelationship(r)}
                       haptic="light"
                       style={{
+                        minHeight: 36,
                         paddingHorizontal: spacing.md,
                         paddingVertical: 8,
                         borderRadius: radius.full,
-                        backgroundColor: isSelected ? colors.primary : colors.surfaceMuted,
-                        borderWidth: 1.5,
-                        borderColor: isSelected ? colors.primary : colors.border,
+                        backgroundColor: isSelected ? colors.primary : colors.fill,
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 4,
                       }}
                     >
-                      {isSelected && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
+                      {isSelected && <Check size={13} color={colors.onPrimary} strokeWidth={3} />}
                       <Text
                         style={[
-                          typography.caption,
+                          typography.label.md,
                           {
-                            color: isSelected ? "#FFFFFF" : colors.text,
-                            fontWeight: isSelected ? "700" : "600",
-                            fontSize: 12.5,
+                            color: isSelected ? colors.onPrimary : colors.text,
                           },
                         ]}
                       >
@@ -592,8 +589,6 @@ export default function FamilyScreen() {
             style={{
               padding: spacing.lg,
               gap: spacing.md,
-              borderWidth: 1,
-              borderColor: colors.border,
             }}
           >
             <FormSectionHeader
@@ -620,8 +615,6 @@ export default function FamilyScreen() {
             style={{
               padding: spacing.lg,
               gap: spacing.md,
-              borderWidth: 1,
-              borderColor: colors.border,
             }}
           >
             <FormSectionHeader
@@ -647,21 +640,20 @@ export default function FamilyScreen() {
             {adultDobWarning && (
               <View
                 style={{
-                  backgroundColor: colors.warningSoft ?? "#FEF3C7",
+                  backgroundColor: colors.warningSoft,
                   padding: spacing.md,
-                  borderRadius: radius.md,
+                  borderRadius: 14,
+                  borderCurve: "continuous",
                   flexDirection: "row",
                   alignItems: "flex-start",
                   gap: spacing.sm,
-                  borderWidth: 1,
-                  borderColor: colors.warning ?? "#F59E0B",
                 }}
               >
-                <AlertCircle size={18} color={colors.warning ?? "#F59E0B"} style={{ marginTop: 1 }} />
+                <AlertCircle size={18} color={colors.warning} style={{ marginTop: 1 }} />
                 <Text
                   style={[
-                    typography.caption,
-                    { color: colors.text, flex: 1, lineHeight: 18 },
+                    typography.body.sm,
+                    { color: colors.text, flex: 1 },
                   ]}
                 >
                   {t("family.compose.adultDobWarning")}
@@ -672,12 +664,12 @@ export default function FamilyScreen() {
             {/* Blood Group: Symmetric 4x2 Grid */}
             <View style={{ gap: spacing.xs }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text style={[typography.label.md, { color: colors.text, fontWeight: "600" }]}>
+                <Text style={[typography.title.xs, { color: colors.text }]}>
                   {t("family.compose.bloodGroupLabel", "Blood Group")}
                 </Text>
                 {bloodGroup && (
                   <Pressable onPress={() => setBloodGroup(null)} haptic="light">
-                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    <Text style={[typography.label.sm, { color: colors.primary }]}>
                       {t("common.clear", "Clear")}
                     </Text>
                   </Pressable>
@@ -687,8 +679,8 @@ export default function FamilyScreen() {
                 {t("family.compose.bloodGroupHelper", "Optional — used for emergency profile")}
               </Text>
 
-              <View style={{ gap: spacing.xs }}>
-                <View style={{ flexDirection: "row", gap: spacing.xs }}>
+              <View style={{ gap: spacing.sm }}>
+                <View style={{ flexDirection: "row", gap: spacing.sm }}>
                   {["A+", "A-", "B+", "B-"].map((bg) => {
                     const isSelected = bloodGroup === bg;
                     return (
@@ -698,13 +690,12 @@ export default function FamilyScreen() {
                         haptic="light"
                         style={{
                           flex: 1,
-                          height: 42,
-                          borderRadius: radius.md,
+                          height: 46,
+                          borderRadius: 14,
+                          borderCurve: "continuous",
                           alignItems: "center",
                           justifyContent: "center",
-                          backgroundColor: isSelected ? colors.primary : colors.surfaceMuted,
-                          borderWidth: 1.5,
-                          borderColor: isSelected ? colors.primary : colors.border,
+                          backgroundColor: isSelected ? colors.danger : colors.fill,
                           flexDirection: "row",
                           gap: 4,
                         }}
@@ -712,10 +703,9 @@ export default function FamilyScreen() {
                         {isSelected && <Droplet size={13} color="#FFFFFF" strokeWidth={2.5} />}
                         <Text
                           style={[
-                            typography.label.md,
+                            typography.label.lg,
                             {
                               color: isSelected ? "#FFFFFF" : colors.text,
-                              fontWeight: isSelected ? "800" : "600",
                             },
                           ]}
                         >
@@ -725,7 +715,7 @@ export default function FamilyScreen() {
                     );
                   })}
                 </View>
-                <View style={{ flexDirection: "row", gap: spacing.xs }}>
+                <View style={{ flexDirection: "row", gap: spacing.sm }}>
                   {["AB+", "AB-", "O+", "O-"].map((bg) => {
                     const isSelected = bloodGroup === bg;
                     return (
@@ -735,13 +725,12 @@ export default function FamilyScreen() {
                         haptic="light"
                         style={{
                           flex: 1,
-                          height: 42,
-                          borderRadius: radius.md,
+                          height: 46,
+                          borderRadius: 14,
+                          borderCurve: "continuous",
                           alignItems: "center",
                           justifyContent: "center",
-                          backgroundColor: isSelected ? colors.primary : colors.surfaceMuted,
-                          borderWidth: 1.5,
-                          borderColor: isSelected ? colors.primary : colors.border,
+                          backgroundColor: isSelected ? colors.danger : colors.fill,
                           flexDirection: "row",
                           gap: 4,
                         }}
@@ -749,10 +738,9 @@ export default function FamilyScreen() {
                         {isSelected && <Droplet size={13} color="#FFFFFF" strokeWidth={2.5} />}
                         <Text
                           style={[
-                            typography.label.md,
+                            typography.label.lg,
                             {
                               color: isSelected ? "#FFFFFF" : colors.text,
-                              fontWeight: isSelected ? "800" : "600",
                             },
                           ]}
                         >
@@ -768,7 +756,7 @@ export default function FamilyScreen() {
             {/* Hereditary Conditions */}
             <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text style={[typography.label.md, { color: colors.text, fontWeight: "600" }]}>
+                <Text style={[typography.title.xs, { color: colors.text }]}>
                   {t("family.compose.conditionsLabel", "Hereditary Conditions")}
                 </Text>
                 {conditions.length > 0 && (
@@ -777,13 +765,13 @@ export default function FamilyScreen() {
                       paddingHorizontal: spacing.sm,
                       paddingVertical: 2,
                       borderRadius: radius.full,
-                      backgroundColor: colors.warningSoft ?? "#FEF3C7",
+                      backgroundColor: colors.warningSoft,
                     }}
                   >
                     <Text
                       style={[
-                        typography.caption,
-                        { color: colors.warning ?? "#D97706", fontWeight: "700" },
+                        typography.label.sm,
+                        { color: colors.warning },
                       ]}
                     >
                       {t("family.compose.conditionsSelected", { count: conditions.length })}
@@ -799,8 +787,8 @@ export default function FamilyScreen() {
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: spacing.xs,
-                  marginVertical: spacing.xs,
+                  gap: spacing.sm,
+                  marginVertical: spacing.sm,
                 }}
               >
                 {displayedConditions.map((c) => {
@@ -811,29 +799,24 @@ export default function FamilyScreen() {
                       onPress={() => toggleCondition(c)}
                       haptic="light"
                       style={{
+                        minHeight: 34,
                         paddingHorizontal: spacing.md,
                         paddingVertical: 7,
                         borderRadius: radius.full,
                         backgroundColor: isSelected
-                          ? colors.warningSoft ?? "#FEF3C7"
-                          : colors.surfaceMuted,
-                        borderWidth: 1.5,
-                        borderColor: isSelected
-                          ? colors.warning ?? "#F59E0B"
-                          : colors.border,
+                          ? colors.warningSoft
+                          : colors.fill,
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 5,
                       }}
                     >
-                      {isSelected && <Check size={12} color={colors.warning ?? "#D97706"} strokeWidth={3} />}
+                      {isSelected && <Check size={12} color={colors.warning} strokeWidth={3} />}
                       <Text
                         style={[
-                          typography.caption,
+                          typography.label.sm,
                           {
-                            color: isSelected ? (colors.warning ?? "#92400E") : colors.text,
-                            fontWeight: isSelected ? "700" : "500",
-                            fontSize: 12,
+                            color: isSelected ? colors.warning : colors.text,
                           },
                         ]}
                       >
@@ -858,8 +841,8 @@ export default function FamilyScreen() {
               >
                 <Text
                   style={[
-                    typography.caption,
-                    { color: colors.primary, fontWeight: "700" },
+                    typography.label.md,
+                    { color: colors.primary },
                   ]}
                 >
                   {showAllConditions
@@ -911,8 +894,6 @@ export default function FamilyScreen() {
             style={{
               padding: spacing.lg,
               gap: spacing.md,
-              borderWidth: 1,
-              borderColor: colors.border,
             }}
           >
             <FormSectionHeader
@@ -940,16 +921,11 @@ export default function FamilyScreen() {
             left: 0,
             right: 0,
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.sm,
+            paddingTop: spacing.md,
             paddingBottom: spacing.lg,
-            backgroundColor: colors.surface,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 6,
-            elevation: 8,
+            backgroundColor: scheme === "dark" ? colors.bgElevated : colors.surface,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
           }}
         >
           <Button
@@ -975,16 +951,15 @@ export default function FamilyScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: spacing.xs + 2,
-            paddingHorizontal: spacing.xs,
+            marginBottom: spacing.md,
+            paddingHorizontal: 2,
           }}
         >
           <Text
             style={[
               typography.overline,
               {
-                color: colors.textMuted,
-                letterSpacing: 1.1,
+                color: colors.textSubtle,
               },
             ]}
           >
@@ -1000,8 +975,8 @@ export default function FamilyScreen() {
           >
             <Text
               style={[
-                typography.caption,
-                { color: colors.primary, fontWeight: "700", fontSize: 11 },
+                typography.label.sm,
+                { color: colors.primary },
               ]}
             >
               {pendingInvites.length}
@@ -1009,7 +984,7 @@ export default function FamilyScreen() {
           </View>
         </View>
 
-        <Card padded={false} style={{ borderWidth: 1, borderColor: colors.border }}>
+        <Card padded={false}>
           {pendingInvites.map((inv: any, i: number) => {
             let parsed: { name?: string; relationship?: string } = {};
             try {
@@ -1038,7 +1013,7 @@ export default function FamilyScreen() {
                       onPress={() => revokeInvite.mutate(inv.token)}
                       style={{
                         paddingHorizontal: spacing.md,
-                        paddingVertical: 6,
+                        height: 32,
                         borderRadius: 999,
                         backgroundColor: colors.dangerSoft,
                         flexDirection: "row",
@@ -1049,8 +1024,8 @@ export default function FamilyScreen() {
                       <Link2Off size={13} color={colors.danger} strokeWidth={2.5} />
                       <Text
                         style={[
-                          typography.caption,
-                          { color: colors.danger, fontWeight: "700" },
+                          typography.label.sm,
+                          { color: colors.danger },
                         ]}
                       >
                         {t("family.invite.revoke")}
@@ -1100,7 +1075,7 @@ export default function FamilyScreen() {
         {isLoading ? (
           <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md, marginTop: spacing.md }}>
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} height={84} radius={20} />
+              <Skeleton key={i} height={120} radius={radius.card} />
             ))}
           </View>
         ) : isError ? (
@@ -1115,13 +1090,14 @@ export default function FamilyScreen() {
             {/* 1. Welcoming Hero Card */}
             <View
               style={{
-                borderRadius: radius.xxxl,
+                borderRadius: 28,
+                borderCurve: "continuous",
                 overflow: "hidden",
-                ...shadow.hero,
+                ...(scheme === "dark" ? null : shadow.hero),
               }}
             >
               <LinearGradient
-                colors={["#0B2B64", "#0D5485", "#0E7490"]}
+                colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -1161,9 +1137,10 @@ export default function FamilyScreen() {
 
               <View
                 style={{
-                  padding: spacing.xl,
+                  paddingHorizontal: spacing.xl,
+                  paddingVertical: spacing.xxl + 4,
                   alignItems: "center",
-                  gap: spacing.md,
+                  gap: spacing.lg,
                 }}
               >
                 {/* Visual central badge */}
@@ -1172,11 +1149,12 @@ export default function FamilyScreen() {
                     width: 68,
                     height: 68,
                     borderRadius: 24,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "rgba(255, 255, 255, 0.16)",
-                    borderWidth: 1.5,
-                    borderColor: "rgba(255, 255, 255, 0.32)",
+                    backgroundColor: "rgba(255, 255, 255, 0.18)",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255, 255, 255, 0.28)",
                   }}
                 >
                   <Users size={32} color="#FFFFFF" strokeWidth={2.2} />
@@ -1188,6 +1166,7 @@ export default function FamilyScreen() {
                       width: 24,
                       height: 24,
                       borderRadius: 12,
+                      borderCurve: "continuous",
                       backgroundColor: "#10B981",
                       borderWidth: 2,
                       borderColor: "#FFFFFF",
@@ -1202,8 +1181,8 @@ export default function FamilyScreen() {
                 <View style={{ alignItems: "center", gap: 6 }}>
                   <Text
                     style={[
-                      typography.title.lg,
-                      { color: "#FFFFFF", fontWeight: "800", textAlign: "center" },
+                      typography.display.sm,
+                      { color: "#FFFFFF", textAlign: "center" },
                     ]}
                   >
                     {t("family.heroTitle", "Care together")}
@@ -1212,9 +1191,8 @@ export default function FamilyScreen() {
                     style={[
                       typography.body.md,
                       {
-                        color: "rgba(255, 255, 255, 0.84)",
+                        color: "rgba(255, 255, 255, 0.86)",
                         textAlign: "center",
-                        lineHeight: 22,
                         maxWidth: 320,
                       },
                     ]}
@@ -1233,16 +1211,13 @@ export default function FamilyScreen() {
               style={{
                 padding: spacing.lg,
                 gap: spacing.lg,
-                borderWidth: 1,
-                borderColor: colors.border,
               }}
             >
               <Text
                 style={[
                   typography.overline,
                   {
-                    color: colors.textMuted,
-                    letterSpacing: 1.1,
+                    color: colors.textSubtle,
                   },
                 ]}
               >
@@ -1251,8 +1226,8 @@ export default function FamilyScreen() {
 
               <FamilyFeatureRow
                 icon={HeartPulse}
-                iconColor="#DC2626"
-                iconBg={colors.dangerSoft ?? "#FEE2E2"}
+                iconColor={colors.danger}
+                iconBg={colors.dangerSoft}
                 title={t("family.features.emergencyTitle", "Emergency Ready")}
                 description={t(
                   "family.features.emergencyDesc",
@@ -1264,8 +1239,8 @@ export default function FamilyScreen() {
 
               <FamilyFeatureRow
                 icon={Activity}
-                iconColor="#059669"
-                iconBg={colors.successSoft ?? "#D1FAE5"}
+                iconColor={colors.success}
+                iconBg={colors.successSoft}
                 title={t("family.features.dependentsTitle", "Coordinated Care & Dependents")}
                 description={t(
                   "family.features.dependentsDesc",
@@ -1277,8 +1252,8 @@ export default function FamilyScreen() {
 
               <FamilyFeatureRow
                 icon={ShieldCheck}
-                iconColor="#0284C7"
-                iconBg={colors.primarySoft ?? "#E0F2FE"}
+                iconColor={colors.primary}
+                iconBg={colors.primarySoft}
                 title={t("family.features.privacyTitle", "Granular Privacy & Control")}
                 description={t(
                   "family.features.privacyDesc",
@@ -1288,7 +1263,7 @@ export default function FamilyScreen() {
             </Card>
 
             {/* 3. Primary Action Group */}
-            <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+            <View style={{ gap: spacing.md, marginTop: spacing.xs }}>
               <Button
                 title={t("family.addLabel", "Add family member")}
                 icon={Plus}
@@ -1321,13 +1296,14 @@ export default function FamilyScreen() {
             >
               <View
                 style={{
-                  borderRadius: radius.xxxl,
+                  borderRadius: 28,
+                  borderCurve: "continuous",
                   overflow: "hidden",
-                  ...shadow.hero,
+                  ...(scheme === "dark" ? null : shadow.hero),
                 }}
               >
                 <LinearGradient
-                  colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+                  colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={StyleSheet.absoluteFill}
@@ -1384,11 +1360,12 @@ export default function FamilyScreen() {
                         width: 48,
                         height: 48,
                         borderRadius: 16,
+                        borderCurve: "continuous",
                         alignItems: "center",
                         justifyContent: "center",
-                        backgroundColor: "rgba(255, 255, 255, 0.16)",
-                        borderWidth: 1,
-                        borderColor: "rgba(255, 255, 255, 0.30)",
+                        backgroundColor: "rgba(255, 255, 255, 0.18)",
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: "rgba(255, 255, 255, 0.28)",
                       }}
                     >
                       <Users size={22} color="#FFFFFF" strokeWidth={2.25} />
@@ -1396,8 +1373,8 @@ export default function FamilyScreen() {
                     <View style={{ flex: 1 }}>
                       <Text
                         style={[
-                          typography.title.md,
-                          { color: "#FFFFFF", fontWeight: "800" },
+                          typography.title.lg,
+                          { color: "#FFFFFF" },
                         ]}
                       >
                         {t("family.heroTitle", "Care together")}
@@ -1405,7 +1382,7 @@ export default function FamilyScreen() {
                       <Text
                         style={[
                           typography.body.sm,
-                          { color: "rgba(255, 255, 255, 0.82)", marginTop: 2 },
+                          { color: "rgba(255, 255, 255, 0.86)", marginTop: 2 },
                         ]}
                         numberOfLines={2}
                       >
@@ -1460,8 +1437,6 @@ export default function FamilyScreen() {
                   padded={false}
                   style={{
                     overflow: "hidden",
-                    borderWidth: 1,
-                    borderColor: colors.border,
                   }}
                 >
                   {/* Identity Row */}
@@ -1493,7 +1468,7 @@ export default function FamilyScreen() {
                         <Text
                           style={[
                             typography.title.md,
-                            { color: colors.text, fontWeight: "700", flexShrink: 1 },
+                            { color: colors.text, flexShrink: 1 },
                           ]}
                           numberOfLines={1}
                         >
@@ -1564,7 +1539,7 @@ export default function FamilyScreen() {
                           gap: spacing.xs,
                         }}
                       >
-                        <Phone size={13} color={colors.textMuted} />
+                        <Phone size={13} color={colors.textSubtle} />
                         <Text
                           style={[typography.body.sm, { color: colors.textMuted }]}
                         >
@@ -1581,7 +1556,7 @@ export default function FamilyScreen() {
                           gap: spacing.xs,
                         }}
                       >
-                        <Calendar size={13} color={colors.textMuted} />
+                        <Calendar size={13} color={colors.textSubtle} />
                         <Text
                           style={[typography.body.sm, { color: colors.textMuted }]}
                         >
@@ -1598,7 +1573,7 @@ export default function FamilyScreen() {
                         <Text
                           style={[
                             typography.caption,
-                            { color: colors.textSubtle, fontWeight: "600" },
+                            { color: colors.textSubtle },
                           ]}
                         >
                           {t("family.compose.conditionsLabel", "Hereditary conditions")}:
@@ -1620,15 +1595,16 @@ export default function FamilyScreen() {
                     {m.notes && (
                       <View
                         style={{
-                          marginTop: 4,
-                          padding: spacing.sm,
-                          borderRadius: radius.sm,
-                          backgroundColor: colors.surfaceMuted,
+                          marginTop: 6,
+                          padding: spacing.md,
+                          borderRadius: 14,
+                          borderCurve: "continuous",
+                          backgroundColor: colors.fill,
                         }}
                       >
                         <Text
                           style={[
-                            typography.caption,
+                            typography.body.sm,
                             { color: colors.textMuted, fontStyle: "italic" },
                           ]}
                           numberOfLines={2}
@@ -1646,8 +1622,7 @@ export default function FamilyScreen() {
                     style={{
                       flexDirection: "row",
                       paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.xs + 2,
-                      backgroundColor: colors.surfaceMuted,
+                      paddingVertical: spacing.sm,
                     }}
                   >
                     <MemberAction
@@ -1741,11 +1716,11 @@ function HeroChip({
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        paddingHorizontal: spacing.sm + 4,
-        paddingVertical: 5,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "rgba(255, 255, 255, 0.16)",
-        borderWidth: 1,
+        backgroundColor: "rgba(255, 255, 255, 0.18)",
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255, 255, 255, 0.28)",
         alignSelf: "flex-start",
       }}
@@ -1753,8 +1728,8 @@ function HeroChip({
       {Icon && <Icon size={12} color="#FFFFFF" strokeWidth={2.4} />}
       <Text
         style={[
-          typography.caption,
-          { color: "#FFFFFF", fontWeight: "700", fontSize: 11 },
+          typography.label.sm,
+          { color: "#FFFFFF" },
         ]}
         numberOfLines={1}
       >
@@ -1800,7 +1775,8 @@ function FamilyFeatureRow({
         style={{
           width: 40,
           height: 40,
-          borderRadius: 13,
+          borderRadius: 12,
+          borderCurve: "continuous",
           backgroundColor: iconBg,
           alignItems: "center",
           justifyContent: "center",
@@ -1810,10 +1786,10 @@ function FamilyFeatureRow({
         <Icon size={20} color={iconColor} strokeWidth={2.2} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+        <Text style={[typography.title.sm, { color: colors.text }]}>
           {title}
         </Text>
-        <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 19 }]}>
+        <Text style={[typography.body.sm, { color: colors.textMuted }]}>
           {description}
         </Text>
       </View>
@@ -1858,6 +1834,7 @@ function MemberAction({
           width: 36,
           height: 36,
           borderRadius: 12,
+          borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: pal.bg,
@@ -1867,11 +1844,10 @@ function MemberAction({
       </View>
       <Text
         style={[
-          typography.caption,
+          typography.label.xs,
           {
             color: disabled ? colors.textMuted : pal.fg,
-            fontWeight: "700",
-            fontSize: 10.5,
+            letterSpacing: 0,
           },
         ]}
         numberOfLines={1}
@@ -1900,6 +1876,7 @@ function FormSectionHeader({
           width: 32,
           height: 32,
           borderRadius: 10,
+          borderCurve: "continuous",
           backgroundColor: colors.primarySoft,
           alignItems: "center",
           justifyContent: "center",
@@ -1908,11 +1885,11 @@ function FormSectionHeader({
         <Icon size={16} color={colors.primary} strokeWidth={2.2} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+        <Text style={[typography.title.md, { color: colors.text }]}>
           {title}
         </Text>
         {subtitle && (
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
+          <Text style={[typography.caption, { color: colors.textSubtle, marginTop: 1 }]}>
             {subtitle}
           </Text>
         )}

@@ -115,6 +115,7 @@ export default function AdminAdminsScreen() {
                 width: 46,
                 height: 46,
                 borderRadius: 23,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: "rgba(255,255,255,0.14)",

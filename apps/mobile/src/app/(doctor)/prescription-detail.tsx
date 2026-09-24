@@ -7,7 +7,7 @@
 // helper that the list-screen row icon uses.
 
 import { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -164,20 +164,15 @@ export default function PrescriptionDetailScreen() {
             >
               {t("doctorPrescriptionDetail.patient").toUpperCase()}
             </Text>
-            <Text
-              style={[
-                typography.title.md,
-                { color: colors.text, fontWeight: "700" },
-              ]}
-            >
+            <Text style={[typography.display.sm, { color: colors.text }]}>
               {patient?.name || t("doctorPrescriptions.unknownPatient")}
             </Text>
             <View
               style={{
                 flexDirection: "row",
                 flexWrap: "wrap",
-                gap: spacing.md,
-                marginTop: spacing.sm,
+                gap: spacing.sm,
+                marginTop: spacing.md,
               }}
             >
               {patient?.nic ? (
@@ -244,7 +239,7 @@ export default function PrescriptionDetailScreen() {
               {t("doctorPrescriptionDetail.medicines").toUpperCase()}
             </Text>
             {rx.medicines?.length ? (
-              <View style={{ gap: spacing.sm }}>
+              <View>
                 {rx.medicines.map((med: any, i: number) => (
                   <View
                     key={med.id || i}
@@ -252,16 +247,17 @@ export default function PrescriptionDetailScreen() {
                       flexDirection: "row",
                       alignItems: "flex-start",
                       gap: spacing.md,
-                      paddingVertical: spacing.xs,
-                      borderTopWidth: i === 0 ? 0 : 1,
-                      borderColor: colors.border,
+                      paddingVertical: spacing.md,
+                      borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                      borderColor: colors.separator,
                     }}
                   >
                     <View
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 12,
+                        width: 34,
+                        height: 34,
+                        borderRadius: 10,
+                        borderCurve: "continuous",
                         backgroundColor: colors.primarySoft,
                         alignItems: "center",
                         justifyContent: "center",
@@ -270,12 +266,7 @@ export default function PrescriptionDetailScreen() {
                       <Pill size={16} color={colors.primary} strokeWidth={2.2} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text
-                        style={[
-                          typography.body.md,
-                          { color: colors.text, fontWeight: "700" },
-                        ]}
-                      >
+                      <Text style={[typography.title.sm, { color: colors.text }]}>
                         {med.name}
                       </Text>
                       <Text
@@ -328,7 +319,8 @@ export default function PrescriptionDetailScreen() {
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 14,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
                   backgroundColor: colors.successSoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -337,12 +329,7 @@ export default function PrescriptionDetailScreen() {
                 <Stethoscope size={18} color={colors.success} strokeWidth={2.2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    typography.body.md,
-                    { color: colors.text, fontWeight: "700" },
-                  ]}
-                >
+                <Text style={[typography.title.sm, { color: colors.text }]}>
                   {rx.doctorName}
                 </Text>
                 {rx.doctorSpecialization ? (
@@ -376,7 +363,8 @@ export default function PrescriptionDetailScreen() {
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 14,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
                   backgroundColor: isSigned
                     ? colors.successSoft
                     : colors.warningSoft ?? colors.surfaceMuted,
@@ -391,12 +379,7 @@ export default function PrescriptionDetailScreen() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    typography.body.md,
-                    { color: colors.text, fontWeight: "700" },
-                  ]}
-                >
+                <Text style={[typography.title.sm, { color: colors.text }]}>
                   {status === "cancelled"
                     ? t("doctorPrescriptionDetail.statusCancelled")
                     : status === "dispensed"
@@ -595,8 +578,8 @@ function StatusPill({ status }: { status: string }) {
     >
       <Text
         style={[
-          typography.caption,
-          { color: palette.fg, fontWeight: "700", textTransform: "uppercase" },
+          typography.label.xs,
+          { color: palette.fg, textTransform: "uppercase" },
         ]}
       >
         {palette.label}
@@ -622,12 +605,12 @@ function MetaChip({
         paddingHorizontal: spacing.sm,
         paddingVertical: 6,
         borderRadius: radius.full,
-        backgroundColor: colors.surfaceMuted,
+        backgroundColor: colors.fill,
       }}
     >
       <Icon size={12} color={colors.textMuted} strokeWidth={2.2} />
       <Text
-        style={[typography.caption, { color: colors.textMuted, fontWeight: "700" }]}
+        style={[typography.label.sm, { color: colors.textMuted }]}
       >
         {label}
       </Text>

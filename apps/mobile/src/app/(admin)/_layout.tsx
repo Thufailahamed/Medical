@@ -11,6 +11,7 @@ import {
 } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
+import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { AdminStepUpSheet } from "@/components/admin/AdminStepUpSheet";
 import { useAdminApprovals, useAdminDoctors } from "@/hooks/useAdminApi";
 
@@ -52,92 +53,13 @@ export default function AdminLayout() {
   const { data: doctors } = useAdminDoctors("unverified");
   const pendingN = approvals?.total ?? 0;
   const unverifiedDoctors = doctors?.total ?? 0;
+  const tabOptions = useFloatingTabBarOptions();
 
   return (
     <View style={{ flex: 1 }}>
       <AdminStepUpSheet />
       <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.textSubtle,
-          tabBarItemStyle: { paddingTop: 4 },
-          tabBarStyle: {
-            position: "absolute",
-            left: 12,
-            right: 12,
-            bottom: Platform.OS === "ios" ? 28 : 18,
-            height: 72,
-            backgroundColor: "transparent",
-            borderTopWidth: 0,
-            paddingBottom: 6,
-            paddingTop: 4,
-            borderRadius: 32,
-            elevation: 0,
-            shadowColor: "#03182A",
-            shadowOffset: { width: 0, height: 14 },
-            shadowOpacity: 0.16,
-            shadowRadius: 28,
-          },
-          tabBarBackground: () => (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { borderRadius: 32, overflow: "hidden" },
-              ]}
-            >
-              <BlurView
-                intensity={Platform.OS === "ios" ? 90 : 60}
-                tint="default"
-                style={StyleSheet.absoluteFill}
-              />
-              <View
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    backgroundColor:
-                      Platform.OS === "android"
-                        ? colors.bgElevated
-                        : "rgba(255,255,255,0.72)",
-                  },
-                ]}
-              />
-              <LinearGradient
-                colors={[
-                  "rgba(255,255,255,0.55)",
-                  "rgba(255,255,255,0.08)",
-                  "rgba(255,255,255,0)",
-                ]}
-                locations={[0, 0.35, 1]}
-                style={[StyleSheet.absoluteFill, { borderRadius: 32 }]}
-                pointerEvents="none"
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  top: 0.5,
-                  left: 18,
-                  right: 18,
-                  height: 1,
-                  backgroundColor: "rgba(255,255,255,0.85)",
-                }}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  borderRadius: 32,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: colors.border,
-                }}
-              />
-            </View>
-          ),
-          tabBarLabelStyle: TAB_LABEL,
-        }}
+        screenOptions={tabOptions}
       >
         <Tabs.Screen
           name="index"

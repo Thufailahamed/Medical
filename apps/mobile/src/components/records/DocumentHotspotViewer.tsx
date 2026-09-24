@@ -138,9 +138,9 @@ export function DocumentHotspotViewer({
 
       {/* Active Hotspot Banner */}
       {activeHotspot ? (
-        <View style={[styles.activeBanner, { backgroundColor: "#FEF2F2", borderColor: "#FCA5A5" }]}>
-          <Target size={14} color="#DC2626" />
-          <AppText style={{ fontSize: 12, fontWeight: "700", color: "#991B1B" }}>
+        <View style={[styles.activeBanner, { backgroundColor: colors.dangerSoft, borderColor: "#FCA5A5" }]}>
+          <Target size={14} color={colors.danger} />
+          <AppText style={{ fontSize: 12, fontWeight: "700", color: colors.danger }}>
             Highlighted: {activeHotspot.label} ({activeHotspot.value})
           </AppText>
         </View>
@@ -152,6 +152,7 @@ export function DocumentHotspotViewer({
 const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
+    borderCurve: "continuous",
     borderWidth: 1,
     overflow: "hidden",
   },
@@ -167,6 +168,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
+    borderCurve: "continuous",
     borderWidth: 1,
   },
   imageContainer: {

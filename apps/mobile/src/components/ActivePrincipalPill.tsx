@@ -79,7 +79,7 @@ export function ActivePrincipalPill() {
         <Text
           numberOfLines={1}
           style={{
-            ...typography.label,
+            ...typography.label.md,
             color: colors.primary,
             fontWeight: "700",
           }}

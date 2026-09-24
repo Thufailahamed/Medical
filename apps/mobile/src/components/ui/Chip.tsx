@@ -41,17 +41,19 @@ export function Chip({
   style,
   accessibilityLabel,
 }: ChipProps) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const palette = useTone(tone);
   const { onBgStrong: selFg, bgStrong: selBg } = useTone(
     tone === "neutral" ? "primary" : tone
   );
 
-  const bg = selected ? selBg : palette.bg;
+  const bg = selected ? selBg : tone === "neutral" ? colors.surface : palette.bg;
   const fg = selected ? selFg : palette.fg;
   const isNeutral = tone === "neutral" && !selected;
-  const borderColor = isNeutral ? colors.border : "transparent";
-  const borderWidth = isNeutral ? 1 : 0;
+  const borderColor = isNeutral
+    ? scheme === "dark" ? colors.borderStrong : colors.separator
+    : "transparent";
+  const borderWidth = isNeutral ? StyleSheet.hairlineWidth * 2 : 0;
 
   const isMd = size === "md";
   const height = isMd ? 36 : 30;
@@ -75,6 +77,7 @@ export function Chip({
           borderRadius: radius.full,
           opacity: disabled ? 0.4 : 1,
         },
+        selected && scheme !== "dark" ? { ...shadow.xs, shadowOpacity: 0.12 } : null,
         style,
       ]}
     >
@@ -84,7 +87,7 @@ export function Chip({
       <Text
         style={[
           font,
-          { color: fg, textAlign: "center" },
+          { color: selected ? fg : isNeutral ? colors.text : fg, textAlign: "center" },
         ]}
         numberOfLines={1}
       >

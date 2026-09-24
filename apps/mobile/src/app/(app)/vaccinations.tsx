@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -72,7 +73,7 @@ function formatDate(iso: string | null | undefined, locale: any): string {
 export default function VaccinationsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
+  const { spacing, colors, typography, radius, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
   const locale = useLocaleStore((s) => s.locale);
   const toast = useToast();
@@ -184,67 +185,60 @@ export default function VaccinationsScreen() {
           }}
         >
           <LinearGradient
-            colors={
-              isDark
-                ? [colors.surfaceElevated, colors.surface]
-                : [colors.primarySoft, colors.surface]
-            }
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              borderRadius: 20,
-              padding: spacing.md,
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderRadius: 28,
+              borderCurve: "continuous",
+              padding: spacing.xl,
               flexDirection: "row",
               alignItems: "center",
-              gap: spacing.md,
+              gap: spacing.lg,
+              ...(isDark ? {} : shadow.hero),
             }}
           >
             <View
               style={{
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 borderRadius: 16,
-                backgroundColor: colors.primary,
+                borderCurve: "continuous",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
                 alignItems: "center",
                 justifyContent: "center",
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                elevation: 4,
               }}
             >
-              <Camera size={24} color={colors.onPrimary} />
+              <Camera size={24} color="#FFFFFF" />
             </View>
 
-            <View style={{ flex: 1, gap: 2 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
-                  Scan Paper Card with AI
+            <View style={{ flex: 1, gap: 4 }}>
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 999,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
+                }}
+              >
+                <Text style={[typography.label.xs, { color: "#FFFFFF", fontSize: 10 }]}>
+                  AI CAMERA
                 </Text>
-                <View
-                  style={{
-                    backgroundColor: colors.primarySoft,
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: colors.primary + "30",
-                  }}
-                >
-                  <Text style={[typography.caption, { color: colors.primary, fontWeight: "700", fontSize: 10 }]}>
-                    AI CAMERA
-                  </Text>
-                </View>
               </View>
-              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]}>
+              <Text style={[typography.title.md, { color: "#FFFFFF" }]}>
+                Scan Paper Card with AI
+              </Text>
+              <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)" }]}>
                 Snap a photo of your immunization booklet to auto-extract dose dates & batch numbers.
               </Text>
             </View>
 
-            <ArrowRight size={18} color={colors.primary} />
+            <ArrowRight size={18} color="#FFFFFF" />
           </LinearGradient>
         </Pressable>
 
@@ -300,9 +294,9 @@ export default function VaccinationsScreen() {
         )}
 
         {/* Administered list */}
-        <View style={{ gap: spacing.sm }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.xs }}>
-            <Text style={[typography.overline, { color: colors.textMuted, fontWeight: "700" }]}>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 2 }}>
+            <Text style={[typography.overline, { color: colors.textSubtle }]}>
               {t("vaccinations.sections.administered", "ADMINISTERED DOSES")} · {administered.length}
             </Text>
           </View>
@@ -320,11 +314,7 @@ export default function VaccinationsScreen() {
               <Card
                 key={a.id}
                 style={{
-                  padding: spacing.md,
-                  borderRadius: 20,
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  padding: spacing.lg,
                 }}
               >
                 <View
@@ -336,25 +326,24 @@ export default function VaccinationsScreen() {
                 >
                   <View
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      borderCurve: "continuous",
                       backgroundColor: colors.successSoft,
                       alignItems: "center",
                       justifyContent: "center",
-                      borderWidth: 1,
-                      borderColor: colors.success + "30",
                     }}
                   >
-                    <Syringe size={22} color={colors.success} strokeWidth={2.2} />
+                    <Syringe size={20} color={colors.success} strokeWidth={2.2} />
                   </View>
 
                   <View style={{ flex: 1, gap: 3 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
                       <Text
                         style={[
-                          typography.title.sm,
-                          { color: colors.text, fontWeight: "700" },
+                          typography.title.md,
+                          { color: colors.text, flexShrink: 1 },
                         ]}
                         numberOfLines={1}
                       >
@@ -370,14 +359,14 @@ export default function VaccinationsScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                         <Calendar size={12} color={colors.textSubtle} />
-                        <Text style={[typography.caption, { color: colors.textMuted, fontWeight: "500" }]}>
+                        <Text style={[typography.caption, { color: colors.textMuted }]}>
                           {formatDate(a.administeredAt || a.recordDate || a.createdAt, locale)}
                         </Text>
                       </View>
 
                       {a.provider ? (
                         <>
-                          <Text style={[typography.caption, { color: colors.border }]}>•</Text>
+                          <Text style={[typography.caption, { color: colors.textSubtle }]}>•</Text>
                           <View style={{ flexDirection: "row", alignItems: "center", gap: 3, flex: 1 }}>
                             <Building2 size={12} color={colors.textSubtle} />
                             <Text
@@ -410,17 +399,17 @@ export default function VaccinationsScreen() {
         </View>
 
         {/* ── Routine Vaccine Schedule Reference ── */}
-        <View style={{ gap: spacing.sm }}>
-          <View style={{ paddingHorizontal: spacing.xs }}>
-            <Text style={[typography.overline, { color: colors.textMuted, fontWeight: "700" }]}>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ paddingHorizontal: 2, gap: 2 }}>
+            <Text style={[typography.overline, { color: colors.textSubtle }]}>
               RECOMMENDED IMMUNIZATION SCHEDULE
             </Text>
-            <Text style={[typography.caption, { color: colors.textMuted }]}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               Standard adult & travel immunization reference schedule
             </Text>
           </View>
 
-          <Card style={{ padding: spacing.sm, borderRadius: 20, borderWidth: 1, borderColor: colors.border, gap: 2 }}>
+          <Card padded={false}>
             {ROUTINE_VACCINES.map((v, i) => (
               <Pressable
                 key={v.name}
@@ -429,23 +418,34 @@ export default function VaccinationsScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  paddingVertical: spacing.sm,
-                  paddingHorizontal: spacing.sm,
-                  borderRadius: 12,
-                  borderBottomWidth: i < ROUTINE_VACCINES.length - 1 ? 1 : 0,
-                  borderBottomColor: colors.border + "40",
+                  minHeight: 60,
+                  paddingVertical: spacing.md,
+                  marginLeft: spacing.lg,
+                  paddingRight: spacing.lg,
+                  borderBottomWidth: i < ROUTINE_VACCINES.length - 1 ? StyleSheet.hairlineWidth : 0,
+                  borderBottomColor: colors.separator,
                 }}
               >
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[typography.label.md, { color: colors.text, fontWeight: "600" }]}>
+                  <Text style={[typography.title.sm, { color: colors.text }]}>
                     {v.name}
                   </Text>
-                  <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+                  <Text style={[typography.caption, { color: colors.textSubtle }]}>
                     {v.schedule} · {v.category}
                   </Text>
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={[typography.caption, { color: colors.primary, fontWeight: "600", fontSize: 11 }]}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                    paddingHorizontal: 12,
+                    height: 30,
+                    borderRadius: 15,
+                    backgroundColor: colors.primarySoft,
+                  }}
+                >
+                  <Text style={[typography.label.sm, { color: colors.primary }]}>
                     Log
                   </Text>
                   <Plus size={14} color={colors.primary} />
@@ -464,11 +464,11 @@ export default function VaccinationsScreen() {
           left: 0,
           right: 0,
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.sm,
+          paddingTop: spacing.md,
           paddingBottom: spacing.xl,
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
+          backgroundColor: isDark ? colors.bgElevated : colors.surface,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
         }}
       >
         <Button
@@ -489,7 +489,7 @@ export default function VaccinationsScreen() {
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
           {/* Quick Catalog Shortcuts */}
           <FormField label={t("vaccinations.field.catalogLabel", "Common Vaccines")}>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
               {catalog.slice(0, 12).map((c: any) => (
                 <Chip
                   key={c.id}
@@ -613,11 +613,10 @@ function BannerCard({
   return (
     <View
       style={{
-        borderRadius: 18,
-        padding: spacing.md,
+        borderRadius: 22,
+        borderCurve: "continuous",
+        padding: spacing.lg,
         backgroundColor: bg,
-        borderWidth: 1,
-        borderColor: tint + "30",
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.md,
@@ -627,7 +626,8 @@ function BannerCard({
         style={{
           width: 40,
           height: 40,
-          borderRadius: 13,
+          borderRadius: 12,
+          borderCurve: "continuous",
           backgroundColor: tint,
           alignItems: "center",
           justifyContent: "center",
@@ -636,10 +636,10 @@ function BannerCard({
         <Icon size={20} color="#FFFFFF" strokeWidth={2.2} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+        <Text style={[typography.title.sm, { color: colors.text }]}>
           {title}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]}>
+        <Text style={[typography.body.sm, { color: colors.textMuted }]}>
           {body}
         </Text>
       </View>

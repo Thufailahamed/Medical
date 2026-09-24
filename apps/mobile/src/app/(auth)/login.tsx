@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
   Linking,
+  StyleSheet,
 } from "react-native";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -25,6 +26,7 @@ import {
 import { api } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
+import { LinearGradient } from "expo-linear-gradient";
 import * as SecureStore from "expo-secure-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
@@ -53,7 +55,7 @@ type PhoneData = z.infer<typeof phoneSchema>;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, scheme } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [staffMode, setStaffMode] = useState(false);
   const [staffEmail, setStaffEmail] = useState("");
@@ -288,7 +290,7 @@ export default function LoginScreen() {
       padded={false}
       bottomInset={true}
       edges={["top", "bottom"]}
-      style={{ backgroundColor: "#FFFFFF" }}
+      style={{ backgroundColor: colors.surface }}
       contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
     >
       {/* Branding Header */}
@@ -299,38 +301,54 @@ export default function LoginScreen() {
           marginTop: 40,
         }}
       >
-        <Heart size={26} color={colors.primary} strokeWidth={2.25} />
-        <Text
+        <View
           style={{
-            fontSize: 14,
-            fontWeight: "800",
-            color: "#1D1B20",
-            letterSpacing: 3,
-            fontFamily: fontFamily.displayBold,
-            marginLeft: 8,
+            width: 44,
+            height: 44,
+            borderRadius: 13,
+            borderCurve: "continuous",
+            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 6,
           }}
         >
-          HEALTHHUB
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Heart size={22} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
+        </View>
+        <Text
+          style={{
+            fontSize: 20,
+            color: colors.text,
+            letterSpacing: -0.5,
+            fontFamily: fontFamily.heavy,
+            marginLeft: 12,
+          }}
+        >
+          HealthHub
         </Text>
       </View>
 
       {/* Heading Section */}
       <View style={{ marginTop: 48, marginBottom: 32 }}>
         <Text
-          style={{
-            fontSize: 34,
-            fontWeight: "800",
-            color: "#1D1B20",
-            fontFamily: fontFamily.displayBold,
-            lineHeight: 42,
-          }}
+          style={[typography.display.lg, { color: colors.text }]}
         >
           Welcome back.
         </Text>
         <Text
           style={{
             fontSize: 15,
-            color: "#7F7B8C",
+            color: colors.textMuted,
             marginTop: 10,
             fontFamily: fontFamily.body,
             lineHeight: 22,
@@ -346,10 +364,11 @@ export default function LoginScreen() {
       <View
         style={{
           flexDirection: "row",
-          backgroundColor: "#F5F3FA",
-          borderRadius: 26,
-          padding: 4,
-          marginBottom: 24,
+          backgroundColor: colors.fill,
+          borderRadius: 14,
+          borderCurve: "continuous",
+          padding: 3,
+          marginBottom: 28,
         }}
       >
         {(
@@ -373,21 +392,26 @@ export default function LoginScreen() {
                 justifyContent: "center",
                 gap: 6,
                 paddingVertical: 10,
-                borderRadius: 22,
-                backgroundColor: active ? "#FFFFFF" : "transparent",
-                shadowColor: "#000",
-                shadowOpacity: active ? 0.08 : 0,
+                borderRadius: 11,
+                borderCurve: "continuous",
+                backgroundColor: active
+                  ? scheme === "dark"
+                    ? colors.surfaceElevated
+                    : colors.surface
+                  : "transparent",
+                shadowColor: colors.shadow,
+                shadowOpacity: active && scheme !== "dark" ? 0.1 : 0,
                 shadowRadius: 6,
                 shadowOffset: { width: 0, height: 2 },
                 elevation: active ? 2 : 0,
               }}
             >
-              <Icon size={14} color={active ? colors.primary : "#7F7B8C"} />
+              <Icon size={14} color={active ? colors.primary : colors.textMuted} />
               <Text
                 style={{
                   fontSize: 13,
                   fontWeight: "700",
-                  color: active ? colors.primary : "#7F7B8C",
+                  color: active ? colors.text : colors.textMuted,
                   fontFamily: fontFamily.bodyBold,
                 }}
               >
@@ -404,13 +428,11 @@ export default function LoginScreen() {
           <View>
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "800",
-                color: "#7F7B8C",
-                letterSpacing: 0.8,
-                fontFamily: fontFamily.displayBold,
-                textTransform: "uppercase",
-                marginBottom: 6,
+                fontSize: 13,
+                color: colors.textMuted,
+                fontFamily: fontFamily.bodySemibold,
+                marginBottom: 8,
+                marginLeft: 2,
               }}
             >
               Work email
@@ -419,26 +441,26 @@ export default function LoginScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                borderWidth: 1,
-                borderColor: "#E6E4EA",
-                borderRadius: radius.md,
-                paddingHorizontal: 12,
-                backgroundColor: "#FFFFFF",
+                borderRadius: radius.field,
+                borderCurve: "continuous",
+                paddingHorizontal: 14,
+                minHeight: 54,
+                backgroundColor: colors.fill,
               }}
             >
-              <Mail size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+              <Mail size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
               <TextInput
                 value={staffEmail}
                 onChangeText={setStaffEmail}
                 placeholder="you@clinic.lk"
-                placeholderTextColor="#C4C0CC"
+                placeholderTextColor={colors.textSubtle}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 style={{
                   flex: 1,
                   fontSize: 16,
-                  color: "#1D1B20",
+                  color: colors.text,
                   fontFamily: fontFamily.body,
                   paddingVertical: 14,
                 }}
@@ -449,13 +471,11 @@ export default function LoginScreen() {
           <View>
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "800",
-                color: "#7F7B8C",
-                letterSpacing: 0.8,
-                fontFamily: fontFamily.displayBold,
-                textTransform: "uppercase",
-                marginBottom: 6,
+                fontSize: 13,
+                color: colors.textMuted,
+                fontFamily: fontFamily.bodySemibold,
+                marginBottom: 8,
+                marginLeft: 2,
               }}
             >
               Password
@@ -464,25 +484,25 @@ export default function LoginScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                borderWidth: 1,
-                borderColor: "#E6E4EA",
-                borderRadius: radius.md,
-                paddingHorizontal: 12,
-                backgroundColor: "#FFFFFF",
+                borderRadius: radius.field,
+                borderCurve: "continuous",
+                paddingHorizontal: 14,
+                minHeight: 54,
+                backgroundColor: colors.fill,
               }}
             >
-              <Lock size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+              <Lock size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
               <TextInput
                 value={staffPassword}
                 onChangeText={setStaffPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#C4C0CC"
+                placeholderTextColor={colors.textSubtle}
                 secureTextEntry
                 autoComplete="password"
                 style={{
                   flex: 1,
                   fontSize: 16,
-                  color: "#1D1B20",
+                  color: colors.text,
                   fontFamily: fontFamily.body,
                   paddingVertical: 14,
                 }}
@@ -521,16 +541,24 @@ export default function LoginScreen() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: submitting
-                ? `${colors.primary}80`
-                : colors.primary,
-              height: 52,
-              borderRadius: 26,
+              backgroundColor: colors.primary,
+              height: 54,
+              borderRadius: radius.button,
+              borderCurve: "continuous",
+              overflow: "hidden",
               marginTop: 8,
-              opacity: pressed ? 0.8 : 1,
+              opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
               gap: 8,
             })}
           >
+            <LinearGradient
+              pointerEvents="none"
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             {submitting ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
@@ -558,7 +586,7 @@ export default function LoginScreen() {
             <Text
               style={{
                 fontSize: 13,
-                color: "#7F7B8C",
+                color: colors.textMuted,
                 fontFamily: fontFamily.body,
               }}
             >
@@ -638,16 +666,24 @@ export default function LoginScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: submitting
-              ? `${colors.primary}80`
-              : colors.primary,
-            height: 52,
-            borderRadius: 26,
+            backgroundColor: colors.primary,
+            height: 54,
+            borderRadius: radius.button,
+            borderCurve: "continuous",
+            overflow: "hidden",
             marginTop: 8,
-            opacity: pressed ? 0.8 : 1,
+            opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
             gap: 8,
           })}
         >
+          <LinearGradient
+            pointerEvents="none"
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
@@ -670,7 +706,7 @@ export default function LoginScreen() {
         <Text
           style={{
             fontSize: 12,
-            color: "#7F7B8C",
+            color: colors.textMuted,
             marginTop: 2,
             fontFamily: fontFamily.body,
             lineHeight: 18,
@@ -691,11 +727,11 @@ export default function LoginScreen() {
           marginTop: 28,
         }}
       >
-        <View style={{ flex: 1, height: 1, backgroundColor: "#E6E4EA" }} />
+        <View style={{ flex: 1, height: 1, backgroundColor: colors.surfaceMuted }} />
         <Text
           style={{
             fontSize: 12,
-            color: "#7F7B8C",
+            color: colors.textMuted,
             fontWeight: "600",
             textTransform: "uppercase",
             letterSpacing: 1,
@@ -704,7 +740,7 @@ export default function LoginScreen() {
         >
           or
         </Text>
-        <View style={{ flex: 1, height: 1, backgroundColor: "#E6E4EA" }} />
+        <View style={{ flex: 1, height: 1, backgroundColor: colors.surfaceMuted }} />
       </View>
 
       {/* WhatsApp onboarding */}
@@ -722,9 +758,10 @@ export default function LoginScreen() {
             paddingVertical: spacing.md,
             marginTop: spacing.md,
             borderRadius: radius.lg,
+            borderCurve: "continuous",
             borderWidth: 1,
             borderColor: "#25D366",
-            backgroundColor: "#FFFFFF",
+            backgroundColor: colors.surface,
           }}
         >
           <MessageCircle size={18} color="#25D366" />
@@ -756,7 +793,7 @@ export default function LoginScreen() {
         <Text
           style={{
             fontSize: 15,
-            color: "#7F7B8C",
+            color: colors.textMuted,
             fontFamily: fontFamily.body,
           }}
         >
@@ -780,7 +817,7 @@ export default function LoginScreen() {
             style={{
               fontSize: 12,
               fontWeight: "700",
-              color: "#7F7B8C",
+              color: colors.textMuted,
               textAlign: "center",
               textTransform: "uppercase",
               letterSpacing: 1,
@@ -794,11 +831,12 @@ export default function LoginScreen() {
               disabled={submitting}
               style={{
                 flex: 1,
-                backgroundColor: "#F5F3FA",
+                backgroundColor: colors.fill,
                 borderWidth: 1,
                 borderColor: colors.primary,
                 paddingVertical: spacing.md,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 alignItems: "center",
               }}
             >
@@ -811,11 +849,12 @@ export default function LoginScreen() {
               disabled={submitting}
               style={{
                 flex: 1,
-                backgroundColor: "#F5F3FA",
+                backgroundColor: colors.fill,
                 borderWidth: 1,
                 borderColor: colors.accent || "#008080",
                 paddingVertical: spacing.md,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 alignItems: "center",
               }}
             >
@@ -868,7 +907,7 @@ function PhoneInput({
   onBlur?: () => void;
   error?: string;
 }) {
-  const { colors, fontFamily } = useTheme();
+  const { colors, fontFamily, radius } = useTheme();
   const [focused, setFocused] = useState(false);
 
   return (
@@ -877,12 +916,10 @@ function PhoneInput({
       <View style={{ flexDirection: "row", marginBottom: 6 }}>
         <Text
           style={{
-            fontSize: 11,
-            fontWeight: "800",
-            color: "#7F7B8C",
-            letterSpacing: 0.8,
-            fontFamily: fontFamily.displayBold,
-            textTransform: "uppercase",
+            fontSize: 13,
+            color: colors.textMuted,
+            fontFamily: fontFamily.bodySemibold,
+            marginLeft: 2,
           }}
         >
           Mobile number
@@ -903,24 +940,29 @@ function PhoneInput({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingBottom: 8,
-          borderBottomWidth: focused ? 2 : 1,
-          borderBottomColor: error
+          minHeight: 56,
+          paddingHorizontal: 14,
+          borderRadius: radius.field,
+          borderCurve: "continuous",
+          backgroundColor: colors.fill,
+          borderWidth: 1.5,
+          borderColor: error
             ? colors.danger || "#FF3B30"
             : focused
             ? colors.primary
-            : "#E6E4EA",
+            : "transparent",
         }}
       >
-        <Phone size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+        <Phone size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
 
         {/* Country code badge */}
         <View
           style={{
-            backgroundColor: "#F5F3FA",
+            backgroundColor: colors.surface,
             paddingHorizontal: 10,
             paddingVertical: 6,
-            borderRadius: 8,
+            borderRadius: 9,
+            borderCurve: "continuous",
             marginRight: 8,
           }}
         >
@@ -928,7 +970,7 @@ function PhoneInput({
             style={{
               fontSize: 15,
               fontWeight: "700",
-              color: "#1D1B20",
+              color: colors.text,
               fontFamily: fontFamily.bodyBold,
             }}
           >
@@ -944,7 +986,7 @@ function PhoneInput({
             onChangeText(clean);
           }}
           placeholder="77 123 4567"
-          placeholderTextColor="#C4C0CC"
+          placeholderTextColor={colors.textSubtle}
           keyboardType="phone-pad"
           autoComplete="tel"
           textContentType="telephoneNumber"
@@ -957,7 +999,7 @@ function PhoneInput({
           style={{
             flex: 1,
             fontSize: 18,
-            color: "#1D1B20",
+            color: colors.text,
             fontFamily: fontFamily.body,
             padding: 0,
             letterSpacing: 1,

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -33,7 +34,8 @@ import {
 export default function DoctorPrescriptionsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const toast = useToast();
   const { data, isLoading, isError, refetch } = useDoctorPrescriptions();
   const [refreshing, setRefreshing] = useState(false);
@@ -119,11 +121,11 @@ export default function DoctorPrescriptionsScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.sm,
-              paddingHorizontal: spacing.md,
-              backgroundColor: colors.surfaceMuted,
-              borderRadius: radius.lg,
-              borderWidth: 1,
-              borderColor: colors.border,
+              paddingLeft: spacing.md,
+              paddingRight: 4,
+              backgroundColor: colors.fill,
+              borderRadius: 12,
+              borderCurve: "continuous",
               minHeight: 44,
             }}
           >
@@ -143,20 +145,20 @@ export default function DoctorPrescriptionsScreen() {
               <Pressable
                 onPress={() => setFilter("")}
                 style={{
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: 4,
+                  paddingHorizontal: 12,
+                  height: 30,
+                  justifyContent: "center",
                   borderRadius: 999,
-                  backgroundColor: !filter ? colors.primary : colors.surface,
-                  borderWidth: 1,
-                  borderColor: !filter ? colors.primary : colors.border,
+                  borderCurve: "continuous",
+                  backgroundColor: !filter ? colors.surface : "transparent",
+                  ...(!filter ? shadow.xs : shadow.none),
                 }}
               >
                 <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: !filter ? colors.onPrimary : colors.text,
-                  }}
+                  style={[
+                    typography.label.sm,
+                    { color: !filter ? colors.text : colors.textMuted },
+                  ]}
                 >
                   {t("doctorPrescriptions.filters.all")}
                 </Text>
@@ -239,10 +241,12 @@ export default function DoctorPrescriptionsScreen() {
                   backgroundColor: pressed
                     ? colors.surfaceMuted
                     : colors.surface,
-                  borderRadius: radius.lg,
+                  borderRadius: radius.xl,
+                  borderCurve: "continuous",
                   padding: spacing.md,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: isDark ? colors.borderStrong : colors.separator,
+                  ...(isDark ? {} : shadow.xs),
                 })}
               >
                 <View
@@ -254,9 +258,10 @@ export default function DoctorPrescriptionsScreen() {
                 >
                   <View
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
+                      width: 42,
+                      height: 42,
+                      borderRadius: 13,
+                      borderCurve: "continuous",
                       backgroundColor: colors.primarySoft,
                       alignItems: "center",
                       justifyContent: "center",
@@ -271,8 +276,8 @@ export default function DoctorPrescriptionsScreen() {
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text
                       style={[
-                        typography.title.sm,
-                        { color: colors.text, fontWeight: "700" },
+                        typography.title.md,
+                        { color: colors.text },
                       ]}
                       numberOfLines={1}
                     >
@@ -308,14 +313,7 @@ export default function DoctorPrescriptionsScreen() {
                           color={colors.textSubtle}
                           strokeWidth={2.2}
                         />
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            fontWeight: "700",
-                            color: colors.textSubtle,
-                            letterSpacing: 0.3,
-                          }}
-                        >
+                        <Text style={[typography.caption, { color: colors.textSubtle }]}>
                           {(r.date || "").toUpperCase()}
                         </Text>
                       </View>
@@ -331,25 +329,23 @@ export default function DoctorPrescriptionsScreen() {
                           color={colors.textSubtle}
                           strokeWidth={2.2}
                         />
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            fontWeight: "700",
-                            color: colors.textSubtle,
-                            letterSpacing: 0.3,
-                          }}
-                        >
+                        <Text style={[typography.caption, { color: colors.textSubtle }]}>
                           {t("doctorPrescriptions.medCount", { count: r.medicineCount || 0 })}
                         </Text>
                       </View>
                       {r.followUpDate ? (
                         <Text
-                          style={{
-                            fontSize: 11,
-                            fontWeight: "700",
-                            color: "#F59E0B",
-                            letterSpacing: 0.3,
-                          }}
+                          style={[
+                            typography.label.xs,
+                            {
+                              color: colors.warning,
+                              backgroundColor: colors.warningSoft,
+                              paddingHorizontal: 6,
+                              paddingVertical: 1,
+                              borderRadius: 6,
+                              overflow: "hidden",
+                            },
+                          ]}
                         >
                           {t("doctorPrescriptions.fuPrefix")} {(r.followUpDate || "").toUpperCase()}
                         </Text>
@@ -370,9 +366,7 @@ export default function DoctorPrescriptionsScreen() {
                       variant="ghost"
                       onPress={() => handleDownload(r.id)}
                       style={{
-                        backgroundColor: colors.primarySoft,
-                        borderWidth: 1,
-                        borderColor: colors.primary + "20",
+                        backgroundColor: colors.fill,
                       }}
                     />
                   </View>
@@ -400,7 +394,7 @@ function FilterChip({
   active: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, typography, shadow } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -408,21 +402,21 @@ function FilterChip({
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       style={({ pressed }) => ({
-        paddingHorizontal: spacing.sm,
-        paddingVertical: 4,
+        paddingHorizontal: 12,
+        height: 30,
+        justifyContent: "center",
         borderRadius: 999,
-        backgroundColor: active ? colors.primary : colors.surface,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : colors.border,
-        opacity: pressed ? 0.85 : 1,
+        borderCurve: "continuous",
+        backgroundColor: active ? colors.surface : "transparent",
+        ...(active ? shadow.xs : shadow.none),
+        opacity: pressed ? 0.7 : 1,
       })}
     >
       <Text
-        style={{
-          fontSize: 12,
-          fontWeight: "700",
-          color: active ? colors.onPrimary : colors.text,
-        }}
+        style={[
+          typography.label.sm,
+          { color: active ? colors.primary : colors.textMuted },
+        ]}
       >
         {label}
       </Text>

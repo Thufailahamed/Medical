@@ -30,24 +30,20 @@ import {
 import { useDoctorCareTeamPatients } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { withOpacity } from "@/constants/theme";
+import { tonePalette, type Tone } from "@/theme/tone";
 import { Screen, Skeleton } from "@/components/ui";
 import { parseDob } from "@/lib/format";
 
-const AVATAR_PALETTES = [
-  { bg: "#EFF6FF", fg: "#2563EB", border: "#BFDBFE" }, // Sapphire
-  { bg: "#ECFDF5", fg: "#059669", border: "#A7F3D0" }, // Emerald
-  { bg: "#F5F3FF", fg: "#7C3AED", border: "#DDD6FE" }, // Violet
-  { bg: "#FFF7ED", fg: "#EA580C", border: "#FED7AA" }, // Coral
-  { bg: "#ECFEFF", fg: "#0891B2", border: "#A5F3FC" }, // Cyan
-  { bg: "#FDF2F8", fg: "#DB2777", border: "#FBCFE8" }, // Rose
-];
+// Avatar tints are derived from theme tones so they adapt to dark mode.
+const AVATAR_TONES: Tone[] = ["primary", "accent", "info", "accent2", "success", "warning"];
 
-function getAvatarPalette(name: string) {
+function getAvatarPalette(name: string, colors: any) {
   let hash = 0;
   for (let i = 0; i < (name || "").length; i++) {
-    hash = (hash + name.charCodeAt(i)) % AVATAR_PALETTES.length;
+    hash = (hash + name.charCodeAt(i)) % AVATAR_TONES.length;
   }
-  return AVATAR_PALETTES[hash];
+  const tp = tonePalette(AVATAR_TONES[hash], colors);
+  return { bg: tp.bg, fg: tp.fg, border: "transparent" };
 }
 
 function getInitials(name: string): string {
@@ -59,18 +55,45 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-const ROLE_STYLES: Record<string, { bg: string; fg: string; label: string }> = {
-  primary_care: { bg: "#ECFDF5", fg: "#059669", label: "Primary Care" },
-  specialist: { bg: "#EFF6FF", fg: "#2563EB", label: "Specialist" },
-  covering: { bg: "#FFFBEB", fg: "#D97706", label: "Covering" },
-  on_call: { bg: "#F5F3FF", fg: "#7C3AED", label: "On Call" },
-  family_view: { bg: "#FEF2F2", fg: "#EF4444", label: "Family Link" },
+const ROLE_STYLES: Record<string, { tone: Tone; label: string }> = {
+  primary_care: { tone: "accent", label: "Primary Care" },
+  specialist: { tone: "primary", label: "Specialist" },
+  covering: { tone: "warning", label: "Covering" },
+  on_call: { tone: "info", label: "On Call" },
+  family_view: { tone: "danger", label: "Family Link" },
 };
 
 export default function DoctorCareTeamScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const chipStyle = (active: boolean) => ({
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderCurve: "continuous" as const,
+    backgroundColor: active ? colors.primarySoft : colors.fill,
+  });
+  const chipText = (active: boolean) => [
+    active ? typography.label.md : typography.body.sm,
+    { color: active ? colors.primary : colors.textMuted },
+  ];
+  const chipCount = (active: boolean) => ({
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    borderCurve: "continuous" as const,
+    backgroundColor: active ? colors.primary : colors.fillStrong,
+  });
+  const chipCountText = (active: boolean) => [
+    typography.label.xs,
+    { fontSize: 10.5, color: active ? colors.onPrimary : colors.textMuted },
+  ];
 
   const { data, isLoading, refetch, isRefetching } = useDoctorCareTeamPatients();
   const patients: any[] = data?.patients ?? [];
@@ -132,45 +155,23 @@ export default function DoctorCareTeamScreen() {
               style={({ pressed }) => ({
                 width: 40,
                 height: 40,
-                borderRadius: 14,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle ?? colors.border,
+                borderRadius: 20,
+                borderCurve: "continuous",
+                backgroundColor: pressed ? colors.fillStrong : colors.fill,
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.8 : 1,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.04,
-                shadowRadius: 3,
-                elevation: 1,
               })}
             >
               <ChevronLeft size={20} color={colors.text} strokeWidth={2.4} />
             </Pressable>
 
             <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  typography.display.lg,
-                  {
-                    color: colors.text,
-                    fontFamily: fontFamily.displayBold,
-                    fontSize: 22,
-                    lineHeight: 28,
-                    letterSpacing: -0.4,
-                  },
-                ]}
-              >
+              <Text numberOfLines={1} style={[typography.display.sm, { color: colors.text }]}>
                 {t("careTeam.doctorTitle", { defaultValue: "My Care Team" })}
               </Text>
               <Text
-                style={{
-                  fontSize: 12.5,
-                  color: colors.textMuted,
-                  marginTop: 1,
-                  fontFamily: fontFamily.body,
-                }}
+                numberOfLines={1}
+                style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
               >
                 {t("careTeam.doctorSubtitle", {
                   count: patients.length,
@@ -188,21 +189,13 @@ export default function DoctorCareTeamScreen() {
               gap: 5,
               paddingHorizontal: 10,
               paddingVertical: 6,
-              borderRadius: 16,
+              borderRadius: 999,
+              borderCurve: "continuous",
               backgroundColor: colors.primarySoft,
-              borderWidth: 1,
-              borderColor: withOpacity(colors.primary, 0.2),
             }}
           >
             <ShieldCheck size={14} color={colors.primary} strokeWidth={2.4} />
-            <Text
-              style={{
-                fontSize: 11.5,
-                fontWeight: "700",
-                color: colors.primary,
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
+            <Text style={[typography.label.sm, { color: colors.primary }]}>
               Verified
             </Text>
           </View>
@@ -213,22 +206,16 @@ export default function DoctorCareTeamScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.surface,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: colors.borderSubtle ?? colors.border,
-            paddingHorizontal: 14,
-            height: 46,
-            marginTop: 14,
-            gap: 10,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.03,
-            shadowRadius: 3,
-            elevation: 1,
+            backgroundColor: colors.fill,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            paddingHorizontal: 12,
+            height: 40,
+            marginTop: spacing.lg,
+            gap: 8,
           }}
         >
-          <Search size={18} color={colors.primary} strokeWidth={2.2} />
+          <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
           <RNTextInput
             value={search}
             onChangeText={setSearch}
@@ -237,9 +224,8 @@ export default function DoctorCareTeamScreen() {
             autoCapitalize="none"
             style={{
               flex: 1,
-              fontSize: 14,
+              ...typography.body.md,
               color: colors.text,
-              fontFamily: fontFamily.body,
               paddingVertical: 0,
             }}
           />
@@ -251,12 +237,13 @@ export default function DoctorCareTeamScreen() {
                 width: 22,
                 height: 22,
                 borderRadius: 11,
-                backgroundColor: colors.surfaceMuted,
+                borderCurve: "continuous",
+                backgroundColor: colors.fillStrong,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <X size={13} color={colors.textMuted} strokeWidth={2.2} />
+              <X size={12} color={colors.textMuted} strokeWidth={2.6} />
             </Pressable>
           )}
         </View>
@@ -275,44 +262,13 @@ export default function DoctorCareTeamScreen() {
         >
           <Pressable
             onPress={() => setRoleFilter("all")}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 20,
-              backgroundColor: roleFilter === "all" ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor: roleFilter === "all" ? colors.primary : colors.borderSubtle ?? colors.border,
-            }}
+            style={chipStyle(roleFilter === "all")}
           >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: roleFilter === "all" ? "700" : "600",
-                color: roleFilter === "all" ? "#FFFFFF" : colors.textMuted,
-                fontFamily: roleFilter === "all" ? fontFamily.bodyBold : fontFamily.body,
-              }}
-            >
+            <Text style={chipText(roleFilter === "all")}>
               All Patients
             </Text>
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 10,
-                backgroundColor:
-                  roleFilter === "all" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: "800",
-                  color: roleFilter === "all" ? "#FFFFFF" : colors.textMuted,
-                }}
-              >
+            <View style={chipCount(roleFilter === "all")}>
+              <Text style={chipCountText(roleFilter === "all")}>
                 {patients.length}
               </Text>
             </View>
@@ -320,45 +276,13 @@ export default function DoctorCareTeamScreen() {
 
           <Pressable
             onPress={() => setRoleFilter("primary_care")}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 20,
-              backgroundColor: roleFilter === "primary_care" ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor:
-                roleFilter === "primary_care" ? colors.primary : colors.borderSubtle ?? colors.border,
-            }}
+            style={chipStyle(roleFilter === "primary_care")}
           >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: roleFilter === "primary_care" ? "700" : "600",
-                color: roleFilter === "primary_care" ? "#FFFFFF" : colors.textMuted,
-                fontFamily: roleFilter === "primary_care" ? fontFamily.bodyBold : fontFamily.body,
-              }}
-            >
+            <Text style={chipText(roleFilter === "primary_care")}>
               Primary Care
             </Text>
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 10,
-                backgroundColor:
-                  roleFilter === "primary_care" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: "800",
-                  color: roleFilter === "primary_care" ? "#FFFFFF" : colors.textMuted,
-                }}
-              >
+            <View style={chipCount(roleFilter === "primary_care")}>
+              <Text style={chipCountText(roleFilter === "primary_care")}>
                 {primaryCount}
               </Text>
             </View>
@@ -367,45 +291,13 @@ export default function DoctorCareTeamScreen() {
           {specialistCount > 0 && (
             <Pressable
               onPress={() => setRoleFilter("specialist")}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
-                backgroundColor: roleFilter === "specialist" ? colors.primary : colors.surface,
-                borderWidth: 1,
-                borderColor:
-                  roleFilter === "specialist" ? colors.primary : colors.borderSubtle ?? colors.border,
-              }}
+              style={chipStyle(roleFilter === "specialist")}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: roleFilter === "specialist" ? "700" : "600",
-                  color: roleFilter === "specialist" ? "#FFFFFF" : colors.textMuted,
-                  fontFamily: roleFilter === "specialist" ? fontFamily.bodyBold : fontFamily.body,
-                }}
-              >
+              <Text style={chipText(roleFilter === "specialist")}>
                 Specialist
               </Text>
-              <View
-                style={{
-                  paddingHorizontal: 6,
-                  paddingVertical: 1,
-                  borderRadius: 10,
-                  backgroundColor:
-                    roleFilter === "specialist" ? "rgba(255,255,255,0.25)" : colors.surfaceMuted,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: "800",
-                    color: roleFilter === "specialist" ? "#FFFFFF" : colors.textMuted,
-                  }}
-                >
+              <View style={chipCount(roleFilter === "specialist")}>
+                <Text style={chipCountText(roleFilter === "specialist")}>
                   {specialistCount}
                 </Text>
               </View>
@@ -438,10 +330,11 @@ export default function DoctorCareTeamScreen() {
                 key={i}
                 style={{
                   padding: 16,
-                  borderRadius: 20,
+                  borderRadius: radius.card,
+                  borderCurve: "continuous",
                   backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.borderSubtle ?? colors.border,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: hairline,
                   gap: 12,
                 }}
               >
@@ -466,13 +359,17 @@ export default function DoctorCareTeamScreen() {
               ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
               : null;
             const pName = p.patientName || "Patient";
-            const palette = getAvatarPalette(pName);
+            const palette = getAvatarPalette(pName, colors);
             const initials = getInitials(pName);
-            const roleStyle = ROLE_STYLES[p.role] ?? {
-              bg: colors.surfaceMuted,
-              fg: colors.text,
-              label: p.role?.replace("_", " ") || "Care Team",
-            };
+            const roleDef = ROLE_STYLES[p.role];
+            const roleTp = roleDef ? tonePalette(roleDef.tone, colors) : null;
+            const roleStyle = roleDef
+              ? { bg: roleTp.bg, fg: roleTp.fg, label: roleDef.label }
+              : {
+                  bg: colors.surfaceMuted,
+                  fg: colors.text,
+                  label: p.role?.replace("_", " ") || "Care Team",
+                };
 
             return (
               <Pressable
@@ -485,17 +382,14 @@ export default function DoctorCareTeamScreen() {
                 }
                 style={({ pressed }) => ({
                   backgroundColor: colors.surface,
-                  borderRadius: 22,
-                  borderWidth: 1,
-                  borderColor: colors.borderSubtle ?? colors.border,
+                  borderRadius: radius.card,
+                  borderCurve: "continuous",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: hairline,
                   padding: 16,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.03,
-                  shadowRadius: 6,
-                  elevation: 1.5,
-                  opacity: pressed ? 0.92 : 1,
-                  transform: [{ scale: pressed ? 0.995 : 1 }],
+                  ...(isDark ? {} : shadow.sm),
+                  opacity: pressed ? 0.94 : 1,
+                  transform: [{ scale: pressed ? 0.99 : 1 }],
                 })}
               >
                 {/* Patient Header: Avatar, Name, Demographics, Chevron */}
@@ -507,9 +401,9 @@ export default function DoctorCareTeamScreen() {
                       style={{
                         width: 48,
                         height: 48,
-                        borderRadius: 16,
-                        borderWidth: 1,
-                        borderColor: palette.border,
+                        borderRadius: 24,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.surfaceMuted,
                       }}
                     />
                   ) : (
@@ -517,22 +411,14 @@ export default function DoctorCareTeamScreen() {
                       style={{
                         width: 48,
                         height: 48,
-                        borderRadius: 16,
+                        borderRadius: 24,
+                        borderCurve: "continuous",
                         backgroundColor: palette.bg,
-                        borderWidth: 1,
-                        borderColor: palette.border,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          fontWeight: "800",
-                          color: palette.fg,
-                          fontFamily: fontFamily.displayBold,
-                        }}
-                      >
+                      <Text style={[typography.title.sm, { color: palette.fg }]}>
                         {initials}
                       </Text>
                     </View>
@@ -543,13 +429,7 @@ export default function DoctorCareTeamScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <Text
                         numberOfLines={1}
-                        style={{
-                          fontSize: 16,
-                          fontWeight: "700",
-                          color: colors.text,
-                          fontFamily: fontFamily.displayBold,
-                          flexShrink: 1,
-                        }}
+                        style={[typography.title.md, { color: colors.text, flexShrink: 1 }]}
                       >
                         {pName}
                       </Text>
@@ -557,12 +437,7 @@ export default function DoctorCareTeamScreen() {
 
                     <Text
                       numberOfLines={1}
-                      style={{
-                        fontSize: 13,
-                        color: colors.textMuted,
-                        marginTop: 2,
-                        fontFamily: fontFamily.body,
-                      }}
+                      style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}
                     >
                       {[
                         age != null ? `${age}y` : null,
@@ -589,7 +464,7 @@ export default function DoctorCareTeamScreen() {
                     marginTop: 12,
                     paddingTop: 10,
                     borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: colors.borderSubtle ?? colors.border,
+                    borderTopColor: colors.separator,
                   }}
                 >
                   {/* Role Badge */}
@@ -599,16 +474,10 @@ export default function DoctorCareTeamScreen() {
                       paddingHorizontal: 8,
                       paddingVertical: 3,
                       borderRadius: 8,
+                      borderCurve: "continuous",
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        fontWeight: "700",
-                        color: roleStyle.fg,
-                        fontFamily: fontFamily.bodyBold,
-                      }}
-                    >
+                    <Text style={[typography.label.xs, { color: roleStyle.fg }]}>
                       {roleStyle.label}
                     </Text>
                   </View>
@@ -620,20 +489,14 @@ export default function DoctorCareTeamScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 3,
-                        backgroundColor: "#FEF3C7",
+                        backgroundColor: colors.warningSoft,
                         paddingHorizontal: 8,
                         paddingVertical: 3,
                         borderRadius: 8,
                       }}
                     >
-                      <Clock size={11} color="#D97706" />
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: "#D97706",
-                        }}
-                      >
+                      <Clock size={11} color={colors.warning} />
+                      <Text style={[typography.label.xs, { color: colors.warning }]}>
                         Pending Invite
                       </Text>
                     </View>
@@ -645,22 +508,15 @@ export default function DoctorCareTeamScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 4,
-                      backgroundColor: colors.surfaceMuted,
+                      backgroundColor: colors.fill,
                       paddingHorizontal: 8,
                       paddingVertical: 3,
                       borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: colors.borderSubtle ?? colors.border,
+                      borderCurve: "continuous",
                     }}
                   >
-                    <ShieldCheck size={11} color={colors.primary} />
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        fontWeight: "600",
-                        color: colors.textMuted,
-                      }}
-                    >
+                    <ShieldCheck size={11} color={colors.textMuted} />
+                    <Text style={[typography.label.xs, { color: colors.textMuted }]}>
                       {p.scope === "full" ? "Full Access" : p.scope || "Consented"}
                     </Text>
                   </View>
@@ -681,21 +537,13 @@ export default function DoctorCareTeamScreen() {
                         paddingHorizontal: 8,
                         paddingVertical: 3,
                         borderRadius: 8,
-                        backgroundColor: colors.surfaceMuted,
-                        borderWidth: 1,
-                        borderColor: colors.borderSubtle ?? colors.border,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.primarySoft,
                         opacity: pressed ? 0.7 : 1,
                       })}
                     >
                       <PhoneCall size={11} color={colors.primary} />
-                      <Text
-                        style={{
-                          fontSize: 11.5,
-                          fontWeight: "600",
-                          color: colors.text,
-                          fontFamily: fontFamily.body,
-                        }}
-                      >
+                      <Text style={[typography.label.xs, { color: colors.primary, fontVariant: ["tabular-nums"] }]}>
                         {p.patientPhone}
                       </Text>
                     </Pressable>
@@ -724,24 +572,16 @@ export default function DoctorCareTeamScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 5,
-                      paddingVertical: 8,
-                      borderRadius: 12,
+                      gap: 6,
+                      height: 36,
+                      borderRadius: 999,
+                      borderCurve: "continuous",
                       backgroundColor: colors.primarySoft,
-                      borderWidth: 1,
-                      borderColor: withOpacity(colors.primary, 0.2),
-                      opacity: pressed ? 0.8 : 1,
+                      opacity: pressed ? 0.7 : 1,
                     })}
                   >
-                    <FilePenLine size={13} color={colors.primary} strokeWidth={2.4} />
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: colors.primary,
-                        fontFamily: fontFamily.bodyBold,
-                      }}
-                    >
+                    <FilePenLine size={14} color={colors.primary} strokeWidth={2.4} />
+                    <Text style={[typography.label.md, { color: colors.primary }]}>
                       Write Prescription
                     </Text>
                   </Pressable>
@@ -759,24 +599,16 @@ export default function DoctorCareTeamScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 5,
-                      paddingVertical: 8,
-                      borderRadius: 12,
-                      backgroundColor: colors.surfaceMuted,
-                      borderWidth: 1,
-                      borderColor: colors.borderSubtle ?? colors.border,
-                      opacity: pressed ? 0.8 : 1,
+                      gap: 6,
+                      height: 36,
+                      borderRadius: 999,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.fill,
+                      opacity: pressed ? 0.7 : 1,
                     })}
                   >
-                    <UserRound size={13} color={colors.text} strokeWidth={2.2} />
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: colors.text,
-                        fontFamily: fontFamily.bodyBold,
-                      }}
-                    >
+                    <UserRound size={14} color={colors.text} strokeWidth={2.2} />
+                    <Text style={[typography.label.md, { color: colors.text }]}>
                       View Patient Chart
                     </Text>
                   </Pressable>
@@ -792,19 +624,21 @@ export default function DoctorCareTeamScreen() {
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colors.surface,
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
               marginTop: 10,
               gap: 8,
             }}
           >
             <View
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: colors.surfaceMuted,
+                width: 56,
+                height: 56,
+                borderRadius: 18,
+                borderCurve: "continuous",
+                backgroundColor: colors.fill,
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 4,
@@ -812,24 +646,14 @@ export default function DoctorCareTeamScreen() {
             >
               <Search size={22} color={colors.textSubtle} strokeWidth={2} />
             </View>
-            <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "700",
-                color: colors.text,
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
+            <Text style={[typography.title.md, { color: colors.text }]}>
               No patients found
             </Text>
             <Text
-              style={{
-                fontSize: 13,
-                color: colors.textMuted,
-                textAlign: "center",
-                lineHeight: 18,
-                paddingHorizontal: 16,
-              }}
+              style={[
+                typography.body.sm,
+                { color: colors.textMuted, textAlign: "center", paddingHorizontal: 16 },
+              ]}
             >
               No patient matching "{search}" in your care team. Check name, phone, or NIC.
             </Text>
@@ -838,12 +662,14 @@ export default function DoctorCareTeamScreen() {
               style={{
                 marginTop: 6,
                 paddingHorizontal: 16,
-                paddingVertical: 7,
-                borderRadius: 16,
+                height: 36,
+                justifyContent: "center",
+                borderRadius: 999,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
+              <Text style={[typography.label.md, { color: colors.primary }]}>
                 Clear Search
               </Text>
             </Pressable>
@@ -856,18 +682,20 @@ export default function DoctorCareTeamScreen() {
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colors.surface,
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
               marginTop: 10,
               gap: 8,
             }}
           >
             <View
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
+                width: 56,
+                height: 56,
+                borderRadius: 18,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -876,24 +704,14 @@ export default function DoctorCareTeamScreen() {
             >
               <Users size={24} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "700",
-                color: colors.text,
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
+            <Text style={[typography.title.md, { color: colors.text }]}>
               {t("careTeam.doctorEmptyTitle", { defaultValue: "No patients yet" })}
             </Text>
             <Text
-              style={{
-                fontSize: 13,
-                color: colors.textMuted,
-                textAlign: "center",
-                lineHeight: 18,
-                maxWidth: 260,
-              }}
+              style={[
+                typography.body.sm,
+                { color: colors.textMuted, textAlign: "center", maxWidth: 260 },
+              ]}
             >
               {t("careTeam.doctorEmptyBody", {
                 defaultValue: "Patients appear here when they grant you clinical access.",

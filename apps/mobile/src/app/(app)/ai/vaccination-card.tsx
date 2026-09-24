@@ -262,6 +262,7 @@ export default function VaccinationCardScreen() {
                     <View
                       style={{
                         borderRadius: 16,
+                        borderCurve: "continuous",
                         overflow: "hidden",
                         backgroundColor: colors.surfaceMuted,
                       }}

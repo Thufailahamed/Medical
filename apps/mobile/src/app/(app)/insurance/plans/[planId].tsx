@@ -3,7 +3,7 @@
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { View, ScrollView, Image } from "react-native";
+import { View, Text, ScrollView, Image, Pressable, StyleSheet } from "react-native";
 import { insurancePlanImage } from "@/components/insurance/PlanCard";
 import { useTranslation } from "react-i18next";
 import {
@@ -36,7 +36,7 @@ export default function PlanDetail() {
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius, shadow, scheme } = useTheme();
   const { data, isLoading } = useInsurancePlan(planId ?? "");
   const [cycle, setCycle] = useState<"monthly" | "annual">("annual");
   const setPlan = useInsuranceStore((s) => s.setPlan);
@@ -49,27 +49,27 @@ export default function PlanDetail() {
     if (!plan) return [];
     return [
       {
-        icon: <Wallet size={16} color={colors.primary} />,
+        icon: <Wallet size={16} color={colors.primary} strokeWidth={2.3} />,
         label: t("insurance.plan.coverageLabel", {
           amount: plan.coverageSummaryLkr.toLocaleString(),
         }),
       },
       {
-        icon: <HeartPulse size={16} color={colors.primary} />,
+        icon: <HeartPulse size={16} color={colors.primary} strokeWidth={2.3} />,
         label: t("insurance.plan.copayPct", { pct: plan.copayPct }),
       },
       {
-        icon: <ShieldCheck size={16} color={colors.primary} />,
+        icon: <ShieldCheck size={16} color={colors.primary} strokeWidth={2.3} />,
         label: t("insurance.plan.deductibleLabel", {
           amount: plan.deductibleLkr.toLocaleString(),
         }),
       },
       {
-        icon: <Clock size={16} color={colors.primary} />,
+        icon: <Clock size={16} color={colors.primary} strokeWidth={2.3} />,
         label: t("insurance.plan.waiting", { days: plan.waitingPeriodDays }),
       },
       {
-        icon: <Users size={16} color={colors.primary} />,
+        icon: <Users size={16} color={colors.primary} strokeWidth={2.3} />,
         label: t("insurance.plan.networks", { count: plan.networkHospitalCount }),
       },
     ];
@@ -80,9 +80,9 @@ export default function PlanDetail() {
       <Screen>
         <ScreenHeader title="" subtitle="" />
         <View style={{ padding: 16, gap: 10 }}>
-          <Skeleton height={160} radius={16} />
-          <Skeleton height={120} radius={16} />
-          <Skeleton height={120} radius={16} />
+          <Skeleton height={200} radius={radius.card} />
+          <Skeleton height={240} radius={radius.card} />
+          <Skeleton height={120} radius={radius.card} />
         </View>
       </Screen>
     );
@@ -105,8 +105,19 @@ export default function PlanDetail() {
     router.push("/insurance/quote");
   };
 
+  const listRow = (i: number) => ({
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    minHeight: 52,
+    paddingVertical: 10,
+    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+    borderTopColor: colors.separator,
+  });
+  const rowText = { ...typography.body.md, color: colors.text, flex: 1 };
+
   return (
-    <Screen>
+    <Screen padded={false}>
       <ScreenHeader
         title={plan.name}
         subtitle={plan.providerName ?? t("insurance.provider.label")}
@@ -114,40 +125,43 @@ export default function PlanDetail() {
       />
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
-        <Card style={{ margin: 16, padding: 16, gap: 12 }}>
+        <Card style={{ margin: 16, marginTop: 8, padding: 20, gap: 16 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+              <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
                 <Pill tone="primary">{t(`insurance.planTypes.${plan.planType}`)}</Pill>
                 {plan.isFeatured ? <Pill tone="accent">Featured</Pill> : null}
               </View>
 
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-                <AppText weight="700" size="xl" style={{ color: colors.primary }}>
-                  LKR{" "}
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, flexWrap: "wrap" }}>
+                <Text style={{ ...typography.display.md, color: colors.text }}>
+                  <Text style={{ ...typography.title.sm, color: colors.textMuted }}>
+                    LKR{" "}
+                  </Text>
                   {(cycle === "monthly"
                     ? plan.monthlyPremiumLkr
                     : plan.annualPremiumLkr
                   ).toLocaleString()}
-                </AppText>
-                <AppText size="sm" color="muted" style={{ paddingBottom: 4 }}>
+                </Text>
+                <Text style={{ ...typography.label.md, color: colors.textMuted, paddingBottom: 5 }}>
                   / {cycle === "monthly" ? "month" : "year"}
-                </AppText>
+                </Text>
               </View>
             </View>
 
             {insurancePlanImage(plan.planType) ? (
               <View
                 style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 18,
+                  width: 76,
+                  height: 76,
+                  borderRadius: 20,
+                  borderCurve: "continuous",
                   overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: colors.separator,
                   backgroundColor: colors.surfaceMuted,
                   flexShrink: 0,
                 }}
@@ -162,43 +176,105 @@ export default function PlanDetail() {
           </View>
 
           {plan.annualDiscountPct > 0 ? (
-            <AppText size="xs" style={{ color: colors.accent }}>
+            <Text
+              style={{
+                ...typography.label.sm,
+                color: colors.success,
+                alignSelf: "flex-start",
+                backgroundColor: colors.successSoft,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 999,
+                overflow: "hidden",
+                marginTop: -4,
+              }}
+            >
               {t("insurance.plan.save", { pct: plan.annualDiscountPct.toFixed(0) })}
-            </AppText>
+            </Text>
           ) : null}
 
-          <ChipGroup>
-            <Chip
-              label={t("insurance.plan.monthly", {
-                amount: plan.monthlyPremiumLkr.toLocaleString(),
-              })}
-              selected={cycle === "monthly"}
-              onPress={() => setCycle("monthly")}
-            />
-            <Chip
-              label={t("insurance.plan.annual", {
-                amount: plan.annualPremiumLkr.toLocaleString(),
-              })}
-              selected={cycle === "annual"}
-              onPress={() => setCycle("annual")}
-            />
-          </ChipGroup>
+          {/* Billing cycle — segmented control */}
+          <View
+            style={{
+              flexDirection: "row",
+              backgroundColor: colors.fill,
+              borderRadius: 12,
+              borderCurve: "continuous",
+              padding: 3,
+            }}
+          >
+            {[
+              {
+                key: "monthly",
+                label: t("insurance.plan.monthly", {
+                  amount: plan.monthlyPremiumLkr.toLocaleString(),
+                }),
+                onPress: () => setCycle("monthly"),
+              },
+              {
+                key: "annual",
+                label: t("insurance.plan.annual", {
+                  amount: plan.annualPremiumLkr.toLocaleString(),
+                }),
+                onPress: () => setCycle("annual"),
+              },
+            ].map((seg) => {
+              const selected = cycle === seg.key;
+              return (
+                <Pressable
+                  key={seg.key}
+                  onPress={seg.onPress}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  style={{
+                    flex: 1,
+                    minHeight: 38,
+                    paddingHorizontal: 8,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 10,
+                    borderCurve: "continuous",
+                    backgroundColor: selected ? colors.surface : "transparent",
+                    ...(selected && scheme !== "dark" ? shadow.xs : {}),
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={{
+                      ...(selected ? typography.label.md : typography.body.sm),
+                      color: selected ? colors.text : colors.textMuted,
+                    }}
+                  >
+                    {seg.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </Card>
 
         <SectionHeader
           title={t("insurance.plan.coverage")}
-          style={{ paddingHorizontal: 16 }}
+          style={{ paddingHorizontal: 16, paddingTop: 8 }}
         />
-        <Card style={{ marginHorizontal: 16, padding: 16, gap: 10 }}>
+        <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
           {rows.map((r, i) => (
-            <View
-              key={i}
-              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
-            >
-              {r.icon}
-              <AppText size="sm" style={{ flex: 1 }}>
-                {r.label}
-              </AppText>
+            <View key={i} style={listRow(i)}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {r.icon}
+              </View>
+              <Text style={rowText}>{r.label}</Text>
             </View>
           ))}
         </Card>
@@ -207,18 +283,24 @@ export default function PlanDetail() {
           <>
             <SectionHeader
               title={t("insurance.plan.features")}
-              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+              style={{ paddingHorizontal: 16, paddingTop: 24 }}
             />
-            <Card style={{ marginHorizontal: 16, padding: 16, gap: 10 }}>
+            <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
               {plan.keyFeatures.map((f: string, i: number) => (
-                <View
-                  key={i}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
-                >
-                  <Check size={16} color={colors.accent} />
-                  <AppText size="sm" style={{ flex: 1 }}>
-                    {f}
-                  </AppText>
+                <View key={i} style={{ ...listRow(i), minHeight: 46 }}>
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: colors.successSoft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Check size={13} color={colors.success} strokeWidth={3} />
+                  </View>
+                  <Text style={rowText}>{f}</Text>
                 </View>
               ))}
             </Card>
@@ -229,18 +311,24 @@ export default function PlanDetail() {
           <>
             <SectionHeader
               title={t("insurance.plan.exclusions")}
-              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+              style={{ paddingHorizontal: 16, paddingTop: 24 }}
             />
-            <Card style={{ marginHorizontal: 16, padding: 16, gap: 10 }}>
+            <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
               {plan.exclusions.map((x: string, i: number) => (
-                <View
-                  key={i}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
-                >
-                  <X size={16} color={colors.danger} />
-                  <AppText size="sm" style={{ flex: 1 }}>
-                    {x}
-                  </AppText>
+                <View key={i} style={{ ...listRow(i), minHeight: 46 }}>
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: colors.dangerSoft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <X size={13} color={colors.danger} strokeWidth={3} />
+                  </View>
+                  <Text style={{ ...rowText, color: colors.textMuted }}>{x}</Text>
                 </View>
               ))}
             </Card>
@@ -251,15 +339,24 @@ export default function PlanDetail() {
           <>
             <SectionHeader
               title={t("insurance.plan.details")}
-              style={{ paddingHorizontal: 16, paddingTop: 16 }}
+              style={{ paddingHorizontal: 16, paddingTop: 24 }}
             />
-            <Card style={{ marginHorizontal: 16, padding: 16, gap: 8 }}>
-              {Object.entries(coverage).map(([k, v]) => (
-                <View key={k}>
-                  <AppText size="xs" color="muted">
+            <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
+              {Object.entries(coverage).map(([k, v], i) => (
+                <View
+                  key={k}
+                  style={{
+                    paddingVertical: 12,
+                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
+                  }}
+                >
+                  <Text style={{ ...typography.caption, color: colors.textSubtle }}>
                     {k}
-                  </AppText>
-                  <AppText size="sm">{String(v)}</AppText>
+                  </Text>
+                  <Text style={{ ...typography.body.md, color: colors.text, marginTop: 2 }}>
+                    {String(v)}
+                  </Text>
                 </View>
               ))}
             </Card>
@@ -273,15 +370,18 @@ export default function PlanDetail() {
           left: 0,
           right: 0,
           bottom: 0,
-          padding: 16,
-          backgroundColor: colors.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 28,
+          backgroundColor: colors.bgElevated ?? colors.surface,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
         }}
       >
         <Button
           label={t("insurance.plan.getQuote")}
           onPress={onBuy}
+          size="lg"
           style={{ width: "100%" }}
         />
       </View>

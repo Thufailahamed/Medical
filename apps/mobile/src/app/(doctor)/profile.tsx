@@ -65,33 +65,17 @@ import { api } from "@/lib/api";
 import { withOpacity } from "@/constants/theme";
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors, typography } = useTheme();
   return (
-    <View style={{ marginBottom: 2 }}>
+    <View style={{ marginBottom: 2, paddingHorizontal: 4 }}>
       <Text
         numberOfLines={1}
-        style={{
-          fontSize: 16,
-          lineHeight: 22,
-          fontWeight: "800",
-          letterSpacing: -0.2,
-          color: colors.text,
-          fontFamily: fontFamily.displayBold,
-          paddingHorizontal: 2,
-        }}
+        style={[typography.title.lg, { color: colors.text }]}
       >
         {title}
       </Text>
       {subtitle ? (
-        <Text
-          style={{
-            fontSize: 12,
-            color: colors.textMuted,
-            fontFamily: fontFamily.body,
-            paddingHorizontal: 2,
-            marginTop: 1,
-          }}
-        >
+        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
           {subtitle}
         </Text>
       ) : null}
@@ -113,8 +97,9 @@ function ActivityTile({
   tone?: Tone;
   onPress: () => void;
 }) {
-  const { colors, fontFamily } = useTheme();
+  const { colors, typography, shadow, scheme } = useTheme();
   const palette = useTone(tone);
+  const isDark = scheme === "dark";
 
   return (
     <Pressable
@@ -125,61 +110,57 @@ function ActivityTile({
         flex: 1,
         minWidth: "30%",
         paddingVertical: 14,
-        paddingHorizontal: 10,
-        borderRadius: 18,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle ?? colors.border,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 4,
-        opacity: pressed ? 0.88 : 1,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.separator,
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 10,
+        opacity: pressed ? 0.9 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
-        shadowRadius: 5,
-        elevation: 1.5,
+        ...(isDark ? {} : shadow.sm),
       })}
     >
       <View
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 12,
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          borderCurve: "continuous",
           backgroundColor: palette.bg,
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 2,
         }}
       >
-        <Icon size={18} color={palette.fg} strokeWidth={2.4} />
+        <Icon size={15} color={palette.fg} strokeWidth={2.4} />
       </View>
-      <Text
-        style={{
-          fontSize: 20,
-          lineHeight: 24,
-          fontWeight: "800",
-          color: colors.text,
-          fontFamily: fontFamily.displayBold,
-          letterSpacing: -0.4,
-        }}
-      >
-        {value}
-      </Text>
-      <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
-        style={{
-          fontSize: 11,
-          fontWeight: "600",
-          color: colors.textMuted,
-          textAlign: "center",
-        }}
-      >
-        {label}
-      </Text>
+      <View>
+        <Text
+          style={[
+            typography.display.sm,
+            {
+              fontSize: 26,
+              lineHeight: 30,
+              letterSpacing: -0.9,
+              color: colors.text,
+              fontVariant: ["tabular-nums"],
+            },
+          ]}
+        >
+          {value}
+        </Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -197,7 +178,7 @@ function ProfileInfoRow({
   href?: string;
   last?: boolean;
 }) {
-  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const open = () => {
     if (href && value) Linking.openURL(href).catch(() => {});
   };
@@ -208,63 +189,50 @@ function ProfileInfoRow({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingVertical: 13,
+        gap: spacing.md,
+        minHeight: 60,
+        paddingVertical: 11,
         paddingHorizontal: spacing.lg,
-        borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-        borderBottomColor: colors.borderSubtle ?? colors.border,
       }}
     >
+      {!last ? (
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            left: spacing.lg + 32 + spacing.md,
+            height: StyleSheet.hairlineWidth,
+            backgroundColor: colors.separator,
+          }}
+        />
+      ) : null}
       <View
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 12,
-          backgroundColor: colors.surfaceMuted,
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          borderCurve: "continuous",
+          backgroundColor: colors.fill,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={17} color={colors.textMuted} strokeWidth={2.2} />
+        <Icon size={16} color={colors.textMuted} strokeWidth={2.2} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={[
-            typography.caption,
-            { color: colors.textSubtle, fontSize: 11.5, letterSpacing: 0.2 },
-          ]}
-        >
+        <Text style={[typography.caption, { color: colors.textSubtle }]}>
           {label}
         </Text>
         <Text
-          style={[
-            typography.body.md,
-            {
-              color: colors.text,
-              fontWeight: "600",
-              marginTop: 1,
-              fontFamily: fontFamily.bodyBold,
-              fontSize: 14,
-            },
-          ]}
+          style={[typography.label.lg, { color: colors.text, marginTop: 1 }]}
           numberOfLines={2}
         >
           {value || "—"}
         </Text>
       </View>
       {isInteractive ? (
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            backgroundColor: colors.primarySoft,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <ChevronRight size={14} color={colors.primary} strokeWidth={2.4} />
-        </View>
+        <ChevronRight size={17} color={colors.textSubtle} strokeWidth={2.4} />
       ) : null}
     </View>
   );
@@ -276,7 +244,7 @@ function ProfileInfoRow({
         accessibilityRole="button"
         accessibilityLabel={label}
         style={({ pressed }) => ({
-          backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+          backgroundColor: pressed ? colors.fill : "transparent",
         })}
       >
         {inner}
@@ -304,7 +272,7 @@ function NavigationLinkRow({
   last?: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const palette = useTone(tone);
 
   return (
@@ -313,48 +281,55 @@ function NavigationLinkRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       style={({ pressed }) => ({
-        backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-        borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-        borderBottomColor: colors.borderSubtle ?? colors.border,
+        backgroundColor: pressed ? colors.fill : "transparent",
       })}
     >
       <View
         style={{
-          paddingVertical: 13,
+          minHeight: 60,
+          paddingVertical: 11,
           paddingHorizontal: spacing.lg,
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
         }}
       >
+        {!last ? (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              left: spacing.lg + 32 + spacing.md,
+              height: StyleSheet.hairlineWidth,
+              backgroundColor: colors.separator,
+            }}
+          />
+        ) : null}
         <View
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            backgroundColor: palette.bg,
+            width: 32,
+            height: 32,
+            borderRadius: 9,
+            borderCurve: "continuous",
+            backgroundColor: palette.bgStrong,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon size={18} color={palette.fg} strokeWidth={2.2} />
+          <Icon size={17} color={palette.onBgStrong} strokeWidth={2.3} />
         </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: 14.5,
-              fontWeight: "700",
-              color: colors.text,
-              fontFamily: fontFamily.bodyBold,
-            }}
+            style={[typography.title.sm, { color: colors.text }]}
           >
             {title}
           </Text>
           {subtitle ? (
             <Text
               numberOfLines={1}
-              style={{ fontSize: 12, color: colors.textMuted, fontFamily: fontFamily.body }}
+              style={[typography.body.sm, { color: colors.textMuted }]}
             >
               {subtitle}
             </Text>
@@ -367,17 +342,18 @@ function NavigationLinkRow({
               height: 22,
               paddingHorizontal: 6,
               borderRadius: 11,
+              borderCurve: "continuous",
               backgroundColor: colors.danger,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Text style={{ fontSize: 11, fontWeight: "800", color: "#fff" }}>
+            <Text style={[typography.label.xs, { color: colors.onDanger }]}>
               {badge}
             </Text>
           </View>
         ) : null}
-        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+        <ChevronRight size={17} color={colors.textSubtle} strokeWidth={2.4} />
       </View>
     </Pressable>
   );
@@ -387,7 +363,16 @@ export default function DoctorProfileScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
-  const { spacing, colors, typography, fontFamily } = useTheme();
+  const { spacing, colors, typography, fontFamily, radius, shadow, scheme: themeScheme } = useTheme();
+  const isDarkUI = themeScheme === "dark";
+  const groupCard = {
+    borderRadius: radius.card,
+    borderCurve: "continuous" as const,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: isDarkUI ? colors.borderStrong : colors.separator,
+    ...(isDarkUI ? {} : shadow.sm),
+  };
   const { user, logout } = useAuthStore();
   const currentLocale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
@@ -564,6 +549,7 @@ export default function DoctorProfileScreen() {
                 width: 34,
                 height: 34,
                 borderRadius: 11,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -572,27 +558,10 @@ export default function DoctorProfileScreen() {
               <UserCheck size={18} color={colors.primary} strokeWidth={2.4} />
             </View>
             <View>
-              <Text
-                style={[
-                  typography.display.sm,
-                  {
-                    color: colors.text,
-                    fontWeight: "800",
-                    fontFamily: fontFamily.displayBold,
-                    fontSize: 24,
-                    lineHeight: 28,
-                  },
-                ]}
-              >
+              <Text style={[typography.display.md, { color: colors.text }]}>
                 {t("doctorProfile.title", { defaultValue: "Doctor Profile" })}
               </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.body,
-                }}
-              >
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
                 Clinical credentials & practice settings
               </Text>
             </View>
@@ -606,12 +575,10 @@ export default function DoctorProfileScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              borderCurve: "continuous",
+              backgroundColor: pressed ? colors.fillStrong : colors.fill,
               alignItems: "center",
               justifyContent: "center",
-              opacity: pressed ? 0.8 : 1,
               position: "relative",
             })}
           >
@@ -636,15 +603,12 @@ export default function DoctorProfileScreen() {
         <View
           style={{
             marginHorizontal: spacing.lg,
-            borderRadius: 26,
+            borderRadius: radius.xxl,
+            borderCurve: "continuous",
             overflow: "hidden",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.18)",
-            elevation: 8,
-            shadowColor: "#001B3F",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.2,
-            shadowRadius: 16,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "rgba(255,255,255,0.22)",
+            ...(isDarkUI ? {} : shadow.hero),
           }}
         >
           <LinearGradient
@@ -689,6 +653,7 @@ export default function DoctorProfileScreen() {
                     width: 72,
                     height: 72,
                     borderRadius: 36,
+                    borderCurve: "continuous",
                     borderWidth: 2,
                     borderColor: "rgba(255,255,255,0.4)",
                   }}
@@ -699,6 +664,7 @@ export default function DoctorProfileScreen() {
                     width: 72,
                     height: 72,
                     borderRadius: 36,
+                    borderCurve: "continuous",
                     backgroundColor: "rgba(255,255,255,0.18)",
                     borderWidth: 2,
                     borderColor: "rgba(255,255,255,0.35)",
@@ -780,8 +746,8 @@ export default function DoctorProfileScreen() {
                 gap: 8,
                 marginTop: 16,
                 paddingTop: 14,
-                borderTopWidth: 1,
-                borderTopColor: "rgba(255,255,255,0.15)",
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: "rgba(255,255,255,0.22)",
               }}
             >
               {doctor.licenseNumber ? (
@@ -790,12 +756,13 @@ export default function DoctorProfileScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 5,
-                    backgroundColor: "rgba(255,255,255,0.14)",
-                    borderWidth: 1,
-                    borderColor: "rgba(255,255,255,0.2)",
+                    backgroundColor: "rgba(255,255,255,0.18)",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255,255,255,0.28)",
                     paddingHorizontal: 10,
                     paddingVertical: 5,
                     borderRadius: 20,
+                    borderCurve: "continuous",
                   }}
                 >
                   <ShieldCheck size={12} color="#5EEAD4" strokeWidth={2.4} />
@@ -817,12 +784,13 @@ export default function DoctorProfileScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 5,
-                  backgroundColor: "rgba(16,185,129,0.2)",
-                  borderWidth: 1,
-                  borderColor: "rgba(16,185,129,0.4)",
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
                   paddingHorizontal: 10,
                   paddingVertical: 5,
                   borderRadius: 20,
+                  borderCurve: "continuous",
                 }}
               >
                 <View
@@ -835,7 +803,7 @@ export default function DoctorProfileScreen() {
                 />
                 <Text
                   style={{
-                    color: "#A7F3D0",
+                    color: "#FFFFFF",
                     fontSize: 11,
                     fontWeight: "700",
                   }}
@@ -912,16 +880,8 @@ export default function DoctorProfileScreen() {
 
           <View
             style={{
-              borderRadius: 22,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              ...groupCard,
               overflow: "hidden",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.03,
-              shadowRadius: 8,
-              elevation: 2,
             }}
           >
             {practiceRows.length > 0 ? (
@@ -950,20 +910,14 @@ export default function DoctorProfileScreen() {
                 gap: 10,
                 paddingHorizontal: spacing.lg,
                 paddingVertical: 12,
-                backgroundColor: withOpacity(colors.primary, 0.04),
+                backgroundColor: colors.primarySoft,
                 borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: colors.borderSubtle ?? colors.border,
+                borderTopColor: colors.separator,
               }}
             >
               <ShieldCheck size={16} color={colors.primary} strokeWidth={2.2} />
               <Text
-                style={{
-                  flex: 1,
-                  fontSize: 12,
-                  color: colors.textMuted,
-                  lineHeight: 16,
-                  fontFamily: fontFamily.body,
-                }}
+                style={[typography.body.xs, { flex: 1, color: colors.textMuted }]}
               >
                 SLMC verified practitioner. Qualifications and credentials are authenticated with medical council records.
               </Text>
@@ -980,16 +934,8 @@ export default function DoctorProfileScreen() {
 
           <View
             style={{
-              borderRadius: 22,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              ...groupCard,
               overflow: "hidden",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.03,
-              shadowRadius: 8,
-              elevation: 2,
             }}
           >
             <ProfileInfoRow
@@ -1017,16 +963,8 @@ export default function DoctorProfileScreen() {
 
           <View
             style={{
-              borderRadius: 22,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
+              ...groupCard,
               overflow: "hidden",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.03,
-              shadowRadius: 8,
-              elevation: 2,
             }}
           >
             <NavigationLinkRow
@@ -1077,24 +1015,16 @@ export default function DoctorProfileScreen() {
 
           <View
             style={{
-              borderRadius: 22,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle ?? colors.border,
-              padding: 16,
-              gap: 16,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.03,
-              shadowRadius: 8,
-              elevation: 2,
+              ...groupCard,
+              padding: spacing.lg,
+              gap: spacing.lg,
             }}
           >
             {/* Language Selector */}
             <View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <Languages size={17} color={colors.primary} strokeWidth={2.2} />
-                <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text, fontFamily: fontFamily.bodyBold }}>
+                <Text style={[typography.title.sm, { color: colors.text }]}>
                   Language / භාෂාව / மொழி
                 </Text>
               </View>
@@ -1102,10 +1032,11 @@ export default function DoctorProfileScreen() {
               <View
                 style={{
                   flexDirection: "row",
-                  borderRadius: 14,
-                  backgroundColor: colors.surfaceMuted,
-                  padding: 4,
-                  gap: 4,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
+                  padding: 3,
+                  gap: 2,
                 }}
               >
                 {(
@@ -1122,25 +1053,20 @@ export default function DoctorProfileScreen() {
                       onPress={() => handleLanguageChange(lang.code)}
                       style={{
                         flex: 1,
-                        paddingVertical: 8,
-                        borderRadius: 10,
+                        height: 34,
+                        borderRadius: 9,
+                        borderCurve: "continuous",
                         backgroundColor: active ? colors.surface : "transparent",
                         alignItems: "center",
                         justifyContent: "center",
-                        shadowColor: active ? "#000" : "transparent",
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: active ? 0.08 : 0,
-                        shadowRadius: 3,
-                        elevation: active ? 1 : 0,
+                        ...(active ? shadow.xs : shadow.none),
                       }}
                     >
                       <Text
-                        style={{
-                          fontSize: 13,
-                          fontWeight: active ? "800" : "600",
-                          color: active ? colors.primary : colors.textMuted,
-                          fontFamily: active ? fontFamily.bodyBold : fontFamily.body,
-                        }}
+                        style={[
+                          active ? typography.label.md : typography.body.sm,
+                          { color: active ? colors.text : colors.textMuted },
+                        ]}
                       >
                         {lang.label}
                       </Text>
@@ -1156,22 +1082,34 @@ export default function DoctorProfileScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                paddingTop: 12,
+                paddingTop: spacing.lg,
                 borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: colors.borderSubtle ?? colors.border,
+                borderTopColor: colors.separator,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                {scheme === "dark" ? (
-                  <Moon size={17} color={colors.primary} strokeWidth={2.2} />
-                ) : (
-                  <Sun size={17} color={colors.warning} strokeWidth={2.2} />
-                )}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 9,
+                    borderCurve: "continuous",
+                    backgroundColor: scheme === "dark" ? colors.primary : colors.warning,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {scheme === "dark" ? (
+                    <Moon size={17} color={colors.onPrimary} strokeWidth={2.2} />
+                  ) : (
+                    <Sun size={17} color={colors.onWarning} strokeWidth={2.2} />
+                  )}
+                </View>
                 <View>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text, fontFamily: fontFamily.bodyBold }}>
+                  <Text style={[typography.title.sm, { color: colors.text }]}>
                     Dark Mode
                   </Text>
-                  <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                  <Text style={[typography.body.sm, { color: colors.textMuted }]}>
                     {scheme === "dark" ? "Dark appearance active" : "Light appearance active"}
                   </Text>
                 </View>
@@ -1179,16 +1117,17 @@ export default function DoctorProfileScreen() {
 
               <Pressable
                 onPress={toggleTheme}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 16,
-                  backgroundColor: colors.surfaceMuted,
-                  borderWidth: 1,
-                  borderColor: colors.borderSubtle ?? colors.border,
-                }}
+                style={({ pressed }) => ({
+                  height: 34,
+                  paddingHorizontal: 14,
+                  justifyContent: "center",
+                  borderRadius: 999,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primarySoft,
+                  opacity: pressed ? 0.7 : 1,
+                })}
               >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>
+                <Text style={[typography.label.md, { color: colors.primary }]}>
                   Toggle
                 </Text>
               </Pressable>
@@ -1215,24 +1154,19 @@ export default function DoctorProfileScreen() {
               justifyContent: "center",
               gap: 8,
               width: "100%",
-              paddingVertical: 14,
-              borderRadius: 20,
-              backgroundColor: withOpacity(colors.danger || "#EF4444", 0.08),
-              borderWidth: 1,
-              borderColor: withOpacity(colors.danger || "#EF4444", 0.25),
+              height: 54,
+              borderRadius: radius.button,
+              borderCurve: "continuous",
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDarkUI ? colors.borderStrong : colors.separator,
+              ...(isDarkUI ? {} : shadow.xs),
               opacity: pressed ? 0.85 : 1,
               transform: [{ scale: pressed ? 0.99 : 1 }],
             })}
           >
-            <LogOut size={18} color={colors.danger || "#EF4444"} strokeWidth={2.2} />
-            <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "700",
-                color: colors.danger || "#EF4444",
-                fontFamily: fontFamily.bodyBold,
-              }}
-            >
+            <LogOut size={18} color={colors.danger} strokeWidth={2.2} />
+            <Text style={[typography.title.sm, { color: colors.danger }]}>
               {t("profile.logout.confirm", { defaultValue: "Sign Out" })}
             </Text>
           </Pressable>
@@ -1240,14 +1174,7 @@ export default function DoctorProfileScreen() {
           <View style={{ alignItems: "center", gap: 3, marginTop: 4 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
               <ShieldCheck size={13} color={colors.textSubtle} />
-              <Text
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: "600",
-                  color: colors.textSubtle,
-                  letterSpacing: 0.2,
-                }}
-              >
+              <Text style={[typography.label.sm, { color: colors.textSubtle }]}>
                 HIPAA & Sri Lanka Medical Council Compliant
               </Text>
             </View>

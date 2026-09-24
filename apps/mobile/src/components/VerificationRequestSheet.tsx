@@ -130,11 +130,11 @@ export function VerificationRequestSheet({ visible, onDismiss }: Props) {
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
           <BadgeCheck size={20} color={colors.primary} />
-          <Text style={{ ...typography.h3, color: colors.text, flex: 1 }}>
+          <Text style={{ ...typography.display.sm, color: colors.text, flex: 1 }}>
             {t("caretaker.verification.sheetTitle")}
           </Text>
         </View>
-        <Text style={{ ...typography.bodySmall, color: colors.textSecondary }}>
+        <Text style={{ ...typography.body.sm, color: colors.textSecondary }}>
           {t("caretaker.verification.sheetHelper")}
         </Text>
 
@@ -160,13 +160,14 @@ export function VerificationRequestSheet({ visible, onDismiss }: Props) {
                 gap: spacing.sm,
                 padding: spacing.sm,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: colors.surfaceMuted,
               }}
             >
               <Upload size={16} color={colors.primary} />
               <Text
                 style={{
-                  ...typography.bodySmall,
+                  ...typography.body.sm,
                   color: colors.text,
                   flex: 1,
                 }}

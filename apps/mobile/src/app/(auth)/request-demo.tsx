@@ -167,21 +167,11 @@ export default function RequestDemoScreen() {
   // to /login rather than rendering the form again.
   if (submitted) {
     return (
-      <Screen padded={false} edges={["top", "bottom"]}>
-        <LinearGradient
-          colors={["#EEF2FF", "transparent"]}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 240,
-          }}
-        />
+      <Screen padded={false} edges={["top", "bottom"]} style={{ backgroundColor: colors.surface }}>
         <View
           style={{
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.lg,
+            paddingHorizontal: spacing.xl,
+            marginTop: 40,
             flexDirection: "row",
             alignItems: "center",
             gap: spacing.md,
@@ -192,27 +182,18 @@ export default function RequestDemoScreen() {
             onPress={() => router.replace("/(auth)/login")}
             variant="ghost"
             accessibilityLabel="Go back"
-            style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.fill }}
           />
           <View style={{ flex: 1 }}>
             <Text
               style={[
                 typography.overline,
-                { color: colors.primary, letterSpacing: 1, fontWeight: "700" },
+                { color: colors.primary, textTransform: "uppercase" },
               ]}
             >
-              HEALTHHUB
+              HealthHub
             </Text>
-            <Text
-              style={[
-                typography.title.lg,
-                { color: colors.text, fontWeight: "700" },
-              ]}
-            >
+            <Text style={[typography.title.md, { color: colors.text }]}>
               {t("auth.requestDemo.title")}
             </Text>
           </View>
@@ -220,43 +201,31 @@ export default function RequestDemoScreen() {
 
         <View
           style={{
+            flex: 1,
+            justifyContent: "center",
             paddingHorizontal: spacing.xl,
-            paddingBottom: spacing.xxl,
-            gap: spacing.lg,
+            paddingBottom: spacing.xxxxl,
           }}
         >
-          <View
-            style={[
-              {
-                backgroundColor: colors.surface,
-                borderRadius: radius.xxl,
-                padding: spacing.xl,
-                borderWidth: 1,
-                borderColor: colors.border,
-                gap: spacing.lg,
-                alignItems: "center",
-              },
-              shadow.lg,
-            ]}
-          >
+          <View style={{ gap: spacing.lg, alignItems: "center" }}>
             <View
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: radius.xl,
+                width: 88,
+                height: 88,
+                borderRadius: 26,
+                borderCurve: "continuous",
                 backgroundColor: colors.successSoft,
                 alignItems: "center",
                 justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.success + "20",
+                marginBottom: spacing.xs,
               }}
             >
-              <Check size={32} color={colors.success} strokeWidth={2.25} />
+              <Check size={42} color={colors.success} strokeWidth={2.5} />
             </View>
             <Text
               style={[
-                typography.title.md,
-                { color: colors.text, fontWeight: "700", textAlign: "center" },
+                typography.display.md,
+                { color: colors.text, textAlign: "center" },
               ]}
             >
               {t("auth.requestDemo.success.title")}
@@ -264,7 +233,7 @@ export default function RequestDemoScreen() {
             <Text
               style={[
                 typography.body.md,
-                { color: colors.textMuted, textAlign: "center", lineHeight: 22 },
+                { color: colors.textMuted, textAlign: "center", lineHeight: 22, marginBottom: spacing.md },
               ]}
             >
               {t("auth.requestDemo.success.body")}
@@ -283,18 +252,7 @@ export default function RequestDemoScreen() {
   }
 
   return (
-    <Screen padded={false} edges={["top", "bottom"]}>
-      <LinearGradient
-        colors={["#EEF2FF", "transparent"]}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 240,
-        }}
-      />
-
+    <Screen padded={false} edges={["top", "bottom"]} style={{ backgroundColor: colors.surface }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -302,7 +260,7 @@ export default function RequestDemoScreen() {
         {/* Header */}
         <View
           style={{
-            paddingHorizontal: spacing.lg,
+            paddingHorizontal: spacing.xl,
             paddingTop: spacing.lg,
             paddingBottom: spacing.sm,
             flexDirection: "row",
@@ -316,63 +274,42 @@ export default function RequestDemoScreen() {
             onPress={() => router.replace("/(auth)/login")}
             variant="ghost"
             accessibilityLabel="Go back"
-            style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.fill }}
           />
-          <View style={{ flex: 1 }}>
-            <Text
-              style={[
-                typography.overline,
-                { color: colors.primary, letterSpacing: 1, fontWeight: "700" },
-              ]}
-            >
-              HEALTHHUB · FOR CLINICS
-            </Text>
-            <Text
-              style={[
-                typography.title.lg,
-                { color: colors.text, fontWeight: "700" },
-              ]}
-            >
-              {t("auth.requestDemo.title")}
-            </Text>
-          </View>
         </View>
 
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: spacing.xl,
-            paddingBottom: spacing.xxl,
+            paddingBottom: spacing.xxxxl,
             gap: spacing.lg,
           }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text
-            style={[
-              typography.body.md,
-              { color: colors.textMuted, marginTop: -spacing.xs },
-            ]}
-          >
-            {t("auth.requestDemo.subtitle")}
-          </Text>
+          <View style={{ marginTop: spacing.lg, marginBottom: spacing.sm, gap: 8 }}>
+            <Text
+              style={[
+                typography.overline,
+                { color: colors.primary, textTransform: "uppercase" },
+              ]}
+            >
+              HealthHub · For clinics
+            </Text>
+            <Text style={[typography.display.lg, { color: colors.text }]}>
+              {t("auth.requestDemo.title")}
+            </Text>
+            <Text
+              style={[
+                typography.body.md,
+                { color: colors.textMuted, lineHeight: 22, marginTop: 2 },
+              ]}
+            >
+              {t("auth.requestDemo.subtitle")}
+            </Text>
+          </View>
 
-          <View
-            style={[
-              {
-                backgroundColor: colors.surface,
-                borderRadius: radius.xxl,
-                padding: spacing.xl,
-                borderWidth: 1,
-                borderColor: colors.border,
-                gap: spacing.lg,
-              },
-              shadow.lg,
-            ]}
-          >
+          <View style={{ gap: 20 }}>
             <FormField label={t("auth.requestDemo.field.clinicName")}>
               <TextInput
                 value={form.clinicName}
@@ -548,20 +485,20 @@ function ChipRow({
             accessibilityRole="button"
             accessibilityState={{ selected }}
             style={{
-              paddingHorizontal: spacing.md,
-              paddingVertical: 8,
+              paddingHorizontal: 14,
+              height: 36,
+              justifyContent: "center",
               borderRadius: radius.full,
               borderWidth: 1,
-              borderColor: selected ? colors.primary : colors.border,
-              backgroundColor: selected ? colors.primarySoft : colors.surface,
+              borderColor: selected ? colors.primary : "transparent",
+              backgroundColor: selected ? colors.primarySoft : colors.fill,
             }}
           >
             <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: selected ? colors.primary : colors.text,
-              }}
+              style={[
+                typography.label.md,
+                { color: selected ? colors.primary : colors.text },
+              ]}
             >
               {opt}
             </Text>
@@ -571,11 +508,11 @@ function ChipRow({
     </View>
   );
   return (
-    <View style={{ gap: spacing.xs }}>
+    <View style={{ gap: spacing.sm }}>
       <Text
         style={[
           typography.label.md,
-          { color: colors.text, fontWeight: "600" },
+          { color: colors.textMuted, marginLeft: 2 },
         ]}
       >
         {label}

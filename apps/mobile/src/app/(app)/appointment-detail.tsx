@@ -113,7 +113,7 @@ function getInitials(name?: string | null) {
 export default function AppointmentDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, scheme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const toast = useToast();
 
@@ -239,8 +239,9 @@ export default function AppointmentDetailScreen() {
 
         <ScrollView
           contentContainerStyle={{
-            padding: spacing.md,
-            gap: spacing.md,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.sm,
+            gap: spacing.lg,
             paddingBottom: spacing.xxl * 2,
           }}
           keyboardShouldPersistTaps="handled"
@@ -248,8 +249,8 @@ export default function AppointmentDetailScreen() {
         >
           {isLoading && !appt ? (
             <View style={{ gap: spacing.md }}>
-              <Skeleton height={140} radius={20} />
-              <Skeleton height={180} radius={20} />
+              <Skeleton height={160} radius={radius.card} />
+              <Skeleton height={180} radius={radius.card} />
             </View>
           ) : isError && !appt ? (
             <ErrorState
@@ -267,12 +268,12 @@ export default function AppointmentDetailScreen() {
           ) : (
             <>
               {/* ─── Hero Doctor & Status Card ─── */}
-              <Card padded={false} style={{ borderRadius: radius.xl, overflow: "hidden" }}>
+              <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", overflow: "hidden" }}>
                 <LinearGradient
-                  colors={[withOpacity(colors.primary, 0.08), withOpacity(colors.surface, 0.02)]}
+                  colors={[withOpacity(colors.primary, scheme === "dark" ? 0.2 : 0.1), withOpacity(colors.primary, 0)]}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ padding: spacing.md + 2, gap: spacing.md }}
+                  end={{ x: 0.6, y: 1 }}
+                  style={{ padding: spacing.xl, gap: spacing.lg }}
                 >
                   {/* Status & Mode badges row */}
                   <View
@@ -317,14 +318,14 @@ export default function AppointmentDetailScreen() {
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 4,
-                          paddingHorizontal: spacing.sm,
-                          paddingVertical: 3,
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: 5,
                           borderRadius: radius.full,
-                          backgroundColor: withOpacity(colors.primary, 0.12),
+                          backgroundColor: colors.primarySoft,
                         }}
                       >
                         <Hash size={12} color={colors.primary} strokeWidth={2.5} />
-                        <Text style={[typography.label.xs, { color: colors.primary, fontWeight: "700" }]}>
+                        <Text style={[typography.label.sm, { color: colors.primary }]}>
                           Queue #{appt.queueNumber}
                         </Text>
                       </View>
@@ -334,39 +335,32 @@ export default function AppointmentDetailScreen() {
                   {/* Doctor Profile Banner */}
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
                     <LinearGradient
-                      colors={[colors.primary, colors.primaryMuted]}
+                      colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
-                        width: 58,
-                        height: 58,
-                        borderRadius: 29,
+                        width: 64,
+                        height: 64,
+                        borderRadius: 32,
                         alignItems: "center",
                         justifyContent: "center",
-                        borderWidth: 2,
-                        borderColor: colors.surface,
-                        shadowColor: colors.primary,
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 6,
-                        elevation: 4,
                       }}
                     >
                       <Text
                         style={[
-                          typography.title.md,
-                          { color: colors.onPrimary, fontWeight: "800", letterSpacing: 0.5 },
+                          typography.title.lg,
+                          { color: "#FFFFFF", letterSpacing: 0.5 },
                         ]}
                       >
                         {getInitials(doctorDisplayName)}
                       </Text>
                     </LinearGradient>
 
-                    <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flex: 1, gap: 3 }}>
                       <Text
                         style={[
-                          typography.title.md,
-                          { color: colors.text, fontWeight: "800", fontSize: 18, lineHeight: 22 },
+                          typography.display.sm,
+                          { color: colors.text },
                         ]}
                         numberOfLines={1}
                       >
@@ -375,7 +369,7 @@ export default function AppointmentDetailScreen() {
 
                       {specialization ? (
                         <Text
-                          style={[typography.body.sm, { color: colors.primary, fontWeight: "600" }]}
+                          style={[typography.label.lg, { color: colors.primary }]}
                           numberOfLines={1}
                         >
                           {specialization}
@@ -384,9 +378,9 @@ export default function AppointmentDetailScreen() {
 
                       {hospitalName ? (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
-                          <Building2 size={13} color={colors.textMuted} strokeWidth={2} />
+                          <Building2 size={13} color={colors.textSubtle} strokeWidth={2} />
                           <Text
-                            style={[typography.body.xs, { color: colors.textMuted }]}
+                            style={[typography.body.sm, { color: colors.textMuted }]}
                             numberOfLines={1}
                           >
                             {hospitalName}
@@ -408,9 +402,9 @@ export default function AppointmentDetailScreen() {
               </Card>
 
               {/* ─── Schedule Details Card ─── */}
-              <Card padded={false} style={{ borderRadius: radius.xl, padding: spacing.md }}>
+              <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", padding: spacing.lg }}>
                 <View style={{ gap: spacing.md }}>
-                  <Text style={[typography.title.xs, { color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }]}>
+                  <Text style={[typography.title.md, { color: colors.text }]}>
                     Visit Schedule
                   </Text>
 
@@ -422,19 +416,19 @@ export default function AppointmentDetailScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: spacing.sm,
-                        padding: spacing.sm + 2,
-                        backgroundColor: colors.surfaceMuted,
-                        borderRadius: radius.lg,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        padding: spacing.md,
+                        backgroundColor: colors.fill,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
                       }}
                     >
                       <View
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 18,
-                          backgroundColor: colors.surface,
+                          width: 34,
+                          height: 34,
+                          borderRadius: 10,
+                          borderCurve: "continuous",
+                          backgroundColor: colors.primarySoft,
                           alignItems: "center",
                           justifyContent: "center",
                         }}
@@ -442,9 +436,9 @@ export default function AppointmentDetailScreen() {
                         <Calendar size={18} color={colors.primary} strokeWidth={2.2} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[typography.caption, { color: colors.textMuted }]}>Date</Text>
+                        <Text style={[typography.caption, { color: colors.textSubtle }]}>Date</Text>
                         <Text
-                          style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}
+                          style={[typography.title.xs, { color: colors.text }]}
                           numberOfLines={1}
                         >
                           {formattedDate}
@@ -459,19 +453,19 @@ export default function AppointmentDetailScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: spacing.sm,
-                        padding: spacing.sm + 2,
-                        backgroundColor: colors.surfaceMuted,
-                        borderRadius: radius.lg,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        padding: spacing.md,
+                        backgroundColor: colors.fill,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
                       }}
                     >
                       <View
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 18,
-                          backgroundColor: colors.surface,
+                          width: 34,
+                          height: 34,
+                          borderRadius: 10,
+                          borderCurve: "continuous",
+                          backgroundColor: colors.primarySoft,
                           alignItems: "center",
                           justifyContent: "center",
                         }}
@@ -479,9 +473,9 @@ export default function AppointmentDetailScreen() {
                         <Clock size={18} color={colors.primary} strokeWidth={2.2} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[typography.caption, { color: colors.textMuted }]}>Time</Text>
+                        <Text style={[typography.caption, { color: colors.textSubtle }]}>Time</Text>
                         <Text
-                          style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}
+                          style={[typography.title.xs, { color: colors.text }]}
                           numberOfLines={1}
                         >
                           {appt.time || "—"}
@@ -497,19 +491,18 @@ export default function AppointmentDetailScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: spacing.sm,
-                        padding: spacing.sm + 2,
-                        backgroundColor: withOpacity(colors.primary, 0.08),
-                        borderRadius: radius.lg,
-                        borderWidth: 1,
-                        borderColor: withOpacity(colors.primary, 0.25),
+                        padding: spacing.md,
+                        backgroundColor: colors.primarySoft,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
                       }}
                     >
                       <Video size={18} color={colors.primary} strokeWidth={2.2} />
                       <View style={{ flex: 1 }}>
-                        <Text style={[typography.label.sm, { color: colors.primary, fontWeight: "700" }]}>
+                        <Text style={[typography.title.xs, { color: colors.primary }]}>
                           Online Video Visit
                         </Text>
-                        <Text style={[typography.body.xs, { color: colors.textMuted, marginTop: 1 }]}>
+                        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
                           Consult directly from your phone. Join when doctor opens the call.
                         </Text>
                       </View>
@@ -520,19 +513,18 @@ export default function AppointmentDetailScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: spacing.sm,
-                        padding: spacing.sm + 2,
-                        backgroundColor: colors.surfaceMuted,
-                        borderRadius: radius.lg,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        padding: spacing.md,
+                        backgroundColor: colors.fill,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
                       }}
                     >
                       <Building2 size={18} color={colors.textMuted} strokeWidth={2} />
                       <View style={{ flex: 1 }}>
-                        <Text style={[typography.label.sm, { color: colors.text, fontWeight: "700" }]}>
+                        <Text style={[typography.title.xs, { color: colors.text }]}>
                           {appt.hospitalName || "Hospital Consultation Desk"}
                         </Text>
-                        <Text style={[typography.body.xs, { color: colors.textMuted, marginTop: 1 }]}>
+                        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
                           Please arrive 15 minutes before your slot and present queue #{appt.queueNumber || "1"}.
                         </Text>
                       </View>
@@ -562,9 +554,11 @@ export default function AppointmentDetailScreen() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: spacing.sm,
+                    minHeight: 52,
                     padding: spacing.md,
-                    backgroundColor: colors.surfaceMuted,
-                    borderRadius: radius.lg,
+                    backgroundColor: colors.fill,
+                    borderRadius: radius.button,
+                    borderCurve: "continuous",
                   }}
                 >
                   <Video size={18} color={colors.textMuted} strokeWidth={2.2} />
@@ -578,13 +572,13 @@ export default function AppointmentDetailScreen() {
 
               {/* ─── Reason & Notes ─── */}
               {appt.reason || appt.notes ? (
-                <Card padded={false} style={{ borderRadius: radius.xl, padding: spacing.md }}>
+                <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", padding: spacing.lg }}>
                   <View style={{ gap: spacing.xs }}>
-                    <Text style={[typography.title.xs, { color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }]}>
+                    <Text style={[typography.title.md, { color: colors.text }]}>
                       Visit Notes & Reason
                     </Text>
                     {appt.reason ? (
-                      <Text style={[typography.body.md, { color: colors.text, fontWeight: "500", marginTop: 4 }]}>
+                      <Text style={[typography.body.md, { color: colors.text, marginTop: 4 }]}>
                         {appt.reason}
                       </Text>
                     ) : null}
@@ -599,7 +593,7 @@ export default function AppointmentDetailScreen() {
 
               {/* ─── Actions Row (Reschedule, Cancel, Book Again) ─── */}
               {["scheduled", "confirmed"].includes(appt.status) ? (
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <View style={{ flexDirection: "row", gap: spacing.md }}>
                   <View style={{ flex: 1 }}>
                     <Button
                       title={t("appointmentDetail.reschedule", { defaultValue: "Reschedule" })}
@@ -638,7 +632,7 @@ export default function AppointmentDetailScreen() {
               ) : null}
 
               {/* ─── Records tied to this appointment ─── */}
-              <View style={{ marginTop: spacing.xs }}>
+              <View style={{ marginTop: spacing.sm, marginBottom: -spacing.xs }}>
                 <SectionHeader
                   title={t("appointmentDetail.visitNotes", {
                     count: records.length,
@@ -648,14 +642,15 @@ export default function AppointmentDetailScreen() {
               </View>
 
               {records.length === 0 ? (
-                <Card padded={false} style={{ borderRadius: radius.lg, padding: spacing.md }}>
+                <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", padding: spacing.lg }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
                     <View
                       style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 19,
-                        backgroundColor: colors.surfaceMuted,
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.fill,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
@@ -663,17 +658,17 @@ export default function AppointmentDetailScreen() {
                       <FileText size={18} color={colors.textMuted} strokeWidth={2} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[typography.title.xs, { color: colors.text, fontWeight: "700" }]}>
+                      <Text style={[typography.title.sm, { color: colors.text }]}>
                         {t("appointmentDetail.recordsEmptyTitle", { defaultValue: "No records yet" })}
                       </Text>
-                      <Text style={[typography.body.xs, { color: colors.textMuted, marginTop: 2 }]}>
+                      <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
                         {t("appointmentDetail.recordsEmptyBody", { defaultValue: "Prescriptions and notes from this consultation will appear here." })}
                       </Text>
                     </View>
                   </View>
                 </Card>
               ) : (
-                <View style={{ gap: spacing.sm }}>
+                <View style={{ gap: spacing.md }}>
                   {records.map((r: any) => {
                     const Icon = RECORD_ICONS[r.recordType] || Stethoscope;
                     const labelKey = `appointmentDetail.recordLabel.${r.recordType}`;
@@ -681,8 +676,8 @@ export default function AppointmentDetailScreen() {
                       defaultValue: r.recordType.replace("_", " "),
                     });
                     return (
-                      <Card key={r.id} padded={false} style={{ borderRadius: radius.lg, padding: spacing.md }}>
-                        <View style={{ gap: spacing.xs }}>
+                      <Card key={r.id} padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", padding: spacing.lg }}>
+                        <View style={{ gap: spacing.sm }}>
                           <View
                             style={{
                               flexDirection: "row",
@@ -690,12 +685,24 @@ export default function AppointmentDetailScreen() {
                               justifyContent: "space-between",
                             }}
                           >
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, flex: 1 }}>
-                              <Icon size={16} color={colors.primary} />
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1, marginRight: spacing.sm }}>
+                              <View
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 10,
+                                  borderCurve: "continuous",
+                                  backgroundColor: colors.primarySoft,
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <Icon size={16} color={colors.primary} />
+                              </View>
                               <Text
                                 style={[
                                   typography.title.sm,
-                                  { color: colors.text, fontWeight: "700" },
+                                  { color: colors.text, flex: 1 },
                                 ]}
                                 numberOfLines={1}
                               >
@@ -706,8 +713,8 @@ export default function AppointmentDetailScreen() {
                           </View>
 
                           {r.diagnosis ? (
-                            <Text style={[typography.body.sm, { color: colors.text, marginTop: 2 }]}>
-                              <Text style={{ fontWeight: "700" }}>
+                            <Text style={[typography.body.md, { color: colors.text, marginTop: 2 }]}>
+                              <Text style={typography.label.lg}>
                                 {t("appointmentDetail.dxPrefix", { defaultValue: "Dx: " })}
                               </Text>
                               {r.diagnosis}
@@ -716,7 +723,7 @@ export default function AppointmentDetailScreen() {
 
                           {r.summary ? (
                             <Text
-                              style={[typography.body.xs, { color: colors.textMuted }]}
+                              style={[typography.body.sm, { color: colors.textMuted }]}
                               numberOfLines={4}
                             >
                               {r.summary}
@@ -745,11 +752,11 @@ export default function AppointmentDetailScreen() {
 
               {/* ─── Rate Visit (Completed) ─── */}
               {appt?.status === "completed" && !data?.rating ? (
-                <Card style={{ borderRadius: radius.xl }}>
+                <Card style={{ borderRadius: radius.card, borderCurve: "continuous" }}>
                   <Text
                     style={[
-                      typography.title.sm,
-                      { color: colors.text, fontWeight: "700", marginBottom: spacing.xs },
+                      typography.title.md,
+                      { color: colors.text, marginBottom: spacing.xs },
                     ]}
                   >
                     {t("appointmentDetail.rateTitle")}
@@ -769,18 +776,18 @@ export default function AppointmentDetailScreen() {
                     }
                     variant="secondary"
                     size="md"
-                    style={{ marginTop: spacing.sm }}
+                    style={{ marginTop: spacing.md }}
                     iconLeft={Sparkles}
                   />
                 </Card>
               ) : null}
 
               {appt?.status === "completed" && data?.rating ? (
-                <Card style={{ borderRadius: radius.xl }}>
+                <Card style={{ borderRadius: radius.card, borderCurve: "continuous" }}>
                   <Text
                     style={[
-                      typography.title.sm,
-                      { color: colors.text, fontWeight: "700", marginBottom: spacing.xs },
+                      typography.title.md,
+                      { color: colors.text, marginBottom: spacing.xs },
                     ]}
                   >
                     {t("appointmentDetail.youRated", {
@@ -802,40 +809,41 @@ export default function AppointmentDetailScreen() {
                   accessibilityRole="link"
                   accessibilityLabel={t("appointmentDetail.helpCta")}
                   style={({ pressed }) => ({
-                    backgroundColor: pressed ? colors.primaryMuted : colors.primarySoft,
-                    borderRadius: radius.xl,
-                    padding: spacing.md,
+                    backgroundColor: colors.primarySoft,
+                    opacity: pressed ? 0.75 : 1,
+                    borderRadius: radius.card,
+                    borderCurve: "continuous",
+                    padding: spacing.lg,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: spacing.md,
-                    borderWidth: 1,
-                    borderColor: withOpacity(colors.primary, 0.15),
                   })}
                 >
                   <View
                     style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 14,
-                      backgroundColor: colors.surface,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.primary,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <MessageCircle size={20} color={colors.primary} strokeWidth={2.2} />
+                    <MessageCircle size={20} color={colors.onPrimary} strokeWidth={2.2} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[
                         typography.title.sm,
-                        { color: colors.text, fontWeight: "700" },
+                        { color: colors.text },
                       ]}
                     >
                       {t("appointmentDetail.helpCta")}
                     </Text>
                     <Text
                       style={[
-                        typography.body.xs,
+                        typography.body.sm,
                         { color: colors.textMuted, marginTop: 2 },
                       ]}
                     >
@@ -854,7 +862,7 @@ export default function AppointmentDetailScreen() {
           onDismiss={() => setReschedOpen(false)}
           title={t("appointmentDetail.rescheduleSheetTitle")}
         >
-          <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <View style={{ paddingVertical: spacing.sm, gap: spacing.lg }}>
             <FormField label={t("appointmentDetail.newDateLabel")}>
               <TextInput
                 value={newDate}

@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState, useMemo } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Bell,
@@ -23,6 +23,7 @@ import {
   useMarkAllRead,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { withOpacity } from "@/constants/theme";
 import { useTone, type Tone } from "@/theme/tone";
 import {
   Screen,
@@ -81,7 +82,11 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
+  const segActive = {
+    backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+    ...(scheme === "dark" ? null : shadow.xs),
+  };
   const { data, isLoading, isError, refetch } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllRead();
@@ -199,19 +204,19 @@ export default function NotificationsScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 4,
-                paddingHorizontal: spacing.sm + 4,
-                paddingVertical: spacing.xs + 2,
+                gap: 5,
+                height: 36,
+                paddingHorizontal: spacing.md,
                 borderRadius: 999,
                 backgroundColor: colors.primarySoft,
                 opacity: markAll.isPending ? 0.5 : 1,
               }}
             >
-              <CheckCheck size={14} color={colors.primary} strokeWidth={2.5} />
+              <CheckCheck size={15} color={colors.primary} strokeWidth={2.5} />
               <Text
                 style={[
-                  typography.caption,
-                  { color: colors.primary, fontWeight: "700" },
+                  typography.label.md,
+                  { color: colors.primary },
                 ]}
               >
                 {t("notifications.markAll.label", "Mark all")}
@@ -230,17 +235,18 @@ export default function NotificationsScreen() {
             justifyContent: "space-between",
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.xs,
-            paddingBottom: spacing.md,
+            paddingBottom: spacing.lg,
           }}
         >
           <View
             style={{
+              flex: 1,
               flexDirection: "row",
               padding: 3,
-              borderRadius: radius.full,
-              backgroundColor: colors.surfaceMuted,
-              borderWidth: 1,
-              borderColor: colors.border,
+              gap: 2,
+              borderRadius: 12,
+              borderCurve: "continuous",
+              backgroundColor: colors.fill,
             }}
           >
             <Pressable
@@ -250,14 +256,14 @@ export default function NotificationsScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
+                flex: 1,
+                justifyContent: "center",
+                minHeight: 34,
                 paddingHorizontal: spacing.md,
                 paddingVertical: 6,
-                borderRadius: radius.full,
-                backgroundColor: filter === "all" ? colors.surface : "transparent",
-                shadowColor: "#000",
-                shadowOpacity: filter === "all" ? 0.08 : 0,
-                shadowRadius: 3,
-                elevation: filter === "all" ? 1 : 0,
+                borderRadius: 10,
+                borderCurve: "continuous",
+                ...(filter === "all" ? segActive : { backgroundColor: "transparent" }),
               }}
             >
               <Text
@@ -265,7 +271,6 @@ export default function NotificationsScreen() {
                   typography.label.md,
                   {
                     color: filter === "all" ? colors.text : colors.textMuted,
-                    fontWeight: filter === "all" ? "700" : "500",
                   },
                 ]}
               >
@@ -276,16 +281,15 @@ export default function NotificationsScreen() {
                   paddingHorizontal: 6,
                   paddingVertical: 1,
                   borderRadius: 999,
-                  backgroundColor: filter === "all" ? colors.primarySoft : colors.border,
+                  backgroundColor: filter === "all" ? colors.primarySoft : colors.fill,
                 }}
               >
                 <Text
                   style={[
-                    typography.caption,
+                    typography.label.xs,
                     {
-                      color: filter === "all" ? colors.primary : colors.textMuted,
-                      fontWeight: "700",
-                      fontSize: 10.5,
+                      color: filter === "all" ? colors.primary : colors.textSubtle,
+                      letterSpacing: 0,
                     },
                   ]}
                 >
@@ -301,14 +305,14 @@ export default function NotificationsScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
+                flex: 1,
+                justifyContent: "center",
+                minHeight: 34,
                 paddingHorizontal: spacing.md,
                 paddingVertical: 6,
-                borderRadius: radius.full,
-                backgroundColor: filter === "unread" ? colors.surface : "transparent",
-                shadowColor: "#000",
-                shadowOpacity: filter === "unread" ? 0.08 : 0,
-                shadowRadius: 3,
-                elevation: filter === "unread" ? 1 : 0,
+                borderRadius: 10,
+                borderCurve: "continuous",
+                ...(filter === "unread" ? segActive : { backgroundColor: "transparent" }),
               }}
             >
               <Text
@@ -316,7 +320,6 @@ export default function NotificationsScreen() {
                   typography.label.md,
                   {
                     color: filter === "unread" ? colors.text : colors.textMuted,
-                    fontWeight: filter === "unread" ? "700" : "500",
                   },
                 ]}
               >
@@ -333,8 +336,8 @@ export default function NotificationsScreen() {
                 >
                   <Text
                     style={[
-                      typography.caption,
-                      { color: "#FFFFFF", fontWeight: "800", fontSize: 10.5 },
+                      typography.label.xs,
+                      { color: colors.onPrimary, letterSpacing: 0 },
                     ]}
                   >
                     {unreadCount}
@@ -346,13 +349,13 @@ export default function NotificationsScreen() {
                     paddingHorizontal: 6,
                     paddingVertical: 1,
                     borderRadius: 999,
-                    backgroundColor: colors.border,
+                    backgroundColor: colors.fill,
                   }}
                 >
                   <Text
                     style={[
-                      typography.caption,
-                      { color: colors.textMuted, fontWeight: "700", fontSize: 10.5 },
+                      typography.label.xs,
+                      { color: colors.textSubtle, letterSpacing: 0 },
                     ]}
                   >
                     0
@@ -366,7 +369,7 @@ export default function NotificationsScreen() {
         {isLoading ? (
           <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
             {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} height={84} radius={18} />
+              <Skeleton key={i} height={88} radius={radius.card} />
             ))}
           </View>
         ) : isError ? (
@@ -398,7 +401,7 @@ export default function NotificationsScreen() {
         ) : (
           <View style={{ paddingHorizontal: spacing.lg }}>
             {groups.map((group) => (
-              <View key={group.key} style={{ marginBottom: spacing.lg, gap: spacing.sm }}>
+              <View key={group.key} style={{ marginBottom: spacing.xxl, gap: spacing.md }}>
                 <SectionHeader label={group.label} count={group.items.length} />
                 {group.items.map((item) => (
                   <NotificationCard
@@ -425,34 +428,31 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 4,
-        paddingHorizontal: spacing.xs,
+        paddingHorizontal: 2,
       }}
     >
       <Text
         style={[
-          typography.overline,
+          typography.title.lg,
           {
-            color: colors.textMuted,
-            letterSpacing: 1.1,
-            fontWeight: "700",
+            color: colors.text,
           },
         ]}
       >
-        {label.toUpperCase()}
+        {label}
       </Text>
       <View
         style={{
-          paddingHorizontal: 7,
-          paddingVertical: 1.5,
+          paddingHorizontal: 8,
+          paddingVertical: 2,
           borderRadius: 999,
-          backgroundColor: colors.surfaceMuted,
+          backgroundColor: colors.fill,
         }}
       >
         <Text
           style={[
-            typography.caption,
-            { color: colors.textMuted, fontWeight: "700", fontSize: 11 },
+            typography.label.sm,
+            { color: colors.textMuted },
           ]}
         >
           {count}
@@ -471,7 +471,7 @@ function NotificationCard({
   onPress: () => void;
   locale: string;
 }) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const { t } = useTranslation();
   const meta = TYPE_META[item.type] || TYPE_META.general;
   const pal = useTone(meta.tone);
@@ -483,23 +483,23 @@ function NotificationCard({
       onPress={onPress}
       haptic="light"
       style={{
-        borderRadius: radius.xl,
-        overflow: "hidden",
+        borderRadius: radius.card,
+        borderCurve: "continuous",
         backgroundColor: colors.surface,
-        borderWidth: item.read ? 1 : 1.5,
-        borderColor: item.read ? colors.border : colors.primary,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: item.read ? 0.03 : 0.07,
-        shadowRadius: item.read ? 4 : 8,
-        elevation: item.read ? 1 : 3,
+        borderWidth: item.read ? StyleSheet.hairlineWidth : 1,
+        borderColor: item.read
+          ? scheme === "dark"
+            ? colors.borderStrong
+            : colors.separator
+          : withOpacity(colors.primary, 0.35),
+        ...(scheme === "dark" ? null : shadow.sm),
       }}
     >
       <View
         style={{
           flexDirection: "row",
           alignItems: "flex-start",
-          padding: spacing.md + 2,
+          padding: spacing.lg,
           gap: spacing.md,
         }}
       >
@@ -507,15 +507,16 @@ function NotificationCard({
         <View style={{ position: "relative" }}>
           <View
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              borderCurve: "continuous",
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: pal.bg,
             }}
           >
-            <Icon size={20} color={pal.fg} strokeWidth={2.2} />
+            <Icon size={19} color={pal.fg} strokeWidth={2.2} />
           </View>
           {!item.read && (
             <View
@@ -523,8 +524,8 @@ function NotificationCard({
                 position: "absolute",
                 top: -2,
                 right: -2,
-                width: 11,
-                height: 11,
+                width: 12,
+                height: 12,
                 borderRadius: 6,
                 backgroundColor: colors.primary,
                 borderWidth: 2,
@@ -548,13 +549,10 @@ function NotificationCard({
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text
                 style={[
-                  typography.caption,
+                  typography.overline,
                   {
                     color: pal.fg,
-                    fontWeight: "700",
                     textTransform: "uppercase",
-                    fontSize: 10.5,
-                    letterSpacing: 0.5,
                   },
                 ]}
               >
@@ -571,8 +569,8 @@ function NotificationCard({
                 >
                   <Text
                     style={[
-                      typography.caption,
-                      { color: colors.primary, fontWeight: "700", fontSize: 10 },
+                      typography.label.xs,
+                      { color: colors.primary, fontSize: 10 },
                     ]}
                   >
                     NEW
@@ -585,7 +583,7 @@ function NotificationCard({
               <Text
                 style={[
                   typography.caption,
-                  { color: colors.textMuted, fontSize: 11.5 },
+                  { color: colors.textSubtle },
                 ]}
               >
                 {time}
@@ -596,10 +594,9 @@ function NotificationCard({
           {/* Title */}
           <Text
             style={[
-              typography.title.sm,
+              item.read ? typography.title.sm : typography.title.md,
               {
                 color: colors.text,
-                fontWeight: item.read ? "600" : "800",
                 marginTop: 1,
               },
             ]}
@@ -615,7 +612,6 @@ function NotificationCard({
                 typography.body.sm,
                 {
                   color: colors.textMuted,
-                  lineHeight: 18,
                   marginTop: 1,
                 },
               ]}

@@ -88,6 +88,7 @@ export default function AiSummaryScreen() {
                 width: 64,
                 height: 64,
                 borderRadius: 20,
+                borderCurve: "continuous",
                 backgroundColor: colors.accentSoft,
                 alignItems: "center",
                 justifyContent: "center",

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone } from "@/theme/tone";
@@ -32,7 +32,7 @@ export function IconButton({
   haptic = "light",
   style,
 }: Props) {
-  const { colors } = useTheme();
+  const { colors, shadow, scheme } = useTheme();
 
   const sizeMap = {
     sm: { box: 32, icon: 16 },
@@ -59,7 +59,9 @@ export function IconButton({
       ? palette.bg
       : variant === "danger"
       ? palette.bg
-      : "transparent";
+      : tint
+      ? "transparent"
+      : colors.fill;
   const defaultFg =
     variant === "solid" ? colors.onPrimary : palette.fg;
   const fg = tint ?? defaultFg;
@@ -83,10 +85,33 @@ export function IconButton({
           backgroundColor: bg,
           opacity: disabled ? 0.4 : 1,
         },
+        variant === "solid" && scheme !== "dark" ? shadow.primary : null,
         style,
       ]}
     >
-      <Icon size={s.icon} color={fg} strokeWidth={2.25} />
+      <Icon size={s.icon} color={variant === "ghost" && !tint ? colors.text : fg} strokeWidth={2.25} />
+      {typeof badge === "number" && badge > 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            top: -2,
+            right: -2,
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+            paddingHorizontal: 4,
+            backgroundColor: colors.danger,
+            borderWidth: 2,
+            borderColor: colors.bg,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: colors.onDanger, fontSize: 10, lineHeight: 12, fontFamily: "PlusJakartaSans_800ExtraBold" }}>
+            {badge > 99 ? "99+" : badge}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }

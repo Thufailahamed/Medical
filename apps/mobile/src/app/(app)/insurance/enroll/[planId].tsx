@@ -2,7 +2,7 @@
 // Enrollment form. KYC + nominee + dependents + T&C consent → POST /enrollments.
 
 import { useState } from "react";
-import { View, ScrollView, TextInput, Switch } from "react-native";
+import { View, Text, ScrollView, TextInput, Switch } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,7 +13,6 @@ import {
   Button,
   SectionHeader,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   useCreateInsuranceEnrollment,
@@ -27,7 +26,16 @@ export default function Enroll() {
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
+  const fieldStyle = {
+    backgroundColor: colors.fill,
+    borderRadius: radius.field,
+    borderCurve: "continuous" as const,
+    paddingHorizontal: 14,
+    minHeight: 48,
+    color: colors.text,
+    ...typography.body.md,
+  };
   const { data: planData } = useInsurancePlan(planId ?? "");
   const quote = useInsuranceStore((s) => s.quote);
   const setDraft = useInsuranceStore((s) => s.setDraftEnrollmentId);
@@ -72,14 +80,14 @@ export default function Enroll() {
         kicker={t("insurance.enroll.kicker")}
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingVertical: 12, gap: 14, paddingBottom: 120 }}>
         {plan ? (
-          <Card style={{ padding: 16, gap: 8 }}>
-            <AppText weight="700" size="md">
+          <Card style={{ padding: 20, gap: 10 }}>
+            <Pill tone="primary">{t(`insurance.planTypes.${plan.planType}`)}</Pill>
+            <AppText weight="700" size="lg">
               {plan.name}
             </AppText>
-            <Pill tone="primary">{t(`insurance.planTypes.${plan.planType}`)}</Pill>
-            <AppText size="sm" color="muted">
+            <AppText size="md" weight="600" style={{ color: colors.text }}>
               {t("insurance.enroll.premium", {
                 amount: (
                   quote.billingCycle === "monthly"
@@ -93,9 +101,9 @@ export default function Enroll() {
         ) : null}
 
         <SectionHeader title={t("insurance.enroll.kyc")} />
-        <Card style={{ padding: 16, gap: 10 }}>
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+        <Card style={{ padding: 20, gap: 16 }}>
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.enroll.nic")}
             </AppText>
             <TextInput
@@ -103,12 +111,9 @@ export default function Enroll() {
               onChangeText={setNic}
               placeholder="200012345678"
               autoCapitalize="none"
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
+                ...fieldStyle,
               }}
             />
           </View>
@@ -118,43 +123,37 @@ export default function Enroll() {
         </Card>
 
         <SectionHeader title={t("insurance.enroll.nominee")} />
-        <Card style={{ padding: 16, gap: 10 }}>
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+        <Card style={{ padding: 20, gap: 16 }}>
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.enroll.nomineeName")}
             </AppText>
             <TextInput
               value={nomineeName}
               onChangeText={setNomineeName}
               placeholder={t("insurance.enroll.nomineePlaceholder")}
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
+                ...fieldStyle,
               }}
             />
           </View>
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.enroll.nomineeRelation")}
             </AppText>
             <TextInput
               value={nomineeRelation}
               onChangeText={setNomineeRelation}
               placeholder="spouse"
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
+                ...fieldStyle,
               }}
             />
           </View>
-          <View style={{ gap: 6 }}>
-            <AppText size="sm" color="muted">
+          <View style={{ gap: 8 }}>
+            <AppText size="sm" weight="600" color="muted">
               {t("insurance.enroll.nomineeDob")}
             </AppText>
             <TextInput
@@ -162,19 +161,16 @@ export default function Enroll() {
               onChangeText={setNomineeDob}
               placeholder="YYYY-MM-DD"
               autoCapitalize="none"
+              placeholderTextColor={colors.textSubtle}
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                padding: 12,
-                color: colors.text,
+                ...fieldStyle,
               }}
             />
           </View>
         </Card>
 
         <SectionHeader title={t("insurance.enroll.dependents")} />
-        <Card style={{ padding: 16, gap: 6 }}>
+        <Card style={{ paddingVertical: 8, paddingHorizontal: 20, gap: 0 }}>
           {quote.members.length === 0 ? (
             <AppText size="sm" color="muted">
               {t("insurance.enroll.noDependents")}
@@ -186,10 +182,12 @@ export default function Enroll() {
                 style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
-                  paddingVertical: 4,
+                  alignItems: "center",
+                  minHeight: 44,
+                  paddingVertical: 8,
                 }}
               >
-                <AppText size="sm">
+                <AppText size="md" style={{ textTransform: "capitalize" }}>
                   {m.name} · {m.relation} · {m.age}
                 </AppText>
               </View>
@@ -197,9 +195,13 @@ export default function Enroll() {
           )}
         </Card>
 
-        <Card style={{ padding: 16, gap: 10 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Switch value={agreedTnc} onValueChange={setAgreedTnc} />
+        <Card style={{ padding: 20, gap: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Switch
+              value={agreedTnc}
+              onValueChange={setAgreedTnc}
+              trackColor={{ true: colors.primary, false: colors.fillStrong }}
+            />
             <AppText size="sm" style={{ flex: 1 }}>
               {t("insurance.enroll.agreeTnc")}
             </AppText>
@@ -208,6 +210,7 @@ export default function Enroll() {
 
         <Button
           label={t("insurance.enroll.proceed")}
+          size="lg"
           disabled={
             !agreedTnc ||
             !nomineeName.trim() ||
@@ -220,5 +223,69 @@ export default function Enroll() {
         />
       </ScrollView>
     </Screen>
+  );
+}
+
+// Theme-aware text used by this screen: maps the terse size/weight/color
+// props onto typography tokens + theme colours so text stays legible in dark
+// mode (the shared AppText hard-codes light-mode hex colours).
+function AppText({
+  size,
+  weight,
+  color,
+  style,
+  ...rest
+}: {
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  weight?: string;
+  color?: "muted" | "subtle" | "primary" | "accent" | "danger" | "text";
+  style?: any;
+  [key: string]: any;
+}) {
+  const { colors, typography, fontFamily } = useTheme();
+  const tone =
+    color === "muted"
+      ? colors.textMuted
+      : color === "subtle"
+        ? colors.textSubtle
+        : color === "primary"
+          ? colors.primary
+          : color === "accent"
+            ? colors.accent
+            : color === "danger"
+              ? colors.danger
+              : colors.text;
+  const bold = weight === "700" || weight === "800" || weight === "900" || weight === "bold";
+  const semi = weight === "600" || weight === "500";
+  const base =
+    size === "2xl"
+      ? typography.display.md
+      : size === "xl"
+        ? typography.display.sm
+        : size === "lg"
+          ? bold
+            ? typography.title.lg
+            : typography.body.lg
+          : size === "md"
+            ? bold
+              ? typography.title.md
+              : typography.body.md
+            : size === "xs"
+              ? typography.caption
+              : bold
+                ? typography.title.xs
+                : typography.body.sm;
+  const family = bold
+    ? size === "xl" || size === "2xl" || size === "lg" || size === "md"
+      ? base.fontFamily
+      : fontFamily.bodyBold
+    : semi
+      ? fontFamily.bodySemibold
+      : base.fontFamily;
+  return (
+    <Text
+      {...rest}
+      style={[{ ...base, fontFamily: family, color: tone }, style]}
+    />
   );
 }

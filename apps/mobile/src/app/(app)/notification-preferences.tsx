@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
   Switch,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -164,7 +165,7 @@ const TYPES: NotificationTypeConfig[] = [
 export default function NotificationPreferencesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, scheme } = useTheme();
+  const { spacing, colors, typography, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
   const toast = useToast();
   const { data } = useNotificationPreferences();
@@ -294,46 +295,40 @@ export default function NotificationPreferencesScreen() {
         >
           {/* Hero Overview & Quick Presets */}
           <LinearGradient
-            colors={
-              isDark
-                ? [colors.surfaceElevated, colors.surface]
-                : [colors.primarySoft, colors.surface]
-            }
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              borderRadius: 22,
-              padding: spacing.md,
-              borderWidth: 1,
-              borderColor: colors.border,
-              gap: spacing.md,
+              borderRadius: 28,
+              borderCurve: "continuous",
+              padding: spacing.xl,
+              gap: spacing.lg,
+              ...(isDark ? null : shadow.hero),
             }}
           >
             {/* Top Stat Row */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
               <View
                 style={{
-                  width: 48,
-                  height: 48,
+                  width: 52,
+                  height: 52,
                   borderRadius: 16,
-                  backgroundColor: colors.primary,
+                  borderCurve: "continuous",
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
                   alignItems: "center",
                   justifyContent: "center",
-                  shadowColor: colors.primary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 8,
-                  elevation: 4,
                 }}
               >
-                <BellRing size={24} color={colors.onPrimary} />
+                <BellRing size={24} color="#FFFFFF" />
               </View>
 
               <View style={{ flex: 1, gap: 3 }}>
-                <Text style={[typography.title.md, { color: colors.text, fontWeight: "700" }]}>
+                <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>
                   Notification Channels
                 </Text>
-                <Text style={[typography.caption, { color: colors.textMuted }]}>
+                <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)" }]}>
                   {pushCount} push alerts · {inAppCount} in-app feeds active
                 </Text>
               </View>
@@ -344,10 +339,11 @@ export default function NotificationPreferencesScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.xs,
-                paddingTop: spacing.xs,
-                borderTopWidth: 1,
-                borderTopColor: colors.border + "60",
+                gap: spacing.sm,
+                flexWrap: "wrap",
+                paddingTop: spacing.md,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: "rgba(255,255,255,0.28)",
               }}
             >
               <PresetChip
@@ -377,24 +373,24 @@ export default function NotificationPreferencesScreen() {
             if (!catItems.length) return null;
 
             return (
-              <View key={cat.key} style={{ gap: spacing.sm }}>
+              <View key={cat.key} style={{ gap: spacing.md }}>
                 {/* Category Header */}
-                <View style={{ paddingHorizontal: spacing.xs, gap: 2 }}>
+                <View style={{ paddingHorizontal: 2, gap: 2 }}>
                   <Text
                     style={[
-                      typography.title.sm,
-                      { color: colors.text, fontWeight: "700", letterSpacing: -0.2 },
+                      typography.title.lg,
+                      { color: colors.text },
                     ]}
                   >
                     {cat.title}
                   </Text>
-                  <Text style={[typography.caption, { color: colors.textMuted }]}>
+                  <Text style={[typography.caption, { color: colors.textSubtle }]}>
                     {cat.subtitle}
                   </Text>
                 </View>
 
                 {/* Cards in Category */}
-                <View style={{ gap: spacing.sm }}>
+                <View style={{ gap: spacing.md }}>
                   {catItems.map((item) => {
                     const pref = local.find((p) => p.type === item.key) || {
                       type: item.key,
@@ -459,13 +455,13 @@ export default function NotificationPreferencesScreen() {
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
             paddingBottom: spacing.xl,
-            backgroundColor: colors.surface,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
+            backgroundColor: isDark ? colors.bgElevated : colors.surface,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.08,
-            shadowRadius: 10,
+            shadowOpacity: isDark ? 0 : 0.06,
+            shadowRadius: 12,
             elevation: 8,
             flexDirection: "row",
             alignItems: "center",
@@ -482,11 +478,11 @@ export default function NotificationPreferencesScreen() {
                   backgroundColor: colors.warning,
                 }}
               />
-              <Text style={[typography.label.md, { color: colors.text, fontWeight: "700" }]}>
+              <Text style={[typography.title.xs, { color: colors.text }]}>
                 Unsaved changes
               </Text>
             </View>
-            <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               Tap save to update alerts
             </Text>
           </View>
@@ -532,22 +528,20 @@ function PresetChip({
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        paddingHorizontal: spacing.sm + 2,
-        paddingVertical: 6,
-        borderRadius: 20,
-        backgroundColor: active ? colors.primary : colors.surface,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : colors.border,
+        paddingHorizontal: spacing.md,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: active ? "#FFFFFF" : "rgba(255,255,255,0.18)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: active ? "#FFFFFF" : "rgba(255,255,255,0.28)",
       }}
     >
-      <Icon size={13} color={active ? colors.onPrimary : colors.textMuted} strokeWidth={2} />
+      <Icon size={13} color={active ? colors.primaryGradientEnd : "#FFFFFF"} strokeWidth={2.2} />
       <Text
         style={[
           typography.label.sm,
           {
-            color: active ? colors.onPrimary : colors.text,
-            fontWeight: active ? "700" : "500",
-            fontSize: 12,
+            color: active ? colors.primaryGradientEnd : "#FFFFFF",
           },
         ]}
       >
@@ -566,7 +560,8 @@ function NotificationSettingCard({
   pref: Pref;
   onChangeChannel: (field: "inApp" | "push", value: boolean) => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, scheme, shadow } = useTheme();
+  const isDark = scheme === "dark";
   const { t } = useTranslation();
   const palette = useTone(item.tone);
   const isEmergency = item.key === "emergency";
@@ -592,12 +587,9 @@ function NotificationSettingCard({
   return (
     <Card
       style={{
-        padding: spacing.md,
-        borderRadius: 20,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: isEmergency ? colors.dangerSoft : colors.border,
-        gap: spacing.sm,
+        padding: spacing.lg,
+        gap: spacing.md,
+        ...(isEmergency ? { borderWidth: 1, borderColor: colors.danger + "4D" } : null),
       }}
     >
       {/* Top Header Row */}
@@ -605,17 +597,16 @@ function NotificationSettingCard({
         {/* Soft Icon Badge */}
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            borderCurve: "continuous",
             backgroundColor: palette.bg,
             alignItems: "center",
             justifyContent: "center",
-            borderWidth: 1,
-            borderColor: palette.border + "30",
           }}
         >
-          <Icon size={22} color={palette.fg} strokeWidth={2.2} />
+          <Icon size={20} color={palette.fg} strokeWidth={2.2} />
         </View>
 
         {/* Title + Subtitle */}
@@ -630,8 +621,8 @@ function NotificationSettingCard({
           >
             <Text
               style={[
-                typography.title.sm,
-                { color: colors.text, flex: 1, fontWeight: "600" },
+                typography.title.md,
+                { color: colors.text, flex: 1 },
               ]}
               numberOfLines={1}
             >
@@ -640,7 +631,7 @@ function NotificationSettingCard({
             <PillCmp label={statusText} tone={statusTone} size="sm" />
           </View>
           <Text
-            style={[typography.caption, { color: colors.textMuted, lineHeight: 17 }]}
+            style={[typography.body.sm, { color: colors.textMuted }]}
           >
             {t(item.descriptionKey)}
           </Text>
@@ -652,12 +643,12 @@ function NotificationSettingCard({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: colors.surfaceSubtle,
+          backgroundColor: colors.fill,
           borderRadius: 14,
-          padding: 4,
+          borderCurve: "continuous",
+          padding: 3,
+          gap: 2,
           marginTop: spacing.xs,
-          borderWidth: 1,
-          borderColor: colors.border,
         }}
       >
         {/* In-App Channel Segment */}
@@ -674,10 +665,10 @@ function NotificationSettingCard({
             justifyContent: "space-between",
             paddingVertical: 7,
             paddingHorizontal: spacing.sm,
-            borderRadius: 10,
-            backgroundColor: pref.inApp ? colors.surface : "transparent",
-            borderWidth: pref.inApp ? 1 : 0,
-            borderColor: colors.border,
+            borderRadius: 11,
+            borderCurve: "continuous",
+            backgroundColor: pref.inApp ? (isDark ? colors.surfaceElevated : colors.surface) : "transparent",
+            ...(pref.inApp && !isDark ? shadow.xs : null),
             opacity: isEmergency ? 0.75 : 1,
           }}
         >
@@ -712,8 +703,8 @@ function NotificationSettingCard({
               onChangeChannel("inApp", v);
             }}
             disabled={isEmergency}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={pref.inApp ? colors.onPrimary : colors.surface}
+            trackColor={{ false: colors.fillStrong, true: colors.primary }}
+            thumbColor="#FFFFFF"
             style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }], marginRight: -4 }}
           />
         </Pressable>
@@ -721,9 +712,9 @@ function NotificationSettingCard({
         {/* Subtle Divider */}
         <View
           style={{
-            width: 1,
+            width: StyleSheet.hairlineWidth,
             height: 22,
-            backgroundColor: colors.border,
+            backgroundColor: colors.separator,
             marginHorizontal: 2,
           }}
         />
@@ -741,10 +732,10 @@ function NotificationSettingCard({
             justifyContent: "space-between",
             paddingVertical: 7,
             paddingHorizontal: spacing.sm,
-            borderRadius: 10,
-            backgroundColor: pref.push ? colors.surface : "transparent",
-            borderWidth: pref.push ? 1 : 0,
-            borderColor: colors.border,
+            borderRadius: 11,
+            borderCurve: "continuous",
+            backgroundColor: pref.push ? (isDark ? colors.surfaceElevated : colors.surface) : "transparent",
+            ...(pref.push && !isDark ? shadow.xs : null),
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
@@ -768,8 +759,8 @@ function NotificationSettingCard({
               Haptics.selectionAsync().catch(() => {});
               onChangeChannel("push", v);
             }}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={pref.push ? colors.onPrimary : colors.surface}
+            trackColor={{ false: colors.fillStrong, true: colors.primary }}
+            thumbColor="#FFFFFF"
             style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }], marginRight: -4 }}
           />
         </Pressable>
@@ -790,7 +781,7 @@ function NotificationSettingCard({
           <Text
             style={[
               typography.caption,
-              { color: colors.danger, fontSize: 11, flex: 1, fontWeight: "500" },
+              { color: colors.danger, flex: 1 },
             ]}
           >
             In-app emergency notifications remain locked on for patient safety.

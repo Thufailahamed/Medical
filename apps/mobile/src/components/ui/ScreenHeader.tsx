@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from "react-native";
-import { useRouter, usePathname } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Pressable } from "./Pressable";
 
@@ -20,6 +20,11 @@ type Props = {
   onPressTitle?: () => void;
 };
 
+/**
+ * iOS navigation header. `hero` renders a Large Title; `default` a bold
+ * inline title; `compact` a tighter bar. The back affordance is a round
+ * frosted chevron like Apple's own apps (Health, Fitness, Wallet).
+ */
 export function ScreenHeader({
   title,
   subtitle,
@@ -32,10 +37,10 @@ export function ScreenHeader({
   icon,
   variant = "default",
   style,
+  onPressTitle,
 }: Props) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
   const router = useRouter();
-  const pathname = usePathname();
 
   const handleBack = () => {
     if (typeof onBack === "function") {
@@ -53,12 +58,26 @@ export function ScreenHeader({
   const showLeft = !!left || !!icon;
   const leftContent = left ?? icon;
 
-  const variantSpacing =
-    variant === "hero"
-      ? { paddingTop: spacing.lg, paddingBottom: spacing.lg }
-      : variant === "compact"
-      ? { paddingTop: spacing.sm, paddingBottom: spacing.sm }
-      : { paddingTop: spacing.lg, paddingBottom: spacing.md };
+  const isHero = variant === "hero";
+  const variantSpacing = isHero
+    ? { paddingTop: spacing.md, paddingBottom: spacing.lg }
+    : variant === "compact"
+    ? { paddingTop: spacing.sm, paddingBottom: spacing.sm }
+    : { paddingTop: spacing.md, paddingBottom: spacing.md };
+
+  const titleNode = title ? (
+    <Text
+      style={[
+        isHero ? typography.display.lg : typography.display.sm,
+        { color: colors.text },
+      ]}
+      numberOfLines={2}
+      onPress={onPressTitle}
+      accessibilityRole="header"
+    >
+      {title}
+    </Text>
+  ) : null;
 
   return (
     <View
@@ -79,20 +98,22 @@ export function ScreenHeader({
           accessibilityRole="button"
           accessibilityLabel="Go back"
           hitSlop={12}
+          pressedScale={0.92}
           style={[
             styles.iconButton,
             {
               backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: 999,
+              borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+              borderWidth: StyleSheet.hairlineWidth,
             },
+            scheme === "dark" ? null : shadow.xs,
           ]}
         >
-          <ArrowLeft size={20} color={colors.text} strokeWidth={2.25} />
+          <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} style={{ marginLeft: -2 }} />
         </Pressable>
       ) : showLeft ? (
         <View style={[styles.iconButton, { backgroundColor: "transparent" }]}>{leftContent}</View>
-      ) : (
+      ) : isHero ? null : (
         <View style={styles.iconButton} />
       )}
 
@@ -100,47 +121,22 @@ export function ScreenHeader({
         {kicker ? (
           <Text
             style={[
-              typography.body.sm,
-              {
-                color: colors.primary,
-                fontWeight: "700",
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                fontSize: 11,
-                marginBottom: 2,
-              },
+              typography.overline,
+              { color: colors.primary, textTransform: "uppercase", marginBottom: 2 },
             ]}
           >
             {kicker}
           </Text>
         ) : null}
         {greeting ? (
-          <Text
-            style={[
-              typography.body.sm,
-              { color: colors.textMuted, marginBottom: 2 },
-            ]}
-          >
+          <Text style={[typography.body.sm, { color: colors.textMuted, marginBottom: 2 }]}>
             {greeting}
           </Text>
         ) : null}
-        {title ? (
-          <Text
-            style={[
-              variant === "hero" ? typography.display.md : typography.title.lg,
-              { color: colors.text },
-            ]}
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-        ) : null}
+        {titleNode}
         {subtitle ? (
           <Text
-            style={[
-              typography.body.sm,
-              { color: colors.textMuted, marginTop: 2 },
-            ]}
+            style={[typography.body.sm, { color: colors.textMuted, marginTop: 3 }]}
             numberOfLines={2}
           >
             {subtitle}
@@ -149,7 +145,7 @@ export function ScreenHeader({
       </View>
 
       <View style={styles.rightSlot}>
-        {right ?? <View style={styles.iconButton} />}
+        {right ?? (isHero ? null : <View style={styles.iconButton} />)}
       </View>
     </View>
   );
@@ -162,8 +158,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },

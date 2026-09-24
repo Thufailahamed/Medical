@@ -1,7 +1,7 @@
 // @ts-nocheck
 // My claims list. Status pills + amounts.
 
-import { View, Text, FlatList } from "react-native";
+import { View, Text, FlatList, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { FilePlus } from "lucide-react-native";
@@ -21,7 +21,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 export default function ClaimsList() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors, spacing, fontFamily, typography, radius, shadow, scheme } = useTheme();
   const { data, isLoading } = useMyInsuranceClaims();
 
   const claims = data?.claims ?? [];
@@ -40,8 +40,8 @@ export default function ClaimsList() {
 
       {isLoading ? (
         <View style={{ padding: spacing.lg, gap: 10 }}>
-          <Skeleton height={96} radius={16} />
-          <Skeleton height={96} radius={16} />
+          <Skeleton height={84} radius={radius.card} />
+          <Skeleton height={84} radius={radius.card} />
         </View>
       ) : claims.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
@@ -59,20 +59,24 @@ export default function ClaimsList() {
           keyExtractor={(c) => c.id}
           contentContainerStyle={{
             padding: spacing.lg,
-            gap: 10,
-            paddingBottom: 100,
+            paddingTop: spacing.sm,
+            gap: 12,
+            paddingBottom: 120,
           }}
           renderItem={({ item }) => (
             <Pressable
               onPress={() => router.push(`/insurance/claims/${item.id}`)}
               haptic="light"
               style={({ pressed }) => ({
-                padding: 14,
-                gap: 8,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
+                paddingVertical: 16,
+                paddingHorizontal: 18,
+                gap: 6,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                 backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                ...(scheme === "dark" ? {} : shadow.sm),
               })}
             >
               <View
@@ -85,11 +89,10 @@ export default function ClaimsList() {
               >
                 <Text
                   style={{
-                    fontWeight: "800",
-                    fontSize: 14,
+                    ...typography.title.sm,
+                    fontFamily: typography.title.md.fontFamily,
                     color: colors.text,
                     flex: 1,
-                    fontFamily: fontFamily.bodyBold,
                   }}
                   numberOfLines={1}
                 >
@@ -108,8 +111,10 @@ export default function ClaimsList() {
                   label={t(`insurance.claim.statuses.${item.status}`)}
                 />
               </View>
-              <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600" }}>
-                LKR {(item.amountRequestedLkr ?? 0).toLocaleString()}
+              <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
+                <Text style={{ ...typography.label.lg, color: colors.text }}>
+                  LKR {(item.amountRequestedLkr ?? 0).toLocaleString()}
+                </Text>
                 {item.amountApprovedLkr
                   ? ` · ${t("insurance.claim.approved", {
                       amount: item.amountApprovedLkr.toLocaleString(),
@@ -128,11 +133,12 @@ export default function ClaimsList() {
             left: 0,
             right: 0,
             bottom: 0,
-            padding: spacing.lg,
+            paddingHorizontal: spacing.lg,
+            paddingTop: 12,
             paddingBottom: 28,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            backgroundColor: colors.surface,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
+            backgroundColor: colors.bgElevated ?? colors.surface,
           }}
         >
           <Button

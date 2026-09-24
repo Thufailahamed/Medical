@@ -18,6 +18,7 @@ import {
 import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
+import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { useLocaleStore } from "@/stores/locale";
 import DoctorWaitingBanner from "@/components/teleconsult/DoctorWaitingBanner";
 
@@ -48,6 +49,7 @@ export default function DoctorLayout() {
   const locale = useLocaleStore((s) => s.locale);
   const isWideScript = locale === "si" || locale === "ta";
   const labelStyle = isWideScript ? NARROW_TAB_LABEL : WIDE_TAB_LABEL;
+  const tabOptions = useFloatingTabBarOptions({ fontSize: labelStyle.fontSize });
 
   // Premium floating pill — sits above the bottom safe area with a frosted
   // glass background, hairline border, and a top inner highlight.
@@ -55,82 +57,7 @@ export default function DoctorLayout() {
     <View style={{ flex: 1 }}>
       <DoctorWaitingBanner />
       <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSubtle,
-        tabBarItemStyle: {
-          paddingTop: 4,
-        },
-        tabBarStyle: {
-          position: "absolute",
-          left: 12,
-          right: 12,
-          bottom: Platform.OS === "ios" ? 28 : 18,
-          height: 72,
-          backgroundColor: "transparent",
-          borderTopWidth: 0,
-          paddingBottom: 6,
-          paddingTop: 4,
-          borderRadius: 32,
-          elevation: 0,
-          shadowColor: "#062238",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.12,
-          shadowRadius: 24,
-        },
-        tabBarBackground: () => (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { borderRadius: 32, overflow: "hidden" },
-            ]}
-          >
-            <BlurView
-              intensity={Platform.OS === "ios" ? 90 : 60}
-              tint="default"
-              style={StyleSheet.absoluteFill}
-            />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor:
-                    Platform.OS === "android"
-                      ? colors.bgElevated
-                      : "rgba(255,255,255,0.72)",
-                },
-              ]}
-            />
-            <View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderRadius: 32,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.border,
-              }}
-            />
-            <View
-              style={{
-                position: "absolute",
-                top: StyleSheet.hairlineWidth,
-                left: 1,
-                right: 1,
-                height: 1,
-                borderTopLeftRadius: 32,
-                borderTopRightRadius: 32,
-                backgroundColor: "rgba(255,255,255,0.6)",
-                opacity: Platform.OS === "android" ? 0 : 0.45,
-              }}
-            />
-          </View>
-        ),
-        tabBarLabelStyle: labelStyle,
-      }}
+      screenOptions={tabOptions}
     >
       <Tabs.Screen
         name="index"

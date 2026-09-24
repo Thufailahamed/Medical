@@ -144,7 +144,7 @@ function formatEventTimestamp(dateIso: string | null, locale: any): string {
 export default function TimelineScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, shadow } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
   const locale = useLocaleStore((s) => s.locale);
   const [filter, setFilter] = useState<TimelineEventKind | "all">("all");
 
@@ -190,14 +190,14 @@ export default function TimelineScreen() {
       />
 
       {/* Horizontal Filter Bar */}
-      <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border + "40" }}>
+      <View style={{ borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.separator }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: spacing.lg,
             paddingVertical: spacing.sm,
-            gap: spacing.xs + 2,
+            gap: spacing.sm,
           }}
         >
           {FILTERS.map((f) => {
@@ -221,12 +221,11 @@ export default function TimelineScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 6,
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                  borderRadius: 20,
-                  backgroundColor: isSelected ? colors.primary : colors.surface,
-                  borderWidth: 1,
-                  borderColor: isSelected ? colors.primary : colors.border,
+                  paddingHorizontal: 14,
+                  height: 36,
+                  borderRadius: 18,
+                  borderCurve: "continuous",
+                  backgroundColor: isSelected ? colors.primary : colors.fill,
                 }}
               >
                 <Icon
@@ -236,10 +235,9 @@ export default function TimelineScreen() {
                 />
                 <Text
                   style={[
-                    typography.label.sm,
+                    typography.label.md,
                     {
                       color: isSelected ? colors.onPrimary : colors.text,
-                      fontWeight: isSelected ? "700" : "500",
                     },
                   ]}
                 >
@@ -251,17 +249,17 @@ export default function TimelineScreen() {
                       paddingHorizontal: 6,
                       paddingVertical: 1,
                       borderRadius: 10,
+                      borderCurve: "continuous",
                       backgroundColor: isSelected
                         ? "rgba(255, 255, 255, 0.25)"
-                        : colors.surfaceSubtle,
+                        : colors.fillStrong,
                     }}
                   >
                     <Text
                       style={[
-                        typography.caption,
+                        typography.label.xs,
                         {
-                          fontSize: 11,
-                          fontWeight: "700",
+                          letterSpacing: 0,
                           color: isSelected ? colors.onPrimary : colors.textMuted,
                         },
                       ]}
@@ -297,23 +295,24 @@ export default function TimelineScreen() {
             padded={false}
             elevated={false}
             style={{
-              borderRadius: radius.xxxl,
+              borderRadius: 28,
+              borderCurve: "continuous",
               borderWidth: 0,
               overflow: "hidden",
-              ...shadow.hero,
+              ...(scheme === "dark" ? null : shadow.hero),
             }}
           >
             <LinearGradient
-              colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{ padding: spacing.lg }}
+              style={{ padding: spacing.xl }}
             >
               <View
                 style={[
                   StyleSheet.absoluteFill,
                   {
-                    backgroundColor: "#0C8B8C",
+                    backgroundColor: "rgba(255,255,255,0.10)",
                     opacity: 0.32,
                     borderRadius: 200,
                     transform: [{ translateX: 120 }, { translateY: -80 }],
@@ -327,8 +326,8 @@ export default function TimelineScreen() {
                   top: 0,
                   left: 0,
                   right: 0,
-                  height: 40,
-                  backgroundColor: "rgba(255, 255, 255, 0.10)",
+                  height: StyleSheet.hairlineWidth,
+                  backgroundColor: "rgba(255, 255, 255, 0.28)",
                 }}
                 pointerEvents="none"
               />
@@ -354,31 +353,32 @@ export default function TimelineScreen() {
               >
                 <View
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 14,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 15,
+                    borderCurve: "continuous",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "rgba(255, 255, 255, 0.16)",
-                    borderWidth: 1,
-                    borderColor: "rgba(255, 255, 255, 0.30)",
+                    backgroundColor: "rgba(255, 255, 255, 0.18)",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255, 255, 255, 0.28)",
                   }}
                 >
                   <Sparkles size={22} color="#FFFFFF" />
                 </View>
-                <View style={{ flex: 1, gap: 3 }}>
+                <View style={{ flex: 1, gap: 4 }}>
                   <Text
                     style={[
-                      typography.title.sm,
-                      { color: "#FFFFFF", fontWeight: "800" },
+                      typography.title.lg,
+                      { color: "#FFFFFF" },
                     ]}
                   >
                     {t("timeline.heroTitle", "Continuous Health Stream")}
                   </Text>
                   <Text
                     style={[
-                      typography.caption,
-                      { color: "rgba(255,255,255,0.82)", lineHeight: 16 },
+                      typography.body.sm,
+                      { color: "rgba(255,255,255,0.86)" },
                     ]}
                   >
                     {t(
@@ -389,19 +389,19 @@ export default function TimelineScreen() {
                 </View>
                 <View
                   style={{
-                    paddingHorizontal: spacing.sm + 2,
-                    paddingVertical: 5,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: 6,
                     borderRadius: 999,
-                    backgroundColor: "rgba(255, 255, 255, 0.16)",
-                    borderWidth: 1,
-                    borderColor: "rgba(255, 255, 255, 0.30)",
+                    backgroundColor: "rgba(255, 255, 255, 0.18)",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255, 255, 255, 0.28)",
                     alignSelf: "flex-start",
                   }}
                 >
                   <Text
                     style={[
-                      typography.caption,
-                      { color: "#FFFFFF", fontWeight: "700", fontSize: 11 },
+                      typography.label.sm,
+                      { color: "#FFFFFF" },
                     ]}
                   >
                     {events.length}
@@ -415,9 +415,9 @@ export default function TimelineScreen() {
         {/* Loading State */}
         {isLoading ? (
           <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
-            <Skeleton width={"100%"} height={96} radius={radius.lg} />
-            <Skeleton width={"100%"} height={96} radius={radius.lg} />
-            <Skeleton width={"100%"} height={96} radius={radius.lg} />
+            <Skeleton width={"100%"} height={104} radius={20} />
+            <Skeleton width={"100%"} height={104} radius={20} />
+            <Skeleton width={"100%"} height={104} radius={20} />
           </View>
         ) : isError ? (
           <ErrorState
@@ -448,27 +448,26 @@ export default function TimelineScreen() {
               return (
                 <View key={gKey} style={{ gap: spacing.md }}>
                   {/* Group Header Badge */}
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                     <View
                       style={{
                         paddingHorizontal: 12,
-                        paddingVertical: 4,
+                        paddingVertical: 5,
                         borderRadius: 20,
-                        backgroundColor: colors.surfaceSubtle,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.fill,
                       }}
                     >
                       <Text
                         style={[
                           typography.overline,
-                          { color: colors.text, fontWeight: "700", letterSpacing: 0.6 },
+                          { color: colors.textMuted },
                         ]}
                       >
                         {groupTitle.toUpperCase()} · {groupList.length}
                       </Text>
                     </View>
-                    <View style={{ flex: 1, height: 1, backgroundColor: colors.border + "50" }} />
+                    <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.separator }} />
                   </View>
 
                   {/* Connected Timeline Feed */}
@@ -505,7 +504,7 @@ function TimelineEventRow({
   locale: any;
 }) {
   const router = useRouter();
-  const { colors, spacing, typography, radius, shadow } = useTheme();
+  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
   const meta = KIND_META[event.kind] || {
     icon: FileText,
     tone: "neutral" as Tone,
@@ -564,10 +563,11 @@ function TimelineEventRow({
           <View
             style={{
               position: "absolute",
-              top: 38,
-              bottom: 0,
+              top: 42,
+              bottom: 4,
               width: 2,
-              backgroundColor: colors.border,
+              borderRadius: 1,
+              backgroundColor: colors.separator,
             }}
           />
         )}
@@ -578,16 +578,10 @@ function TimelineEventRow({
             width: 38,
             height: 38,
             borderRadius: 12,
+            borderCurve: "continuous",
             backgroundColor: palette.bg,
             alignItems: "center",
             justifyContent: "center",
-            borderWidth: 1.5,
-            borderColor: palette.border + "40",
-            shadowColor: palette.fg,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.12,
-            shadowRadius: 4,
-            elevation: 2,
             zIndex: 2,
           }}
         >
@@ -600,13 +594,14 @@ function TimelineEventRow({
         <Pressable
           onPress={isInteractive ? handlePress : undefined}
           style={{
-            borderRadius: radius.xl,
+            borderRadius: 20,
+            borderCurve: "continuous",
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            padding: spacing.md,
-            gap: spacing.xs + 2,
-            ...shadow.sm,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+            padding: spacing.lg,
+            gap: spacing.sm,
+            ...(scheme === "dark" ? null : shadow.sm),
           }}
         >
           {/* Card Top Strip: Category Pill + Formatted Timestamp */}
@@ -641,8 +636,8 @@ function TimelineEventRow({
           {/* Event Title */}
           <Text
             style={[
-              typography.title.sm,
-              { color: colors.text, fontWeight: "600", marginTop: 2 },
+              typography.title.md,
+              { color: colors.text, marginTop: 2 },
             ]}
             numberOfLines={2}
           >
@@ -654,7 +649,7 @@ function TimelineEventRow({
             <Text
               style={[
                 typography.body.sm,
-                { color: colors.textMuted, lineHeight: 18 },
+                { color: colors.textMuted },
               ]}
               numberOfLines={2}
             >
@@ -669,7 +664,7 @@ function TimelineEventRow({
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
-                  gap: 4,
+                  gap: 6,
                   marginTop: 2,
                 }}
               >
@@ -677,12 +672,11 @@ function TimelineEventRow({
                   <View
                     key={i}
                     style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 6,
-                      backgroundColor: colors.surfaceSubtle,
-                      borderWidth: 1,
-                      borderColor: colors.border,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 10,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.fill,
                     }}
                   >
                     <Text style={[typography.caption, { fontSize: 11, color: colors.text }]}>
@@ -704,7 +698,7 @@ function TimelineEventRow({
             }}
           >
             <Clock size={12} color={colors.textSubtle} />
-            <Text style={[typography.caption, { color: colors.textSubtle, fontSize: 11 }]}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
               {timestampFormatted}
             </Text>
           </View>

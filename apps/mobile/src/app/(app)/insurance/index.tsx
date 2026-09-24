@@ -2,7 +2,7 @@
 // Insurance home — dense marketplace hub. Stats flex fixed via Pressable layout.
 
 import { useMemo, useRef } from "react";
-import { View, Text, type ScrollView } from "react-native";
+import { View, Text, StyleSheet, type ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,7 +39,8 @@ import { Pressable } from "@/components/ui/Pressable";
 export default function InsuranceHome() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors, spacing, fontFamily, typography, radius, shadow, scheme } =
+    useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const policiesY = useRef(0);
 
@@ -105,18 +106,36 @@ export default function InsuranceHome() {
           colors={["#0B4F6C", "#0E7490", "#0D9488"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 20, padding: 14, overflow: "hidden" }}
+          style={{
+            borderRadius: radius.xxl,
+            borderCurve: "continuous",
+            padding: 20,
+            overflow: "hidden",
+            ...(scheme === "dark" ? {} : shadow.hero),
+          }}
         >
           <View
             pointerEvents="none"
             style={{
               position: "absolute",
-              top: -30,
-              right: -20,
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              backgroundColor: "rgba(255,255,255,0.12)",
+              top: -40,
+              right: -30,
+              width: 140,
+              height: 140,
+              borderRadius: 70,
+              backgroundColor: "rgba(255,255,255,0.10)",
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              bottom: -50,
+              left: -30,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
+              backgroundColor: "rgba(255,255,255,0.06)",
             }}
           />
 
@@ -124,17 +143,22 @@ export default function InsuranceHome() {
             style={{
               flexDirection: "row",
               alignItems: "center",
+              alignSelf: "flex-start",
               gap: 6,
-              marginBottom: 6,
+              marginBottom: 12,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: radius.full,
+              backgroundColor: "rgba(255,255,255,0.18)",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: "rgba(255,255,255,0.28)",
             }}
           >
-            <ShieldCheck size={13} color="#FFFFFF" strokeWidth={2.4} />
+            <ShieldCheck size={12} color="#FFFFFF" strokeWidth={2.4} />
             <Text
               style={{
-                color: "rgba(255,255,255,0.9)",
-                fontSize: 10,
-                fontWeight: "800",
-                letterSpacing: 1.1,
+                ...typography.overline,
+                color: "#FFFFFF",
                 textTransform: "uppercase",
               }}
             >
@@ -144,22 +168,17 @@ export default function InsuranceHome() {
 
           <Text
             style={{
+              ...typography.display.sm,
               color: "#FFFFFF",
-              fontSize: 20,
-              fontWeight: "800",
-              fontFamily: fontFamily.bodyBold,
-              letterSpacing: -0.4,
             }}
           >
             {t("insurance.homeHeadline", "Find cover that fits")}
           </Text>
           <Text
             style={{
-              color: "rgba(255,255,255,0.88)",
-              fontSize: 12.5,
-              lineHeight: 17,
-              marginTop: 3,
-              fontWeight: "500",
+              ...typography.body.sm,
+              color: "rgba(255,255,255,0.86)",
+              marginTop: 4,
             }}
             numberOfLines={2}
           >
@@ -169,7 +188,7 @@ export default function InsuranceHome() {
             )}
           </Text>
 
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+          <View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
             <Pressable
               onPress={() => router.push("/insurance/marketplace")}
               haptic="light"
@@ -182,17 +201,16 @@ export default function InsuranceHome() {
                 gap: 6,
                 backgroundColor: "#FFFFFF",
                 paddingVertical: 11,
-                borderRadius: 12,
-                minHeight: 44,
+                borderRadius: radius.full,
+                borderCurve: "continuous",
+                minHeight: 46,
               }}
             >
-              <Search size={14} color="#0B4F6C" strokeWidth={2.5} />
+              <Search size={15} color="#0B4F6C" strokeWidth={2.5} />
               <Text
                 style={{
+                  ...typography.label.lg,
                   color: "#0B4F6C",
-                  fontWeight: "800",
-                  fontSize: 13,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 {t("insurance.browseMarketplace", "Browse plans")}
@@ -208,21 +226,20 @@ export default function InsuranceHome() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 5,
-                backgroundColor: "rgba(255,255,255,0.16)",
-                borderWidth: 1.5,
-                borderColor: "rgba(255,255,255,0.45)",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
                 paddingVertical: 11,
-                borderRadius: 12,
-                minHeight: 44,
+                borderRadius: radius.full,
+                borderCurve: "continuous",
+                minHeight: 46,
               }}
             >
-              <Sparkles size={13} color="#FFFFFF" strokeWidth={2.4} />
+              <Sparkles size={14} color="#FFFFFF" strokeWidth={2.4} />
               <Text
                 style={{
+                  ...typography.label.lg,
                   color: "#FFFFFF",
-                  fontWeight: "800",
-                  fontSize: 13,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 {t("insurance.quote.short", "Get quote")}
@@ -236,17 +253,17 @@ export default function InsuranceHome() {
       <View
         style={{
           flexDirection: "row",
-          gap: 8,
+          gap: 12,
           paddingHorizontal: spacing.lg,
-          marginTop: 12,
+          marginTop: spacing.lg,
         }}
       >
         <StatTile
           icon={Shield}
           value={String(active.length)}
           label={t("insurance.myPolicies", "My policies")}
-          tint="#0284C7"
-          soft="#E0F2FE"
+          tint={colors.primary}
+          soft={colors.primarySoft}
           onPress={scrollToPolicies}
         />
         <StatTile
@@ -259,8 +276,8 @@ export default function InsuranceHome() {
                 })
               : t("insurance.myClaims", "My claims")
           }
-          tint="#059669"
-          soft="#D1FAE5"
+          tint={colors.success}
+          soft={colors.successSoft}
           onPress={() => router.push("/insurance/claims")}
         />
         {dueSoon > 0 ? (
@@ -268,8 +285,8 @@ export default function InsuranceHome() {
             icon={CalendarClock}
             value={String(dueSoon)}
             label={t("insurance.dueSoon", "Due ≤ 7d")}
-            tint="#D97706"
-            soft="#FEF3C7"
+            tint={colors.warning}
+            soft={colors.warningSoft}
             onPress={scrollToPolicies}
           />
         ) : null}
@@ -279,7 +296,7 @@ export default function InsuranceHome() {
       <View
         style={{
           flexDirection: "row",
-          gap: 8,
+          gap: 12,
           paddingHorizontal: spacing.lg,
           marginTop: 12,
         }}
@@ -287,22 +304,22 @@ export default function InsuranceHome() {
         <ActionChip
           icon={Activity}
           label={t("insurance.actionCoverage", "Coverage")}
-          color="#059669"
-          soft="#D1FAE5"
+          color={colors.success}
+          soft={colors.successSoft}
           onPress={() => router.push("/insurance/coverage-check")}
         />
         <ActionChip
           icon={FileText}
           label={t("insurance.actionClaim", "File claim")}
-          color="#D97706"
-          soft="#FEF3C7"
+          color={colors.warning}
+          soft={colors.warningSoft}
           onPress={() => router.push("/insurance/claims/new")}
         />
       </View>
 
       {/* Policies — immediately after actions so empty state is on-screen */}
       <View
-        style={{ paddingHorizontal: spacing.lg, marginTop: 18 }}
+        style={{ paddingHorizontal: spacing.lg, marginTop: 28 }}
         onLayout={(e) => {
           policiesY.current = e.nativeEvent.layout.y;
         }}
@@ -320,55 +337,59 @@ export default function InsuranceHome() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            gap: 8,
+            gap: 12,
             marginTop: 8,
           }}
         >
-          <Skeleton height={100} radius={16} />
+          <Skeleton height={132} radius={radius.card} />
         </View>
       ) : enrollments.length === 0 ? (
         <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
           <View
             style={{
-              padding: 16,
+              paddingVertical: 28,
+              paddingHorizontal: 20,
               alignItems: "center",
               gap: 8,
               backgroundColor: colors.surface,
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor:
+                scheme === "dark" ? colors.borderStrong : colors.separator,
+              ...(scheme === "dark" ? {} : shadow.sm),
             }}
           >
             <View
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
+                width: 56,
+                height: 56,
+                marginBottom: 4,
+                borderRadius: 16,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Shield size={20} color={colors.primary} strokeWidth={2.3} />
+              <Shield size={26} color={colors.primary} strokeWidth={2.2} />
             </View>
             <Text
               style={{
-                fontSize: 14,
-                fontWeight: "800",
+                ...typography.title.md,
                 color: colors.text,
                 textAlign: "center",
-                fontFamily: fontFamily.bodyBold,
               }}
             >
               {t("insurance.noPolicies", "No active policies yet")}
             </Text>
             <Text
               style={{
-                fontSize: 12.5,
+                ...typography.body.sm,
                 color: colors.textMuted,
                 textAlign: "center",
-                lineHeight: 17,
-                fontWeight: "500",
+                maxWidth: 260,
+                marginBottom: 8,
               }}
             >
               {t(
@@ -387,7 +408,7 @@ export default function InsuranceHome() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            gap: 8,
+            gap: 12,
             marginTop: 8,
           }}
         >
@@ -402,7 +423,7 @@ export default function InsuranceHome() {
       )}
 
       {/* Featured plans */}
-      <View style={{ paddingHorizontal: spacing.lg, marginTop: 20 }}>
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: 28 }}>
         <SectionHeader
           title={t("insurance.policiesToBuy", "Plans you can buy")}
           action={{
@@ -410,11 +431,11 @@ export default function InsuranceHome() {
             onPress: () => router.push("/insurance/marketplace"),
           }}
         />
-        <View style={{ gap: 8, marginTop: 8 }}>
+        <View style={{ gap: 12, marginTop: 8 }}>
           {catalogLoading ? (
             <>
-              <Skeleton height={100} radius={16} />
-              <Skeleton height={100} radius={16} />
+              <Skeleton height={148} radius={radius.card} />
+              <Skeleton height={148} radius={radius.card} />
             </>
           ) : featuredPlans.length === 0 ? (
             <EmptyState
@@ -433,7 +454,7 @@ export default function InsuranceHome() {
       </View>
 
       {/* Claims */}
-      <View style={{ paddingHorizontal: spacing.lg, marginTop: 20 }}>
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: 28 }}>
         <SectionHeader
           title={t("insurance.myClaims", "My claims")}
           action={{
@@ -445,7 +466,7 @@ export default function InsuranceHome() {
 
       {claimsLoading && claims.length === 0 ? (
         <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
-          <Skeleton height={80} radius={14} />
+          <Skeleton height={76} radius={radius.card} />
         </View>
       ) : claims.length === 0 ? (
         <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
@@ -461,7 +482,7 @@ export default function InsuranceHome() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            gap: 8,
+            gap: 10,
             marginTop: 8,
           }}
         >
@@ -471,12 +492,16 @@ export default function InsuranceHome() {
               onPress={() => router.push(`/insurance/claims/${claim.id}`)}
               haptic="light"
               style={{
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor:
+                  scheme === "dark" ? colors.borderStrong : colors.separator,
                 backgroundColor: colors.surface,
-                padding: 14,
-                gap: 6,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                gap: 4,
+                ...(scheme === "dark" ? {} : shadow.sm),
               }}
             >
               <View
@@ -489,11 +514,9 @@ export default function InsuranceHome() {
               >
                 <Text
                   style={{
-                    fontWeight: "800",
-                    fontSize: 14,
+                    ...typography.title.sm,
                     color: colors.text,
                     flex: 1,
-                    fontFamily: fontFamily.bodyBold,
                   }}
                   numberOfLines={1}
                 >
@@ -516,9 +539,8 @@ export default function InsuranceHome() {
               </View>
               <Text
                 style={{
-                  fontSize: 13,
+                  ...typography.body.sm,
                   color: colors.textMuted,
-                  fontWeight: "600",
                 }}
               >
                 LKR {Number(claim.amountRequestedLkr ?? 0).toLocaleString()} ·{" "}
@@ -540,10 +562,8 @@ export default function InsuranceHome() {
             >
               <Text
                 style={{
-                  fontSize: 13,
-                  fontWeight: "800",
+                  ...typography.label.md,
                   color: colors.primary,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 {t("insurance.claim.viewAll", "View all claims")}
@@ -574,7 +594,7 @@ function StatTile({
   soft: string;
   onPress: () => void;
 }) {
-  const { colors, fontFamily } = useTheme();
+  const { colors, typography, radius, shadow, scheme } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -583,39 +603,41 @@ function StatTile({
       accessibilityLabel={`${label}: ${value}`}
       style={{
         flex: 1,
-        backgroundColor: soft,
-        borderRadius: 14,
-        padding: 12,
-        gap: 4,
-        minHeight: 84,
+        backgroundColor: colors.surface,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+        padding: 14,
+        gap: 2,
+        minHeight: 104,
+        ...(scheme === "dark" ? {} : shadow.sm),
       }}
     >
       <View
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: 9,
-          backgroundColor: "#FFFFFF",
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          borderCurve: "continuous",
+          backgroundColor: soft,
           alignItems: "center",
           justifyContent: "center",
+          marginBottom: 8,
         }}
       >
-        <Icon size={14} color={tint} strokeWidth={2.4} />
+        <Icon size={16} color={tint} strokeWidth={2.4} />
       </View>
       <Text
         style={{
-          fontSize: 20,
-          fontWeight: "800",
+          ...typography.display.sm,
           color: colors.text,
-          fontFamily: fontFamily.bodyBold,
-          letterSpacing: -0.4,
-          marginTop: 2,
         }}
       >
         {value}
       </Text>
       <Text
-        style={{ fontSize: 11, fontWeight: "700", color: colors.textMuted }}
+        style={{ ...typography.caption, color: colors.textMuted }}
         numberOfLines={1}
       >
         {label}
@@ -637,7 +659,7 @@ function ActionChip({
   soft: string;
   onPress: () => void;
 }) {
-  const { colors, fontFamily } = useTheme();
+  const { colors, typography, radius, shadow, scheme } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -650,19 +672,22 @@ function ActionChip({
         alignItems: "center",
         gap: 10,
         backgroundColor: colors.surface,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderRadius: radius.lg,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
         paddingVertical: 12,
         paddingHorizontal: 12,
-        minHeight: 48,
+        minHeight: 56,
+        ...(scheme === "dark" ? {} : shadow.xs),
       }}
     >
       <View
         style={{
-          width: 34,
-          height: 34,
+          width: 32,
+          height: 32,
           borderRadius: 10,
+          borderCurve: "continuous",
           backgroundColor: soft,
           alignItems: "center",
           justifyContent: "center",
@@ -673,10 +698,8 @@ function ActionChip({
       <Text
         style={{
           flex: 1,
-          fontSize: 13,
-          fontWeight: "800",
+          ...typography.title.xs,
           color: colors.text,
-          fontFamily: fontFamily.bodyBold,
         }}
         numberOfLines={1}
       >
@@ -695,7 +718,7 @@ function PolicyCard({
   onPress: () => void;
 }) {
   const { t } = useTranslation();
-  const { colors, fontFamily } = useTheme();
+  const { colors, typography, radius, shadow, scheme } = useTheme();
   const statusTone: "success" | "warning" | "danger" | "neutral" =
     item.status === "active"
       ? "success"
@@ -720,35 +743,41 @@ function PolicyCard({
     <Pressable onPress={onPress} haptic="light" accessibilityRole="button">
       <View
         style={{
-          borderRadius: 16,
-          borderWidth: 1,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
+          borderWidth: overdue || dueSoon ? 1 : StyleSheet.hairlineWidth,
           borderColor: overdue
             ? colors.danger
             : dueSoon
               ? colors.warning
-              : colors.border,
+              : scheme === "dark"
+                ? colors.borderStrong
+                : colors.separator,
           backgroundColor: colors.surface,
-          overflow: "hidden",
+          ...(scheme === "dark" ? {} : shadow.sm),
         }}
       >
         <View
           style={{
             position: "absolute",
             left: 0,
-            top: 0,
-            bottom: 0,
-            width: 4,
+            top: 18,
+            bottom: 18,
+            width: 3,
+            borderTopRightRadius: 3,
+            borderBottomRightRadius: 3,
             backgroundColor:
               item.status === "active" ? colors.primary : colors.textSubtle,
           }}
         />
-        <View style={{ padding: 14, paddingLeft: 16, gap: 10 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View style={{ padding: 16, paddingLeft: 18, gap: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View
               style={{
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -760,10 +789,8 @@ function PolicyCard({
               <Text
                 numberOfLines={1}
                 style={{
-                  fontWeight: "800",
-                  fontSize: 14,
+                  ...typography.title.md,
                   color: colors.text,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 {item.planName ?? item.policyNumber ?? "Policy"}
@@ -771,10 +798,9 @@ function PolicyCard({
               <Text
                 numberOfLines={1}
                 style={{
-                  fontSize: 12,
+                  ...typography.body.sm,
                   color: colors.textMuted,
-                  marginTop: 2,
-                  fontWeight: "600",
+                  marginTop: 1,
                 }}
               >
                 {item.providerName ??
@@ -792,25 +818,31 @@ function PolicyCard({
           </View>
 
           <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              backgroundColor: colors.surfaceMuted,
+              borderRadius: radius.lg,
+              borderCurve: "continuous",
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+            }}
           >
             <View>
               <Text
                 style={{
-                  fontSize: 11,
-                  color: colors.textMuted,
-                  fontWeight: "600",
+                  ...typography.caption,
+                  color: colors.textSubtle,
                 }}
               >
                 {t("insurance.policy.coverage", "Coverage")}
               </Text>
               <Text
                 style={{
-                  fontWeight: "800",
-                  fontSize: 14,
+                  ...typography.title.lg,
                   color: colors.text,
                   marginTop: 2,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 LKR {coverage.toLocaleString()}
@@ -819,20 +851,17 @@ function PolicyCard({
             <View style={{ alignItems: "flex-end" }}>
               <Text
                 style={{
-                  fontSize: 11,
-                  color: colors.textMuted,
-                  fontWeight: "600",
+                  ...typography.caption,
+                  color: colors.textSubtle,
                 }}
               >
                 {t("insurance.policy.premium", "Premium")}
               </Text>
               <Text
                 style={{
-                  fontWeight: "800",
-                  fontSize: 14,
+                  ...typography.title.sm,
                   color: colors.text,
                   marginTop: 2,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 LKR {premium.toLocaleString()}
@@ -854,8 +883,7 @@ function PolicyCard({
               />
               <Text
                 style={{
-                  fontSize: 11.5,
-                  fontWeight: "600",
+                  ...typography.caption,
                   color: overdue
                     ? colors.danger
                     : dueSoon

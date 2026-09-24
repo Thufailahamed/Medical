@@ -6,7 +6,9 @@ import {
   Keyboard,
   TextInput,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -187,7 +189,7 @@ export default function VerifyOtpScreen() {
       scroll
       padded={false}
       edges={["top", "bottom"]}
-      style={{ backgroundColor: "#FFFFFF" }}
+      style={{ backgroundColor: colors.surface }}
       contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
     >
       {/* Header */}
@@ -198,49 +200,71 @@ export default function VerifyOtpScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
           style={({ pressed }) => ({
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: "center",
             justifyContent: "center",
-            marginRight: 8,
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-            marginLeft: -8,
+            marginRight: 12,
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
           })}
         >
-          <ChevronLeft size={24} color={colors.primary} />
+          <ChevronLeft size={22} color={colors.text} strokeWidth={2.25} />
         </Pressable>
-        <Heart size={26} color={colors.primary} strokeWidth={2.25} />
-        <Text
+        <View
           style={{
-            fontSize: 14,
-            fontWeight: "800",
-            color: "#1D1B20",
-            letterSpacing: 3,
-            fontFamily: fontFamily.displayBold,
-            marginLeft: 8,
+            width: 36,
+            height: 36,
+            borderRadius: 11,
+            borderCurve: "continuous",
+            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          HEALTHHUB
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Heart size={18} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
+        </View>
+        <Text
+          style={{
+            fontSize: 18,
+            color: colors.text,
+            letterSpacing: -0.4,
+            fontFamily: fontFamily.heavy,
+            marginLeft: 10,
+          }}
+        >
+          HealthHub
         </Text>
       </View>
 
-      <View style={{ marginTop: 36, marginBottom: 32 }}>
-        <Text
+      <View style={{ marginTop: 40, marginBottom: 32 }}>
+        <View
           style={{
-            fontSize: 32,
-            fontWeight: "800",
-            color: "#1D1B20",
-            fontFamily: fontFamily.displayBold,
-            lineHeight: 40,
+            width: 56,
+            height: 56,
+            borderRadius: 17,
+            borderCurve: "continuous",
+            backgroundColor: colors.primarySoft,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 20,
           }}
         >
+          <KeyRound size={26} color={colors.primary} strokeWidth={2.1} />
+        </View>
+        <Text style={[typography.display.lg, { color: colors.text }]}>
           {mode === "login" ? "Verify it's you" : "Verify your account"}
         </Text>
         <Text
           style={{
             fontSize: 15,
-            color: "#7F7B8C",
+            color: colors.textMuted,
             marginTop: 10,
             fontFamily: fontFamily.body,
             lineHeight: 22,
@@ -258,46 +282,97 @@ export default function VerifyOtpScreen() {
             <View>
               <Text
                 style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  color: "#7F7B8C",
-                  letterSpacing: 0.8,
-                  fontFamily: fontFamily.displayBold,
-                  textTransform: "uppercase",
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  fontFamily: fontFamily.bodySemibold,
+                  marginLeft: 2,
                   marginBottom: 8,
                 }}
               >
                 6-digit code
               </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  borderWidth: 1,
-                  borderColor: errors.code ? colors.danger : "#E6E4EA",
-                  borderRadius: radius.md,
-                  paddingHorizontal: 12,
-                  backgroundColor: "#FFFFFF",
-                }}
-              >
-                <KeyRound size={18} color="#C4C0CC" style={{ marginRight: 10 }} />
+              <View style={{ position: "relative" }}>
+                {/* Visual OTP cells — the real TextInput sits transparently on top */}
+                <View
+                  pointerEvents="none"
+                  style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}
+                >
+                  {Array.from({ length: 6 }).map((_, i) => {
+                    const digit = (value || "")[i] ?? "";
+                    const isActive =
+                      i === Math.min((value || "").length, 5) && (value || "").length < 6;
+                    const borderColor = errors.code
+                      ? colors.danger
+                      : isActive
+                      ? colors.primary
+                      : "transparent";
+                    return (
+                      <View
+                        key={i}
+                        style={{
+                          flex: 1,
+                          maxWidth: 56,
+                          aspectRatio: 0.86,
+                          borderRadius: radius.field,
+                          borderCurve: "continuous",
+                          backgroundColor: digit ? colors.primarySoft : colors.fill,
+                          borderWidth: 2,
+                          borderColor,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {digit ? (
+                          <Text
+                            style={[
+                              typography.display.md,
+                              { color: colors.text, fontVariant: ["tabular-nums"] },
+                            ]}
+                          >
+                            {digit}
+                          </Text>
+                        ) : isActive && !errors.code ? (
+                          <View
+                            style={{
+                              width: 2,
+                              height: 24,
+                              borderRadius: 1,
+                              backgroundColor: colors.primary,
+                            }}
+                          />
+                        ) : (
+                          <View
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: 4,
+                              backgroundColor: colors.borderStrong,
+                            }}
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
                 <TextInput
                   ref={codeRef}
                   value={value}
                   onChangeText={(t) => onChange(t.replace(/\D/g, "").slice(0, 6))}
                   placeholder="123456"
-                  placeholderTextColor="#C4C0CC"
+                  placeholderTextColor="transparent"
                   keyboardType="number-pad"
                   autoComplete="one-time-code"
                   textContentType="oneTimeCode"
                   maxLength={6}
+                  caretHidden
+                  selectionColor="transparent"
                   style={{
-                    flex: 1,
+                    ...StyleSheet.absoluteFillObject,
                     fontSize: 22,
                     letterSpacing: 8,
-                    color: "#1D1B20",
+                    color: "transparent",
                     fontFamily: fontFamily.bodyBold,
-                    paddingVertical: 14,
+                    opacity: 0.02,
                   }}
                 />
               </View>
@@ -345,12 +420,13 @@ export default function VerifyOtpScreen() {
           <View
             style={{
               backgroundColor: colors.warningSoft ?? colors.primarySoft,
-              paddingVertical: spacing.sm,
+              paddingVertical: spacing.sm + 2,
               paddingHorizontal: spacing.md,
               borderRadius: radius.md,
+              borderCurve: "continuous",
             }}
           >
-            <Text style={[typography.caption, { color: colors.text }]}>
+            <Text style={[typography.caption, { color: colors.warning }]}>
               {`Dev mode: code is ${otpHint}. Auto-fills the field if you paste it.`}
             </Text>
           </View>
@@ -363,14 +439,24 @@ export default function VerifyOtpScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: submitting ? `${colors.primary}80` : colors.primary,
-            height: 52,
-            borderRadius: 26,
+            backgroundColor: colors.primary,
+            height: 54,
+            borderRadius: radius.button,
+            borderCurve: "continuous",
+            overflow: "hidden",
             marginTop: 10,
-            opacity: pressed ? 0.8 : 1,
+            opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
             gap: 8,
           })}
         >
+          <LinearGradient
+            pointerEvents="none"
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
@@ -398,7 +484,8 @@ export default function VerifyOtpScreen() {
           <Text
             style={{
               fontSize: 14,
-              color: secondsLeft > 0 ? "#7F7B8C" : colors.primary,
+              color: secondsLeft > 0 ? colors.textSubtle : colors.primary,
+              fontVariant: ["tabular-nums"],
               fontWeight: "700",
               fontFamily: fontFamily.bodyBold,
             }}

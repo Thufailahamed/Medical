@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Alert } from "react-native";
+import { View, Text, Alert, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Building2,
@@ -256,14 +256,14 @@ export default function AdminMore() {
               accessibilityLabel="Sign out"
               hitSlop={8}
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 23,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(255,255,255,0.14)",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.18)",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
               <LogOut size={19} color="#FFFFFF" strokeWidth={2.25} />
@@ -281,23 +281,16 @@ export default function AdminMore() {
             <Avatar name={user?.name ?? "Admin"} size="md" />
             <View
               style={{
-                paddingHorizontal: 10,
-                paddingVertical: 5,
+                paddingHorizontal: 12,
+                height: 28,
+                justifyContent: "center",
                 borderRadius: 999,
-                backgroundColor: "rgba(255,255,255,0.14)",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.18)",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: "800",
-                  letterSpacing: 1,
-                  color: "#FFFFFF",
-                  textTransform: "uppercase",
-                }}
-              >
+              <Text style={[typography.label.sm, { color: "#FFFFFF" }]}>
                 Super admin
               </Text>
             </View>
@@ -308,8 +301,8 @@ export default function AdminMore() {
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          gap: spacing.xl,
-          marginTop: spacing.xl,
+          gap: spacing.xxl + 4,
+          marginTop: spacing.xxl,
           paddingBottom: spacing.xl,
         }}
       >
@@ -347,7 +340,7 @@ function ModuleTile({
   return (
     <AdminCard
       onPress={onPress}
-      style={{ flexBasis: "47%", flexGrow: 1 }}
+      style={{ flexBasis: "47%", flexGrow: 1, minHeight: 124 }}
     >
       <View
         style={{
@@ -358,25 +351,26 @@ function ModuleTile({
       >
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: 38,
+            height: 38,
+            borderRadius: 11,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: bg,
           }}
         >
-          <Icon size={19} color={fg} strokeWidth={2.25} />
+          <Icon size={19} color={fg} strokeWidth={2.2} />
         </View>
-        <ChevronRight size={15} color={colors.textSubtle} />
+        <ChevronRight size={16} color={colors.textSubtle} />
       </View>
-      <View style={{ marginTop: spacing.sm }}>
-        <Text style={[typography.title.sm, { color: colors.text }]}>
+      <View style={{ marginTop: "auto", paddingTop: spacing.md }}>
+        <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
           {m.title}
         </Text>
         <Text
           style={[
-            typography.caption,
+            typography.body.sm,
             { color: colors.textMuted, marginTop: 2 },
           ]}
           numberOfLines={1}

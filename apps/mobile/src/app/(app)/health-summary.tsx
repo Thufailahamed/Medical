@@ -7,6 +7,7 @@ import {
   ScrollView,
   Share,
   Pressable,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -78,11 +79,11 @@ export default function HealthSummaryScreen() {
           }}
         >
           <Skeleton width="40%" height={24} radius={8} />
-          <Skeleton width="100%" height={120} radius={16} />
-          <Skeleton width="100%" height={120} radius={16} />
-          <Skeleton width="100%" height={120} radius={16} />
-          <Skeleton width="100%" height={120} radius={16} />
-          <Skeleton width="100%" height={120} radius={16} />
+          <Skeleton width="100%" height={140} radius={22} />
+          <Skeleton width="100%" height={120} radius={22} />
+          <Skeleton width="100%" height={120} radius={22} />
+          <Skeleton width="100%" height={120} radius={22} />
+          <Skeleton width="100%" height={120} radius={22} />
         </View>
       ) : isError ? (
         <ErrorState
@@ -101,7 +102,7 @@ export default function HealthSummaryScreen() {
         <ScrollView
           contentContainerStyle={{
             padding: spacing.lg,
-            gap: spacing.md,
+            gap: spacing.lg,
             paddingBottom: 120,
           }}
           showsVerticalScrollIndicator={false}
@@ -160,16 +161,15 @@ export default function HealthSummaryScreen() {
                 <View
                   key={i}
                   style={{
-                    paddingVertical: 6,
-                    borderBottomWidth:
-                      i < summary.allergies.length - 1 ? 1 : 0,
-                    borderBottomColor: colors.border,
+                    paddingVertical: 10,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
                   }}
                 >
                   <Text
                     style={[
-                      typography.body.md,
-                      { color: colors.text, fontWeight: "600" },
+                      typography.title.sm,
+                      { color: colors.text },
                     ]}
                   >
                     {a.substance}
@@ -207,7 +207,7 @@ export default function HealthSummaryScreen() {
               </Text>
             ) : (
               summary.conditions.map((c, i) => (
-                <View key={i} style={{ paddingVertical: 4 }}>
+                <View key={i} style={{ paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator }}>
                   <Text style={[typography.body.md, { color: colors.text }]}>
                     {c.title}
                   </Text>
@@ -241,9 +241,12 @@ export default function HealthSummaryScreen() {
                 <View
                   key={i}
                   style={{
-                    paddingVertical: 4,
+                    paddingVertical: 10,
                     flexDirection: "row",
-                    gap: spacing.xs,
+                    alignItems: "center",
+                    gap: spacing.sm,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
                   }}
                 >
                   <Text
@@ -278,16 +281,19 @@ export default function HealthSummaryScreen() {
                 <View
                   key={i}
                   style={{
-                    paddingVertical: 4,
+                    paddingVertical: 10,
                     flexDirection: "row",
+                    alignItems: "center",
                     justifyContent: "space-between",
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
                   }}
                 >
-                  <Text style={[typography.body.md, { color: colors.text }]}>
+                  <Text style={[typography.body.md, { color: colors.text, textTransform: "capitalize" }]}>
                     {v.type.replace(/_/g, " ")}
                   </Text>
                   <Text
-                    style={[typography.body.sm, { color: colors.textMuted }]}
+                    style={[typography.title.sm, { color: colors.text }]}
                   >
                     {v.latest
                       ? `${v.latest.value}${v.latest.secondary != null ? "/" + v.latest.secondary : ""} ${v.latest.unit || ""}`
@@ -313,7 +319,7 @@ export default function HealthSummaryScreen() {
               </Text>
             ) : (
               summary.followUps.map((f, i) => (
-                <View key={i} style={{ paddingVertical: 4 }}>
+                <View key={i} style={{ paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator }}>
                   <Text style={[typography.body.md, { color: colors.text }]}>
                     {f.title}
                   </Text>
@@ -333,7 +339,7 @@ export default function HealthSummaryScreen() {
             <Text
               style={[
                 typography.overline,
-                { color: colors.textMuted, marginBottom: 4 },
+                { color: colors.textSubtle, marginBottom: spacing.sm },
               ]}
             >
               {t("healthSummary.plainText")}
@@ -343,9 +349,13 @@ export default function HealthSummaryScreen() {
               style={[
                 typography.body.sm,
                 {
-                  color: colors.text,
+                  color: colors.textMuted,
                   fontFamily: "Courier",
                   lineHeight: 20,
+                  padding: spacing.md,
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  backgroundColor: colors.fill,
                 },
               ]}
             >
@@ -381,23 +391,46 @@ function SectionHeader({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: spacing.xs,
+        gap: spacing.md,
         marginBottom: spacing.sm,
       }}
     >
-      <Icon size={18} color={fg} strokeWidth={2.25} />
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          borderCurve: "continuous",
+          backgroundColor: fg + "1F",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={17} color={fg} strokeWidth={2.25} />
+      </View>
       <Text
         style={[
-          typography.title.sm,
-          { color: colors.text, fontWeight: "800", flex: 1 },
+          typography.title.md,
+          { color: colors.text, flex: 1 },
         ]}
       >
         {title}
       </Text>
       {typeof count === "number" && (
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
-          {count}
-        </Text>
+        <View
+          style={{
+            minWidth: 24,
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 999,
+            alignItems: "center",
+            backgroundColor: colors.fill,
+          }}
+        >
+          <Text style={[typography.label.sm, { color: colors.textMuted }]}>
+            {count}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -409,20 +442,23 @@ function Row({ label, value }: { label: string; value: string | null | undefined
     <View
       style={{
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 4,
+        minHeight: 44,
+        paddingVertical: 10,
         gap: spacing.sm,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.separator,
       }}
     >
-      <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+      <Text style={[typography.body.md, { color: colors.textMuted }]}>
         {label}
       </Text>
       <Text
         style={[
-          typography.body.md,
+          typography.title.sm,
           {
             color: colors.text,
-            fontWeight: "600",
             textAlign: "right",
             flexShrink: 1,
           },

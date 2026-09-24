@@ -97,6 +97,7 @@ export default function EmailImportScreen() {
         <View
           style={{
             borderRadius: radius.xxxl,
+            borderCurve: "continuous",
             overflow: "hidden",
             ...shadow.hero,
           }}
@@ -172,8 +173,9 @@ export default function EmailImportScreen() {
             {/* white ticket */}
             <View
               style={{
-                backgroundColor: "#FFFFFF",
+                backgroundColor: colors.surface,
                 borderRadius: radius.xl,
+                borderCurve: "continuous",
                 padding: spacing.lg,
                 alignItems: "center",
                 gap: spacing.md,
@@ -194,7 +196,7 @@ export default function EmailImportScreen() {
                   <QRCode
                     value={`mailto:${data.address}`}
                     size={170}
-                    color="#0F172A"
+                    color={colors.text}
                     backgroundColor="#FFFFFF"
                   />
                   <DashLine />
@@ -205,7 +207,7 @@ export default function EmailImportScreen() {
                       {
                         fontFamily:
                           Platform.OS === "ios" ? "Menlo" : "monospace",
-                        color: "#0F172A",
+                        color: colors.text,
                         textAlign: "center",
                         letterSpacing: -0.2,
                       },
@@ -380,6 +382,7 @@ function StepRow({
           width: 40,
           height: 40,
           borderRadius: radius.lg,
+          borderCurve: "continuous",
           backgroundColor: pal.bg,
           alignItems: "center",
           justifyContent: "center",

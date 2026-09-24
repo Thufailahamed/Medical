@@ -56,6 +56,7 @@ export function TenantPickerSheet({ visible, onDismiss }: Props) {
             width: 40,
             height: 40,
             borderRadius: 20,
+            borderCurve: "continuous",
             backgroundColor: colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",

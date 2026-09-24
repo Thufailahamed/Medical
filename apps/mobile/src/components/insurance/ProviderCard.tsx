@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useTranslation } from "react-i18next";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Building2, ShieldCheck, Star, ChevronRight } from "lucide-react-native";
 import { Pill } from "@/components/ui/Pill";
 import { Pressable } from "@/components/ui/Pressable";
@@ -21,18 +21,20 @@ export interface InsuranceProviderCardProps {
 
 export function InsuranceProviderCard(props: InsuranceProviderCardProps) {
   const { t } = useTranslation();
-  const { colors, fontFamily } = useTheme();
+  const { colors, fontFamily, typography, radius, shadow, scheme } = useTheme();
   return (
     <Pressable
       onPress={props.onPress}
       haptic="light"
       style={({ pressed }) => ({
-        padding: 16,
-        gap: 12,
-        borderRadius: 18,
+        padding: 18,
+        gap: 14,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
         backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+        ...(scheme === "dark" ? {} : shadow.sm),
       })}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -41,6 +43,7 @@ export function InsuranceProviderCard(props: InsuranceProviderCardProps) {
             width: 48,
             height: 48,
             borderRadius: 14,
+            borderCurve: "continuous",
             backgroundColor: colors.primarySoft,
             alignItems: "center",
             justifyContent: "center",
@@ -51,11 +54,8 @@ export function InsuranceProviderCard(props: InsuranceProviderCardProps) {
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             style={{
-              fontWeight: "800",
-              fontSize: 16,
+              ...typography.title.md,
               color: colors.text,
-              fontFamily: fontFamily.bodyBold,
-              letterSpacing: -0.2,
             }}
             numberOfLines={1}
           >
@@ -63,14 +63,14 @@ export function InsuranceProviderCard(props: InsuranceProviderCardProps) {
           </Text>
           {props.tagline ? (
             <Text
-              style={{ fontSize: 12, color: colors.textMuted, marginTop: 2, fontWeight: "500" }}
+              style={{ ...typography.body.sm, color: colors.textMuted, marginTop: 2 }}
               numberOfLines={2}
             >
               {props.tagline}
             </Text>
           ) : null}
         </View>
-        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+        <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.4} />
       </View>
 
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>

@@ -121,7 +121,7 @@ export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
           <View>
             <Text
               style={{
-                ...typography.bodySmall,
+                ...typography.body.sm,
                 color: colors.textSecondary,
                 marginBottom: spacing.xs,
               }}
@@ -149,7 +149,7 @@ export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
           <View>
             <Text
               style={{
-                ...typography.bodySmall,
+                ...typography.body.sm,
                 color: colors.textSecondary,
                 marginBottom: spacing.xs,
               }}

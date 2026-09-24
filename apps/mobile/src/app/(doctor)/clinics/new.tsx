@@ -118,6 +118,7 @@ export default function NewClinic() {
               backgroundColor: pressed ? colors.primarySoft : colors.primary,
               paddingVertical: spacing.md,
               borderRadius: 12,
+              borderCurve: "continuous",
               alignItems: "center",
               opacity: busy ? 0.6 : 1,
             })}
@@ -173,6 +174,7 @@ function Field({
           borderWidth: 1,
           borderColor: colors.border,
           borderRadius: 10,
+          borderCurve: "continuous",
           paddingHorizontal: spacing.md,
           paddingVertical: multiline ? spacing.sm : spacing.md,
           color: colors.text,

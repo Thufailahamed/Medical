@@ -154,6 +154,7 @@ export default function AppLockScreen() {
                   width: 44,
                   height: 44,
                   borderRadius: 22,
+                  borderCurve: "continuous",
                   backgroundColor: hasPin ? colors.successSoft : colors.surfaceMuted,
                   alignItems: "center",
                   justifyContent: "center",
@@ -209,6 +210,7 @@ export default function AppLockScreen() {
                       width: 44,
                       height: 44,
                       borderRadius: 22,
+                      borderCurve: "continuous",
                       backgroundColor: colors.dangerSoft,
                       alignItems: "center",
                       justifyContent: "center",
@@ -260,6 +262,7 @@ export default function AppLockScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
@@ -323,6 +326,7 @@ export default function AppLockScreen() {
                           width: 40,
                           height: 40,
                           borderRadius: 20,
+                          borderCurve: "continuous",
                           backgroundColor: selected
                             ? colors.primarySoft
                             : colors.surfaceMuted,
@@ -353,6 +357,7 @@ export default function AppLockScreen() {
                           width: 22,
                           height: 22,
                           borderRadius: 11,
+                          borderCurve: "continuous",
                           borderWidth: 2,
                           borderColor: selected
                             ? colors.primary

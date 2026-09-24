@@ -12,7 +12,8 @@
 // out of setup, since this screen is shown right after sign-up.
 
 import React, { useEffect, useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
@@ -33,7 +34,7 @@ type Step = "verify_current" | "create" | "confirm" | "biometric" | "done";
 export default function LockSetupScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, fontFamily, spacing, radius } = useTheme();
+  const { colors, fontFamily, spacing, radius, typography } = useTheme();
   const setPin = useAppLockStore((s) => s.setPin);
   const pinHash = useAppLockStore((s) => s.pinHash);
   const setBiometricEnabled = useAppLockStore((s) => s.setBiometricEnabled);
@@ -156,7 +157,12 @@ export default function LockSetupScreen() {
             : t("appLock.setup.successBody");
 
   return (
-    <Screen padded={false} scroll={false} edges={["top", "bottom"]}>
+    <Screen
+      padded={false}
+      scroll={false}
+      edges={["top", "bottom"]}
+      style={{ backgroundColor: colors.surface }}
+    >
       <View
         style={{
           flex: 1,
@@ -184,9 +190,17 @@ export default function LockSetupScreen() {
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel="Back"
-            style={{ marginBottom: spacing.lg, paddingVertical: spacing.xs }}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: spacing.lg,
+              backgroundColor: pressed ? colors.fillStrong : colors.fill,
+            })}
           >
-            <ChevronLeft size={28} color={colors.text} />
+            <ChevronLeft size={22} color={colors.text} strokeWidth={2.25} />
           </Pressable>
         ) : null}
 
@@ -195,32 +209,35 @@ export default function LockSetupScreen() {
             style={{
               width: 64,
               height: 64,
-              borderRadius: 32,
-              backgroundColor: colors.primarySoft,
+              borderRadius: 19,
+              borderCurve: "continuous",
+              overflow: "hidden",
               alignItems: "center",
               justifyContent: "center",
+              marginBottom: spacing.sm,
             }}
           >
-            <Fingerprint size={32} color={colors.primary} />
+            <LinearGradient
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Fingerprint size={32} color="#FFFFFF" strokeWidth={2} />
           </View>
           <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "700",
-              color: colors.text,
-              fontFamily: fontFamily.displayBold,
-              textAlign: "center",
-            }}
+            style={[typography.display.sm, { color: colors.text, textAlign: "center" }]}
           >
             {headerTitle}
           </Text>
           <Text
             style={{
               fontSize: 15,
+              lineHeight: 21,
               color: colors.textMuted,
               fontFamily: fontFamily.body,
               textAlign: "center",
-              maxWidth: 320,
+              maxWidth: 300,
             }}
           >
             {headerSubtitle}
@@ -274,22 +291,23 @@ export default function LockSetupScreen() {
                 accessibilityState={{ checked: biometricEnabled }}
                 hitSlop={8}
                 style={{
-                  paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.xl,
+                  minHeight: 56,
                   borderRadius: radius.lg,
-                  borderWidth: 2,
+                  borderCurve: "continuous",
+                  borderWidth: 1.5,
                   borderColor: biometricEnabled
                     ? colors.primary
-                    : colors.border,
+                    : "transparent",
                   backgroundColor: biometricEnabled
                     ? colors.primarySoft
-                    : colors.surface,
+                    : colors.fill,
                   flexDirection: "row",
                   gap: spacing.sm,
                   alignItems: "center",
                 }}
               >
-                <Fingerprint size={22} color={colors.primary} />
+                <Fingerprint size={22} color={biometricEnabled ? colors.primary : colors.textMuted} />
                 <Text
                   style={{
                     fontSize: 16,
@@ -316,10 +334,21 @@ export default function LockSetupScreen() {
               </Text>
             </View>
           ) : (
-            <View style={{ alignItems: "center", gap: spacing.md }}>
+            <View
+              style={{
+                alignSelf: "center",
+                width: 112,
+                height: 112,
+                borderRadius: 56,
+                backgroundColor: colors.successSoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Text
                 style={{
-                  fontSize: 48,
+                  fontSize: 52,
+                  lineHeight: 60,
                   fontFamily: fontFamily.displayBold,
                   color: colors.success,
                 }}

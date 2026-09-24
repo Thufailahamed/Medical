@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { View, Text, ScrollView, Pressable, Image } from "react-native";
+import { View, Text, ScrollView, Pressable, Image, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -49,8 +49,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function TestPackageDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
   const router = useRouter();
+  const sectionTitle = { ...typography.title.md, color: colors.text };
+  const bodyText = { ...typography.body.md, lineHeight: 22, color: colors.textMuted };
 
   const { data, isLoading, error } = useTestPackageDetail(slug);
 
@@ -62,8 +64,8 @@ export default function TestPackageDetailScreen() {
       <Screen padded={false} bottomInset={false}>
         <ScreenHeader title="Package Details" back />
         <View style={{ padding: 16 }}>
-          <Skeleton style={{ height: 180, borderRadius: 16, marginBottom: 16 }} />
-          <Skeleton style={{ height: 300, borderRadius: 12 }} />
+          <Skeleton style={{ height: 220, borderRadius: radius.card, marginBottom: 12 }} />
+          <Skeleton style={{ height: 300, borderRadius: radius.card }} />
         </View>
       </Screen>
     );
@@ -99,19 +101,18 @@ export default function TestPackageDetailScreen() {
           {hasSavings && (
             <View
               style={{
-                backgroundColor: "#059669",
-                paddingHorizontal: 16,
-                paddingVertical: 8,
+                backgroundColor: colors.successSoft,
+                paddingHorizontal: 20,
+                paddingVertical: 9,
                 flexDirection: "row",
                 alignItems: "center",
               }}
             >
-              <TrendingDown size={18} color="#fff" />
+              <TrendingDown size={16} color={colors.success} strokeWidth={2.4} />
               <Text
                 style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: "#fff",
+                  ...typography.label.md,
+                  color: colors.success,
                   marginLeft: 8,
                 }}
               >
@@ -134,15 +135,16 @@ export default function TestPackageDetailScreen() {
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
-                    fontSize: 22,
-                    fontWeight: "800",
+                    ...typography.display.sm,
+                    fontSize: 20,
+                    lineHeight: 25,
                     color: colors.text,
                     marginBottom: 4,
                   }}
                 >
                   {pkg.name}
                 </Text>
-                <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+                <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
                   {pkg.testCount || pkg.tests?.length || 0} tests included
                 </Text>
               </View>
@@ -160,8 +162,8 @@ export default function TestPackageDetailScreen() {
                 <>
                   <Text
                     style={{
-                      fontSize: 16,
-                      color: colors.textSecondary,
+                      ...typography.body.lg,
+                      color: colors.textSubtle,
                       textDecorationLine: "line-through",
                       marginRight: 10,
                     }}
@@ -170,9 +172,8 @@ export default function TestPackageDetailScreen() {
                   </Text>
                   <Text
                     style={{
-                      fontSize: 32,
-                      fontWeight: "800",
-                      color: "#059669",
+                      ...typography.display.lg,
+                      color: colors.text,
                     }}
                   >
                     {formatPrice(pkg.discountPrice)}
@@ -181,8 +182,7 @@ export default function TestPackageDetailScreen() {
               ) : (
                 <Text
                   style={{
-                    fontSize: 32,
-                    fontWeight: "800",
+                    ...typography.display.lg,
                     color: colors.text,
                   }}
                 >
@@ -195,27 +195,46 @@ export default function TestPackageDetailScreen() {
             <View
               style={{
                 flexDirection: "row",
-                gap: 16,
+                flexWrap: "wrap",
+                gap: 8,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Clock size={16} color={colors.textSecondary} />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.infoSoft,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                }}
+              >
+                <Clock size={14} color={colors.info} strokeWidth={2.4} />
                 <Text
                   style={{
-                    fontSize: 13,
-                    color: colors.textSecondary,
+                    ...typography.label.sm,
+                    color: colors.info,
                     marginLeft: 6,
                   }}
                 >
                   Results in {pkg.turnaroundHours}h
                 </Text>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <TestTube2 size={16} color={colors.textSecondary} />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.successSoft,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                }}
+              >
+                <TestTube2 size={14} color={colors.success} strokeWidth={2.4} />
                 <Text
                   style={{
-                    fontSize: 13,
-                    color: colors.textSecondary,
+                    ...typography.label.sm,
+                    color: colors.success,
                     marginLeft: 6,
                   }}
                 >
@@ -228,24 +247,11 @@ export default function TestPackageDetailScreen() {
 
         {/* Description */}
         {pkg.description && (
-          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 16 }}>
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 8,
-              }}
-            >
+          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18 }}>
+            <Text style={{ ...sectionTitle, marginBottom: 8 }}>
               About this package
             </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: colors.textSecondary,
-                lineHeight: 22,
-              }}
-            >
+            <Text style={bodyText}>
               {pkg.description}
             </Text>
           </Card>
@@ -253,7 +259,7 @@ export default function TestPackageDetailScreen() {
 
         {/* Instructions */}
         {pkg.instructions && (
-          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 16 }}>
+          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18 }}>
             <View
               style={{
                 flexDirection: "row",
@@ -261,25 +267,12 @@ export default function TestPackageDetailScreen() {
                 marginBottom: 8,
               }}
             >
-              <Info size={16} color="#3B82F6" />
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginLeft: 6,
-                }}
-              >
+              <Info size={16} color={colors.info} strokeWidth={2.4} />
+              <Text style={{ ...sectionTitle, marginLeft: 8 }}>
                 Pre-test Instructions
               </Text>
             </View>
-            <Text
-              style={{
-                fontSize: 14,
-                color: colors.textSecondary,
-                lineHeight: 22,
-              }}
-            >
+            <Text style={bodyText}>
               {pkg.instructions}
             </Text>
           </Card>
@@ -287,22 +280,15 @@ export default function TestPackageDetailScreen() {
 
         {/* Included Tests */}
         {pkg.tests && pkg.tests.length > 0 && (
-          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 16 }}>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "700",
-                color: colors.text,
-                marginBottom: 4,
-              }}
-            >
+          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18, paddingBottom: 8 }}>
+            <Text style={{ ...sectionTitle, marginBottom: 2 }}>
               Included Tests ({pkg.tests.length})
             </Text>
             <Text
               style={{
-                fontSize: 12,
-                color: colors.textSecondary,
-                marginBottom: 16,
+                ...typography.caption,
+                color: colors.textSubtle,
+                marginBottom: 8,
               }}
             >
               Individual total: {formatPrice(pkg.totalIndividualPrice || 0)}
@@ -324,17 +310,19 @@ export default function TestPackageDetailScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
+                    minHeight: 56,
                     paddingVertical: 12,
-                    borderBottomWidth: index < pkg.tests.length - 1 ? 1 : 0,
-                    borderBottomColor: colors.border,
+                    borderBottomWidth: index < pkg.tests.length - 1 ? StyleSheet.hairlineWidth : 0,
+                    borderBottomColor: colors.separator,
                   }}
                 >
                   <View
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 8,
-                      backgroundColor: categoryColor + "18",
+                      borderRadius: 10,
+                      borderCurve: "continuous",
+                      backgroundColor: categoryColor + "1F",
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: 12,
@@ -343,14 +331,15 @@ export default function TestPackageDetailScreen() {
                     <Check
                       size={16}
                       color={categoryColor}
+                      strokeWidth={2.6}
                     />
                   </View>
 
                   <View style={{ flex: 1 }}>
                     <Text
                       style={{
+                        ...typography.title.xs,
                         fontSize: 14,
-                        fontWeight: "600",
                         color: colors.text,
                       }}
                     >
@@ -359,15 +348,16 @@ export default function TestPackageDetailScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
                       <Text
                         style={{
+                          ...typography.caption,
                           fontSize: 11,
-                          color: colors.textSecondary,
+                          color: colors.textSubtle,
                           textTransform: "capitalize",
                         }}
                       >
                         {testCategory.replace(/_/g, " ")}
                       </Text>
                       {fasting && (
-                        <Text style={{ fontSize: 11, color: "#D97706", fontWeight: "500" }}>
+                        <Text style={{ ...typography.label.xs, color: colors.warning }}>
                           Fasting required
                         </Text>
                       )}
@@ -377,15 +367,15 @@ export default function TestPackageDetailScreen() {
                   {hasPrice && (
                     <Text
                       style={{
-                        fontSize: 13,
-                        color: colors.textSecondary,
+                        ...typography.label.md,
+                        color: colors.textMuted,
                       }}
                     >
                       {formatPrice(testItem.testDiscountPrice ?? testItem.testPrice)}
                     </Text>
                   )}
                   {testSlug && (
-                    <ChevronRight size={16} color={colors.textSecondary} style={{ marginLeft: 6 }} />
+                    <ChevronRight size={16} color={colors.textSubtle} style={{ marginLeft: 6 }} />
                   )}
                 </Pressable>
               );
@@ -401,15 +391,16 @@ export default function TestPackageDetailScreen() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.bgElevated ?? colors.surface,
           paddingHorizontal: 16,
-          paddingVertical: 16,
+          paddingTop: 12,
           paddingBottom: 32,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
         }}
       >
         <Button
+          size="lg"
           title={`Book Package — ${formatPrice(effectivePrice)}`}
           onPress={() =>
             router.push({

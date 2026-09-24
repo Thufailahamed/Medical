@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, FlatList, Alert } from "react-native";
+import { View, Text, FlatList, Alert, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -193,16 +193,7 @@ export default function AdminUsersScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Exit selection"
                 hitSlop={8}
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 23,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "rgba(255,255,255,0.14)",
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.18)",
-                }}
+                style={heroBtn}
               >
                 <X size={20} color="#FFFFFF" strokeWidth={2.5} />
               </Pressable>
@@ -213,16 +204,7 @@ export default function AdminUsersScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Select users"
                 hitSlop={8}
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 23,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "rgba(255,255,255,0.14)",
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.18)",
-                }}
+                style={heroBtn}
               >
                 <CheckSquare size={19} color="#FFFFFF" strokeWidth={2.25} />
               </Pressable>
@@ -232,7 +214,7 @@ export default function AdminUsersScreen() {
       </View>
 
       <View
-        style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}
+        style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.xs }}
       >
         <SearchBar
           value={q}
@@ -265,9 +247,9 @@ export default function AdminUsersScreen() {
           onRefresh={refetch}
           contentContainerStyle={{
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.sm,
+            paddingTop: spacing.md,
             paddingBottom: selectMode ? 220 : 140,
-            gap: spacing.sm,
+            gap: spacing.md,
           }}
           ListEmptyComponent={
             <EmptyState
@@ -307,7 +289,10 @@ export default function AdminUsersScreen() {
           <View
             style={{
               borderRadius: 26,
+              borderCurve: "continuous",
               overflow: "hidden",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: "rgba(255,255,255,0.16)",
               shadowColor: "#062238",
               shadowOffset: { width: 0, height: 10 },
               shadowOpacity: 0.3,
@@ -324,7 +309,7 @@ export default function AdminUsersScreen() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.md,
+                paddingVertical: spacing.md + 2,
               }}
             >
               {BULK_ACTIONS.map((a) => {
@@ -351,12 +336,10 @@ export default function AdminUsersScreen() {
                       strokeWidth={2.25}
                     />
                     <Text
-                      style={{
-                        fontSize: 9,
-                        fontWeight: "700",
-                        letterSpacing: 0.2,
-                        color: a.danger ? "#FCA5A5" : "rgba(255,255,255,0.75)",
-                      }}
+                      style={[
+                        typography.label.xs,
+                        { color: a.danger ? "#FCA5A5" : "rgba(255,255,255,0.8)" },
+                      ]}
                     >
                       {a.label}
                     </Text>
@@ -409,6 +392,18 @@ export default function AdminUsersScreen() {
     </Screen>
   );
 }
+
+// Frosted glass icon button that sits on the admin hero gradient.
+const heroBtn = {
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "rgba(255,255,255,0.18)",
+  borderWidth: StyleSheet.hairlineWidth,
+  borderColor: "rgba(255,255,255,0.28)",
+} as const;
 
 function UserRow({
   user,

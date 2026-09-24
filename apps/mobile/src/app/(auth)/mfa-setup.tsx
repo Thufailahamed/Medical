@@ -15,7 +15,9 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import QRCode from "react-native-qrcode-svg";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
@@ -31,7 +33,7 @@ import { useAuthStore } from "@/stores/auth";
 export default function MfaSetupScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, scheme } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
   const setUser = useAuthStore((s) => s.setUser);
@@ -117,24 +119,37 @@ export default function MfaSetupScreen() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ gap: spacing.xs, alignItems: "center" }}>
+        <View style={{ gap: spacing.sm, alignItems: "center", marginTop: spacing.xl, marginBottom: spacing.sm }}>
           <View
             style={{
-              width: 88,
-              height: 88,
-              borderRadius: radius.full,
-              backgroundColor: colors.primarySoft,
+              width: 76,
+              height: 76,
+              borderRadius: 22,
+              borderCurve: "continuous",
+              overflow: "hidden",
               alignItems: "center",
               justifyContent: "center",
+              marginBottom: spacing.sm,
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: scheme === "dark" ? 0 : 0.28,
+              shadowRadius: 16,
+              elevation: 6,
             }}
           >
-            <ShieldCheck size={40} color={colors.primary} />
+            <LinearGradient
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <ShieldCheck size={36} color="#FFFFFF" strokeWidth={2.1} />
           </View>
-          <Text style={[typography.title.lg, { color: colors.text, textAlign: "center" }]}>
+          <Text style={[typography.display.md, { color: colors.text, textAlign: "center" }]}>
             {t("mfa.setup.title")}
           </Text>
           <Text
-            style={[typography.body.md, { color: colors.textMuted, textAlign: "center" }]}
+            style={[typography.body.md, { color: colors.textMuted, textAlign: "center", lineHeight: 22, paddingHorizontal: spacing.md }]}
           >
             {t("mfa.setup.subtitle")}
           </Text>
@@ -162,19 +177,21 @@ export default function MfaSetupScreen() {
               </Text>
               <View
                 style={{
+                  alignSelf: "center",
                   alignItems: "center",
-                  padding: spacing.md,
-                  backgroundColor: colors.surface,
-                  borderRadius: radius.lg,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  padding: spacing.lg,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: radius.xl,
+                  borderCurve: "continuous",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: colors.separator,
                 }}
               >
                 <QRCode
                   value={otpauthUrl}
                   size={200}
-                  color={colors.text}
-                  backgroundColor={colors.surface}
+                  color="#000000"
+                  backgroundColor="#FFFFFF"
                 />
               </View>
               <Text
@@ -195,11 +212,15 @@ export default function MfaSetupScreen() {
                 selectable
                 style={{
                   fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-                  fontSize: 13,
+                  fontSize: 14,
+                  letterSpacing: 1,
                   color: colors.text,
-                  padding: spacing.sm,
-                  backgroundColor: colors.surfaceMuted,
+                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.md,
+                  backgroundColor: colors.fill,
                   borderRadius: radius.md,
+                  borderCurve: "continuous",
+                  overflow: "hidden",
                   textAlign: "center",
                 }}
               >
@@ -216,17 +237,21 @@ export default function MfaSetupScreen() {
                 onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
                 keyboardType="number-pad"
                 placeholder="000000"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={colors.textSubtle}
                 style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: radius.md,
-                  padding: spacing.md,
-                  fontSize: 24,
-                  letterSpacing: 6,
+                  backgroundColor: colors.fill,
+                  borderWidth: 1.5,
+                  borderColor: code.length === 6 ? colors.primary : "transparent",
+                  borderRadius: radius.field,
+                  borderCurve: "continuous",
+                  minHeight: 60,
+                  paddingHorizontal: spacing.md,
+                  fontSize: 26,
+                  letterSpacing: 10,
                   textAlign: "center",
                   color: colors.text,
-                  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+                  fontFamily: fontFamily.bodyBold,
+                  fontVariant: ["tabular-nums"],
                 }}
               />
               <Button
@@ -254,9 +279,12 @@ export default function MfaSetupScreen() {
               <View
                 style={{
                   padding: spacing.md,
-                  backgroundColor: colors.surfaceMuted,
-                  borderRadius: radius.md,
-                  gap: spacing.xs,
+                  backgroundColor: colors.fill,
+                  borderRadius: radius.lg,
+                  borderCurve: "continuous",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  rowGap: spacing.sm,
                 }}
               >
                 {recoveryCodes.map((c) => (
@@ -264,10 +292,13 @@ export default function MfaSetupScreen() {
                     key={c}
                     selectable
                     style={{
+                      width: "50%",
                       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
                       fontSize: 14,
+                      letterSpacing: 0.5,
                       color: colors.text,
                       textAlign: "center",
+                      paddingVertical: 4,
                     }}
                   >
                     {c}
@@ -290,17 +321,19 @@ export default function MfaSetupScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.sm,
-                padding: spacing.sm,
+                gap: spacing.md,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.xs,
               }}
             >
               <View
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: radius.sm,
+                  width: 24,
+                  height: 24,
+                  borderRadius: 7,
+                  borderCurve: "continuous",
                   borderWidth: 2,
-                  borderColor: accepted ? colors.primary : colors.border,
+                  borderColor: accepted ? colors.primary : colors.borderStrong,
                   backgroundColor: accepted ? colors.primary : "transparent",
                   alignItems: "center",
                   justifyContent: "center",

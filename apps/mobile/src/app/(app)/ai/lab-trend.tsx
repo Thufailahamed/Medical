@@ -99,7 +99,7 @@ export default function AiLabTrendScreen() {
         <Card>
           <View style={{ padding: spacing.lg, gap: spacing.md }}>
             <View style={{ gap: spacing.xs }}>
-              <Text style={{ ...typography.label, color: colors.textMuted }}>
+              <Text style={{ ...typography.label.md, color: colors.textMuted }}>
                 {t("aiLabTrend.typeLabel")}
               </Text>
               <RNTextInput
@@ -113,6 +113,7 @@ export default function AiLabTrendScreen() {
                   borderWidth: 1,
                   borderColor: colors.border,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   padding: spacing.md,
                   color: colors.text,
                   backgroundColor: colors.surface,
@@ -122,7 +123,7 @@ export default function AiLabTrendScreen() {
             </View>
 
             <View style={{ gap: spacing.xs }}>
-              <Text style={{ ...typography.label, color: colors.textMuted }}>
+              <Text style={{ ...typography.label.md, color: colors.textMuted }}>
                 {t("aiLabTrend.monthsLabel")}
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
@@ -176,7 +177,7 @@ export default function AiLabTrendScreen() {
 
         {!trend ? (
           <View style={{ gap: spacing.sm }}>
-            <Text style={{ ...typography.label, color: colors.textMuted }}>
+            <Text style={{ ...typography.label.md, color: colors.textMuted }}>
               {t("aiLabTrend.commonTestsTitle")}
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
@@ -208,7 +209,7 @@ export default function AiLabTrendScreen() {
             <Card>
               <View style={{ padding: spacing.lg, gap: spacing.sm }}>
                 <SectionHeader title={t("aiLabTrend.sectionNarrative")} />
-                <Text style={{ ...typography.body, color: colors.text }}>
+                <Text style={{ ...typography.body.md, color: colors.text }}>
                   {trend.narrative || t("aiSummary.emptySummary")}
                 </Text>
                 {trend.overdue ? (
@@ -284,10 +285,10 @@ export default function AiLabTrendScreen() {
                     gap: spacing.xs,
                   }}
                 >
-                  <Text style={{ ...typography.label, color: colors.textMuted }}>
+                  <Text style={{ ...typography.label.md, color: colors.textMuted }}>
                     {t("aiLabTrend.lastDate")}:
                   </Text>
-                  <Text style={{ ...typography.body, color: colors.text }}>
+                  <Text style={{ ...typography.body.md, color: colors.text }}>
                     {trend.lastDate ?? t("aiLabTrend.lastDate_never")}
                   </Text>
                 </View>
@@ -334,7 +335,7 @@ function Stat({
     >
       <Icon size={16} color={colors.primary} />
       <Text style={{ ...typography.caption, color: colors.textMuted }}>{label}:</Text>
-      <Text style={{ ...typography.body, color: colors.text }}>{value}</Text>
+      <Text style={{ ...typography.body.md, color: colors.text }}>{value}</Text>
     </View>
   );
 }

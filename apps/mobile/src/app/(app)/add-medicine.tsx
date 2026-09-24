@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -104,10 +105,11 @@ function SuggestionRow({
       accessibilityLabel={t("addMedicine.a11y.use", { name: s.name })}
       style={({ pressed }) => ({
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-        borderTopWidth: 1,
-        borderTopColor: colors.border,
+        paddingVertical: spacing.sm + 2,
+        minHeight: 56,
+        backgroundColor: pressed ? colors.fill : "transparent",
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.separator,
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.sm,
@@ -117,8 +119,9 @@ function SuggestionRow({
         style={{
           width: 32,
           height: 32,
-          borderRadius: 16,
-          backgroundColor: isHistory ? colors.primarySoft : "rgba(14, 165, 183, 0.12)",
+          borderRadius: 10,
+          borderCurve: "continuous",
+          backgroundColor: isHistory ? colors.primarySoft : colors.accentSoft,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -126,14 +129,14 @@ function SuggestionRow({
         {isHistory ? (
           <History size={15} color={colors.primary} strokeWidth={2.25} />
         ) : (
-          <Sparkles size={15} color="#0EA5B7" strokeWidth={2.25} />
+          <Sparkles size={15} color={colors.accent} strokeWidth={2.25} />
         )}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={[
             typography.title.sm,
-            { color: colors.text, fontWeight: "700" },
+            { color: colors.text },
           ]}
           numberOfLines={1}
         >
@@ -142,7 +145,7 @@ function SuggestionRow({
         <Text
           style={[
             typography.caption,
-            { color: colors.textMuted, marginTop: 1 },
+            { color: colors.textSubtle, marginTop: 1 },
           ]}
           numberOfLines={1}
         >
@@ -170,7 +173,7 @@ function SuggestionRow({
 export default function AddMedicineScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, scheme } = useTheme();
   const toast = useToast();
   const addMedicine = useAddMedicineWithConfirm();
   const { data: profileData } = usePatientProfile();
@@ -340,6 +343,7 @@ export default function AddMedicineScreen() {
           margin: spacing.lg,
           padding: spacing.lg,
           borderRadius: radius.glass,
+          borderCurve: "continuous",
           backgroundColor: colors.primarySoft,
           flexDirection: "row",
           alignItems: "center",
@@ -351,6 +355,7 @@ export default function AddMedicineScreen() {
             width: 56,
             height: 56,
             borderRadius: radius.lg,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.surface,
@@ -429,11 +434,12 @@ export default function AddMedicineScreen() {
                   {showDropdown ? (
                     <View
                       style={{
-                        marginTop: 6,
-                        backgroundColor: colors.surface,
-                        borderRadius: radius.lg,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        marginTop: 8,
+                        backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+                        borderRadius: 16,
+                        borderCurve: "continuous",
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
                         overflow: "hidden",
                         maxHeight: 280,
                       }}
@@ -464,10 +470,9 @@ export default function AddMedicineScreen() {
                   alignItems: "flex-start",
                   gap: spacing.sm,
                   padding: spacing.md,
-                  borderRadius: radius.md,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
                   backgroundColor: hasBlockingWarning ? colors.dangerSoft : colors.warningSoft,
-                  borderWidth: 1,
-                  borderColor: hasBlockingWarning ? `${colors.danger}55` : `${colors.warning}55`,
                 }}
                 accessibilityRole="alert"
                 accessibilityLabel={
@@ -678,15 +683,16 @@ export default function AddMedicineScreen() {
         <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.55)",
+            backgroundColor: colors.scrim,
             justifyContent: "flex-end",
           }}
         >
           <View
             style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
+              backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              borderCurve: "continuous",
               padding: spacing.lg,
               paddingBottom: spacing.xl + 16,
               gap: spacing.md,
@@ -712,6 +718,7 @@ export default function AddMedicineScreen() {
                     width: 40,
                     height: 40,
                     borderRadius: 20,
+                    borderCurve: "continuous",
                     backgroundColor: colors.dangerSoft,
                     alignItems: "center",
                     justifyContent: "center",

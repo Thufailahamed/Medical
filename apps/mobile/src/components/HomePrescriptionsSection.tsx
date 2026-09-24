@@ -88,6 +88,7 @@ export function HomePrescriptionsSection() {
           style={{
             padding: spacing.md,
             borderRadius: radius.xl,
+            borderCurve: "continuous",
             borderWidth: 1,
             borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
             backgroundColor: isDark
@@ -107,6 +108,7 @@ export function HomePrescriptionsSection() {
                 width: 44,
                 height: 44,
                 borderRadius: 14,
+                borderCurve: "continuous",
                 backgroundColor: colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
@@ -184,6 +186,7 @@ export function HomePrescriptionsSection() {
                 style={({ pressed }) => ({
                   backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
                   borderRadius: radius.xl,
+                  borderCurve: "continuous",
                   padding: spacing.md,
                   borderWidth: 1,
                   borderColor: isDark
@@ -218,6 +221,7 @@ export function HomePrescriptionsSection() {
                         width: 38,
                         height: 38,
                         borderRadius: 12,
+                        borderCurve: "continuous",
                         backgroundColor: isDark
                           ? "rgba(59, 130, 246, 0.15)"
                           : colors.primarySoft,

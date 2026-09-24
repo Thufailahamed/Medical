@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -253,18 +254,30 @@ export default function AvailabilityScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: spacing.sm,
+                      gap: spacing.md,
                     }}
                   >
-                    <Clock4
-                      size={18}
-                      color={isDayActive ? colors.primary : colors.textSubtle}
-                      strokeWidth={2.2}
-                    />
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 9,
+                        borderCurve: "continuous",
+                        backgroundColor: isDayActive ? colors.primary : colors.fill,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Clock4
+                        size={17}
+                        color={isDayActive ? colors.onPrimary : colors.textSubtle}
+                        strokeWidth={2.2}
+                      />
+                    </View>
                     <Text
                       style={[
-                        typography.title.sm,
-                        { color: colors.text, flex: 1 },
+                        typography.title.md,
+                        { color: isDayActive ? colors.text : colors.textMuted, flex: 1 },
                       ]}
                     >
                       {days[dOfWeek]}
@@ -272,7 +285,7 @@ export default function AvailabilityScreen() {
                     <Switch
                       value={isDayActive}
                       onValueChange={(v) => toggleDayActive(dOfWeek, v)}
-                      trackColor={{ true: colors.primary, false: colors.border }}
+                      trackColor={{ true: colors.primary, false: colors.fillStrong }}
                     />
                   </View>
 
@@ -284,8 +297,8 @@ export default function AvailabilityScreen() {
                           <View
                             key={s.flatIdx}
                             style={{
-                              borderTopWidth: idx > 0 ? 1 : 0,
-                              borderTopColor: colors.border,
+                              borderTopWidth: idx > 0 ? StyleSheet.hairlineWidth : 0,
+                              borderTopColor: colors.separator,
                               paddingTop: idx > 0 ? spacing.md : 0,
                               gap: spacing.sm,
                             }}
@@ -311,11 +324,17 @@ export default function AvailabilityScreen() {
                                 onPress={() => removeShift(s.flatIdx)}
                                 hitSlop={8}
                                 style={({ pressed }) => ({
+                                  width: 30,
+                                  height: 30,
+                                  borderRadius: 15,
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  backgroundColor: colors.dangerSoft,
                                   opacity: pressed ? 0.6 : 1,
                                 })}
                               >
                                 <Trash2
-                                  size={16}
+                                  size={14}
                                   color={colors.danger}
                                   strokeWidth={2}
                                 />
@@ -474,7 +493,19 @@ function TimeOffSection({
                 gap: spacing.sm,
               }}
             >
-              <CalendarOff size={18} color={colors.textSubtle} />
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CalendarOff size={16} color={colors.textSubtle} />
+              </View>
               <Text
                 style={[typography.body.sm, { color: colors.textMuted, flex: 1 }]}
               >
@@ -491,8 +522,10 @@ function TimeOffSection({
                     alignItems: "center",
                     gap: spacing.sm,
                     backgroundColor: colors.surfaceMuted,
-                    padding: spacing.sm,
-                    borderRadius: radius.md,
+                    paddingVertical: spacing.sm + 2,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
                   }}
                 >
                   <PillCmp icon={Ban} label={r.date} tone="warning" size="sm" />
@@ -552,7 +585,7 @@ function TimeOffSection({
             <Switch
               value={allDay}
               onValueChange={setAllDay}
-              trackColor={{ true: colors.primary, false: colors.border }}
+              trackColor={{ true: colors.primary, false: colors.fillStrong }}
             />
             <Text style={[typography.body.md, { color: colors.text }]}>
               {t("doctorAvailability.allDay")}

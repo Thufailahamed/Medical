@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useMemo, useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
@@ -59,7 +59,7 @@ type Tab = "summary" | "records" | "meds" | "labs" | "vitals";
 
 export default function DoctorPatientDetail() {
   const router = useRouter();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, shadow } = useTheme();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -181,8 +181,11 @@ export default function DoctorPatientDetail() {
                 ring
                 source={user?.photo ? { uri: user.photo } : undefined}
               />
-              <View style={{ flex: 1 }}>
-                <Text style={[typography.title.md, { color: colors.text }]}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  numberOfLines={2}
+                  style={[typography.display.sm, { color: colors.text }]}
+                >
                   {user?.name || t("doctorPatientDetail.fallbackTitle")}
                 </Text>
                 <Text
@@ -212,9 +215,17 @@ export default function DoctorPatientDetail() {
             </View>
 
             {(allergies.length > 0 || conditions.length > 0) && (
-              <View style={{ gap: spacing.xs }}>
+              <View
+                style={{
+                  gap: spacing.xs,
+                  padding: spacing.md,
+                  borderRadius: 14,
+                  borderCurve: "continuous",
+                  backgroundColor: allergies.length > 0 ? colors.dangerSoft : colors.surfaceMuted,
+                }}
+              >
                 {allergies.length > 0 ? (
-                  <Text style={[typography.body.sm, { color: colors.danger }]}>
+                  <Text style={[typography.label.md, { color: colors.danger }]}>
                     {t("doctorPatientDetail.allergies", { list: allergies.join(", ") })}
                   </Text>
                 ) : null}
@@ -324,10 +335,11 @@ export default function DoctorPatientDetail() {
         <View
           style={{
             flexDirection: "row",
-            gap: spacing.xs,
-            backgroundColor: colors.surface,
-            padding: 4,
+            gap: 2,
+            backgroundColor: colors.fill,
+            padding: 3,
             borderRadius: 12,
+            borderCurve: "continuous",
           }}
         >
           {TABS.map((tabKey) => (
@@ -335,19 +347,24 @@ export default function DoctorPatientDetail() {
               key={tabKey}
               style={{
                 flex: 1,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: tab === tabKey ? colors.bg : "transparent",
+                height: 32,
+                borderRadius: 9,
+                borderCurve: "continuous",
+                backgroundColor: tab === tabKey ? colors.surface : "transparent",
                 alignItems: "center",
+                justifyContent: "center",
+                ...(tab === tabKey ? shadow.xs : shadow.none),
               }}
               onTouchEnd={() => setTab(tabKey)}
             >
               <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
                 style={[
-                  typography.label.md,
+                  tab === tabKey ? typography.label.md : typography.body.sm,
                   {
                     color: tab === tabKey ? colors.text : colors.textMuted,
-                    fontWeight: tab === tabKey ? "700" : "500",
                     textTransform: "capitalize",
                   },
                 ]}
@@ -371,12 +388,17 @@ export default function DoctorPatientDetail() {
                 }
                 icon={<ClipboardList size={14} color={colors.brand} />}
               >
-                <Text style={{ fontSize: 13, color: colors.text, lineHeight: 18 }}>
+                <Text
+                  style={[
+                    typography.body.sm,
+                    { color: colors.text, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+                  ]}
+                >
                   {preVisit.summary}
                 </Text>
                 {preVisit.snapshot?.redBanner?.length > 0 ? (
-                  <View style={{ padding: 8, borderRadius: 8, borderWidth: 1, backgroundColor: "#fee2e2", borderColor: "#fca5a5", marginTop: spacing.xs }}>
-                    <Text style={{ fontSize: 12, color: "#991b1b", fontWeight: "600" }}>
+                  <View style={{ padding: spacing.md, borderRadius: 14, borderCurve: "continuous", backgroundColor: colors.dangerSoft, marginHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+                    <Text style={[typography.label.sm, { color: colors.danger }]}>
                       Severe allergies: {preVisit.snapshot.redBanner
                         .map((a: any) => a.substance)
                         .join(", ")}
@@ -813,14 +835,15 @@ export default function DoctorPatientDetail() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: spacing.xs,
-                        paddingHorizontal: spacing.md,
+                        paddingLeft: spacing.md,
+                        paddingRight: spacing.xs,
                         paddingVertical: spacing.xs,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.surfaceMuted,
                       }}
                     >
-                      <Text style={[typography.body.xs, { color: colors.text }]}>
+                      <Text style={[typography.label.sm, { color: colors.text, textTransform: "capitalize" }]}>
                         {type.replace(/_/g, " ")}
                       </Text>
                       <PillCmp label={String(count)} tone="primary" size="sm" />
@@ -907,7 +930,7 @@ export default function DoctorPatientDetail() {
                 justifyContent: "space-between",
               }}
             >
-              <Text style={[typography.title.sm, { color: colors.text, fontWeight: "800" }]}>
+              <Text style={[typography.title.lg, { color: colors.text }]}>
                 {t("doctorPatientDetail.vitalsHeading")}
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
@@ -1049,9 +1072,23 @@ function OverviewSection({
           paddingBottom: spacing.sm,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-          {icon}
-          <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1, minWidth: 0 }}>
+          {icon ? (
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                borderCurve: "continuous",
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {icon}
+            </View>
+          ) : null}
+          <Text numberOfLines={1} style={[typography.title.md, { color: colors.text, flexShrink: 1 }]}>
             {title}
           </Text>
         </View>

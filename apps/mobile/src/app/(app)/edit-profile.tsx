@@ -217,15 +217,15 @@ export default function EditProfileScreen() {
             borderRadius: 20,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
           })}
         >
-          <ArrowLeft size={22} color={colors.text} />
+          <ArrowLeft size={20} color={colors.text} strokeWidth={2.4} />
         </Pressable>
         <Text
           style={[
             typography.title.md,
-            { color: colors.text, fontWeight: "800", fontSize: 18 },
+            { color: colors.text },
           ]}
         >
           {t("editProfile.title")}
@@ -237,10 +237,11 @@ export default function EditProfileScreen() {
           accessibilityRole="button"
           accessibilityLabel={t("editProfile.accessibilityLabel.saveProfile")}
           style={({ pressed }) => ({
-            paddingHorizontal: spacing.sm,
-            paddingVertical: 6,
-            borderRadius: radius.md,
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+            paddingHorizontal: spacing.md,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: colors.primarySoft,
+            opacity: pressed ? 0.7 : 1,
             alignItems: "center",
             justifyContent: "center",
           })}
@@ -249,11 +250,7 @@ export default function EditProfileScreen() {
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
             <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "700",
-                color: colors.primary,
-              }}
+              style={[typography.label.lg, { color: colors.primary }]}
             >
               {t("editProfile.save")}
             </Text>
@@ -270,8 +267,9 @@ export default function EditProfileScreen() {
           style={{
             marginHorizontal: spacing.lg,
             marginTop: spacing.lg,
-            padding: spacing.lg,
-            borderRadius: radius.xxl,
+            padding: spacing.xl,
+            borderRadius: 28,
+            borderCurve: "continuous",
             backgroundColor: colors.primarySoft,
             flexDirection: "row",
             alignItems: "center",
@@ -286,6 +284,7 @@ export default function EditProfileScreen() {
                   width: 72,
                   height: 72,
                   borderRadius: 36,
+                  borderCurve: "continuous",
                   backgroundColor: colors.surfaceMuted,
                 }}
               />
@@ -303,6 +302,7 @@ export default function EditProfileScreen() {
                 width: 30,
                 height: 30,
                 borderRadius: 15,
+                borderCurve: "continuous",
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: pressed ? colors.primaryMuted : colors.primary,
@@ -355,12 +355,10 @@ export default function EditProfileScreen() {
           <Card>
             <Text
               style={[
-                typography.title.sm,
+                typography.title.md,
                 {
-                  color: colors.textMuted,
-                  fontWeight: "800",
-                  marginBottom: spacing.md,
-                  letterSpacing: 0.6,
+                  color: colors.text,
+                  marginBottom: spacing.lg,
                 },
               ]}
             >
@@ -385,19 +383,20 @@ export default function EditProfileScreen() {
                       accessibilityState={{ selected }}
                       style={{
                         paddingHorizontal: spacing.md,
-                        paddingVertical: 8,
-                        borderRadius: radius.md,
-                        borderWidth: 1,
-                        borderColor: selected ? colors.primary : colors.border,
-                        backgroundColor: selected ? colors.primarySoft : colors.surface,
+                        minWidth: 56,
+                        height: 40,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        backgroundColor: selected ? colors.danger : colors.fill,
                       }}
                     >
                       <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "700",
-                          color: selected ? colors.primary : colors.text,
-                        }}
+                        style={[
+                          typography.label.lg,
+                          { color: selected ? "#FFFFFF" : colors.text },
+                        ]}
                       >
                         {bg}
                       </Text>
@@ -419,20 +418,21 @@ export default function EditProfileScreen() {
                       accessibilityState={{ selected }}
                       style={{
                         flex: 1,
-                        paddingVertical: 10,
-                        borderRadius: radius.md,
-                        borderWidth: 1,
-                        borderColor: selected ? colors.primary : colors.border,
-                        backgroundColor: selected ? colors.primarySoft : colors.surface,
+                        height: 42,
+                        justifyContent: "center",
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        borderWidth: 1.5,
+                        borderColor: selected ? colors.primary : "transparent",
+                        backgroundColor: selected ? colors.primarySoft : colors.fill,
                         alignItems: "center",
                       }}
                     >
                       <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "700",
-                          color: selected ? colors.primary : colors.text,
-                        }}
+                        style={[
+                          typography.label.lg,
+                          { color: selected ? colors.primary : colors.text },
+                        ]}
                       >
                         {t(`editProfile.gender.${g}`)}
                       </Text>
@@ -477,12 +477,10 @@ export default function EditProfileScreen() {
           <Card>
             <Text
               style={[
-                typography.title.sm,
+                typography.title.md,
                 {
-                  color: colors.textMuted,
-                  fontWeight: "800",
-                  marginBottom: spacing.md,
-                  letterSpacing: 0.6,
+                  color: colors.text,
+                  marginBottom: spacing.lg,
                 },
               ]}
             >
@@ -532,8 +530,8 @@ export default function EditProfileScreen() {
             >
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: colors.textMuted, fontWeight: "800", letterSpacing: 0.6 },
+                  typography.title.md,
+                  { color: colors.text },
                 ]}
               >
                 {t("editProfile.emergencyContactsHeading")}
@@ -635,8 +633,8 @@ function LabeledRow({
     <View style={{ marginBottom: spacing.md }}>
       <Text
         style={[
-          typography.label.md,
-          { color: colors.text, fontWeight: "700", marginBottom: spacing.xs },
+          typography.title.xs,
+          { color: colors.text, marginBottom: spacing.sm },
         ]}
       >
         {label}
@@ -676,17 +674,16 @@ function NumberField({
       style={{
         flex: 1,
         padding: spacing.md,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.surfaceMuted,
+        borderRadius: 16,
+        borderCurve: "continuous",
+        backgroundColor: colors.fill,
       }}
     >
       <Text
         style={{
           fontSize: 11,
-          fontWeight: "800",
-          color: colors.textMuted,
+          fontWeight: "700",
+          color: colors.textSubtle,
           letterSpacing: 0.6,
         }}
       >
@@ -737,10 +734,9 @@ function ContactRow({
     <View
       style={{
         padding: spacing.md,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.surfaceMuted,
+        borderRadius: 16,
+        borderCurve: "continuous",
+        backgroundColor: colors.fill,
         gap: spacing.sm,
       }}
     >
@@ -787,9 +783,11 @@ function ContactRow({
             width: 32,
             height: 32,
             borderRadius: 16,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: pressed ? colors.danger : colors.dangerSoft,
+            backgroundColor: colors.dangerSoft,
+            opacity: pressed ? 0.7 : 1,
           })}
         >
           <Trash2 size={14} color={colors.danger} strokeWidth={2.5} />
@@ -801,13 +799,12 @@ function ContactRow({
 
 function inputStyle(colors: any, radius: any, spacing: any) {
   return {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: 14,
+    borderCurve: "continuous" as const,
     padding: spacing.md,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.text,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.fill,
     textAlignVertical: "top" as const,
     minHeight: 60,
   };

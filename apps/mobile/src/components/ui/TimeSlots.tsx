@@ -95,7 +95,8 @@ function AnimatedButton({
               ? colors.surfaceMuted
               : colors.surface,
           borderColor: selected ? colors.primary : colors.border,
-          borderRadius: radius.lg,
+          borderRadius: radius.field,
+          borderCurve: "continuous",
           paddingVertical: spacing.md,
           shadowColor: selected ? colors.primary : colors.text,
           shadowOffset: { width: 0, height: 3 },

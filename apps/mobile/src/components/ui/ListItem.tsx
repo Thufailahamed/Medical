@@ -60,7 +60,7 @@ export function ListItem({
   style,
   bordered,
 }: Props) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
   const palette = useTone(iconTone);
 
   const compact = variant === "timeline";
@@ -69,8 +69,11 @@ export function ListItem({
   const showBorder = bordered !== undefined ? bordered : !compact;
   const radius_ = showBorder ? (compact ? radius.lg : radius.xl) : 0;
 
-  const iconBox = compact ? 36 : 44;
-  const iconSize = compact ? 16 : 20;
+  // Rows grouped inside a Card (bordered={false}) get iOS Settings-style
+  // solid tiles with a white glyph; standalone rows keep soft tinted tiles.
+  const settingsTile = !showBorder && !compact && variant !== "contact";
+  const iconBox = compact ? 34 : settingsTile ? 32 : 40;
+  const iconSize = compact ? 16 : 19;
 
   const content = (
     <View
@@ -79,14 +82,17 @@ export function ListItem({
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
-          paddingVertical: padV,
+          paddingVertical: compact ? padV : spacing.md + 2,
           paddingHorizontal: padH,
+          minHeight: compact ? undefined : 64,
           backgroundColor: showBorder ? colors.surface : "transparent",
           borderRadius: radius_,
-          borderWidth: showBorder ? 1 : 0,
-          borderColor: colors.border,
+          borderCurve: "continuous",
+          borderWidth: showBorder ? StyleSheet.hairlineWidth : 0,
+          borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
           opacity: disabled ? 0.5 : 1,
         },
+        showBorder && scheme !== "dark" ? shadow.xs : null,
         style,
       ]}
     >
@@ -97,15 +103,16 @@ export function ListItem({
           style={{
             width: iconBox,
             height: iconBox,
-            borderRadius: variant === "contact" ? 999 : radius.full,
+            borderRadius: variant === "contact" ? 999 : compact || settingsTile ? 9 : 12,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: iconBg ?? palette.bg,
+            backgroundColor: iconBg ?? (settingsTile ? palette.bgStrong : palette.bg),
           }}
         >
           <Icon
-            size={iconSize}
-            color={iconFg ?? palette.fg}
+            size={settingsTile ? iconSize - 1 : iconSize}
+            color={iconFg ?? (settingsTile ? palette.onBgStrong : palette.fg)}
             strokeWidth={2.25}
           />
         </View>
@@ -122,7 +129,7 @@ export function ListItem({
           <Text
             style={[
               typography.title.sm,
-              { color: colors.text, flexShrink: 1 },
+              { color: colors.text, flexShrink: 1, fontFamily: typography.title.md.fontFamily },
             ]}
             numberOfLines={1}
           >
@@ -155,7 +162,8 @@ export function ListItem({
         <ChevronRight
           size={18}
           color={colors.textSubtle}
-          strokeWidth={2.25}
+          strokeWidth={2.5}
+          style={{ marginRight: -4 }}
         />
       ) : null}
     </View>

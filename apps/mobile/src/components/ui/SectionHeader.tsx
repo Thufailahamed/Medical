@@ -1,5 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { ChevronRight } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Pressable } from "./Pressable";
 
@@ -21,16 +23,16 @@ export function SectionHeader({ title, count, action, style }: Props) {
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: spacing.xs,
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.sm,
+          paddingTop: spacing.xl,
+          paddingBottom: spacing.md,
         },
         style,
       ]}
     >
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.sm }}>
-        <Text style={[typography.title.sm, { color: colors.text }]}>{title}</Text>
+        <Text style={[typography.title.lg, { color: colors.text }]}>{title}</Text>
         {typeof count === "number" ? (
-          <Text style={[typography.caption, { color: colors.textSubtle }]}>{count}</Text>
+          <Text style={[typography.title.sm, { color: colors.textSubtle }]}>{count}</Text>
         ) : null}
       </View>
       {action ? (
@@ -40,16 +42,12 @@ export function SectionHeader({ title, count, action, style }: Props) {
           accessibilityRole="button"
           accessibilityLabel={action.label}
           hitSlop={8}
-          style={{ paddingHorizontal: spacing.xs, paddingVertical: 4 }}
+          style={{ paddingHorizontal: spacing.xs, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 1 }}
         >
-          <Text
-            style={[
-              typography.label.md,
-              { color: colors.primary, fontWeight: "700" as const },
-            ]}
-          >
+          <Text style={[typography.label.lg, { color: colors.primary }]}>
             {action.label}
           </Text>
+          <ChevronRight size={16} color={colors.primary} strokeWidth={2.5} />
         </Pressable>
       ) : null}
     </View>

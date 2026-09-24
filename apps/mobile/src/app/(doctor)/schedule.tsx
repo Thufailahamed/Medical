@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,7 @@ import {
 import { useDoctorScheduleRange } from "@/hooks/useApi";
 import { Screen, ErrorState } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
+import { tonePalette, type Tone } from "@/theme/tone";
 import { useLocaleStore } from "@/stores/locale";
 
 function pad(n: number) {
@@ -54,46 +56,19 @@ function addDays(d: Date, n: number): Date {
 
 const KIND_META: Record<
   string,
-  { label: string; icon: any; bg: string; fg: string; tag: string; border: string }
+  { label: string; icon: any; tone: Tone; tag: string }
 > = {
-  appointment: {
-    label: "Appt",
-    icon: CalendarCheck,
-    bg: "rgba(59, 130, 246, 0.10)",
-    fg: "#2563EB",
-    border: "rgba(59, 130, 246, 0.25)",
-    tag: "APPOINTMENT",
-  },
-  walkin: {
-    label: "Walk-in",
-    icon: Bell,
-    bg: "rgba(245, 158, 11, 0.10)",
-    fg: "#D97706",
-    border: "rgba(245, 158, 11, 0.25)",
-    tag: "WALK-IN",
-  },
-  followup: {
-    label: "Follow-up",
-    icon: Pill,
-    bg: "rgba(16, 185, 129, 0.10)",
-    fg: "#059669",
-    border: "rgba(16, 185, 129, 0.25)",
-    tag: "FOLLOW-UP",
-  },
-  timeoff: {
-    label: "Off",
-    icon: CalendarOff,
-    bg: "rgba(239, 68, 68, 0.10)",
-    fg: "#DC2626",
-    border: "rgba(239, 68, 68, 0.25)",
-    tag: "TIME OFF",
-  },
+  appointment: { label: "Appt", icon: CalendarCheck, tone: "primary", tag: "APPOINTMENT" },
+  walkin: { label: "Walk-in", icon: Bell, tone: "warning", tag: "WALK-IN" },
+  followup: { label: "Follow-up", icon: Pill, tone: "accent", tag: "FOLLOW-UP" },
+  timeoff: { label: "Off", icon: CalendarOff, tone: "danger", tag: "TIME OFF" },
 };
 
 export default function ScheduleScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography, radius, fontFamily, shadow } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const locale = useLocaleStore((s) => s.locale);
 
   const today = useMemo(() => new Date(), []);
@@ -228,35 +203,19 @@ export default function ScheduleScreen() {
               width: 46,
               height: 46,
               borderRadius: 15,
+              borderCurve: "continuous",
               backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: 1,
-              borderColor: "rgba(14, 165, 233, 0.25)",
             }}
           >
             <CalendarDays size={22} color={colors.primary} strokeWidth={2.2} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                color: colors.text,
-                fontFamily: fontFamily.displayBold,
-                fontSize: 24,
-                fontWeight: "800",
-                letterSpacing: -0.6,
-              }}
-            >
+            <Text style={[typography.display.md, { color: colors.text }]}>
               {t("schedule.title", "Schedule")}
             </Text>
-            <Text
-              style={{
-                color: colors.textMuted,
-                fontSize: 13,
-                fontWeight: "500",
-                marginTop: 1,
-              }}
-            >
+            <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}>
               {headerDateRange}
             </Text>
           </View>
@@ -271,12 +230,11 @@ export default function ScheduleScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: 5,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
+              height: 34,
+              paddingHorizontal: 14,
               borderRadius: 999,
+              borderCurve: "continuous",
               backgroundColor: pressed ? colors.primary : colors.primarySoft,
-              borderWidth: 1,
-              borderColor: colors.borderFocus,
             })}
           >
             {({ pressed }) => (
@@ -290,12 +248,10 @@ export default function ScheduleScreen() {
                   }}
                 />
                 <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "800",
-                    color: pressed ? colors.onPrimary : colors.primary,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
+                  style={[
+                    typography.label.md,
+                    { color: pressed ? colors.onPrimary : colors.primary },
+                  ]}
                 >
                   {t("schedule.today", "Today")}
                 </Text>
@@ -312,12 +268,11 @@ export default function ScheduleScreen() {
           alignItems: "center",
           marginHorizontal: spacing.lg,
           marginBottom: spacing.xs,
-          padding: 4,
-          borderRadius: 16,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          ...shadow.sm,
+          marginTop: spacing.xs,
+          padding: 3,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          backgroundColor: colors.fill,
         }}
       >
         <Pressable
@@ -326,12 +281,13 @@ export default function ScheduleScreen() {
           accessibilityRole="button"
           accessibilityLabel="Previous week"
           style={({ pressed }) => ({
-            width: 36,
-            height: 36,
-            borderRadius: 12,
+            width: 34,
+            height: 34,
+            borderRadius: 9,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+            backgroundColor: pressed ? colors.surface : "transparent",
           })}
         >
           <ChevronLeft size={18} color={colors.text} strokeWidth={2.4} />
@@ -347,12 +303,10 @@ export default function ScheduleScreen() {
           }}
         >
           <Text
-            style={{
-              fontSize: 13,
-              fontWeight: "700",
-              color: isViewingToday ? colors.primary : colors.text,
-              fontFamily: fontFamily.bodyBold,
-            }}
+            style={[
+              typography.label.md,
+              { color: isViewingToday ? colors.primary : colors.text },
+            ]}
           >
             {isViewingToday
               ? `Today · ${headerDateRange.split("–")[0].trim()}`
@@ -366,12 +320,13 @@ export default function ScheduleScreen() {
           accessibilityRole="button"
           accessibilityLabel="Next week"
           style={({ pressed }) => ({
-            width: 36,
-            height: 36,
-            borderRadius: 12,
+            width: 34,
+            height: 34,
+            borderRadius: 9,
+            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+            backgroundColor: pressed ? colors.surface : "transparent",
           })}
         >
           <ChevronRight size={18} color={colors.text} strokeWidth={2.4} />
@@ -399,8 +354,9 @@ export default function ScheduleScreen() {
               accessibilityLabel={`${d.dayLabel} ${d.num}, ${d.eventCount} visits`}
               style={({ pressed }) => ({
                 flex: 1,
-                minHeight: 76,
-                borderRadius: 18,
+                minHeight: 78,
+                borderRadius: 16,
+                borderCurve: "continuous",
                 paddingVertical: 8,
                 paddingHorizontal: 2,
                 alignItems: "center",
@@ -412,51 +368,43 @@ export default function ScheduleScreen() {
                   : pressed
                   ? colors.surfaceMuted
                   : colors.surface,
-                borderWidth: 1.5,
-                borderColor: isSelected
-                  ? colors.primary
-                  : d.isToday
-                  ? colors.borderFocus
-                  : "rgba(226, 235, 241, 0.7)",
-                opacity: d.isPast && !isSelected ? 0.75 : 1,
-                shadowColor: isSelected ? colors.primary : "#062238",
-                shadowOffset: { width: 0, height: isSelected ? 4 : 2 },
-                shadowOpacity: isSelected ? 0.28 : 0.04,
-                shadowRadius: isSelected ? 8 : 4,
-                elevation: isSelected ? 4 : 1,
+                borderWidth: isSelected || d.isToday ? 0 : StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : colors.separator,
+                opacity: d.isPast && !isSelected ? 0.6 : 1,
+                ...(isSelected && !isDark ? shadow.primary : isDark ? {} : shadow.xs),
               })}
             >
               {/* Day Label (e.g. SUN, MON) */}
               <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: "800",
-                  color: isSelected
-                    ? "rgba(255,255,255,0.92)"
-                    : d.isToday
-                    ? colors.primary
-                    : colors.textSubtle,
-                  fontFamily: fontFamily.bodyBold,
-                  letterSpacing: 0.6,
-                  textTransform: "uppercase",
-                }}
+                style={[
+                  typography.overline,
+                  {
+                    fontSize: 10,
+                    color: isSelected
+                      ? "rgba(255,255,255,0.85)"
+                      : d.isToday
+                      ? colors.primary
+                      : colors.textSubtle,
+                    textTransform: "uppercase",
+                  },
+                ]}
               >
                 {d.dayLabel.slice(0, 3)}
               </Text>
 
               {/* Day Number (e.g. 23) */}
               <Text
-                style={{
-                  fontSize: 18,
-                  lineHeight: 22,
-                  fontWeight: "800",
-                  color: isSelected
-                    ? "#FFFFFF"
-                    : d.isToday
-                    ? colors.primary
-                    : colors.text,
-                  fontFamily: fontFamily.displayBold,
-                }}
+                style={[
+                  typography.title.lg,
+                  {
+                    fontVariant: ["tabular-nums"],
+                    color: isSelected
+                      ? colors.onPrimary
+                      : d.isToday
+                      ? colors.primary
+                      : colors.text,
+                  },
+                ]}
               >
                 {d.num}
               </Text>
@@ -473,15 +421,14 @@ export default function ScheduleScreen() {
                     justifyContent: "center",
                     backgroundColor: isSelected
                       ? "rgba(255, 255, 255, 0.24)"
-                      : colors.primary,
+                      : colors.primarySoft,
                   }}
                 >
                   <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "800",
-                      color: "#FFFFFF",
-                    }}
+                    style={[
+                      typography.label.xs,
+                      { fontSize: 10, color: isSelected ? colors.onPrimary : colors.primary },
+                    ]}
                   >
                     {d.eventCount}
                   </Text>
@@ -510,7 +457,8 @@ export default function ScheduleScreen() {
         style={{
           flexDirection: "row",
           paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.xs,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xs,
           gap: spacing.sm,
         }}
       >
@@ -523,27 +471,21 @@ export default function ScheduleScreen() {
               : `${totalThisWeek} this week`
           }
           icon={CalendarIcon}
-          fg={colors.primary}
-          bg="rgba(14, 165, 233, 0.10)"
-          border="rgba(14, 165, 233, 0.20)"
+          tone="primary"
         />
         <PulseMetricCard
           label={t("schedule.appts", "Appts")}
           value={selectedDayTotals.appointment}
           subtext={`${totalsByKind.appointment || 0} this week`}
           icon={CalendarCheck}
-          fg="#4F46E5"
-          bg="rgba(79, 70, 229, 0.09)"
-          border="rgba(79, 70, 229, 0.20)"
+          tone="info"
         />
         <PulseMetricCard
           label={t("schedule.walkins", "Walk-ins")}
           value={selectedDayTotals.walkin}
           subtext={`${totalsByKind.walkin || 0} this week`}
           icon={Bell}
-          fg="#D97706"
-          bg="rgba(217, 119, 6, 0.09)"
-          border="rgba(217, 119, 6, 0.20)"
+          tone="warning"
         />
       </View>
 
@@ -567,26 +509,15 @@ export default function ScheduleScreen() {
         >
           <View style={{ gap: 2 }}>
             <Text
-              style={{
-                color: colors.textSubtle,
-                fontFamily: fontFamily.bodyBold,
-                fontSize: 11,
-                fontWeight: "800",
-                letterSpacing: 0.8,
-                textTransform: "uppercase",
-              }}
+              style={[
+                typography.overline,
+                { color: colors.textSubtle, textTransform: "uppercase" },
+              ]}
             >
               {selectedDateFormatted}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text
-                style={{
-                  color: colors.text,
-                  fontFamily: fontFamily.displayBold,
-                  fontSize: 18,
-                  fontWeight: "800",
-                }}
-              >
+              <Text style={[typography.title.lg, { color: colors.text }]}>
                 {t("schedule.agenda", "Daily agenda")}
               </Text>
               {isViewingToday ? (
@@ -595,16 +526,15 @@ export default function ScheduleScreen() {
                     paddingHorizontal: 7,
                     paddingVertical: 2,
                     borderRadius: 6,
+                    borderCurve: "continuous",
                     backgroundColor: colors.primarySoft,
                   }}
                 >
                   <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "800",
-                      color: colors.primary,
-                      textTransform: "uppercase",
-                    }}
+                    style={[
+                      typography.label.xs,
+                      { fontSize: 10, color: colors.primary, textTransform: "uppercase" },
+                    ]}
                   >
                     Today
                   </Text>
@@ -620,19 +550,14 @@ export default function ScheduleScreen() {
               paddingVertical: 5,
               borderRadius: 999,
               backgroundColor:
-                selectedEvents.length > 0 ? colors.primarySoft : colors.surfaceMuted,
-              borderWidth: 1,
-              borderColor:
-                selectedEvents.length > 0 ? colors.borderFocus : colors.border,
+                selectedEvents.length > 0 ? colors.primarySoft : colors.fill,
             }}
           >
             <Text
-              style={{
-                color: selectedEvents.length > 0 ? colors.primary : colors.textMuted,
-                fontFamily: fontFamily.bodyBold,
-                fontSize: 12,
-                fontWeight: "800",
-              }}
+              style={[
+                typography.label.sm,
+                { color: selectedEvents.length > 0 ? colors.primary : colors.textMuted },
+              ]}
             >
               {selectedEvents.length}{" "}
               {selectedEvents.length === 1 ? "visit" : "visits"}
@@ -644,7 +569,7 @@ export default function ScheduleScreen() {
         {isLoading ? (
           <View style={{ paddingVertical: spacing.xxl, alignItems: "center", gap: 10 }}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "500" }}>
+            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
               Loading appointments...
             </Text>
           </View>
@@ -665,13 +590,14 @@ export default function ScheduleScreen() {
               style={{
                 marginTop: spacing.xs,
                 paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.xl,
+                paddingVertical: spacing.xxl,
                 alignItems: "center",
-                borderRadius: 22,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
                 backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                ...shadow.sm,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : colors.separator,
+                ...(isDark ? {} : shadow.sm),
               }}
             >
               <View
@@ -679,36 +605,28 @@ export default function ScheduleScreen() {
                   width: 64,
                   height: 64,
                   borderRadius: 22,
+                  borderCurve: "continuous",
                   backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: "rgba(14, 165, 233, 0.2)",
                 }}
               >
                 <CalendarCheck size={28} color={colors.primary} strokeWidth={2} />
               </View>
 
               <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "800",
-                  fontFamily: fontFamily.displayBold,
-                  color: colors.text,
-                  marginTop: spacing.md,
-                  textAlign: "center",
-                }}
+                style={[
+                  typography.title.lg,
+                  { color: colors.text, marginTop: spacing.lg, textAlign: "center" },
+                ]}
               >
                 {t("schedule.clearDay", "Your day is clear")}
               </Text>
               <Text
-                style={{
-                  fontSize: 13,
-                  lineHeight: 19,
-                  color: colors.textMuted,
-                  marginTop: 4,
-                  textAlign: "center",
-                }}
+                style={[
+                  typography.body.sm,
+                  { color: colors.textMuted, marginTop: 4, textAlign: "center", maxWidth: 260 },
+                ]}
               >
                 No visits or consultations scheduled for this date.
               </Text>
@@ -722,12 +640,11 @@ export default function ScheduleScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: spacing.sm,
-                    paddingVertical: 10,
+                    height: 38,
                     paddingHorizontal: 16,
-                    borderRadius: 14,
+                    borderRadius: 999,
+                    borderCurve: "continuous",
                     backgroundColor: pressed ? colors.primary : colors.primarySoft,
-                    borderWidth: 1,
-                    borderColor: colors.borderFocus,
                   })}
                 >
                   {({ pressed }) => (
@@ -738,11 +655,10 @@ export default function ScheduleScreen() {
                         strokeWidth={2.2}
                       />
                       <Text
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "700",
-                          color: pressed ? colors.onPrimary : colors.primary,
-                        }}
+                        style={[
+                          typography.label.md,
+                          { color: pressed ? colors.onPrimary : colors.primary },
+                        ]}
                       >
                         Next: {nextDayWithVisits.dayLabel} ({nextDayWithVisits.eventCount}{" "}
                         {nextDayWithVisits.eventCount === 1 ? "visit" : "visits"})
@@ -764,86 +680,114 @@ export default function ScheduleScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 130 }}
           >
-            {selectedEvents.map((e) => {
+            {selectedEvents.map((e, idx) => {
               const meta = KIND_META[e.kind] || KIND_META.appointment;
+              const tn = tonePalette(meta.tone, colors);
               const Icon = meta.icon;
               const isVideo = e.mode === "video";
+              const isLast = idx === selectedEvents.length - 1;
 
               return (
-                <Pressable
+                <View
                   key={`${e.kind}-${e.id}`}
-                  onPress={() => {
-                    if (e.patientId) {
-                      router.push(`/(doctor)/patient-detail?id=${e.patientId}` as any);
-                    }
-                  }}
-                  accessibilityRole="button"
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    padding: spacing.md,
-                    borderRadius: 20,
-                    backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderLeftWidth: 4,
-                    borderLeftColor: meta.fg,
-                    marginBottom: spacing.sm,
-                    transform: [{ scale: pressed ? 0.99 : 1 }],
-                    shadowColor: "#062238",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 6,
-                    elevation: 2,
-                  })}
+                  style={{ flexDirection: "row", alignItems: "stretch" }}
                 >
-                  {/* Left Icon Pill */}
-                  <View
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 16,
-                      backgroundColor: meta.bg,
-                      borderWidth: 1,
-                      borderColor: meta.border,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: spacing.md,
-                    }}
-                  >
-                    <Icon size={20} color={meta.fg} strokeWidth={2.2} />
+                  {/* Time column */}
+                  <View style={{ width: 52, paddingTop: spacing.md + 2 }}>
+                    {e.startTime ? (
+                      <>
+                        <Text
+                          style={[
+                            typography.label.md,
+                            { color: colors.text, fontVariant: ["tabular-nums"] },
+                          ]}
+                        >
+                          {e.startTime}
+                        </Text>
+                        {e.endTime ? (
+                          <Text
+                            style={[
+                              typography.caption,
+                              { color: colors.textSubtle, fontVariant: ["tabular-nums"] },
+                            ]}
+                          >
+                            {e.endTime}
+                          </Text>
+                        ) : null}
+                      </>
+                    ) : null}
                   </View>
 
-                  {/* Center Content */}
-                  <View style={{ flex: 1, gap: 3 }}>
-                    {/* Top Row: Tag + Time */}
+                  {/* Timeline rail */}
+                  <View style={{ width: 18, alignItems: "center" }}>
                     <View
                       style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
+                        marginTop: spacing.md + 5,
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: tn.fg,
+                        borderWidth: 2,
+                        borderColor: colors.bg,
+                      }}
+                    />
+                    {!isLast ? (
+                      <View
+                        style={{
+                          flex: 1,
+                          width: StyleSheet.hairlineWidth * 2,
+                          marginTop: 4,
+                          backgroundColor: colors.separator,
+                        }}
+                      />
+                    ) : null}
+                  </View>
+
+                  <Pressable
+                    onPress={() => {
+                      if (e.patientId) {
+                        router.push(`/(doctor)/patient-detail?id=${e.patientId}` as any);
+                      }
+                    }}
+                    accessibilityRole="button"
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      padding: spacing.md,
+                      marginLeft: spacing.xs,
+                      borderRadius: radius.xl,
+                      borderCurve: "continuous",
+                      backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: isDark ? colors.borderStrong : colors.separator,
+                      marginBottom: spacing.sm + 2,
+                      transform: [{ scale: pressed ? 0.99 : 1 }],
+                      ...(isDark ? {} : shadow.sm),
+                    })}
+                  >
+                    {/* Left Icon */}
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        backgroundColor: tn.bg,
                         alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: spacing.md,
                       }}
                     >
+                      <Icon size={19} color={tn.fg} strokeWidth={2.2} />
+                    </View>
+
+                    {/* Center Content */}
+                    <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <View
-                          style={{
-                            paddingHorizontal: 7,
-                            paddingVertical: 2,
-                            borderRadius: 6,
-                            backgroundColor: meta.bg,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              fontWeight: "800",
-                              color: meta.fg,
-                              letterSpacing: 0.5,
-                            }}
-                          >
-                            {meta.tag}
-                          </Text>
-                        </View>
+                        <Text style={[typography.label.xs, { color: tn.fg }]}>
+                          {meta.tag}
+                        </Text>
                         {isVideo ? (
                           <View
                             style={{
@@ -853,108 +797,89 @@ export default function ScheduleScreen() {
                               paddingHorizontal: 6,
                               paddingVertical: 2,
                               borderRadius: 6,
-                              backgroundColor: "rgba(16, 185, 129, 0.12)",
+                              borderCurve: "continuous",
+                              backgroundColor: colors.successSoft,
                             }}
                           >
-                            <Video size={10} color="#059669" />
-                            <Text
-                              style={{
-                                fontSize: 10,
-                                fontWeight: "700",
-                                color: "#059669",
-                              }}
-                            >
+                            <Video size={10} color={colors.success} />
+                            <Text style={[typography.label.xs, { fontSize: 10, color: colors.success }]}>
                               Video
                             </Text>
                           </View>
                         ) : null}
-                      </View>
-
-                      {e.startTime ? (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Clock size={11} color={colors.textSubtle} />
-                          <Text
+                        {e.startTime ? (
+                          <View
                             style={{
-                              fontSize: 12,
-                              fontWeight: "700",
-                              color: colors.text,
-                              fontFamily: fontFamily.bodyBold,
+                              marginLeft: "auto",
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 3,
                             }}
                           >
-                            {e.startTime}
-                            {e.endTime ? ` – ${e.endTime}` : ""}
-                          </Text>
+                            <Clock size={11} color={colors.textSubtle} />
+                            <Text
+                              style={[
+                                typography.caption,
+                                { color: colors.textMuted, fontVariant: ["tabular-nums"] },
+                              ]}
+                            >
+                              {e.startTime}
+                              {e.endTime ? ` – ${e.endTime}` : ""}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+
+                      {/* Patient Name / Title */}
+                      <Text
+                        numberOfLines={1}
+                        style={[typography.title.md, { color: colors.text }]}
+                      >
+                        {e.patientName || e.title || meta.label}
+                      </Text>
+
+                      {/* Subtitle Details: Queue / Room / Status */}
+                      {(e.queueNumber !== null || e.status || e.title) ? (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          {e.queueNumber !== null && e.queueNumber !== undefined ? (
+                            <View
+                              style={{
+                                paddingHorizontal: 6,
+                                paddingVertical: 1,
+                                borderRadius: 5,
+                                borderCurve: "continuous",
+                                backgroundColor: colors.fill,
+                              }}
+                            >
+                              <Text style={[typography.label.xs, { color: colors.textMuted }]}>
+                                Queue #{e.queueNumber}
+                              </Text>
+                            </View>
+                          ) : null}
+
+                          {e.status ? (
+                            <Text
+                              style={[
+                                typography.caption,
+                                { color: colors.textSubtle, textTransform: "capitalize" },
+                              ]}
+                            >
+                              {e.status}
+                            </Text>
+                          ) : null}
                         </View>
                       ) : null}
                     </View>
 
-                    {/* Patient Name / Title */}
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontSize: 16,
-                        fontWeight: "800",
-                        color: colors.text,
-                        fontFamily: fontFamily.displayBold,
-                        marginTop: 1,
-                      }}
-                    >
-                      {e.patientName || e.title || meta.label}
-                    </Text>
-
-                    {/* Subtitle Details: Queue / Room / Status */}
-                    {(e.queueNumber !== null || e.status || e.title) ? (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 1 }}>
-                        {e.queueNumber !== null && e.queueNumber !== undefined ? (
-                          <View
-                            style={{
-                              paddingHorizontal: 6,
-                              paddingVertical: 1,
-                              borderRadius: 4,
-                              backgroundColor: colors.surfaceMuted,
-                            }}
-                          >
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                fontWeight: "700",
-                                color: colors.textMuted,
-                              }}
-                            >
-                              Queue #{e.queueNumber}
-                            </Text>
-                          </View>
-                        ) : null}
-
-                        {e.status ? (
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: colors.textSubtle,
-                              textTransform: "capitalize",
-                            }}
-                          >
-                            {e.status}
-                          </Text>
-                        ) : null}
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {/* Right Chevron */}
-                  <ChevronRight
-                    size={18}
-                    color={colors.textSubtle}
-                    strokeWidth={2.4}
-                    style={{ marginLeft: spacing.xs }}
-                  />
-                </Pressable>
+                    {/* Right Chevron */}
+                    <ChevronRight
+                      size={17}
+                      color={colors.textSubtle}
+                      strokeWidth={2.4}
+                      style={{ marginLeft: spacing.xs }}
+                    />
+                  </Pressable>
+                </View>
               );
             })}
           </ScrollView>
@@ -970,84 +895,74 @@ function PulseMetricCard({
   value,
   subtext,
   icon: Icon,
-  fg,
-  bg,
-  border,
+  tone = "primary",
 }: {
   label: string;
   value: number;
   subtext: string;
   icon: any;
-  fg: string;
-  bg: string;
-  border: string;
+  tone?: Tone;
 }) {
-  const { colors, radius, fontFamily, spacing } = useTheme();
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const tn = tonePalette(tone, colors);
 
   return (
     <View
       style={{
         flex: 1,
         borderRadius: 18,
-        padding: spacing.sm + 2,
+        borderCurve: "continuous",
+        padding: spacing.md,
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: border || colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.separator,
         justifyContent: "space-between",
-        shadowColor: "#062238",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 5,
-        elevation: 1,
+        ...(isDark ? {} : shadow.xs),
       }}
     >
-      {/* Top row: Label + Icon */}
+      {/* Top row: Icon + Label */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 4,
+          gap: 6,
+          marginBottom: 6,
         }}
       >
-        <Text
-          numberOfLines={1}
-          style={{
-            flex: 1,
-            fontSize: 10,
-            fontWeight: "800",
-            letterSpacing: 0.6,
-            color: fg,
-            fontFamily: fontFamily.displayBold,
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
-        </Text>
         <View
           style={{
-            width: 26,
-            height: 26,
-            borderRadius: 9,
-            backgroundColor: bg,
+            width: 22,
+            height: 22,
+            borderRadius: 7,
+            borderCurve: "continuous",
+            backgroundColor: tn.bg,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon size={13} color={fg} strokeWidth={2.4} />
+          <Icon size={12} color={tn.fg} strokeWidth={2.5} />
         </View>
+        <Text
+          numberOfLines={1}
+          style={[typography.label.sm, { flex: 1, color: tn.fg }]}
+        >
+          {label}
+        </Text>
       </View>
 
       {/* Number */}
       <Text
-        style={{
-          fontSize: 24,
-          lineHeight: 28,
-          fontWeight: "800",
-          color: colors.text,
-          fontFamily: fontFamily.displayBold,
-          letterSpacing: -0.5,
-        }}
+        style={[
+          typography.display.sm,
+          {
+            fontSize: 26,
+            lineHeight: 30,
+            letterSpacing: -0.9,
+            color: colors.text,
+            fontVariant: ["tabular-nums"],
+          },
+        ]}
       >
         {value}
       </Text>
@@ -1055,12 +970,7 @@ function PulseMetricCard({
       {/* Subtext */}
       <Text
         numberOfLines={1}
-        style={{
-          fontSize: 10,
-          fontWeight: "600",
-          color: colors.textMuted,
-          marginTop: 2,
-        }}
+        style={[typography.caption, { fontSize: 11, color: colors.textSubtle, marginTop: 1 }]}
       >
         {subtext}
       </Text>

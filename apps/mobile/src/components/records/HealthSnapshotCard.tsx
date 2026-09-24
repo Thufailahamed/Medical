@@ -71,6 +71,7 @@ export function HealthSnapshotCard({
             borderColor: colors.border,
             padding: spacing.lg,
             borderRadius: radius.xl,
+            borderCurve: "continuous",
           },
         ]}
       >
@@ -99,6 +100,7 @@ export function HealthSnapshotCard({
           backgroundColor: colors.surface,
           borderColor: colors.border,
           borderRadius: 24,
+          borderCurve: "continuous",
           padding: spacing.lg,
           gap: spacing.lg,
         },
@@ -108,9 +110,9 @@ export function HealthSnapshotCard({
       {snapshot.redBanner.length > 0 && (
         <Pressable
           onPress={onJumpToAllergies}
-          style={[styles.redBanner, { backgroundColor: "#FEE2E2" }]}
+          style={[styles.redBanner, { backgroundColor: colors.dangerSoft }]}
         >
-          <ShieldAlert size={18} color="#B91C1C" />
+          <ShieldAlert size={18} color={colors.danger} />
           <View style={styles.redBannerText}>
             <AppText variant="body.sm" weight="700" style={{ color: "#7F1D1D" }}>
               {t(
@@ -119,19 +121,19 @@ export function HealthSnapshotCard({
                 { count: snapshot.redBanner.length }
               )}
             </AppText>
-            <AppText variant="caption" style={{ color: "#991B1B", marginTop: 2 }}>
+            <AppText variant="caption" style={{ color: colors.danger, marginTop: 2 }}>
               {snapshot.redBanner.map((x) => x.substance).join(", ")}
             </AppText>
           </View>
-          <ChevronRight size={16} color="#B91C1C" />
+          <ChevronRight size={16} color={colors.danger} />
         </Pressable>
       )}
 
       {/* ─── Drug allergy warnings ──────────────────────────────── */}
       {snapshot.drugAllergyWarnings.length > 0 && (
-        <View style={[styles.warningStrip, { backgroundColor: "#FEF3C7" }]}>
-          <AlertTriangle size={16} color="#D97706" />
-          <AppText variant="caption" weight="600" style={{ color: "#92400E", flex: 1 }}>
+        <View style={[styles.warningStrip, { backgroundColor: colors.warningSoft }]}>
+          <AlertTriangle size={16} color={colors.warning} />
+          <AppText variant="caption" weight="600" style={{ color: colors.warning, flex: 1 }}>
             {t("records.snapshot.drugWarning", "Potential allergy conflict found")}
           </AppText>
         </View>
@@ -268,7 +270,7 @@ export function HealthSnapshotCard({
                   }
                 : null
             }
-            icon={<Heart size={12} color="#DC2626" />}
+            icon={<Heart size={12} color={colors.danger} />}
             bgColor="#FEE2E2"
           />
           <VitalTile
@@ -286,7 +288,7 @@ export function HealthSnapshotCard({
                   }
                 : null
             }
-            icon={<Heart size={12} color="#EF4444" />}
+            icon={<Heart size={12} color={colors.danger} />}
             bgColor="#FFE4E6"
           />
           <VitalTile
@@ -406,6 +408,7 @@ function VitalTile({
               width: 24,
               height: 24,
               borderRadius: 12,
+              borderCurve: "continuous",
               backgroundColor: bgColor,
               alignItems: "center",
               justifyContent: "center",
@@ -457,6 +460,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
     borderRadius: 12,
+    borderCurve: "continuous",
   },
   redBannerText: { flex: 1, gap: 2 },
   warningStrip: {
@@ -465,6 +469,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 10,
     borderRadius: 10,
+    borderCurve: "continuous",
   },
   section: { gap: 10 },
   sectionHeader: {
@@ -477,6 +482,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
+    borderCurve: "continuous",
     borderWidth: 1,
   },
   medItem: {
@@ -484,6 +490,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderRadius: 14,
+    borderCurve: "continuous",
     borderWidth: 1,
     gap: 12,
   },
@@ -491,6 +498,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
+    borderCurve: "continuous",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -504,6 +512,7 @@ const styles = StyleSheet.create({
     flexBasis: "47%",
     flexGrow: 1,
     borderRadius: 16,
+    borderCurve: "continuous",
     borderWidth: 1,
     gap: 4,
   },

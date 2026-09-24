@@ -7,6 +7,7 @@ import { useUnreadCount, usePatientConversations } from "@/hooks/useApi";
 import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
+import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { useLocaleStore } from "@/stores/locale";
 import TeleconsultWaitingBanner from "@/components/teleconsult/TeleconsultWaitingBanner";
 
@@ -36,6 +37,7 @@ export default function AppLayout() {
   const locale = useLocaleStore((s) => s.locale);
   const isWideScript = locale === "si" || locale === "ta";
   const labelStyle = isWideScript ? NARROW_TAB_LABEL : WIDE_TAB_LABEL;
+  const tabOptions = useFloatingTabBarOptions({ fontSize: labelStyle.fontSize, letterSpacing: labelStyle.letterSpacing });
 
   // SSE-driven notifications: server pushes → invalidate React Query.
   useRealtime();
@@ -45,58 +47,7 @@ export default function AppLayout() {
       <TeleconsultWaitingBanner roomPathname="/(app)/teleconsult/[roomId]" />
       <Tabs
         backBehavior="history"
-        screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSubtle,
-        tabBarItemStyle: {
-          paddingTop: 3,
-        },
-        tabBarStyle: {
-          position: "absolute",
-          left: 16,
-          right: 16,
-          bottom: Platform.OS === "ios" ? 14 : 10,
-          backgroundColor: "transparent",
-          borderTopWidth: 0,
-          height: Platform.OS === "ios" ? 72 : 64,
-          paddingBottom: Platform.OS === "ios" ? 10 : 6,
-          paddingTop: 4,
-          borderRadius: 24,
-          elevation: 16,
-          shadowColor: "#062238",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.12,
-          shadowRadius: 20,
-        },
-        tabBarBackground: () => (
-          <View
-            style={{
-              ...StyleSheet.absoluteFillObject,
-              borderRadius: 24,
-              overflow: "hidden",
-              borderWidth: 1,
-              borderColor: "rgba(226, 235, 241, 0.8)",
-              backgroundColor:
-                Platform.OS === "android"
-                  ? "#FFFFFF"
-                  : "rgba(255, 255, 255, 0.88)",
-            }}
-          >
-            {Platform.OS === "ios" ? (
-              <BlurView
-                intensity={80}
-                tint="light"
-                style={StyleSheet.absoluteFill}
-              />
-            ) : null}
-          </View>
-        ),
-        tabBarLabelStyle: {
-          ...labelStyle,
-          marginTop: 2,
-        },
-      }}
+        screenOptions={tabOptions}
     >
       <Tabs.Screen
         name="index"

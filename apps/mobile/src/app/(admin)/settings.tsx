@@ -177,6 +177,7 @@ export default function AdminSettingsScreen() {
                     backgroundColor: colors.warningSoft,
                     padding: spacing.sm,
                     borderRadius: 12,
+                    borderCurve: "continuous",
                   }}
                 >
                   <Lock size={14} color={colors.warning} />

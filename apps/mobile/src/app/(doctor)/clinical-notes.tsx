@@ -8,6 +8,7 @@ import {
   Pressable,
   RefreshControl,
   TextInput as RNTextInput,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -25,7 +26,8 @@ import {
 export default function DoctorClinicalNotesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const { data, isLoading, isError, refetch } = useDoctorClinicalNotes();
   const [refreshing, setRefreshing] = useState(false);
   const [q, setQ] = useState("");
@@ -81,12 +83,11 @@ export default function DoctorClinicalNotesScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.sm,
-              paddingHorizontal: spacing.md,
-              backgroundColor: colors.surfaceMuted,
-              borderRadius: radius.lg,
-              borderWidth: 1,
-              borderColor: colors.border,
-              minHeight: 44,
+              paddingHorizontal: 12,
+              backgroundColor: colors.fill,
+              borderRadius: 12,
+              borderCurve: "continuous",
+              minHeight: 40,
             }}
           >
             <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
@@ -97,8 +98,8 @@ export default function DoctorClinicalNotesScreen() {
               placeholderTextColor={colors.textSubtle}
               style={{
                 flex: 1,
+                ...typography.body.md,
                 color: colors.text,
-                fontSize: 14,
                 paddingVertical: 8,
               }}
             />
@@ -109,13 +110,7 @@ export default function DoctorClinicalNotesScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t("doctorClinicalNotes.clearA11y")}
               >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: colors.textMuted,
-                  }}
-                >
+                <Text style={[typography.label.sm, { color: colors.primary }]}>
                   {t("doctorClinicalNotes.clear")}
                 </Text>
               </Pressable>
@@ -179,10 +174,12 @@ export default function DoctorClinicalNotesScreen() {
                   backgroundColor: pressed
                     ? colors.surfaceMuted
                     : colors.surface,
-                  borderRadius: radius.lg,
+                  borderRadius: radius.xl,
+                  borderCurve: "continuous",
                   padding: spacing.md,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: isDark ? colors.borderStrong : colors.separator,
+                  ...(isDark ? {} : shadow.xs),
                 })}
               >
                 <View
@@ -194,25 +191,26 @@ export default function DoctorClinicalNotesScreen() {
                 >
                   <View
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
-                      backgroundColor: colors.primarySoft,
+                      width: 42,
+                      height: 42,
+                      borderRadius: 13,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.accentSoft,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
                     <Edit3
-                      size={20}
-                      color={colors.primary}
+                      size={19}
+                      color={colors.accent}
                       strokeWidth={2.25}
                     />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text
                       style={[
-                        typography.title.sm,
-                        { color: colors.text, fontWeight: "700" },
+                        typography.title.md,
+                        { color: colors.text },
                       ]}
                       numberOfLines={1}
                     >
@@ -233,9 +231,8 @@ export default function DoctorClinicalNotesScreen() {
                         style={[
                           typography.body.sm,
                           {
-                            color: colors.textMuted,
+                            color: colors.textSubtle,
                             marginTop: 6,
-                            lineHeight: 18,
                           },
                         ]}
                         numberOfLines={2}
@@ -256,14 +253,7 @@ export default function DoctorClinicalNotesScreen() {
                         color={colors.textSubtle}
                         strokeWidth={2.2}
                       />
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: colors.textSubtle,
-                          letterSpacing: 0.3,
-                        }}
-                      >
+                      <Text style={[typography.caption, { color: colors.textSubtle }]}>
                         {(r.date || "").toUpperCase()}
                       </Text>
                     </View>

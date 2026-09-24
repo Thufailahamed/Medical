@@ -41,7 +41,7 @@ export const TextInput = forwardRef<RNTextInput, Props>(function TextInput(
   },
   ref
 ) {
-  const { colors, spacing, radius, typography, fontFamily } = useTheme();
+  const { colors, spacing, radius, fontFamily, scheme } = useTheme();
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(!!secureTextEntry);
 
@@ -49,9 +49,11 @@ export const TextInput = forwardRef<RNTextInput, Props>(function TextInput(
     ? colors.danger
     : focused
     ? colors.borderFocus
+    : scheme === "dark"
+    ? colors.borderStrong
     : colors.border;
 
-  const bg = tone === "soft" ? colors.surfaceMuted : colors.surface;
+  const bg = tone === "soft" ? colors.fill : colors.surface;
 
   const iconColor = invalid
     ? colors.danger
@@ -66,14 +68,23 @@ export const TextInput = forwardRef<RNTextInput, Props>(function TextInput(
           flexDirection: "row",
           alignItems: "center",
           minHeight: 52,
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: spacing.md + 2,
           backgroundColor: bg,
-          borderRadius: radius.lg,
-          borderWidth: focused || invalid ? 1.5 : 1,
+          borderRadius: radius.field,
+          borderCurve: "continuous",
+          borderWidth: focused || invalid ? 1.5 : tone === "soft" ? 0 : 1,
           borderColor,
-          gap: spacing.sm,
+          gap: spacing.sm + 2,
           opacity: editable ? 1 : 0.6,
         },
+        focused && !invalid
+          ? {
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.18,
+              shadowRadius: 8,
+            }
+          : null,
         containerStyle,
       ]}
     >

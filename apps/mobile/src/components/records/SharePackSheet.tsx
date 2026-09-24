@@ -254,11 +254,13 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 10,
     borderRadius: 10,
+    borderCurve: "continuous",
     borderWidth: 1,
   },
   urlBox: {
     padding: 12,
     borderRadius: 10,
+    borderCurve: "continuous",
     borderWidth: 1,
   },
 });

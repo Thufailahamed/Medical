@@ -150,6 +150,7 @@ export function TrendComparison({
       style={{
         backgroundColor: colors.surfaceMuted,
         borderRadius: radius.lg,
+        borderCurve: "continuous",
         padding: spacing.md,
         gap: spacing.sm,
       }}

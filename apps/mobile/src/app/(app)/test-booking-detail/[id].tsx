@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, Alert, Linking } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, Linking, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -60,15 +60,16 @@ const STATUS_STEPS = [
 const STATUS_ORDER = STATUS_STEPS.map((s) => s.key);
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
-  pending: { color: "#D97706", bg: "#FEF3C7" },
-  confirmed: { color: "#3B82F6", bg: "#EFF6FF" },
-  phlebotomist_assigned: { color: "#8B5CF6", bg: "#F5F3FF" },
-  sample_collection_en_route: { color: "#F97316", bg: "#FFF7ED" },
-  sample_collected: { color: "#06B6D4", bg: "#ECFEFF" },
-  in_progress: { color: "#8B5CF6", bg: "#F5F3FF" },
-  completed: { color: "#059669", bg: "#ECFDF5" },
-  cancelled: { color: "#EF4444", bg: "#FEF2F2" },
-  rescheduled: { color: "#6B7280", bg: "#F9FAFB" },
+  // bg = tone colour at ~12% alpha → reads on light and dark surfaces.
+  pending: { color: "#D97706", bg: "#D977061F" },
+  confirmed: { color: "#3B82F6", bg: "#3B82F61F" },
+  phlebotomist_assigned: { color: "#8B5CF6", bg: "#8B5CF61F" },
+  sample_collection_en_route: { color: "#F97316", bg: "#F973161F" },
+  sample_collected: { color: "#06B6D4", bg: "#06B6D41F" },
+  in_progress: { color: "#8B5CF6", bg: "#8B5CF61F" },
+  completed: { color: "#059669", bg: "#0596691F" },
+  cancelled: { color: "#EF4444", bg: "#EF44441F" },
+  rescheduled: { color: "#6B7280", bg: "#6B72801F" },
 };
 
 function formatPrice(price: number) {
@@ -88,8 +89,13 @@ function formatDisplayDate(dateStr: string) {
 export default function TestBookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
   const router = useRouter();
+  const sectionTitle = {
+    ...typography.title.md,
+    color: colors.text,
+    marginBottom: 14,
+  };
   const toast = useToast();
 
   const { data, isLoading, error } = useTestBookingDetail(id);
@@ -135,8 +141,8 @@ export default function TestBookingDetailScreen() {
       <Screen padded={false} bottomInset={false}>
         <ScreenHeader title="Booking Details" back />
         <View style={{ padding: 16 }}>
-          <Skeleton style={{ height: 200, borderRadius: 16, marginBottom: 16 }} />
-          <Skeleton style={{ height: 300, borderRadius: 12 }} />
+          <Skeleton style={{ height: 96, borderRadius: radius.card, marginBottom: 12 }} />
+          <Skeleton style={{ height: 300, borderRadius: radius.card }} />
         </View>
       </Screen>
     );
@@ -172,7 +178,9 @@ export default function TestBookingDetailScreen() {
     booking.paymentMethod !== "cash" &&
     !["cancelled", "completed", "rescheduled"].includes(booking.status);
 
-  const handlePayRetry = useCallback(async () => {
+  // Plain handler (not useCallback): it is declared after the early returns above,
+  // and hooks there would change the hook count between renders.
+  const handlePayRetry = async () => {
     setPaying(true);
     try {
       const init: any = await api("/payments/initiate", {
@@ -197,9 +205,11 @@ export default function TestBookingDetailScreen() {
     } finally {
       setPaying(false);
     }
-  }, [id, toast]);
+  };
 
-  const handleRescheduleConfirm = useCallback(async () => {
+  // Plain handler (not useCallback): it is declared after the early returns above,
+  // and hooks there would change the hook count between renders.
+  const handleRescheduleConfirm = async () => {
     if (!newDate || !newSlot) {
       toast.show("Pick a date and time slot", "error");
       return;
@@ -215,7 +225,7 @@ export default function TestBookingDetailScreen() {
     } catch (err: any) {
       toast.show(err?.message || "Failed to reschedule", "error");
     }
-  }, [id, newDate, newSlot, rescheduleBooking, toast]);
+  };
 
   return (
     <Screen padded={false} bottomInset={false}>
@@ -230,27 +240,39 @@ export default function TestBookingDetailScreen() {
           style={{
             marginHorizontal: 16,
             marginTop: 8,
-            marginBottom: 12,
+            marginBottom: 16,
             backgroundColor: statusCfg.bg,
-            borderRadius: 16,
-            padding: 16,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            padding: 18,
             flexDirection: "row",
             alignItems: "center",
           }}
         >
-          {isCancelled ? (
-            <XCircle size={28} color={statusCfg.color} />
-          ) : isCompleted ? (
-            <CheckCircle2 size={28} color={statusCfg.color} />
-          ) : (
-            <Loader2 size={28} color={statusCfg.color} />
-          )}
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              borderCurve: "continuous",
+              backgroundColor: statusCfg.color,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {isCancelled ? (
+              <XCircle size={24} color="#FFFFFF" strokeWidth={2.3} />
+            ) : isCompleted ? (
+              <CheckCircle2 size={24} color="#FFFFFF" strokeWidth={2.3} />
+            ) : (
+              <Loader2 size={24} color="#FFFFFF" strokeWidth={2.3} />
+            )}
+          </View>
           <View style={{ marginLeft: 14, flex: 1 }}>
             <Text
               style={{
-                fontSize: 18,
-                fontWeight: "700",
-                color: statusCfg.color,
+                ...typography.title.lg,
+                color: colors.text,
               }}
             >
               {isCancelled
@@ -263,9 +285,10 @@ export default function TestBookingDetailScreen() {
             </Text>
             <Text
               style={{
-                fontSize: 13,
-                color: statusCfg.color + "cc",
+                ...typography.body.sm,
+                color: statusCfg.color,
                 marginTop: 2,
+                textTransform: "capitalize",
               }}
             >
               {isCancelled
@@ -280,14 +303,7 @@ export default function TestBookingDetailScreen() {
         {/* Status Timeline (for active/completed bookings) */}
         {!isCancelled && !isRescheduled && (
           <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
-            <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 16,
-              }}
-            >
+            <Text style={{ ...sectionTitle, marginBottom: 18 }}>
               Progress
             </Text>
 
@@ -303,7 +319,7 @@ export default function TestBookingDetailScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "flex-start",
-                    marginBottom: index < STATUS_STEPS.length - 1 ? 16 : 0,
+                    marginBottom: index < STATUS_STEPS.length - 1 ? 4 : 0,
                   }}
                 >
                   {/* Icon + Line */}
@@ -315,16 +331,19 @@ export default function TestBookingDetailScreen() {
                   >
                     <View
                       style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 14,
-                        backgroundColor: isPast || isCurrent
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        borderCurve: "continuous",
+                        backgroundColor: isPast
                           ? colors.primary
-                          : colors.card,
+                          : isCurrent
+                            ? colors.primary
+                            : colors.fill,
                         alignItems: "center",
                         justifyContent: "center",
-                        borderWidth: isFuture ? 2 : 0,
-                        borderColor: colors.border,
+                        borderWidth: isCurrent ? 3 : 0,
+                        borderColor: colors.primarySoft,
                       }}
                     >
                       {isPast ? (
@@ -340,27 +359,27 @@ export default function TestBookingDetailScreen() {
                       <View
                         style={{
                           width: 2,
-                          height: 24,
-                          backgroundColor:
-                            isPast || isCurrent
-                              ? colors.primary
-                              : colors.border,
-                          marginTop: 4,
+                          height: 22,
+                          borderRadius: 1,
+                          backgroundColor: isPast
+                            ? colors.primary
+                            : colors.separator,
+                          marginVertical: 3,
                         }}
                       />
                     )}
                   </View>
 
                   {/* Label */}
-                  <View style={{ marginLeft: 12, flex: 1 }}>
+                  <View style={{ marginLeft: 12, flex: 1, paddingTop: 5 }}>
                     <Text
                       style={{
+                        ...(isCurrent ? typography.title.xs : typography.body.sm),
                         fontSize: 14,
-                        fontWeight: isCurrent ? "600" : "400",
                         color:
                           isPast || isCurrent
                             ? colors.text
-                            : colors.textSecondary,
+                            : colors.textSubtle,
                       }}
                     >
                       {step.label}
@@ -368,9 +387,9 @@ export default function TestBookingDetailScreen() {
                     {isCurrent && (
                       <Text
                         style={{
-                          fontSize: 12,
+                          ...typography.caption,
                           color: colors.primary,
-                          marginTop: 2,
+                          marginTop: 1,
                         }}
                       >
                         Current status
@@ -386,33 +405,40 @@ export default function TestBookingDetailScreen() {
         {/* Test/Package Info */}
         <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
           <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "600",
-              color: colors.text,
-              marginBottom: 12,
-            }}
+            style={sectionTitle}
           >
             Test Details
           </Text>
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-            {booking.bookingType === "single_test" ? (
-              <TestTube2 size={22} color={colors.primary} />
-            ) : (
-              <Package size={22} color={colors.primary} />
-            )}
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                borderCurve: "continuous",
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {booking.bookingType === "single_test" ? (
+                <TestTube2 size={20} color={colors.primary} strokeWidth={2.3} />
+              ) : (
+                <Package size={20} color={colors.primary} strokeWidth={2.3} />
+              )}
+            </View>
             <View style={{ marginLeft: 12, flex: 1 }}>
               <Text
                 style={{
-                  fontSize: 16,
-                  fontWeight: "600",
+                  ...typography.title.sm,
+                  fontFamily: typography.title.md.fontFamily,
                   color: colors.text,
                 }}
               >
                 {booking.itemName || "Test Booking"}
               </Text>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+              <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 1 }}>
                 {booking.bookingType === "single_test"
                   ? "Single Test"
                   : "Health Package"}
@@ -420,8 +446,7 @@ export default function TestBookingDetailScreen() {
             </View>
             <Text
               style={{
-                fontSize: 18,
-                fontWeight: "700",
+                ...typography.title.lg,
                 color: colors.text,
               }}
             >
@@ -433,17 +458,17 @@ export default function TestBookingDetailScreen() {
           {booking.itemDetails?.tests && (
             <View
               style={{
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-                paddingTop: 12,
+                backgroundColor: colors.surfaceMuted,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                padding: 14,
               }}
             >
               <Text
                 style={{
-                  fontSize: 13,
-                  fontWeight: "600",
-                  color: colors.textSecondary,
-                  marginBottom: 8,
+                  ...typography.label.sm,
+                  color: colors.textMuted,
+                  marginBottom: 10,
                 }}
               >
                 Included tests:
@@ -454,15 +479,16 @@ export default function TestBookingDetailScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    marginBottom: 6,
+                    marginBottom: 8,
                   }}
                 >
-                  <CheckCircle2 size={14} color="#059669" />
+                  <CheckCircle2 size={15} color={colors.success} strokeWidth={2.3} />
                   <Text
                     style={{
-                      fontSize: 13,
+                      ...typography.body.sm,
                       color: colors.text,
-                      marginLeft: 8,
+                      marginLeft: 10,
+                      flex: 1,
                     }}
                   >
                     {test.name}
@@ -476,22 +502,26 @@ export default function TestBookingDetailScreen() {
         {/* Schedule & Address */}
         <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
           <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "600",
-              color: colors.text,
-              marginBottom: 12,
-            }}
+            style={sectionTitle}
           >
             Collection Details
           </Text>
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-            <Calendar size={18} color={colors.textSecondary} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingBottom: 12,
+              marginBottom: 12,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.separator,
+            }}
+          >
+            <Calendar size={18} color={colors.textSubtle} />
             <Text
               style={{
-                marginLeft: 10,
-                fontSize: 14,
+                marginLeft: 12,
+                ...typography.label.lg,
                 color: colors.text,
               }}
             >
@@ -499,12 +529,21 @@ export default function TestBookingDetailScreen() {
             </Text>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-            <Clock size={18} color={colors.textSecondary} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingBottom: 12,
+              marginBottom: 12,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.separator,
+            }}
+          >
+            <Clock size={18} color={colors.textSubtle} />
             <Text
               style={{
-                marginLeft: 10,
-                fontSize: 14,
+                marginLeft: 12,
+                ...typography.body.md,
                 color: colors.text,
               }}
             >
@@ -513,14 +552,13 @@ export default function TestBookingDetailScreen() {
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-            <MapPin size={18} color={colors.textSecondary} />
+            <MapPin size={18} color={colors.textSubtle} />
             <Text
               style={{
-                marginLeft: 10,
-                fontSize: 14,
+                marginLeft: 12,
+                ...typography.body.md,
                 color: colors.text,
                 flex: 1,
-                lineHeight: 20,
               }}
             >
               {booking.collectionAddress?.line1}
@@ -541,12 +579,7 @@ export default function TestBookingDetailScreen() {
         {booking.phlebotomistName && (
           <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
             <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 12,
-              }}
+              style={sectionTitle}
             >
               Phlebotomist
             </Text>
@@ -564,18 +597,18 @@ export default function TestBookingDetailScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
-                    backgroundColor: colors.primary + "15",
+                    borderCurve: "continuous",
+                    backgroundColor: colors.primarySoft,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <User size={22} color={colors.primary} />
+                  <User size={20} color={colors.primary} strokeWidth={2.3} />
                 </View>
                 <View style={{ marginLeft: 12 }}>
                   <Text
                     style={{
-                      fontSize: 15,
-                      fontWeight: "600",
+                      ...typography.title.sm,
                       color: colors.text,
                     }}
                   >
@@ -584,8 +617,9 @@ export default function TestBookingDetailScreen() {
                   {booking.phlebotomistPhone && (
                     <Text
                       style={{
-                        fontSize: 13,
-                        color: colors.textSecondary,
+                        ...typography.body.sm,
+                        color: colors.textMuted,
+                        marginTop: 1,
                       }}
                     >
                       {booking.phlebotomistPhone}
@@ -601,12 +635,13 @@ export default function TestBookingDetailScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
-                    backgroundColor: "#059669",
+                    borderCurve: "continuous",
+                    backgroundColor: colors.successSoft,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Phone size={20} color="#fff" />
+                  <Phone size={19} color={colors.success} strokeWidth={2.4} />
                 </Pressable>
               )}
             </View>
@@ -617,12 +652,7 @@ export default function TestBookingDetailScreen() {
         {isCompleted && (booking.resultPdfUrl || booking.resultSummary) && (
           <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
             <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 12,
-              }}
+              style={sectionTitle}
             >
               Results
             </Text>
@@ -630,8 +660,9 @@ export default function TestBookingDetailScreen() {
             {booking.resultSummary && (
               <View
                 style={{
-                  backgroundColor: "#ECFDF5",
-                  borderRadius: 12,
+                  backgroundColor: colors.successSoft,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
                   padding: 14,
                   marginBottom: 12,
                 }}
@@ -643,12 +674,11 @@ export default function TestBookingDetailScreen() {
                     marginBottom: 8,
                   }}
                 >
-                  <FileText size={16} color="#059669" />
+                  <FileText size={16} color={colors.success} strokeWidth={2.3} />
                   <Text
                     style={{
-                      fontSize: 13,
-                      fontWeight: "600",
-                      color: "#059669",
+                      ...typography.label.md,
+                      color: colors.success,
                       marginLeft: 6,
                     }}
                   >
@@ -657,9 +687,8 @@ export default function TestBookingDetailScreen() {
                 </View>
                 <Text
                   style={{
-                    fontSize: 14,
-                    color: "#065F46",
-                    lineHeight: 22,
+                    ...typography.body.md,
+                    color: colors.text,
                   }}
                 >
                   {booking.resultSummary}
@@ -669,22 +698,12 @@ export default function TestBookingDetailScreen() {
 
             {booking.resultPdfUrl && (
               <Button
-                variant="outline"
+                variant="secondary"
+                title="Download Full Report (PDF)"
+                icon={Download}
                 onPress={() => Linking.openURL(booking.resultPdfUrl!)}
                 style={{ width: "100%" }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <Download size={18} color={colors.primary} />
-                  <Text style={{ color: colors.primary, marginLeft: 8 }}>
-                    Download Full Report (PDF)
-                  </Text>
-                </View>
-              </Button>
+              />
             )}
           </Card>
         )}
@@ -707,11 +726,10 @@ export default function TestBookingDetailScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Star size={16} color="#F59E0B" />
+                  <Star size={16} color={colors.warning} fill={colors.warning} />
                   <Text
                     style={{
-                      fontSize: 15,
-                      fontWeight: "600",
+                      ...typography.title.sm,
                       color: colors.text,
                       marginLeft: 6,
                     }}
@@ -719,7 +737,7 @@ export default function TestBookingDetailScreen() {
                     Rate this experience
                   </Text>
                 </View>
-                <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+                <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
                   Your feedback helps other patients choose the right lab.
                 </Text>
               </View>
@@ -731,20 +749,20 @@ export default function TestBookingDetailScreen() {
                   })
                 }
                 style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 20,
+                  backgroundColor: colors.primarySoft,
+                  borderRadius: 999,
+                  borderCurve: "continuous",
                   paddingHorizontal: 16,
-                  paddingVertical: 10,
+                  height: 36,
                   flexDirection: "row",
                   alignItems: "center",
                 }}
               >
-                <Star size={14} color="#fff" />
+                <Star size={14} color={colors.primary} strokeWidth={2.4} />
                 <Text
                   style={{
-                    color: "#fff",
-                    fontSize: 14,
-                    fontWeight: "600",
+                    ...typography.label.md,
+                    color: colors.primary,
                     marginLeft: 6,
                   }}
                 >
@@ -758,12 +776,7 @@ export default function TestBookingDetailScreen() {
         {/* Payment Info */}
         <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16 }}>
           <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "600",
-              color: colors.text,
-              marginBottom: 12,
-            }}
+            style={sectionTitle}
           >
             Payment
           </Text>
@@ -772,15 +785,19 @@ export default function TestBookingDetailScreen() {
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              marginBottom: 8,
+              alignItems: "center",
+              paddingBottom: 12,
+              marginBottom: 12,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.separator,
             }}
           >
-            <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+            <Text style={{ ...typography.body.md, color: colors.textMuted }}>
               Method
             </Text>
             <Text
               style={{
-                fontSize: 14,
+                ...typography.label.lg,
                 color: colors.text,
                 textTransform: "capitalize",
               }}
@@ -795,21 +812,31 @@ export default function TestBookingDetailScreen() {
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              marginBottom: 8,
+              alignItems: "center",
+              marginBottom: 4,
             }}
           >
-            <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+            <Text style={{ ...typography.body.md, color: colors.textMuted }}>
               Status
             </Text>
             <Text
               style={{
-                fontSize: 14,
-                fontWeight: "600",
+                ...typography.label.sm,
+                overflow: "hidden",
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor:
+                  booking.paymentStatus === "paid"
+                    ? colors.successSoft
+                    : booking.paymentStatus === "refunded"
+                    ? colors.infoSoft
+                    : colors.fill,
                 color:
                   booking.paymentStatus === "paid"
-                    ? "#059669"
+                    ? colors.success
                     : booking.paymentStatus === "refunded"
-                    ? "#3B82F6"
+                    ? colors.info
                     : colors.text,
                 textTransform: "capitalize",
               }}
@@ -822,19 +849,21 @@ export default function TestBookingDetailScreen() {
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-              paddingTop: 8,
-              marginTop: 4,
+              alignItems: "center",
+              backgroundColor: colors.surfaceMuted,
+              borderRadius: 14,
+              borderCurve: "continuous",
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginTop: 12,
             }}
           >
-            <Text style={{ fontSize: 15, fontWeight: "600", color: colors.text }}>
+            <Text style={{ ...typography.title.sm, color: colors.text }}>
               Total
             </Text>
             <Text
               style={{
-                fontSize: 18,
-                fontWeight: "700",
+                ...typography.display.sm,
                 color: colors.text,
               }}
             >
@@ -847,9 +876,10 @@ export default function TestBookingDetailScreen() {
         <Text
           style={{
             textAlign: "center",
-            fontSize: 12,
-            color: colors.textSecondary,
+            ...typography.caption,
+            color: colors.textSubtle,
             marginTop: 8,
+            letterSpacing: 0.4,
           }}
         >
           Booking ID: {booking.id.slice(0, 8).toUpperCase()}
@@ -864,12 +894,12 @@ export default function TestBookingDetailScreen() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: colors.surface,
+            backgroundColor: colors.bgElevated ?? colors.surface,
             paddingHorizontal: 16,
-            paddingVertical: 16,
+            paddingTop: 12,
             paddingBottom: 32,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
             flexDirection: "row",
             alignItems: "center",
             gap: 12,
@@ -888,7 +918,7 @@ export default function TestBookingDetailScreen() {
           {canCancel && (
             <View style={{ flex: 1 }}>
               <Button
-                variant="outline"
+                variant="danger"
                 title="Cancel"
                 icon={Ban}
                 onPress={handleCancel}
@@ -900,7 +930,7 @@ export default function TestBookingDetailScreen() {
           {canReschedule && (
             <View style={{ flex: 1 }}>
               <Button
-                variant="outline"
+                variant="secondary"
                 title="Reschedule"
                 icon={RefreshCw}
                 onPress={() => {
@@ -936,25 +966,26 @@ export default function TestBookingDetailScreen() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor: colors.scrim ?? "rgba(0,0,0,0.5)",
             alignItems: "center",
             justifyContent: "center",
-            padding: 24,
+            padding: 20,
           }}
         >
           <View
             style={{
               width: "100%",
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              padding: 20,
-              gap: 12,
+              borderRadius: radius.xxl,
+              borderCurve: "continuous",
+              padding: 22,
+              gap: 14,
             }}
           >
-            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>
+            <Text style={{ ...typography.title.lg, color: colors.text }}>
               Reschedule visit
             </Text>
-            <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+            <Text style={{ ...typography.body.sm, color: colors.textMuted, marginTop: -6 }}>
               Pick a new date and slot. The booking returns to pending for the lab to re-confirm.
             </Text>
             <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
@@ -968,19 +999,17 @@ export default function TestBookingDetailScreen() {
                     key={v}
                     onPress={() => setNewDate(v)}
                     style={{
-                      paddingHorizontal: 10,
+                      paddingHorizontal: 12,
                       paddingVertical: 8,
                       borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? colors.primary : "transparent",
+                      borderCurve: "continuous",
+                      backgroundColor: active ? colors.primary : colors.fill,
                     }}
                   >
                     <Text
                       style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: active ? "#fff" : colors.text,
+                        ...typography.label.sm,
+                        color: active ? colors.onPrimary : colors.text,
                       }}
                     >
                       {d.toLocaleDateString("en-LK", { day: "numeric", month: "short" })}
@@ -997,19 +1026,19 @@ export default function TestBookingDetailScreen() {
                     key={s.id}
                     onPress={() => setNewSlot(s.id)}
                     style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      minHeight: 36,
+                      justifyContent: "center",
                       borderRadius: 999,
-                      borderWidth: 1,
-                      borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? colors.primary : "transparent",
+                      backgroundColor: active ? colors.primarySoft : colors.fill,
+                      borderWidth: 1.5,
+                      borderColor: active ? colors.primary : "transparent",
                     }}
                   >
                     <Text
                       style={{
-                        fontSize: 13,
-                        fontWeight: "600",
-                        color: active ? "#fff" : colors.text,
+                        ...typography.label.md,
+                        color: active ? colors.primary : colors.text,
                       }}
                     >
                       {s.label}
@@ -1021,7 +1050,7 @@ export default function TestBookingDetailScreen() {
             <View style={{ flexDirection: "row", gap: 12 }}>
               <View style={{ flex: 1 }}>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   title="Close"
                   onPress={() => setShowReschedule(false)}
                   style={{ width: "100%" }}

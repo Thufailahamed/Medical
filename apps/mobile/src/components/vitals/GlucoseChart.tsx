@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { View, Text } from "react-native";
+import { Activity } from "lucide-react-native";
 import Svg, { Rect, Line, Path, Circle, Text as SvgText } from "react-native-svg";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -229,6 +230,7 @@ export function GlucoseChart({ points, stats, width, height = 240 }: Props) {
           gap: spacing.xs,
           backgroundColor: colors.surfaceSubtle,
           borderRadius: 16,
+          borderCurve: "continuous",
           padding: spacing.md,
         }}
       >

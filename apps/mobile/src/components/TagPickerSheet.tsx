@@ -101,6 +101,7 @@ export function TagPickerSheet({
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 borderWidth: 1,
                 borderColor: colors.border,
                 backgroundColor: colors.bgElevated,
@@ -132,6 +133,7 @@ export function TagPickerSheet({
                 width: 44,
                 height: 44,
                 borderRadius: 12,
+                borderCurve: "continuous",
                 backgroundColor: pressed ? colors.primary : colors.primarySoft,
                 alignItems: "center",
                 justifyContent: "center",
@@ -175,6 +177,7 @@ export function TagPickerSheet({
             backgroundColor: pressed ? colors.primary : colors.primary,
             paddingVertical: spacing.md,
             borderRadius: 12,
+            borderCurve: "continuous",
             alignItems: "center",
           })}
         >

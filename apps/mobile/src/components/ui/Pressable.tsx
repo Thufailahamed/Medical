@@ -23,6 +23,8 @@ type Props = Omit<PressableProps, "style" | "children"> & {
   pressedOpacity?: number;
   haptic?: "none" | "light" | "medium" | "heavy" | "soft";
   hapticOnPress?: boolean;
+  /** Extra style for the outer animated wrapper (e.g. a shadow that must not be clipped). */
+  wrapperStyle?: StyleProp<ViewStyle>;
 };
 
 const HapticMap: Record<string, Haptics.ImpactFeedbackStyle | "soft"> = {
@@ -58,6 +60,26 @@ function extractLayoutStyle(style: StyleProp<ViewStyle> | undefined): ViewStyle 
   return out;
 }
 
+const MARGIN_KEYS = [
+  "margin", "marginTop", "marginBottom", "marginLeft", "marginRight",
+  "marginHorizontal", "marginVertical",
+] as const;
+
+/** Margins live only on the outer wrapper; applying them twice doubled the gap. */
+function stripMargins(style: StyleProp<ViewStyle> | undefined): StyleProp<ViewStyle> {
+  const flat = StyleSheet.flatten(style) as Record<string, unknown> | undefined;
+  if (!flat) return style;
+  let touched = false;
+  const out: Record<string, unknown> = { ...flat };
+  for (const k of MARGIN_KEYS) {
+    if (out[k] != null) {
+      delete out[k];
+      touched = true;
+    }
+  }
+  return touched ? (out as ViewStyle) : style;
+}
+
 export function Pressable({
   children,
   style,
@@ -69,6 +91,7 @@ export function Pressable({
   onPressOut,
   onPress,
   disabled,
+  wrapperStyle,
   ...rest
 }: Props) {
   const { motion: motionTokens } = useTheme();
@@ -137,14 +160,14 @@ export function Pressable({
   const layoutStyle = extractLayoutStyle(staticStyle);
 
   return (
-    <Animated.View style={[layoutStyle, animatedStyle]}>
+    <Animated.View style={[layoutStyle, wrapperStyle, animatedStyle]}>
       <RNPressable
         {...rest}
         disabled={disabled}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
-        style={style as any}
+        style={(typeof style === "function" ? style : stripMargins(style)) as any}
       >
         {children}
       </RNPressable>

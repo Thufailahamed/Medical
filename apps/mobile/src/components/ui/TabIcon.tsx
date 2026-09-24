@@ -67,13 +67,14 @@ export function TabIcon({
           styles.pill,
           {
             backgroundColor: colors.primarySoft,
-            borderRadius: 15,
+            borderRadius: 16,
+            borderCurve: "continuous",
           },
           pillStyle,
         ]}
       />
       <Animated.View style={iconStyle}>
-        <Icon size={size} color={fg} strokeWidth={focused ? 2.4 : 1.9} />
+        <Icon size={size} color={fg} strokeWidth={focused ? 2.5 : 2} />
       </Animated.View>
       {typeof badge === "number" && badge > 0 ? (
         <View
@@ -95,8 +96,8 @@ export function TabIcon({
 const styles = StyleSheet.create({
   pill: {
     position: "absolute",
-    width: 44,
-    height: 30,
+    width: 52,
+    height: 32,
   },
   badge: {
     position: "absolute",
@@ -108,10 +109,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: 2,
   },
   badgeText: {
     fontSize: 9,
-    fontWeight: "800",
+    fontFamily: "PlusJakartaSans_800ExtraBold",
   },
 });

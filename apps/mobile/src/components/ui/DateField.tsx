@@ -80,9 +80,10 @@ export function DateField({
             flexDirection: "row",
             alignItems: "center",
             minHeight: 52,
-            paddingHorizontal: spacing.md,
+            paddingHorizontal: spacing.md + 2,
             backgroundColor: colors.surface,
-            borderRadius: radius.lg,
+            borderRadius: radius.field,
+            borderCurve: "continuous",
             borderWidth: 1,
             borderColor,
             gap: spacing.sm,
@@ -146,11 +147,12 @@ export function DateField({
 
 const styles = StyleSheet.create({
   iosWrapper: {
-    backgroundColor: "#F9F9FB",
-    borderRadius: 16,
+    backgroundColor: "#F7F8FA",
+    borderRadius: 18,
+    borderCurve: "continuous",
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E6E4EA",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(60, 60, 67, 0.18)",
     marginTop: 8,
   },
   iosHeader: {

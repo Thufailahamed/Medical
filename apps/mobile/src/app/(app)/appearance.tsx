@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Smartphone, Sun, Moon, Heart, Pill, Check } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
@@ -70,7 +70,8 @@ export default function AppearanceScreen() {
         <View style={{ gap: spacing.sm }}>
           <SectionHeader title={t("appearance.appearanceModeHeading")} />
 
-          {options.map((opt) => {
+          <Card padded={false}>
+          {options.map((opt, idx) => {
             const selected = scheme === opt.value;
             const Icon = opt.icon;
 
@@ -84,41 +85,55 @@ export default function AppearanceScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: spacing.md,
-                  padding: spacing.md,
-                  borderRadius: radius.xl,
-                  borderWidth: 1.5,
-                  borderColor: selected ? colors.primary : colors.border,
-                  backgroundColor: selected
+                  minHeight: 64,
+                  paddingLeft: spacing.lg,
+                  backgroundColor: pressed
+                    ? colors.fill
+                    : selected
                     ? withOpacity(colors.primary, 0.06)
-                    : colors.surface,
-                  opacity: pressed ? 0.95 : 1,
+                    : "transparent",
                 })}
               >
                 <View
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
                     backgroundColor: selected
                       ? colors.primary
-                      : colors.surfaceMuted,
+                      : colors.fillStrong,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
                   <Icon
-                    size={20}
+                    size={18}
                     color={selected ? colors.onPrimary : colors.text}
                     strokeWidth={2.25}
                   />
                 </View>
 
+                <View
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.md,
+                    alignSelf: "stretch",
+                    paddingVertical: spacing.md,
+                    paddingRight: spacing.lg,
+                    borderBottomWidth: idx < options.length - 1 ? StyleSheet.hairlineWidth : 0,
+                    borderBottomColor: colors.separator,
+                  }}
+                >
                 <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                   <Text
                     numberOfLines={1}
                     style={[
                       typography.title.sm,
-                      { color: selected ? colors.primary : colors.text },
+                      { color: colors.text },
                     ]}
                   >
                     {t(opt.labelKey)}
@@ -126,7 +141,7 @@ export default function AppearanceScreen() {
                   <Text
                     numberOfLines={2}
                     style={[
-                      typography.body.sm,
+                      typography.caption,
                       { color: colors.textMuted },
                     ]}
                   >
@@ -136,11 +151,12 @@ export default function AppearanceScreen() {
 
                 <View
                   style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 11,
-                    borderWidth: 2,
-                    borderColor: selected ? colors.primary : colors.textSubtle,
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    borderWidth: selected ? 0 : 1.5,
+                    borderColor: colors.textSubtle,
+                    backgroundColor: selected ? colors.primary : "transparent",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -148,17 +164,19 @@ export default function AppearanceScreen() {
                   {selected ? (
                     <View
                       style={{
-                        width: 10,
-                        height: 10,
+                        width: 9,
+                        height: 9,
                         borderRadius: 5,
-                        backgroundColor: colors.primary,
+                        backgroundColor: colors.onPrimary,
                       }}
                     />
                   ) : null}
                 </View>
+                </View>
               </Pressable>
             );
           })}
+          </Card>
         </View>
 
         {/* ─── Language ──────────────────────────────────── */}
@@ -182,13 +200,11 @@ export default function AppearanceScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                backgroundColor: colors.surfaceMuted,
-                borderTopLeftRadius: radius.xl,
-                borderTopRightRadius: radius.xl,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.sm + 2,
+                backgroundColor: colors.surface,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.separator,
               }}
             >
               <Heart size={14} color={colors.primary} strokeWidth={2.25} />
@@ -221,20 +237,19 @@ export default function AppearanceScreen() {
             {/* Mock content */}
             <View
               style={{
-                padding: spacing.md,
+                padding: spacing.lg,
                 gap: spacing.md,
                 backgroundColor: colors.bg,
-                borderBottomLeftRadius: radius.xl,
-                borderBottomRightRadius: radius.xl,
               }}
             >
               {/* Mock hero */}
               <View
                 style={{
-                  height: 64,
+                  height: 72,
                   backgroundColor: colors.primarySoft,
-                  borderRadius: radius.md,
-                  padding: spacing.sm,
+                  borderRadius: 18,
+                  borderCurve: "continuous",
+                  padding: spacing.md,
                   justifyContent: "center",
                 }}
               >
@@ -265,18 +280,20 @@ export default function AppearanceScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: spacing.sm,
-                  padding: spacing.sm,
+                  padding: spacing.md,
                   backgroundColor: colors.surface,
-                  borderRadius: radius.md,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: colors.separator,
                 }}
               >
                 <View
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 16,
+                    borderRadius: 10,
+                    borderCurve: "continuous",
                     backgroundColor: colors.successSoft,
                     alignItems: "center",
                     justifyContent: "center",

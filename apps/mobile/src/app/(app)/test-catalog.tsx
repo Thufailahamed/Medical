@@ -8,6 +8,7 @@ import {
   Pressable,
   TextInput,
   Image,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -51,23 +52,24 @@ const CATEGORY_CONFIG: Record<
   string,
   { icon: any; color: string; soft: string; label: string }
 > = {
-  blood: { icon: Droplets, color: "#DC2626", soft: "#FEE2E2", label: "Blood Tests" },
-  urine: { icon: FlaskConical, color: "#D97706", soft: "#FEF3C7", label: "Urine Tests" },
-  stool: { icon: Beaker, color: "#7C3AED", soft: "#EDE9FE", label: "Stool Tests" },
-  cardiac: { icon: Heart, color: "#DB2777", soft: "#FCE7F3", label: "Cardiac" },
-  diabetes: { icon: Activity, color: "#2563EB", soft: "#DBEAFE", label: "Diabetes" },
-  thyroid: { icon: Shield, color: "#059669", soft: "#D1FAE5", label: "Thyroid" },
-  liver: { icon: Beaker, color: "#EA580C", soft: "#FFEDD5", label: "Liver" },
-  kidney: { icon: Droplets, color: "#0891B2", soft: "#CFFAFE", label: "Kidney" },
-  lipid: { icon: Pill, color: "#7C3AED", soft: "#EDE9FE", label: "Lipid Panel" },
-  vitamin: { icon: Syringe, color: "#0D9488", soft: "#CCFBF1", label: "Vitamins" },
-  hormone: { icon: Brain, color: "#DB2777", soft: "#FCE7F3", label: "Hormones" },
-  cancer_marker: { icon: Microscope, color: "#DC2626", soft: "#FEE2E2", label: "Cancer Markers" },
-  infection: { icon: Shield, color: "#D97706", soft: "#FEF3C7", label: "Infection" },
-  allergy: { icon: Zap, color: "#059669", soft: "#D1FAE5", label: "Allergy" },
-  genetic: { icon: Brain, color: "#7C3AED", soft: "#EDE9FE", label: "Genetic" },
-  imaging: { icon: Activity, color: "#2563EB", soft: "#DBEAFE", label: "Imaging" },
-  other: { icon: TestTube2, color: "#64748B", soft: "#F1F5F9", label: "Other" },
+  // `soft` = tone colour at ~12% alpha so tiles work in light and dark mode.
+  blood: { icon: Droplets, color: "#DC2626", soft: "#DC26261F", label: "Blood Tests" },
+  urine: { icon: FlaskConical, color: "#D97706", soft: "#D977061F", label: "Urine Tests" },
+  stool: { icon: Beaker, color: "#7C3AED", soft: "#7C3AED1F", label: "Stool Tests" },
+  cardiac: { icon: Heart, color: "#DB2777", soft: "#DB27771F", label: "Cardiac" },
+  diabetes: { icon: Activity, color: "#2563EB", soft: "#2563EB1F", label: "Diabetes" },
+  thyroid: { icon: Shield, color: "#059669", soft: "#0596691F", label: "Thyroid" },
+  liver: { icon: Beaker, color: "#EA580C", soft: "#EA580C1F", label: "Liver" },
+  kidney: { icon: Droplets, color: "#0891B2", soft: "#0891B21F", label: "Kidney" },
+  lipid: { icon: Pill, color: "#7C3AED", soft: "#7C3AED1F", label: "Lipid Panel" },
+  vitamin: { icon: Syringe, color: "#0D9488", soft: "#0D94881F", label: "Vitamins" },
+  hormone: { icon: Brain, color: "#DB2777", soft: "#DB27771F", label: "Hormones" },
+  cancer_marker: { icon: Microscope, color: "#DC2626", soft: "#DC26261F", label: "Cancer Markers" },
+  infection: { icon: Shield, color: "#D97706", soft: "#D977061F", label: "Infection" },
+  allergy: { icon: Zap, color: "#059669", soft: "#0596691F", label: "Allergy" },
+  genetic: { icon: Brain, color: "#7C3AED", soft: "#7C3AED1F", label: "Genetic" },
+  imaging: { icon: Activity, color: "#2563EB", soft: "#2563EB1F", label: "Imaging" },
+  other: { icon: TestTube2, color: "#64748B", soft: "#64748B1F", label: "Other" },
 };
 
 function getCategoryIcon(category: string) {
@@ -79,8 +81,11 @@ function formatPrice(price: number) {
 }
 
 export default function TestCatalogScreen() {
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors, spacing, fontFamily, typography, radius, shadow, scheme } =
+    useTheme();
   const router = useRouter();
+  const cardBorder = scheme === "dark" ? colors.borderStrong : colors.separator;
+  const cardLift = scheme === "dark" ? null : shadow.sm;
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -129,44 +134,40 @@ export default function TestCatalogScreen() {
           accessibilityLabel={item.name}
           style={({ pressed }) => ({
             marginHorizontal: spacing.lg,
-            marginBottom: spacing.sm,
-            borderRadius: 18,
+            marginBottom: spacing.md,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: pressed ? cat.color : colors.border,
-            padding: spacing.md,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: cardBorder,
+            padding: spacing.lg,
+            opacity: pressed ? 0.94 : 1,
             transform: [{ scale: pressed ? 0.985 : 1 }],
+            ...cardLift,
           })}
         >
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14 }}>
             <View
               style={{
-                width: 48,
-                height: 48,
+                width: 46,
+                height: 46,
                 borderRadius: 14,
-                backgroundColor: cat.color,
+                borderCurve: "continuous",
+                backgroundColor: cat.soft,
                 alignItems: "center",
                 justifyContent: "center",
-                shadowColor: cat.color,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                elevation: 3,
               }}
             >
-              <CatIcon size={22} color="#FFFFFF" strokeWidth={2.3} />
+              <CatIcon size={22} color={cat.color} strokeWidth={2.3} />
             </View>
 
-            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
               <Text
                 numberOfLines={2}
                 style={{
-                  fontSize: 15,
-                  fontWeight: "800",
+                  ...typography.title.sm,
+                  fontFamily: typography.title.md.fontFamily,
                   color: colors.text,
-                  fontFamily: fontFamily.bodyBold,
-                  letterSpacing: -0.2,
-                  lineHeight: 20,
                 }}
               >
                 {item.name}
@@ -188,111 +189,110 @@ export default function TestCatalogScreen() {
                 />
                 {item.homeCollectionAvailable ? (
                   <MetaChip
-                    icon={<Home size={11} color="#059669" strokeWidth={2.4} />}
+                    icon={<Home size={11} color={colors.success} strokeWidth={2.4} />}
                     label="Home"
-                    bg="#ECFDF5"
-                    fg="#047857"
+                    bg={colors.successSoft}
+                    fg={colors.success}
                   />
                 ) : null}
                 {item.fastingRequired ? (
                   <MetaChip
-                    icon={<Clock size={11} color="#B45309" strokeWidth={2.4} />}
+                    icon={<Clock size={11} color={colors.warning} strokeWidth={2.4} />}
                     label={`${item.fastingHours}h fast`}
-                    bg="#FEF3C7"
-                    fg="#92400E"
+                    bg={colors.warningSoft}
+                    fg={colors.warning}
                   />
                 ) : null}
               </View>
 
               <Text
                 style={{
-                  fontSize: 12,
-                  color: colors.textMuted,
-                  fontWeight: "600",
+                  ...typography.caption,
+                  color: colors.textSubtle,
                 }}
               >
                 Results in {item.turnaroundHours}h{labCount > 0 ? ` · ${labCount} lab${labCount === 1 ? "" : "s"}` : ""}
               </Text>
             </View>
 
-            <View style={{ alignItems: "flex-end", gap: 4, paddingTop: 2 }}>
+            <View style={{ alignItems: "flex-end", gap: 2, paddingTop: 1 }}>
+              <Text
+                style={{
+                  ...typography.title.md,
+                  letterSpacing: -0.4,
+                  color: colors.text,
+                }}
+              >
+                {formatPrice(price)}
+              </Text>
               {item.discountPrice ? (
                 <Text
                   style={{
-                    fontSize: 11,
-                    color: colors.textMuted,
+                    ...typography.caption,
+                    color: colors.textSubtle,
                     textDecorationLine: "line-through",
-                    fontWeight: "600",
                   }}
                 >
                   {formatPrice(item.price)}
                 </Text>
               ) : null}
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "800",
-                  color: item.discountPrice ? "#059669" : colors.text,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                {formatPrice(price)}
-              </Text>
               <View
                 style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: colors.surfaceMuted,
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
-                  marginTop: 2,
+                  marginTop: 6,
                 }}
               >
-                <ChevronRight size={14} color={colors.primary} strokeWidth={2.5} />
+                <ChevronRight size={15} color={colors.primary} strokeWidth={2.5} />
               </View>
             </View>
           </View>
         </Pressable>
       );
     },
-    [colors, fontFamily, router, spacing]
+    [colors, fontFamily, router, spacing, typography, radius, cardBorder, cardLift]
   );
 
   const listHeader = (
-    <View style={{ gap: spacing.md, paddingBottom: spacing.sm }}>
+    <View style={{ gap: spacing.lg, paddingBottom: spacing.md }}>
       {/* Packages shortcut */}
       <Pressable
         onPress={() => router.push("/(app)/test-packages")}
         style={({ pressed }) => ({
           marginHorizontal: spacing.lg,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: cardBorder,
           backgroundColor: pressed ? colors.primarySoft : colors.surface,
           padding: spacing.md,
+          paddingRight: spacing.lg,
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
+          gap: 14,
+          ...cardLift,
         })}
       >
-        <PackageThumbnail item={{ slug: "full-body-health-checkup" }} size={46} borderRadius={14} />
+        <PackageThumbnail item={{ slug: "full-body-health-checkup" }} size={52} borderRadius={16} />
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              fontSize: 14,
-              fontWeight: "800",
+              ...typography.title.md,
               color: colors.text,
-              fontFamily: fontFamily.bodyBold,
             }}
           >
             Test packages
           </Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+          <Text style={{ ...typography.body.sm, color: colors.textMuted, marginTop: 2 }}>
             Save more with curated panels
           </Text>
         </View>
-        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+        <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.4} />
       </Pressable>
 
       {/* Search */}
@@ -301,27 +301,25 @@ export default function TestCatalogScreen() {
           marginHorizontal: spacing.lg,
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: colors.surface,
-          borderRadius: 14,
-          paddingHorizontal: 14,
-          minHeight: 48,
-          borderWidth: 1,
-          borderColor: colors.border,
-          gap: 10,
+          backgroundColor: colors.fill,
+          borderRadius: radius.md,
+          borderCurve: "continuous",
+          paddingHorizontal: 12,
+          minHeight: 44,
+          gap: 8,
         }}
       >
-        <Search size={18} color={colors.textMuted} strokeWidth={2.25} />
+        <Search size={17} color={colors.textSubtle} strokeWidth={2.25} />
         <TextInput
           placeholder="Search tests..."
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textSubtle}
           value={search}
           onChangeText={setSearch}
           style={{
             flex: 1,
-            fontSize: 15,
+            ...typography.body.md,
             color: colors.text,
-            fontFamily: fontFamily.body,
-            paddingVertical: 12,
+            paddingVertical: 10,
           }}
         />
         {search.length > 0 ? (
@@ -333,10 +331,11 @@ export default function TestCatalogScreen() {
           >
             <View
               style={{
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                backgroundColor: colors.surfaceMuted,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                borderCurve: "continuous",
+                backgroundColor: colors.fillStrong,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -370,15 +369,15 @@ export default function TestCatalogScreen() {
               accessibilityState={{ selected: active }}
               style={({ pressed }) => ({
                 paddingHorizontal: 14,
-                paddingVertical: 9,
                 borderRadius: 999,
+                borderCurve: "continuous",
                 backgroundColor: active
                   ? colors.primary
                   : pressed
-                    ? colors.surfaceMuted
+                    ? colors.fillStrong
                     : colors.surface,
-                borderWidth: 1,
-                borderColor: active ? colors.primary : colors.border,
+                borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+                borderColor: cardBorder,
                 minHeight: 36,
                 flexDirection: "row",
                 alignItems: "center",
@@ -387,10 +386,8 @@ export default function TestCatalogScreen() {
             >
               <Text
                 style={{
-                  fontSize: 13,
-                  fontWeight: "700",
+                  ...typography.label.md,
                   color: active ? colors.onPrimary : colors.text,
-                  fontFamily: fontFamily.bodyBold,
                 }}
               >
                 {item.label}
@@ -398,9 +395,8 @@ export default function TestCatalogScreen() {
               {item.count > 0 ? (
                 <Text
                   style={{
-                    fontSize: 11,
-                    fontWeight: "800",
-                    color: active ? "rgba(255,255,255,0.8)" : colors.textMuted,
+                    ...typography.label.xs,
+                    color: active ? "rgba(255,255,255,0.8)" : colors.textSubtle,
                   }}
                 >
                   {item.count}
@@ -425,7 +421,7 @@ export default function TestCatalogScreen() {
         <View style={{ padding: spacing.lg, gap: spacing.sm }}>
           {listHeader}
           {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} height={92} radius={18} />
+            <Skeleton key={i} height={104} radius={radius.card} />
           ))}
         </View>
       ) : error ? (
@@ -473,6 +469,7 @@ function MetaChip({
   bg: string;
   fg: string;
 }) {
+  const { typography } = useTheme();
   return (
     <View
       style={{
@@ -481,15 +478,15 @@ function MetaChip({
         gap: 4,
         backgroundColor: bg,
         paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        borderCurve: "continuous",
       }}
     >
       {icon}
       <Text
         style={{
-          fontSize: 11,
-          fontWeight: "700",
+          ...typography.label.xs,
           color: fg,
           textTransform: "capitalize",
         }}

@@ -2,7 +2,7 @@
 // Insurance provider detail. Lists plans offered by a single insurer.
 
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { View, FlatList } from "react-native";
+import { View, Text, FlatList } from "react-native";
 import { useTranslation } from "react-i18next";
 import {
   Building2,
@@ -23,7 +23,6 @@ import {
   Skeleton,
   SectionHeader,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { Button } from "@/components/ui/Button";
 import { InsurancePlanCard } from "@/components/insurance/PlanCard";
 
@@ -39,9 +38,9 @@ export default function ProviderDetail() {
       <Screen>
         <ScreenHeader title="" subtitle="" />
         <View style={{ padding: 16, gap: 10 }}>
-          <Skeleton height={140} radius={16} />
-          <Skeleton height={84} radius={16} />
-          <Skeleton height={84} radius={16} />
+          <Skeleton height={180} radius={22} />
+          <Skeleton height={148} radius={22} />
+          <Skeleton height={148} radius={22} />
         </View>
       </Screen>
     );
@@ -62,14 +61,14 @@ export default function ProviderDetail() {
   const plans = data.plans ?? [];
 
   return (
-    <Screen>
+    <Screen padded={false}>
       <ScreenHeader
         title={provider.name}
         subtitle={provider.tagline ?? undefined}
         kicker={t("insurance.provider.label")}
       />
 
-      <Card style={{ margin: 16, padding: 16, gap: 12 }}>
+      <Card style={{ margin: 16, marginTop: 8, padding: 20, gap: 16 }}>
         <View
           style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
         >
@@ -77,13 +76,14 @@ export default function ProviderDetail() {
             style={{
               width: 56,
               height: 56,
-              borderRadius: 28,
-              backgroundColor: colors.surface,
+              borderRadius: 16,
+              borderCurve: "continuous",
+              backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Building2 size={28} color={colors.primary} />
+            <Building2 size={26} color={colors.primary} strokeWidth={2.2} />
           </View>
           <View style={{ flex: 1 }}>
             <AppText weight="700" size="lg">
@@ -125,9 +125,10 @@ export default function ProviderDetail() {
         <View style={{ flexDirection: "row", gap: 8 }}>
           {provider.supportPhone ? (
             <Button
-              variant="outline"
+              variant="secondary"
+              size="sm"
               label={provider.supportPhone}
-              leftIcon={<Phone size={14} />}
+              icon={Phone}
               style={{ flex: 1 }}
               onPress={() => {
                 // Linking.openURL(`tel:${provider.supportPhone}`)
@@ -136,9 +137,10 @@ export default function ProviderDetail() {
           ) : null}
           {provider.websiteUrl ? (
             <Button
-              variant="outline"
+              variant="secondary"
+              size="sm"
               label={t("insurance.provider.website")}
-              leftIcon={<Globe size={14} />}
+              icon={Globe}
               style={{ flex: 1 }}
               onPress={() => {
                 // Linking.openURL(provider.websiteUrl!)
@@ -150,7 +152,7 @@ export default function ProviderDetail() {
 
       <SectionHeader
         title={t("insurance.plan.available", { count: plans.length })}
-        style={{ paddingHorizontal: 16 }}
+        style={{ paddingHorizontal: 16, paddingTop: 8 }}
       />
       {plans.length === 0 ? (
         <View style={{ padding: 16 }}>
@@ -163,7 +165,7 @@ export default function ProviderDetail() {
         <FlatList
           data={plans}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 40 }}
           scrollEnabled={false}
           renderItem={({ item }) => (
             <InsurancePlanCard
@@ -174,5 +176,69 @@ export default function ProviderDetail() {
         />
       )}
     </Screen>
+  );
+}
+
+// Theme-aware text used by this screen: maps the terse size/weight/color
+// props onto typography tokens + theme colours so text stays legible in dark
+// mode (the shared AppText hard-codes light-mode hex colours).
+function AppText({
+  size,
+  weight,
+  color,
+  style,
+  ...rest
+}: {
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  weight?: string;
+  color?: "muted" | "subtle" | "primary" | "accent" | "danger" | "text";
+  style?: any;
+  [key: string]: any;
+}) {
+  const { colors, typography, fontFamily } = useTheme();
+  const tone =
+    color === "muted"
+      ? colors.textMuted
+      : color === "subtle"
+        ? colors.textSubtle
+        : color === "primary"
+          ? colors.primary
+          : color === "accent"
+            ? colors.accent
+            : color === "danger"
+              ? colors.danger
+              : colors.text;
+  const bold = weight === "700" || weight === "800" || weight === "900" || weight === "bold";
+  const semi = weight === "600" || weight === "500";
+  const base =
+    size === "2xl"
+      ? typography.display.md
+      : size === "xl"
+        ? typography.display.sm
+        : size === "lg"
+          ? bold
+            ? typography.title.lg
+            : typography.body.lg
+          : size === "md"
+            ? bold
+              ? typography.title.md
+              : typography.body.md
+            : size === "xs"
+              ? typography.caption
+              : bold
+                ? typography.title.xs
+                : typography.body.sm;
+  const family = bold
+    ? size === "xl" || size === "2xl" || size === "lg" || size === "md"
+      ? base.fontFamily
+      : fontFamily.bodyBold
+    : semi
+      ? fontFamily.bodySemibold
+      : base.fontFamily;
+  return (
+    <Text
+      {...rest}
+      style={[{ ...base, fontFamily: family, color: tone }, style]}
+    />
   );
 }

@@ -86,7 +86,7 @@ export default function AiClinicalNoteScreen() {
           <View style={{ padding: spacing.lg, gap: spacing.md }}>
             <Text
               style={{
-                ...typography.h3,
+                ...typography.display.sm,
                 color: colors.text,
               }}
             >
@@ -96,7 +96,7 @@ export default function AiClinicalNoteScreen() {
             </Text>
             <Text
               style={{
-                ...typography.body,
+                ...typography.body.md,
                 color: colors.textMuted,
               }}
             >
@@ -106,7 +106,7 @@ export default function AiClinicalNoteScreen() {
             <View style={{ gap: spacing.xs }}>
               <Text
                 style={{
-                  ...typography.label,
+                  ...typography.label.md,
                   color: colors.textMuted,
                 }}
               >
@@ -125,6 +125,7 @@ export default function AiClinicalNoteScreen() {
                   borderWidth: 1,
                   borderColor: colors.border,
                   borderRadius: 12,
+                  borderCurve: "continuous",
                   padding: spacing.md,
                   color: colors.text,
                   backgroundColor: colors.surface,
@@ -166,7 +167,7 @@ export default function AiClinicalNoteScreen() {
             <Card>
               <View style={{ padding: spacing.lg, gap: spacing.sm }}>
                 <SectionHeader title={t("aiClinicalNote.sectionSummary")} />
-                <Text style={{ ...typography.body, color: colors.text }}>
+                <Text style={{ ...typography.body.md, color: colors.text }}>
                   {result.summary || t("aiSummary.emptySummary")}
                 </Text>
               </View>
@@ -243,8 +244,8 @@ function SoapField({ label, value }: { label: string; value?: string }) {
   const { spacing, colors, typography } = useTheme();
   return (
     <View style={{ gap: spacing.xxs }}>
-      <Text style={{ ...typography.label, color: colors.textMuted }}>{label}</Text>
-      <Text style={{ ...typography.body, color: colors.text }}>
+      <Text style={{ ...typography.label.md, color: colors.textMuted }}>{label}</Text>
+      <Text style={{ ...typography.body.md, color: colors.text }}>
         {value || "—"}
       </Text>
     </View>

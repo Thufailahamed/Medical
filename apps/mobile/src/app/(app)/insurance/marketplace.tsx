@@ -22,6 +22,7 @@ import {
   Platform,
   Modal,
   Image,
+  StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -82,13 +83,15 @@ const PLAN_TYPE_META: Record<
   string,
   { icon: typeof Heart; bg: string; fg: string }
 > = {
-  individual: { icon: Heart, bg: "#FEE2E2", fg: "#DC2626" },
-  family_floater: { icon: Users, bg: "#DBEAFE", fg: "#2563EB" },
-  senior: { icon: Stethoscope, bg: "#EDE9FE", fg: "#7C3AED" },
-  critical_illness: { icon: AlertTriangle, bg: "#FEF3C7", fg: "#D97706" },
-  cancer: { icon: Activity, bg: "#FCE7F3", fg: "#DB2777" },
-  dental: { icon: Smile, bg: "#CFFAFE", fg: "#0891B2" },
-  maternity: { icon: Baby, bg: "#DCFCE7", fg: "#16A34A" },
+  // Translucent tone tints (fg @ ~12% alpha) so the soft tiles read well on
+  // both the light grouped background and true-black dark mode.
+  individual: { icon: Heart, bg: "#DC26261F", fg: "#DC2626" },
+  family_floater: { icon: Users, bg: "#2563EB1F", fg: "#2563EB" },
+  senior: { icon: Stethoscope, bg: "#7C3AED1F", fg: "#7C3AED" },
+  critical_illness: { icon: AlertTriangle, bg: "#D977061F", fg: "#D97706" },
+  cancer: { icon: Activity, bg: "#DB27771F", fg: "#DB2777" },
+  dental: { icon: Smile, bg: "#0891B21F", fg: "#0891B2" },
+  maternity: { icon: Baby, bg: "#16A34A1F", fg: "#16A34A" },
 };
 
 // Plan type → bundled illustration. `require()` keeps the assets baked
@@ -112,14 +115,14 @@ const FEATURED_CARD_W = Math.min(GRID_COL_W + 40, 280);
 
 // Deterministic palette per provider name (used for the avatar bubble).
 const PROVIDER_PALETTE = [
-  { bg: "#EEF2FF", fg: "#4338CA" },
-  { bg: "#FCE7F3", fg: "#BE185D" },
-  { bg: "#DCFCE7", fg: "#15803D" },
-  { bg: "#FEF3C7", fg: "#B45309" },
-  { bg: "#E0F2FE", fg: "#0369A1" },
-  { bg: "#F5D0FE", fg: "#7E22CE" },
-  { bg: "#FFE4E6", fg: "#BE123C" },
-  { bg: "#CCFBF1", fg: "#0F766E" },
+  { bg: "#6366F11F", fg: "#6366F1" },
+  { bg: "#DB27771F", fg: "#DB2777" },
+  { bg: "#16A34A1F", fg: "#16A34A" },
+  { bg: "#D977061F", fg: "#D97706" },
+  { bg: "#0284C71F", fg: "#0284C7" },
+  { bg: "#9333EA1F", fg: "#9333EA" },
+  { bg: "#E11D481F", fg: "#E11D48" },
+  { bg: "#0D94881F", fg: "#0D9488" },
 ];
 
 function hashString(input: string): number {
@@ -154,24 +157,25 @@ function HeroTrustPill({
   icon: typeof ShieldCheck;
   label: string;
 }) {
+  const { typography } = useTheme();
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.16)",
-        borderWidth: 1,
+        backgroundColor: "rgba(255,255,255,0.18)",
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.28)",
-        maxWidth: 220,
+        maxWidth: 240,
       }}
     >
       <Icon size={12} color="#FFFFFF" strokeWidth={2.5} />
       <Text
-        style={{ color: "#FFFFFF", fontSize: 11, fontWeight: "600", flexShrink: 1 }}
+        style={{ ...typography.label.sm, color: "#FFFFFF", flexShrink: 1 }}
         numberOfLines={1}
       >
         {label}
@@ -184,6 +188,7 @@ function HeroTrustPill({
 // Atoms
 
 function ProviderAvatar({ name, size = 40 }: { name: string; size?: number }) {
+  const { fontFamily } = useTheme();
   const initials = getInitials(name);
   const palette = PROVIDER_PALETTE[hashString(name) % PROVIDER_PALETTE.length];
   return (
@@ -191,7 +196,8 @@ function ProviderAvatar({ name, size = 40 }: { name: string; size?: number }) {
       style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
+        borderRadius: size * 0.3,
+        borderCurve: "continuous",
         backgroundColor: palette.bg,
         alignItems: "center",
         justifyContent: "center",
@@ -200,9 +206,9 @@ function ProviderAvatar({ name, size = 40 }: { name: string; size?: number }) {
       <Text
         style={{
           color: palette.fg,
-          fontWeight: "800",
-          fontSize: size * 0.4,
-          letterSpacing: 0.5,
+          fontFamily: fontFamily.heavy,
+          fontSize: size * 0.38,
+          letterSpacing: 0.2,
         }}
         numberOfLines={1}
       >
@@ -231,34 +237,36 @@ function CategoryTile({
   selected: boolean;
   onPress: () => void;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, typography, shadow, scheme } = useTheme();
   const Icon = icon;
   return (
     <Pressable onPress={onPress} haptic="light">
       <View
         style={{
           alignItems: "center",
-          gap: spacing.xs,
+          gap: 6,
+          width: 68,
         }}
       >
         <View
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: radius.xl,
+            width: 60,
+            height: 60,
+            borderRadius: 18,
+            borderCurve: "continuous",
             backgroundColor: selected ? fg : bg,
-            borderWidth: selected ? 0 : 1,
-            borderColor: colors.border,
+            borderWidth: !selected && bg === colors.surface ? StyleSheet.hairlineWidth : 0,
+            borderColor: colors.separator,
             alignItems: "center",
             justifyContent: "center",
+            ...(selected && scheme !== "dark" ? shadow.sm : {}),
           }}
         >
-          <Icon size={26} color={selected ? "#fff" : fg} strokeWidth={2} />
+          <Icon size={24} color={selected ? "#fff" : fg} strokeWidth={2.1} />
         </View>
         <Text
           style={{
-            fontSize: 11,
-            fontWeight: selected ? "700" : "600",
+            ...(selected ? typography.label.sm : typography.caption),
             color: selected ? colors.text : colors.textMuted,
             textAlign: "center",
           }}
@@ -268,9 +276,9 @@ function CategoryTile({
         </Text>
         <Text
           style={{
-            fontSize: 10,
+            ...typography.label.xs,
             color: colors.textSubtle,
-            fontWeight: "600",
+            marginTop: -4,
           }}
         >
           {count}
@@ -297,7 +305,7 @@ function PlanRichCard({
   comparing?: boolean;
   compareSelected?: boolean;
 }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, typography } = useTheme();
   const hasDiscount = plan.annualDiscountPct > 0;
   const meta = PLAN_TYPE_META[plan.planType] ?? PLAN_TYPE_META.individual;
   const PlanIcon = meta.icon;
@@ -312,11 +320,11 @@ function PlanRichCard({
     >
       <Card
         style={{
-          padding: spacing.md,
-          gap: spacing.sm,
-          borderRadius: radius.xl,
-          borderWidth: compareSelected ? 2 : 0,
-          borderColor: compareSelected ? colors.primary : "transparent",
+          padding: spacing.lg,
+          gap: spacing.md,
+          ...(compareSelected
+            ? { borderWidth: 2, borderColor: colors.primary }
+            : {}),
           overflow: "hidden",
         }}
       >
@@ -339,11 +347,12 @@ function PlanRichCard({
                   width: 22,
                   height: 22,
                   borderRadius: 11,
+                  borderCurve: "continuous",
                   backgroundColor: compareSelected
                     ? colors.primary
                     : "transparent",
                   borderWidth: compareSelected ? 0 : 1.5,
-                  borderColor: colors.border,
+                  borderColor: colors.borderStrong,
                   alignItems: "center",
                   justifyContent: "center",
                   zIndex: 2,
@@ -358,28 +367,28 @@ function PlanRichCard({
             )}
             <Text
               style={{
-                fontSize: 12,
-                fontWeight: "700",
+                ...typography.label.md,
                 color: colors.text,
               }}
               numberOfLines={1}
             >
               {providerName}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
               <View
                 style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
+                  width: 16,
+                  height: 16,
+                  borderRadius: 5,
+                  borderCurve: "continuous",
                   backgroundColor: meta.bg,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <PlanIcon size={8} color={meta.fg} strokeWidth={2.5} />
+                <PlanIcon size={10} color={meta.fg} strokeWidth={2.5} />
               </View>
-              <Text style={{ fontSize: 10, color: colors.textMuted }}>
+              <Text style={{ ...typography.caption, color: colors.textMuted, textTransform: "capitalize" }}>
                 {plan.planType.replace(/_/g, " ")}
               </Text>
             </View>
@@ -389,13 +398,11 @@ function PlanRichCard({
 
         {/* Plan details row with dedicated thumbnail */}
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-          <View style={{ flex: 1, gap: 6 }}>
+          <View style={{ flex: 1, gap: 8 }}>
             <Text
               style={{
-                fontSize: 15,
-                fontWeight: "700",
+                ...typography.title.md,
                 color: colors.text,
-                lineHeight: 20,
               }}
               numberOfLines={2}
             >
@@ -417,9 +424,12 @@ function PlanRichCard({
 
             {/* Coverage */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <ShieldCheck size={13} color={colors.accent ?? colors.primary} />
-              <Text style={{ fontSize: 12, color: colors.text, fontWeight: "600" }}>
-                Up to LKR {plan.coverageSummaryLkr.toLocaleString()}
+              <ShieldCheck size={14} color={colors.accent ?? colors.primary} strokeWidth={2.3} />
+              <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
+                Up to{" "}
+                <Text style={{ fontFamily: typography.label.md.fontFamily, color: colors.text }}>
+                  LKR {plan.coverageSummaryLkr.toLocaleString()}
+                </Text>
               </Text>
             </View>
           </View>
@@ -427,12 +437,13 @@ function PlanRichCard({
           {planImage ? (
             <View
               style={{
-                width: 60,
-                height: 60,
-                borderRadius: 14,
+                width: 64,
+                height: 64,
+                borderRadius: 16,
+                borderCurve: "continuous",
                 overflow: "hidden",
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.separator,
                 backgroundColor: colors.surfaceMuted,
                 flexShrink: 0,
               }}
@@ -452,26 +463,25 @@ function PlanRichCard({
             flexDirection: "row",
             alignItems: "flex-end",
             justifyContent: "space-between",
-            marginTop: 2,
-            paddingTop: 8,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
+            paddingTop: spacing.md,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
           }}
         >
           <View>
             <Text
               style={{
-                fontSize: 18,
-                fontWeight: "800",
-                color: colors.primary,
-                letterSpacing: -0.4,
+                ...typography.display.sm,
+                color: colors.text,
               }}
             >
-              LKR {plan.monthlyPremiumLkr.toLocaleString()}
+              <Text style={{ ...typography.label.md, color: colors.textMuted }}>
+                LKR{" "}
+              </Text>
+              {plan.monthlyPremiumLkr.toLocaleString()}
               <Text
                 style={{
-                  fontSize: 11,
-                  fontWeight: "600",
+                  ...typography.label.md,
                   color: colors.textMuted,
                 }}
               >
@@ -479,18 +489,18 @@ function PlanRichCard({
                 /mo
               </Text>
             </Text>
-            <Text style={{ fontSize: 11, color: colors.textMuted }}>
+            <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 2 }}>
               LKR {plan.annualPremiumLkr.toLocaleString()}/yr
             </Text>
           </View>
-          <View style={{ alignItems: "flex-end", gap: 2 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-              <Hospital size={11} color={colors.textSubtle} />
-              <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: "600" }}>
+          <View style={{ alignItems: "flex-end", gap: 3 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Hospital size={12} color={colors.textSubtle} />
+              <Text style={{ ...typography.label.sm, color: colors.textMuted }}>
                 {plan.networkHospitalCount}+ hospitals
               </Text>
             </View>
-            <Text style={{ fontSize: 10, color: colors.textSubtle }}>
+            <Text style={{ ...typography.caption, color: colors.textSubtle }}>
               {plan.copayPct}% co-pay
             </Text>
           </View>
@@ -510,19 +520,16 @@ function FeaturedPlanCard({
   providerName: string;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, typography } = useTheme();
   const planImage = planImageFor(plan.planType);
   return (
     <Pressable onPress={onPress} haptic="light">
       <Card
         style={{
           width: FEATURED_CARD_W,
-          padding: spacing.md,
-          gap: spacing.sm,
-          borderRadius: radius.xl,
+          padding: spacing.lg,
+          gap: spacing.sm + 2,
           backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.primary,
           overflow: "hidden",
         }}
       >
@@ -530,14 +537,15 @@ function FeaturedPlanCard({
           <View
             style={{
               position: "absolute",
-              top: 12,
-              right: 12,
-              width: 72,
-              height: 72,
-              borderRadius: 16,
+              top: 16,
+              right: 16,
+              width: 68,
+              height: 68,
+              borderRadius: 18,
+              borderCurve: "continuous",
               overflow: "hidden",
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.separator,
               backgroundColor: colors.surfaceMuted,
             }}
           >
@@ -564,9 +572,8 @@ function FeaturedPlanCard({
           <Text
             style={{
               flex: 1,
-              fontSize: 12,
-              fontWeight: "700",
-              color: colors.text,
+              ...typography.label.md,
+              color: colors.textMuted,
             }}
             numberOfLines={1}
           >
@@ -576,11 +583,9 @@ function FeaturedPlanCard({
 
         <Text
           style={{
-            fontSize: 16,
-            fontWeight: "800",
+            ...typography.title.md,
             color: colors.text,
-            lineHeight: 20,
-            paddingRight: 72,
+            paddingRight: 8,
           }}
           numberOfLines={2}
         >
@@ -588,8 +593,8 @@ function FeaturedPlanCard({
         </Text>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <ShieldCheck size={12} color={colors.accent ?? colors.primary} />
-          <Text style={{ fontSize: 12, color: colors.text, fontWeight: "600" }}>
+          <ShieldCheck size={13} color={colors.accent ?? colors.primary} strokeWidth={2.3} />
+          <Text style={{ ...typography.label.sm, color: colors.text }}>
             LKR {formatLkr(plan.coverageSummaryLkr)} coverage
           </Text>
         </View>
@@ -600,25 +605,25 @@ function FeaturedPlanCard({
             alignItems: "flex-end",
             justifyContent: "space-between",
             marginTop: 4,
-            paddingTop: 8,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
+            paddingTop: spacing.md,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
           }}
         >
           <View>
             <Text
               style={{
-                fontSize: 20,
-                fontWeight: "800",
-                color: colors.primary,
-                letterSpacing: -0.4,
+                ...typography.display.sm,
+                color: colors.text,
               }}
             >
-              LKR {plan.monthlyPremiumLkr.toLocaleString()}
+              <Text style={{ ...typography.label.md, color: colors.textMuted }}>
+                LKR{" "}
+              </Text>
+              {plan.monthlyPremiumLkr.toLocaleString()}
               <Text
                 style={{
-                  fontSize: 11,
-                  fontWeight: "600",
+                  ...typography.label.md,
                   color: colors.textMuted,
                 }}
               >
@@ -626,11 +631,22 @@ function FeaturedPlanCard({
                 /mo
               </Text>
             </Text>
-            <Text style={{ fontSize: 10, color: colors.textMuted }}>
+            <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 2 }}>
               or LKR {plan.annualPremiumLkr.toLocaleString()}/yr
             </Text>
           </View>
-          <ChevronRight size={16} color={colors.primary} />
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: colors.primarySoft,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ChevronRight size={16} color={colors.primary} strokeWidth={2.5} />
+          </View>
         </View>
       </Card>
     </Pressable>
@@ -645,25 +661,25 @@ function ProviderTile({
   provider: any;
   onPress: () => void;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, typography } = useTheme();
   return (
     <Pressable onPress={onPress} haptic="light">
       <Card
         style={{
           width: 140,
-          padding: spacing.sm,
-          gap: spacing.xs,
-          borderRadius: radius.lg,
+          paddingVertical: spacing.lg,
+          paddingHorizontal: spacing.md,
+          gap: 6,
           alignItems: "center",
         }}
       >
-        <ProviderAvatar name={provider.name} size={44} />
+        <ProviderAvatar name={provider.name} size={48} />
         <Text
           style={{
-            fontSize: 12,
-            fontWeight: "700",
+            ...typography.title.xs,
             color: colors.text,
             textAlign: "center",
+            marginTop: 4,
           }}
           numberOfLines={1}
         >
@@ -673,19 +689,18 @@ function ProviderTile({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 3,
-            opacity: 0.85,
+            gap: 4,
           }}
         >
-          <Star size={10} color="#F59E0B" fill="#F59E0B" />
-          <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: "600" }}>
+          <Star size={11} color={colors.warning} fill={colors.warning} />
+          <Text style={{ ...typography.label.sm, color: colors.text }}>
             {provider.ratingAvg?.toFixed?.(1) ?? "—"}{" "}
             <Text style={{ color: colors.textSubtle }}>
               ({provider.ratingCount ?? 0})
             </Text>
           </Text>
         </View>
-        <Text style={{ fontSize: 10, color: colors.textSubtle }}>
+        <Text style={{ ...typography.caption, color: colors.textSubtle }}>
           {provider.planCount ?? 0} plans
         </Text>
       </Card>
@@ -699,7 +714,7 @@ function ProviderTile({
 export default function Marketplace() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, spacing, radius, shadow } = useTheme();
+  const { colors, spacing, radius, shadow, typography, scheme } = useTheme();
 
   const [planType, setPlanType] = useState<string | undefined>(undefined);
   const [q, setQ] = useState("");
@@ -838,11 +853,13 @@ export default function Marketplace() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
-          borderRadius: 24,
+          borderRadius: radius.xxl,
+          borderCurve: "continuous",
           marginHorizontal: spacing.lg,
           marginTop: spacing.xs,
           overflow: "hidden",
-          padding: spacing.lg,
+          padding: spacing.xl,
+          ...(scheme === "dark" ? {} : shadow.hero),
         }}
       >
         <View
@@ -881,42 +898,37 @@ export default function Marketplace() {
             top: "30%",
             width: 180,
             height: 110,
-            borderRadius: 16,
-            opacity: 0.55,
+            borderRadius: 18,
+            borderCurve: "continuous",
+            opacity: 0.4,
             transform: [{ rotate: "6deg" }],
           }}
         />
 
         <Text
           style={{
-            color: "rgba(255,255,255,0.85)",
-            fontSize: 11,
-            fontWeight: "800",
-            letterSpacing: 1.2,
+            ...typography.overline,
+            color: "rgba(255,255,255,0.8)",
             textTransform: "uppercase",
-            marginBottom: 8,
+            marginBottom: 6,
           }}
         >
           {t("insurance.tab")}
         </Text>
         <Text
           style={{
+            ...typography.display.md,
             color: "#FFFFFF",
-            fontSize: 24,
-            fontWeight: "800",
-            letterSpacing: -0.5,
-            lineHeight: 30,
           }}
         >
           {t("insurance.browseMarketplace")}
         </Text>
         <Text
           style={{
-            color: "rgba(255,255,255,0.88)",
-            fontSize: 13.5,
-            lineHeight: 19,
+            ...typography.body.sm,
+            color: "rgba(255,255,255,0.86)",
             marginTop: 6,
-            fontWeight: "500",
+            maxWidth: "85%",
           }}
         >
           {marketplaceStats}
@@ -927,14 +939,15 @@ export default function Marketplace() {
             flexDirection: "row",
             alignItems: "center",
             gap: 10,
-            backgroundColor: "#FFFFFF",
-            borderRadius: 14,
+            backgroundColor: colors.surface,
+            borderRadius: radius.md,
+            borderCurve: "continuous",
             paddingHorizontal: 14,
-            minHeight: 48,
-            marginTop: spacing.md,
+            minHeight: 46,
+            marginTop: spacing.lg,
           }}
         >
-          <Search size={18} color={colors.textMuted} strokeWidth={2.25} />
+          <Search size={18} color={colors.textSubtle} strokeWidth={2.25} />
           <TextInput
             value={q}
             onChangeText={setQ}
@@ -945,8 +958,7 @@ export default function Marketplace() {
               flex: 1,
               paddingVertical: 10,
               color: colors.text,
-              fontSize: 15,
-              fontWeight: "500",
+              ...typography.body.md,
             }}
           />
           {q.length > 0 ? (
@@ -966,17 +978,19 @@ export default function Marketplace() {
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            marginTop: spacing.sm,
+            marginTop: spacing.sm + 2,
             backgroundColor: "rgba(255,255,255,0.18)",
+            minHeight: 46,
             paddingVertical: 12,
             paddingHorizontal: 16,
-            borderRadius: 14,
-            borderWidth: 1,
+            borderRadius: radius.md,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
             borderColor: "rgba(255,255,255,0.28)",
           }}
         >
           <Sparkles size={15} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 14, flex: 1, textAlign: "center" }}>
+          <Text style={{ ...typography.label.lg, color: "#FFFFFF", flex: 1, textAlign: "center" }}>
             {t("insurance.getQuoteCta", "Get a personalised quote in 60s")}
           </Text>
           <ArrowUpRight size={15} color="#FFFFFF" strokeWidth={2.5} />
@@ -1000,16 +1014,13 @@ export default function Marketplace() {
       </LinearGradient>
 
       {/* ─── Categories: horizontal scroller ─── */}
-      <View style={{ marginTop: spacing.lg }}>
+      <View style={{ marginTop: spacing.xxl }}>
         <Text
           style={{
-            fontSize: 12,
-            fontWeight: "700",
-            color: colors.textSubtle,
+            ...typography.title.lg,
+            color: colors.text,
             paddingHorizontal: spacing.lg,
-            marginBottom: spacing.sm,
-            letterSpacing: 0.6,
-            textTransform: "uppercase",
+            marginBottom: spacing.md,
           }}
         >
           {t("insurance.browseByType", "Browse by plan type")}
@@ -1019,7 +1030,7 @@ export default function Marketplace() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: spacing.lg,
-            gap: 14,
+            gap: 8,
           }}
         >
           <CategoryTile
@@ -1061,7 +1072,7 @@ export default function Marketplace() {
           marginTop: spacing.lg,
         }}
       >
-        <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600" }}>
+        <Text style={{ ...typography.label.md, color: colors.textMuted }}>
           {isLoading ? (
             <ActivityIndicator size="small" color={colors.textMuted} />
           ) : (
@@ -1077,17 +1088,15 @@ export default function Marketplace() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 4,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
+            gap: 6,
+            paddingHorizontal: 12,
+            minHeight: 34,
             borderRadius: 999,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
+            backgroundColor: colors.fill,
           }}
         >
-          <SlidersHorizontal size={12} color={colors.textMuted} />
-          <Text style={{ fontSize: 11, color: colors.text, fontWeight: "600" }}>
+          <SlidersHorizontal size={13} color={colors.textMuted} strokeWidth={2.3} />
+          <Text style={{ ...typography.label.sm, color: colors.text }}>
             {sortLabel}
           </Text>
         </Pressable>
@@ -1095,7 +1104,7 @@ export default function Marketplace() {
 
       {/* ─── Featured carousel ─── */}
       {!isInitialLoad && featuredPlans.length > 0 ? (
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.xxl }}>
           <SectionHeader
             title={t("insurance.featuredTitle", "Top picks this week")}
             subtitle={t(
@@ -1135,16 +1144,16 @@ export default function Marketplace() {
         )}
         style={{
           paddingHorizontal: spacing.lg,
-          marginTop: spacing.xl,
+          marginTop: spacing.xxl + 4,
           marginBottom: spacing.sm,
         }}
       />
 
       {isInitialLoad ? (
-        <View style={{ padding: spacing.lg, gap: spacing.sm }}>
-          <Skeleton height={140} radius={20} />
-          <Skeleton height={140} radius={20} />
-          <Skeleton height={140} radius={20} />
+        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <Skeleton height={196} radius={radius.card} />
+          <Skeleton height={196} radius={radius.card} />
+          <Skeleton height={196} radius={radius.card} />
         </View>
       ) : totalPlans === 0 ? (
         <View style={{ paddingHorizontal: spacing.lg }}>
@@ -1166,7 +1175,7 @@ export default function Marketplace() {
         <View
           style={{
             paddingHorizontal: spacing.lg,
-            gap: spacing.sm,
+            gap: spacing.md,
             paddingBottom: spacing.xxxl,
           }}
         >
@@ -1192,7 +1201,7 @@ export default function Marketplace() {
 
       {/* ─── Providers strip ─── */}
       {!isInitialLoad && providers.length > 0 ? (
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.sm }}>
           <SectionHeader
             title={t("insurance.featuredProviders", "Top insurers")}
             style={{ paddingHorizontal: spacing.lg }}
@@ -1204,7 +1213,8 @@ export default function Marketplace() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{
               paddingHorizontal: spacing.lg,
-              gap: 10,
+              gap: CARD_GAP,
+              paddingBottom: 4,
             }}
             renderItem={({ item }: any) => (
               <ProviderTile
@@ -1228,11 +1238,13 @@ export default function Marketplace() {
             right: 12,
             bottom: 18,
             backgroundColor: colors.surface,
-            borderRadius: radius.xl,
-            padding: 12,
-            gap: 10,
-            borderWidth: 1,
-            borderColor: colors.primary,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            padding: 16,
+            gap: 12,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor:
+              scheme === "dark" ? colors.borderStrong : colors.separator,
             ...shadow.lg,
           }}
         >
@@ -1243,11 +1255,22 @@ export default function Marketplace() {
               gap: 8,
             }}
           >
-            <Scale size={16} color={colors.primary} strokeWidth={2.4} />
+            <View
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 9,
+                borderCurve: "continuous",
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Scale size={16} color={colors.primary} strokeWidth={2.4} />
+            </View>
             <Text
               style={{
-                fontSize: 13,
-                fontWeight: "700",
+                ...typography.title.sm,
                 color: colors.text,
                 flex: 1,
               }}
@@ -1261,9 +1284,8 @@ export default function Marketplace() {
             <Pressable onPress={clearCompare} hitSlop={8} haptic="light">
               <Text
                 style={{
-                  fontSize: 12,
-                  color: colors.textMuted,
-                  fontWeight: "600",
+                  ...typography.label.md,
+                  color: colors.primary,
                 }}
               >
                 {t("common.clear", "Clear")}
@@ -1287,18 +1309,15 @@ export default function Marketplace() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 6,
-                    paddingVertical: 6,
-                    paddingHorizontal: 10,
+                    paddingVertical: 7,
+                    paddingHorizontal: 12,
                     borderRadius: 999,
-                    backgroundColor: colors.surfaceMuted ?? colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
+                    backgroundColor: colors.fill,
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 12,
-                      fontWeight: "600",
+                      ...typography.label.sm,
                       color: colors.text,
                       maxWidth: 140,
                     }}
@@ -1318,9 +1337,8 @@ export default function Marketplace() {
             {compareIds.length < 3 ? (
               <Text
                 style={{
-                  fontSize: 11,
-                  color: colors.textMuted,
-                  fontWeight: "600",
+                  ...typography.caption,
+                  color: colors.textSubtle,
                   alignSelf: "center",
                 }}
               >
@@ -1340,18 +1358,20 @@ export default function Marketplace() {
             }}
             style={{
               backgroundColor:
-                compareIds.length >= 2 ? colors.primary : colors.surfaceMuted,
-              paddingVertical: 12,
-              borderRadius: radius.lg,
+                compareIds.length >= 2 ? colors.primary : colors.fill,
+              minHeight: 48,
+              justifyContent: "center",
+              borderRadius: radius.button,
+              borderCurve: "continuous",
               alignItems: "center",
+              ...(compareIds.length >= 2 && scheme !== "dark" ? shadow.primary : {}),
             }}
             haptic={compareIds.length >= 2 ? "medium" : undefined}
           >
             <Text
               style={{
-                color: compareIds.length >= 2 ? "#fff" : colors.textMuted,
-                fontWeight: "700",
-                fontSize: 14,
+                ...typography.label.lg,
+                color: compareIds.length >= 2 ? colors.onPrimary : colors.textMuted,
               }}
             >
               {t("insurance.compare.cta", "Compare side-by-side")}
@@ -1370,42 +1390,75 @@ export default function Marketplace() {
         <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(15,23,42,0.55)",
+            backgroundColor: colors.scrim ?? "rgba(0,0,0,0.45)",
             justifyContent: "flex-end",
           }}
         >
           <View
             style={{
-              backgroundColor: colors.background,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              paddingTop: 14,
+              backgroundColor: colors.bg,
+              borderTopLeftRadius: radius.xxl,
+              borderTopRightRadius: radius.xxl,
+              borderCurve: "continuous",
+              paddingTop: 8,
               paddingHorizontal: spacing.lg,
-              paddingBottom: spacing.xl,
+              paddingBottom: spacing.xxl,
               maxHeight: "85%",
             }}
           >
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                alignSelf: "center",
+                width: 36,
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: colors.fillStrong,
                 marginBottom: spacing.md,
               }}
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: spacing.lg,
+              }}
             >
-              <Scale size={18} color={colors.primary} strokeWidth={2.4} />
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Scale size={17} color={colors.primary} strokeWidth={2.4} />
+              </View>
               <Text
                 style={{
-                  fontSize: 17,
-                  fontWeight: "700",
+                  ...typography.title.lg,
                   color: colors.text,
                   flex: 1,
-                  marginLeft: 8,
+                  marginLeft: 10,
                 }}
               >
                 {t("insurance.compare.heading", "Side-by-side")}
               </Text>
-              <Pressable onPress={() => setDrawerOpen(false)} hitSlop={8}>
-                <X size={20} color={colors.textMuted} strokeWidth={2.4} />
+              <Pressable
+                onPress={() => setDrawerOpen(false)}
+                hitSlop={8}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: colors.fill,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={16} color={colors.textMuted} strokeWidth={2.6} />
               </Pressable>
             </View>
 
@@ -1425,12 +1478,15 @@ export default function Marketplace() {
                       key={p.id}
                       style={{
                         width: 200,
-                        padding: 12,
-                        borderRadius: radius.lg,
-                        borderWidth: 1.5,
+                        padding: 14,
+                        borderRadius: radius.xl,
+                        borderCurve: "continuous",
+                        borderWidth: isCheapest ? 1.5 : StyleSheet.hairlineWidth,
                         borderColor: isCheapest
                           ? colors.success
-                          : colors.border,
+                          : scheme === "dark"
+                            ? colors.borderStrong
+                            : colors.separator,
                         backgroundColor: colors.surface,
                         gap: 8,
                       }}
@@ -1445,9 +1501,8 @@ export default function Marketplace() {
                         <ProviderAvatar name={provName} size={28} />
                         <Text
                           style={{
-                            fontSize: 11,
+                            ...typography.label.sm,
                             color: colors.textMuted,
-                            fontWeight: "600",
                             flex: 1,
                           }}
                           numberOfLines={1}
@@ -1460,15 +1515,14 @@ export default function Marketplace() {
                       </View>
                       <Text
                         style={{
-                          fontSize: 14,
-                          fontWeight: "700",
+                          ...typography.title.sm,
                           color: colors.text,
                         }}
                         numberOfLines={2}
                       >
                         {p.name}
                       </Text>
-                      <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                      <Text style={{ ...typography.caption, color: colors.textSubtle, textTransform: "capitalize" }}>
                         {p.planType.replace(/_/g, " ")}
                       </Text>
                     </View>
@@ -1533,18 +1587,17 @@ export default function Marketplace() {
                   <View
                     key={ri}
                     style={{
-                      paddingVertical: 10,
-                      borderTopWidth: ri === 0 ? 1 : 0,
-                      borderBottomWidth: 1,
-                      borderColor: colors.border,
-                      gap: 6,
+                      paddingVertical: 12,
+                      borderTopWidth: ri === 0 ? StyleSheet.hairlineWidth : 0,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderColor: colors.separator,
+                      gap: 8,
                     }}
                   >
                     <Text
                       style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: colors.textMuted,
+                        ...typography.caption,
+                        color: colors.textSubtle,
                       }}
                     >
                       {row.label}
@@ -1564,22 +1617,18 @@ export default function Marketplace() {
                             key={p.id}
                             style={{
                               width: 200,
-                              paddingVertical: 8,
-                              paddingHorizontal: 10,
+                              paddingVertical: 10,
+                              paddingHorizontal: 12,
                               borderRadius: radius.md,
+                              borderCurve: "continuous",
                               backgroundColor: isBest
-                                ? (colors.successSoft ?? "#ECFDF5")
+                                ? colors.successSoft
                                 : colors.surface,
-                              borderWidth: 1,
-                              borderColor: isBest
-                                ? colors.success
-                                : colors.border,
                             }}
                           >
                             <Text
                               style={{
-                                fontSize: 13,
-                                fontWeight: isBest ? "700" : "600",
+                                ...(isBest ? typography.title.sm : typography.label.lg),
                                 color: isBest
                                   ? colors.success
                                   : colors.text,
@@ -1612,19 +1661,19 @@ export default function Marketplace() {
                     }}
                     style={{
                       flex: 1,
-                      paddingVertical: 12,
-                      borderRadius: radius.lg,
-                      borderWidth: 1,
-                      borderColor: colors.primary,
+                      minHeight: 44,
+                      justifyContent: "center",
+                      borderRadius: 999,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.primarySoft,
                       alignItems: "center",
                     }}
                     haptic="light"
                   >
                     <Text
                       style={{
+                        ...typography.label.md,
                         color: colors.primary,
-                        fontSize: 13,
-                        fontWeight: "700",
                       }}
                     >
                       {t("insurance.compare.viewPlan", "View")}

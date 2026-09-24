@@ -29,13 +29,14 @@ export function LongitudinalTrendChart({ testName, unit, points, insight }: Prop
   return (
     <View
       style={{
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.surface,
         borderRadius: 16,
+        borderCurve: "continuous",
         padding: 14,
         marginTop: 10,
         marginBottom: 6,
-        borderWidth: 1,
-        borderColor: "#E2E8F0",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.separator,
         shadowColor: "rgba(0, 0, 0, 0.04)",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 1,
@@ -58,9 +59,9 @@ export function LongitudinalTrendChart({ testName, unit, points, insight }: Prop
             }}
           >
             {isImproving ? (
-              <TrendingDown size={16} color="#059669" strokeWidth={2.25} />
+              <TrendingDown size={16} color={colors.success} strokeWidth={2.25} />
             ) : (
-              <TrendingUp size={16} color="#DC2626" strokeWidth={2.25} />
+              <TrendingUp size={16} color={colors.danger} strokeWidth={2.25} />
             )}
           </View>
           <View>
@@ -68,13 +69,13 @@ export function LongitudinalTrendChart({ testName, unit, points, insight }: Prop
               style={{
                 fontSize: 13,
                 fontWeight: "800",
-                color: "#0F172A",
+                color: colors.text,
                 fontFamily: fontFamily.bodyBold,
               }}
             >
               {testName} Multi-Year Trend
             </AppText>
-            <AppText style={{ fontSize: 11, color: "#64748B" }}>
+            <AppText style={{ fontSize: 11, color: colors.textMuted }}>
               Longitudinal tracking ({points[0].date.slice(0, 4)}–{points[points.length - 1].date.slice(0, 4)})
             </AppText>
           </View>
@@ -129,7 +130,7 @@ export function LongitudinalTrendChart({ testName, unit, points, insight }: Prop
                   backgroundColor: isLatest ? "#0284C7" : "#CBD5E1",
                 }}
               />
-              <AppText style={{ fontSize: 9.5, color: "#94A3B8", fontWeight: "600" }}>
+              <AppText style={{ fontSize: 9.5, color: colors.textSubtle, fontWeight: "600" }}>
                 {pt.date.slice(0, 7)}
               </AppText>
             </View>
@@ -144,14 +145,15 @@ export function LongitudinalTrendChart({ testName, unit, points, insight }: Prop
             flexDirection: "row",
             alignItems: "flex-start",
             gap: 6,
-            backgroundColor: "#F8FAFC",
+            backgroundColor: colors.surfaceMuted,
             padding: 9,
             borderRadius: 10,
+            borderCurve: "continuous",
             borderWidth: 1,
-            borderColor: "#F1F5F9",
+            borderColor: colors.border,
           }}
         >
-          <Sparkles size={13} color="#0284C7" style={{ marginTop: 1 }} />
+          <Sparkles size={13} color={colors.primary} style={{ marginTop: 1 }} />
           <AppText style={{ flex: 1, fontSize: 11.5, color: "#334155", lineHeight: 16, fontWeight: "500" }}>
             {insight}
           </AppText>

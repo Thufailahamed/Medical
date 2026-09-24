@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -206,10 +206,11 @@ export default function PatientPrescriptionDetailScreen() {
           {/* Prescribing Practitioner Header Card */}
           <Card
             style={{
-              padding: spacing.md + 2,
-              borderRadius: radius.xl,
-              borderWidth: 1,
-              borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
+              padding: spacing.lg,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDark ? colors.borderStrong : colors.separator,
             }}
           >
             {/* Top row: Label & Status Badge */}
@@ -245,9 +246,8 @@ export default function PatientPrescriptionDetailScreen() {
                   width: 48,
                   height: 48,
                   borderRadius: 16,
-                  backgroundColor: isDark
-                    ? "rgba(59, 130, 246, 0.15)"
-                    : colors.primarySoft,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.primarySoft,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -295,9 +295,7 @@ export default function PatientPrescriptionDetailScreen() {
                         paddingHorizontal: 7,
                         paddingVertical: 1,
                         borderRadius: radius.xs,
-                        backgroundColor: colors.surfaceMuted,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        backgroundColor: colors.fill,
                       }}
                     >
                       <Text
@@ -323,8 +321,8 @@ export default function PatientPrescriptionDetailScreen() {
                 justifyContent: "space-between",
                 marginTop: spacing.md,
                 paddingTop: spacing.sm,
-                borderTopWidth: 1,
-                borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.separator,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -368,10 +366,11 @@ export default function PatientPrescriptionDetailScreen() {
           {(rx.diagnosis || rx.notes) && (
             <Card
               style={{
-                padding: spacing.md + 2,
-                borderRadius: radius.xl,
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
+                padding: spacing.lg,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : colors.separator,
                 gap: spacing.sm,
               }}
             >
@@ -399,8 +398,8 @@ export default function PatientPrescriptionDetailScreen() {
               {rx.diagnosis && rx.notes && (
                 <View
                   style={{
-                    height: 1,
-                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+                    height: StyleSheet.hairlineWidth,
+                    backgroundColor: colors.separator,
                     marginVertical: spacing.xs,
                   }}
                 />
@@ -432,10 +431,11 @@ export default function PatientPrescriptionDetailScreen() {
           {/* Medicines Schedule Card */}
           <Card
             style={{
-              padding: spacing.md + 2,
-              borderRadius: radius.xl,
-              borderWidth: 1,
-              borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
+              padding: spacing.lg,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDark ? colors.borderStrong : colors.separator,
             }}
           >
             <View
@@ -486,10 +486,8 @@ export default function PatientPrescriptionDetailScreen() {
                       key={med.id || i}
                       style={{
                         paddingTop: i === 0 ? 0 : spacing.md,
-                        borderTopWidth: i === 0 ? 0 : 1,
-                        borderColor: isDark
-                          ? "rgba(255, 255, 255, 0.06)"
-                          : colors.border,
+                        borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                        borderColor: colors.separator,
                       }}
                     >
                       <View
@@ -504,6 +502,7 @@ export default function PatientPrescriptionDetailScreen() {
                             width: 40,
                             height: 40,
                             borderRadius: 12,
+                            borderCurve: "continuous",
                             backgroundColor: colors.primarySoft,
                             alignItems: "center",
                             justifyContent: "center",
@@ -538,11 +537,7 @@ export default function PatientPrescriptionDetailScreen() {
                                   paddingHorizontal: 8,
                                   paddingVertical: 2,
                                   borderRadius: radius.xs,
-                                  backgroundColor: isDark
-                                    ? "rgba(255, 255, 255, 0.08)"
-                                    : colors.surfaceMuted,
-                                  borderWidth: 1,
-                                  borderColor: colors.border,
+                                  backgroundColor: colors.fill,
                                 }}
                               >
                                 <Text
@@ -576,9 +571,7 @@ export default function PatientPrescriptionDetailScreen() {
                                   paddingHorizontal: 8,
                                   paddingVertical: 3,
                                   borderRadius: radius.full,
-                                  backgroundColor: isDark
-                                    ? "rgba(59, 130, 246, 0.12)"
-                                    : colors.primarySoft,
+                                  backgroundColor: colors.primarySoft,
                                 }}
                               >
                                 <Clock size={11} color={colors.primary} />
@@ -623,14 +616,9 @@ export default function PatientPrescriptionDetailScreen() {
                                 marginTop: 6,
                                 paddingHorizontal: spacing.sm,
                                 paddingVertical: 4,
-                                borderRadius: radius.sm,
-                                backgroundColor: isDark
-                                  ? "rgba(255, 255, 255, 0.04)"
-                                  : "rgba(0, 0, 0, 0.02)",
-                                borderWidth: 1,
-                                borderColor: isDark
-                                  ? "rgba(255, 255, 255, 0.05)"
-                                  : "rgba(0, 0, 0, 0.04)",
+                                borderRadius: 12,
+                                borderCurve: "continuous",
+                                backgroundColor: colors.fill,
                               }}
                             >
                               <Text
@@ -659,10 +647,11 @@ export default function PatientPrescriptionDetailScreen() {
           {/* Cryptographic Digital Signature & Verification Card */}
           <Card
             style={{
-              padding: spacing.md + 2,
-              borderRadius: radius.xl,
-              borderWidth: 1,
-              borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
+              padding: spacing.lg,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDark ? colors.borderStrong : colors.separator,
             }}
           >
             <View
@@ -677,6 +666,7 @@ export default function PatientPrescriptionDetailScreen() {
                   width: 44,
                   height: 44,
                   borderRadius: 14,
+                  borderCurve: "continuous",
                   backgroundColor: isSigned
                     ? colors.successSoft
                     : colors.surfaceMuted,
@@ -771,10 +761,11 @@ export default function PatientPrescriptionDetailScreen() {
           {isSigned ? (
             <Card
               style={{
-                padding: spacing.md + 2,
-                borderRadius: radius.xl,
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
+                padding: spacing.lg,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : colors.separator,
                 marginTop: spacing.xs,
               }}
             >
@@ -823,9 +814,7 @@ export default function PatientPrescriptionDetailScreen() {
                     marginTop: spacing.sm,
                     padding: spacing.sm,
                     borderRadius: radius.md,
-                    backgroundColor: colors.surfaceMuted,
-                    borderWidth: 1,
-                    borderColor: colors.border,
+                    backgroundColor: colors.fill,
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",

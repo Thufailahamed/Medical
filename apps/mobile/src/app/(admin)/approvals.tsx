@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import {
   UserCheck,
   Check,
@@ -120,7 +120,7 @@ export default function ApprovalsScreen() {
         />
       </View>
 
-      <View style={{ marginTop: spacing.md }}>
+      <View style={{ marginTop: spacing.lg, gap: 2 }}>
         <FilterChips
           options={STATUS_OPTIONS}
           value={status}
@@ -138,7 +138,8 @@ export default function ApprovalsScreen() {
         style={{
           paddingHorizontal: spacing.lg,
           gap: spacing.md,
-          marginTop: spacing.sm,
+          marginTop: spacing.md,
+          paddingBottom: spacing.xl,
         }}
       >
         {isError ? <AdminError message="Couldn't load applications." /> : null}
@@ -232,16 +233,16 @@ function ApprovalCard({
           gap: spacing.md,
         }}
       >
-        <Avatar name={u.name ?? "?"} size="md" />
+        <Avatar name={u.name ?? "?"} size="lg" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
-            style={[typography.title.sm, { color: colors.text }]}
+            style={[typography.title.md, { color: colors.text }]}
             numberOfLines={1}
           >
             {u.name ?? "Unnamed"}
           </Text>
           <Text
-            style={[typography.caption, { color: colors.textMuted }]}
+            style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
             numberOfLines={1}
           >
             {u.email ?? u.phone ?? "—"}
@@ -251,7 +252,7 @@ function ApprovalCard({
               flexDirection: "row",
               alignItems: "center",
               gap: 6,
-              marginTop: 5,
+              marginTop: 8,
             }}
           >
             <RolePill role={u.role} />
@@ -296,11 +297,14 @@ function ApprovalCard({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 5,
+          gap: 6,
           marginTop: spacing.md,
+          paddingTop: spacing.md,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
         }}
       >
-        <Clock size={11} color={colors.textSubtle} />
+        <Clock size={13} color={colors.textSubtle} />
         <Text style={[typography.caption, { color: colors.textSubtle }]}>
           Applied {u.createdAt ? fmtDateTime(u.createdAt, locale as any) : "—"}
         </Text>
