@@ -16,3 +16,4 @@ dist/
 web-build/
 .superpowers/
 .claude/
+.DS_Store
