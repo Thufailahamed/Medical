@@ -4529,7 +4529,15 @@ export function useTestBookingRating(bookingId: string | null | undefined) {
   });
 }
 
-/** Rate a completed test booking (POST /diagnostic-tests/bookings/:id/rating). */
+/** Rate a completed test booking (POST /diagnostic-tests/bookings/:id/rating).
+ *
+ * Send exactly one of `score`/`stars` — never both. The previous
+ * implementation wrote `score: score ?? stars, stars: stars ?? score`,
+ * which a naive server could interpret as "user wants score=N AND
+ * stars=N" leading to a 1-5 vs 0-10 confusion. The backend table
+ * keeps both columns (0078 alias); we ship whichever the caller
+ * provided.
+ */
 export function useRateTestBooking() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -4543,18 +4551,17 @@ export function useRateTestBooking() {
       stars?: number;
       score?: number;
       comment?: string;
-    }) =>
-      api<{ rating: { score: number; stars: number; comment: string | null } }>(
-        `/diagnostic-tests/bookings/${bookingId}/rating`,
-        {
-          method: "POST",
-          body: {
-            score: score ?? stars,
-            stars: stars ?? score,
-            comment,
-          },
-        }
-      ),
+    }) => {
+      const body: Record<string, unknown> = { comment };
+      if (typeof score === "number") body.score = score;
+      if (typeof stars === "number") body.stars = stars;
+      return api<{
+        rating: { score: number; stars: number; comment: string | null };
+      }>(`/diagnostic-tests/bookings/${bookingId}/rating`, {
+        method: "POST",
+        body,
+      });
+    },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({
         queryKey: ["test-booking-rating", vars.bookingId],

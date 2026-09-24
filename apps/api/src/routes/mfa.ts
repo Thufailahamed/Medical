@@ -24,6 +24,7 @@ import { eq } from "drizzle-orm";
 import { doctors, users } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { getJwtSecret } from "../lib/jwt-secret";
 import { generateToken, verifyToken } from "../lib/crypto";
 import {
   generateSecret,
@@ -277,7 +278,7 @@ mfaRouter.post("/challenge", async (c) => {
     return c.json({ error: "mfaToken and code required" }, 400);
   }
 
-  const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const jwtSecret = getJwtSecret(c.env);
   const decoded = await verifyToken(mfaToken, jwtSecret).catch(() => null);
   if (!decoded || decoded.purpose !== "mfa" || !decoded.sub) {
     return c.json({ error: "Invalid or expired mfa token" }, 401);

@@ -70,17 +70,11 @@ async function attemptRefresh(refreshToken: string): Promise<boolean> {
     const next = data?.session?.access_token;
     const nextRefresh = data?.session?.refresh_token;
     if (!next) return false;
-    // Update only the token/refreshToken — keep user + tenant state.
-    const state = useAuthStore.getState();
-    // `useAuthStore` exposes a setter for the access token via setSession
-    // (which also re-derives activeHospitalId) but we want to preserve
-    // the existing user, so we mutate the store directly via a minimal
-    // partial set. Using setSession would clobber user. So write token
-    // through the persisted shape: easiest path is to update both fields
-    // via the dedicated setRefreshToken + a direct token assignment.
-    // (Zustand persists automatically; direct assignment works because
-    // the store doesn't use immer.)
-    (useAuthStore as any).setState({
+    // Update only the token pair — keep user/tenant state. The store
+    // exposes a typed `setTokens` action so we don't have to reach into
+    // `setState` with `as any` (the previous implementation did this to
+    // dodge having to declare a partial-update surface).
+    useAuthStore.getState().setTokens({
       token: next,
       refreshToken: nextRefresh ?? null,
     });

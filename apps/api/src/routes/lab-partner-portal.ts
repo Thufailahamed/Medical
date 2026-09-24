@@ -3,13 +3,17 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import {
   diagnosticTestCatalog,
   labDiagnosticTests,
   testPackages,
   testPackageItems,
   testBookings,
+  testBookingItems,
+  testBookingRatings,
+  testResultValues,
+  testPromoCodes,
+  phlebotomists,
   users,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
@@ -36,25 +40,9 @@ const router = new Hono<AppEnvironment>();
 router.use("*", authMiddleware, requireRole("laboratory", "super_admin"));
 
 // ─── Phlebotomist roster (Lab Task 4) ───────────────────────
-// Local drizzle table mirroring migration 0066/0078 `phlebotomists`.
-// Kept local so the route works without a shared-schema bump; the
-// table name matches the migration so MockD1 + D1 resolve identically.
-const phlebotomists = sqliteTable("phlebotomists", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  labPartnerId: text("lab_partner_id").notNull(),
-  name: text("name").notNull(),
-  phone: text("phone").notNull(),
-  email: text("email"),
-  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: text("updated_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+// Centralised declaration lives in `packages/db/src/schema.ts`
+// (migration 0066/0078). Imported at the top of this file so route code
+// stays consistent with the D1 schema.
 
 const createPhlebotomistSchema = z.object({
   name: z.string().min(1).max(120),

@@ -78,6 +78,16 @@ interface AuthState {
     user: AuthUser;
     refreshToken?: string | null;
   }) => void;
+  /**
+   * Update only the token pair. Used by `lib/api.ts` after a refresh
+   * so the existing user object is preserved (no need to re-fetch
+   * `/auth/me`). Typed surface — the previous implementation reached
+   * into `setState` with `as any` because no setter was exposed.
+   */
+  setTokens: (input: {
+    token: string;
+    refreshToken?: string | null;
+  }) => void;
   setUser: (user: AuthUser | null) => void;
   setRefreshToken: (rt: string | null) => void;
   setActiveTenant: (t: ActiveTenant) => void;
@@ -104,8 +114,20 @@ export const useAuthStore = create<AuthState>()(
           token,
           user,
           refreshToken: refreshToken ?? null,
-          activeHospitalId: user.role === "doctor" ? null : null,
+          // Tenant is no longer derived from role at session-set time:
+          // the previous `user.role === "doctor" ? null : null` always
+          // collapsed to `null`, leaving the active tenant undefined
+          // until the caller invokes `setActiveTenant`. Keep both
+          // ids explicitly `null` so the persisted state matches
+          // `clearActiveTenant()` below.
+          activeHospitalId: null,
           activeClinicId: null,
+        }),
+
+      setTokens: ({ token, refreshToken }) =>
+        set({
+          token,
+          refreshToken: refreshToken ?? null,
         }),
 
       setUser: (user) => set({ user }),

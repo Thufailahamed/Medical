@@ -20,7 +20,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import {
   diagnosticTestCatalog,
   labDiagnosticTestCategories,
@@ -28,6 +27,10 @@ import {
   testPackages,
   testPackageItems,
   testBookings,
+  testBookingRatings,
+  testBookingItems,
+  testPromoCodes,
+  testResultValues,
   users,
   notifications,
 } from "@healthcare/db";
@@ -63,25 +66,9 @@ const BOOKING_ACTIVE_STATUSES = [
 ];
 
 // ─── Test booking ratings (Lab Task 5) ──────────────────────
-// Local drizzle table mirroring migrations 0064/0078
-// `test_booking_ratings`. Kept local so the route works without a
-// shared-schema bump; table name matches the migration so MockD1 +
-// D1 resolve identically. No drops. Appointment ratings untouched.
-const testBookingRatings = sqliteTable("test_booking_ratings", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  bookingId: text("booking_id").notNull().unique(),
-  patientId: text("patient_id").notNull(),
-  userId: text("user_id"),
-  labPartnerId: text("lab_partner_id"),
-  score: integer("score"),
-  stars: integer("stars"),
-  comment: text("comment"),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+// Centralised declaration lives in `packages/db/src/schema.ts`
+// (migrations 0064/0078). Imported at the top of this file so route
+// code uses the shared typing.
 
 const testBookingRatingInput = z.object({
   score: z.number().int().min(1).max(5).optional(),
@@ -1405,7 +1392,13 @@ router.post("/bookings/:id/rating", authMiddleware, async (c) => {
       .set({ score, stars: score, comment, labPartnerId: booking.labPartnerId })
       .where(eq(testBookingRatings.bookingId, id))
       .returning();
-    const row: any = updated ?? { ...existing, score, stars: score, comment };
+    // Returning() with D1 may return an empty array on UPDATE; treat
+    // missing as an error rather than fabricating a response from the
+    // pre-update copy.
+    if (!updated) {
+      return c.json({ error: "rating_update_failed" }, 500);
+    }
+    const row: any = updated;
     audit(db, userId, {
       action: "rate",
       resource: "test_booking",
@@ -1438,14 +1431,13 @@ router.post("/bookings/:id/rating", authMiddleware, async (c) => {
       createdAt: now,
     })
     .returning();
-  const row: any = created ?? {
-    id: `mock-${Date.now()}`,
-    bookingId: id,
-    score,
-    stars: score,
-    comment,
-    createdAt: now,
-  };
+  // A missing insert return is a DB-side error, not a recoverable state.
+  // Returning a synthesised id (`mock-${ts}`) would let the client treat
+  // a failed write as a successful rating — surface the failure instead.
+  if (!created) {
+    return c.json({ error: "rating_persist_failed" }, 500);
+  }
+  const row: any = created;
   audit(db, userId, {
     action: "rate",
     resource: "test_booking",

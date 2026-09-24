@@ -41,3 +41,20 @@ export function resolveJwtSecret(env: {
   // keep working without ceremony.
   return { ok: true, secret: LEGACY_DEV_FALLBACK };
 }
+
+/**
+ * Convenience wrapper that throws when the secret is missing in
+ * production. Use in any code path that signs/verifies tokens — the
+ * older inline `c.env.JWT_SECRET || "..."` fallback silently accepted
+ * the well-known dev key in production.
+ */
+export function getJwtSecret(env: {
+  JWT_SECRET?: string | undefined;
+  ENVIRONMENT?: string | undefined;
+}): string {
+  const r = resolveJwtSecret(env);
+  if (!r.ok) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+  return r.secret;
+}

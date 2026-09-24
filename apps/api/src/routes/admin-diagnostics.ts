@@ -17,13 +17,16 @@ import {
   diagnosticTestCatalog,
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
-import { requireRole } from "../middleware/rbac";
+import { requireAdmin } from "../middleware/admin";
 import { audit } from "../lib/audit";
 import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
 
 const adminRouter = new Hono<AppEnvironment>();
-adminRouter.use("*", authMiddleware, requireRole("super_admin"));
+// requireAdmin enforces super_admin role + aud="admin". requireRole
+// alone would let a mobile-audience JWT (with role=super_admin) reach
+// these endpoints.
+adminRouter.use("*", authMiddleware, requireAdmin);
 
 const packageCreateSchema = z.object({
   name: z.string().min(1).max(200),

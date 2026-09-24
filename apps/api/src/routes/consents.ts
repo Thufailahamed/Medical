@@ -97,7 +97,21 @@ consents.get("/me", requireRole("patient"), async (c) => {
   });
 });
 
-consents.get("/issued", async (c) => {
+// Recipient-side role gate: only clinicians/pharmacists/admins may
+// see the patient PII returned by this endpoint. The authMiddleware on
+// the router above confirms a valid token; the role gate keeps any
+// other role (patient, caretaker, lab) from harvesting phone numbers
+// for accounts where they hold a valid consent grant.
+const CLINICIAN_ROLES = [
+  "doctor",
+  "pharmacy",
+  "pharmacist",
+  "hospital_admin",
+  "hospital_staff",
+  "super_admin",
+] as const;
+
+consents.get("/issued", requireRole(...CLINICIAN_ROLES), async (c) => {
   const db = c.get("db");
   const userId = c.get("userId");
   const rows = await db

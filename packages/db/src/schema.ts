@@ -153,6 +153,10 @@ export const patients = sqliteTable("patients", {
   emergencyContacts: text("emergency_contacts"), // JSON array
   lifestyle: text("lifestyle"), // JSON: { smoking, alcohol, exercise }
   insuranceId: text("insurance_id"),
+  // Migration 0063: list of saved sample-collection / clinic addresses
+  // for the home-sample / lab booking flow. JSON array of
+  // { label, line1, line2, city, lat?, lng?, isDefault }.
+  savedAddresses: text("saved_addresses"),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -398,6 +402,20 @@ export const files = sqliteTable("files", {
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
+  // Migration 0082: file versioning + soft-delete. Every edit to a
+  // file inserts a new row with `version` incremented and
+  // `supersedes_file_id` pointing to the previous head row; only the
+  // row with `is_current=1` per logical chain is served by
+  // /medical-records/* GETs. `deleted_at` + `deleted_by` enable audit-
+  // friendly soft delete instead of hard-removing files (regulatory).
+  version: integer("version").notNull().default(1),
+  supersedesFileId: text("supersedes_file_id"),
+  isCurrent: integer("is_current", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  deletedAt: text("deleted_at"),
+  deletedBy: text("deleted_by"),
+  changeReason: text("change_reason"),
 });
 
 // ─── Migration 0070: Structured extraction child tables ──
@@ -1133,6 +1151,11 @@ export const notificationPreferences = sqliteTable("notification_preferences", {
   }).notNull(),
   inApp: integer("in_app", { mode: "boolean" }).default(true).notNull(),
   push: integer("push", { mode: "boolean" }).default(true).notNull(),
+  // Migration 0074: separate SMS opt-in so marketing-style bulk SMS
+  // can be governed independently of push reminders. Defaults true so
+  // legacy rows keep receiving SMS reminders unless explicitly opted
+  // out by the user.
+  sms: integer("sms", { mode: "boolean" }).default(true).notNull(),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -3437,6 +3460,13 @@ export const payments = sqliteTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     notes: text("notes"),
+    // Migration 0071: payments routed through an online gateway carry
+    // the provider name (payhere / stripe) plus the gateway's charge id
+    // and the timestamp we observed the webhook. Required for
+    // reconciliation against the gateway dashboard + for dispute handling.
+    provider: text("provider"),
+    providerChargeId: text("provider_charge_id"),
+    webhookReceivedAt: text("webhook_received_at"),
   },
   (t) => ({
     invoiceIdx: index("payments_invoice_idx").on(t.invoiceId),
@@ -4931,6 +4961,162 @@ export const labProfiles = sqliteTable("lab_profiles", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+// ─── Book-a-Test: lab-diagnostics schema (0064–0068, 0078) ──
+//
+// Migrations 0064-0068 create the diagnostic-test booking flow tables.
+// Drizzle was never updated to declare them, so two routes
+// (`routes/lab-partner-portal.ts:42` and `routes/diagnostic-tests.ts:70`)
+// define their own `sqliteTable` stubs that mirror the migration DDL.
+// Centralise the declarations here so both routes import from
+// `@healthcare/db` and any future migration ALTER is reflected in TS
+// types automatically.
+
+export const phlebotomists = sqliteTable("phlebotomists", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  labPartnerId: text("lab_partner_id").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: text("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const testBookingRatings = sqliteTable("test_booking_ratings", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  bookingId: text("booking_id").notNull().unique(),
+  patientId: text("patient_id").notNull(),
+  userId: text("user_id"),
+  labPartnerId: text("lab_partner_id"),
+  score: integer("score"),
+  // 0078: alias of score for the 1-5 star UI; legacy `stars` rows
+  // predate the rename so both columns stay populated by /rate.
+  stars: integer("stars"),
+  comment: text("comment"),
+  createdAt: text("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const testResultValues = sqliteTable(
+  "test_result_values",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    bookingId: text("booking_id").notNull(),
+    testName: text("test_name").notNull(),
+    value: real("value"),
+    unit: text("unit"),
+    referenceMin: real("reference_min"),
+    referenceMax: real("reference_max"),
+    isAbnormal: integer("is_abnormal", { mode: "boolean" }).default(false).notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    nameIdx: index("idx_test_result_values_name").on(t.testName, t.createdAt),
+    bookingIdx: index("idx_test_result_values_booking").on(t.bookingId),
+  }),
+);
+
+export const testBookingItems = sqliteTable(
+  "test_booking_items",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    bookingId: text("booking_id").notNull(),
+    testId: text("test_id").notNull(),
+    price: real("price").notNull(),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    bookingIdx: index("idx_test_booking_items_booking").on(t.bookingId),
+    testIdx: index("idx_test_booking_items_test").on(t.testId),
+  }),
+);
+
+export const testPromoCodes = sqliteTable(
+  "test_promo_codes",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    code: text("code").notNull().unique(),
+    discountType: text("discount_type", {
+      enum: ["percentage", "fixed"],
+    }).notNull(),
+    discountValue: real("discount_value").notNull(),
+    maxUses: integer("max_uses"),
+    usedCount: integer("used_count").notNull().default(0),
+    validFrom: text("valid_from"),
+    validUntil: text("valid_until"),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => ({
+    codeIdx: index("idx_test_promo_codes_code").on(t.code, t.isActive),
+  }),
+);
+
+// ─── Payment webhook idempotency (migration 0072) ─────────
+//
+// One row per (provider, event_id) UNIQUE. `tryRecordWebhook()` inserts
+// here before processing — if a duplicate (provider, event_id) row
+// exists, the second call sees the unique-index collision and skips.
+// Without this table, PayHere/Stripe retry storms would re-credit the
+// same payment twice.
+export const paymentWebhookEvents = sqliteTable(
+  "payment_webhook_events",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    provider: text("provider").notNull(),
+    eventId: text("event_id").notNull(),
+    merchantOrderId: text("merchant_order_id"),
+    payload: text("payload"),
+    receivedAt: text("received_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    processedAt: text("processed_at"),
+    status: text("status"),
+  },
+  (t) => ({
+    providerEventUnique: uniqueIndex(
+      "payment_webhook_events_provider_event_idx",
+    ).on(t.provider, t.eventId),
+    merchantIdx: index("payment_webhook_events_merchant_idx").on(
+      t.merchantOrderId,
+    ),
+  }),
+);
+
+// ─── Notification opt-outs (migration 0073) ────────────────
+//
+// One row per (user_id, channel). `sendSmsWithOptOut()` reads this to
+// skip sends — the carrier-side unsubscribe webhook (Twilio 21610) is
+// the canonical source but a writable table means we can record
+// pre-emptive opt-outs from the app too.
+export const notificationOptOuts = sqliteTable("notification_opt_outs", {
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  channel: text("channel", {
+    enum: ["sms", "email", "push"],
+  }).notNull(),
+  reason: text("reason"),
+  optedOutAt: text("opted_out_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });

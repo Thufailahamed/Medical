@@ -1,11 +1,12 @@
 // @ts-nocheck
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
   Pressable,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -24,7 +25,14 @@ import {
   useDoctorEarningsTimeseries,
   useDoctorPayouts,
 } from "@/hooks/useApi";
-import { Screen, ErrorState } from "@/components/ui";
+import {
+  Screen,
+  ScreenHeader,
+  Card,
+  Pill,
+  Skeleton,
+  ErrorState,
+} from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 
 const PERIODS = [
@@ -41,57 +49,84 @@ function fmtLkr(n: number): string {
   return `LKR ${Math.round(n)}`;
 }
 
+function lkrParts(n: number): { currency: string; value: string } {
+  if (!isFinite(n)) return { currency: "LKR", value: "0" };
+  if (n >= 1_000_000) return { currency: "LKR", value: `${(n / 1_000_000).toFixed(1)}M` };
+  if (n >= 1_000) return { currency: "LKR", value: `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k` };
+  return { currency: "LKR", value: `${Math.round(n)}` };
+}
+
 function BarChart({
   series,
 }: {
   series: { bucket: string; total: number; count: number }[];
 }) {
-  const { colors, radius, fontFamily } = useTheme();
+  const { colors, fontFamily } = useTheme();
   const max = Math.max(1, ...series.map((s) => s.total));
   if (!series.length) return null;
   // Show last 14 buckets max for legibility.
   const visible = series.slice(-14);
-  const barWidthPct = 100 / visible.length;
   const labelStride = Math.max(1, Math.floor(visible.length / 5));
   return (
-    <View style={{ height: 140, marginTop: 12 }}>
-      <View
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          alignItems: "flex-end",
-          gap: 4,
-        }}
-      >
-        {visible.map((s, idx) => {
-          const heightPct = Math.max(4, (s.total / max) * 100);
-          return (
-            <View
-              key={`${s.bucket}-${idx}`}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "flex-end",
-                height: "100%",
-              }}
-            >
+    <View style={{ height: 164 }}>
+      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        {[0.25, 0.5, 0.75].map((line) => (
+          <View
+            key={line}
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: `${line * 100}%`,
+              height: StyleSheet.hairlineWidth,
+              backgroundColor: colors.separator,
+            }}
+          />
+        ))}
+        <View
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            alignItems: "flex-end",
+            gap: 6,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.separator,
+          }}
+        >
+          {visible.map((s, idx) => {
+            const heightPct = Math.max(5, (s.total / max) * 100);
+            const latest = idx === visible.length - 1;
+            return (
               <View
+                key={`${s.bucket}-${idx}`}
                 style={{
-                  width: "100%",
-                  height: `${heightPct}%`,
-                  backgroundColor: idx === visible.length - 1 ? colors.primary : colors.primarySoft,
-                  borderRadius: 5,
-                  borderCurve: "continuous",
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  height: "100%",
                 }}
-              />
-            </View>
-          );
-        })}
+              >
+                <View
+                  style={{
+                    width: "72%",
+                    height: `${heightPct}%`,
+                    minHeight: 6,
+                    backgroundColor: latest ? colors.primary : colors.primarySoft,
+                    borderRadius: 7,
+                    borderCurve: "continuous",
+                    opacity: latest ? 1 : 0.88,
+                  }}
+                />
+              </View>
+            );
+          })}
+        </View>
       </View>
       <View
         style={{
           flexDirection: "row",
-          marginTop: 4,
+          marginTop: 6,
           paddingHorizontal: 2,
         }}
       >
@@ -127,24 +162,24 @@ export default function EarningsScreen() {
   const { t } = useTranslation();
   const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const isDark = scheme === "dark";
-  const hairline = isDark ? colors.borderStrong : colors.separator;
-  const card = {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    borderCurve: "continuous" as const,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: hairline,
-    ...(isDark ? {} : shadow.sm),
-  };
   const [period, setPeriod] = useState<"week" | "month" | "quarter" | "year">("month");
+  const [refreshing, setRefreshing] = useState(false);
 
   const { data: summary, isLoading, isError, refetch } = useDoctorEarningsSummary(period);
-  const { data: payoutData, isLoading: payoutsLoading } = useDoctorPayouts(20);
+  const {
+    data: payoutData,
+    isLoading: payoutsLoading,
+    refetch: refetchPayouts,
+  } = useDoctorPayouts(20);
 
   const from = summary?.start || "";
   const to = summary?.end || "";
   const bucket: "day" | "week" = period === "year" ? "week" : period === "quarter" ? "week" : "day";
-  const { data: tsData } = useDoctorEarningsTimeseries({
+  const {
+    data: tsData,
+    isLoading: trendLoading,
+    refetch: refetchTrend,
+  } = useDoctorEarningsTimeseries({
     from,
     to,
     bucket,
@@ -154,14 +189,31 @@ export default function EarningsScreen() {
   const trendPositive = trend >= 0;
 
   const payouts = payoutData?.payouts || [];
+  const amount = lkrParts(summary?.totalLkr ?? 0);
 
   const handlePeriod = useCallback((p: typeof PERIODS[number]["key"]) => {
     setPeriod(p);
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetch(), refetchTrend(), refetchPayouts()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch, refetchTrend, refetchPayouts]);
+
   if (isError) {
     return (
-      <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
+      <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.surfaceSubtle }}>
+        <ScreenHeader
+          variant="hero"
+          back={false}
+          title={t("earnings.title")}
+          subtitle={t("earnings.subtitle")}
+          style={{ backgroundColor: "transparent" }}
+        />
         <ErrorState
           title={t("recordDetail.errorTitle", "Couldn't load earnings")}
           message={t("recordDetail.errorBody", "Check your connection and try again.")}

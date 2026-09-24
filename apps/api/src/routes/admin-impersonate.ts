@@ -21,6 +21,7 @@ import { eq } from "drizzle-orm";
 import { users } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
 import { requirePasskeyFresh } from "../middleware/stepup";
+import { getJwtSecret } from "../lib/jwt-secret";
 import { generateToken } from "../lib/crypto";
 import { flattenTranslated } from "../lib/validation-error";
 import type { AppEnvironment } from "../types";
@@ -64,7 +65,7 @@ impersonateRouter.post("/start", requirePasskeyFresh, async (c) => {
     return c.json({ error: "Cannot impersonate another admin" }, 409);
   }
 
-  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const secret = getJwtSecret(c.env);
   const expiresAt = new Date(Date.now() + IMPERSONATION_TTL_SECONDS * 1000).toISOString();
 
   const token = await generateToken(

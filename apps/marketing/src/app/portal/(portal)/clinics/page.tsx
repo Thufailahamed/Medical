@@ -49,7 +49,7 @@ export default function ClinicsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {list.map((c) => (
             <Card key={c.id}>
-              <Link href={`/clinics/${c.id}`} className="flex items-start gap-3">
+              <Link href={`/portal/clinics/${c.id}`} className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-lg bg-brand-soft text-brand flex items-center justify-center shrink-0">
                   <Building2 size={16} />
                 </div>

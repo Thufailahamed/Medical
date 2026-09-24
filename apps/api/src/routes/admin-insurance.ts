@@ -23,13 +23,17 @@ import {
   insurancePlanUpdateSchema,
 } from "@healthcare/shared/validators";
 import { authMiddleware } from "../middleware/auth";
-import { requireRole } from "../middleware/rbac";
+import { requireAdmin } from "../middleware/admin";
 import { audit } from "../lib/audit";
 import type { AppEnvironment } from "../types";
 
 const adminRouter = new Hono<AppEnvironment>();
 
-adminRouter.use("*", authMiddleware, requireRole("super_admin"));
+// requireAdmin enforces super_admin role + aud="admin" so mobile-issued
+// tokens can't reach these endpoints (the role-only check would have
+// allowed any token whose payload carries role=super_admin, including
+// ones minted for the mobile audience).
+adminRouter.use("*", authMiddleware, requireAdmin);
 
 // ─── Providers ─────────────────────────────────────────
 

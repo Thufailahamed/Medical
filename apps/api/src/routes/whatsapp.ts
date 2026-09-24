@@ -79,10 +79,28 @@ whatsappRouter.get("/webhooks/whatsapp", (c) => {
 
 // POST — Inbound messages. Meta POSTs to this URL whenever the bot
 // number receives a text or interactive reply.
+//
+// Signature verification: Meta signs every POST with the app secret and
+// sends the hex digest in `X-Hub-Signature-256: sha256=<hex>`. We verify
+// against the raw body BEFORE JSON-parsing so the signature matches
+// byte-for-byte. Verification is enforced in production (ENVIRONMENT
+// is "production" / "prod") and skipped in dev where `WA_APP_SECRET`
+// is typically absent (ngrok/CLI simulators can't sign).
 whatsappRouter.post("/webhooks/whatsapp", async (c) => {
+  const raw = await c.req.text();
+  const sigOk = await verifyMetaSignature(
+    raw,
+    c.req.header("x-hub-signature-256"),
+    c.env.WA_APP_SECRET,
+    c.env.ENVIRONMENT,
+  );
+  if (!sigOk) {
+    return c.text("signature_invalid", 403);
+  }
+
   let payload: any = null;
   try {
-    payload = await c.req.json();
+    payload = JSON.parse(raw || "{}");
   } catch {
     return c.text("bad request", 400);
   }
@@ -677,6 +695,69 @@ function interpolate(
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) =>
     vars[k] != null ? String(vars[k]) : `{{${k}}}`,
   );
+}
+
+// ─── Meta signature verification ──────────────────────────
+//
+// Returns true when:
+//  - `WA_APP_SECRET` is unset AND environment is not production (dev
+//    convenience for ngrok / CLI simulators that can't sign).
+//  - `WA_APP_SECRET` is set AND header `X-Hub-Signature-256` matches
+//    `sha256=<hex of HMAC-SHA256(rawBody, WA_APP_SECRET)>`.
+//
+// In production with no `WA_APP_SECRET`: fail closed (return false).
+async function verifyMetaSignature(
+  rawBody: string,
+  header: string | undefined,
+  appSecret: string | undefined,
+  environment: string | undefined,
+): Promise<boolean> {
+  const envName = String(environment ?? "").toLowerCase();
+  const isProdLike = envName === "production" || envName === "prod";
+  const hasSecret = typeof appSecret === "string" && appSecret.length > 0;
+
+  // Dev / preview without a configured secret: skip so local
+  // simulators (ngrok + Meta sandbox) work; production never reaches
+  // here because a real deploy must set WA_APP_SECRET.
+  if (!hasSecret) {
+    return !isProdLike;
+  }
+
+  if (!header || !header.toLowerCase().startsWith("sha256=")) {
+    return false;
+  }
+  const expectedHex = header.slice("sha256=".length).trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(expectedHex)) {
+    return false;
+  }
+  const computed = await hmacSha256Hex(appSecret, rawBody);
+  return safeHexEqual(expectedHex, computed);
+}
+
+async function hmacSha256Hex(secret: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigBuf = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(body),
+  );
+  const bytes = new Uint8Array(sigBuf);
+  let out = "";
+  for (const b of bytes) out += b.toString(16).padStart(2, "0");
+  return out;
+}
+
+function safeHexEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 export default whatsappRouter;

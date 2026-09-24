@@ -43,6 +43,7 @@ import {
 } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { accessiblePatientsFor } from "../lib/access";
+import { getJwtSecret } from "../lib/jwt-secret";
 import { generateToken, verifyToken } from "../lib/crypto";
 import type { AppEnvironment } from "../types";
 
@@ -64,7 +65,7 @@ const TICKET_TTL_SECONDS = 60;
 realtimeRouter.post("/token", async (c) => {
   const userId = c.get("userId");
   const role = c.get("userRole") || "patient";
-  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const secret = getJwtSecret(c.env);
   const expiresAt = Math.floor(Date.now() / 1000) + TICKET_TTL_SECONDS;
   const ticket = await generateToken(userId, secret, {
     purpose: "realtime",
@@ -87,7 +88,7 @@ realtimeRouter.post("/token", async (c) => {
 async function acceptTicket(c: any): Promise<string | null> {
   const t = c.req.query("token");
   if (!t) return null;
-  const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const secret = getJwtSecret(c.env);
   const decoded = await verifyToken(t, secret);
   if (!decoded || decoded.purpose !== "realtime") return null;
   return t;
@@ -110,7 +111,7 @@ realtimeRouter.get("/", async (c) => {
   // via the Bearer header (e.g. server-to-server) still work as before.
   const queryToken = c.req.query("token");
   if (queryToken) {
-    const secret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+    const secret = getJwtSecret(c.env);
     const decoded = await verifyToken(queryToken, secret);
     if (!decoded || decoded.purpose !== "realtime") {
       return c.json(

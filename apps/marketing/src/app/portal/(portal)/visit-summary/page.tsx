@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -40,16 +40,20 @@ interface LabDraft {
 }
 
 interface VisitSummaryProps {
-  searchParams: { patientId?: string; appointmentId?: string };
+  // Next 16 dropped the implicit `searchParams` prop on client pages;
+  // a `use client` page must read the query string via the
+  // `useSearchParams()` hook from `next/navigation`.
 }
 
-export default function VisitSummaryPage({
-  searchParams,
-}: VisitSummaryProps) {
+export default function VisitSummaryPage(_props: VisitSummaryProps) {
   const router = useRouter();
   const t = useT();
   const qc = useQueryClient();
-  const { patientId, appointmentId } = searchParams;
+  // `useSearchParams` is reactive: navigating with new query state
+  // pushes a fresh render so the page picks up the new patient/appt.
+  const searchParams = useSearchParams();
+  const patientId = searchParams?.get("patientId") ?? undefined;
+  const appointmentId = searchParams?.get("appointmentId") ?? undefined;
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ["doctor-portal", "patient", patientId, "summary"],

@@ -3,7 +3,7 @@
 import { Hono } from "hono";
 import { and, eq, isNull, or, inArray } from "drizzle-orm";
 import { users, patients, doctors, otpCodes, notifications, passwordResets } from "@healthcare/db";
-import { resolveJwtSecret } from "../lib/jwt-secret";
+import { resolveJwtSecret, getJwtSecret } from "../lib/jwt-secret";
 import { getApprovalRequiredRoles } from "../lib/settings";
 import {
   registerSchema,
@@ -104,7 +104,7 @@ async function maybeIssueMfaToken(
     .limit(1);
   if (!d) return null;
 
-  const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const jwtSecret = getJwtSecret(c.env);
   const ttlSeconds = 5 * 60;
   const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
   const mfaToken = await generateToken(dbUser.id, jwtSecret, {
@@ -307,7 +307,7 @@ auth.post("/register", async (c) => {
   // Generate JWT token — surface plain NIC + DOB on the session so the
   // mobile app can scope data to a verified subject without a server
   // round-trip per request.
-  const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const jwtSecret = getJwtSecret(c.env);
   const registerAge = ageAtRegistration(dbUser.dateOfBirth);
   const token = await generateToken(dbUser.id, jwtSecret, {
     nic: dbUser.nic,
@@ -437,7 +437,7 @@ auth.post("/login", async (c) => {
           .returning();
       }
 
-      const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+      const jwtSecret = getJwtSecret(c.env);
       const token = await generateToken(dbUser.id, jwtSecret, {
         nic: null,
         dob: "1990-01-01",
@@ -535,7 +535,7 @@ auth.post("/login", async (c) => {
     }
 
     // Generate JWT token
-    const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+    const jwtSecret = getJwtSecret(c.env);
     const token = await generateToken(dbUser.id, jwtSecret, {
       nic: null,
       dob: null,
@@ -600,7 +600,7 @@ auth.post("/login", async (c) => {
   }
 
   // Generate JWT token
-  const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const jwtSecret = getJwtSecret(c.env);
 
   // MFA branch (Round 2 P0): doctors with MFA enabled (or still pending
   // enrollment) get a short-lived mfaToken instead of a full session.
@@ -700,7 +700,7 @@ auth.post("/login-by-nic", async (c) => {
     dbUser.nicVerificationLevel = level === "none" ? null : level;
   }
 
-  const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const jwtSecret = getJwtSecret(c.env);
 
   // MFA branch (Round 2 P0): doctors with MFA pending/enrolled
   // receive a short-lived mfaToken instead of a full session.
@@ -1114,7 +1114,7 @@ auth.post("/verify-otp", async (c) => {
     );
   }
 
-  const jwtSecret = c.env.JWT_SECRET || "super-secret-key-change-me-in-prod";
+  const jwtSecret = getJwtSecret(c.env);
 
   // MFA branch (Round 2 P0): doctors with MFA pending/enrolled get a
   // short-lived mfaToken instead of a full session JWT. The mobile app

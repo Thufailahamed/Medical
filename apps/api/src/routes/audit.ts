@@ -5,7 +5,10 @@ import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { auditLogs, patients, prescriptions, doctors, users } from "@healthcare/db";
 import { authMiddleware } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
+import { requireAdmin } from "../middleware/admin";
 import { canAccessPatient } from "../lib/access";
+import { audit } from "../lib/audit";
+import { z } from "zod";
 import type { AppEnvironment } from "../types";
 
 const auditRouter = new Hono<AppEnvironment>();
@@ -185,28 +188,45 @@ auditRouter.get("/", authMiddleware, requireRole("doctor"), async (c) => {
   return c.json({ error: `Unsupported resource: ${resource}` }, 400);
 });
 
-// ─── Generic log writer (internal endpoints call this) ────
-auditRouter.post("/", authMiddleware, async (c) => {
-  const userId = c.get("userId");
+// ─── Generic log writer (audit POST) ─────────────────────
+//
+// Audit writes are normally fired by the `audit()` helper in
+// `lib/audit.ts` from internal code paths — that path already validates
+// the actor via call-site RBAC. This HTTP endpoint remains only so the
+// admin console can append manual entries (e.g. ops annotations);
+// it must not be reachable by ordinary app users, who would otherwise
+// be able to forge audit rows impersonating anyone else.
+//
+// Gated by `requireAdmin` (super_admin role + aud="admin").
+const auditWriteSchema = z.object({
+  userId: z.string().optional(),
+  action: z.string().min(1).max(120),
+  resource: z.string().min(1).max(80),
+  resourceId: z.string().optional(),
+  details: z.record(z.unknown()).optional(),
+});
+
+auditRouter.post("/", authMiddleware, requireAdmin, async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = auditWriteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "validation_failed" }, 400);
+  }
+  const data = parsed.data;
   const db = c.get("db");
-  const body = await c.req.json();
-
-  const [row] = await db
-    .insert(auditLogs)
-    .values({
-      userId,
-      action: body.action,
-      resource: body.resource,
-      resourceId: body.resourceId || null,
-      details: body.details ? JSON.stringify(body.details) : null,
-      ip:
-        c.req.header("cf-connecting-ip") ||
-        c.req.header("x-forwarded-for") ||
-        null,
-    } as any)
-    .returning();
-
-  return c.json({ auditLog: row }, 201);
+  const ip =
+    c.req.header("cf-connecting-ip") ||
+    c.req.header("x-forwarded-for") ||
+    null;
+  await audit(db, {
+    userId: data.userId ?? null,
+    action: data.action,
+    resource: data.resource,
+    resourceId: data.resourceId ?? null,
+    details: data.details ?? null,
+    ip,
+  });
+  return c.json({ ok: true }, 201);
 });
 
 export default auditRouter;

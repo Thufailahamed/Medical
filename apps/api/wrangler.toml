@@ -43,6 +43,10 @@ ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.heal
 # secrets — push via `wrangler secret put`. Phone number id is read from
 # each webhook payload so it does not need to be configured here.
 #
+# WA_APP_SECRET (also pushed via `wrangler secret put`) is the Meta app
+# secret used to verify the X-Hub-Signature-256 header on inbound webhooks.
+# Required in production; optional in dev/preview so ngrok simulators work.
+#
 # Phase MVP-2: support channel. Same Meta business number is reused for
 # the wa.me deep-link in mobile + marketing surfaces. Operators triage
 # onboarding vs support messages from Meta Inbox directly. Digits only,

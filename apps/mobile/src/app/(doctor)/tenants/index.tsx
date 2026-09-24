@@ -3,7 +3,7 @@
 // Pulls from GET /me/tenants (same store that powers the top-bar
 // switcher). Each row is tappable → tenants/[id] detail.
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -15,10 +15,16 @@ import { useRouter, useFocusEffect } from "expo-router";
 import {
   Building2,
   Stethoscope,
-  ChevronRight,
-  ArrowLeft,
+  Plus,
 } from "lucide-react-native";
-import { Screen, Card, Pill, EmptyState } from "@/components/ui";
+import {
+  Screen,
+  ScreenHeader,
+  Card,
+  Divider,
+  ListItem,
+  Skeleton,
+} from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
 import {
@@ -33,10 +39,16 @@ export default function DoctorTenants() {
   const router = useRouter();
   const myHospitals = useActiveTenantStore((s) => s.myHospitals);
   const myClinics = useActiveTenantStore((s) => s.myClinics);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  async function load() {
-    setLoading(true);
+  async function load(refresh = false) {
+    if (refresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const res = await api<{
         hospitals: TenantRef[];
@@ -53,7 +65,9 @@ export default function DoctorTenants() {
     } catch {
       // ignore — fallback to store
     } finally {
+      setLoaded(true);
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -73,178 +87,341 @@ export default function DoctorTenants() {
     router.push(`/(doctor)/tenants/${id}`);
   }
 
+  const initialLoading = loading && !loaded;
+
   return (
-    <Screen>
+    <Screen
+      padded={false}
+      edges={["top"]}
+      bottomInset
+      style={{ backgroundColor: colors.surfaceSubtle }}
+    >
+      <ScreenHeader
+        back
+        onBack={() => router.back()}
+        title="Workspaces"
+        subtitle="Hospitals and clinics"
+        style={{ backgroundColor: "transparent" }}
+      />
+
       <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           padding: spacing.lg,
-          paddingBottom: spacing.xxl,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xxxl,
+          gap: spacing.lg,
         }}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={load} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load(true)}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
         }
       >
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          style={{
-            marginBottom: spacing.md,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <ArrowLeft size={18} color={colors.text} />
-          <Text style={{ color: colors.text, fontWeight: "600" }}>Back</Text>
-        </Pressable>
-
-        <Text
-          style={[
-            typography.title.lg,
-            { color: colors.text, fontWeight: "800", marginBottom: spacing.sm },
-          ]}
-        >
-          My Hospitals
-        </Text>
-        {myHospitals.length === 0 ? (
-          <EmptyState
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <WorkspaceStat
             icon={Building2}
-            title="No hospitals yet"
-            message="Ask an admin to add you, or join via an invite link."
+            label="Hospitals"
+            value={myHospitals.length}
           />
-        ) : (
-          myHospitals.map((h: TenantRef) => (
+          <WorkspaceStat
+            icon={Stethoscope}
+            label="Clinics"
+            value={myClinics.length}
+          />
+        </View>
+
+        <TenantSection
+          icon={Building2}
+          title="My Hospitals"
+          description="Shared workspaces managed by hospital teams."
+        >
+          {initialLoading ? (
+            <TenantSkeleton />
+          ) : myHospitals.length === 0 ? (
+            <TenantEmptyState
+              icon={Building2}
+              title="No hospitals yet"
+              message="Ask an admin to add you, or join via an invite link."
+            />
+          ) : (
+            myHospitals.map((h: TenantRef, idx: number) => (
+              <View key={`h-${h.id}`}>
+                {idx > 0 ? <Divider inset={72} /> : null}
+                <ListItem
+                  bordered={false}
+                  icon={Building2}
+                  iconTone="primary"
+                  title={h.name}
+                  pill={h.role ? { label: h.role, tone: "primary" } : undefined}
+                  onPress={() => go("hospital", h.id)}
+                  showChevron
+                />
+              </View>
+            ))
+          )}
+        </TenantSection>
+
+        <TenantSection
+          icon={Stethoscope}
+          title="My Clinics"
+          description="Your independent practices and teams."
+          action={
             <Pressable
-              key={`h-${h.id}`}
-              onPress={() => go("hospital", h.id)}
+              onPress={() => router.push("/(doctor)/clinics/new")}
               accessibilityRole="button"
+              accessibilityLabel="New clinic"
               style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
-                marginBottom: spacing.sm,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                minHeight: 34,
+                paddingHorizontal: spacing.md,
+                borderRadius: 17,
+                borderCurve: "continuous",
+                backgroundColor: pressed ? colors.fillStrong : colors.primarySoft,
               })}
             >
-              <Card>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.md,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.primarySoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Building2 size={18} color={colors.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        typography.title.sm,
-                        { color: colors.text, fontWeight: "700" },
-                      ]}
-                    >
-                      {h.name}
-                    </Text>
-                    {h.role ? (
-                      <Pill label={h.role} tone="primary" />
-                    ) : null}
-                  </View>
-                  <ChevronRight size={18} color={colors.textMuted} />
-                </View>
-              </Card>
+              <Plus size={15} color={colors.primary} strokeWidth={2.5} />
+              <Text
+                style={[
+                  typography.label.md,
+                  { color: colors.primary, fontWeight: "700" },
+                ]}
+              >
+                New
+              </Text>
             </Pressable>
-          ))
-        )}
-
-        <View style={{ height: spacing.xl }} />
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: spacing.sm,
-          }}
+          }
         >
-          <Text
-            style={[
-              typography.title.lg,
-              { color: colors.text, fontWeight: "800" },
-            ]}
-          >
-            My Clinics
-          </Text>
-          <Pressable
-            onPress={() => router.push("/(doctor)/clinics/new")}
-            accessibilityRole="button"
-          >
-            <Text style={{ color: colors.primary, fontWeight: "700" }}>
-              + New
-            </Text>
-          </Pressable>
-        </View>
-        {myClinics.length === 0 ? (
-          <EmptyState
-            icon={Stethoscope}
-            title="No clinics yet"
-            message="Create your own clinic to invite partners + patients."
-          />
-        ) : (
-          myClinics.map((c: TenantRef) => (
-            <Pressable
-              key={`c-${c.id}`}
-              onPress={() => go("clinic", c.id)}
-              accessibilityRole="button"
-              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginBottom: spacing.sm })}
-            >
-              <Card>
-                <View
-                  style={{
-                    flexDirection: "row",
+          {initialLoading ? (
+            <TenantSkeleton />
+          ) : myClinics.length === 0 ? (
+            <TenantEmptyState
+              icon={Stethoscope}
+              title="No clinics yet"
+              message="Create your own clinic to invite partners and patients."
+              action={
+                <Pressable
+                  onPress={() => router.push("/(doctor)/clinics/new")}
+                  accessibilityRole="button"
+                  style={({ pressed }) => ({
+                    marginTop: spacing.sm,
+                    minHeight: 38,
+                    paddingHorizontal: spacing.lg,
+                    borderRadius: 19,
+                    borderCurve: "continuous",
                     alignItems: "center",
-                    gap: spacing.md,
-                  }}
+                    justifyContent: "center",
+                    backgroundColor: pressed ? colors.fillStrong : colors.primarySoft,
+                  })}
                 >
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.primarySoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                  <Text
+                    style={[
+                      typography.label.md,
+                      { color: colors.primary, fontWeight: "700" },
+                    ]}
                   >
-                    <Stethoscope size={18} color={colors.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        typography.title.sm,
-                        { color: colors.text, fontWeight: "700" },
-                      ]}
-                    >
-                      {c.name}
-                    </Text>
-                    {c.role ? (
-                      <Pill label={c.role} tone="primary" />
-                    ) : null}
-                  </View>
-                  <ChevronRight size={18} color={colors.textMuted} />
-                </View>
-              </Card>
-            </Pressable>
-          ))
-        )}
+                    Create clinic
+                  </Text>
+                </Pressable>
+              }
+            />
+          ) : (
+            myClinics.map((c: TenantRef, idx: number) => (
+              <View key={`c-${c.id}`}>
+                {idx > 0 ? <Divider inset={72} /> : null}
+                <ListItem
+                  bordered={false}
+                  icon={Stethoscope}
+                  iconTone="primary"
+                  title={c.name}
+                  pill={c.role ? { label: c.role, tone: "primary" } : undefined}
+                  onPress={() => go("clinic", c.id)}
+                  showChevron
+                />
+              </View>
+            ))
+          )}
+        </TenantSection>
       </ScrollView>
     </Screen>
+  );
+}
+
+function WorkspaceStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: any;
+  label: string;
+  value: number;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <Card padded={false} style={{ flex: 1 }}>
+      <View
+        style={{
+          minHeight: 92,
+          padding: spacing.md,
+          justifyContent: "space-between",
+        }}
+      >
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Icon size={18} color={colors.primary} strokeWidth={2.3} />
+        </View>
+        <View>
+          <Text style={[typography.display.sm, { color: colors.text }]}>
+            {value}
+          </Text>
+          <Text style={[typography.label.sm, { color: colors.textMuted }]}>
+            {label}
+          </Text>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+function TenantSection({
+  icon: Icon,
+  title,
+  description,
+  action,
+  children,
+}: {
+  icon: any;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <Card padded={false}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.lg,
+          paddingBottom: spacing.md,
+        }}
+      >
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 11,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Icon size={18} color={colors.primary} strokeWidth={2.3} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[typography.title.md, { color: colors.text }]}>
+            {title}
+          </Text>
+          {description ? (
+            <Text
+              numberOfLines={1}
+              style={[typography.body.xs, { color: colors.textMuted }]}
+            >
+              {description}
+            </Text>
+          ) : null}
+        </View>
+        {action}
+      </View>
+      {children}
+    </Card>
+  );
+}
+
+function TenantEmptyState({
+  icon: Icon,
+  title,
+  message,
+  action,
+}: {
+  icon: any;
+  title: string;
+  message: string;
+  action?: ReactNode;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        paddingHorizontal: spacing.xl,
+        paddingTop: spacing.md,
+        paddingBottom: spacing.xl,
+      }}
+    >
+      <View
+        style={{
+          width: 58,
+          height: 58,
+          borderRadius: 18,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.primarySoft,
+          marginBottom: spacing.md,
+        }}
+      >
+        <Icon size={27} color={colors.primary} strokeWidth={1.9} />
+      </View>
+      <Text style={[typography.title.sm, { color: colors.text }]}>{title}</Text>
+      <Text
+        style={[
+          typography.body.sm,
+          {
+            color: colors.textMuted,
+            textAlign: "center",
+            marginTop: spacing.xs,
+            maxWidth: 270,
+          },
+        ]}
+      >
+        {message}
+      </Text>
+      {action}
+    </View>
+  );
+}
+
+function TenantSkeleton() {
+  const { spacing } = useTheme();
+  return (
+    <View
+      style={{
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.lg,
+        gap: spacing.md,
+      }}
+    >
+      <Skeleton height={58} radius={16} />
+      <Skeleton height={58} radius={16} />
+    </View>
   );
 }
