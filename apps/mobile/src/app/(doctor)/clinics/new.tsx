@@ -12,12 +12,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react-native";
 import { Screen, Card, Pill } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
 
 export default function NewClinic() {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const router = useRouter();
   const [name, setName] = useState("");
@@ -29,7 +31,7 @@ export default function NewClinic() {
 
   async function submit() {
     if (!name.trim()) {
-      setError("Clinic name is required");
+      setError(t("doctorClinicNew.nameRequired"));
       return;
     }
     setBusy(true);
@@ -51,7 +53,7 @@ export default function NewClinic() {
       });
       router.back();
     } catch (e: any) {
-      setError(e?.message || "Failed to create clinic");
+      setError(e?.message || t("doctorClinicNew.createFailed"));
     } finally {
       setBusy(false);
     }
@@ -71,7 +73,9 @@ export default function NewClinic() {
           }}
         >
           <ArrowLeft size={18} color={colors.text} />
-          <Text style={{ color: colors.text, fontWeight: "600" }}>Back</Text>
+          <Text style={{ color: colors.text, fontWeight: "600" }}>
+            {t("doctorClinicNew.back")}
+          </Text>
         </Pressable>
         <Text
           style={[
@@ -79,35 +83,35 @@ export default function NewClinic() {
             { color: colors.text, fontWeight: "800", marginBottom: spacing.md },
           ]}
         >
-          New Clinic
+          {t("doctorClinicNew.title")}
         </Text>
 
         <Card style={{ gap: spacing.md }}>
           <Field
-            label="Name"
+            label={t("doctorClinicNew.name")}
             value={name}
             onChange={setName}
-            placeholder="Sunrise Family Clinic"
+            placeholder={t("doctorClinicNew.namePlaceholder")}
           />
           <Field
-            label="Address"
+            label={t("doctorClinicNew.address")}
             value={address}
             onChange={setAddress}
-            placeholder="Street, city"
+            placeholder={t("doctorClinicNew.addressPlaceholder")}
             multiline
           />
           <Field
-            label="Phone"
+            label={t("doctorClinicNew.phone")}
             value={phone}
             onChange={setPhone}
-            placeholder="+91…"
+            placeholder={t("doctorClinicNew.phonePlaceholder")}
             keyboardType="phone-pad"
           />
           <Field
-            label="Specializations (comma-separated)"
+            label={t("doctorClinicNew.specializations")}
             value={specializations}
             onChange={setSpecializations}
-            placeholder="GP, Pediatrics"
+            placeholder={t("doctorClinicNew.specializationsPlaceholder")}
           />
           {error ? <Pill label={error} tone="danger" /> : null}
           <Pressable
@@ -127,7 +131,7 @@ export default function NewClinic() {
               <ActivityIndicator color={colors.onPrimary} />
             ) : (
               <Text style={{ color: colors.onPrimary, fontWeight: "800" }}>
-                Create clinic
+                {t("doctorClinicNew.create")}
               </Text>
             )}
           </Pressable>

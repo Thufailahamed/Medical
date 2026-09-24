@@ -231,7 +231,7 @@ export default function DoctorHub() {
               onPress={() => router.push("/profile" as any)}
               hitSlop={6}
               accessibilityRole="button"
-              accessibilityLabel="View Doctor Profile"
+              accessibilityLabel={t("doctor.viewProfileA11y", { defaultValue: "View doctor profile" })}
               style={({ pressed }) => ({
                 flex: 1,
                 flexDirection: "row",
@@ -501,7 +501,9 @@ export default function DoctorHub() {
                 trackColor="rgba(255,255,255,0.16)"
                 progressColor="#5EEAD4"
                 centerColor="rgba(255,255,255,0.06)"
-                accessibilityLabel={`${todayCount} appointments today`}
+                accessibilityLabel={t("doctor.todayAppointmentsA11y", {
+                  count: todayCount,
+                })}
               />
               <View
                 pointerEvents="none"
@@ -588,7 +590,7 @@ export default function DoctorHub() {
                 icon={Clock4}
                 label={t("doctor.stats.inQueue", "In Queue")}
                 value={upcoming}
-                sub="Waiting now"
+                sub={t("doctor.statsSub.waiting")}
                 tone="primary"
                 onPress={() => router.push("/queue" as any)}
               />
@@ -596,7 +598,7 @@ export default function DoctorHub() {
                 icon={FileText}
                 label={t("doctor.stats.rxWritten", "Rx Written")}
                 value={rxCount}
-                sub="Issued"
+                sub={t("doctor.statsSub.issued")}
                 tone="info"
                 onPress={() => router.push("/(doctor)/prescriptions" as any)}
               />
@@ -604,7 +606,7 @@ export default function DoctorHub() {
                 icon={Edit3}
                 label={t("doctor.stats.notes", "Notes")}
                 value={notesCount}
-                sub="Recorded"
+                sub={t("doctor.statsSub.recorded")}
                 tone="accent"
                 onPress={() => router.push("/clinical-notes" as any)}
               />
@@ -619,7 +621,9 @@ export default function DoctorHub() {
                 icon={CalendarDays}
                 label={t("schedule.title", "Schedule")}
                 subtitle={
-                  todayCount > 0 ? `${todayCount} visits today` : "View timetable"
+                  todayCount > 0
+                    ? t("doctor.tiles.scheduleSubtitleCount", { count: todayCount })
+                    : t("doctor.tiles.scheduleSubtitleEmpty")
                 }
                 tone="primary"
                 badge={todayCount}
@@ -628,7 +632,7 @@ export default function DoctorHub() {
               <QuickTile
                 icon={Wallet}
                 label={t("earnings.title", "Earnings")}
-                subtitle="Payouts & billing"
+                subtitle={t("doctor.tiles.earningsSubtitle")}
                 tone="warning"
                 onPress={() => router.push("/earnings" as any)}
               />
@@ -637,7 +641,11 @@ export default function DoctorHub() {
               <QuickTile
                 icon={Inbox}
                 label={t("inbox.title", "Messages")}
-                subtitle={unreadN > 0 ? `${unreadN} unread` : "No new messages"}
+                subtitle={
+                  unreadN > 0
+                    ? t("doctor.tiles.inboxSubtitleCount", { count: unreadN })
+                    : t("doctor.tiles.inboxSubtitleEmpty")
+                }
                 tone="accent"
                 badge={unreadN}
                 onPress={() => router.push("/inbox" as any)}
@@ -645,7 +653,11 @@ export default function DoctorHub() {
               <QuickTile
                 icon={FlaskConical}
                 label={t("doctor.tiles.labTitle", "Lab Orders")}
-                subtitle={labCount > 0 ? `${labCount} active orders` : "Review tests"}
+                subtitle={
+                  labCount > 0
+                    ? t("doctor.tiles.labSubtitleCount", { count: labCount })
+                    : t("doctor.tiles.labSubtitleEmpty")
+                }
                 tone="info"
                 badge={labCount}
                 onPress={() => router.push("/lab-orders" as any)}
@@ -747,7 +759,7 @@ export default function DoctorHub() {
                           { color: pressed ? colors.onPrimary : colors.primary },
                         ]}
                       >
-                        View schedule
+                        {t("doctor.viewSchedule")}
                       </Text>
                       <ArrowRight
                         size={12}
@@ -1251,7 +1263,7 @@ function QueuePreviewRow({
           }}
         />
         <Avatar
-          name={item.patientName || "Patient"}
+          name={item.patientName || t("doctor.patientFallback")}
           size="md"
           tone="primary"
         />
@@ -1262,7 +1274,7 @@ function QueuePreviewRow({
               numberOfLines={1}
               style={[typography.title.sm, { color: colors.text, flexShrink: 1 }]}
             >
-              {item.patientName || "Patient"}
+              {item.patientName || t("doctor.patientFallback")}
             </Text>
             {isVideo ? (
               <View
@@ -1279,7 +1291,7 @@ function QueuePreviewRow({
               >
                 <Video size={10} color={colors.success} />
                 <Text style={[typography.label.xs, { fontSize: 10, color: colors.success }]}>
-                  Video
+                  {t("doctor.video")}
                 </Text>
               </View>
             ) : null}
@@ -1289,7 +1301,7 @@ function QueuePreviewRow({
             numberOfLines={1}
             style={[typography.body.sm, { color: colors.textMuted }]}
           >
-            {item.reason || item.notes || "Regular consultation"}
+            {item.reason || item.notes || t("doctor.regularConsultation")}
           </Text>
         </View>
 
@@ -1301,7 +1313,9 @@ function QueuePreviewRow({
               { color: colors.textSubtle, fontVariant: ["tabular-nums"] },
             ]}
           >
-            Queue #{item.queueNumber ?? index + 1}
+            {t("doctor.queueNumber", {
+              number: item.queueNumber ?? index + 1,
+            })}
           </Text>
         </View>
 

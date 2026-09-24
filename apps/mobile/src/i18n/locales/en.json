@@ -11,10 +11,16 @@
     "clear": "Clear",
     "you": "You",
     "retry": "Retry",
+    "back": "Back",
     "errorTitle": "Something went wrong",
     "errorLoad": "We couldn't load this. Check your connection and try again.",
     "error": "Something went wrong",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "done": "Done",
+    "me": "Me",
+    "create": "Create",
+    "copyFailed": "Copy failed",
+    "shareFailed": "Share failed"
   },
   "appLock": {
     "setup": {
@@ -1365,7 +1371,21 @@
     "doctorSubtitle_one": "{{count}} patient granted you access",
     "doctorSubtitle_other": "{{count}} patients granted you access",
     "doctorEmptyTitle": "No patients yet",
-    "doctorEmptyBody": "Patients appear here when they add you to their care team."
+    "doctorEmptyBody": "Patients appear here when they add you to their care team.",
+    "verified": "Verified",
+    "doctorSearchPlaceholder": "Search patient, phone, or NIC...",
+    "allPatients": "All Patients",
+    "patientFallback": "Patient",
+    "demographicsOnFile": "Demographics on file",
+    "pendingInvite": "Pending Invite",
+    "fullAccess": "Full Access",
+    "consented": "Consented",
+    "writePrescription": "Write Prescription",
+    "viewPatientChart": "View Patient Chart",
+    "noPatientsFound": "No patients found",
+    "noPatientsFoundBody": "No patient matching \"{{search}}\" in your care team. Check name, phone, or NIC.",
+    "clearSearch": "Clear Search",
+    "fallback": "Care Team"
   },
   "medicine": {
     "frequency": {
@@ -1635,6 +1655,36 @@
     }
   },
   "records": {
+    "sharePack": {
+      "title": "Share pack",
+      "step1": "Pick records to bundle ({{count}}/50)",
+      "step2": "Name + expiry ({{count}} records)",
+      "noRecords": "No records to share yet.",
+      "next": "Next",
+      "labelLabel": "Label (optional)",
+      "labelPlaceholder": "e.g. Pre-cardiology visit",
+      "expiryLabel": "EXPIRES IN",
+      "create": "Create share link",
+      "done": "Pack ready",
+      "doneBody": "Share this URL with your doctor. It expires automatically.",
+      "tooMany": "Pack limit reached",
+      "tooManyBody": "Maximum 50 records per pack. Remove some to add more.",
+      "failed": "Failed"
+    },
+    "snapshot": {
+      "loading": "Loading health snapshot…",
+      "allergiesAlert_one": "{{count}} CRITICAL ALLERGY DETECTED",
+      "allergiesAlert_other": "{{count}} CRITICAL ALLERGIES DETECTED",
+      "drugWarning": "Potential allergy conflict found",
+      "conditions": "CHRONIC CONDITIONS",
+      "activeMeds_one": "{{count}} ACTIVE MEDICINE",
+      "activeMeds_other": "{{count}} ACTIVE MEDICINES",
+      "trends": "TRENDS",
+      "followUps": "UPCOMING FOLLOW-UPS",
+      "seeAll": "See all ({{count}})"
+    },
+    "attachmentCount_one": "{{count}} attachment",
+    "attachmentCount_other": "{{count}} attachments",
     "brandName": "HealthHub",
     "title": "Your Records",
     "manageTitle": "Manage records",
@@ -2232,6 +2282,7 @@
   },
   "home": {
     "brand": "HealthHub",
+    "seeAll": "See All",
     "a11y": {
       "criticalAllergies": "Critical allergies on file",
       "quickAdd": "Quick add",
@@ -2239,7 +2290,8 @@
       "upNextMedicine": "Up next medicine",
       "wellnessScore": "Wellness score",
       "bmiNeeded": "Complete profile for BMI",
-      "logDoseHint": "Open Medicines to log a dose"
+      "logDoseHint": "Open Medicines to log a dose",
+      "profile": "Profile"
     },
     "activeMemberA11y": "Acting as {{name}}. Tap to switch family member.",
     "activeMemberFallback": "Family member",
@@ -2599,6 +2651,17 @@
       "evening": "Good evening"
     },
     "todayAppointments": "Today",
+    "todayAppointmentsA11y_one": "{{count}} appointment today",
+    "todayAppointmentsA11y_other": "{{count}} appointments today",
+    "workspaceLabel": "Workspace",
+    "heroMetricPatients": "Patients",
+    "heroMetricAlerts": "Alerts",
+    "heroMetricFollowUps": "Follow-ups",
+    "patientFallback": "Patient",
+    "video": "Video",
+    "regularConsultation": "Regular consultation",
+    "queueNumber": "Queue #{{number}}",
+    "viewSchedule": "View schedule",
     "appointmentsLabel": "appointments",
     "heroChipQueue": "{{count}} in queue",
     "heroChipPatients": "{{count}} patients",
@@ -2617,6 +2680,11 @@
       "inQueue": "IN QUEUE",
       "rxWritten": "RX WRITTEN",
       "notes": "NOTES"
+    },
+    "statsSub": {
+      "waiting": "Waiting now",
+      "issued": "Issued",
+      "recorded": "Recorded"
     },
     "statsStrip": {
       "label": "TODAY'S PULSE"
@@ -2643,18 +2711,43 @@
       "followSubtitle_one": "{{count}} upcoming",
       "followSubtitle_other": "{{count}} upcoming",
       "hoursTitle": "My availability",
-      "hoursSubtitle": "Edit working hours and slots"
+      "hoursSubtitle": "Edit working hours and slots",
+      "scheduleSubtitleCount_one": "{{count}} visit today",
+      "scheduleSubtitleCount_other": "{{count}} visits today",
+      "scheduleSubtitleEmpty": "View timetable",
+      "earningsSubtitle": "Payouts & billing",
+      "inboxSubtitleCount_one": "{{count}} unread",
+      "inboxSubtitleCount_other": "{{count}} unread",
+      "inboxSubtitleEmpty": "No new messages",
+      "labSubtitleCount_one": "{{count}} active order",
+      "labSubtitleCount_other": "{{count}} active orders",
+      "labSubtitleEmpty": "Review tests"
     }
   },
   "doctorProfile": {
     "title": "Doctor profile",
-    "subtitle": "{{name}}",
+    "subtitle": "Clinical credentials & practice settings",
     "subtitleFallback": "Doctor",
     "nameFallback": "Doctor",
     "initialsFallback": "Dr",
     "openA11y": "Open {{label}}",
     "verifiedLabel": "Verified",
     "generalPractice": "General Practice",
+    "generalPractitioner": "General Practitioner",
+    "fallbackName": "Physician",
+    "fallbackHeroName": "Dr. Practitioner",
+    "doctorName": "Dr. {{name}}",
+    "activePractice": "Active Practice",
+    "slmcNumber": "SLMC: #{{number}}",
+    "verifiedNote": "SLMC verified practitioner. Qualifications and credentials are authenticated with medical council records.",
+    "languageTitle": "Language",
+    "darkMode": "Dark Mode",
+    "darkModeActive": "Dark appearance active",
+    "lightModeActive": "Light appearance active",
+    "toggle": "Toggle",
+    "signOutA11y": "Sign out of doctor portal",
+    "compliance": "HIPAA & Sri Lanka Medical Council Compliant",
+    "versionFooter": "Healthcare Suite v{{version}} • Practitioner Edition",
     "slmc": "SLMC {{number}}",
     "stats": {
       "todayQueue": "Today's queue",
@@ -2666,15 +2759,23 @@
     },
     "sections": {
       "activity": "ACTIVITY",
+      "activitySubtitle": "Real-time queue and practice metrics",
       "contact": "CONTACT",
-      "practice": "PRACTICE"
+      "contactSubtitle": "Direct communication channels",
+      "practice": "PRACTICE",
+      "practiceSubtitle": "Hospital affiliations and consultation rates",
+      "manage": "PRACTICE MANAGEMENT",
+      "manageSubtitle": "Schedules, clinics, and patient tools",
+      "preferences": "App Preferences",
+      "preferencesSubtitle": "Language and visual appearance"
     },
     "rows": {
       "phone": "Phone",
       "email": "Email",
       "specialization": "Specialization",
       "years": "Years of experience",
-      "yearsValue": "{{count}} years",
+      "yearsValue_one": "{{count}} year clinical practice",
+      "yearsValue_other": "{{count}} years clinical practice",
       "qualifications": "Qualifications",
       "languages": "Languages spoken",
       "hospital": "Hospital",
@@ -2694,7 +2795,107 @@
     "myRxA11y": "Open my prescriptions",
     "relationshipsTitle": "My relationships",
     "relationshipsSubtitle": "Patients grouped by hospital & clinic",
-    "relationshipsA11y": "Open my relationships"
+    "relationshipsA11y": "Open my relationships",
+    "links": {
+      "workspaces": "Workspaces & Clinics",
+      "workspacesSubtitle": "Manage hospital affiliations and multi-clinic care",
+      "rxTemplates": "Prescription Templates",
+      "rxTemplatesSubtitle": "Reusable medication sets and dosages",
+      "earnings": "Earnings & Payouts",
+      "earningsSubtitle": "View consultation revenue and payouts"
+    }
+  },
+  "doctorWorkspaces": {
+    "title": "Workspaces",
+    "subtitle": "Hospitals and clinics",
+    "hospitals": "Hospitals",
+    "clinics": "Clinics",
+    "myHospitals": "My Hospitals",
+    "myHospitalsBody": "Shared workspaces managed by hospital teams.",
+    "myClinics": "My Clinics",
+    "myClinicsBody": "Your independent practices and teams.",
+    "new": "New",
+    "newClinic": "New clinic",
+    "createClinic": "Create clinic",
+    "noHospitalsTitle": "No hospitals yet",
+    "noHospitalsBody": "Ask an admin to add you, or join via an invite link.",
+    "noClinicsTitle": "No clinics yet",
+    "noClinicsBody": "Create your own clinic to invite partners and patients.",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "doctor": "Doctor",
+      "staff": "Staff",
+      "member": "Member"
+    }
+  },
+  "doctorTenantDetail": {
+    "back": "Back",
+    "hospital": "Hospital",
+    "clinic": "Clinic",
+    "members": "Members",
+    "noMembersTitle": "No members",
+    "noMembersBody": "Add doctors to start collaborating.",
+    "loadFailed": "Failed to load members",
+    "deleteTitle": "Delete Clinic",
+    "deleteBody": "Are you sure you want to permanently delete this clinic? This will discharge all patients and remove all staff. This action cannot be undone.",
+    "deleteFailed": "Failed to delete clinic",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "doctor": "Doctor",
+      "staff": "Staff",
+      "member": "Member"
+    },
+    "statuses": {
+      "active": "Active",
+      "pending": "Pending",
+      "suspended": "Suspended",
+      "removed": "Removed"
+    }
+  },
+  "doctorClinicNew": {
+    "back": "Back",
+    "title": "New Clinic",
+    "name": "Name",
+    "namePlaceholder": "Sunrise Family Clinic",
+    "address": "Address",
+    "addressPlaceholder": "Street, city",
+    "phone": "Phone",
+    "phonePlaceholder": "+91…",
+    "specializations": "Specializations (comma-separated)",
+    "specializationsPlaceholder": "GP, Pediatrics",
+    "nameRequired": "Clinic name is required",
+    "createFailed": "Failed to create clinic",
+    "create": "Create clinic"
+  },
+  "doctorRelationships": {
+    "title": "Patient Relationships",
+    "subtitle": "Care connections by workspace",
+    "patients": "Patients",
+    "workspaces": "Workspaces",
+    "hospital": "Hospital",
+    "clinic": "Clinic",
+    "patientId": "Patient {{id}}",
+    "errorTitle": "Couldn't load relationships",
+    "tryAgain": "Try again",
+    "emptyTitle": "No active relationships",
+    "emptyBody": "Add a patient from a hospital or clinic to start one.",
+    "browseWorkspaces": "Browse workspaces",
+    "kinds": {
+      "care_team": "Care Team",
+      "appointment": "Appointment",
+      "prescription": "Prescription",
+      "record": "Record",
+      "follow_up": "Follow-up"
+    },
+    "statuses": {
+      "active": "Active",
+      "pending": "Pending",
+      "paused": "Paused",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    }
   },
   "doctorQueue": {
     "title": "Today's queue",
@@ -2990,7 +3191,15 @@
     "diagnosis": "Diagnosis",
     "diagnosisPlaceholder": "e.g., Acute pharyngitis",
     "medicine": "Medicine",
+    "medicineLabel": "Medicine",
     "medicinePlaceholder": "Medicine name",
+    "masterLinked": "Master linked",
+    "frequencyPreview": {
+      "once": "Once daily",
+      "twice": "Twice daily",
+      "three": "Three times daily",
+      "four": "Four times daily"
+    },
     "medicineRequired": "Medicine name and dosage required",
     "quickPick": "Quick pick",
     "commonDosages": "Common dosages",
@@ -3054,7 +3263,19 @@
     "safetyOverrideBody": "This prescription has been flagged with a {{severity}} warning. Document the reason and confirm to proceed.",
     "safetyOverridePlaceholder": "Why is this prescription still appropriate?",
     "safetyOverrideConfirm": "Override and create",
-    "safetyOverrideCancel": "Cancel"
+    "safetyOverrideCancel": "Cancel",
+    "filterAll": "All Patients",
+    "filterCareTeam": "Care Team",
+    "filterRecent": "Recent",
+    "discard": "Discard",
+    "templatesAction": "Templates",
+    "emptyFilterTitle": "No patients in this view",
+    "emptyFilterBody": "Use the search bar above to look up any registered patient.",
+    "clearSearch": "Clear Search",
+    "emptySearchNoMatch": "No patient matching \"{{search}}\". Check the phone number or NIC."
+  },
+  "prescription": {
+    "untitled": "Untitled prescription"
   },
   "doctorLabOrder": {
     "title": "Order labs",
@@ -3077,6 +3298,9 @@
     "pickOneTest": "Pick at least one test",
     "placedToast": "Lab order placed",
     "placedError": "Could not place order"
+  },
+  "labs": {
+    "untitled": "Untitled lab order"
   },
   "doctorFollowUpNew": {
     "title": "Schedule follow-up",
@@ -3101,6 +3325,7 @@
   "doctorPatientDetail": {
     "errorTitle": "Couldn't load records",
     "errorBody": "Check your connection and try again.",
+    "recordsSubtitle": "Patients who granted you record access",
     "fallbackTitle": "Patient",
     "loadingTitle": "Patient",
     "noPatientTitle": "No patient",
@@ -3143,7 +3368,13 @@
     "emptyBody": "Patients who grant you record access will appear here.",
     "recordsTab": "Records",
     "consentBanner": "Only records you have consent to view are shown",
-    "actionMessage": "Message"
+    "actionMessage": "Message",
+    "preVisitWithDate": "Pre-visit — {{date}} {{time}}",
+    "preVisitSummary": "Pre-visit summary",
+    "visitKindWalkin": "Walk-in",
+    "visitKindAppointment": "Appointment",
+    "deceased": "deceased",
+    "validUntil": "valid until"
   },
   "hospitalRedirect": {
     "title": "Hospital operations on the web",
@@ -3639,7 +3870,33 @@
     "noRecentPatients": "No patients yet",
     "noRecentPatientsBody": "Patients you treat will appear here for quick messaging.",
     "errorTitle": "Couldn't load messages",
-    "errorBody": "Check your connection and try again."
+    "errorBody": "Check your connection and try again.",
+    "chatClosed": "Chat closed",
+    "reopenTitle": "Reopen chat?",
+    "reopenBody": "The patient will be able to send messages again.",
+    "reopen": "Reopen",
+    "closeTitle": "Close chat?",
+    "closeBody": "The patient will see their messages as read-only and won't be able to reply.",
+    "close": "Close",
+    "closeChat": "Close Chat",
+    "closedBanner": "Chat is closed. Patient cannot send new messages. Tap \"Reopen\" to re-enable replies.",
+    "closed": "Closed",
+    "closedStatus": "Closed",
+    "closedPlaceholder": "Chat is closed — reopen to send messages",
+    "newChat": "New Chat",
+    "searchConversations": "Search conversations by patient name...",
+    "quickPathways": "Quick Pathways",
+    "pathRecentTitle": "Message Recent Patient",
+    "pathRecentSubtitle": "Quickly start a thread with recently visited patients",
+    "pathRecentBadge": "Fast",
+    "pathDirectoryTitle": "Browse Patient Directory",
+    "pathDirectorySubtitle": "Find clinical charts, lab results, and patient profiles",
+    "pathScheduleTitle": "Check Today's Schedule",
+    "pathScheduleSubtitle": "View confirmed appointments and waiting room queue",
+    "noConversationsFound": "No conversations found",
+    "noResultsMatching": "No results matching \"{{search}}\"",
+    "noFilterMatch": "No conversations match the selected filter.",
+    "resetFilters": "Reset Filters"
   },
   "schedule": {
     "title": "Schedule",
@@ -3648,7 +3905,31 @@
     "appts": "Appts",
     "walkins": "Walk-ins",
     "noEvents": "Nothing scheduled for this day.",
-    "dayOf": "{{date}}"
+    "dayOf": "{{date}}",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "dayA11y_one": "{{day}}, {{count}} visit",
+    "dayA11y_other": "{{day}}, {{count}} visits",
+    "agenda": "Daily agenda",
+    "allScheduled": "All scheduled",
+    "thisWeek_one": "{{count}} this week",
+    "thisWeek_other": "{{count}} this week",
+    "visitCount_one": "{{count}} visit",
+    "visitCount_other": "{{count}} visits",
+    "dayAppointments_one": "Day appointments · {{count}}",
+    "dayAppointments_other": "Day appointments · {{count}}",
+    "loading": "Loading appointments...",
+    "clearDay": "Your day is clear",
+    "clearDayBody": "No visits or consultations scheduled for this date.",
+    "nextDay": "Next: {{day}} ({{count}} visits)",
+    "video": "Video",
+    "queueNumber": "Queue #{{number}}",
+    "kinds": {
+      "appointment": { "label": "Appt", "tag": "APPOINTMENT" },
+      "walkin": { "label": "Walk-in", "tag": "WALK-IN" },
+      "followup": { "label": "Follow-up", "tag": "FOLLOW-UP" },
+      "timeoff": { "label": "Off", "tag": "TIME OFF" }
+    }
   },
   "earnings": {
     "title": "Earnings",
@@ -3665,8 +3946,12 @@
     "avgPerVisit": "Avg / visit",
     "chart": "Revenue trend",
     "noChart": "No revenue yet for this period",
+    "noChartBody": "Earnings will appear here after completed visits.",
+    "consultationFee": "Consultation fee",
+    "pendingPayout": "Pending payout",
     "pendingTitle": "{{amount}} pending payout",
     "payoutsTitle": "Payout history",
+    "noPayoutsTitle": "No payouts yet",
     "noPayouts": "No payouts yet — request one to group recent revenue.",
     "events": "events",
     "payoutStatus": {
@@ -3685,6 +3970,24 @@
     "noMeds": "No medicines",
     "emptyTitle": "No templates yet",
     "emptyBody": "Create a template to autofill the prescription composer with one tap.",
+    "emptyHeroTitle": "Clinical Prescription Protocols",
+    "emptyHeroBody": "Save standard drug combinations, dosages, and instructions to autofill your prescription composer with a single tap.",
+    "installStarters": "Install {{count}} Recommended Starters",
+    "installingStarters": "Installing Starter Protocols...",
+    "createCustom": "Create Custom Template",
+    "starterPackTitle": "Included in Starter Pack",
+    "starterErrorTitle": "Starter Protocols",
+    "starterErrorBody": "Some starter templates could not be created.",
+    "medsConfigured_one": "{{count}} medication configured",
+    "medsConfigured_other": "{{count}} medications configured",
+    "medsShort_one": "{{count}} med",
+    "medsShort_other": "{{count}} meds",
+    "viewEdit": "View & Edit",
+    "searchPlaceholder": "Search templates, drugs, or diagnosis...",
+    "categoryAll": "All",
+    "noMatchingTitle": "No matching templates",
+    "noMatchingBody": "No template matched \"{{search}}\". Try searching for another medicine or condition.",
+    "clearSearch": "Clear Search",
     "errorTitle": "Couldn't load templates",
     "errorBody": "Check your connection and try again.",
     "deleteTitle": "Delete template?",
@@ -3935,6 +4238,9 @@
     "resend": "Resend code",
     "tooManyRequests": "Too many requests. Try again in a few minutes.",
     "inviteFailed": "Could not {{action}} invite",
+    "invite": {
+      "linkCopied": "Invite sent"
+    },
     "link": {
       "active": "Active",
       "paused": "Paused",

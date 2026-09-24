@@ -12,6 +12,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Building2,
   Stethoscope,
@@ -35,6 +36,7 @@ import {
 type TenantKind = "hospital" | "clinic";
 
 export default function DoctorTenants() {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const router = useRouter();
   const myHospitals = useActiveTenantStore((s) => s.myHospitals);
@@ -99,8 +101,8 @@ export default function DoctorTenants() {
       <ScreenHeader
         back
         onBack={() => router.back()}
-        title="Workspaces"
-        subtitle="Hospitals and clinics"
+        title={t("doctorWorkspaces.title")}
+        subtitle={t("doctorWorkspaces.subtitle")}
         style={{ backgroundColor: "transparent" }}
       />
 
@@ -124,28 +126,28 @@ export default function DoctorTenants() {
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
           <WorkspaceStat
             icon={Building2}
-            label="Hospitals"
+            label={t("doctorWorkspaces.hospitals")}
             value={myHospitals.length}
           />
           <WorkspaceStat
             icon={Stethoscope}
-            label="Clinics"
+            label={t("doctorWorkspaces.clinics")}
             value={myClinics.length}
           />
         </View>
 
         <TenantSection
           icon={Building2}
-          title="My Hospitals"
-          description="Shared workspaces managed by hospital teams."
+          title={t("doctorWorkspaces.myHospitals")}
+          description={t("doctorWorkspaces.myHospitalsBody")}
         >
           {initialLoading ? (
             <TenantSkeleton />
           ) : myHospitals.length === 0 ? (
             <TenantEmptyState
               icon={Building2}
-              title="No hospitals yet"
-              message="Ask an admin to add you, or join via an invite link."
+              title={t("doctorWorkspaces.noHospitalsTitle")}
+              message={t("doctorWorkspaces.noHospitalsBody")}
             />
           ) : (
             myHospitals.map((h: TenantRef, idx: number) => (
@@ -156,7 +158,16 @@ export default function DoctorTenants() {
                   icon={Building2}
                   iconTone="primary"
                   title={h.name}
-                  pill={h.role ? { label: h.role, tone: "primary" } : undefined}
+                  pill={
+                    h.role
+                      ? {
+                          label: t(`doctorWorkspaces.roles.${h.role}`, {
+                            defaultValue: formatRole(h.role),
+                          }),
+                          tone: "primary",
+                        }
+                      : undefined
+                  }
                   onPress={() => go("hospital", h.id)}
                   showChevron
                 />
@@ -167,13 +178,13 @@ export default function DoctorTenants() {
 
         <TenantSection
           icon={Stethoscope}
-          title="My Clinics"
-          description="Your independent practices and teams."
+          title={t("doctorWorkspaces.myClinics")}
+          description={t("doctorWorkspaces.myClinicsBody")}
           action={
             <Pressable
               onPress={() => router.push("/(doctor)/clinics/new")}
               accessibilityRole="button"
-              accessibilityLabel="New clinic"
+              accessibilityLabel={t("doctorWorkspaces.newClinic")}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
@@ -192,7 +203,7 @@ export default function DoctorTenants() {
                   { color: colors.primary, fontWeight: "700" },
                 ]}
               >
-                New
+                {t("doctorWorkspaces.new")}
               </Text>
             </Pressable>
           }
@@ -202,8 +213,8 @@ export default function DoctorTenants() {
           ) : myClinics.length === 0 ? (
             <TenantEmptyState
               icon={Stethoscope}
-              title="No clinics yet"
-              message="Create your own clinic to invite partners and patients."
+              title={t("doctorWorkspaces.noClinicsTitle")}
+              message={t("doctorWorkspaces.noClinicsBody")}
               action={
                 <Pressable
                   onPress={() => router.push("/(doctor)/clinics/new")}
@@ -225,7 +236,7 @@ export default function DoctorTenants() {
                       { color: colors.primary, fontWeight: "700" },
                     ]}
                   >
-                    Create clinic
+                    {t("doctorWorkspaces.createClinic")}
                   </Text>
                 </Pressable>
               }
@@ -239,7 +250,16 @@ export default function DoctorTenants() {
                   icon={Stethoscope}
                   iconTone="primary"
                   title={c.name}
-                  pill={c.role ? { label: c.role, tone: "primary" } : undefined}
+                  pill={
+                    c.role
+                      ? {
+                          label: t(`doctorWorkspaces.roles.${c.role}`, {
+                            defaultValue: formatRole(c.role),
+                          }),
+                          tone: "primary",
+                        }
+                      : undefined
+                  }
                   onPress={() => go("clinic", c.id)}
                   showChevron
                 />
@@ -424,4 +444,10 @@ function TenantSkeleton() {
       <Skeleton height={58} radius={16} />
     </View>
   );
+}
+
+function formatRole(role: string) {
+  return role
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }

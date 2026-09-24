@@ -196,7 +196,7 @@ export default function DoctorCareTeamScreen() {
           >
             <ShieldCheck size={14} color={colors.primary} strokeWidth={2.4} />
             <Text style={[typography.label.sm, { color: colors.primary }]}>
-              Verified
+              {t("careTeam.verified")}
             </Text>
           </View>
         </View>
@@ -219,7 +219,7 @@ export default function DoctorCareTeamScreen() {
           <RNTextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search patient, phone, or NIC..."
+            placeholder={t("careTeam.doctorSearchPlaceholder")}
             placeholderTextColor={colors.textSubtle}
             autoCapitalize="none"
             style={{
@@ -265,7 +265,7 @@ export default function DoctorCareTeamScreen() {
             style={chipStyle(roleFilter === "all")}
           >
             <Text style={chipText(roleFilter === "all")}>
-              All Patients
+              {t("careTeam.allPatients")}
             </Text>
             <View style={chipCount(roleFilter === "all")}>
               <Text style={chipCountText(roleFilter === "all")}>
@@ -279,7 +279,7 @@ export default function DoctorCareTeamScreen() {
             style={chipStyle(roleFilter === "primary_care")}
           >
             <Text style={chipText(roleFilter === "primary_care")}>
-              Primary Care
+              {t("careTeam.role.primary_care")}
             </Text>
             <View style={chipCount(roleFilter === "primary_care")}>
               <Text style={chipCountText(roleFilter === "primary_care")}>
@@ -294,7 +294,7 @@ export default function DoctorCareTeamScreen() {
               style={chipStyle(roleFilter === "specialist")}
             >
               <Text style={chipText(roleFilter === "specialist")}>
-                Specialist
+                {t("careTeam.role.specialist")}
               </Text>
               <View style={chipCount(roleFilter === "specialist")}>
                 <Text style={chipCountText(roleFilter === "specialist")}>
@@ -358,17 +358,23 @@ export default function DoctorCareTeamScreen() {
             const age = dob
               ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
               : null;
-            const pName = p.patientName || "Patient";
+            const pName = p.patientName || t("careTeam.patientFallback");
             const palette = getAvatarPalette(pName, colors);
             const initials = getInitials(pName);
             const roleDef = ROLE_STYLES[p.role];
             const roleTp = roleDef ? tonePalette(roleDef.tone, colors) : null;
             const roleStyle = roleDef
-              ? { bg: roleTp.bg, fg: roleTp.fg, label: roleDef.label }
+              ? {
+                  bg: roleTp.bg,
+                  fg: roleTp.fg,
+                  label: t(`careTeam.role.${p.role}`, {
+                    defaultValue: roleDef.label,
+                  }),
+                }
               : {
                   bg: colors.surfaceMuted,
                   fg: colors.text,
-                  label: p.role?.replace("_", " ") || "Care Team",
+                  label: p.role?.replace("_", " ") || t("careTeam.fallback"),
                 };
 
             return (
@@ -447,7 +453,7 @@ export default function DoctorCareTeamScreen() {
                         p.patientNic ? `NIC: ${p.patientNic}` : null,
                       ]
                         .filter(Boolean)
-                        .join(" · ") || "Demographics on file"}
+                        .join(" · ") || t("careTeam.demographicsOnFile")}
                     </Text>
                   </View>
 
@@ -497,7 +503,7 @@ export default function DoctorCareTeamScreen() {
                     >
                       <Clock size={11} color={colors.warning} />
                       <Text style={[typography.label.xs, { color: colors.warning }]}>
-                        Pending Invite
+                        {t("careTeam.pendingInvite")}
                       </Text>
                     </View>
                   )}
@@ -517,7 +523,9 @@ export default function DoctorCareTeamScreen() {
                   >
                     <ShieldCheck size={11} color={colors.textMuted} />
                     <Text style={[typography.label.xs, { color: colors.textMuted }]}>
-                      {p.scope === "full" ? "Full Access" : p.scope || "Consented"}
+                      {p.scope === "full"
+                        ? t("careTeam.fullAccess")
+                        : p.scope || t("careTeam.consented")}
                     </Text>
                   </View>
 
@@ -582,7 +590,7 @@ export default function DoctorCareTeamScreen() {
                   >
                     <FilePenLine size={14} color={colors.primary} strokeWidth={2.4} />
                     <Text style={[typography.label.md, { color: colors.primary }]}>
-                      Write Prescription
+                      {t("careTeam.writePrescription")}
                     </Text>
                   </Pressable>
 
@@ -609,7 +617,7 @@ export default function DoctorCareTeamScreen() {
                   >
                     <UserRound size={14} color={colors.text} strokeWidth={2.2} />
                     <Text style={[typography.label.md, { color: colors.text }]}>
-                      View Patient Chart
+                      {t("careTeam.viewPatientChart")}
                     </Text>
                   </Pressable>
                 </View>
@@ -647,7 +655,7 @@ export default function DoctorCareTeamScreen() {
               <Search size={22} color={colors.textSubtle} strokeWidth={2} />
             </View>
             <Text style={[typography.title.md, { color: colors.text }]}>
-              No patients found
+              {t("careTeam.noPatientsFound")}
             </Text>
             <Text
               style={[
@@ -655,7 +663,7 @@ export default function DoctorCareTeamScreen() {
                 { color: colors.textMuted, textAlign: "center", paddingHorizontal: 16 },
               ]}
             >
-              No patient matching "{search}" in your care team. Check name, phone, or NIC.
+              {t("careTeam.noPatientsFoundBody", { search })}
             </Text>
             <Pressable
               onPress={() => setSearch("")}
@@ -670,7 +678,7 @@ export default function DoctorCareTeamScreen() {
               }}
             >
               <Text style={[typography.label.md, { color: colors.primary }]}>
-                Clear Search
+                {t("careTeam.clearSearch")}
               </Text>
             </Pressable>
           </View>

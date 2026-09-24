@@ -147,6 +147,12 @@ function slotsToFrequency(s: Slots): string | null {
   return "Four times daily";
 }
 
+function slotsToFrequencyKey(s: Slots): string | null {
+  const n = (s.morning ? 1 : 0) + (s.noon ? 1 : 0) + (s.evening ? 1 : 0) + (s.night ? 1 : 0);
+  if (n === 0) return null;
+  return ["once", "twice", "three", "four"][n - 1];
+}
+
 export default function PrescriptionScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -667,7 +673,7 @@ export default function PrescriptionScreen() {
                 }}
               >
                 <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
-                  Patient
+                  {t("doctorPrescription.patientFallback", { defaultValue: "Patient" })}
                 </Text>
               </View>
             </View>
@@ -703,7 +709,7 @@ export default function PrescriptionScreen() {
           >
             <X size={13} color={colors.textMuted} />
             <Text style={[typography.label.sm, { color: colors.textMuted }]}>
-              Change
+              {t("doctorPrescription.changePill", { defaultValue: "Change" })}
             </Text>
           </Pressable>
         </View>
@@ -1101,7 +1107,7 @@ export default function PrescriptionScreen() {
           >
             <Layers size={14} color={colors.primary} strokeWidth={2.4} />
             <Text style={[typography.label.md, { color: colors.primary }]}>
-              Templates
+              {t("doctorPrescription.templatesAction", { defaultValue: "Templates" })}
             </Text>
             {templates.length > 0 && (
               <View
@@ -1157,7 +1163,7 @@ export default function PrescriptionScreen() {
               hitSlop={6}
             >
               <Text style={[typography.label.md, { color: colors.danger }]}>
-                Discard
+                {t("doctorPrescription.discard", { defaultValue: "Discard" })}
               </Text>
             </Pressable>
           </View>
@@ -1228,7 +1234,7 @@ export default function PrescriptionScreen() {
             style={chipStyle(patientFilter === "all")}
           >
             <Text style={chipText(patientFilter === "all")}>
-              All Patients
+              {t("doctorPrescription.filterAll", { defaultValue: "All Patients" })}
             </Text>
             <View style={chipCount(patientFilter === "all")}>
               <Text style={chipCountText(patientFilter === "all")}>
@@ -1247,7 +1253,7 @@ export default function PrescriptionScreen() {
               strokeWidth={2.4}
             />
             <Text style={chipText(patientFilter === "careTeam")}>
-              Care Team
+              {t("doctorPrescription.filterCareTeam", { defaultValue: "Care Team" })}
             </Text>
             <View style={chipCount(patientFilter === "careTeam")}>
               <Text style={chipCountText(patientFilter === "careTeam")}>
@@ -1262,7 +1268,7 @@ export default function PrescriptionScreen() {
               style={chipStyle(patientFilter === "recent")}
             >
               <Text style={chipText(patientFilter === "recent")}>
-                Recent
+                {t("doctorPrescription.filterRecent", { defaultValue: "Recent" })}
               </Text>
               <View style={chipCount(patientFilter === "recent")}>
                 <Text style={chipCountText(patientFilter === "recent")}>
@@ -1286,7 +1292,7 @@ export default function PrescriptionScreen() {
         {displayedPatients.length > 0 ? (
           displayedPatients.map((p) => {
             const pId = p.patient?.id || p.patients?.id || p.id;
-            const pName = p.user?.name || p.users?.name || p.name || "Patient";
+            const pName = p.user?.name || p.users?.name || p.name || t("doctorPrescription.patientFallback");
             const pPhone = p.user?.phone || p.users?.phone || p.phone;
             const pNic = p.user?.nic || p.users?.nic || p.nic;
             const isCareTeam = consentPatients.some(
@@ -1349,7 +1355,7 @@ export default function PrescriptionScreen() {
                           }}
                         >
                           <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
-                            Care Team
+                            {t("doctorPrescription.filterCareTeam", { defaultValue: "Care Team" })}
                           </Text>
                         </View>
                       )}
@@ -1369,7 +1375,7 @@ export default function PrescriptionScreen() {
                           style={[typography.body.sm, { color: colors.textMuted }]}
                           numberOfLines={1}
                         >
-                          {pPhone || "No phone on file"}
+                          {pPhone || t("doctorPrescription.noPhone")}
                         </Text>
                       </View>
 
@@ -1399,7 +1405,7 @@ export default function PrescriptionScreen() {
                   >
                     <FilePenLine size={13} color={colors.primary} strokeWidth={2.4} />
                     <Text style={[typography.label.sm, { color: colors.primary }]}>
-                      Prescribe
+                      {t("doctorPrescription.pillPrescribe", { defaultValue: "Prescribe" })}
                     </Text>
                   </View>
                 </View>
@@ -1444,7 +1450,7 @@ export default function PrescriptionScreen() {
                 fontFamily: fontFamily.bodyBold,
               }}
             >
-              No patients found
+              {t("doctorPrescription.emptySearchTitle", { defaultValue: "No patients found" })}
             </Text>
             <Text
               style={{
@@ -1455,7 +1461,10 @@ export default function PrescriptionScreen() {
                 paddingHorizontal: 20,
               }}
             >
-              No patient matching "{searchQuery}". Check the phone number or NIC.
+              {t("doctorPrescription.emptySearchNoMatch", {
+                search: searchQuery,
+                defaultValue: `No patient matching "${searchQuery}". Check the phone number or NIC.`,
+              })}
             </Text>
             <Pressable
               onPress={() => setSearchQuery("")}
@@ -1469,7 +1478,7 @@ export default function PrescriptionScreen() {
               }}
             >
               <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
-                Clear Search
+                {t("doctorPrescription.clearSearch", { defaultValue: "Clear Search" })}
               </Text>
             </Pressable>
           </View>
@@ -1511,7 +1520,7 @@ export default function PrescriptionScreen() {
                 fontFamily: fontFamily.bodyBold,
               }}
             >
-              No patients in this view
+              {t("doctorPrescription.emptyFilterTitle", { defaultValue: "No patients in this view" })}
             </Text>
             <Text
               style={{
@@ -1521,7 +1530,9 @@ export default function PrescriptionScreen() {
                 lineHeight: 18,
               }}
             >
-              Use the search bar above to look up any registered patient.
+              {t("doctorPrescription.emptyFilterBody", {
+                defaultValue: "Use the search bar above to look up any registered patient.",
+              })}
             </Text>
           </View>
         )}
@@ -1597,6 +1608,7 @@ function MedicineCard({
   dosagePlaceholder: string;
   startDate: string;
 }) {
+  const { t } = useTranslation();
   const { spacing, colors, typography, radius } = useTheme();
   const [localQuery, setLocalQuery] = useState("");
   const debouncedLocal = useDebounce(localQuery, 250);
@@ -1687,7 +1699,7 @@ function MedicineCard({
       </View>
 
       {/* Name + autocomplete */}
-      <FormField label="Medicine" required>
+      <FormField label={t("doctorPrescription.medicineLabel")} required>
         <TextInput
           value={entry.name}
           onChangeText={(v) => {
@@ -1742,7 +1754,7 @@ function MedicineCard({
       {entry.masterMedicineId ? (
         <PillCmp
           icon={PillIcon}
-          label={`Master linked`}
+          label={t("doctorPrescription.masterLinked")}
           tone="success"
           size="sm"
         />
@@ -1811,14 +1823,14 @@ function MedicineCard({
             );
           })}
         </View>
-        {slotsToFrequency(entry.slots) ? (
+        {slotsToFrequencyKey(entry.slots) ? (
           <Text
             style={[
               typography.caption,
               { color: colors.textMuted, marginTop: 4 },
             ]}
           >
-            {slotsToFrequency(entry.slots)}
+            {t(`doctorPrescription.frequencyPreview.${slotsToFrequencyKey(entry.slots)}`)}
           </Text>
         ) : null}
       </FormField>

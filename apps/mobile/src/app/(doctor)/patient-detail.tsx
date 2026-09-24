@@ -70,6 +70,8 @@ export default function DoctorPatientDetail() {
   const locale = useLocaleStore((s) => s.locale);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>("summary");
+  const statusText = (value?: string) =>
+    value ? t(`status.${value}`, { defaultValue: value }) : value;
 
   const { data, isLoading, isError, refetch } = usePatientSummary(id || null);
   const { data: overview, isLoading: overviewLoading } = usePatientOverview(id || null);
@@ -444,8 +446,11 @@ export default function DoctorPatientDetail() {
               <OverviewSection
                 title={
                   nextAppt
-                    ? `Pre-visit — ${nextAppt.date} ${nextAppt.time}`
-                    : "Pre-visit summary"
+                    ? t("doctorPatientDetail.preVisitWithDate", {
+                        date: nextAppt.date,
+                        time: nextAppt.time,
+                      })
+                    : t("doctorPatientDetail.preVisitSummary")
                 }
                 icon={<ClipboardList size={14} color={colors.brand} />}
               >
@@ -562,7 +567,7 @@ export default function DoctorPatientDetail() {
                     bordered={false}
                     title={r.title || r.diagnosis || t("prescription.untitled")}
                     subtitle={r.diagnosis ?? undefined}
-                    pill={{ label: r.status, tone: statusToTone(r.status) }}
+                    pill={{ label: statusText(r.status), tone: statusToTone(r.status) }}
                     onPress={() =>
                       router.push({
                         pathname: "/(doctor)/prescription-detail",
@@ -591,7 +596,7 @@ export default function DoctorPatientDetail() {
                     iconTone="info"
                     title={(o.tests || []).join(", ") || t("labs.untitled")}
                     subtitle={o.notes || o.priority}
-                    pill={{ label: o.status, tone: statusToTone(o.status) }}
+                    pill={{ label: statusText(o.status), tone: statusToTone(o.status) }}
                   />
                 </View>
               ))}
@@ -612,7 +617,7 @@ export default function DoctorPatientDetail() {
                     bordered={false}
                         title={r.reportType || "—"}
                         subtitle={fmtDate(new Date(r.createdAt), locale)}
-                        pill={{ label: r.status, tone: "neutral" }}
+                        pill={{ label: statusText(r.status), tone: "neutral" }}
                       />
                     </View>
                   ))}
@@ -698,9 +703,13 @@ export default function DoctorPatientDetail() {
                     bordered={false}
                     icon={CalendarCheck}
                     iconTone="info"
-                    title={`${v.kind === "walkin" ? "Walk-in" : "Appointment"}${v.reason ? " · " + v.reason : ""}`}
+                    title={`${t(
+                      v.kind === "walkin"
+                        ? "doctorPatientDetail.visitKindWalkin"
+                        : "doctorPatientDetail.visitKindAppointment"
+                    )}${v.reason ? " · " + v.reason : ""}`}
                     subtitle={`${fmtDate(new Date(v.date), locale)}${v.time ? " " + v.time : ""}`}
-                    pill={{ label: v.status, tone: statusToTone(v.status) }}
+                    pill={{ label: statusText(v.status), tone: statusToTone(v.status) }}
                   />
                 </View>
               ))}
@@ -729,7 +738,7 @@ export default function DoctorPatientDetail() {
                     </Text>
                     <PillCmp label={f.relationship} tone="neutral" size="sm" />
                     {f.isDeceased ? (
-                      <PillCmp label="deceased" tone="warning" size="sm" />
+                      <PillCmp label={t("doctorPatientDetail.deceased", { defaultValue: "deceased" })} tone="warning" size="sm" />
                     ) : null}
                   </View>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
@@ -806,7 +815,7 @@ export default function DoctorPatientDetail() {
                   {overview.insurance.validUntil ? (
                     <View style={{ alignItems: "flex-end" }}>
                       <Text style={[typography.overline, { color: colors.textMuted }]}>
-                        valid until
+                        {t("doctorPatientDetail.validUntil", { defaultValue: "valid until" })}
                       </Text>
                       <Text style={[typography.body.sm, { color: colors.text, fontWeight: "600" }]}>
                         {fmtDate(new Date(overview.insurance.validUntil), locale)}
@@ -979,7 +988,7 @@ export default function DoctorPatientDetail() {
                     iconTone="info"
                     title={l.reportType}
                     subtitle={fmtDate(new Date(l.createdAt), locale)}
-                    pill={{ label: l.status, tone: "neutral" }}
+                    pill={{ label: statusText(l.status), tone: "neutral" }}
                   />
                 </View>
               ))

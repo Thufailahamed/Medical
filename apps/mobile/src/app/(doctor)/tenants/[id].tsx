@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Users } from "lucide-react-native";
 import { Screen, Card, Pill, EmptyState } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -27,6 +28,7 @@ type Member = {
 };
 
 export default function DoctorTenantDetail() {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,12 +46,12 @@ export default function DoctorTenantDetail() {
 
   async function handleDelete() {
     Alert.alert(
-      "Delete Clinic",
-      "Are you sure you want to permanently delete this clinic? This will discharge all patients and remove all staff. This action cannot be undone.",
+      t("doctorTenantDetail.deleteTitle"),
+      t("doctorTenantDetail.deleteBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             setDeleting(true);
@@ -62,7 +64,10 @@ export default function DoctorTenantDetail() {
               // Go back
               router.back();
             } catch (e: any) {
-              Alert.alert("Error", e?.message || "Failed to delete clinic");
+              Alert.alert(
+                t("common.errorTitle"),
+                e?.message || t("doctorTenantDetail.deleteFailed")
+              );
             } finally {
               setDeleting(false);
             }
@@ -83,7 +88,7 @@ export default function DoctorTenantDetail() {
       const rows = await api<Member[]>(path);
       setMembers(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
-      setError(e?.message || "Failed to load members");
+      setError(e?.message || t("doctorTenantDetail.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -113,7 +118,9 @@ export default function DoctorTenantDetail() {
           style={{ marginBottom: spacing.md, flexDirection: "row", alignItems: "center", gap: 6 }}
         >
           <ArrowLeft size={18} color={colors.text} />
-          <Text style={{ color: colors.text, fontWeight: "600" }}>Back</Text>
+          <Text style={{ color: colors.text, fontWeight: "600" }}>
+            {t("doctorTenantDetail.back")}
+          </Text>
         </Pressable>
 
         <Text
@@ -122,9 +129,12 @@ export default function DoctorTenantDetail() {
             { color: colors.text, fontWeight: "800", marginBottom: spacing.xs },
           ]}
         >
-          {name || (activeHosp ? "Hospital" : "Clinic")}
+          {name || t(activeHosp ? "doctorTenantDetail.hospital" : "doctorTenantDetail.clinic")}
         </Text>
-        <Pill label={activeHosp ? "Hospital" : "Clinic"} tone="primary" />
+        <Pill
+          label={t(activeHosp ? "doctorTenantDetail.hospital" : "doctorTenantDetail.clinic")}
+          tone="primary"
+        />
 
         <Text
           style={[
@@ -132,15 +142,15 @@ export default function DoctorTenantDetail() {
             { color: colors.text, fontWeight: "700", marginTop: spacing.lg, marginBottom: spacing.sm },
           ]}
         >
-          Members
+          {t("doctorTenantDetail.members")}
         </Text>
         {error ? (
           <Text style={{ color: colors.danger }}>{error}</Text>
         ) : members.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No members"
-            message="Add doctors to start collaborating."
+            title={t("doctorTenantDetail.noMembersTitle")}
+            message={t("doctorTenantDetail.noMembersBody")}
           />
         ) : (
           members.map((m) => (
@@ -150,7 +160,14 @@ export default function DoctorTenantDetail() {
               </Text>
               {m.role ? (
                 <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                  {m.role} {m.status ? `· ${m.status}` : ""}
+                  {t(`doctorTenantDetail.roles.${m.role}`, {
+                    defaultValue: m.role,
+                  })}{" "}
+                  {m.status
+                    ? `· ${t(`doctorTenantDetail.statuses.${m.status}`, {
+                        defaultValue: m.status,
+                      })}`
+                    : ""}
                 </Text>
               ) : null}
             </Card>
@@ -178,7 +195,7 @@ export default function DoctorTenantDetail() {
                 <ActivityIndicator color={colors.danger} />
               ) : (
                 <Text style={{ color: colors.danger, fontWeight: "800" }}>
-                  Delete Clinic
+                  {t("doctorTenantDetail.deleteTitle")}
                 </Text>
               )}
             </Pressable>

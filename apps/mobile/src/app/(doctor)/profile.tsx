@@ -460,10 +460,10 @@ export default function DoctorProfileScreen() {
   }
 
   const rawName = (dbUser?.name || "").replace(/^dr\.?\s+/i, "").trim();
-  const displayName = rawName || "Physician";
+  const displayName = rawName || t("doctorProfile.fallbackName");
   const heroName = /^doctor$/i.test(displayName)
-    ? "Dr. Practitioner"
-    : `Dr. ${displayName}`;
+    ? t("doctorProfile.fallbackHeroName")
+    : t("doctorProfile.doctorName", { name: displayName });
 
   const initials = heroName
     .replace(/^dr\.?\s+/i, "")
@@ -490,7 +490,9 @@ export default function DoctorProfileScreen() {
       ? {
           icon: Briefcase,
           label: t("doctorProfile.rows.years", { defaultValue: "Clinical Experience" }),
-          value: `${doctor.yearsOfExperience} Years Clinical Practice`,
+          value: t("doctorProfile.rows.yearsValue", {
+            count: doctor.yearsOfExperience,
+          }),
         }
       : null,
     doctor?.qualifications
@@ -518,7 +520,9 @@ export default function DoctorProfileScreen() {
       ? {
           icon: Clock4,
           label: t("doctorProfile.rows.fee", { defaultValue: "Consultation Fee" }),
-          value: `LKR ${Number(doctor.consultationFee).toLocaleString()}`,
+          value: t("doctorProfile.rows.feeValue", {
+            amount: Number(doctor.consultationFee).toLocaleString(),
+          }),
         }
       : null,
   ].filter(Boolean) as Array<{ icon: any; label: string; value: string }>;
@@ -562,7 +566,7 @@ export default function DoctorProfileScreen() {
                 {t("doctorProfile.title", { defaultValue: "Doctor Profile" })}
               </Text>
               <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                Clinical credentials & practice settings
+                {t("doctorProfile.subtitle")}
               </Text>
             </View>
           </View>
@@ -774,7 +778,9 @@ export default function DoctorProfileScreen() {
                       letterSpacing: 0.3,
                     }}
                   >
-                    SLMC: #{doctor.licenseNumber}
+                    {t("doctorProfile.slmcNumber", {
+                    number: doctor.licenseNumber,
+                  })}
                   </Text>
                 </View>
               ) : null}
@@ -808,7 +814,7 @@ export default function DoctorProfileScreen() {
                     fontWeight: "700",
                   }}
                 >
-                  Active Practice
+                  {t("doctorProfile.activePractice")}
                 </Text>
               </View>
             </View>
@@ -819,7 +825,7 @@ export default function DoctorProfileScreen() {
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
           <SectionHeader
             title={t("doctorProfile.sections.activity", { defaultValue: "Clinical Activity" })}
-            subtitle="Real-time queue and practice metrics"
+            subtitle={t("doctorProfile.sections.activitySubtitle")}
           />
 
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
@@ -875,7 +881,7 @@ export default function DoctorProfileScreen() {
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
           <SectionHeader
             title={t("doctorProfile.sections.practice", { defaultValue: "Practice & Credentials" })}
-            subtitle="Hospital affiliations and consultation rates"
+            subtitle={t("doctorProfile.sections.practiceSubtitle")}
           />
 
           <View
@@ -898,7 +904,7 @@ export default function DoctorProfileScreen() {
               <ProfileInfoRow
                 icon={Stethoscope}
                 label={t("doctorProfile.rows.specialization", { defaultValue: "Specialization" })}
-                value="General Practitioner"
+                value={t("doctorProfile.generalPractitioner")}
                 last
               />
             )}
@@ -919,7 +925,7 @@ export default function DoctorProfileScreen() {
               <Text
                 style={[typography.body.xs, { flex: 1, color: colors.textMuted }]}
               >
-                SLMC verified practitioner. Qualifications and credentials are authenticated with medical council records.
+                {t("doctorProfile.verifiedNote")}
               </Text>
             </View>
           </View>
@@ -929,7 +935,7 @@ export default function DoctorProfileScreen() {
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
           <SectionHeader
             title={t("doctorProfile.sections.contact", { defaultValue: "Contact Information" })}
-            subtitle="Direct communication channels"
+            subtitle={t("doctorProfile.sections.contactSubtitle")}
           />
 
           <View
@@ -958,7 +964,7 @@ export default function DoctorProfileScreen() {
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
           <SectionHeader
             title={t("doctorProfile.sections.manage", { defaultValue: "Practice Management" })}
-            subtitle="Schedules, clinics, and patient tools"
+            subtitle={t("doctorProfile.sections.manageSubtitle")}
           />
 
           <View
@@ -976,15 +982,15 @@ export default function DoctorProfileScreen() {
             />
             <NavigationLinkRow
               icon={Building2}
-              title="Workspaces & Clinics"
-              subtitle="Manage hospital affiliations and multi-clinic care"
+              title={t("doctorProfile.links.workspaces")}
+              subtitle={t("doctorProfile.links.workspacesSubtitle")}
               tone="info"
               onPress={() => router.push("/tenants" as any)}
             />
             <NavigationLinkRow
               icon={Layers}
-              title="Prescription Templates"
-              subtitle="Reusable medication sets and dosages"
+              title={t("doctorProfile.links.rxTemplates")}
+              subtitle={t("doctorProfile.links.rxTemplatesSubtitle")}
               tone="accent"
               onPress={() => router.push("/(doctor)/rx-templates" as any)}
             />
@@ -997,8 +1003,8 @@ export default function DoctorProfileScreen() {
             />
             <NavigationLinkRow
               icon={DollarSign}
-              title="Earnings & Payouts"
-              subtitle="View consultation revenue and payouts"
+              title={t("doctorProfile.links.earnings")}
+              subtitle={t("doctorProfile.links.earningsSubtitle")}
               tone="success"
               last
               onPress={() => router.push("/(doctor)/earnings" as any)}
@@ -1009,8 +1015,8 @@ export default function DoctorProfileScreen() {
         {/* ─── App Preferences (Language & Theme) ─── */}
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
           <SectionHeader
-            title="App Preferences"
-            subtitle="Language and visual appearance"
+            title={t("doctorProfile.sections.preferences")}
+            subtitle={t("doctorProfile.sections.preferencesSubtitle")}
           />
 
           <View
@@ -1025,7 +1031,7 @@ export default function DoctorProfileScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <Languages size={17} color={colors.primary} strokeWidth={2.2} />
                 <Text style={[typography.title.sm, { color: colors.text }]}>
-                  Language / භාෂාව / மொழி
+                  {t("doctorProfile.languageTitle")}
                 </Text>
               </View>
 
@@ -1107,10 +1113,12 @@ export default function DoctorProfileScreen() {
                 </View>
                 <View>
                   <Text style={[typography.title.sm, { color: colors.text }]}>
-                    Dark Mode
+                    {t("doctorProfile.darkMode")}
                   </Text>
                   <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                    {scheme === "dark" ? "Dark appearance active" : "Light appearance active"}
+                    {scheme === "dark"
+                      ? t("doctorProfile.darkModeActive")
+                      : t("doctorProfile.lightModeActive")}
                   </Text>
                 </View>
               </View>
@@ -1128,7 +1136,7 @@ export default function DoctorProfileScreen() {
                 })}
               >
                 <Text style={[typography.label.md, { color: colors.primary }]}>
-                  Toggle
+                  {t("doctorProfile.toggle")}
                 </Text>
               </Pressable>
             </View>
@@ -1147,7 +1155,7 @@ export default function DoctorProfileScreen() {
           <Pressable
             onPress={confirmLogout}
             accessibilityRole="button"
-            accessibilityLabel="Sign out of doctor portal"
+            accessibilityLabel={t("doctorProfile.signOutA11y")}
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
@@ -1175,7 +1183,7 @@ export default function DoctorProfileScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
               <ShieldCheck size={13} color={colors.textSubtle} />
               <Text style={[typography.label.sm, { color: colors.textSubtle }]}>
-                HIPAA & Sri Lanka Medical Council Compliant
+                {t("doctorProfile.compliance")}
               </Text>
             </View>
             <Text
@@ -1184,7 +1192,7 @@ export default function DoctorProfileScreen() {
                 { color: colors.textSubtle, fontSize: 11, textAlign: "center" },
               ]}
             >
-              Healthcare Suite v2.4 • Practitioner Edition
+              {t("doctorProfile.versionFooter", { version: "2.4" })}
             </Text>
           </View>
         </View>

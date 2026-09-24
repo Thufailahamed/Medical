@@ -11,6 +11,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Building2,
   Stethoscope,
@@ -43,6 +44,7 @@ type Rel = {
 };
 
 export default function DoctorRelationships() {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const router = useRouter();
   const [rels, setRels] = useState<Rel[]>([]);
@@ -131,8 +133,8 @@ export default function DoctorRelationships() {
       <ScreenHeader
         back
         onBack={() => router.back()}
-        title="Patient Relationships"
-        subtitle="Care connections by workspace"
+        title={t("doctorRelationships.title")}
+        subtitle={t("doctorRelationships.subtitle")}
         style={{ backgroundColor: "transparent" }}
       />
 
@@ -156,12 +158,12 @@ export default function DoctorRelationships() {
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
           <RelationshipStat
             icon={Users}
-            label="Patients"
+            label={t("doctorRelationships.patients")}
             value={uniquePatients}
           />
           <RelationshipStat
             icon={Building2}
-            label="Workspaces"
+            label={t("doctorRelationships.workspaces")}
             value={grouped.length}
           />
         </View>
@@ -173,9 +175,9 @@ export default function DoctorRelationships() {
         ) : error ? (
           <Card padded={false}>
             <ErrorState
-              title="Couldn't load relationships"
+              title={t("doctorRelationships.errorTitle")}
               message={error}
-              actionLabel="Try again"
+              actionLabel={t("doctorRelationships.tryAgain")}
               onAction={() => load()}
             />
           </Card>
@@ -184,7 +186,7 @@ export default function DoctorRelationships() {
             <RelationshipsEmptyState
               action={
                 <Button
-                  title="Browse workspaces"
+                  title={t("doctorRelationships.browseWorkspaces")}
                   variant="secondary"
                   size="sm"
                   fullWidth={false}
@@ -202,7 +204,11 @@ export default function DoctorRelationships() {
                 key={key}
                 icon={Icon}
                 title={tenantLabel(type, id)}
-                subtitle={type === "hospital" ? "Hospital" : "Clinic"}
+                subtitle={t(
+                  type === "hospital"
+                    ? "doctorRelationships.hospital"
+                    : "doctorRelationships.clinic"
+                )}
                 count={items.length}
               >
                 {items.map((r, idx) => (
@@ -212,8 +218,14 @@ export default function DoctorRelationships() {
                       bordered={false}
                       icon={User}
                       iconTone="primary"
-                      title={`Patient ${r.patientId.slice(0, 8)}`}
-                      subtitle={`${formatLabel(r.relationshipKind)} · ${formatLabel(r.status)}`}
+                      title={t("doctorRelationships.patientId", {
+                        id: r.patientId.slice(0, 8),
+                      })}
+                      subtitle={`${t(`doctorRelationships.kinds.${r.relationshipKind}`, {
+                        defaultValue: formatLabel(r.relationshipKind),
+                      })} · ${t(`doctorRelationships.statuses.${r.status}`, {
+                        defaultValue: formatLabel(r.status),
+                      })}`}
                       onPress={() =>
                         router.push({
                           pathname: "/(doctor)/patient-detail",
@@ -336,6 +348,7 @@ function RelationshipGroup({
 }
 
 function RelationshipsEmptyState({ action }: { action?: ReactNode }) {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   return (
     <View
@@ -365,7 +378,7 @@ function RelationshipsEmptyState({ action }: { action?: ReactNode }) {
           { color: colors.text, textAlign: "center" },
         ]}
       >
-        No active relationships
+        {t("doctorRelationships.emptyTitle")}
       </Text>
       <Text
         style={[
@@ -379,7 +392,7 @@ function RelationshipsEmptyState({ action }: { action?: ReactNode }) {
           },
         ]}
       >
-        Add a patient from a hospital or clinic to start one.
+        {t("doctorRelationships.emptyBody")}
       </Text>
       {action}
     </View>

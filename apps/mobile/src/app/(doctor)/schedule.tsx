@@ -279,7 +279,7 @@ export default function ScheduleScreen() {
           onPress={goPrevWeek}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Previous week"
+          accessibilityLabel={t("schedule.previousWeek")}
           style={({ pressed }) => ({
             width: 34,
             height: 34,
@@ -309,7 +309,7 @@ export default function ScheduleScreen() {
             ]}
           >
             {isViewingToday
-              ? `Today · ${headerDateRange.split("–")[0].trim()}`
+              ? `${t("schedule.today")} · ${headerDateRange.split("–")[0].trim()}`
               : headerDateRange}
           </Text>
         </Pressable>
@@ -318,7 +318,7 @@ export default function ScheduleScreen() {
           onPress={goNextWeek}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Next week"
+          accessibilityLabel={t("schedule.nextWeek")}
           style={({ pressed }) => ({
             width: 34,
             height: 34,
@@ -351,7 +351,10 @@ export default function ScheduleScreen() {
               key={d.iso}
               onPress={() => onSelectDay(d.iso)}
               accessibilityRole="button"
-              accessibilityLabel={`${d.dayLabel} ${d.num}, ${d.eventCount} visits`}
+              accessibilityLabel={t("schedule.dayA11y", {
+                day: `${d.dayLabel} ${d.num}`,
+                count: d.eventCount,
+              })}
               style={({ pressed }) => ({
                 flex: 1,
                 minHeight: 78,
@@ -467,8 +470,8 @@ export default function ScheduleScreen() {
           value={selectedDayTotals.total}
           subtext={
             totalThisWeek === selectedDayTotals.total
-              ? "All scheduled"
-              : `${totalThisWeek} this week`
+              ? t("schedule.allScheduled")
+              : t("schedule.thisWeek", { count: totalThisWeek })
           }
           icon={CalendarIcon}
           tone="primary"
@@ -476,14 +479,18 @@ export default function ScheduleScreen() {
         <PulseMetricCard
           label={t("schedule.appts", "Appts")}
           value={selectedDayTotals.appointment}
-          subtext={`${totalsByKind.appointment || 0} this week`}
+          subtext={t("schedule.thisWeek", {
+            count: totalsByKind.appointment || 0,
+          })}
           icon={CalendarCheck}
           tone="info"
         />
         <PulseMetricCard
           label={t("schedule.walkins", "Walk-ins")}
           value={selectedDayTotals.walkin}
-          subtext={`${totalsByKind.walkin || 0} this week`}
+          subtext={t("schedule.thisWeek", {
+            count: totalsByKind.walkin || 0,
+          })}
           icon={Bell}
           tone="warning"
         />
@@ -536,7 +543,7 @@ export default function ScheduleScreen() {
                       { fontSize: 10, color: colors.primary, textTransform: "uppercase" },
                     ]}
                   >
-                    Today
+                    {t("schedule.today")}
                   </Text>
                 </View>
               ) : null}
@@ -559,8 +566,7 @@ export default function ScheduleScreen() {
                 { color: selectedEvents.length > 0 ? colors.primary : colors.textMuted },
               ]}
             >
-              {selectedEvents.length}{" "}
-              {selectedEvents.length === 1 ? "visit" : "visits"}
+              {t("schedule.visitCount", { count: selectedEvents.length })}
             </Text>
           </View>
         </View>
@@ -570,7 +576,7 @@ export default function ScheduleScreen() {
           <View style={{ paddingVertical: spacing.xxl, alignItems: "center", gap: 10 }}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-              Loading appointments...
+              {t("schedule.loading")}
             </Text>
           </View>
         ) : isError ? (
@@ -628,7 +634,7 @@ export default function ScheduleScreen() {
                   { color: colors.textMuted, marginTop: 4, textAlign: "center", maxWidth: 260 },
                 ]}
               >
-                No visits or consultations scheduled for this date.
+                {t("schedule.clearDayBody")}
               </Text>
 
               {/* Actionable smart hint to jump to next day with events */}
@@ -660,8 +666,10 @@ export default function ScheduleScreen() {
                           { color: pressed ? colors.onPrimary : colors.primary },
                         ]}
                       >
-                        Next: {nextDayWithVisits.dayLabel} ({nextDayWithVisits.eventCount}{" "}
-                        {nextDayWithVisits.eventCount === 1 ? "visit" : "visits"})
+                        {t("schedule.nextDay", {
+                          day: nextDayWithVisits.dayLabel,
+                          count: nextDayWithVisits.eventCount,
+                        })}
                       </Text>
                       <ArrowRight
                         size={14}
@@ -786,7 +794,9 @@ export default function ScheduleScreen() {
                     <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                         <Text style={[typography.label.xs, { color: tn.fg }]}>
-                          {meta.tag}
+                          {t(`schedule.kinds.${e.kind}.tag`, {
+                            defaultValue: meta.tag,
+                          })}
                         </Text>
                         {isVideo ? (
                           <View
@@ -803,7 +813,7 @@ export default function ScheduleScreen() {
                           >
                             <Video size={10} color={colors.success} />
                             <Text style={[typography.label.xs, { fontSize: 10, color: colors.success }]}>
-                              Video
+                              {t("schedule.video")}
                             </Text>
                           </View>
                         ) : null}
@@ -835,7 +845,11 @@ export default function ScheduleScreen() {
                         numberOfLines={1}
                         style={[typography.title.md, { color: colors.text }]}
                       >
-                        {e.patientName || e.title || meta.label}
+                        {e.patientName ||
+                          e.title ||
+                          t(`schedule.kinds.${e.kind}.label`, {
+                            defaultValue: meta.label,
+                          })}
                       </Text>
 
                       {/* Subtitle Details: Queue / Room / Status */}
@@ -852,7 +866,9 @@ export default function ScheduleScreen() {
                               }}
                             >
                               <Text style={[typography.label.xs, { color: colors.textMuted }]}>
-                                Queue #{e.queueNumber}
+                                {t("schedule.queueNumber", {
+                                  number: e.queueNumber,
+                                })}
                               </Text>
                             </View>
                           ) : null}
@@ -864,7 +880,9 @@ export default function ScheduleScreen() {
                                 { color: colors.textSubtle, textTransform: "capitalize" },
                               ]}
                             >
-                              {e.status}
+                              {t(`status.${e.status}`, {
+                                defaultValue: e.status,
+                              })}
                             </Text>
                           ) : null}
                         </View>

@@ -316,7 +316,7 @@ export default function DoctorInboxScreen() {
                     }}
                   >
                     <Text style={[typography.label.xs, { fontSize: 10, color: colors.textMuted }]}>
-                      Closed
+                      {t("inbox.closedStatus", { defaultValue: "Closed" })}
                     </Text>
                   </View>
                 )}
@@ -464,7 +464,7 @@ export default function DoctorInboxScreen() {
           >
             <MessageSquarePlus size={16} color={colors.primary} strokeWidth={2.4} />
             <Text style={[typography.label.md, { color: colors.primary }]}>
-              New Chat
+              {t("inbox.newChat", { defaultValue: "New Chat" })}
             </Text>
           </Pressable>
         </View>
@@ -487,7 +487,9 @@ export default function DoctorInboxScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search conversations by patient name..."
+              placeholder={t("inbox.searchConversations", {
+                defaultValue: "Search conversations by patient name...",
+              })}
               placeholderTextColor={colors.textSubtle}
               style={{
                 flex: 1,
@@ -704,16 +706,18 @@ export default function DoctorInboxScreen() {
                 { color: colors.text, paddingHorizontal: 4, marginBottom: 2 },
               ]}
             >
-              Quick Pathways
+              {t("inbox.quickPathways", { defaultValue: "Quick Pathways" })}
             </Text>
 
             <DoctorPathwayCard
               icon={Users}
               iconTint={colors.primary}
               iconBg={colors.primarySoft}
-              title="Message Recent Patient"
-              subtitle="Quickly start a thread with recently visited patients"
-              badge="Fast"
+              title={t("inbox.pathRecentTitle", { defaultValue: "Message Recent Patient" })}
+              subtitle={t("inbox.pathRecentSubtitle", {
+                defaultValue: "Quickly start a thread with recently visited patients",
+              })}
+              badge={t("inbox.pathRecentBadge", { defaultValue: "Fast" })}
               onPress={() => router.push("/(doctor)/inbox/new" as any)}
             />
 
@@ -721,8 +725,10 @@ export default function DoctorInboxScreen() {
               icon={Stethoscope}
               iconTint={colors.accent}
               iconBg={colors.accentSoft}
-              title="Browse Patient Directory"
-              subtitle="Find clinical charts, lab results, and patient profiles"
+              title={t("inbox.pathDirectoryTitle", { defaultValue: "Browse Patient Directory" })}
+              subtitle={t("inbox.pathDirectorySubtitle", {
+                defaultValue: "Find clinical charts, lab results, and patient profiles",
+              })}
               onPress={() => router.push("/(doctor)/patients" as any)}
             />
 
@@ -730,8 +736,10 @@ export default function DoctorInboxScreen() {
               icon={CalendarCheck}
               iconTint={colors.info}
               iconBg={colors.infoSoft}
-              title="Check Today's Schedule"
-              subtitle="View confirmed appointments and waiting room queue"
+              title={t("inbox.pathScheduleTitle", { defaultValue: "Check Today's Schedule" })}
+              subtitle={t("inbox.pathScheduleSubtitle", {
+                defaultValue: "View confirmed appointments and waiting room queue",
+              })}
               onPress={() => router.push("/(doctor)/schedule" as any)}
             />
           </View>
@@ -767,7 +775,7 @@ export default function DoctorInboxScreen() {
               { color: colors.text, marginBottom: 4 },
             ]}
           >
-            No conversations found
+            {t("inbox.noConversationsFound", { defaultValue: "No conversations found" })}
           </Text>
           <Text
             style={[
@@ -776,8 +784,13 @@ export default function DoctorInboxScreen() {
             ]}
           >
             {searchQuery
-              ? `No results matching "${searchQuery}"`
-              : "No conversations match the selected filter."}
+              ? t("inbox.noResultsMatching", {
+                  search: searchQuery,
+                  defaultValue: `No results matching "${searchQuery}"`,
+                })
+              : t("inbox.noFilterMatch", {
+                  defaultValue: "No conversations match the selected filter.",
+                })}
           </Text>
           <Pressable
             onPress={() => {
@@ -794,7 +807,7 @@ export default function DoctorInboxScreen() {
             }}
           >
             <Text style={[typography.label.md, { color: colors.primary }]}>
-              Reset Filters
+              {t("inbox.resetFilters", { defaultValue: "Reset Filters" })}
             </Text>
           </Pressable>
         </View>

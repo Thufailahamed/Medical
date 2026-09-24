@@ -182,8 +182,8 @@ export default function RxTemplatesScreen() {
       refetch();
     } catch (e: any) {
       Alert.alert(
-        "Starter Protocols",
-        e?.message || "Some starter templates could not be created."
+        t("rxTemplates.starterErrorTitle"),
+        e?.message || t("rxTemplates.starterErrorBody")
       );
     } finally {
       setIsInstalling(false);
@@ -345,11 +345,11 @@ export default function RxTemplatesScreen() {
             }}
           >
             <Text style={[typography.caption, { color: colors.textSubtle }]}>
-              {meds.length} medication{meds.length === 1 ? "" : "s"} configured
+              {t("rxTemplates.medsConfigured", { count: meds.length })}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={[typography.label.md, { color: colors.primary }]}>
-                View & Edit
+                {t("rxTemplates.viewEdit")}
               </Text>
               <ChevronRight size={13} color={colors.primary} strokeWidth={2.4} />
             </View>
@@ -357,7 +357,7 @@ export default function RxTemplatesScreen() {
         </Pressable>
       );
     },
-    [colors, spacing, typography, fontFamily, radius, router, handleDelete, hairline, isDark, shadow]
+    [colors, spacing, typography, fontFamily, radius, router, handleDelete, hairline, isDark, shadow, t]
   );
 
   return (
@@ -454,7 +454,7 @@ export default function RxTemplatesScreen() {
               <RNTextInput
                 value={search}
                 onChangeText={setSearch}
-                placeholder="Search templates, drugs, or diagnosis..."
+                placeholder={t("rxTemplates.searchPlaceholder")}
                 placeholderTextColor={colors.textSubtle}
                 style={{
                   flex: 1,
@@ -510,7 +510,7 @@ export default function RxTemplatesScreen() {
                           { color: active ? colors.primary : colors.textMuted },
                         ]}
                       >
-                        {cat}
+                        {cat === "All" ? t("rxTemplates.categoryAll") : cat}
                       </Text>
                     </Pressable>
                   );
@@ -607,7 +607,7 @@ export default function RxTemplatesScreen() {
                 },
               ]}
             >
-              Clinical Prescription Protocols
+              {t("rxTemplates.emptyHeroTitle")}
             </Text>
 
             <Text
@@ -616,7 +616,7 @@ export default function RxTemplatesScreen() {
                 { color: colors.textMuted, textAlign: "center", paddingHorizontal: 8, marginBottom: 20 },
               ]}
             >
-              Save standard drug combinations, dosages, and instructions to autofill your prescription composer with a single tap.
+              {t("rxTemplates.emptyHeroBody")}
             </Text>
 
             {/* Primary Action: Install Starters */}
@@ -643,7 +643,9 @@ export default function RxTemplatesScreen() {
                 <Sparkles size={16} color={colors.onPrimary} strokeWidth={2.4} />
               )}
               <Text style={[typography.title.sm, { color: colors.onPrimary }]}>
-                {isInstalling ? "Installing Starter Protocols..." : "Install 4 Recommended Starters"}
+                {isInstalling
+                  ? t("rxTemplates.installingStarters")
+                  : t("rxTemplates.installStarters", { count: STARTER_TEMPLATES.length })}
               </Text>
             </Pressable>
 
@@ -666,7 +668,7 @@ export default function RxTemplatesScreen() {
             >
               <Plus size={16} color={colors.primary} strokeWidth={2.4} />
               <Text style={[typography.title.sm, { color: colors.primary }]}>
-                Create Custom Template
+                {t("rxTemplates.createCustom")}
               </Text>
             </Pressable>
           </View>
@@ -676,7 +678,7 @@ export default function RxTemplatesScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12, paddingHorizontal: 4 }}>
               <Sparkles size={16} color={colors.primary} />
               <Text style={[typography.title.lg, { color: colors.text }]}>
-                Included in Starter Pack
+                {t("rxTemplates.starterPackTitle")}
               </Text>
             </View>
 
@@ -730,7 +732,7 @@ export default function RxTemplatesScreen() {
                     }}
                   >
                     <Text style={[typography.label.xs, { color: colors.primary }]}>
-                      {st.medicines.length} meds
+                      {t("rxTemplates.medsShort", { count: st.medicines.length })}
                     </Text>
                   </View>
                 </View>
@@ -762,7 +764,7 @@ export default function RxTemplatesScreen() {
             <Search size={22} color={colors.textSubtle} strokeWidth={2} />
           </View>
           <Text style={[typography.title.md, { color: colors.text, marginBottom: 4 }]}>
-            No matching templates
+            {t("rxTemplates.noMatchingTitle")}
           </Text>
           <Text
             style={[
@@ -770,7 +772,7 @@ export default function RxTemplatesScreen() {
               { color: colors.textMuted, textAlign: "center", marginBottom: 16 },
             ]}
           >
-            No template matched "{search}". Try searching for another medicine or condition.
+            {t("rxTemplates.noMatchingBody", { search })}
           </Text>
           <Pressable
             onPress={() => setSearch("")}
@@ -784,7 +786,7 @@ export default function RxTemplatesScreen() {
             }}
           >
             <Text style={[typography.label.md, { color: colors.primary }]}>
-              Clear Search
+              {t("rxTemplates.clearSearch")}
             </Text>
           </Pressable>
         </View>

@@ -56,24 +56,24 @@ export default function ConversationScreen() {
   const handleToggleStatus = useCallback(() => {
     if (isClosed) {
       Alert.alert(
-        "Reopen chat?",
-        "The patient will be able to send messages again.",
+        t("inbox.reopenTitle"),
+        t("inbox.reopenBody"),
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "Reopen", onPress: () => setStatus.mutate("open") },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("inbox.reopen"), onPress: () => setStatus.mutate("open") },
         ]
       );
     } else {
       Alert.alert(
-        "Close chat?",
-        "The patient will see their messages as read-only and won't be able to reply.",
+        t("inbox.closeTitle"),
+        t("inbox.closeBody"),
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "Close", style: "destructive", onPress: () => setStatus.mutate("closed") },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("inbox.close"), style: "destructive", onPress: () => setStatus.mutate("closed") },
         ]
       );
     }
-  }, [isClosed, setStatus]);
+  }, [isClosed, setStatus, t]);
 
   const handleSend = useCallback(async () => {
     const text = draft.trim();
@@ -210,7 +210,7 @@ export default function ConversationScreen() {
             onPress={() => router.back()}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Back"
+            accessibilityLabel={t("common.back")}
             style={({ pressed }) => ({
               width: 40,
               height: 40,
@@ -253,7 +253,9 @@ export default function ConversationScreen() {
               {patient?.name || "…"}
             </Text>
             <Text style={[typography.caption, { color: isClosed ? colors.warning : colors.textSubtle }]}>
-              {isClosed ? "Chat closed" : patient?.phone || "Patient"}
+              {isClosed
+                ? t("inbox.chatClosed")
+                : patient?.phone || t("inbox.patientFallback")}
             </Text>
           </View>
 
@@ -281,14 +283,14 @@ export default function ConversationScreen() {
               <>
                 <Unlock size={13} color={colors.primary} />
                 <Text style={[typography.label.sm, { color: colors.primary }]}>
-                  Reopen
+                  {t("inbox.reopen")}
                 </Text>
               </>
             ) : (
               <>
                 <Lock size={13} color={colors.textMuted} />
                 <Text style={[typography.label.sm, { color: colors.textMuted }]}>
-                  Close Chat
+                  {t("inbox.closeChat")}
                 </Text>
               </>
             )}
@@ -304,7 +306,7 @@ export default function ConversationScreen() {
           }}>
             <Lock size={14} color={colors.warning} />
             <Text style={[typography.body.sm, { color: colors.warning, flex: 1 }]}>
-              Chat is closed. Patient cannot send new messages. Tap "Reopen" to re-enable replies.
+              {t("inbox.closedBanner")}
             </Text>
           </View>
         )}
@@ -363,7 +365,7 @@ export default function ConversationScreen() {
             value={draft}
             onChangeText={setDraft}
             multiline
-            placeholder={isClosed ? "Chat is closed — reopen to send messages" : t("inbox.composerPlaceholder")}
+            placeholder={isClosed ? t("inbox.closedPlaceholder") : t("inbox.composerPlaceholder")}
             placeholderTextColor={colors.textSubtle}
             editable={!isClosed}
             style={{
