@@ -1,7 +1,15 @@
 // @ts-nocheck
 
-import { useMemo, useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
@@ -23,8 +31,6 @@ import {
   ShieldCheck,
   MessageSquare,
   ListChecks,
-  ChevronRight,
-  Heart,
   Plus,
   ClipboardList,
 } from "lucide-react-native";
@@ -151,22 +157,107 @@ export default function DoctorPatientDetail() {
   })();
 
   const TABS: Tab[] = ["summary", "records", "meds", "labs", "vitals"];
+  const patientActions = [
+    {
+      key: "visit",
+      title: t("doctorPatientDetail.actionCompleteVisit"),
+      icon: Sparkles,
+      primary: true,
+      onPress: () =>
+        router.push({
+          pathname: "/(doctor)/visit-summary",
+          params: { patientId: id },
+        }),
+    },
+    {
+      key: "message",
+      title: t("doctorPatientDetail.actionMessage"),
+      icon: MessageSquare,
+      loading: startConversation.isPending,
+      onPress: async () => {
+        try {
+          const res = await startConversation.mutateAsync(id);
+          const convId = res?.conversation?.id;
+          if (convId) router.push(`/(doctor)/inbox/${convId}` as any);
+        } catch {
+          // no-op: React Query surfaces the error state
+        }
+      },
+    },
+    {
+      key: "note",
+      title: t("doctorPatientDetail.actionClinicalNote"),
+      icon: Stethoscope,
+      onPress: () =>
+        router.push({
+          pathname: "/(doctor)/clinical-note",
+          params: { patientId: id },
+        }),
+    },
+    {
+      key: "prescribe",
+      title: t("doctorPatientDetail.actionPrescribe"),
+      icon: Pill,
+      onPress: () =>
+        router.push({
+          pathname: "/(doctor)/prescription",
+          params: { patientId: id },
+        }),
+    },
+    {
+      key: "labs",
+      title: t("doctorPatientDetail.actionOrderLabs"),
+      icon: FlaskConical,
+      onPress: () =>
+        router.push({
+          pathname: "/(doctor)/lab-order",
+          params: { patientId: id },
+        }),
+    },
+    {
+      key: "follow-up",
+      title: t("doctorPatientDetail.actionFollowUp"),
+      icon: CalendarClock,
+      onPress: () =>
+        router.push({
+          pathname: "/(doctor)/follow-up-new",
+          params: { patientId: id },
+        }),
+    },
+  ];
 
   return (
-    <Screen padded={false} edges={["top"]} bottomInset>
+    <Screen
+      padded={false}
+      edges={["top"]}
+      bottomInset
+      style={{ backgroundColor: colors.surfaceSubtle }}
+    >
       <ScreenHeader
         back
         onBack={() => router.back()}
         title={user?.name || t("doctorPatientDetail.fallbackTitle")}
+        style={{ backgroundColor: "transparent" }}
       />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+        contentContainerStyle={{
+          padding: spacing.lg,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xxxl,
+          gap: spacing.lg,
+        }}
       >
-        {/* Header card */}
+        {/* Patient identity card */}
         <Card padded={false}>
-          <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <LinearGradient
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 4 }}
+          />
+          <View style={{ padding: spacing.lg, gap: spacing.lg }}>
             <View
               style={{
                 flexDirection: "row",
@@ -174,44 +265,71 @@ export default function DoctorPatientDetail() {
                 gap: spacing.md,
               }}
             >
-              <Avatar
-                name={user?.name}
-                size="lg"
-                tone="primary"
-                ring
-                source={user?.photo ? { uri: user.photo } : undefined}
-              />
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.primarySoft,
+                }}
+              >
+                <Avatar
+                  name={user?.name}
+                  size="lg"
+                  tone="primary"
+                  ring
+                  source={user?.photo ? { uri: user.photo } : undefined}
+                />
+              </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
-                  numberOfLines={2}
+                  numberOfLines={1}
                   style={[typography.display.sm, { color: colors.text }]}
                 >
                   {user?.name || t("doctorPatientDetail.fallbackTitle")}
                 </Text>
                 <Text
+                  numberOfLines={1}
                   style={[
                     typography.body.sm,
-                    { color: colors.textMuted, marginTop: 2 },
+                    { color: colors.textMuted, marginTop: 4 },
                   ]}
                 >
                   {user?.nic || user?.phone || "—"}
                 </Text>
+                {nextAppt ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                      marginTop: spacing.sm,
+                    }}
+                  >
+                    <CalendarClock size={13} color={colors.primary} />
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        typography.label.sm,
+                        { color: colors.primary, fontWeight: "700" },
+                      ]}
+                    >
+                      {t("overview.nextVisit")} {nextAppt.date} {nextAppt.time}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
 
-            <View style={{ flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" }}>
-              {patient.bloodGroup ? (
-                <PillCmp icon={Droplet} label={patient.bloodGroup} tone="danger" size="sm" />
-              ) : null}
-              {patient.gender ? (
-                <PillCmp icon={User} label={patient.gender} tone="neutral" size="sm" />
-              ) : null}
-              {patient.dateOfBirth ? (
-                <PillCmp icon={Cake} label={patient.dateOfBirth} tone="neutral" size="sm" />
-              ) : null}
-              {user?.phone ? (
-                <PillCmp icon={Phone} label={user.phone} tone="neutral" size="sm" />
-              ) : null}
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <PatientMetaTile icon={Droplet} value={patient.bloodGroup} tone="danger" />
+              <PatientMetaTile icon={User} value={patient.gender} tone="primary" />
+            </View>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <PatientMetaTile icon={Cake} value={patient.dateOfBirth} tone="primary" />
+              <PatientMetaTile icon={Phone} value={user?.phone} tone="primary" />
             </View>
 
             {(allergies.length > 0 || conditions.length > 0) && (
@@ -221,6 +339,8 @@ export default function DoctorPatientDetail() {
                   padding: spacing.md,
                   borderRadius: 14,
                   borderCurve: "continuous",
+                  borderWidth: 1,
+                  borderColor: allergies.length > 0 ? colors.danger : colors.border,
                   backgroundColor: allergies.length > 0 ? colors.dangerSoft : colors.surfaceMuted,
                 }}
               >
@@ -239,140 +359,81 @@ export default function DoctorPatientDetail() {
           </View>
         </Card>
 
-        {/* Actions */}
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: spacing.sm,
-          }}
-        >
-          <Button
-            title={t("doctorPatientDetail.actionCompleteVisit")}
-            icon={Sparkles}
-            variant="primary"
-            size="sm"
-            fullWidth={false}
-            onPress={() =>
-              router.push({
-                pathname: "/(doctor)/visit-summary",
-                params: { patientId: id },
-              })
-            }
-          />
-          <Button
-            title={t("doctorPatientDetail.actionMessage")}
-            icon={MessageSquare}
-            variant="secondary"
-            size="sm"
-            fullWidth={false}
-            loading={startConversation.isPending}
-            onPress={async () => {
-              try {
-                const res = await startConversation.mutateAsync(id);
-                const convId = res?.conversation?.id;
-                if (convId) router.push(`/(doctor)/inbox/${convId}` as any);
-              } catch {
-                // no-op: React Query surfaces the error state
-              }
-            }}
-          />
-          <Button
-            title={t("doctorPatientDetail.actionClinicalNote")}
-            icon={Stethoscope}
-            variant="secondary"
-            size="sm"
-            fullWidth={false}
-            onPress={() =>
-              router.push({
-                pathname: "/(doctor)/clinical-note",
-                params: { patientId: id },
-              })
-            }
-          />
-          <Button
-            title={t("doctorPatientDetail.actionPrescribe")}
-            icon={Pill}
-            variant="secondary"
-            size="sm"
-            fullWidth={false}
-            onPress={() =>
-              router.push({
-                pathname: "/(doctor)/prescription",
-                params: { patientId: id },
-              })
-            }
-          />
-          <Button
-            title={t("doctorPatientDetail.actionOrderLabs")}
-            icon={FlaskConical}
-            variant="outline"
-            size="sm"
-            fullWidth={false}
-            onPress={() =>
-              router.push({
-                pathname: "/(doctor)/lab-order",
-                params: { patientId: id },
-              })
-            }
-          />
-          <Button
-            title={t("doctorPatientDetail.actionFollowUp")}
-            icon={CalendarClock}
-            variant="ghost"
-            size="sm"
-            fullWidth={false}
-            onPress={() =>
-              router.push({
-                pathname: "/(doctor)/follow-up-new",
-                params: { patientId: id },
-              })
-            }
-          />
-        </View>
+        {/* Quick actions */}
+        <Card padded={false}>
+          <View style={{ padding: spacing.md, gap: spacing.md }}>
+            <Text
+              style={[
+                typography.overline,
+                { color: colors.textMuted, paddingHorizontal: spacing.xs },
+              ]}
+            >
+              {t("home.sectionQuickActions")}
+            </Text>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {patientActions.slice(0, 3).map((action) => (
+                <PatientActionTile key={action.key} {...action} />
+              ))}
+            </View>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {patientActions.slice(3).map((action) => (
+                <PatientActionTile key={action.key} {...action} />
+              ))}
+            </View>
+          </View>
+        </Card>
 
-        {/* Tabs */}
+        {/* Record sections */}
         <View
           style={{
             flexDirection: "row",
-            gap: 2,
+            gap: 3,
             backgroundColor: colors.fill,
-            padding: 3,
-            borderRadius: 12,
+            padding: 4,
+            borderRadius: 16,
             borderCurve: "continuous",
           }}
         >
-          {TABS.map((tabKey) => (
-            <View
-              key={tabKey}
-              style={{
-                flex: 1,
-                height: 32,
-                borderRadius: 9,
-                borderCurve: "continuous",
-                backgroundColor: tab === tabKey ? colors.surface : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-                ...(tab === tabKey ? shadow.xs : shadow.none),
-              }}
-              onTouchEnd={() => setTab(tabKey)}
-            >
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-                style={[
-                  tab === tabKey ? typography.label.md : typography.body.sm,
-                  {
-                    color: tab === tabKey ? colors.text : colors.textMuted,
-                    textTransform: "capitalize",
-                  },
-                ]}
+          {TABS.map((tabKey) => {
+            const active = tab === tabKey;
+            return (
+              <Pressable
+                key={tabKey}
+                onPress={() => setTab(tabKey)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
+                  backgroundColor: active
+                    ? colors.surface
+                    : pressed
+                      ? colors.surfaceMuted
+                      : "transparent",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  ...(active ? shadow.xs : shadow.none),
+                })}
               >
-                {t(`doctorPatientDetail.tab${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`)}
-              </Text>
-            </View>
-          ))}
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                  style={[
+                    active ? typography.label.md : typography.body.sm,
+                    {
+                      color: active ? colors.primary : colors.textMuted,
+                      textTransform: "capitalize",
+                    },
+                  ]}
+                >
+                  {t(`doctorPatientDetail.tab${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         {tab === "summary" && (
@@ -430,6 +491,7 @@ export default function DoctorPatientDetail() {
                 <View key={m.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     icon={Pill}
                     iconTone="accent"
                     title={m.name}
@@ -497,6 +559,7 @@ export default function DoctorPatientDetail() {
                 <View key={r.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     title={r.title || r.diagnosis || t("prescription.untitled")}
                     subtitle={r.diagnosis ?? undefined}
                     pill={{ label: r.status, tone: statusToTone(r.status) }}
@@ -523,6 +586,7 @@ export default function DoctorPatientDetail() {
                 <View key={o.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     icon={FlaskConical}
                     iconTone="info"
                     title={(o.tests || []).join(", ") || t("labs.untitled")}
@@ -545,6 +609,7 @@ export default function DoctorPatientDetail() {
                     <View key={r.id}>
                       <Divider />
                       <ListItem
+                    bordered={false}
                         title={r.reportType || "—"}
                         subtitle={fmtDate(new Date(r.createdAt), locale)}
                         pill={{ label: r.status, tone: "neutral" }}
@@ -567,6 +632,7 @@ export default function DoctorPatientDetail() {
                 <View key={n.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     title={n.title || t("prescription.untitled")}
                     subtitle={n.diagnosis ? `Dx: ${n.diagnosis}` : undefined}
                     pill={{ label: fmtDate(new Date(n.createdAt), locale), tone: "neutral" }}
@@ -596,6 +662,7 @@ export default function DoctorPatientDetail() {
                 <View key={f.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     icon={CalendarCheck}
                     iconTone="info"
                     title={f.title}
@@ -628,6 +695,7 @@ export default function DoctorPatientDetail() {
                 <View key={`${v.kind}-${v.id}`}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     icon={CalendarCheck}
                     iconTone="info"
                     title={`${v.kind === "walkin" ? "Walk-in" : "Appointment"}${v.reason ? " · " + v.reason : ""}`}
@@ -691,6 +759,7 @@ export default function DoctorPatientDetail() {
                 <View key={v.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     icon={Syringe}
                     iconTone="info"
                     title={v.vaccine}
@@ -862,6 +931,7 @@ export default function DoctorPatientDetail() {
                 <View key={r.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     title={r.title}
                     subtitle={`${r.recordType} · ${r.date}`}
                     pill={{ label: r.recordType, tone: "primary" }}
@@ -882,6 +952,7 @@ export default function DoctorPatientDetail() {
                 <View key={m.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     icon={Pill}
                     iconTone="accent"
                     title={m.name}
@@ -903,6 +974,7 @@ export default function DoctorPatientDetail() {
                 <View key={l.id}>
                   {idx > 0 ? <Divider /> : null}
                   <ListItem
+                    bordered={false}
                     icon={FlaskConical}
                     iconTone="info"
                     title={l.reportType}
@@ -996,20 +1068,151 @@ export default function DoctorPatientDetail() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
-  const { typography, colors } = useTheme();
+function PatientMetaTile({
+  icon: Icon,
+  value,
+  tone = "primary",
+}: {
+  icon: any;
+  value?: string | null;
+  tone?: "primary" | "danger";
+}) {
+  const { colors, spacing, typography } = useTheme();
+  const accent = tone === "danger" ? colors.danger : colors.primary;
+  const soft = tone === "danger" ? colors.dangerSoft : colors.primarySoft;
+
   return (
-    <View style={{ alignItems: "center", minWidth: 56 }}>
-      <Text style={[typography.title.lg, { color: colors.text }]}>{value}</Text>
+    <View
+      style={{
+        flex: 1,
+        minWidth: 0,
+        minHeight: 52,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+        paddingHorizontal: spacing.sm,
+        borderRadius: 14,
+        borderCurve: "continuous",
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surfaceMuted,
+      }}
+    >
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: soft,
+        }}
+      >
+        <Icon size={17} color={accent} strokeWidth={2.3} />
+      </View>
       <Text
+        numberOfLines={1}
         style={[
-          typography.overline,
-          { color: colors.textMuted, marginTop: 2 },
+          typography.label.md,
+          { color: value ? colors.text : colors.textSubtle, flex: 1 },
         ]}
       >
-        {label}
+        {value || "—"}
       </Text>
     </View>
+  );
+}
+
+function PatientActionTile({
+  title,
+  icon: Icon,
+  onPress,
+  primary,
+  loading,
+}: {
+  title: string;
+  icon: any;
+  onPress: () => void;
+  primary?: boolean;
+  loading?: boolean;
+}) {
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  const fg = primary ? colors.onPrimary : colors.primary;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={loading}
+      accessibilityRole="button"
+      accessibilityState={{ busy: !!loading }}
+      accessibilityLabel={title}
+      style={({ pressed }) => [
+        {
+          flex: 1,
+          minWidth: 0,
+          minHeight: 82,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: spacing.sm,
+          borderRadius: 16,
+          borderCurve: "continuous",
+          overflow: "hidden",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: spacing.sm,
+          backgroundColor: primary ? colors.primary : colors.surface,
+          borderWidth: primary ? 0 : 1,
+          borderColor: colors.border,
+          opacity: loading ? 0.7 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+        },
+        !primary && scheme !== "dark" ? shadow.xs : null,
+        primary && scheme !== "dark" ? shadow.primary : null,
+      ]}
+    >
+      {primary ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      <View
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: primary
+            ? "rgba(255,255,255,0.20)"
+            : colors.primarySoft,
+        }}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={fg} />
+        ) : (
+          <Icon size={18} color={fg} strokeWidth={2.3} />
+        )}
+      </View>
+      <Text
+        numberOfLines={2}
+        style={[
+          typography.label.sm,
+          {
+            color: fg,
+            textAlign: "center",
+            fontWeight: "700",
+            lineHeight: 16,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -1061,7 +1264,7 @@ function OverviewSection({
 }) {
   const { typography, colors, spacing } = useTheme();
   return (
-    <Card>
+    <Card padded={false}>
       <View
         style={{
           flexDirection: "row",

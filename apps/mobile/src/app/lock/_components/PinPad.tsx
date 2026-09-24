@@ -22,6 +22,7 @@ import {
   StyleSheet,
   Animated,
   Vibration,
+  useWindowDimensions,
 } from "react-native";
 import { Delete } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -44,6 +45,10 @@ export function PinPad({
   hint,
 }: Props) {
   const { colors, fontFamily } = useTheme();
+  const { height, width } = useWindowDimensions();
+  const keySize = height < 700 || width < 340 ? 54 : height < 900 || width < 390 ? 62 : 68;
+  const keyGap = height < 700 ? 8 : height < 900 ? 10 : 12;
+  const padWidth = keySize * 3 + keyGap * 2;
   const shake = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -69,45 +74,64 @@ export function PinPad({
     onChange(value.slice(0, -1));
   }
 
-  const dotSize = 13;
-  const dotGap = 20;
+  const dotSize = 12;
+  const dotGap = 12;
 
   return (
-    <View style={{ alignItems: "center", gap: 28 }}>
+    <View style={{ alignItems: "center", gap: height < 700 ? 8 : 12 }}>
       {/* Dot indicator */}
-      <Animated.View
+      <View
         style={{
-          flexDirection: "row",
-          gap: dotGap,
-          transform: [{ translateX: shake }],
+          width: padWidth,
+          height: height < 700 ? 42 : 48,
+          borderRadius: 24,
+          borderCurve: "continuous",
+          borderWidth: 1,
+          borderColor: error ? colors.danger : colors.border,
+          backgroundColor: colors.surface,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: colors.shadow,
+          shadowOpacity: 0.06,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
         }}
       >
-        {Array.from({ length }).map((_, i) => {
-          const filled = i < value.length;
-          return (
-            <View
-              key={i}
-              style={{
-                width: dotSize,
-                height: dotSize,
-                borderRadius: dotSize / 2,
-                borderWidth: 1.5,
-                borderColor: error
-                  ? colors.danger
-                  : filled
-                    ? colors.primary
-                    : colors.borderStrong,
-                transform: [{ scale: filled ? 1.08 : 1 }],
-                backgroundColor: filled
-                  ? error
+        <Animated.View
+          style={{
+            flexDirection: "row",
+            gap: dotGap,
+            transform: [{ translateX: shake }],
+          }}
+        >
+          {Array.from({ length }).map((_, i) => {
+            const filled = i < value.length;
+            return (
+              <View
+                key={i}
+                style={{
+                  width: dotSize,
+                  height: dotSize,
+                  borderRadius: dotSize / 2,
+                  borderWidth: 1.5,
+                  borderColor: error
                     ? colors.danger
-                    : colors.primary
-                  : "transparent",
-              }}
-            />
-          );
-        })}
-      </Animated.View>
+                    : filled
+                      ? colors.primary
+                      : colors.borderStrong,
+                  transform: [{ scale: filled ? 1.08 : 1 }],
+                  backgroundColor: filled
+                    ? error
+                      ? colors.danger
+                      : colors.primary
+                    : "transparent",
+                }}
+              />
+            );
+          })}
+        </Animated.View>
+      </View>
 
       {hint ? (
         <Text
@@ -126,43 +150,47 @@ export function PinPad({
       )}
 
       {/* Keypad */}
-      <View style={{ gap: 16 }}>
+      <View style={{ gap: keyGap }}>
         {[
           ["1", "2", "3"],
           ["4", "5", "6"],
           ["7", "8", "9"],
         ].map((row, ri) => (
-          <View key={ri} style={{ flexDirection: "row", gap: 26 }}>
+          <View key={ri} style={{ flexDirection: "row", gap: keyGap }}>
             {row.map((d) => (
               <KeyButton
                 key={d}
                 label={d}
                 onPress={() => press(d)}
                 disabled={disabled}
+                size={keySize}
               />
             ))}
           </View>
         ))}
-        <View style={{ flexDirection: "row", gap: 26, justifyContent: "center" }}>
-          <View style={{ width: 76 }} />
-          <KeyButton label="0" onPress={() => press("0")} disabled={disabled} />
+        <View style={{ flexDirection: "row", gap: keyGap, justifyContent: "center" }}>
+          <View style={{ width: keySize }} />
+          <KeyButton label="0" onPress={() => press("0")} disabled={disabled} size={keySize} />
           <Pressable
             onPress={back}
-            disabled={disabled}
+            disabled={disabled || !value.length}
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel="Backspace"
             style={({ pressed }) => ({
-              width: 76,
-              height: 76,
-              borderRadius: 38,
+              width: keySize,
+              height: keySize,
+              borderRadius: 20,
+              borderCurve: "continuous",
+              borderWidth: 1,
+              borderColor: pressed ? colors.primary : colors.border,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: pressed ? colors.fill : "transparent",
-              opacity: value.length === 0 || disabled ? 0.3 : 1,
+              backgroundColor: pressed ? colors.primarySoft : colors.surface,
+              opacity: value.length === 0 || disabled ? 0.35 : 1,
             })}
           >
-            <Delete size={26} color={colors.text} strokeWidth={1.9} />
+            <Delete size={24} color={colors.textMuted} strokeWidth={1.9} />
           </Pressable>
         </View>
       </View>
@@ -174,10 +202,12 @@ function KeyButton({
   label,
   onPress,
   disabled,
+  size,
 }: {
   label: string;
   onPress: () => void;
   disabled: boolean;
+  size: number;
 }) {
   const { colors, fontFamily } = useTheme();
   return (
@@ -189,12 +219,20 @@ function KeyButton({
       accessibilityLabel={`Digit ${label}`}
       style={({ pressed }) => [
         {
-          width: 76,
-          height: 76,
-          borderRadius: 38,
+          width: size,
+          height: size,
+          borderRadius: 20,
+          borderCurve: "continuous",
+          borderWidth: 1,
+          borderColor: pressed ? colors.primary : colors.border,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: pressed ? colors.fillStrong : colors.fill,
+          backgroundColor: pressed ? colors.primarySoft : colors.surface,
+          shadowColor: colors.shadow,
+          shadowOpacity: pressed ? 0 : 0.05,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 3 },
+          elevation: pressed ? 0 : 1,
           transform: [{ scale: pressed ? 0.96 : 1 }],
         },
         disabled && { opacity: 0.4 },
@@ -202,10 +240,10 @@ function KeyButton({
     >
       <Text
         style={{
-          fontSize: 32,
-          lineHeight: 38,
+          fontSize: size < 62 ? 22 : size < 70 ? 26 : 28,
+          lineHeight: 34,
           color: colors.text,
-          fontFamily: fontFamily.body,
+          fontFamily: fontFamily.bodyMedium,
           fontVariant: ["tabular-nums"],
         }}
       >
