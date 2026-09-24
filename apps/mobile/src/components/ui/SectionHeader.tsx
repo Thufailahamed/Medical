@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { ChevronRight } from "lucide-react-native";
-import { ChevronRight } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Pressable } from "./Pressable";
 
