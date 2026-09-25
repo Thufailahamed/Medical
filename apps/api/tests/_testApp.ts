@@ -74,6 +74,47 @@ export async function buildTestApp(db: MockD1, user?: TestUser) {
   return app;
 }
 
+// ─── Fake raw D1 handle for webhook tests ───────────────────
+//
+// tryRecordWebhook + the "UPDATE payments SET paid_at" write operate on the
+// raw D1 handle (not the Drizzle db). This fake tracks calls so tests can
+// assert on idempotency behavior.
+export function makeMockRawDb() {
+  const state = {
+    inserts: [] as Array<{ provider: string; eventId: string }>,
+    updates: [] as Array<{ sql: string; binds: any[] }>,
+    existing: new Set<string>(), // "provider|eventId" already recorded
+  };
+  const handle = {
+    prepare(sql: string) {
+      return {
+        bind: (...binds: any[]) => ({
+          async run() {
+            if (sql.includes("INSERT INTO payment_webhook_events")) {
+              const [id, provider, eventId] = binds;
+              const key = `${provider}|${eventId}`;
+              if (state.existing.has(key)) {
+                throw new Error(
+                  "UNIQUE constraint failed: payment_webhook_events.provider, payment_webhook_events.event_id"
+                );
+              }
+              state.existing.add(key);
+              state.inserts.push({ provider, eventId });
+              return { success: true };
+            }
+            state.updates.push({ sql, binds });
+            return { success: true };
+          },
+          async first() {
+            return null;
+          },
+        }),
+      };
+    },
+  };
+  return { handle, state };
+}
+
 // ─── Convenient assertion helpers ──────────────────────────
 export async function postJson(app: Hono<AppEnvironment>, path: string, body: any) {
   return app.request(path, {

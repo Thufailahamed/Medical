@@ -24,7 +24,6 @@ import { audit } from "../lib/audit";
 import { createDb } from "../lib/db";
 import { logger } from "../lib/logger";
 import {
-  mintOrderId,
   computeHash,
   verifyNotify,
   mapStatusCode,
@@ -33,15 +32,31 @@ import {
   type PayHereStatus,
 } from "../lib/payhere";
 import {
+  mintOrderId,
+  type PaymentsLkEnv,
+} from "../lib/payments/paymentslk";
+import {
   handleInsurancePremiumPaid,
   handleInsurancePremiumFailed,
 } from "./insurance-marketplace";
-import { StripeAdapter } from "../lib/payments/stripe";
+import { PaymentsLkAdapter } from "../lib/payments/paymentslk";
 import { PaymentError, PaymentErrorCode } from "../lib/payments/errors";
 import { tryRecordWebhook, markWebhookProcessed } from "../lib/payments/webhook-idempotency";
 import type { AppEnvironment } from "../types";
 
-const stripeAdapter = new StripeAdapter();
+export const paymentsLk = new PaymentsLkAdapter();
+
+/** Test hook: inject a fetch mock for gateway calls. */
+export function setPaymentsLkFetch(fetchImpl?: typeof fetch): void {
+  (paymentsLk as any).opts.fetchImpl = fetchImpl;
+}
+
+let webhookRawDb: unknown = undefined;
+
+/** Test hook: inject a raw D1 handle for webhook idempotency + raw SQL. */
+export function setWebhookRawDb(rawDb?: unknown): void {
+  webhookRawDb = rawDb;
+}
 
 const paymentsRouter = new Hono<AppEnvironment>();
 
@@ -693,18 +708,21 @@ paymentsRouter.post("/checkout", authMiddleware, requireRole("patient"), async (
   const userId = c.get("userId");
   const db = c.get("db");
   const body = await c.req.json().catch(() => ({}));
-  const { invoiceId, method, returnUrl, cancelUrl } = body as {
+  const { invoiceId, returnUrl, cancelUrl } = body as {
     invoiceId?: string;
-    method?: "payhere" | "stripe";
     returnUrl?: string;
     cancelUrl?: string;
   };
-  if (!invoiceId || !method || !returnUrl) {
-    return c.json({ error: "invoiceId, method, returnUrl required" }, 400);
+  if (!invoiceId || !returnUrl) {
+    return c.json({ error: "invoiceId, returnUrl required" }, 400);
+  }
+
+  if (!c.env.PAYMENTS_LK_SECRET_KEY) {
+    return c.json({ error: "Payments not configured. Set PAYMENTS_LK_SECRET_KEY." }, 503);
   }
 
   const [invoice] = await db
-    .select({ id: schema.invoices.id, totalLkr: schema.invoices.totalLkr })
+    .select({ id: invoices.id, totalLkr: invoices.totalLkr })
     .from(invoices)
     .where(and(eq(invoices.id, invoiceId), eq(invoices.patientId, userId)))
     .limit(1);
@@ -712,35 +730,44 @@ paymentsRouter.post("/checkout", authMiddleware, requireRole("patient"), async (
     return c.json({ error: "invoice not found" }, 404);
   }
 
-  if (method === "stripe") {
-    const result = await stripeAdapter.createCheckout(
-      { invoiceId, method, returnUrl, cancelUrl },
-      c.env as any
-    );
-    await db.insert(paymentsTable).values({
-      id: crypto.randomUUID(),
-      invoiceId: invoice.id,
-      amountLkr: invoice.totalLkr,
-      method: "card",
-      reference: result.merchantOrderId,
-      receivedByUserId: userId,
-      paidAt: new Date().toISOString(),
-      provider: result.provider,
-      providerChargeId: result.merchantOrderId,
-    });
-    await audit(db, { userId, action: "payments.checkout", resource: "payment", resourceId: result.merchantOrderId });
-    return c.json(result);
-  }
+  const orderId = mintOrderId();
+  const result = await paymentsLk.createCheckout(
+    {
+      amountCents: Math.round(invoice.totalLkr * 100),
+      description: `HealthHub invoice ${invoice.id}`.slice(0, 120),
+      reference: orderId,
+      successUrl: returnUrl,
+      cancelUrl,
+    },
+    c.env as PaymentsLkEnv
+  );
 
-  return c.json({ error: "PayHere checkout for non-appointment invoices not yet wired — use /payments/initiate for appointments" }, 501);
+  await db.insert(paymentsTable).values({
+    id: crypto.randomUUID(),
+    invoiceId: invoice.id,
+    amountLkr: invoice.totalLkr,
+    method: "card",
+    reference: result.merchantOrderId,
+    receivedByUserId: userId,
+    paidAt: new Date().toISOString(),
+    provider: result.provider,
+    providerChargeId: result.paymentId ?? result.merchantOrderId,
+  });
+  await audit(db, { userId, action: "payments.checkout", resource: "payment", resourceId: result.merchantOrderId });
+  return c.json(result);
 });
 
-paymentsRouter.post("/webhook/stripe", async (c) => {
+paymentsRouter.post("/webhook/paymentslk", async (c) => {
+  const env = c.env;
+  if (!env.PAYMENTS_LK_WEBHOOK_SECRET) {
+    return c.text("payments not configured", 503);
+  }
+
   const raw = await c.req.text();
-  const sig = c.req.header("stripe-signature") ?? "";
+  const sig = c.req.header("Payments-Signature") ?? "";
   let event;
   try {
-    event = stripeAdapter.verifyWebhook(raw, sig, c.env as any);
+    event = paymentsLk.verifyWebhook(raw, sig, env as PaymentsLkEnv);
   } catch (e) {
     if (e instanceof PaymentError) {
       return c.json({ ok: false, code: e.code }, 401);
@@ -748,63 +775,141 @@ paymentsRouter.post("/webhook/stripe", async (c) => {
     throw e;
   }
 
-  const db = c.env.DB;
-  const rec = await tryRecordWebhook(db as any, event.provider, event.eventId, event.raw);
+  // Drizzle db for row dispatch; raw D1 handle for idempotency + raw SQL.
+  const db = (c.get("db") as any) ?? createDb(env.DB);
+  const rawDb = (webhookRawDb as any) ?? env.DB;
+
+  const rec = await tryRecordWebhook(rawDb, event.provider, event.eventId, event.raw);
   if (!rec.isNew) {
     return c.json({ ok: true, idempotent: true });
   }
 
-  const orderId = String(event.merchantOrderId ?? "");
-  // Dispatch insurance premium payments to their own handler (same as
-  // PayHere /notify). The orderId prefix INS- marks a Stripe order routed
-  // here for activation. Keep generic invoice path unchanged below.
-  if (orderId.startsWith("INS-")) {
-    try {
+  const orderId = event.merchantOrderId;
+  try {
+    // INS- orders dispatch to the insurance activation flow (same as the
+    // old PayHere /notify did for INS-*).
+    if (orderId.startsWith("INS-")) {
       if (event.statusCode === 2) {
-        await handleInsurancePremiumPaid(
-          c.env as any,
-          orderId,
-          event.eventId ?? null,
-          "stripe",
-        );
+        await handleInsurancePremiumPaid(env as any, orderId, event.paymentId, "paymentslk");
       } else {
-        await handleInsurancePremiumFailed(
-          c.env as any,
-          orderId,
-          String(event.statusCode),
-        );
+        await handleInsurancePremiumFailed(env as any, orderId, String(event.statusCode));
       }
-    } catch (err) {
-      logger.error("payments.webhook.stripe", "insurance dispatch failed", {
-        orderId,
-        err: String(err),
-      });
-      // Still mark processed so Stripe stops retrying.
+    } else {
+      // Consultation payments: appointmentPayments row keyed by the minted
+      // gatewayOrderId.
+      const [row] = await db
+        .select()
+        .from(appointmentPayments)
+        .where(eq(appointmentPayments.gatewayOrderId, orderId))
+        .limit(1);
+
+      if (row) {
+        const status = event.statusCode === 2 ? "paid" : "failed";
+        await db
+          .update(appointmentPayments)
+          .set({
+            status,
+            gatewayPaymentId: event.paymentId,
+            gatewayStatusCode: String(event.statusCode),
+            gatewayMethod: "card",
+            rawNotify: JSON.stringify(event.raw),
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(appointmentPayments.id, row.id));
+
+        if (event.statusCode === 2) {
+          await db
+            .update(appointments)
+            .set({ paymentStatus: "paid", status: "confirmed" })
+            .where(eq(appointments.id, row.appointmentId));
+          await notify({
+            db,
+            userId: row.userId,
+            type: "appointment",
+            title: "Payment confirmed",
+            body: `Your appointment payment of LKR ${row.amountLkr.toFixed(2)} was successful.`,
+            data: { appointmentId: row.appointmentId, paymentId: row.id },
+          });
+          await audit(db, {
+            userId: row.userId,
+            action: "payment.paid",
+            entityType: "appointment",
+            entityId: row.appointmentId,
+            details: {
+              amountLkr: row.amountLkr,
+              gatewayOrderId: orderId,
+              gatewayPaymentId: event.paymentId,
+              provider: "paymentslk",
+            },
+          });
+        }
+      } else if (orderId.startsWith("TB-")) {
+        // Lab bookings: flip test_bookings pending→paid (same as /notify).
+        const [booking] = await db
+          .select()
+          .from(testBookings)
+          .where(eq(testBookings.paymentRef, orderId))
+          .limit(1);
+        if (booking && event.statusCode === 2 && booking.paymentStatus !== "paid") {
+          await db
+            .update(testBookings)
+            .set({
+              paymentStatus: "paid",
+              status: booking.status === "pending" ? "confirmed" : booking.status,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(testBookings.id, booking.id));
+          const [owner] = await db
+            .select()
+            .from(patients)
+            .where(eq(patients.id, booking.patientId))
+            .limit(1);
+          await notify({
+            db,
+            env,
+            userId: owner?.userId ?? booking.patientId,
+            type: "lab_ready",
+            title: "Payment confirmed",
+            body: `Your lab booking payment of LKR ${Number(booking.totalPrice).toFixed(2)} was successful.`,
+            data: { bookingId: booking.id, testBookingId: booking.id, paymentRef: orderId },
+          }).catch(() => {});
+          await audit(db, {
+            userId: owner?.userId ?? booking.patientId,
+            action: "payment.paid",
+            resource: "test_booking",
+            resourceId: booking.id,
+            details: {
+              amountLkr: booking.totalPrice,
+              gatewayOrderId: orderId,
+              gatewayPaymentId: event.paymentId,
+              provider: "paymentslk",
+            },
+          }).catch(() => {});
+        }
+      } else if (event.statusCode === 2) {
+        // Generic invoice path: stamp paid_at on the recorded charge.
+        await rawDb
+          .prepare(
+            "UPDATE payments SET paid_at = datetime('now'), webhook_received_at = datetime('now') WHERE provider_charge_id = ?"
+          )
+          .bind(event.paymentId ?? orderId)
+          .run();
+      }
     }
-    await markWebhookProcessed(db as any, rec.id, String(event.statusCode));
-    await audit(db as any, {
-      action: "payments.webhook",
-      resource: "payment",
-      resourceId: orderId,
-      details: { provider: event.provider, statusCode: event.statusCode, orderId },
+  } catch (err) {
+    logger.error("payments.webhook.paymentslk", "dispatch failed", {
+      orderId,
+      err: String(err),
     });
-    return c.json({ ok: true });
+    // Still mark processed so payments.lk stops retrying.
   }
 
-  if (event.statusCode === 2) {
-    await db
-      .prepare(
-        "UPDATE payments SET paid_at = datetime('now'), webhook_received_at = datetime('now') WHERE provider_charge_id = ?"
-      )
-      .bind(event.merchantOrderId)
-      .run();
-  }
-  await markWebhookProcessed(db as any, rec.id, String(event.statusCode));
+  await markWebhookProcessed(rawDb, rec.id, String(event.statusCode));
   await audit(db as any, {
     action: "payments.webhook",
     resource: "payment",
-    resourceId: event.merchantOrderId,
-    details: { provider: event.provider, statusCode: event.statusCode },
+    resourceId: orderId,
+    details: { provider: event.provider, statusCode: event.statusCode, orderId },
   });
   return c.json({ ok: true });
 });
@@ -813,36 +918,44 @@ paymentsRouter.post("/refund", authMiddleware, requireRole("patient", "super_adm
   const userId = c.get("userId");
   const db = c.get("db");
   const body = await c.req.json().catch(() => ({}));
-  const { paymentId, amountMinor, reason } = body as {
+  const { paymentId, amountCents, reason } = body as {
     paymentId?: string;
-    amountMinor?: number;
+    amountCents?: number;
     reason?: string;
   };
   if (!paymentId) return c.json({ error: "paymentId required" }, 400);
 
   const [payment] = await db
     .select({
-      id: schema.payments.id,
-      provider: schema.payments.provider,
-      providerChargeId: schema.payments.providerChargeId,
+      id: paymentsTable.id,
+      provider: paymentsTable.provider,
+      providerChargeId: paymentsTable.providerChargeId,
       patientId: invoices.patientId,
     })
     .from(paymentsTable)
     .innerJoin(invoices, eq(paymentsTable.invoiceId, invoices.id))
-    .where(eq(schema.payments.id, paymentId))
+    .where(eq(paymentsTable.id, paymentId))
     .limit(1);
 
   if (!payment) {
     return c.json({ error: "payment not found" }, 404);
   }
 
-  if (payment.provider === "stripe" && payment.providerChargeId) {
-    const result = await stripeAdapter.refund(
-      { paymentId: payment.providerChargeId, amountMinor, reason },
-      c.env as any
-    );
-    await audit(db, { userId, action: "payments.refund", resource: "payment", resourceId: paymentId, details: { provider: payment.provider } });
-    return c.json(result);
+  if (payment.provider === "paymentslk" && payment.providerChargeId) {
+    try {
+      const result = await paymentsLk.refund(
+        { paymentId: payment.providerChargeId, amountCents, reason },
+        c.env as PaymentsLkEnv
+      );
+      await audit(db, { userId, action: "payments.refund", resource: "payment", resourceId: paymentId, details: { provider: payment.provider } });
+      return c.json(result);
+    } catch (e) {
+      if (e instanceof PaymentError) {
+        // Gateway refusal (e.g. not yet settled / not refundable).
+        return c.json({ error: e.message }, 502);
+      }
+      throw e;
+    }
   }
 
   return c.json({ error: "refund not supported for this provider" }, 501);
@@ -853,12 +966,12 @@ paymentsRouter.get("/me", authMiddleware, async (c) => {
   const db = c.get("db");
   const rows = await db
     .select({
-      id: schema.payments.id,
-      invoiceId: schema.payments.invoiceId,
-      amountLkr: schema.payments.amountLkr,
-      provider: schema.payments.provider,
-      paidAt: schema.payments.paidAt,
-      createdAt: schema.payments.createdAt,
+      id: paymentsTable.id,
+      invoiceId: paymentsTable.invoiceId,
+      amountLkr: paymentsTable.amountLkr,
+      provider: paymentsTable.provider,
+      paidAt: paymentsTable.paidAt,
+      createdAt: paymentsTable.createdAt,
     })
     .from(paymentsTable)
     .innerJoin(invoices, eq(paymentsTable.invoiceId, invoices.id))

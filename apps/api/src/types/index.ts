@@ -84,10 +84,12 @@ export interface AppEnvironment {
     // prod. /auth/send-otp logs the code rather than sending.
     RESEND_API_KEY?: string;
 
-    // Round 7: PayHere (Sri Lanka B2B gateway) credentials. /payments
-    // returns 503 when both are missing.
-    PAYHERE_MERCHANT_ID?: string;
-    PAYHERE_SECRET?: string;
+    // Payments.lk (Payable) gateway credentials. Secret key created in the
+    // dashboard (sk_test_ / sk_live_); webhook secret from the endpoint
+    // settings (whsec_). /payments routes return 503 when the key is
+    // missing; the webhook returns 503 when the secret is missing.
+    PAYMENTS_LK_SECRET_KEY?: string;
+    PAYMENTS_LK_WEBHOOK_SECRET?: string;
 
     // Round 8: AI provider keys. The router in lib/ai/router.ts
     // prefers Workers AI on the free tier; Anthropic Sonnet is the
