@@ -1,15 +1,20 @@
-export type PaymentProvider = 'payhere' | 'stripe';
+export type PaymentProvider = 'paymentslk';
+
+export type CheckoutCustomer = { name: string; email: string; phone?: string };
 
 export type CheckoutInput = {
-  invoiceId: string;
-  method: PaymentProvider;
-  returnUrl: string;
+  amountCents: number;
+  description: string;
+  reference: string;
+  successUrl: string;
   cancelUrl?: string;
+  customer?: CheckoutCustomer;
 };
 
 export type CheckoutResult = {
   redirectUrl: string;
   merchantOrderId: string;
+  paymentId: string | null;
   provider: PaymentProvider;
 };
 
@@ -17,15 +22,15 @@ export type WebhookEvent = {
   provider: PaymentProvider;
   eventId: string;
   merchantOrderId: string;
+  paymentId: string | null;
   statusCode: number;
   amountMinor: number;
-  currency: string;
   raw: unknown;
 };
 
 export type RefundInput = {
   paymentId: string;
-  amountMinor?: number;
+  amountCents?: number;
   reason?: string;
 };
 
