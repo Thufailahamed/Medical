@@ -277,7 +277,7 @@ export default function PolicyPage({
             <div>
               <div className="font-bold text-amber-900">Renewal checkout ready</div>
               <div className="text-xs text-amber-800 mt-0.5">
-                Open PayHere to complete renewal.
+                Open payments.lk to complete renewal.
               </div>
             </div>
             <a href={renewMut.data.checkoutUrl} target="_blank" rel="noopener noreferrer">

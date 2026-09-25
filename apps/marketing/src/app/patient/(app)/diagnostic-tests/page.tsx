@@ -415,19 +415,19 @@ export default function DiagnosticTestsPage() {
       });
 
       if (paymentMethod === "online" && created?.booking?.id) {
-        // PayHere checkout: mint order then open in a new tab; booking
-        // flips pending→paid on notify, patient polls GET /payments/:id.
-        const init = await api<{ checkoutUrl: string; fields: Record<string, string> }>(
+        // payments.lk checkout: create the hosted checkout then redirect;
+        // booking flips pending→paid on webhook, patient polls GET /payments/:id.
+        const init = await api<{ checkoutUrl: string }>(
           "/payments/initiate",
           { method: "POST", json: { testBookingId: created.booking.id } },
         );
         if (init?.checkoutUrl) {
-          const url = `${init.checkoutUrl}?${new URLSearchParams(init.fields as Record<string, string>).toString()}`;
-          window.open(url, "_blank", "noopener");
+          window.location.href = init.checkoutUrl;
+          return;
         }
         setBookingStatus("success");
         setBookingMsg(
-          `Booking created for "${bookingItem.name}". Complete payment in the opened tab — status updates automatically once PayHere confirms.`,
+          `Booking created for "${bookingItem.name}". Complete payment from the booking — status updates automatically once payments.lk confirms.`,
         );
         return;
       }

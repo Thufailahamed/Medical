@@ -210,7 +210,7 @@ function EnrollInner({
                 I agree to the insurer&apos;s terms, confirm that pre-existing
                 conditions have been truthfully disclosed, and authorise the
                 {cycle === "annual" ? " annual" : " monthly"} premium debit via
-                PayHere.
+                payments.lk.
               </span>
             </label>
           </Card>

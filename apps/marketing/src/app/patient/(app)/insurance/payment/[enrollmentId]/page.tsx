@@ -95,7 +95,7 @@ export default function PaymentPage({
         {payTrigger.checkoutUrl ? (
           <div className="mt-5 space-y-3">
             <p className="text-sm text-text-soft">
-              Opening PayHere secure checkout. You&apos;ll be redirected back to
+              Opening payments.lk secure checkout. You&apos;ll be redirected back to
               your policy page once payment clears.
             </p>
             <a
@@ -106,7 +106,7 @@ export default function PaymentPage({
             >
               <Button block size="lg">
                 <ExternalLink size={14} />
-                Open PayHere checkout
+                Open payments.lk checkout
               </Button>
             </a>
             <div className="flex justify-end">

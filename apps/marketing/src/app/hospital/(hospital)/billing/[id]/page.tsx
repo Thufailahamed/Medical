@@ -71,7 +71,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         method: "POST",
         json: {
           invoiceId: id,
-          method: "stripe",
           returnUrl: `${window.location.origin}/hospital/billing/${id}/receipt`,
         },
       }),

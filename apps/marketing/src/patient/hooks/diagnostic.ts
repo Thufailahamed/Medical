@@ -153,7 +153,7 @@ export function useRescheduleTestBooking() {
 export function useInitiateTestPayment() {
   return useMutation({
     mutationFn: ({ bookingId }: { bookingId: string }) =>
-      api<{ orderId: string; checkoutUrl: string; fields: Record<string, string>; amount: number }>(
+      api<{ orderId: string; checkoutUrl: string; amount: number }>(
         "/payments/initiate",
         { method: "POST", json: { testBookingId: bookingId } },
       ),

@@ -467,7 +467,7 @@ export default function PublicInsuranceLanding() {
             <Step
               n={3}
               title="Enrol & pay"
-              body="Pay online via PayHere. Your e-card is in the app instantly. Claims? Submitted, tracked and paid in the same place."
+              body="Pay online via payments.lk. Your e-card is in the app instantly. Claims? Submitted, tracked and paid in the same place."
             />
           </ol>
         </div>
