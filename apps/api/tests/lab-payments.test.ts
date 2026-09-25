@@ -359,7 +359,7 @@ describe("lab payments", () => {
     expect(byBooking.status).toBe(200);
     const byBookingBody = await byBooking.json();
     expect(["pending", "paid"]).toContain(byBookingBody.status);
-    expect(byBookingBody.payhereOrderId ?? byBookingBody.orderId ?? init.orderId).toBeDefined();
+    expect(byBookingBody.gatewayOrderId ?? byBookingBody.orderId ?? init.orderId).toBeDefined();
 
     const byOrder = await getJson(app, `/payments/${init.orderId}`);
     expect(byOrder.status).toBe(200);

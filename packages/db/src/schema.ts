@@ -3461,7 +3461,7 @@ export const payments = sqliteTable(
       .notNull(),
     notes: text("notes"),
     // Migration 0071: payments routed through an online gateway carry
-    // the provider name (payhere / stripe) plus the gateway's charge id
+    // the provider name (paymentslk) plus the gateway's payment id
     // and the timestamp we observed the webhook. Required for
     // reconciliation against the gateway dashboard + for dispute handling.
     provider: text("provider"),
@@ -3473,7 +3473,7 @@ export const payments = sqliteTable(
   }),
 );
 
-// ─── Phase 5: PayHere online payments for appointments ──────
+// ─── Online payments for appointments (payments.lk) ──────
 // Separate from the existing `payments` (hospital billing) table.
 // Tracks online gateway transactions initiated by the patient.
 export const appointmentPayments = sqliteTable(
@@ -3493,10 +3493,14 @@ export const appointmentPayments = sqliteTable(
     })
       .notNull()
       .default("pending"),
-    payhereOrderId: text("payhere_order_id").notNull().unique(),
-    payherePaymentId: text("payhere_payment_id"),
-    payhereStatusCode: text("payhere_status_code"),
-    payhereMethod: text("payhere_method"),
+    // Migration 0083: gateway-neutral names (payments.lk replaces PayHere).
+    // The provider name plus the gateway's payment id and the timestamp we
+    // observed the webhook. Required for reconciliation against the
+    // gateway dashboard + for dispute handling.
+    gatewayOrderId: text("gateway_order_id").notNull().unique(),
+    gatewayPaymentId: text("gateway_payment_id"),
+    gatewayStatusCode: text("gateway_status_code"),
+    gatewayMethod: text("gateway_method"),
     rawNotify: text("raw_notify"),
     failureReason: text("failure_reason"),
     refundedAmountLkr: real("refunded_amount_lkr").notNull().default(0),

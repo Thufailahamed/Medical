@@ -1490,7 +1490,7 @@ marketplaceRouter.post(
 export async function handleInsurancePremiumPaid(
   env: any,
   orderId: string,
-  payherePaymentId: string | null,
+  gatewayPaymentId: string | null,
   method: string | null,
 ): Promise<void> {
   const db = createDbInternal(env);
@@ -1611,7 +1611,7 @@ export async function handleInsurancePremiumPaid(
     resourceId: enrollment.id,
     details: {
       orderId,
-      payherePaymentId,
+      gatewayPaymentId,
       method,
       amount: invoice.amountLkr,
       cycle: invoice.cycle,

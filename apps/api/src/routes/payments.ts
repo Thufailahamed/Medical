@@ -268,7 +268,7 @@ paymentsRouter.post(
     let orderId: string;
     let paymentId: string;
     if (existing) {
-      orderId = existing.payhereOrderId;
+      orderId = existing.gatewayOrderId;
       paymentId = existing.id;
     } else {
       orderId = mintOrderId();
@@ -280,7 +280,7 @@ paymentsRouter.post(
         amountLkr: amount,
         currency: "LKR",
         status: "pending",
-        payhereOrderId: orderId,
+        gatewayOrderId: orderId,
       });
     }
 
@@ -392,7 +392,7 @@ paymentsRouter.post("/notify", async (c) => {
   const [row] = await db
     .select()
     .from(appointmentPayments)
-    .where(eq(appointmentPayments.payhereOrderId, order_id))
+    .where(eq(appointmentPayments.gatewayOrderId, order_id))
     .limit(1);
 
   // Dispatch insurance premium payments to their own handler. The order_id
@@ -455,8 +455,8 @@ paymentsRouter.post("/notify", async (c) => {
             resourceId: booking.id,
             details: {
               amountLkr: booking.totalPrice,
-              payhereOrderId: order_id,
-              payherePaymentId: payhere_payment_id,
+              gatewayOrderId: order_id,
+              gatewayPaymentId: payhere_payment_id,
               method,
             },
           }).catch(() => {});
@@ -472,7 +472,7 @@ paymentsRouter.post("/notify", async (c) => {
           action: "payment.failed",
           resource: "test_booking",
           resourceId: booking.id,
-          details: { statusCode: status_code, reason: mapped, payhereOrderId: order_id },
+          details: { statusCode: status_code, reason: mapped, gatewayOrderId: order_id },
         }).catch(() => {});
       } else if (mapped === "chargeback") {
         await db
@@ -489,7 +489,7 @@ paymentsRouter.post("/notify", async (c) => {
           action: "payment.refunded",
           resource: "test_booking",
           resourceId: booking.id,
-          details: { payhereOrderId: order_id, reason: "chargeback" },
+          details: { gatewayOrderId: order_id, reason: "chargeback" },
         }).catch(() => {});
       }
       return c.text("ok", 200);
@@ -531,9 +531,9 @@ paymentsRouter.post("/notify", async (c) => {
     .update(appointmentPayments)
     .set({
       status: mapped === "paid" ? "paid" : mapped === "chargeback" ? "refunded" : mapped === "cancelled" ? "failed" : "failed",
-      payherePaymentId: payhere_payment_id,
-      payhereStatusCode: status_code,
-      payhereMethod: method,
+      gatewayPaymentId: payhere_payment_id,
+      gatewayStatusCode: status_code,
+      gatewayMethod: method,
       rawNotify: JSON.stringify(form),
       updatedAt: new Date().toISOString(),
     })
@@ -566,8 +566,8 @@ paymentsRouter.post("/notify", async (c) => {
       entityId: row.appointmentId,
       details: {
         amountLkr: row.amountLkr,
-        payhereOrderId: order_id,
-        payherePaymentId: payhere_payment_id,
+        gatewayOrderId: order_id,
+        gatewayPaymentId: payhere_payment_id,
         method,
       },
     });
@@ -639,7 +639,7 @@ paymentsRouter.get(
         amountLkr: booking.totalPrice,
         currency: "LKR",
         method: booking.paymentMethod,
-        payhereOrderId: booking.paymentRef,
+        gatewayOrderId: booking.paymentRef,
         paymentRef: booking.paymentRef,
         bookingStatus: booking.status,
       });
@@ -668,9 +668,9 @@ paymentsRouter.get(
       status: payment.status,
       amountLkr: payment.amountLkr,
       currency: payment.currency,
-      method: payment.payhereMethod,
-      payhereOrderId: payment.payhereOrderId,
-      payherePaymentId: payment.payherePaymentId,
+      method: payment.gatewayMethod,
+      gatewayOrderId: payment.gatewayOrderId,
+      gatewayPaymentId: payment.gatewayPaymentId,
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
     });
