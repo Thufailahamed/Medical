@@ -2,16 +2,16 @@
 // Phase INS-MKT: Health Insurance Marketplace — patient + public APIs.
 //
 // Catalog browsing, personalized quotes, enrollment, premium payments
-// (PayHere), policy + E-card, reimbursement claims. Reuses `users`,
+// (payments.lk), policy + E-card, reimbursement claims. Reuses `users`,
 // `operator_orgs`, files route, notifications, audit, push.
 //
 // Companion files:
 //   - admin-insurance.ts          → super_admin CRUD on providers/plans
 //   - insurance-operator.ts       → role='insurance' back-office queues
-//   - payments.ts (extended)      → notify dispatch on INS-* order_ids
+//   - payments.ts (extended)      → webhook dispatch on INS-* order_ids
 //
-// Amounts in LKR. Premium invoices use a `INS` PayHere order prefix so
-// the global /payments/notify can dispatch back here.
+// Amounts in LKR. Premium invoices use an `INS` order prefix so
+// the global /payments/webhook/paymentslk can dispatch back here.
 
 import { Hono } from "hono";
 import { eq, and, desc, like, or, sql, inArray } from "drizzle-orm";
@@ -45,10 +45,9 @@ import { logger } from "../lib/logger";
 import { createDb } from "../lib/db";
 import {
   mintOrderId,
-  computeHash,
-  checkoutUrl,
-  isSandbox,
-} from "../lib/payhere";
+  type PaymentsLkEnv,
+} from "../lib/payments/paymentslk";
+import { paymentsLk } from "./payments";
 import type { AppEnvironment } from "../types";
 
 const marketplaceRouter = new Hono<AppEnvironment>();
@@ -607,7 +606,7 @@ marketplaceRouter.post(
 
 /**
  * POST /insurance-marketplace/enrollments/:id/pay
- * Patient-only. Initiates a PayHere order for the current open invoice.
+ * Patient-only. Initiates a payments.lk order for the current open invoice.
  */
 marketplaceRouter.post(
   "/enrollments/:id/pay",
@@ -618,11 +617,9 @@ marketplaceRouter.post(
     const userId = c.get("userId");
     const enrollmentId = c.req.param("id");
     const env = c.env;
-    const merchantId = env.PAYHERE_MERCHANT_ID;
-    const secret = env.PAYHERE_SECRET;
-    if (!merchantId || !secret) {
+    if (!env.PAYMENTS_LK_SECRET_KEY) {
       return c.json(
-        { error: "Payments not configured. Set PAYHERE_MERCHANT_ID/SECRET." },
+        { error: "Payments not configured. Set PAYMENTS_LK_SECRET_KEY." },
         503,
       );
     }
@@ -657,10 +654,7 @@ marketplaceRouter.post(
     }
 
     // Reuse pending orderId if one already exists for this invoice.
-    let orderId = invoice.paymentId ? null : null;
-    if (invoice.paymentId) {
-      orderId = invoice.paymentId;
-    }
+    let orderId = invoice.paymentId ?? null;
     if (!orderId) {
       orderId = `INS-${mintOrderId()}`;
       await db
@@ -668,14 +662,6 @@ marketplaceRouter.post(
         .set({ paymentId: orderId, updatedAt: new Date().toISOString() })
         .where(eq(insurancePremiumInvoices.id, invoice.id));
     }
-
-    const hash = await computeHash(
-      merchantId,
-      orderId,
-      invoice.amountLkr,
-      "LKR",
-      secret,
-    );
 
     const [user] = await db
       .select()
@@ -686,38 +672,30 @@ marketplaceRouter.post(
       user?.name ||
       user?.email?.split("@")[0] ||
       "Patient";
-    const [firstName, ...rest] = fullName.split(" ");
-    const lastName = rest.join(" ") || "-";
 
     const publicUrl = env.PUBLIC_URL || "https://app.healthhub.app";
-    const fields = {
-      merchant_id: merchantId,
-      return_url: `${publicUrl}/insurance/payment/return?order=${orderId}`,
-      cancel_url: `${publicUrl}/insurance/payment/cancel?order=${orderId}`,
-      notify_url: `${publicUrl}/api/payments/notify`,
-      order_id: orderId,
-      items: `Health insurance premium ${enrollment.billingCycle} (policy ${enrollment.policyNumber ?? "draft"})`,
-      currency: "LKR",
-      amount: invoice.amountLkr.toFixed(2),
-      first_name: firstName,
-      last_name: lastName,
-      email: user?.email || "noreply@healthhub.app",
-      phone: user?.phone || "+94770000000",
-      address: "Sri Lanka",
-      city: "Colombo",
-      country: "Sri Lanka",
-      hash,
-    };
+    const result = await paymentsLk.createCheckout(
+      {
+        amountCents: Math.round(invoice.amountLkr * 100),
+        description: `Health insurance premium ${enrollment.billingCycle} (policy ${enrollment.policyNumber ?? "draft"})`.slice(0, 120),
+        reference: orderId,
+        successUrl: `${publicUrl}/insurance/payment/return?order=${orderId}`,
+        cancelUrl: `${publicUrl}/insurance/payment/cancel?order=${orderId}`,
+        customer: {
+          name: fullName.slice(0, 80),
+          email: user?.email || "noreply@healthhub.app",
+        },
+      },
+      env as PaymentsLkEnv
+    );
 
     return c.json({
       orderId,
       invoiceId: invoice.id,
       amount: invoice.amountLkr,
       currency: "LKR",
-      hash,
-      checkoutUrl: checkoutUrl(env),
-      sandbox: isSandbox(env),
-      fields,
+      checkoutUrl: result.redirectUrl,
+      provider: result.provider,
     });
   },
 );
@@ -858,7 +836,7 @@ marketplaceRouter.delete(
 /**
  * POST /insurance-marketplace/enrollments/:id/renew
  * Generates the next premium invoice (idempotent for the current cycle) and,
- * when PayHere is configured, returns the checkout payload so the client can
+ * when payments.lk is configured, returns the checkout payload so the client can
  * open the hosted page immediately. The client can also call /pay separately.
  */
 marketplaceRouter.post(
@@ -921,11 +899,9 @@ marketplaceRouter.post(
         .where(eq(insuranceEnrollments.id, enrollment.id));
     }
 
-    // PayHere not configured → just return the invoice (status 201 for first
-    // creation, 200 for reused).
-    const merchantId = env.PAYHERE_MERCHANT_ID;
-    const secret = env.PAYHERE_SECRET;
-    if (!merchantId || !secret) {
+    // payments.lk not configured → just return the invoice (status 201 for
+    // first creation, 200 for reused).
+    if (!env.PAYMENTS_LK_SECRET_KEY) {
       return c.json({ invoice }, invoice ? 200 : 201);
     }
 
@@ -938,49 +914,34 @@ marketplaceRouter.post(
         .where(eq(insurancePremiumInvoices.id, invoice.id));
     }
 
-    const hash = await computeHash(
-      merchantId,
-      orderId,
-      invoice.amountLkr,
-      "LKR",
-      secret,
-    );
     const [user] = await db
       .select()
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
     const fullName = user?.name || user?.email?.split("@")[0] || "Patient";
-    const [firstName, ...rest] = fullName.split(" ");
-    const lastName = rest.join(" ") || "-";
     const publicUrl = env.PUBLIC_URL || "https://app.healthhub.app";
-    const fields = {
-      merchant_id: merchantId,
-      return_url: `${publicUrl}/insurance/payment/return?order=${orderId}`,
-      cancel_url: `${publicUrl}/insurance/payment/cancel?order=${orderId}`,
-      notify_url: `${publicUrl}/api/payments/notify`,
-      order_id: orderId,
-      items: `Health insurance premium ${enrollment.billingCycle} (policy ${enrollment.policyNumber ?? "draft"})`,
-      currency: "LKR",
-      amount: invoice.amountLkr.toFixed(2),
-      first_name: firstName,
-      last_name: lastName,
-      email: user?.email || "noreply@healthhub.app",
-      phone: user?.phone || "+94770000000",
-      address: "Sri Lanka",
-      city: "Colombo",
-      country: "Sri Lanka",
-      hash,
-    };
+    const result = await paymentsLk.createCheckout(
+      {
+        amountCents: Math.round(invoice.amountLkr * 100),
+        description: `Health insurance premium ${enrollment.billingCycle} (policy ${enrollment.policyNumber ?? "draft"})`.slice(0, 120),
+        reference: orderId,
+        successUrl: `${publicUrl}/insurance/payment/return?order=${orderId}`,
+        cancelUrl: `${publicUrl}/insurance/payment/cancel?order=${orderId}`,
+        customer: {
+          name: fullName.slice(0, 80),
+          email: user?.email || "noreply@healthhub.app",
+        },
+      },
+      env as PaymentsLkEnv
+    );
     return c.json({
       invoice,
       orderId,
       amount: invoice.amountLkr,
       currency: "LKR",
-      hash,
-      checkoutUrl: checkoutUrl(env),
-      sandbox: isSandbox(env),
-      fields,
+      checkoutUrl: result.redirectUrl,
+      provider: result.provider,
     });
   },
 );

@@ -48,22 +48,22 @@ describe("claim payout", () => {
     expect(payBlock).toContain("audit(");
   });
 
-  it("Stripe INS- dispatch shape", () => {
+  it("payments.lk INS- dispatch shape", () => {
     const src = read("apps/api/src/routes/payments.ts");
-    // Stripe webhook exists
-    expect(src).toContain("/webhook/stripe");
-    const stripeIdx = src.indexOf("/webhook/stripe");
-    expect(stripeIdx).toBeGreaterThan(-1);
-    const stripeBlock = src.slice(stripeIdx, stripeIdx + 5000);
-    // Stripe webhook dispatches INS- prefix to insurance handlers
-    expect(stripeBlock).toContain('startsWith("INS-")');
-    expect(stripeBlock).toContain("handleInsurancePremiumPaid");
-    expect(stripeBlock).toContain("handleInsurancePremiumFailed");
+    // payments.lk webhook exists
+    expect(src).toContain('paymentsRouter.post("/webhook/paymentslk"');
+    const hookIdx = src.indexOf('paymentsRouter.post("/webhook/paymentslk"');
+    expect(hookIdx).toBeGreaterThan(-1);
+    const hookBlock = src.slice(hookIdx, hookIdx + 9000);
+    // Webhook dispatches INS- prefix to insurance handlers
+    expect(hookBlock).toContain('startsWith("INS-")');
+    expect(hookBlock).toContain("handleInsurancePremiumPaid");
+    expect(hookBlock).toContain("handleInsurancePremiumFailed");
     // Keeps generic invoice path unchanged
-    expect(stripeBlock).toContain("UPDATE payments SET paid_at");
+    expect(hookBlock).toContain("UPDATE payments SET paid_at");
     // Idempotency via payment_webhook_events
-    expect(stripeBlock).toContain("tryRecordWebhook");
-    expect(stripeBlock).toContain("markWebhookProcessed");
+    expect(hookBlock).toContain("tryRecordWebhook");
+    expect(hookBlock).toContain("markWebhookProcessed");
   });
 
   it("free-look cancel creates refund_pending ledger when paid", () => {
