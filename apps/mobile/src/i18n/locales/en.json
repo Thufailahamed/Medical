@@ -2171,7 +2171,7 @@
     "policyFull": "Free cancellation up to 24 hours before the appointment.",
     "policyHalf": "50% fee applies if you cancel within 2–24 hours.",
     "policyNone": "No refund if you cancel under 2 hours before, or if you don't show up.",
-    "policyPayNote": "Consultation fee: {{amount}}. PayHere will open after you accept.",
+    "policyPayNote": "Consultation fee: {{amount}}. payments.lk will open after you accept.",
     "policyAccept": "Accept & pay",
     "policyDecline": "Cancel",
     "toast": {
@@ -4528,7 +4528,7 @@
       "card": "Card Payment",
       "cardDesc": "Pay now with your debit/credit card",
       "online": "Online Payment",
-      "onlineDesc": "Pay via PayHere gateway",
+      "onlineDesc": "Pay via payments.lk gateway",
       "fastingReminder": "Remember: Do not eat or drink anything (except water) for {{hours}} hours before your sample collection."
     },
     "actions": {
@@ -4782,7 +4782,7 @@
       "nomineeDob": "Nominee DOB (YYYY-MM-DD)",
       "dependents": "Covered members",
       "noDependents": "No dependents added.",
-      "agreeTnc": "I agree to the insurer's terms and authorize premium debit via PayHere.",
+      "agreeTnc": "I agree to the insurer's terms and authorize premium debit via payments.lk.",
       "proceed": "Proceed to payment",
       "premium": "LKR {{amount}} / {{cycle}}",
       "stepKyc": "Verify identity",
@@ -4796,7 +4796,7 @@
       "removeMember": "Remove",
       "policyholder": "Policyholder (you)",
       "review": "Review",
-      "terms": "I agree to the insurer's terms, disclosure of pre-existing conditions is true, and I authorize monthly/annual premium debit via PayHere.",
+      "terms": "I agree to the insurer's terms, disclosure of pre-existing conditions is true, and I authorize monthly/annual premium debit via payments.lk.",
       "submit": "Submit & pay premium",
       "kycVerified": "Identity verified (NIC + DOB on file)"
     },
@@ -4808,10 +4808,10 @@
       "waiting": "Waiting for payment confirmation…",
       "active": "Active",
       "failed": "Payment failed",
-      "openCheckout": "Open PayHere checkout",
+      "openCheckout": "Open payments.lk checkout",
       "cancel": "Cancel",
       "viewPolicy": "View policy",
-      "redirect": "Opening PayHere secure checkout…",
+      "redirect": "Opening payments.lk secure checkout…",
       "orderLabel": "Order",
       "amountLabel": "Amount due",
       "completeOnReturn": "After paying, tap 'I've paid' to refresh your policy.",

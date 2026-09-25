@@ -2875,7 +2875,7 @@
     "policyFull": "Free cancellation up to 24 hours before the appointment.",
     "policyHalf": "50% fee applies if you cancel within 2–24 hours.",
     "policyNone": "No refund if you cancel under 2 hours before, or if you don't show up.",
-    "policyPayNote": "Consultation fee: {{amount}}. PayHere will open after you accept.",
+    "policyPayNote": "Consultation fee: {{amount}}. payments.lk will open after you accept.",
     "policyAccept": "Accept & pay",
     "policyDecline": "Cancel",
     "toast": {
@@ -4763,7 +4763,7 @@
       "card": "Card Payment",
       "cardDesc": "Pay now with your debit/credit card",
       "online": "Online Payment",
-      "onlineDesc": "Pay via PayHere gateway",
+      "onlineDesc": "Pay via payments.lk gateway",
       "fastingReminder": "Remember: Do not eat or drink anything (except water) for {{hours}} hours before your sample collection."
     },
     "actions": {
@@ -4979,7 +4979,7 @@
       "nomineeDob": "Nominee DOB (YYYY-MM-DD)",
       "dependents": "Covered members",
       "noDependents": "No dependents added.",
-      "agreeTnc": "I agree to the insurer's terms and authorize premium debit via PayHere.",
+      "agreeTnc": "I agree to the insurer's terms and authorize premium debit via payments.lk.",
       "proceed": "Proceed to payment",
       "premium": "LKR {{amount}} / {{cycle}}",
       "stepKyc": "අනන්‍යතා සත්‍යාපනය",
@@ -4993,7 +4993,7 @@
       "removeMember": "ඉවත් කරන්න",
       "policyholder": "පොලිසි හිමිකරු (ඔබ)",
       "review": "සමාලෝචනය",
-      "terms": "මම රක්ෂණ සමාගමේ නියමයන්ට එකඟ වෙමි, කලින් ඇති රෝග පිළිබඳ අනාවරණය සත්‍ය වන අතර, PayHere හරහා මාසික/වාර්ෂික ප්‍රිමියම් අයකිරීමට බලය දෙමි.",
+      "terms": "මම රක්ෂණ සමාගමේ නියමයන්ට එකඟ වෙමි, කලින් ඇති රෝග පිළිබඳ අනාවරණය සත්‍ය වන අතර, payments.lk හරහා මාසික/වාර්ෂික ප්‍රිමියම් අයකිරීමට බලය දෙමි.",
       "submit": "ඉදිරිපත් කර ප්‍රිමියම් ගෙවන්න",
       "kycVerified": "අනන්‍යතාව සත්‍යාපිතයි (NIC + DOB ගොනුවේ)"
     },
@@ -5005,10 +5005,10 @@
       "waiting": "Waiting for payment confirmation…",
       "active": "Active",
       "failed": "Payment failed",
-      "openCheckout": "Open PayHere checkout",
+      "openCheckout": "Open payments.lk checkout",
       "cancel": "Cancel",
       "viewPolicy": "View policy",
-      "redirect": "PayHere ආරක්ෂිත කට්ටල විවෘත කරමින්…",
+      "redirect": "payments.lk ආරක්ෂිත කට්ටල විවෘත කරමින්…",
       "orderLabel": "ඇණවුම",
       "amountLabel": "ගෙවිය යුතු මුදල",
       "completeOnReturn": "ගෙවීමෙන් පසු, ඔබගේ පොලිසි නැවුම් කිරීමට 'මම ගෙවා ඇත' තට්ටු කරන්න.",

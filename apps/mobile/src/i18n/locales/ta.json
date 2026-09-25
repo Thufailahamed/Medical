@@ -2875,7 +2875,7 @@
     "policyFull": "Free cancellation up to 24 hours before the appointment.",
     "policyHalf": "50% fee applies if you cancel within 2–24 hours.",
     "policyNone": "No refund if you cancel under 2 hours before, or if you don't show up.",
-    "policyPayNote": "Consultation fee: {{amount}}. PayHere will open after you accept.",
+    "policyPayNote": "Consultation fee: {{amount}}. payments.lk will open after you accept.",
     "policyAccept": "Accept & pay",
     "policyDecline": "Cancel",
     "toast": {
@@ -4763,7 +4763,7 @@
       "card": "Card Payment",
       "cardDesc": "Pay now with your debit/credit card",
       "online": "Online Payment",
-      "onlineDesc": "Pay via PayHere gateway",
+      "onlineDesc": "Pay via payments.lk gateway",
       "fastingReminder": "Remember: Do not eat or drink anything (except water) for {{hours}} hours before your sample collection."
     },
     "actions": {
@@ -4979,7 +4979,7 @@
       "nomineeDob": "Nominee DOB (YYYY-MM-DD)",
       "dependents": "Covered members",
       "noDependents": "No dependents added.",
-      "agreeTnc": "I agree to the insurer's terms and authorize premium debit via PayHere.",
+      "agreeTnc": "I agree to the insurer's terms and authorize premium debit via payments.lk.",
       "proceed": "Proceed to payment",
       "premium": "LKR {{amount}} / {{cycle}}",
       "stepKyc": "அடையாள சரிபார்ப்பு",
@@ -4993,7 +4993,7 @@
       "removeMember": "அகற்று",
       "policyholder": "கொள்கைதாரர் (நீங்கள்)",
       "review": "மதிப்பாய்வு",
-      "terms": "காப்பீட்டாளரின் விதிமுறைகளுக்கு ஒப்புக்கொள்கிறேன், முன்பு இருந்த நோய்களின் வெளிப்பாடு உண்மை, மற்றும் PayHere மூலம் மாதாந்திர/ஆண்டு பிரீமியம் டெபிட்டிற்கு அதிகாரம் அளிக்கிறேன்.",
+      "terms": "காப்பீட்டாளரின் விதிமுறைகளுக்கு ஒப்புக்கொள்கிறேன், முன்பு இருந்த நோய்களின் வெளிப்பாடு உண்மை, மற்றும் payments.lk மூலம் மாதாந்திர/ஆண்டு பிரீமியம் டெபிட்டிற்கு அதிகாரம் அளிக்கிறேன்.",
       "submit": "சமர்ப்பித்து பிரீமியம் செலுத்து",
       "kycVerified": "அடையாளம் சரிபார்க்கப்பட்டது (NIC + DOB கோப்பில்)"
     },
@@ -5005,10 +5005,10 @@
       "waiting": "Waiting for payment confirmation…",
       "active": "Active",
       "failed": "Payment failed",
-      "openCheckout": "Open PayHere checkout",
+      "openCheckout": "Open payments.lk checkout",
       "cancel": "Cancel",
       "viewPolicy": "View policy",
-      "redirect": "PayHere பாதுகாப்பான கட்டணம் திறக்கிறது…",
+      "redirect": "payments.lk பாதுகாப்பான கட்டணம் திறக்கிறது…",
       "orderLabel": "ஆர்டர்",
       "amountLabel": "செலுத்த வேண்டிய தொகை",
       "completeOnReturn": "செலுத்திய பிறகு, உங்கள் கொள்கையை புதுப்பிக்க 'நான் செலுத்திவிட்டேன்' என்பதை தட்டவும்.",

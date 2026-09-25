@@ -839,7 +839,7 @@ export default function BookTestScreen() {
                 {
                   value: "online",
                   label: "Online Payment",
-                  desc: "Pay via PayHere gateway",
+                  desc: "Pay via payments.lk gateway",
                   icon: <Wallet size={18} color={colors.primary} strokeWidth={2.3} />,
                 },
               ].map((method) => (
