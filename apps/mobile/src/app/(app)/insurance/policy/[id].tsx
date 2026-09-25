@@ -65,7 +65,7 @@ export default function PolicyDetail() {
   const isDueSoon = dueIn !== null && dueIn >= 0 && dueIn <= 7;
   const showPaymentBanner = e?.status === "active" && (isDueSoon || isOverdue);
 
-  // Auto-open PayHere checkout when renew mutation returns a checkoutUrl.
+  // Auto-open payments.lk checkout when renew mutation returns a checkoutUrl.
   useEffect(() => {
     const url = (renewMut.data as any)?.checkoutUrl;
     if (url && typeof url === "string") {

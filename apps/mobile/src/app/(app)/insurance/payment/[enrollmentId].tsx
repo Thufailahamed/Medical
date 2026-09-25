@@ -1,5 +1,5 @@
 // @ts-nocheck
-// PayHere redirect for insurance premium. Polls enrollment status until active.
+// payments.lk redirect for insurance premium. Polls enrollment status until active.
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";

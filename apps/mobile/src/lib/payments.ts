@@ -1,26 +1,18 @@
 /**
- * PayHere checkout wrapper for Expo mobile.
+ * payments.lk checkout wrapper for Expo mobile.
  *
- * Opens the hosted PayHere checkout page in the system browser (via
- * `expo-web-browser`), then polls our backend's
- * `GET /payments/:appointmentId` when the app regains focus. The PayHere
- * notify callback has already updated the payment status server-side by
- * then; polling just confirms and UI reactively updates.
- *
- * Why GET (not POST form): PayHere accepts both. GET on a system browser
- * means we don't need to ship a WebView — smaller APK, faster startup,
- * no extra native module.
- *
- * Sandbox vs live is controlled server-side via `sandbox` flag in the
- * initiate response.
+ * The backend creates the hosted checkout (payments.lk) and returns its
+ * URL. We open it in the system browser (via `expo-web-browser`), then
+ * poll the backend's `GET /payments/:appointmentId` when the app regains
+ * focus. The payments.lk webhook has already updated the payment status
+ * server-side by then; polling just confirms and the UI reactively
+ * updates.
  */
 
 import * as WebBrowser from "expo-web-browser";
 import { AppState } from "react-native";
 
-export interface PayHereCheckoutInput {
-  appointmentId: string;
-  fields: Record<string, string>;
+export interface PaymentsCheckoutInput {
   checkoutUrl: string;
   /** Poll this to detect when backend flipped to paid. */
   pollStatus: () => Promise<{ status: string }>;
@@ -28,40 +20,25 @@ export interface PayHereCheckoutInput {
   timeoutMs?: number;
 }
 
-export interface PayHereCheckoutResult {
+export interface PaymentsCheckoutResult {
   status: "paid" | "failed" | "cancelled" | "timeout";
 }
 
-/** Build the PayHere checkout URL with all fields as query params. */
-export function buildCheckoutUrl(
-  base: string,
-  fields: Record<string, string>
-): string {
-  const url = new URL(base);
-  for (const [k, v] of Object.entries(fields)) {
-    url.searchParams.set(k, v);
-  }
-  return url.toString();
-}
-
-/** Open the PayHere checkout page and wait for the result. */
-export async function runPayHereCheckout(
-  input: PayHereCheckoutInput
-): Promise<PayHereCheckoutResult> {
-  const url = buildCheckoutUrl(input.checkoutUrl, input.fields);
+/** Open the hosted checkout page and wait for the result. */
+export async function runPaymentsCheckout(
+  input: PaymentsCheckoutInput
+): Promise<PaymentsCheckoutResult> {
   const timeoutMs = input.timeoutMs ?? 5 * 60 * 1000;
 
   // Complete any pending session from a previous closed window.
   WebBrowser.maybeCompleteAuthSession();
 
-  // Open the system browser. The promise resolves when the user returns.
-  // We don't wait on it directly — instead we hook AppState changes.
   const openedAt = Date.now();
 
-  const result = await new Promise<PayHereCheckoutResult>((resolve) => {
+  const result = await new Promise<PaymentsCheckoutResult>((resolve) => {
     let resolved = false;
 
-    const finish = (status: PayHereCheckoutResult["status"]) => {
+    const finish = (status: PaymentsCheckoutResult["status"]) => {
       if (resolved) return;
       resolved = true;
       cleanup();
@@ -87,8 +64,8 @@ export async function runPayHereCheckout(
       sub.remove();
     };
 
-    void WebBrowser.openBrowserAsync(url).catch((err) => {
-      console.error("[payhere] openBrowserAsync failed:", err);
+    void WebBrowser.openBrowserAsync(input.checkoutUrl).catch((err) => {
+      console.error("[payments] openBrowserAsync failed:", err);
       finish("failed");
     });
   });

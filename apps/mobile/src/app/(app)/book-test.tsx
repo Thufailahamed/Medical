@@ -42,7 +42,7 @@ import {
   type TimeSlot,
 } from "@/hooks/useApi";
 import { api } from "@/lib/api";
-import { runPayHereCheckout } from "@/lib/payhere";
+import { runPaymentsCheckout } from "@/lib/payments";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -310,7 +310,7 @@ export default function BookTestScreen() {
           return;
         }
 
-        // Lab Task 2: card/online now charged via PayHere TB- order.
+        // Lab flow: card/online now charged via payments.lk TB- order.
         // Book created pending + bookingId → initiate → checkout → pending
         // polling to booking detail (GET /payments/:id → test_booking_detail).
         try {
@@ -318,9 +318,7 @@ export default function BookTestScreen() {
             method: "POST",
             body: { testBookingId: bookingId },
           });
-          const result = await runPayHereCheckout({
-            appointmentId: bookingId,
-            fields: init.fields,
+          const result = await runPaymentsCheckout({
             checkoutUrl: init.checkoutUrl,
             pollStatus: async () => {
               const s: any = await api(`/payments/${bookingId}`);

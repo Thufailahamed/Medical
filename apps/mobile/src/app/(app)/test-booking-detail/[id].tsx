@@ -35,7 +35,7 @@ import {
   type TestBooking,
 } from "@/hooks/useApi";
 import { api } from "@/lib/api";
-import { runPayHereCheckout } from "@/lib/payhere";
+import { runPaymentsCheckout } from "@/lib/payments";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
@@ -187,9 +187,7 @@ export default function TestBookingDetailScreen() {
         method: "POST",
         body: { testBookingId: id },
       });
-      const result = await runPayHereCheckout({
-        appointmentId: id!,
-        fields: init.fields,
+      const result = await runPaymentsCheckout({
         checkoutUrl: init.checkoutUrl,
         pollStatus: async () => {
           const s: any = await api(`/payments/${id}`);

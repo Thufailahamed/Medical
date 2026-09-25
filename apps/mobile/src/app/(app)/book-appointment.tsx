@@ -62,7 +62,7 @@ import {
 import { useLocaleStore } from "@/stores/locale";
 import { fmtDateLong } from "@/lib/format";
 import { api } from "@/lib/api";
-import { runPayHereCheckout } from "@/lib/payhere";
+import { runPaymentsCheckout } from "@/lib/payments";
 
 function getSpecialtyIcon(name: string) {
   const norm = name.trim().toLowerCase();
@@ -358,15 +358,13 @@ export default function BookAppointmentScreen() {
       const fee = selectedDoctor?.consultationFee ?? booked?.paymentAmount ?? 0;
 
       if (appointmentId && fee > 0) {
-        // Initiate payment + open PayHere checkout.
+        // Initiate payment + open payments.lk checkout.
         try {
           setPaying(true);
           const init: any = await api.post("/payments/initiate", {
             appointmentId,
           });
-          const result = await runPayHereCheckout({
-            appointmentId,
-            fields: init.fields,
+          const result = await runPaymentsCheckout({
             checkoutUrl: init.checkoutUrl,
             pollStatus: async () => {
               const s: any = await api.get(`/payments/${appointmentId}`);
