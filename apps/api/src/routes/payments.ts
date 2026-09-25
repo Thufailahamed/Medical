@@ -1,18 +1,16 @@
 // @ts-nocheck
-// Phase 5: PayHere payment flow for appointments + Lab Task 2: test bookings.
+// payments.lk flow for appointments + lab test bookings.
 // Endpoints:
-//   POST /payments/initiate    → mint order, return checkout fields
+//   POST /payments/initiate            → mint order, create hosted checkout
 //     Body: { appointmentId } for consultations (HH- order, appointmentPayments)
 //     Body: { testBookingId } for lab bookings (TB- order, test_bookings.paymentRef)
-//   POST /payments/notify      → PayHere server-to-server callback
+//   POST /payments/webhook/paymentslk  → payments.lk signed webhook
 //     Dispatch: HH-* → appointmentPayments, TB-* → test_bookings, INS-* → insurance
-//   GET  /payments/:id → patient polls status
+//   GET  /payments/:id                 → patient polls status
 //     :id accepts appointmentId, test bookingId, or TB-/HH- orderId
 //
-// All amounts in LKR. PayHere sandbox vs live controlled via env.
-// Stripe: TB- lab bookings are PayHere-only. Stripe uses the generic
-// POST /checkout (invoice-bound) path — see below. Keep generic /checkout
-// untouched for hospital-billing invoices.
+// All amounts in LKR. Sandbox vs live is decided by the key prefix
+// (sk_test_ / sk_live_) — no separate sandbox URL.
 
 import { Hono } from "hono";
 import { eq, and, desc } from "drizzle-orm";
@@ -24,14 +22,7 @@ import { audit } from "../lib/audit";
 import { createDb } from "../lib/db";
 import { logger } from "../lib/logger";
 import {
-  computeHash,
-  verifyNotify,
-  mapStatusCode,
-  checkoutUrl,
-  isSandbox,
-  type PayHereStatus,
-} from "../lib/payhere";
-import {
+  PaymentsLkAdapter,
   mintOrderId,
   type PaymentsLkEnv,
 } from "../lib/payments/paymentslk";
@@ -39,7 +30,6 @@ import {
   handleInsurancePremiumPaid,
   handleInsurancePremiumFailed,
 } from "./insurance-marketplace";
-import { PaymentsLkAdapter } from "../lib/payments/paymentslk";
 import { PaymentError, PaymentErrorCode } from "../lib/payments/errors";
 import { tryRecordWebhook, markWebhookProcessed } from "../lib/payments/webhook-idempotency";
 import type { AppEnvironment } from "../types";
@@ -63,19 +53,18 @@ const paymentsRouter = new Hono<AppEnvironment>();
 /**
  * POST /payments/initiate
  * Body: { appointmentId } | { testBookingId }
- * Returns: { orderId, amount, currency, hash, checkoutUrl, fields }
+ * Returns: { orderId, amount, currency, checkoutUrl, provider }
  *
- * Appointment flow (HH- order, appointmentPayments) is unchanged.
- * Lab flow (Task 2): { testBookingId } loads test_bookings.totalPrice,
- * mints PayHere order `TB-` prefix via mintOrderId() + computeHash,
- * stores paymentRef on booking (paymentStatus=pending), returns
- * { orderId, checkoutUrl, hash, ... } following appointment pattern.
+ * Appointment flow (HH- order, appointmentPayments) and lab flow
+ * ({ testBookingId } loads test_bookings.totalPrice, mints TB- order,
+ * stores paymentRef, paymentStatus=pending) both create a payments.lk
+ * hosted checkout server-side.
  * Flow: POST /diagnostic-tests/book (card/online → pending + bookingId)
- *   → POST /payments/initiate {testBookingId} → PayHere checkout
- *   → POST /payments/notify (TB- → pending→paid) → GET /payments/:id polls.
- * PayHere-only for TB-: Stripe uses generic POST /checkout (invoice-bound).
+ *   → POST /payments/initiate {testBookingId} → payments.lk checkout
+ *   → POST /payments/webhook/paymentslk (TB- → pending→paid)
+ *   → GET /payments/:id polls.
  * Patient must own the appointment/booking. If a `pending` payment already
- * exists, reuse it (avoids PayHere rejecting duplicate order_ids).
+ * exists, reuse it (idempotency key = order id, so the gateway replays).
  */
 paymentsRouter.post(
   "/initiate",
@@ -88,20 +77,18 @@ paymentsRouter.post(
     const { appointmentId, testBookingId } = body;
 
     const env = c.env;
-    const merchantId = env.PAYHERE_MERCHANT_ID;
-    const secret = env.PAYHERE_SECRET;
-    if (!merchantId || !secret) {
+    if (!env.PAYMENTS_LK_SECRET_KEY) {
       return c.json(
         {
           error:
-            "Payments not configured. Set PAYHERE_MERCHANT_ID and PAYHERE_SECRET.",
+            "Payments not configured. Set PAYMENTS_LK_SECRET_KEY.",
         },
         503
       );
     }
 
-    // ─── Lab Task 2: test booking flow (TB- prefix) ─────────────
-    // PayHere-only. Reuses pending paymentRef if present.
+    // ─── Lab flow: test booking (TB- prefix) ─────────────
+    // Reuses pending paymentRef if present.
     if (testBookingId && typeof testBookingId === "string") {
       const [booking] = await db
         .select()
@@ -156,21 +143,13 @@ paymentsRouter.post(
           .set({
             paymentRef: orderId,
             paymentStatus: "pending",
-            // Cash bookings moving online now charge via PayHere.
+            // Cash bookings moving online now charge via payments.lk.
             paymentMethod:
               booking.paymentMethod === "cash" ? "online" : booking.paymentMethod,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(testBookings.id, testBookingId));
       }
-
-      const hash = await computeHash(
-        merchantId,
-        orderId,
-        amount,
-        "LKR",
-        secret
-      );
 
       const [user] = await db
         .select()
@@ -183,29 +162,23 @@ paymentsRouter.post(
         user?.name ||
         user?.email?.split("@")[0] ||
         "Patient";
-      const [firstName, ...rest] = fullName.split(" ");
-      const lastName = rest.join(" ") || "-";
 
       const publicUrl = env.PUBLIC_URL || "https://app.healthhub.app";
 
-      const fields = {
-        merchant_id: merchantId,
-        return_url: `${publicUrl}/lab/payment/return?order=${orderId}`,
-        cancel_url: `${publicUrl}/lab/payment/cancel?order=${orderId}`,
-        notify_url: `${publicUrl}/api/payments/notify`,
-        order_id: orderId,
-        items: `Lab test booking ${booking.scheduledDate} ${booking.scheduledTimeSlot}`,
-        currency: "LKR",
-        amount: amount.toFixed(2),
-        first_name: firstName,
-        last_name: lastName,
-        email: user?.email || "noreply@healthhub.app",
-        phone: user?.phone || "+94770000000",
-        address: "Sri Lanka",
-        city: "Colombo",
-        country: "Sri Lanka",
-        hash,
-      };
+      const result = await paymentsLk.createCheckout(
+        {
+          amountCents: Math.round(amount * 100),
+          description: `Lab test booking ${booking.scheduledDate} ${booking.scheduledTimeSlot}`.slice(0, 120),
+          reference: orderId,
+          successUrl: `${publicUrl}/lab/payment/return?order=${orderId}`,
+          cancelUrl: `${publicUrl}/lab/payment/cancel?order=${orderId}`,
+          customer: {
+            name: fullName.slice(0, 80),
+            email: user?.email || "noreply@healthhub.app",
+          },
+        },
+        env as PaymentsLkEnv
+      );
 
       return c.json({
         orderId,
@@ -214,10 +187,8 @@ paymentsRouter.post(
         paymentRef: orderId,
         amount,
         currency: "LKR",
-        hash,
-        checkoutUrl: checkoutUrl(env),
-        sandbox: isSandbox(env),
-        fields,
+        checkoutUrl: result.redirectUrl,
+        provider: result.provider,
       });
     }
 
@@ -299,15 +270,7 @@ paymentsRouter.post(
       });
     }
 
-    const hash = await computeHash(
-      merchantId,
-      orderId,
-      amount,
-      "LKR",
-      secret
-    );
-
-    // Customer fields. PayHere requires at least name + email + phone.
+    // Customer fields.
     const [user] = await db
       .select()
       .from(users)
@@ -318,290 +281,34 @@ paymentsRouter.post(
       [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
       user?.email?.split("@")[0] ||
       "Patient";
-    const [firstName, ...rest] = fullName.split(" ");
-    const lastName = rest.join(" ") || "-";
 
     const publicUrl = env.PUBLIC_URL || "https://app.healthhub.app";
 
-    const fields = {
-      merchant_id: merchantId,
-      return_url: `${publicUrl}/payment/return?order=${orderId}`,
-      cancel_url: `${publicUrl}/payment/cancel?order=${orderId}`,
-      notify_url: `${publicUrl}/api/payments/notify`,
-      order_id: orderId,
-      items: `Consultation ${appt.date} ${appt.time}`,
-      currency: "LKR",
-      amount: amount.toFixed(2),
-      first_name: firstName,
-      last_name: lastName,
-      email: user?.email || "noreply@healthhub.app",
-      phone: user?.phone || "+94770000000",
-      address: "Sri Lanka",
-      city: "Colombo",
-      country: "Sri Lanka",
-      hash,
-    };
+    const result = await paymentsLk.createCheckout(
+      {
+        amountCents: Math.round(amount * 100),
+        description: `Consultation ${appt.date} ${appt.time}`.slice(0, 120),
+        reference: orderId,
+        successUrl: `${publicUrl}/payment/return?order=${orderId}`,
+        cancelUrl: `${publicUrl}/payment/cancel?order=${orderId}`,
+        customer: {
+          name: fullName.slice(0, 80),
+          email: user?.email || "noreply@healthhub.app",
+        },
+      },
+      env as PaymentsLkEnv
+    );
 
     return c.json({
       orderId,
       paymentId,
       amount,
       currency: "LKR",
-      hash,
-      checkoutUrl: checkoutUrl(env),
-      sandbox: isSandbox(env),
-      fields,
+      checkoutUrl: result.redirectUrl,
+      provider: result.provider,
     });
   }
 );
-
-/**
- * POST /payments/notify
- * PayHere server-to-server callback (form-encoded).
- * Verifies md5sig, then updates payment row + appointment/booking status.
- * Dispatch: TB- → test_bookings, INS- → insurance, else appointmentPayments.
- *
- * NO auth middleware — PayHere calls this directly. We verify by signature.
- */
-paymentsRouter.post("/notify", async (c) => {
-  const env = c.env;
-  const merchantId = env.PAYHERE_MERCHANT_ID;
-  const secret = env.PAYHERE_SECRET;
-  if (!merchantId || !secret) {
-    return c.text("payments not configured", 503);
-  }
-
-  // Prefer injected db (tests + request middleware) else create from D1 binding.
-  const db = c.get("db") ?? createDb(env.DB);
-
-  const form = await c.req.parseBody();
-  const merchant_id = String(form.merchant_id || "");
-  const order_id = String(form.order_id || "");
-  const payhere_amount = String(form.payhere_amount || "");
-  const payhere_currency = String(form.payhere_currency || "");
-  const status_code = String(form.status_code || "");
-  const md5sig = String(form.md5sig || "");
-  const payhere_payment_id = form.payment_id ? String(form.payment_id) : null;
-  const method = form.method ? String(form.method) : null;
-
-  if (!order_id || !md5sig) {
-    return c.text("invalid notify payload", 400);
-  }
-
-  const ok = await verifyNotify(
-    {
-      merchant_id,
-      order_id,
-      payhere_amount,
-      payhere_currency,
-      status_code,
-      md5sig,
-    },
-    secret
-  );
-  if (!ok) {
-    logger.error("payments.notify", "signature mismatch", { orderId: order_id });
-    return c.text("invalid signature", 400);
-  }
-
-  const [row] = await db
-    .select()
-    .from(appointmentPayments)
-    .where(eq(appointmentPayments.gatewayOrderId, order_id))
-    .limit(1);
-
-  // Dispatch insurance premium payments to their own handler. The order_id
-  // prefix INS- (set by insurance-marketplace/enrollments/:id/pay) marks
-  // a PayHere order routed here for activation. The handler flips the
-  // premium_invoice, mints the policy_number, generates an E-card, and
-  // notifies the patient.
-  // Lab Task 2: TB- prefix (set by /payments/initiate {testBookingId})
-  // marks a lab booking order. Flip test_bookings.pending→paid + paymentRef.
-  if (!row) {
-    if (order_id.startsWith("TB-")) {
-      const [booking] = await db
-        .select()
-        .from(testBookings)
-        .where(eq(testBookings.paymentRef, order_id))
-        .limit(1);
-      if (!booking) {
-        logger.warn("payments.notify", "notify for unknown TB- order", {
-          orderId: order_id,
-        });
-        return c.text("ok", 200);
-      }
-      const mapped = mapStatusCode(status_code);
-      if (mapped === "paid") {
-        // Idempotent: already paid → ack.
-        if (booking.paymentStatus !== "paid") {
-          await db
-            .update(testBookings)
-            .set({
-              paymentStatus: "paid",
-              // Confirm pending bookings on successful online payment,
-              // mirroring appointment paid→confirmed.
-              status: booking.status === "pending" ? "confirmed" : booking.status,
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(testBookings.id, booking.id));
-
-          // Resolve owner userId for notify/audit (booking stores patientId).
-          const [owner] = await db
-            .select()
-            .from(patients)
-            .where(eq(patients.id, booking.patientId))
-            .limit(1);
-          const ownerUserId = owner?.userId ?? booking.patientId;
-
-          await notify({
-            db,
-            env,
-            userId: ownerUserId,
-            type: "lab_ready",
-            title: "Payment confirmed",
-            body: `Your lab booking payment of LKR ${Number(booking.totalPrice).toFixed(2)} was successful.`,
-            data: { bookingId: booking.id, testBookingId: booking.id, paymentRef: order_id },
-          }).catch(() => {});
-
-          await audit(db, {
-            userId: ownerUserId,
-            action: "payment.paid",
-            resource: "test_booking",
-            resourceId: booking.id,
-            details: {
-              amountLkr: booking.totalPrice,
-              gatewayOrderId: order_id,
-              gatewayPaymentId: payhere_payment_id,
-              method,
-            },
-          }).catch(() => {});
-        }
-      } else if (mapped === "failed" || mapped === "cancelled") {
-        const [owner] = await db
-          .select()
-          .from(patients)
-          .where(eq(patients.id, booking.patientId))
-          .limit(1);
-        await audit(db, {
-          userId: owner?.userId ?? booking.patientId,
-          action: "payment.failed",
-          resource: "test_booking",
-          resourceId: booking.id,
-          details: { statusCode: status_code, reason: mapped, gatewayOrderId: order_id },
-        }).catch(() => {});
-      } else if (mapped === "chargeback") {
-        await db
-          .update(testBookings)
-          .set({ paymentStatus: "refunded", updatedAt: new Date().toISOString() })
-          .where(eq(testBookings.id, booking.id));
-        const [owner] = await db
-          .select()
-          .from(patients)
-          .where(eq(patients.id, booking.patientId))
-          .limit(1);
-        await audit(db, {
-          userId: owner?.userId ?? booking.patientId,
-          action: "payment.refunded",
-          resource: "test_booking",
-          resourceId: booking.id,
-          details: { gatewayOrderId: order_id, reason: "chargeback" },
-        }).catch(() => {});
-      }
-      return c.text("ok", 200);
-    }
-    if (order_id.startsWith("INS-")) {
-      const mapped = mapStatusCode(status_code);
-      try {
-        if (mapped === "paid") {
-          await handleInsurancePremiumPaid(
-            env,
-            order_id,
-            payhere_payment_id,
-            method,
-          );
-        } else if (mapped === "failed" || mapped === "cancelled") {
-          await handleInsurancePremiumFailed(
-            env,
-            order_id,
-            String(mapped),
-          );
-        }
-      } catch (err) {
-        logger.error("payments.notify", "insurance dispatch failed", {
-          orderId: order_id,
-          err: String(err),
-        });
-        // Still ack so PayHere stops retrying.
-      }
-      return c.text("ok", 200);
-    }
-    logger.warn("payments.notify", "notify for unknown order", { orderId: order_id });
-    return c.text("ok", 200); // ack so PayHere stops retrying
-  }
-
-  const mapped = mapStatusCode(status_code);
-  const isPaid = mapped === "paid";
-
-  await db
-    .update(appointmentPayments)
-    .set({
-      status: mapped === "paid" ? "paid" : mapped === "chargeback" ? "refunded" : mapped === "cancelled" ? "failed" : "failed",
-      gatewayPaymentId: payhere_payment_id,
-      gatewayStatusCode: status_code,
-      gatewayMethod: method,
-      rawNotify: JSON.stringify(form),
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(appointmentPayments.id, row.id));
-
-  if (isPaid) {
-    await db
-      .update(appointments)
-      .set({
-        paymentStatus: "paid",
-        status: "confirmed",
-      })
-      .where(eq(appointments.id, row.appointmentId));
-
-    // Notify patient.
-    await notify({
-      db,
-      userId: row.userId,
-      type: "appointment",
-      title: "Payment confirmed",
-      body: `Your appointment payment of LKR ${row.amountLkr.toFixed(2)} was successful.`,
-      data: { appointmentId: row.appointmentId, paymentId: row.id },
-    });
-
-    await audit({
-      db,
-      userId: row.userId,
-      action: "payment.paid",
-      entityType: "appointment",
-      entityId: row.appointmentId,
-      details: {
-        amountLkr: row.amountLkr,
-        gatewayOrderId: order_id,
-        gatewayPaymentId: payhere_payment_id,
-        method,
-      },
-    });
-  } else if (mapped === "failed" || mapped === "cancelled") {
-    await audit({
-      db,
-      userId: row.userId,
-      action: "payment.failed",
-      entityType: "appointment",
-      entityId: row.appointmentId,
-      details: {
-        statusCode: status_code,
-        reason: mapped,
-      },
-    });
-  }
-
-  return c.text("ok", 200);
-});
 
 /**
  * GET /payments/:id
@@ -692,16 +399,12 @@ paymentsRouter.get(
   }
 );
 
-// Notify uses injected db (c.get("db")) with D1 fallback, so tests can
-// seed MockD1 while prod still matches cron-handler createDb pattern.
-
 export default paymentsRouter;
 
 // ─────────────────────────────────────────────────────────────────────
-// Generic gateway-agnostic payment routes (added in Block A).
-// Coexists with the appointment-specific /initiate + /notify above.
-// Uses `payments` (hospital-billing) table for any invoice — not
-// appointment-bound. PayHere appointment flow stays in /initiate.
+// Generic payment routes (hospital-billing invoices) — payments.lk only.
+// Uses the `payments` table for any invoice — not appointment-bound.
+// The appointment/lab flow stays in /initiate above.
 // ─────────────────────────────────────────────────────────────────────
 
 paymentsRouter.post("/checkout", authMiddleware, requireRole("patient"), async (c) => {
@@ -786,8 +489,7 @@ paymentsRouter.post("/webhook/paymentslk", async (c) => {
 
   const orderId = event.merchantOrderId;
   try {
-    // INS- orders dispatch to the insurance activation flow (same as the
-    // old PayHere /notify did for INS-*).
+    // INS- orders dispatch to the insurance activation flow.
     if (orderId.startsWith("INS-")) {
       if (event.statusCode === 2) {
         await handleInsurancePremiumPaid(env as any, orderId, event.paymentId, "paymentslk");
@@ -844,7 +546,7 @@ paymentsRouter.post("/webhook/paymentslk", async (c) => {
           });
         }
       } else if (orderId.startsWith("TB-")) {
-        // Lab bookings: flip test_bookings pending→paid (same as /notify).
+        // Lab bookings: flip test_bookings pending→paid.
         const [booking] = await db
           .select()
           .from(testBookings)

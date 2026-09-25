@@ -1,32 +1,24 @@
 // @ts-nocheck
 //
-// Lab Task 2 — online payments for test bookings (RED→GREEN).
+// Online payments for test bookings (payments.lk).
 // Covers:
-//   POST /payments/initiate {testBookingId} → {orderId:TB-...,checkoutUrl,hash,...}
-//   POST /payments/notify TB- → test_bookings.pending→paid + paymentRef
+//   POST /payments/initiate {testBookingId} → {orderId:TB-...,checkoutUrl,...}
+//   POST /payments/webhook/paymentslk TB- → test_bookings.pending→paid + paymentRef
 //   GET /payments/:id booking lookup (by bookingId or TB- orderId)
 //   POST /diagnostic-tests/book card/online → pending + bookingId
 //   PATCH /diagnostic-tests/bookings/:id/cancel paid→refunded + ledger audit
 //   Mobile book-test keeps cash + card/online with pending polling
-//   PayHere helpers reused, Stripe PayHere-only documented
 //
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Hono } from "hono";
-import { sign } from "hono/jwt";
-import { buildTestApp, postJson, getJson, patchJson } from "./_testApp";
+import { createHmac } from "node:crypto";
+import { buildTestApp, postJson, getJson, patchJson, makeMockRawDb } from "./_testApp";
 import { MockD1 } from "./_mockDb";
 import diagnosticTestsRouter from "../src/routes/diagnostic-tests";
-import paymentsRouter from "../src/routes/payments";
-import {
-  mintOrderId,
-  computeHash,
-  verifyNotify,
-  mapStatusCode,
-  md5Hex,
-} from "../src/lib/payhere";
+import paymentsRouter, { setPaymentsLkFetch, setWebhookRawDb } from "../src/routes/payments";
+import { mintOrderId } from "../src/lib/payments/paymentslk";
 
 function repoRead(rel: string): string {
   const candidates = [
@@ -48,12 +40,21 @@ function repoRead(rel: string): string {
 
 const PATIENT_USER = { id: "patient-001", role: "patient" };
 const TEST_SECRET = "test-secret-do-not-use-in-prod";
-const PAYHERE_ENV = {
-  PAYHERE_MERCHANT_ID: "test-merchant-123",
-  PAYHERE_SECRET: "test-secret-xyz",
-  PAYHERE_SANDBOX: "true",
+const PLK_ENV = {
+  PAYMENTS_LK_SECRET_KEY: "sk_test_abc",
+  PAYMENTS_LK_WEBHOOK_SECRET: "whsec_abc",
   PUBLIC_URL: "https://test.local",
 };
+
+function checkoutResponse(id = "chk_t1", paymentId = "pay_t1") {
+  return new Response(
+    JSON.stringify({ id, url: `https://payments.lk/checkout/${id}`, payment: { id: paymentId } }),
+    { status: 201 }
+  );
+}
+
+beforeEach(() => { setPaymentsLkFetch(undefined); setWebhookRawDb(undefined); });
+afterEach(() => { setPaymentsLkFetch(undefined); setWebhookRawDb(undefined); });
 
 function seedBase(db: MockD1) {
   db.seed("users", [
@@ -138,9 +139,9 @@ function seedBase(db: MockD1) {
 
 async function buildPaymentsApp(db: MockD1, user: any = PATIENT_USER) {
   const app = await buildTestApp(db, user);
-  // Inject PayHere env for initiate/notify (buildTestApp only sets JWT_SECRET).
+  // Inject payments.lk env for initiate/webhook (buildTestApp only sets JWT_SECRET).
   app.use("*", async (c, next) => {
-    for (const [k, v] of Object.entries(PAYHERE_ENV)) {
+    for (const [k, v] of Object.entries(PLK_ENV)) {
       (c.env as any)[k] = v;
     }
     await next();
@@ -150,45 +151,15 @@ async function buildPaymentsApp(db: MockD1, user: any = PATIENT_USER) {
   return app;
 }
 
-async function computeNotifySig(opts: {
-  merchantId: string;
-  orderId: string;
-  amount: string;
-  currency: string;
-  statusCode: string;
-  secret: string;
-}): Promise<string> {
-  const secretUpper = (await md5Hex(opts.secret)).toUpperCase();
-  const payload =
-    `${opts.merchantId}${opts.orderId}${opts.amount}${opts.currency}${opts.statusCode}${secretUpper}`;
-  return (await md5Hex(payload)).toUpperCase();
-}
-
 describe("lab payments", () => {
   it("mints TB- order", () => {
     expect("TB-abc".startsWith("TB-")).toBe(true);
   });
 
-  it("PayHere helpers mint + hash + mapStatusCode", async () => {
+  it("mintOrderId mints HH-prefixed orders", () => {
     const raw = mintOrderId();
-    expect(typeof raw).toBe("string");
-    expect(raw.length).toBeGreaterThan(5);
-    const tb = `TB-${raw}`;
-    expect(tb.startsWith("TB-")).toBe(true);
-    const hash = await computeHash(
-      PAYHERE_ENV.PAYHERE_MERCHANT_ID,
-      tb,
-      1500,
-      "LKR",
-      PAYHERE_ENV.PAYHERE_SECRET
-    );
-    expect(typeof hash).toBe("string");
-    expect(hash).toMatch(/^[A-F0-9]{32}$/);
-    expect(mapStatusCode("2")).toBe("paid");
-    expect(mapStatusCode("0")).toBe("pending");
-    expect(mapStatusCode("-1")).toBe("cancelled");
-    expect(mapStatusCode("-2")).toBe("failed");
-    expect(mapStatusCode("-3")).toBe("chargeback");
+    expect(raw).toMatch(/^HH[0-9a-f]{20}$/);
+    expect(`TB-${raw}`.startsWith("TB-")).toBe(true);
   });
 
   it("book card/online creates pending + returns bookingId for initiate step", async () => {
@@ -246,6 +217,8 @@ describe("lab payments", () => {
   it("initiate accepts testBookingId, mints TB- order, stores paymentRef", async () => {
     const db = new MockD1();
     seedBase(db);
+    const fetchMock = vi.fn().mockResolvedValue(checkoutResponse());
+    setPaymentsLkFetch(fetchMock as any);
     const app = await buildPaymentsApp(db);
 
     const res = await postJson(app, "/payments/initiate", {
@@ -255,11 +228,18 @@ describe("lab payments", () => {
     const body = await res.json();
     expect(body.orderId.startsWith("TB-")).toBe(true);
     expect(body.testBookingId ?? body.bookingId).toBeDefined();
-    expect(body.checkoutUrl).toContain("payhere");
-    expect(body.hash).toMatch(/^[A-F0-9]{32}$/);
-    expect(body.fields).toBeDefined();
-    expect(body.fields.order_id).toBe(body.orderId);
+    expect(body.checkoutUrl).toContain("payments.lk/checkout");
+    expect(body.provider).toBe("paymentslk");
+    expect(body.hash).toBeUndefined();
+    expect(body.fields).toBeUndefined();
     expect(body.amount).toBe(1500);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.payments.lk/v1/checkouts");
+    expect(init.headers["Idempotency-Key"]).toBe(body.orderId);
+    const gwBody = JSON.parse(init.body);
+    expect(gwBody.amountCents).toBe(150000);
+    expect(gwBody.customer.email).toBe("p@test.com");
 
     const rows = (db as any).tables.testBookings?.rows ?? [];
     const updated = rows.find((r: any) => r.id === "booking-pay-001");
@@ -271,6 +251,7 @@ describe("lab payments", () => {
   it("initiate reuses pending paymentRef on retry", async () => {
     const db = new MockD1();
     seedBase(db);
+    setPaymentsLkFetch(vi.fn().mockImplementation(() => checkoutResponse()) as any);
     const app = await buildPaymentsApp(db);
     const first = await (
       await postJson(app, "/payments/initiate", { testBookingId: "booking-pay-001" })
@@ -302,9 +283,12 @@ describe("lab payments", () => {
     expect(res403.status).toBe(403);
   });
 
-  it("notify TB- flips pending→paid + keeps paymentRef", async () => {
+  it("webhook TB- flips pending→paid + keeps paymentRef", async () => {
     const db = new MockD1();
     seedBase(db);
+    setPaymentsLkFetch(vi.fn().mockResolvedValue(checkoutResponse()) as any);
+    const { handle, state } = makeMockRawDb();
+    setWebhookRawDb(handle as any);
     const app = await buildPaymentsApp(db);
 
     const init = await (
@@ -313,41 +297,46 @@ describe("lab payments", () => {
     const orderId = init.orderId as string;
     expect(orderId.startsWith("TB-")).toBe(true);
 
-    const sig = await computeNotifySig({
-      merchantId: PAYHERE_ENV.PAYHERE_MERCHANT_ID,
-      orderId,
-      amount: "1500.00",
-      currency: "LKR",
-      statusCode: "2",
-      secret: PAYHERE_ENV.PAYHERE_SECRET,
+    const event = JSON.stringify({
+      id: "evt_tb1",
+      object: "event",
+      type: "payment.succeeded",
+      mode: "test",
+      created: new Date().toISOString(),
+      data: { id: "pay_t1", status: "succeeded", amountCents: 150000, reference: orderId },
     });
+    const ts = Math.floor(Date.now() / 1000);
+    const sig = createHmac("sha256", PLK_ENV.PAYMENTS_LK_WEBHOOK_SECRET).update(`${ts}.${event}`).digest("hex");
 
-    const form = new URLSearchParams({
-      merchant_id: PAYHERE_ENV.PAYHERE_MERCHANT_ID,
-      order_id: orderId,
-      payhere_amount: "1500.00",
-      payhere_currency: "LKR",
-      status_code: "2",
-      md5sig: sig,
-      payment_id: "PH-123",
-      method: "VISA",
-    });
-    const notifyRes = await app.request("/payments/notify", {
+    const webhookRes = await app.request("/payments/webhook/paymentslk", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
+      headers: { "Content-Type": "application/json", "Payments-Signature": `t=${ts},v1=${sig}` },
+      body: event,
     });
-    expect(notifyRes.status).toBe(200);
+    expect(webhookRes.status).toBe(200);
+    expect(state.inserts.length).toBe(1);
 
     const rows = (db as any).tables.testBookings?.rows ?? [];
     const updated = rows.find((r: any) => r.id === "booking-pay-001");
     expect(updated.paymentStatus).toBe("paid");
+    expect(updated.status).toBe("confirmed");
     expect(updated.paymentRef).toBe(orderId);
+
+    // Replay of the same event is idempotent.
+    const replay = await app.request("/payments/webhook/paymentslk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Payments-Signature": `t=${ts},v1=${sig}` },
+      body: event,
+    });
+    const replayBody = await replay.json();
+    expect(replayBody).toEqual({ ok: true, idempotent: true });
+    expect(state.inserts.length).toBe(1);
   });
 
   it("GET /payments/:id supports booking lookup by bookingId and orderId", async () => {
     const db = new MockD1();
     seedBase(db);
+    setPaymentsLkFetch(vi.fn().mockResolvedValue(checkoutResponse()) as any);
     const app = await buildPaymentsApp(db);
 
     // Before payment: pending (or pending via stored null ref → still pending status row).
@@ -415,14 +404,14 @@ describe("lab payments", () => {
     expect(refundAudit).toBeDefined();
   });
 
-  it("payments source supports TB- initiate/notify/lookup via PayHere helpers", () => {
+  it("payments source supports TB- initiate/webhook/lookup via payments.lk", () => {
     const src = repoRead("apps/api/src/routes/payments.ts");
     expect(src).toContain("testBookingId");
     expect(src).toContain('startsWith("TB-")');
     expect(src).toContain("paymentRef");
     expect(src).toContain("testBookings");
     expect(src).toContain("mintOrderId");
-    expect(src).toContain("computeHash");
+    expect(src).toContain("paymentsLk.createCheckout");
     // Appointment flow untouched.
     expect(src).toContain("appointmentId");
     expect(src).toContain("appointmentPayments");
@@ -451,10 +440,12 @@ describe("lab payments", () => {
     expect(src).toContain("test-booking-detail");
   });
 
-  it("Stripe: PayHere-only for TB- documented, generic checkout untouched", () => {
+  it("payments source is gateway-neutral: payments.lk webhook + TB- dispatch, no PayHere", () => {
     const src = repoRead("apps/api/src/routes/payments.ts");
-    // Documents why TB- is PayHere-only (Stripe via generic /checkout if needed).
-    expect(src.toLowerCase()).toContain("payhere-only");
+    expect(src).toContain("/webhook/paymentslk");
+    expect(src).toContain("paymentsLk.createCheckout");
+    expect(src.toLowerCase()).not.toContain("payhere");
+    expect(src).not.toContain("/notify");
     expect(src).toContain("/checkout");
   });
 });
