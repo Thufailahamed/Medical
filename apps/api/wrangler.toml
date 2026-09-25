@@ -136,8 +136,8 @@ binding = "AI"
 
 [env.development]
 # Local-dev overrides. Use with `wrangler dev --env development` for a
-# fully-isolated dev environment that uses console gateways, PayHere
-# sandbox, and DEV_MODE=true (JWT-auth bypass). For most local work,
+# fully-isolated dev environment that uses console gateways, payments.lk
+# sandbox keys, and DEV_MODE=true (JWT-auth bypass). For most local work,
 # just `wrangler dev` is fine — apps/api/.dev.vars auto-overrides.
 ENVIRONMENT = "development"
 DEV_MODE = "true"
