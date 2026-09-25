@@ -258,8 +258,8 @@ app.route("/vitals", vitalsRouter);
 app.route("/notes", notesRouter);
 app.route("/doses", dosesRouter);
 app.route("/audit", auditRouter);
-// Phase 5: PayHere payment flow. /payments/initiate + /payments/notify
-// + /payments/:appointmentId. Notify is public; others require auth.
+// payments.lk payment flow. /payments/initiate + /payments/webhook/paymentslk
+// + /payments/:appointmentId. The webhook is public; others require auth.
 app.route("/payments", paymentsRouter);
 // Round 2 P0: TOTP MFA for doctors (HIPAA compliance floor).
 // Mobile posts the mfaToken + TOTP to /mfa/challenge to mint a session.

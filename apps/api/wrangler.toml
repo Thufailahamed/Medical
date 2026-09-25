@@ -63,9 +63,9 @@ SMS_SENDER_ID = "HealthHub"
 #   "console"    -> log to stdout (dev default; email body still has the code in dev mode)
 EMAIL_PROVIDER = "resend"
 EMAIL_FROM = "no-reply@records.healthhub.app"
-# Phase 5: PayHere payments. PAYHERE_MERCHANT_ID + PAYHERE_SECRET are set
-# via wrangler secret. Sandbox mode uses https://sandbox.payhere.lk.
-PAYHERE_SANDBOX = "false"
+# Payments.lk gateway. PAYMENTS_LK_SECRET_KEY + PAYMENTS_LK_WEBHOOK_SECRET
+# are set via `wrangler secret put`. Sandbox vs live is decided by the key
+# prefix (sk_test_ / sk_live_) — no separate sandbox URL.
 # Admin passkey relying-party id. In-memory store accepts `localhost`
 # fallback but prod passkeys register against the real admin subdomain.
 WEBAUTHN_RP_ID = "admin.healthhub.app"
@@ -142,7 +142,6 @@ binding = "AI"
 ENVIRONMENT = "development"
 DEV_MODE = "true"
 EMAIL_PROVIDER = "console"
-PAYHERE_SANDBOX = "true"
 SMS_SENDER_ID = "SMSlenzDEMO"
 
 # Cron triggers (UTC clock - wrangler runs in UTC).

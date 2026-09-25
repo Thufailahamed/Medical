@@ -50,7 +50,7 @@ bun run typecheck      # All packages (mobile has pre-existing LucideIcon type e
 
 ## Key Block A additions (Aug 2026)
 
-- Stripe adapter + generic `/payments/checkout` + webhook + refund + `/me` routes (`apps/api/src/lib/payments/`)
+- payments.lk adapter + generic `/payments/checkout` + webhook + refund + `/me` routes (`apps/api/src/lib/payments/`)
 - Twilio + Dialog-lk SMS providers alongside existing SMSLenz (`apps/api/src/lib/sms.ts`)
 - Per-user SMS opt-out (`notification_opt_outs` table, migration 0073)
 - Webhook idempotency helper (`payment_webhook_events` table, migration 0072)
@@ -66,7 +66,7 @@ bun run typecheck      # All packages (mobile has pre-existing LucideIcon type e
 
 ## Migrations
 
-Migrations live in `apps/api/migrations/` (number 0001–0075).
+Migrations live in `apps/api/migrations/` (number 0001–0083).
 
 Apply locally:
 ```bash

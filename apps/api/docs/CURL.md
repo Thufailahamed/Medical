@@ -1,10 +1,10 @@
 # API CURL Examples
 
-Last updated: 2026-08-30
+Last updated: 2026-09-25
 
 Run from repo root with API on `localhost:8787`. Replace `$TOKEN` with a Bearer token obtained via `/auth/login`.
 
-## PayHere appointment checkout (existing)
+## payments.lk appointment checkout
 
 ```bash
 curl -X POST http://localhost:8787/payments/initiate \
@@ -13,16 +13,16 @@ curl -X POST http://localhost:8787/payments/initiate \
   -d '{"appointmentId":"appt_1"}'
 ```
 
-## Generic Stripe checkout (Block A — R5)
+## payments.lk invoice checkout
 
 ```bash
 curl -X POST http://localhost:8787/payments/checkout \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"invoiceId":"inv_1","method":"stripe","returnUrl":"http://localhost:3000/return"}'
+  -d '{"invoiceId":"inv_1","returnUrl":"http://localhost:3000/return"}'
 ```
 
-## Stripe webhook (simulate)
+## payments.lk webhook (simulate)
 
 Generate a signature in Node:
 
@@ -30,8 +30,11 @@ Generate a signature in Node:
 const ts = Math.floor(Date.now() / 1000);
 const payload = JSON.stringify({
   id: "evt_1",
-  type: "checkout.session.completed",
-  data: { object: { id: "cs_1", amount_total: 5000, currency: "usd" } },
+  object: "event",
+  type: "payment.succeeded",
+  mode: "test",
+  created: new Date().toISOString(),
+  data: { id: "pay_1", status: "succeeded", amountCents: 350000, reference: "HH123" },
 });
 const sig = require("crypto")
   .createHmac("sha256", "whsec_x")
@@ -43,10 +46,10 @@ console.log(`t=${ts},v1=${sig}`);
 Then:
 
 ```bash
-curl -X POST http://localhost:8787/payments/webhook/stripe \
+curl -X POST http://localhost:8787/payments/webhook/paymentslk \
   -H "Content-Type: application/json" \
-  -H "Stripe-Signature: t=$TS,v1=$SIG" \
-  -d '{"id":"evt_1","type":"checkout.session.completed","data":{"object":{"id":"cs_1","amount_total":5000,"currency":"usd"}}}'
+  -H "Payments-Signature: t=$TS,v1=$SIG" \
+  -d '{"id":"evt_1","object":"event","type":"payment.succeeded","mode":"test","created":"2026-09-25T00:00:00.000Z","data":{"id":"pay_1","status":"succeeded","amountCents":350000,"reference":"HH123"}}'
 ```
 
 Expected: `{"ok":true}` first call, `{"ok":true,"idempotent":true}` on replay.
