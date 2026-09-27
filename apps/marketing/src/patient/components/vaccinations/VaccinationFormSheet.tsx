@@ -86,16 +86,16 @@ export function VaccinationFormSheet({
     <Sheet open={open} onClose={onClose} ariaLabel="Record vaccination">
       <div className="flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100 shadow-2xs">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs" aria-hidden>
               <Syringe size={20} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="t-card-title text-text">
                 Record Vaccination
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-text-soft mt-0.5">
                 Add an administered immunization to your clinical profile.
               </p>
             </div>
@@ -105,7 +105,7 @@ export function VaccinationFormSheet({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -114,13 +114,13 @@ export function VaccinationFormSheet({
         <form onSubmit={submit} className="flex flex-col gap-5">
           {/* Vaccine Name */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <Syringe size={13} className="text-sky-600" />
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft flex items-center gap-1.5">
+              <Syringe size={13} className="text-brand" aria-hidden />
               Vaccine Name
             </label>
             <input
               type="text"
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
               value={vaccineName}
               onChange={(e) => setVaccineName(e.target.value)}
               placeholder="e.g. COVID-19 Booster, Hepatitis B, MMR..."
@@ -137,8 +137,8 @@ export function VaccinationFormSheet({
                   className={cn(
                     "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer",
                     vaccineName === v
-                      ? "bg-sky-600 text-white font-bold shadow-2xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-ink text-white font-bold shadow-2xs"
+                      : "bg-surface-2 text-text-soft hover:text-text",
                   )}
                 >
                   {v}
@@ -149,12 +149,12 @@ export function VaccinationFormSheet({
 
           {/* Dose (optional) */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft">
               Dose / Stage (Optional)
             </label>
             <input
               type="text"
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
               value={dose}
               onChange={(e) => setDose(e.target.value)}
               placeholder="e.g. Dose 1, Booster, Annual..."
@@ -169,8 +169,8 @@ export function VaccinationFormSheet({
                   className={cn(
                     "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer",
                     dose === d
-                      ? "bg-sky-600 text-white font-bold shadow-2xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-ink text-white font-bold shadow-2xs"
+                      : "bg-surface-2 text-text-soft hover:text-text",
                   )}
                 >
                   {d}
@@ -181,13 +181,13 @@ export function VaccinationFormSheet({
 
           {/* Date Administered */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <Calendar size={13} className="text-sky-600" />
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft flex items-center gap-1.5">
+              <Calendar size={13} className="text-brand" aria-hidden />
               Date Administered
             </label>
             <input
               type="date"
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
               value={administeredAt}
               onChange={(e) => setAdministeredAt(e.target.value)}
               required
@@ -196,13 +196,13 @@ export function VaccinationFormSheet({
 
           {/* Provider / Clinic (optional) */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <Building2 size={13} className="text-sky-600" />
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft flex items-center gap-1.5">
+              <Building2 size={13} className="text-brand" aria-hidden />
               Administering Clinic / Provider (Optional)
             </label>
             <input
               type="text"
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
               value={provider}
               onChange={(e) => setProvider(e.target.value)}
               placeholder="e.g. Asiri Central Hospital, MOH Clinic..."
@@ -211,12 +211,12 @@ export function VaccinationFormSheet({
 
           {/* Clinical Notes / Batch (optional) */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <FileText size={13} className="text-sky-600" />
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft flex items-center gap-1.5">
+              <FileText size={13} className="text-brand" aria-hidden />
               Notes / Lot &amp; Batch Number (Optional)
             </label>
             <textarea
-              className="w-full p-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input h-auto py-3 text-xs sm:text-sm"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -225,38 +225,35 @@ export function VaccinationFormSheet({
           </div>
 
           {err && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-              <AlertCircle size={15} className="text-rose-600 shrink-0" />
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0" aria-hidden />
               <span>{err}</span>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="pt-btn pt-btn-ghost h-10 px-4 text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary h-10 px-6 text-xs disabled:opacity-50"
             >
               {busy ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Saving Record…</span>
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                  Saving Record…
                 </>
               ) : (
                 <>
-                  <Check size={14} />
-                  <span>Save Immunisation</span>
+                  <Check size={14} aria-hidden />
+                  Save Immunisation
                 </>
               )}
             </button>

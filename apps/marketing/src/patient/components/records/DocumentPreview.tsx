@@ -95,7 +95,7 @@ export function DocumentPreview({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-600 underline"
+                  className="text-sm text-brand underline"
                 >
                   Open securely
                 </a>

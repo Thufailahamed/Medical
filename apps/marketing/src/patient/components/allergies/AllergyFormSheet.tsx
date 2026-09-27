@@ -25,25 +25,25 @@ const SEVERITIES: Array<{
     value: "mild",
     label: "Mild",
     desc: "Localized rash, mild itching, sneezing",
-    color: "border-sky-200 hover:border-sky-300 text-sky-800",
+    color: "border-brand/30 hover:border-brand text-brand",
   },
   {
     value: "moderate",
     label: "Moderate",
     desc: "Hives, swelling, GI distress",
-    color: "border-amber-200 hover:border-amber-300 text-amber-800",
+    color: "border-warn/30 hover:border-warn text-warn",
   },
   {
     value: "severe",
     label: "Severe",
     desc: "Wheezing, throat tightness, dizziness",
-    color: "border-orange-200 hover:border-orange-300 text-orange-800",
+    color: "border-warn/40 hover:border-warn text-warn",
   },
   {
     value: "critical",
     label: "Critical (Anaphylactic)",
     desc: "Airway obstruction, shock, life-threatening",
-    color: "border-rose-300 hover:border-rose-400 text-rose-800",
+    color: "border-danger/40 hover:border-danger text-danger",
   },
 ];
 
@@ -119,16 +119,16 @@ export function AllergyFormSheet({
     <Sheet open={open} onClose={onClose} ariaLabel="Add allergy">
       <div className="flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-100 shadow-2xs">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-danger-soft text-danger shrink-0 shadow-2xs" aria-hidden>
               <ShieldAlert size={20} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="t-card-title text-text">
                 Add Known Allergy
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-text-soft mt-0.5">
                 Flag drug, food, or contact reactions to protect your clinical care.
               </p>
             </div>
@@ -138,7 +138,7 @@ export function AllergyFormSheet({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -147,13 +147,13 @@ export function AllergyFormSheet({
         <form onSubmit={submit} className="flex flex-col gap-5">
           {/* Substance / Allergen Name */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <ShieldAlert size={13} className="text-rose-600" />
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft flex items-center gap-1.5">
+              <ShieldAlert size={13} className="text-danger" aria-hidden />
               Allergen / Substance Name
             </label>
             <input
               type="text"
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
               value={substance}
               onChange={(e) => setSubstance(e.target.value)}
               placeholder="e.g. Penicillin, Peanuts, Latex..."
@@ -170,8 +170,8 @@ export function AllergyFormSheet({
                   className={cn(
                     "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer",
                     substance === a
-                      ? "bg-rose-600 text-white font-bold shadow-2xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-danger text-white font-bold shadow-2xs"
+                      : "bg-surface-2 text-text-soft hover:text-text",
                   )}
                 >
                   {a}
@@ -182,8 +182,8 @@ export function AllergyFormSheet({
 
           {/* Severity Picker */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <AlertTriangle size={13} className="text-amber-600" />
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft flex items-center gap-1.5">
+              <AlertTriangle size={13} className="text-warn" aria-hidden />
               Severity Level
             </label>
 
@@ -196,21 +196,21 @@ export function AllergyFormSheet({
                     type="button"
                     onClick={() => setSeverity(s.value)}
                     className={cn(
-                      "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-0.5",
+                      "p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col gap-0.5",
                       isSelected
-                        ? "bg-rose-50/50 border-rose-400 ring-2 ring-rose-500/20 shadow-2xs"
-                        : "bg-slate-50 border-slate-200 hover:bg-slate-100/70",
+                        ? "bg-danger-soft/40 border-danger shadow-card"
+                        : "bg-surface-2 border-border hover:border-border-strong",
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900">
+                      <span className="text-xs font-bold text-text">
                         {s.label}
                       </span>
                       {isSelected ? (
-                        <Check size={14} className="text-rose-600" />
+                        <Check size={14} className="text-danger" aria-hidden />
                       ) : null}
                     </div>
-                    <span className="text-[10.5px] text-slate-500 line-clamp-1">
+                    <span className="text-[10.5px] text-text-soft line-clamp-1">
                       {s.desc}
                     </span>
                   </button>
@@ -221,12 +221,12 @@ export function AllergyFormSheet({
 
           {/* Reaction */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft">
               Reaction (Optional)
             </label>
             <input
               type="text"
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
               value={reaction}
               onChange={(e) => setReaction(e.target.value)}
               placeholder="e.g. Anaphylaxis, hives, swelling..."
@@ -241,8 +241,8 @@ export function AllergyFormSheet({
                   className={cn(
                     "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer",
                     reaction === r
-                      ? "bg-slate-800 text-white font-bold shadow-2xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-ink text-white font-bold shadow-2xs"
+                      : "bg-surface-2 text-text-soft hover:text-text",
                   )}
                 >
                   {r}
@@ -253,12 +253,12 @@ export function AllergyFormSheet({
 
           {/* Notes */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <FileText size={13} className="text-slate-400" />
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft flex items-center gap-1.5">
+              <FileText size={13} className="text-text-muted" aria-hidden />
               Clinical Notes / Trigger History (Optional)
             </label>
             <textarea
-              className="w-full p-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+              className="pt-input h-auto py-3 text-xs sm:text-sm"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -267,38 +267,35 @@ export function AllergyFormSheet({
           </div>
 
           {err && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-              <AlertCircle size={15} className="text-rose-600 shrink-0" />
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0" aria-hidden />
               <span>{err}</span>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="pt-btn pt-btn-ghost h-10 px-4 text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, #E11D48 0%, #BE123C 100%)",
-              }}
+              className="pt-btn h-10 px-6 text-xs bg-danger text-white hover:brightness-110 disabled:opacity-50"
             >
               {busy ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Saving Allergen…</span>
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                  Saving Allergen…
                 </>
               ) : (
                 <>
-                  <ShieldAlert size={14} />
-                  <span>Save Known Allergy</span>
+                  <ShieldAlert size={14} aria-hidden />
+                  Save Known Allergy
                 </>
               )}
             </button>

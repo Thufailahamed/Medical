@@ -12,7 +12,6 @@ import {
 
 import { Sheet } from "@/patient/components/primitives/Sheet";
 import type { NoteRow } from "@/patient/types/patient";
-import { cn } from "@/portal/lib/utils";
 
 const TEMPLATES = [
   {
@@ -96,16 +95,16 @@ export function NoteFormSheet({
     <Sheet open={open} onClose={onClose} ariaLabel={initial ? "Edit note" : "New note"}>
       <div className="flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100 shadow-2xs">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs" aria-hidden>
               <FileEdit size={20} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="t-card-title text-text">
                 {initial ? "Edit Personal Note" : "New Health Note"}
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-text-soft mt-0.5">
                 Private health memos, questions for your doctor, or daily journals.
               </p>
             </div>
@@ -115,7 +114,7 @@ export function NoteFormSheet({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -124,7 +123,7 @@ export function NoteFormSheet({
         {/* Quick Templates (only when creating new) */}
         {!initial && (
           <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
               Quick Templates
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -145,12 +144,12 @@ export function NoteFormSheet({
         <form onSubmit={submit} className="flex flex-col gap-4">
           {/* Title */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft">
               Title (Optional)
             </label>
             <input
               type="text"
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Questions for Dr. Dev"
@@ -159,11 +158,11 @@ export function NoteFormSheet({
 
           {/* Body */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="text-xs font-bold uppercase tracking-wider text-text-soft">
               Note Content
             </label>
             <textarea
-              className="w-full p-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all leading-relaxed"
+              className="pt-input h-auto py-3.5 text-xs sm:text-sm leading-relaxed"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={7}
@@ -173,52 +172,49 @@ export function NoteFormSheet({
           </div>
 
           {/* Pin Checkbox */}
-          <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100/70 transition-colors">
+          <label className="flex items-center gap-2.5 p-3 rounded-lg bg-surface-2 border border-border cursor-pointer transition-colors">
             <input
               type="checkbox"
               checked={pinned}
               onChange={(e) => setPinned(e.target.checked)}
-              className="h-4 w-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
+              className="h-4 w-4 rounded border-border text-brand focus:ring-brand cursor-pointer"
             />
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-              <Pin size={13} className={pinned ? "text-amber-500 fill-amber-500" : "text-slate-400"} />
+            <div className="flex items-center gap-1.5 text-xs font-bold text-text">
+              <Pin size={13} className={pinned ? "text-warn fill-warn" : "text-text-muted"} aria-hidden />
               <span>Pin to top of notes dashboard</span>
             </div>
           </label>
 
           {err && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-              <AlertCircle size={14} className="text-rose-600 shrink-0" />
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+              <AlertCircle size={14} className="shrink-0" aria-hidden />
               <span>{err}</span>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="pt-btn pt-btn-ghost h-10 px-4 text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary h-10 px-6 text-xs disabled:opacity-50"
             >
               {busy ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Saving Note…</span>
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                  Saving Note…
                 </>
               ) : (
                 <>
-                  <Check size={14} />
-                  <span>Save Note</span>
+                  <Check size={14} aria-hidden />
+                  Save Note
                 </>
               )}
             </button>
