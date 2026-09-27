@@ -64,7 +64,7 @@ export function ChatMessageRow({
     return (
       <div className="group/row flex w-full justify-end">
         <div className="flex max-w-[88%] flex-col items-end sm:max-w-[80%]">
-          <div className="rounded-2xl rounded-tr-md bg-brand px-4 py-2.5 text-[14px] leading-relaxed text-white shadow-[var(--shadow-brand)]">
+          <div className="rounded-xl rounded-tr-md bg-brand px-4 py-2.5 text-[14px] leading-relaxed text-white shadow-[var(--shadow-brand)]">
             {editing ? (
               <EditUserBubble
                 value={message.body}
@@ -115,14 +115,13 @@ export function ChatMessageRow({
     <div className="group/row flex w-full items-start gap-3">
       <span
         aria-hidden
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white shadow-[var(--shadow-brand)]"
-        style={{ background: "linear-gradient(135deg, #0284c7, #38bdf8)" }}
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink text-white shadow-[var(--shadow-brand)]"
       >
         <Sparkles size={13} />
       </span>
 
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl border border-border bg-white p-3.5 text-[14px] leading-relaxed text-text shadow-[var(--shadow-card)]">
+        <div className="rounded-xl border border-border bg-surface p-3.5 text-[14px] leading-relaxed text-text shadow-[var(--shadow-card)]">
           <FormattedMessage content={message.body} />
         </div>
 

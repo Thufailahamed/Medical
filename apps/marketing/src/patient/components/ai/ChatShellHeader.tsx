@@ -80,8 +80,7 @@ export function ChatShellHeader({
 
         <span
           aria-hidden
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white"
-          style={{ background: "linear-gradient(135deg, #0284c7, #38bdf8)" }}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink text-white"
         >
           <Sparkles size={14} />
         </span>

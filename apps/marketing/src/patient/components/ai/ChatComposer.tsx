@@ -47,7 +47,7 @@ export function ChatComposer({
   return (
     <footer className="shrink-0 px-3 pb-4 pt-2 sm:px-4">
       <div className="mx-auto w-full max-w-3xl">
-        <div className="flex flex-col rounded-3xl border border-border bg-white shadow-[var(--shadow-card)] transition-all focus-within:border-brand/40 focus-within:shadow-[var(--shadow-md)]">
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-[var(--shadow-card)] transition-all focus-within:border-brand/40 focus-within:shadow-[var(--shadow-md)]">
           <textarea
             ref={textareaRef}
             value={value}

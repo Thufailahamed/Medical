@@ -49,8 +49,7 @@ export function ChatEmptyState({
       <div className="w-full max-w-2xl text-center">
         <span
           aria-hidden
-          className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-2xl text-white shadow-[var(--shadow-brand)]"
-          style={{ background: "linear-gradient(135deg, #0284c7, #38bdf8)" }}
+          className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-xl bg-ink text-white shadow-[var(--shadow-brand)]"
         >
           <Sparkles size={22} />
         </span>
@@ -72,7 +71,7 @@ export function ChatEmptyState({
                 type="button"
                 disabled={disabled}
                 onClick={() => onPrompt(prompt.query)}
-                className="group flex items-center gap-3 rounded-2xl border border-border bg-white px-3.5 py-3 text-left transition-all hover:border-brand/40 hover:bg-brand-soft/30 hover:shadow-[var(--shadow-card)] disabled:opacity-60"
+                className="group flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-left transition-all hover:border-brand/40 hover:bg-brand-soft/30 hover:shadow-[var(--shadow-card)] disabled:opacity-60"
               >
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand transition-colors group-hover:bg-brand group-hover:text-white">
                   <Icon size={15} aria-hidden />

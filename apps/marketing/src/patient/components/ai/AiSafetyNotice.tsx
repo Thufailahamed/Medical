@@ -8,7 +8,7 @@ export function AiSafetyNotice({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-2xl border border-brand/15 bg-gradient-to-r from-brand-soft/50 to-surface p-4",
+        "flex items-start gap-3 rounded-xl border border-brand/15 bg-brand-soft/40 p-4",
         className,
       )}
     >
