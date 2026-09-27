@@ -220,7 +220,7 @@
 /* Dark insight card glow */
 [data-app="patient"] .patient-ink-glow {
   background:
-    radial-gradient(ellipse 80% 60% at 85% 50%, rgba(77, 93, 251, 0.45), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 85% 50%, rgba(59, 111, 245, 0.45), transparent 60%),
     radial-gradient(ellipse 50% 40% at 70% 80%, rgba(99, 140, 255, 0.25), transparent 55%),
     var(--color-ink-card);
 }

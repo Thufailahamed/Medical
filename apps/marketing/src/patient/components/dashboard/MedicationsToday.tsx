@@ -104,12 +104,12 @@ export function MedicationsToday({ className }: { className?: string }) {
                           "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all border",
                           on
                             ? "bg-blue-600 text-white border-blue-600 shadow-xs shadow-blue-500/20"
-                            : "bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200/80",
+                            : "bg-surface-2 hover:bg-surface-2 text-text-soft hover:text-text border-border",
                         )}
                       >
                         <span>{m.name}</span>
                         {m.dosage ? (
-                          <span className={cn("text-[11px]", on ? "text-blue-100" : "text-slate-400")}>
+                          <span className={cn("text-[11px]", on ? "text-blue-100" : "text-text-muted")}>
                             {m.dosage}
                           </span>
                         ) : null}
@@ -117,7 +117,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                           <span
                             className={cn(
                               "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-bold",
-                              on ? "bg-white text-blue-700" : "bg-amber-100 text-amber-800",
+                              on ? "bg-surface text-blue-700" : "bg-amber-100 text-amber-800",
                             )}
                           >
                             {pendingCount}
@@ -131,7 +131,7 @@ export function MedicationsToday({ className }: { className?: string }) {
 
               {/* ── Active Medicine Hero Spotlight ────────────────────────── */}
               {selected ? (
-                <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50/70 via-white to-blue-50/30 p-4 md:p-5 shadow-xs">
+                <div className="rounded-2xl border border-border bg-gradient-to-br from-surface-2/70 via-white to-blue-50/30 p-4 md:p-5 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-5">
                     {/* Adherence Radial Gauge */}
                     <div className="shrink-0 flex items-center justify-center sm:justify-start">
@@ -149,7 +149,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="text-base md:text-lg font-bold text-slate-900 tracking-tight">
+                          <h3 className="text-base md:text-lg font-bold text-text tracking-tight">
                             {selected.name}
                           </h3>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -159,14 +159,14 @@ export function MedicationsToday({ className }: { className?: string }) {
                               </span>
                             ) : null}
                             {selected.timing ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-slate-200/70 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-2xs">
-                                <Utensils size={10} className="text-slate-400" />
+                              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[11px] font-medium text-text-soft shadow-2xs">
+                                <Utensils size={10} className="text-text-muted" />
                                 {selected.timing}
                               </span>
                             ) : null}
                             {selected.frequency ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-slate-200/70 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-2xs">
-                                <Clock size={10} className="text-slate-400" />
+                              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[11px] font-medium text-text-soft shadow-2xs">
+                                <Clock size={10} className="text-text-muted" />
                                 {selected.frequency}
                               </span>
                             ) : null}
@@ -174,7 +174,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                         </div>
 
                         {/* Frequency Tag or PRN badge */}
-                        <span className="shrink-0 rounded-full border border-slate-200/80 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 shadow-2xs">
+                        <span className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-soft shadow-2xs">
                           {totalForMed === 0 ? "As Needed" : "Scheduled"}
                         </span>
                       </div>
@@ -196,7 +196,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                   </div>
 
                   {/* ── Sub Action Buttons / Status Area ─────────────────── */}
-                  <div className="mt-4 pt-3.5 border-t border-slate-200/60">
+                  <div className="mt-4 pt-3.5 border-t border-border">
                     {pending ? (
                       <div className="flex flex-wrap items-center gap-2.5">
                         <button
@@ -234,12 +234,12 @@ export function MedicationsToday({ className }: { className?: string }) {
                               );
                             }
                           }}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.98] px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface hover:bg-surface-2 active:scale-[0.98] px-3.5 py-2.5 text-xs font-semibold text-text shadow-2xs transition-all cursor-pointer disabled:opacity-50"
                         >
-                          <SkipForward size={14} className="text-slate-400" aria-hidden />
+                          <SkipForward size={14} className="text-text-muted" aria-hidden />
                           Skip
                         </button>
-                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-slate-500 font-medium">
+                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-text-soft font-medium">
                           <Clock size={12} className="text-amber-500" />
                           Pending dose scheduled
                         </span>
@@ -260,7 +260,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                       <div className="flex items-center justify-between gap-3 rounded-xl bg-blue-50/60 border border-blue-100 px-3.5 py-2.5">
                         <div className="flex items-center gap-2">
                           <Info size={14} className="text-blue-600 shrink-0" />
-                          <span className="text-xs text-slate-700 font-medium">
+                          <span className="text-xs text-text font-medium">
                             No pending doses scheduled for today · Take as needed
                           </span>
                         </div>
@@ -279,7 +279,7 @@ export function MedicationsToday({ className }: { className?: string }) {
               {/* ── Compact All-Medications Dose List ─────────────────────── */}
               {meds.length > 0 ? (
                 <div className="mt-1 flex flex-col gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted px-1">
                     Medication Schedule
                   </p>
                   <ul className="grid gap-2" data-testid="med-dose-list">
@@ -295,7 +295,7 @@ export function MedicationsToday({ className }: { className?: string }) {
 
                       const tone =
                         total === 0
-                          ? "text-slate-600 bg-slate-100 border-slate-200/80"
+                          ? "text-text-soft bg-surface-2 border-border"
                           : pendingCount === 0
                             ? "text-emerald-700 bg-emerald-50 border-emerald-200/80"
                             : "text-amber-700 bg-amber-50 border-amber-200/80";
@@ -308,7 +308,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                             "flex items-center justify-between gap-3 rounded-xl border p-3 text-xs transition-all cursor-pointer",
                             isRowSelected
                               ? "border-blue-300/90 bg-blue-50/30 shadow-2xs ring-1 ring-blue-400/20"
-                              : "border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs",
+                              : "border-border bg-surface hover:border-border-strong hover:bg-surface-2/60 shadow-2xs",
                           )}
                         >
                           <div className="flex items-center gap-3 min-w-0">
@@ -317,23 +317,23 @@ export function MedicationsToday({ className }: { className?: string }) {
                                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
                                 isRowSelected
                                   ? "bg-blue-100/70 border-blue-200 text-blue-700"
-                                  : "bg-slate-100 border-slate-200/60 text-slate-500",
+                                  : "bg-surface-2 border-border text-text-soft",
                               )}
                             >
                               <PillIcon size={14} />
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="truncate font-bold text-slate-900">
+                                <span className="truncate font-bold text-text">
                                   {m.name}
                                 </span>
                                 {m.dosage ? (
-                                  <span className="shrink-0 text-slate-500 font-normal">
+                                  <span className="shrink-0 text-text-soft font-normal">
                                     {m.dosage}
                                   </span>
                                 ) : null}
                               </div>
-                              <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                              <p className="mt-0.5 truncate text-[11px] text-text-soft">
                                 {m.timing ?? "Standard timing"}
                                 {m.frequency ? ` · ${m.frequency}` : ""}
                               </p>

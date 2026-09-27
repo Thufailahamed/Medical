@@ -119,7 +119,7 @@ export function UpcomingAppointment({ className }: { className?: string }) {
                   </Link>
                 ) : next.mode === "video" && (next.bucket === "today" || next.isLive) ? (
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-500"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-surface-2 px-3.5 py-2 text-xs font-bold text-text-soft"
                     data-testid="join-waiting-chip"
                   >
                     <Video size={13} />

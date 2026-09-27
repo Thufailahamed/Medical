@@ -104,9 +104,9 @@ export function VitalsTrend({ className }: { className?: string }) {
       </div>
 
       {/* ── Segmented Vital Selection Tabs & Action ──────────────────────── */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-4">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <div
-          className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/80"
+          className="inline-flex items-center gap-1 rounded-xl bg-surface-2/90 p-1 border border-border"
           role="tablist"
           aria-label="Vital type"
         >
@@ -122,8 +122,8 @@ export function VitalsTrend({ className }: { className?: string }) {
                 className={cn(
                   "rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
                   isSelected
-                    ? "bg-white text-blue-600 shadow-xs border border-slate-200/90"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
+                    ? "bg-surface text-blue-600 shadow-xs border border-border"
+                    : "text-text-soft hover:text-text hover:bg-surface-3/60",
                 )}
               >
                 {VITAL_REGISTRY[v].shortLabel}
@@ -144,22 +144,22 @@ export function VitalsTrend({ className }: { className?: string }) {
       {/* ── Chart Header Details ────────────────────────────────────────── */}
       <div className="mt-5 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
             {meta.label}
           </p>
-          <p className="mt-0.5 text-sm font-bold text-slate-900">
+          <p className="mt-0.5 text-sm font-bold text-text">
             This week&apos;s readings &amp; trends
           </p>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 shadow-2xs">
-          <Clock size={12} className="text-slate-400" aria-hidden />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-text-soft shadow-2xs">
+          <Clock size={12} className="text-text-muted" aria-hidden />
           7 days
         </span>
       </div>
 
       {/* ── Chart Area or High-End Empty State ───────────────────────────── */}
       {isLoading ? (
-        <div className="mt-4 h-[210px] animate-pulse rounded-2xl border border-slate-200/60 bg-slate-100" />
+        <div className="mt-4 h-[210px] animate-pulse rounded-2xl border border-border bg-surface-2" />
       ) : hasPoints ? (
         <TrendArea
           points={points}
@@ -168,17 +168,17 @@ export function VitalsTrend({ className }: { className?: string }) {
           className="mt-2"
         />
       ) : (
-        <div className="mt-3 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-gradient-to-b from-slate-50/50 via-white to-slate-50/30 px-6 py-10 text-center shadow-2xs">
+        <div className="mt-3 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-gradient-to-b from-surface-2/50 via-white to-surface-2/30 px-6 py-10 text-center shadow-2xs">
           <div
             className="mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-blue-100/80 bg-blue-50 text-blue-600 shadow-2xs"
             aria-hidden
           >
             <Activity size={20} />
           </div>
-          <p className="text-sm font-bold text-slate-900">
+          <p className="text-sm font-bold text-text">
             No {meta.label.toLowerCase()} yet
           </p>
-          <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
+          <p className="mt-1 max-w-sm text-xs leading-relaxed text-text-soft">
             Log a reading to start your {meta.shortLabel.toLowerCase()} trend for this week.
           </p>
           <Link
@@ -192,35 +192,35 @@ export function VitalsTrend({ className }: { className?: string }) {
       )}
 
       {/* ── Bottom Summary Stat Cards ───────────────────────────────────── */}
-      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-200/80 pt-4">
-        <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50/80 to-white p-3.5 shadow-2xs">
-          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
+        <div className="rounded-xl border border-border bg-gradient-to-br from-surface-2/80 to-white p-3.5 shadow-2xs">
+          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-text-muted">
             <BarChart2 size={12} className="text-blue-600" />
             <span>Average</span>
           </div>
           <p className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-black tracking-tight text-slate-900">
+            <span className="text-2xl font-black tracking-tight text-text">
               {hasPoints && stats?.avg != null
                 ? stats.avg.toFixed(meta.decimals)
                 : "—"}
             </span>
-            <span className="text-xs font-semibold text-slate-500">{meta.unit}</span>
+            <span className="text-xs font-semibold text-text-soft">{meta.unit}</span>
           </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">Weekly mean</p>
+          <p className="mt-0.5 text-[11px] text-text-muted">Weekly mean</p>
         </div>
 
-        <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50/80 to-white p-3.5 shadow-2xs">
-          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="rounded-xl border border-border bg-gradient-to-br from-surface-2/80 to-white p-3.5 shadow-2xs">
+          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-text-muted">
             <TrendingUp size={12} className="text-emerald-600" />
             <span>Max</span>
           </div>
           <p className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-black tracking-tight text-slate-900">
+            <span className="text-2xl font-black tracking-tight text-text">
               {peak != null ? Number(peak).toFixed(meta.decimals) : "—"}
             </span>
-            <span className="text-xs font-semibold text-slate-500">{meta.unit}</span>
+            <span className="text-xs font-semibold text-text-soft">{meta.unit}</span>
           </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">Weekly peak</p>
+          <p className="mt-0.5 text-[11px] text-text-muted">Weekly peak</p>
         </div>
       </div>
     </Card>
@@ -266,7 +266,7 @@ function OverviewCell({
         "group flex flex-col rounded-2xl border p-3.5 transition-all focus-visible:outline-2 focus-visible:outline-blue-600",
         isSelected
           ? "border-blue-400/90 bg-blue-50/25 ring-2 ring-blue-500/15 shadow-xs"
-          : "border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/40 hover:-translate-y-0.5 shadow-2xs",
+          : "border-border bg-surface hover:border-border-strong hover:bg-surface-2/40 hover:-translate-y-0.5 shadow-2xs",
       )}
     >
       <div className="flex items-center justify-between gap-1.5">
@@ -279,7 +279,7 @@ function OverviewCell({
           >
             <Icon size={14} aria-hidden />
           </span>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-text-soft">
             {label}
           </span>
         </div>
@@ -289,10 +289,10 @@ function OverviewCell({
       </div>
 
       <div className="mt-2.5 flex items-baseline gap-1">
-        <span className="text-xl font-black tracking-tight text-slate-900">
+        <span className="text-xl font-black tracking-tight text-text">
           {last != null ? Number(last).toFixed(decimals) : "—"}
         </span>
-        <span className="text-xs font-semibold text-slate-400">{unit}</span>
+        <span className="text-xs font-semibold text-text-muted">{unit}</span>
         {delta !== 0 ? (
           <span
             className={cn(
@@ -317,7 +317,7 @@ function OverviewCell({
             height={26}
             viewBox="0 0 120 26"
             aria-hidden="true"
-            className="text-slate-200"
+            className="text-border-strong"
           >
             <polyline
               points="0,13 120,13"

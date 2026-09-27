@@ -41,13 +41,13 @@ export function InsuranceCoverage({ className }: { className?: string }) {
       ? "text-amber-700 bg-amber-50 border-amber-200/70"
       : days != null
         ? "text-sky-700 bg-sky-50 border-sky-200/70"
-        : "text-slate-600 bg-slate-100 border-slate-200/70";
+        : "text-text-soft bg-surface-2 border-border";
 
   return (
     <section
       aria-labelledby="ins-heading"
       className={cn(
-        "anim-rise anim-rise-delay-2 flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 md:p-6 shadow-card transition-all",
+        "anim-rise anim-rise-delay-2 flex h-full flex-col justify-between rounded-2xl bg-surface p-5 md:p-6 shadow-card transition-all",
         className,
       )}
     >
@@ -62,10 +62,10 @@ export function InsuranceCoverage({ className }: { className?: string }) {
               <Shield size={16} />
             </div>
             <div>
-              <h2 id="ins-heading" className="text-sm font-bold text-slate-900 tracking-tight">
+              <h2 id="ins-heading" className="text-sm font-bold text-text tracking-tight">
                 Insurance
               </h2>
-              <p className="text-[11px] font-medium text-slate-400">
+              <p className="text-[11px] font-medium text-text-muted">
                 Coverage &amp; active policy
               </p>
             </div>
@@ -82,21 +82,21 @@ export function InsuranceCoverage({ className }: { className?: string }) {
         {/* ── Content States ─────────────────────────────────────────── */}
         {loading ? (
           <div data-testid="insurance-skeleton" className="space-y-2.5 my-2">
-            <div className="h-16 rounded-xl bg-slate-50 animate-pulse border border-slate-100" />
-            <div className="h-10 rounded-xl bg-slate-50 animate-pulse border border-slate-100" />
+            <div className="h-16 rounded-xl patient-shimmer rounded-xl" />
+            <div className="h-10 rounded-xl patient-shimmer rounded-xl" />
           </div>
         ) : !policy ? (
-          <div className="my-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-gradient-to-b from-slate-50/60 to-white p-5 text-center shadow-2xs">
+          <div className="my-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-gradient-to-b from-surface-2/60 to-white p-5 text-center shadow-2xs">
             <div
               className="mb-2.5 grid h-10 w-10 place-items-center rounded-xl border border-blue-100/80 bg-blue-50 text-blue-600 shadow-2xs"
               aria-hidden
             >
               <CreditCard size={18} />
             </div>
-            <p className="text-xs font-bold text-slate-900">
+            <p className="text-xs font-bold text-text">
               No insurance policy linked
             </p>
-            <p className="mt-0.5 max-w-xs text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-0.5 max-w-xs text-[11px] leading-relaxed text-text-soft">
               Connect your health policy to track claims, check benefits, and access cashless hospital admissions.
             </p>
             <Link
@@ -108,17 +108,17 @@ export function InsuranceCoverage({ className }: { className?: string }) {
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50/70 via-white to-blue-50/20 p-4 shadow-2xs">
+          <div className="rounded-2xl border border-border bg-gradient-to-br from-surface-2/70 via-white to-blue-50/20 p-4 shadow-2xs">
             {/* Policy Title & Status */}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
                   Health Plan
                 </span>
-                <p className="truncate text-sm font-bold text-slate-900">
+                <p className="truncate text-sm font-bold text-text">
                   {policy.provider}
                 </p>
-                <p className="mt-0.5 font-mono text-xs font-semibold text-slate-600">
+                <p className="mt-0.5 font-mono text-xs font-semibold text-text-soft">
                   {policy.number}
                 </p>
               </div>
@@ -134,7 +134,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
             </div>
 
             {/* Renewal & Claims Strip */}
-            <div className="mt-3.5 pt-3 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-2">
+            <div className="mt-3.5 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2">
               {days != null ? (
                 <span
                   data-testid="renewal-chip"
@@ -148,7 +148,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
                 </span>
               ) : null}
 
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-soft">
                 <FileCheck2 size={13} className="text-blue-600" />
                 <span>
                   {claimsOpen === 0
@@ -162,7 +162,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
       </div>
 
       {/* ── Footer ─────────────────────────────────────────────────── */}
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck size={13} className="text-emerald-600" />
           <span>Cashless hospitalization eligible</span>

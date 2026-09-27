@@ -3,15 +3,12 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import {
-  Activity,
-  AlertTriangle,
   ArrowUpRight,
-  Calendar,
+  Activity,
   Droplets,
   HeartPulse,
-  QrCode,
-  Scale,
   Sparkles,
+  Scale,
 } from "lucide-react";
 
 import {
@@ -22,6 +19,12 @@ import {
   useWellness,
 } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
+import {
+  PageHero,
+  HeroStatusPill,
+  heroPrimaryAction,
+  heroSecondaryAction,
+} from "@/patient/components/primitives/PageHero";
 
 function greetingForHour(hour: number): string {
   if (hour < 5) return "Good night";
@@ -54,8 +57,8 @@ function tipFromWellness(score: number | null | undefined): string {
 }
 
 /**
- * Personalized dashboard hero — oceanic gradient banner with live metrics,
- * wellness cockpit, and quick clinical shortcuts matching doctor portal.
+ * Personalized dashboard hero — VYRO ink card with live metrics,
+ * wellness stat block, and quick clinical shortcuts.
  */
 export function DashboardHero({ className }: { className?: string }) {
   const profile = useProfile();
@@ -74,192 +77,58 @@ export function DashboardHero({ className }: { className?: string }) {
   const level = wellness.data?.level?.label ?? null;
 
   return (
-    <header
-      className={cn(
-        "dashboard-hero relative rounded-card p-6 md:p-7 text-white overflow-hidden",
-        className,
-      )}
-      style={{
-        background:
-          "linear-gradient(135deg, #0B4A6F 0%, #0369A1 45%, #0E7490 75%, #14919B 100%)",
-        boxShadow:
-          "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-      }}
-    >
-      {/* ── Decorative ambient glowing orbs ──────────────────────────────── */}
-      <div
-        className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-10 hidden"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 50%)",
-        }}
-        aria-hidden
-      />
-
-      {/* ── Clinical cross watermark texture ─────────────────────────────── */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-        }}
-        aria-hidden
-      />
-
-      <div className="relative z-10">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between md:gap-6">
-          {/* ── Left Column: Greeting, Headline, Guidance & Vitals Pills ─── */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-lg leading-none">{greetingEmoji(hour)}</span>
-              <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-white/70">
-                {getTodayFormatted()}
-              </span>
-            </div>
-
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-              {greetingForHour(hour)}, {firstName}
-            </h1>
-
-            <p className="text-sm text-white/80 mt-1.5 max-w-lg leading-relaxed">
-              {tipFromWellness(score)}
-            </p>
-
-            {/* Quick Metrics & Vitals Status Pills */}
-            <div className="flex items-center gap-2.5 mt-4 flex-wrap">
-              {blood ? (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white shadow-sm border border-white/20"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.12)",
-                    borderColor: "rgba(255, 255, 255, 0.18)",
-                    backdropFilter: "blur(6px)",
-                  }}
-                >
-                  <Droplets size={13} className="text-rose-300" aria-hidden />
-                  <span>Blood: {blood}</span>
-                </div>
-              ) : null}
-
-              {bmi != null ? (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white shadow-sm border border-white/20"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.12)",
-                    borderColor: "rgba(255, 255, 255, 0.18)",
-                    backdropFilter: "blur(6px)",
-                  }}
-                >
-                  <Scale size={13} className="text-sky-300" aria-hidden />
-                  <span>BMI {Number(bmi).toFixed(1)}</span>
-                  {bmiCat ? (
-                    <span className="text-white/70 font-normal">· {bmiCat}</span>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {alertCount > 0 ? (
-                <Link
-                  href="/patient/vitals"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-amber-200 shadow-sm border transition-transform hover:scale-[1.03]"
-                  style={{
-                    background: "rgba(245, 158, 11, 0.2)",
-                    borderColor: "rgba(251, 191, 36, 0.35)",
-                    backdropFilter: "blur(6px)",
-                  }}
-                >
-                  <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                  <span>
-                    {alertCount} vital alert{alertCount === 1 ? "" : "s"}
-                  </span>
-                </Link>
-              ) : (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-emerald-200 shadow-sm border"
-                  style={{
-                    background: "rgba(16, 185, 129, 0.18)",
-                    borderColor: "rgba(52, 211, 153, 0.3)",
-                    backdropFilter: "blur(6px)",
-                  }}
-                >
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
-                  <span>Vitals steady</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Right Column: Wellness Score Card & Action Shortcuts ──────── */}
-          <div className="flex flex-col items-stretch md:items-end gap-3 shrink-0 w-full md:w-auto">
-            {/* Wellness Badge Link */}
+    <div className={cn("flex flex-col gap-4", className)}>
+      <PageHero
+        icon={<span className="text-base leading-none">{greetingEmoji(hour)}</span>}
+        kicker={getTodayFormatted()}
+        title={`${greetingForHour(hour)}, ${firstName}`}
+        description={tipFromWellness(score)}
+        status={
+          alertCount > 0 ? (
             <Link
-              href="/patient/health"
-              className="group flex min-w-[13.5rem] items-center gap-4 rounded-md px-4 py-3.5 transition-all duration-200 hover:scale-[1.02] border focus-visible:outline-2 focus-visible:outline-white"
-              style={{
-                background: "rgba(255, 255, 255, 0.12)",
-                borderColor: "rgba(255, 255, 255, 0.2)",
-                backdropFilter: "blur(10px)",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-              }}
+              href="/patient/vitals"
+              className={cn(
+                heroSecondaryAction,
+                "!border-amber-400/30 !bg-amber-400/15 !text-amber-200",
+              )}
             >
-              <div
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-md text-white shadow-md transition-transform group-hover:scale-105"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
-                  boxShadow: "0 4px 14px rgba(14, 165, 233, 0.4)",
-                }}
-              >
-                <HeartPulse size={22} strokeWidth={2.3} />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-sky-200">
-                  <Sparkles size={11} className="text-sky-300" />
-                  <span>Wellness</span>
-                </div>
-                <div className="mt-0.5 flex items-baseline gap-1.5">
-                  <span className="text-3xl font-extrabold tracking-tight text-white">
-                    {score != null ? score : "—"}
-                  </span>
-                  {score != null && (
-                    <span className="text-xs font-semibold text-white/70">
-                      pts
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11.5px] font-medium text-sky-100/80 block mt-0.5">
-                  {level ?? "Building health rhythm"}
-                </span>
-              </div>
-
-              <ArrowUpRight
-                size={16}
-                className="shrink-0 text-white/60 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white"
-              />
+              <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+              <span>
+                {alertCount} vital alert{alertCount === 1 ? "" : "s"}
+              </span>
             </Link>
-
-            {/* Insurance mini-line */}
+          ) : (
+            <HeroStatusPill label="Vitals steady" tone="success" />
+          )
+        }
+        actions={
+          <Link
+            href="/patient/health"
+            className={cn(heroPrimaryAction, "focus-visible:outline-2 focus-visible:outline-white")}
+          >
+            <Activity size={14} aria-hidden />
+            Log vitals
+          </Link>
+        }
+        footer={
+          <>
+            {blood ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Droplets size={11} className="text-rose-300" aria-hidden />
+                Blood {blood}
+              </span>
+            ) : null}
+            {bmi != null ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Scale size={11} aria-hidden />
+                BMI {Number(bmi).toFixed(1)}
+                {bmiCat ? ` · ${bmiCat}` : ""}
+              </span>
+            ) : null}
             {insurance.data?.policy ? (
               <Link
                 href="/patient/insurance"
-                className="text-[11.5px] font-semibold text-white/85 hover:text-white"
+                className="font-semibold text-white/80 hover:text-white"
                 data-testid="hero-insurance-line"
               >
                 {insurance.data.policy.provider}
@@ -269,18 +138,42 @@ export function DashboardHero({ className }: { className?: string }) {
                 →
               </Link>
             ) : null}
+          </>
+        }
+      />
 
-            {/* Quick Action CTA */}
-            <Link
-              href="/patient/health"
-              className="inline-flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-sm font-bold text-[#0369A1] transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-white shadow-md"
-            >
-              <Activity size={14} aria-hidden />
-              Log vitals
-            </Link>
-          </div>
+      {/* Wellness stat card — VYRO metrics block on paper */}
+      <Link
+        href="/patient/health"
+        className="patient-card group flex items-center gap-4 p-4"
+      >
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-brand text-white shadow-brand transition-transform group-hover:scale-105">
+          <HeartPulse size={22} strokeWidth={2.3} />
         </div>
-      </div>
-    </header>
+
+        <div className="min-w-0 flex-1">
+          <div className="pt-kicker flex items-center gap-1">
+            <Sparkles size={11} aria-hidden />
+            <span>Wellness</span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="pt-metric text-3xl text-text">
+              {score != null ? score : "—"}
+            </span>
+            {score != null && (
+              <span className="t-micro">pts</span>
+            )}
+          </div>
+          <span className="t-micro mt-0.5 block">
+            {level ?? "Building health rhythm"}
+          </span>
+        </div>
+
+        <ArrowUpRight
+          size={16}
+          className="shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-brand"
+        />
+      </Link>
+    </div>
   );
 }

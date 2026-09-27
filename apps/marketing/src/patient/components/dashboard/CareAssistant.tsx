@@ -28,10 +28,8 @@ export function CareAssistant({ className }: { className?: string }) {
       }}
     >
       <div className="relative z-10">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
-            Care insights
-          </p>
+        <div className="relative flex flex-wrap items-center gap-2">
+          <p className="pt-hero-kicker">Care insights</p>
           {unread > 0 ? (
             <span
               className="inline-flex items-center gap-1 bg-brand px-2.5 py-1 text-[11px] font-semibold text-white"
@@ -42,7 +40,7 @@ export function CareAssistant({ className }: { className?: string }) {
             </span>
           ) : (
             <span
-              className="inline-flex items-center gap-1 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/85"
+              className="inline-flex items-center gap-1 border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/85"
               style={{ borderRadius: "var(--radius-pill)" }}
             >
               <Sparkles size={12} aria-hidden />
@@ -54,7 +52,7 @@ export function CareAssistant({ className }: { className?: string }) {
           Questions about your plan?
         </h3>
         <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/65">
-          Ask about medicines, vitals, or what&apos;s next — with your record
+          Ask about medicines, vitals, or what's next — with your record
           attached.
         </p>
       </div>
@@ -63,7 +61,7 @@ export function CareAssistant({ className }: { className?: string }) {
         <Link
           href="/patient/ai/chat"
           data-testid="ask-ai-cta"
-          className="inline-flex items-center gap-1.5 bg-brand px-4 py-2.5 text-sm font-bold text-white transition-transform hover:scale-[1.02]"
+          className="inline-flex items-center gap-1.5 bg-white px-4 py-2.5 text-sm font-bold text-ink-card transition-all hover:translate-y-[-1px]"
           style={{
             borderRadius: "var(--radius-pill)",
             boxShadow: "var(--shadow-brand)",
@@ -74,7 +72,7 @@ export function CareAssistant({ className }: { className?: string }) {
         </Link>
         <Link
           href="/patient/messages"
-          className="inline-flex items-center gap-1.5 border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/20"
+          className="inline-flex items-center gap-1.5 border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10"
           style={{ borderRadius: "var(--radius-pill)" }}
         >
           <MessageSquare size={15} aria-hidden />

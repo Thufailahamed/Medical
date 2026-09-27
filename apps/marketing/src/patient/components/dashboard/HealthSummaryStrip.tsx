@@ -28,7 +28,7 @@ function Tile({
     badgeTone === "emerald" ? "text-emerald-600 bg-emerald-50" :
     badgeTone === "rose" ? "text-rose-600 bg-rose-50" :
     badgeTone === "amber" ? "text-amber-700 bg-amber-50" :
-    "text-text-muted bg-slate-50";
+    "text-text-muted bg-surface-2";
   return (
     <Link
       href={href}

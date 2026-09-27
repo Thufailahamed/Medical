@@ -57,7 +57,7 @@ export function NotificationsPreview({ className }: { className?: string }) {
     <section
       aria-labelledby="notif-heading"
       className={cn(
-        "anim-rise anim-rise-delay-1 flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 md:p-6 shadow-card transition-all",
+        "anim-rise anim-rise-delay-1 flex h-full flex-col justify-between rounded-2xl bg-surface p-5 md:p-6 shadow-card transition-all",
         className,
       )}
     >
@@ -71,10 +71,10 @@ export function NotificationsPreview({ className }: { className?: string }) {
               <Bell size={16} />
             </div>
             <div>
-              <h2 id="notif-heading" className="text-sm font-bold text-slate-900 tracking-tight">
+              <h2 id="notif-heading" className="text-sm font-bold text-text tracking-tight">
                 Notifications
               </h2>
-              <p className="text-[11px] font-medium text-slate-400">
+              <p className="text-[11px] font-medium text-text-muted">
                 Recent updates &amp; alerts
               </p>
             </div>
@@ -91,11 +91,11 @@ export function NotificationsPreview({ className }: { className?: string }) {
         {loading ? (
           <ul data-testid="notif-skeleton" className="space-y-2.5">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="h-12 rounded-xl bg-slate-50 animate-pulse border border-slate-100" />
+              <li key={i} className="h-12 rounded-xl patient-shimmer rounded-xl" />
             ))}
           </ul>
         ) : items.length === 0 ? (
-          <div className="my-6 flex items-center gap-2.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-xs font-medium text-slate-500">
+          <div className="my-6 flex items-center gap-2.5 rounded-xl border border-dashed border-border bg-surface-2/70 p-4 text-xs font-medium text-text-soft">
             <CheckCircle2 size={16} className="text-emerald-500 shrink-0" aria-hidden />
             <span>You&apos;re all caught up. No unread alerts.</span>
           </div>
@@ -106,26 +106,26 @@ export function NotificationsPreview({ className }: { className?: string }) {
                 <Link
                   href={notificationHref(n)}
                   data-testid="notif-row"
-                  className="group flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/40 hover:bg-blue-50/30 hover:border-blue-200/80 px-3.5 py-2.5 transition-all"
+                  className="group flex items-center gap-3 rounded-xl border border-border bg-surface-2/40 hover:bg-blue-50/30 hover:border-blue-200/80 px-3.5 py-2.5 transition-all"
                 >
                   <span
                     className={cn(
                       "h-2 w-2 shrink-0 rounded-full",
-                      SEVERITY[n.type] ?? "bg-slate-400",
+                      SEVERITY[n.type] ?? "bg-text-muted",
                     )}
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs md:text-[13px] font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                    <span className="block truncate text-xs md:text-[13px] font-bold text-text group-hover:text-blue-600 transition-colors">
                       {n.title}
                     </span>
                     {n.body ? (
-                      <span className="block truncate text-[11px] text-slate-500 mt-0.5">
+                      <span className="block truncate text-[11px] text-text-soft mt-0.5">
                         {n.body}
                       </span>
                     ) : null}
                   </span>
-                  <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                  <span className="text-[11px] font-medium text-text-muted shrink-0">
                     {relativeTime(n.createdAt)}
                   </span>
                   {!n.read ? (
@@ -138,8 +138,8 @@ export function NotificationsPreview({ className }: { className?: string }) {
         )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-        <span className="text-[10px] text-slate-400">Activity stream</span>
+      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
+        <span className="text-[10px] text-text-muted">Activity stream</span>
         <Link
           href="/patient/notifications"
           className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
