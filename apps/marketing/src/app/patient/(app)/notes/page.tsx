@@ -8,11 +8,9 @@ import {
   Edit2,
   FileEdit,
   FileText,
-  Lock,
   Pin,
   Plus,
   Search,
-  ShieldCheck,
   Trash2,
   X,
 } from "lucide-react";
@@ -27,6 +25,7 @@ import {
 import type { NoteRow } from "@/patient/types/patient";
 import { formatDate } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 
 const NOTE_TEMPLATES = [
   {
@@ -117,144 +116,44 @@ export default function NotesPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <FileEdit size={12} className="text-sky-300" />
-                Personal Health Journal
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Personal Notes &amp; Observations
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Private health journal to record daily symptom logs, questions for doctor appointments, and medication observations.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              <Link
-                href="/patient/ai/chat"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <Bot size={13} />
-                <span>AI Clinical Assistant</span>
-              </Link>
-
-              <button
-                type="button"
-                onClick={handleCreateNew}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02] cursor-pointer"
-              >
-                <Plus size={14} className="text-sky-700" />
-                <span>+ New Health Note</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
+      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
+      <PageHero
+        icon={<FileEdit size={13} aria-hidden />}
+        kicker="Personal Health Journal"
+        title="Personal Notes & Observations"
+        description="Private health journal to record daily symptom logs, questions for doctor appointments, and medication observations."
+        status={
+          pinnedCount > 0 ? (
+            <HeroStatusPill label={`${pinnedCount} pinned`} tone="brand" />
+          ) : (
+            <HeroStatusPill label={`${rawNotes.length} notes`} tone="paper" />
+          )
+        }
+        actions={
+          <>
+            <Link href="/patient/ai/chat" className={heroSecondaryAction}>
+              <Bot size={13} aria-hidden />
+              AI Clinical Assistant
+            </Link>
             <button
               type="button"
-              onClick={() => setActiveTab("all")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "all"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
+              onClick={handleCreateNew}
+              className={heroPrimaryAction}
             >
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
-                <FileText size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Total Notes
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {rawNotes.length}
-                </p>
-              </div>
+              <Plus size={14} aria-hidden />
+              + New Health Note
             </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("pinned")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "pinned"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Pin size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Pinned Notes
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {pinnedCount}
-                </p>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <Lock size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Privacy Level
-                </p>
-                <p className="text-base font-extrabold text-white">Patient Only</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Storage
-                </p>
-                <p className="text-base font-extrabold text-white">Encrypted EHR</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        footer={
+          <>
+            <span>Total Notes · {rawNotes.length}</span>
+            <span>Pinned Notes · {pinnedCount}</span>
+            <span>Privacy Level · Patient Only</span>
+            <span>Storage · Encrypted EHR</span>
+          </>
+        }
+      />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
