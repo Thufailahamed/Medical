@@ -275,17 +275,10 @@ export default function TestPackageDetailPage({
 
       {/* Hero Package Banner */}
       <div className="relative patient-card p-5 sm:p-7 overflow-hidden">
-        <div
-          className="absolute top-0 left-0 right-0 h-1.5"
-          style={{
-            background: "linear-gradient(90deg, #0284C7 0%, #38BDF8 50%, #10B981 100%)",
-          }}
-        />
-
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-5 min-w-0 flex-1">
             {/* Crisp Thumbnail Container */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-border shadow-md shrink-0 bg-brand-soft">
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-border shadow-md shrink-0 bg-brand-soft">
               <img
                 src={img}
                 alt={pkg.name}
@@ -295,13 +288,13 @@ export default function TestPackageDetailPage({
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider bg-brand-soft text-brand border-border">
-                  <Sparkles size={10} />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-brand-soft text-brand">
+                  <Sparkles size={10} aria-hidden />
                   {pkg.tag}
                 </span>
                 {pct > 0 && (
-                  <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                    <TrendingDown size={10} />
+                  <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
+                    <TrendingDown size={10} aria-hidden />
                     {pct}% OFF
                   </span>
                 )}
@@ -311,15 +304,15 @@ export default function TestPackageDetailPage({
                 </span>
               </div>
 
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-text leading-tight">
+              <h1 className="t-display text-xl sm:text-2xl lg:text-3xl text-text leading-tight">
                 {pkg.name}
               </h1>
 
               {/* Verified rating pill */}
               <div className="flex items-center gap-2 text-xs mt-2">
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70">
-                  <Star size={12} className="fill-amber-500 text-amber-500" />
-                  <span className="font-extrabold text-amber-900 text-xs">4.9</span>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-warn-soft">
+                  <Star size={12} className="fill-warn text-warn" aria-hidden />
+                  <span className="font-extrabold text-warn text-xs">4.9</span>
                 </div>
                 <span className="text-text-muted font-medium text-xs">(184 verified patient reviews)</span>
               </div>
@@ -336,7 +329,7 @@ export default function TestPackageDetailPage({
               All-Inclusive Total
             </span>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-3xl font-black text-text tracking-tight">
+              <span className="pt-metric text-3xl text-text">
                 {formatLkr(pkg.price)}
               </span>
               {pkg.originalPrice > pkg.price && (
@@ -346,7 +339,7 @@ export default function TestPackageDetailPage({
               )}
             </div>
             {pkg.savings > 0 && (
-              <span className="text-xs font-bold text-emerald-600 mt-1 flex items-center gap-1">
+              <span className="text-xs font-bold text-success mt-1 flex items-center gap-1">
                 You save {formatLkr(pkg.savings)} with this package
               </span>
             )}
@@ -362,7 +355,7 @@ export default function TestPackageDetailPage({
         {/* Left Column: Test Inclusions, Preparation & Accreditations */}
         <div className="flex flex-col gap-5 lg:col-span-7">
           {/* Test Inclusions */}
-          <div className="rounded-2xl border-border bg-surface p-5 shadow-card">
+          <div className="rounded-xl border-border bg-surface p-5 shadow-card">
             <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <FlaskConical size={18} className="text-brand" />
@@ -381,7 +374,7 @@ export default function TestPackageDetailPage({
                   key={idx}
                   className="flex items-start gap-2.5 rounded-xl bg-surface-2 p-3 text-xs font-medium text-text border border-border hover:bg-brand-soft/50 hover:border-border-strong transition-colors"
                 >
-                  <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <CheckCircle2 size={15} className="text-success shrink-0 mt-0.5" aria-hidden />
                   <span className="leading-snug">{testName}</span>
                 </li>
               ))}
@@ -389,15 +382,15 @@ export default function TestPackageDetailPage({
           </div>
 
           {/* How to Prepare Card */}
-          <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 p-5 shadow-xs">
-            <div className="flex items-center gap-2 mb-2 text-amber-900">
-              <Clock size={18} className="text-amber-600 shrink-0" />
+          <div className="rounded-xl border border-warn/25 bg-warn-soft p-5 shadow-xs">
+            <div className="flex items-center gap-2 mb-2 text-warn">
+              <Clock size={18} className="shrink-0" aria-hidden />
               <h3 className="text-sm font-bold">Preparation &amp; Fasting Guidelines</h3>
             </div>
-            <p className="text-xs text-amber-800 leading-relaxed">
+            <p className="text-xs text-warn leading-relaxed">
               {pkg.preparation}
             </p>
-            <div className="mt-3 flex items-center gap-4 text-[11px] font-semibold text-amber-700 pt-2 border-t border-amber-200/60">
+            <div className="mt-3 flex items-center gap-4 text-[11px] font-semibold text-warn pt-2 border-t border-warn/25">
               <span>Fasting required: {pkg.fastingHours} hours</span>
               <span>·</span>
               <span>Water allowed freely</span>
@@ -407,13 +400,13 @@ export default function TestPackageDetailPage({
           </div>
 
           {/* Accreditations & Quality Guarantees */}
-          <div className="rounded-2xl border-border bg-surface p-5 shadow-card">
+          <div className="rounded-xl border-border bg-surface p-5 shadow-card">
             <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
               HealthHub Lab Quality Guarantees
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
-                <div className="h-9 w-9 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand flex items-center justify-center shrink-0" aria-hidden>
                   <Clock size={16} />
                 </div>
                 <div>
@@ -424,8 +417,8 @@ export default function TestPackageDetailPage({
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
-                <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 border border-border">
+                <div className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success shrink-0" aria-hidden>
                   <Home size={16} />
                 </div>
                 <div>
@@ -434,8 +427,8 @@ export default function TestPackageDetailPage({
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
-                <div className="h-9 w-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 border border-border">
+                <div className="grid h-9 w-9 place-items-center rounded-md bg-violet-50 text-violet-600 shrink-0" aria-hidden>
                   <Award size={16} />
                 </div>
                 <div>
@@ -449,10 +442,10 @@ export default function TestPackageDetailPage({
 
         {/* Right Column: Home Collection Booking Card */}
         <div className="flex flex-col gap-5 lg:col-span-5">
-          <div className="rounded-3xl border-border bg-surface p-6 shadow-md sticky top-6">
+          <div className="rounded-xl border-border bg-surface p-6 shadow-md sticky top-6">
             {bookingSuccess ? (
               <div className="py-6 flex flex-col items-center text-center gap-3">
-                <div className="h-14 w-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <div className="grid h-14 w-14 place-items-center rounded-full bg-success-soft text-success" aria-hidden>
                   <CheckCircle2 size={32} />
                 </div>
                 <h4 className="text-lg font-bold text-text">
@@ -466,14 +459,14 @@ export default function TestPackageDetailPage({
                 <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full">
                   <Link
                     href="/patient/diagnostic-tests/bookings"
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white text-center bg-ink hover:bg-charcoal/90 transition-colors"
+                    className="pt-btn pt-btn-primary flex-1 h-10 text-xs"
                   >
                     View All Bookings
                   </Link>
                   <button
                     type="button"
                     onClick={() => setBookingSuccess(false)}
-                    className="py-2.5 px-4 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer"
+                    className="pt-btn pt-btn-secondary px-4 h-10 text-xs cursor-pointer"
                   >
                     Book Another Slot
                   </button>
@@ -539,7 +532,7 @@ export default function TestPackageDetailPage({
                       value={addressLine}
                       onChange={(e) => setAddressLine(e.target.value)}
                       placeholder="Street address, City"
-                      className="w-full h-10 pl-9 pr-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
+                      className="pt-input pl-9 text-xs"
                     />
                   </div>
                 </div>
@@ -558,7 +551,7 @@ export default function TestPackageDetailPage({
                       type="tel"
                       value={contactPhone}
                       onChange={(e) => setContactPhone(e.target.value)}
-                      className="w-full h-10 pl-9 pr-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
+                      className="pt-input pl-9 text-xs"
                     />
                   </div>
                 </div>
@@ -573,26 +566,26 @@ export default function TestPackageDetailPage({
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
                     placeholder="Gate code, landmarks, special patient instructions..."
-                    className="w-full p-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+                    className="pt-input h-auto py-3 text-xs resize-none"
                   />
                 </div>
 
                 {bookingError && (
-                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-1.5">
-                    <AlertCircle size={14} className="shrink-0" />
+                  <div className="p-2.5 rounded-lg bg-danger-soft border border-danger/25 text-xs text-danger font-medium flex items-center gap-1.5">
+                    <AlertCircle size={14} className="shrink-0" aria-hidden />
                     <span>{bookingError}</span>
                   </div>
                 )}
 
                 {/* Price Breakdown */}
-                <div className="p-3.5 rounded-2xl bg-surface-2 border border-border flex flex-col gap-1.5 text-xs">
+                <div className="p-3.5 rounded-xl bg-surface-2 border border-border flex flex-col gap-1.5 text-xs">
                   <div className="flex items-center justify-between text-text-soft">
                     <span>Package Fee</span>
                     <span>{formatLkr(pkg.price)}</span>
                   </div>
                   <div className="flex items-center justify-between text-text-soft">
                     <span>Home Sample Collection</span>
-                    <span className="font-bold text-emerald-600">FREE</span>
+                    <span className="font-bold text-success">FREE</span>
                   </div>
                   <div className="pt-2 border-t border-border flex items-center justify-between font-black text-text text-sm">
                     <span>Total Amount</span>
@@ -605,20 +598,17 @@ export default function TestPackageDetailPage({
                   type="button"
                   onClick={handleBook}
                   disabled={book.isPending}
-                  className="w-full py-3 rounded-2xl text-xs font-black text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  style={{
-                    background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                  }}
+                  className="pt-btn pt-btn-primary h-11 w-full text-xs"
                 >
                   {book.isPending ? (
                     <>
-                      <Loader2 size={15} className="animate-spin" />
-                      <span>Confirming Reservation...</span>
+                      <Loader2 size={15} className="animate-spin" aria-hidden />
+                      Confirming Reservation...
                     </>
                   ) : (
                     <>
-                      <Calendar size={15} />
-                      <span>Confirm Home Visit — {formatLkr(pkg.price)}</span>
+                      <Calendar size={15} aria-hidden />
+                      Confirm Home Visit — {formatLkr(pkg.price)}
                     </>
                   )}
                 </button>
