@@ -27,7 +27,7 @@ export function EmptyState({
     >
       {icon ? (
         <div
-          className="mb-2 grid h-12 w-12 place-items-center rounded-lg bg-ink text-sky-300"
+          className="mb-2 grid h-12 w-12 place-items-center rounded-lg bg-ink text-brand"
           aria-hidden
         >
           {icon}
