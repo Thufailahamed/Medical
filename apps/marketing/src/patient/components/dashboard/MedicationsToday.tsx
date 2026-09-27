@@ -103,13 +103,13 @@ export function MedicationsToday({ className }: { className?: string }) {
                         className={cn(
                           "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all border",
                           on
-                            ? "bg-blue-600 text-white border-blue-600 shadow-xs shadow-blue-500/20"
+                            ? "bg-ink text-white border-ink shadow-xs"
                             : "bg-surface-2 hover:bg-surface-2 text-text-soft hover:text-text border-border",
                         )}
                       >
                         <span>{m.name}</span>
                         {m.dosage ? (
-                          <span className={cn("text-[11px]", on ? "text-blue-100" : "text-text-muted")}>
+                          <span className={cn("text-[11px]", on ? "text-white/70" : "text-text-muted")}>
                             {m.dosage}
                           </span>
                         ) : null}
@@ -117,7 +117,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                           <span
                             className={cn(
                               "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-bold",
-                              on ? "bg-surface text-blue-700" : "bg-amber-100 text-amber-800",
+                              on ? "bg-white/20 text-white" : "bg-warn-soft text-warn",
                             )}
                           >
                             {pendingCount}
@@ -131,7 +131,7 @@ export function MedicationsToday({ className }: { className?: string }) {
 
               {/* ── Active Medicine Hero Spotlight ────────────────────────── */}
               {selected ? (
-                <div className="rounded-2xl border border-border bg-gradient-to-br from-surface-2/70 via-white to-blue-50/30 p-4 md:p-5 shadow-xs">
+                <div className="rounded-xl border border-border bg-surface p-4 md:p-5 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-5">
                     {/* Adherence Radial Gauge */}
                     <div className="shrink-0 flex items-center justify-center sm:justify-start">
@@ -154,7 +154,7 @@ export function MedicationsToday({ className }: { className?: string }) {
                           </h3>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                             {selected.dosage ? (
-                              <span className="inline-flex items-center rounded-md border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                              <span className="inline-flex items-center rounded-md bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand">
                                 {selected.dosage}
                               </span>
                             ) : null}

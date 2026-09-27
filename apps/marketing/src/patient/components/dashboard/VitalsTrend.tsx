@@ -32,7 +32,7 @@ const OVERVIEW = [
     label: "Heart rate",
     unit: "bpm",
     icon: HeartPulse,
-    accent: "bg-rose-50 text-rose-600 border-rose-100/80",
+    accent: "bg-danger-soft text-danger",
     href: "/patient/vitals?type=heart_rate",
   },
   {
@@ -40,7 +40,7 @@ const OVERVIEW = [
     label: "Blood pressure",
     unit: "mmHg",
     icon: Droplets,
-    accent: "bg-indigo-50 text-indigo-600 border-indigo-100/80",
+    accent: "bg-violet-50 text-violet-600",
     href: "/patient/vitals?type=blood_pressure",
   },
   {
@@ -48,7 +48,7 @@ const OVERVIEW = [
     label: "SpO₂",
     unit: "%",
     icon: Wind,
-    accent: "bg-sky-50 text-sky-600 border-sky-100/80",
+    accent: "bg-brand-soft text-brand",
     href: "/patient/vitals?type=spo2",
   },
   {
@@ -56,7 +56,7 @@ const OVERVIEW = [
     label: "Weight",
     unit: "kg",
     icon: Scale,
-    accent: "bg-emerald-50 text-emerald-600 border-emerald-100/80",
+    accent: "bg-success-soft text-success",
     href: "/patient/vitals?type=weight",
   },
 ];
@@ -106,7 +106,7 @@ export function VitalsTrend({ className }: { className?: string }) {
       {/* ── Segmented Vital Selection Tabs & Action ──────────────────────── */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <div
-          className="inline-flex items-center gap-1 rounded-xl bg-surface-2/90 p-1 border border-border"
+          className="inline-flex items-center gap-1 rounded-full bg-ink/5 p-1"
           role="tablist"
           aria-label="Vital type"
         >
@@ -120,10 +120,10 @@ export function VitalsTrend({ className }: { className?: string }) {
                 aria-selected={isSelected}
                 onClick={() => setType(v)}
                 className={cn(
-                  "rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer",
                   isSelected
-                    ? "bg-surface text-blue-600 shadow-xs border border-border"
-                    : "text-text-soft hover:text-text hover:bg-surface-3/60",
+                    ? "bg-ink text-white shadow-sm"
+                    : "text-text-soft hover:text-text",
                 )}
               >
                 {VITAL_REGISTRY[v].shortLabel}
@@ -134,7 +134,7 @@ export function VitalsTrend({ className }: { className?: string }) {
 
         <Link
           href={`/patient/vitals?type=${type}`}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] px-3.5 py-2 text-xs font-semibold text-white shadow-xs shadow-blue-600/25 border border-blue-600 transition-all cursor-pointer"
+          className="pt-btn pt-btn-primary h-9 px-3.5 text-xs"
         >
           <Plus size={14} strokeWidth={2.5} aria-hidden />
           Log reading
@@ -159,7 +159,7 @@ export function VitalsTrend({ className }: { className?: string }) {
 
       {/* ── Chart Area or High-End Empty State ───────────────────────────── */}
       {isLoading ? (
-        <div className="mt-4 h-[210px] animate-pulse rounded-2xl border border-border bg-surface-2" />
+        <div className="mt-4 h-[210px] animate-pulse rounded-xl border border-border bg-surface-2" />
       ) : hasPoints ? (
         <TrendArea
           points={points}
@@ -168,9 +168,9 @@ export function VitalsTrend({ className }: { className?: string }) {
           className="mt-2"
         />
       ) : (
-        <div className="mt-3 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-gradient-to-b from-surface-2/50 via-white to-surface-2/30 px-6 py-10 text-center shadow-2xs">
+        <div className="mt-3 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface-2/60 px-6 py-10 text-center shadow-2xs">
           <div
-            className="mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-blue-100/80 bg-blue-50 text-blue-600 shadow-2xs"
+            className="mb-3 grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
             aria-hidden
           >
             <Activity size={20} />
@@ -183,7 +183,7 @@ export function VitalsTrend({ className }: { className?: string }) {
           </p>
           <Link
             href={`/patient/vitals?type=${type}`}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] px-4 py-2 text-xs font-semibold text-white shadow-xs shadow-blue-600/20 border border-blue-600 transition-all cursor-pointer"
+            className="pt-btn pt-btn-primary mt-4 h-9 px-4 text-xs"
           >
             <Plus size={14} strokeWidth={2.5} aria-hidden />
             Add first reading
@@ -193,13 +193,13 @@ export function VitalsTrend({ className }: { className?: string }) {
 
       {/* ── Bottom Summary Stat Cards ───────────────────────────────────── */}
       <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
-        <div className="rounded-xl border border-border bg-gradient-to-br from-surface-2/80 to-white p-3.5 shadow-2xs">
+        <div className="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
           <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-text-muted">
-            <BarChart2 size={12} className="text-blue-600" />
+            <BarChart2 size={12} className="text-brand" />
             <span>Average</span>
           </div>
           <p className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-black tracking-tight text-text">
+            <span className="pt-metric text-2xl text-text">
               {hasPoints && stats?.avg != null
                 ? stats.avg.toFixed(meta.decimals)
                 : "—"}
@@ -209,13 +209,13 @@ export function VitalsTrend({ className }: { className?: string }) {
           <p className="mt-0.5 text-[11px] text-text-muted">Weekly mean</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-gradient-to-br from-surface-2/80 to-white p-3.5 shadow-2xs">
+        <div className="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
           <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-text-muted">
-            <TrendingUp size={12} className="text-emerald-600" />
+            <TrendingUp size={12} className="text-success" />
             <span>Max</span>
           </div>
           <p className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-black tracking-tight text-text">
+            <span className="pt-metric text-2xl text-text">
               {peak != null ? Number(peak).toFixed(meta.decimals) : "—"}
             </span>
             <span className="text-xs font-semibold text-text-soft">{meta.unit}</span>
@@ -263,9 +263,9 @@ function OverviewCell({
       }}
       aria-label={`${label} details`}
       className={cn(
-        "group flex flex-col rounded-2xl border p-3.5 transition-all focus-visible:outline-2 focus-visible:outline-blue-600",
+        "group flex flex-col rounded-xl border p-3.5 transition-all focus-visible:outline-2 focus-visible:outline-brand",
         isSelected
-          ? "border-blue-400/90 bg-blue-50/25 ring-2 ring-blue-500/15 shadow-xs"
+          ? "border-brand bg-brand-soft/40 shadow-xs"
           : "border-border bg-surface hover:border-border-strong hover:bg-surface-2/40 hover:-translate-y-0.5 shadow-2xs",
       )}
     >
@@ -273,7 +273,7 @@ function OverviewCell({
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "grid h-7 w-7 place-items-center rounded-lg border",
+              "grid h-7 w-7 place-items-center rounded-md",
               accent,
             )}
           >
@@ -284,22 +284,22 @@ function OverviewCell({
           </span>
         </div>
         {isSelected && (
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+          <span className="pt-dot bg-brand" aria-hidden />
         )}
       </div>
 
       <div className="mt-2.5 flex items-baseline gap-1">
-        <span className="text-xl font-black tracking-tight text-text">
+        <span className="pt-metric text-xl text-text">
           {last != null ? Number(last).toFixed(decimals) : "—"}
         </span>
         <span className="text-xs font-semibold text-text-muted">{unit}</span>
         {delta !== 0 ? (
           <span
             className={cn(
-              "ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full border",
+              "ml-auto text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded",
               delta > 0
-                ? "text-emerald-700 bg-emerald-50 border-emerald-200/60"
-                : "text-rose-700 bg-rose-50 border-rose-200/60",
+                ? "text-success bg-success-soft"
+                : "text-danger bg-danger-soft",
             )}
           >
             {delta > 0 ? "+" : ""}
@@ -308,9 +308,9 @@ function OverviewCell({
         ) : null}
       </div>
 
-      <div className="mt-2 text-blue-600">
+      <div className="mt-2 text-brand">
         {series.length >= 2 ? (
-          <MiniSparkline points={series} width={120} height={26} stroke="#3b82f6" />
+          <MiniSparkline points={series} width={120} height={26} stroke="currentColor" />
         ) : (
           <svg
             width={120}

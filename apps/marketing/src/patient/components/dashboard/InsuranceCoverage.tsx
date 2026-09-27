@@ -38,16 +38,16 @@ export function InsuranceCoverage({ className }: { className?: string }) {
 
   const renewalTone =
     days != null && days <= 30
-      ? "text-amber-700 bg-amber-50 border-amber-200/70"
+      ? "text-warn bg-warn-soft"
       : days != null
-        ? "text-sky-700 bg-sky-50 border-sky-200/70"
-        : "text-text-soft bg-surface-2 border-border";
+        ? "text-brand bg-brand-soft"
+        : "text-text-soft bg-surface-2";
 
   return (
     <section
       aria-labelledby="ins-heading"
       className={cn(
-        "anim-rise anim-rise-delay-2 flex h-full flex-col justify-between rounded-2xl bg-surface p-5 md:p-6 shadow-card transition-all",
+        "anim-rise anim-rise-delay-2 flex h-full flex-col justify-between rounded-xl bg-surface p-5 md:p-6 shadow-card transition-all",
         className,
       )}
     >
@@ -56,7 +56,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
         <header className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-2xs"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
               aria-hidden
             >
               <Shield size={16} />
@@ -72,7 +72,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
           </div>
           <Link
             href="/patient/insurance"
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-brand-soft transition-colors"
           >
             <span>Manage</span>
             <ArrowRight size={12} aria-hidden />
@@ -86,9 +86,9 @@ export function InsuranceCoverage({ className }: { className?: string }) {
             <div className="h-10 rounded-xl patient-shimmer rounded-xl" />
           </div>
         ) : !policy ? (
-          <div className="my-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-gradient-to-b from-surface-2/60 to-white p-5 text-center shadow-2xs">
+          <div className="my-2 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface-2/60 p-5 text-center shadow-2xs">
             <div
-              className="mb-2.5 grid h-10 w-10 place-items-center rounded-xl border border-blue-100/80 bg-blue-50 text-blue-600 shadow-2xs"
+              className="mb-2.5 grid h-10 w-10 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
               aria-hidden
             >
               <CreditCard size={18} />
@@ -101,14 +101,14 @@ export function InsuranceCoverage({ className }: { className?: string }) {
             </p>
             <Link
               href="/patient/insurance"
-              className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] px-3.5 py-2 text-xs font-semibold text-white shadow-xs shadow-blue-600/25 border border-blue-600 transition-all cursor-pointer"
+              className="pt-btn pt-btn-primary mt-3.5 h-9 px-3.5 text-xs"
             >
               <Plus size={13} strokeWidth={2.5} aria-hidden />
-              <span>Link policy</span>
+              Link policy
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border bg-gradient-to-br from-surface-2/70 via-white to-blue-50/20 p-4 shadow-2xs">
+          <div className="rounded-xl border border-border bg-surface p-4 shadow-2xs">
             {/* Policy Title & Status */}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

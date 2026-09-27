@@ -18,12 +18,12 @@ function relativeTime(iso: string): string {
 }
 
 const SEVERITY: Record<string, string> = {
-  info: "bg-sky-500",
-  warn: "bg-amber-500",
-  warning: "bg-amber-500",
-  critical: "bg-rose-500",
-  error: "bg-rose-500",
-  success: "bg-emerald-500",
+  info: "bg-brand",
+  warn: "bg-warn",
+  warning: "bg-warn",
+  critical: "bg-danger",
+  error: "bg-danger",
+  success: "bg-success",
 };
 
 function notificationHref(n: PatientNotification): string {
@@ -57,7 +57,7 @@ export function NotificationsPreview({ className }: { className?: string }) {
     <section
       aria-labelledby="notif-heading"
       className={cn(
-        "anim-rise anim-rise-delay-1 flex h-full flex-col justify-between rounded-2xl bg-surface p-5 md:p-6 shadow-card transition-all",
+        "anim-rise anim-rise-delay-1 flex h-full flex-col justify-between rounded-xl bg-surface p-5 md:p-6 shadow-card transition-all",
         className,
       )}
     >
@@ -65,7 +65,7 @@ export function NotificationsPreview({ className }: { className?: string }) {
         <header className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-2xs"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
               aria-hidden
             >
               <Bell size={16} />

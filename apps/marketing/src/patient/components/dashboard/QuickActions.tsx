@@ -31,7 +31,7 @@ const ACTIONS = [
     href: "/patient/records/new",
     label: "Add record",
     icon: FolderPlus,
-    accent: "bg-sky-50 text-sky-600",
+    accent: "bg-brand-soft text-brand",
   },
   {
     key: "book",

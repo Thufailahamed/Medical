@@ -35,7 +35,7 @@ function Tile({
       aria-label={ariaLabel}
       className="group flex items-center gap-3 rounded-card bg-surface px-4 py-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand min-h-[88px]"
     >
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-sky-300 transition-transform group-hover:scale-105" aria-hidden>
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-brand-soft transition-transform group-hover:scale-105" aria-hidden>
         {icon}
       </span>
       <span className="min-w-0 flex-1">

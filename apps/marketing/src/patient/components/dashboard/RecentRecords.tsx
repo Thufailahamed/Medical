@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useRecords } from "@/patient/hooks";
 import { formatDayLabel, formatRecordType } from "@/patient/lib/format";
@@ -28,42 +29,42 @@ function getRecordVisuals(type: string | null | undefined) {
   if (key.includes("lab") || key.includes("test")) {
     return {
       icon: FlaskConical,
-      iconContainer: "bg-sky-50 text-sky-600 border-sky-200/70",
-      badge: "bg-sky-50 text-sky-700 border-sky-200/70",
+      iconContainer: "bg-brand-soft text-brand",
+      badge: "bg-brand-soft text-brand",
     };
   }
   if (key.includes("prescription") || key.includes("medication")) {
     return {
       icon: PillIcon,
-      iconContainer: "bg-emerald-50 text-emerald-600 border-emerald-200/70",
-      badge: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
+      iconContainer: "bg-success-soft text-success",
+      badge: "bg-success-soft text-success",
     };
   }
   if (key.includes("imaging") || key.includes("scan")) {
     return {
       icon: ScanLine,
-      iconContainer: "bg-violet-50 text-violet-600 border-violet-200/70",
-      badge: "bg-violet-50 text-violet-700 border-violet-200/70",
+      iconContainer: "bg-violet-50 text-violet-600",
+      badge: "bg-violet-50 text-violet-700",
     };
   }
   if (key.includes("vaccin")) {
     return {
       icon: Syringe,
-      iconContainer: "bg-amber-50 text-amber-700 border-amber-200/70",
-      badge: "bg-amber-50 text-amber-800 border-amber-200/70",
+      iconContainer: "bg-warn-soft text-warn",
+      badge: "bg-warn-soft text-warn",
     };
   }
   if (key.includes("allerg")) {
     return {
       icon: Sparkles,
-      iconContainer: "bg-rose-50 text-rose-600 border-rose-200/70",
-      badge: "bg-rose-50 text-rose-700 border-rose-200/70",
+      iconContainer: "bg-danger-soft text-danger",
+      badge: "bg-danger-soft text-danger",
     };
   }
   return {
     icon: FileText,
-    iconContainer: "bg-blue-50 text-blue-600 border-blue-200/70",
-    badge: "bg-blue-50 text-blue-700 border-blue-200/70",
+    iconContainer: "bg-surface-2 text-text-soft",
+    badge: "bg-surface-2 text-text-soft",
   };
 }
 
@@ -88,7 +89,7 @@ export function RecentRecords({ className }: { className?: string }) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-2xs"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
               aria-hidden
             >
               <FileText size={16} />
@@ -108,12 +109,12 @@ export function RecentRecords({ className }: { className?: string }) {
               href="/patient/records/new"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface hover:bg-surface-2 active:scale-[0.98] px-2.5 py-1 text-xs font-semibold text-text shadow-2xs transition-all"
             >
-              <Plus size={12} strokeWidth={2.5} className="text-blue-600" />
+              <Plus size={12} strokeWidth={2.5} className="text-brand" />
               <span>Upload</span>
             </Link>
             <Link
               href="/patient/records"
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors"
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-brand-soft transition-colors"
             >
               <span>See all</span>
               <ArrowRight size={12} aria-hidden />
@@ -122,25 +123,13 @@ export function RecentRecords({ className }: { className?: string }) {
         </div>
 
         {/* ── Sub-component Filter Tabs ────────────────────────────────── */}
-        <div className="mt-3.5 flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-border">
-          {FILTER_TABS.map((tab) => {
-            const active = filter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilter(tab.id)}
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer border",
-                  active
-                    ? "bg-blue-600 text-white border-blue-600 shadow-xs shadow-blue-500/20"
-                    : "bg-surface-2 hover:bg-surface-2 text-text-soft hover:text-text border-border",
-                )}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="mt-3.5">
+          <SegmentedTabs
+            ariaLabel="Record type filters"
+            activeId={filter}
+            onChange={(id) => setFilter(id)}
+            tabs={FILTER_TABS.map((tab) => ({ id: tab.id, label: <>{tab.label}</> }))}
+          />
         </div>
 
         {/* ── Records List ────────────────────────────────────────────── */}
@@ -170,13 +159,13 @@ export function RecentRecords({ className }: { className?: string }) {
                   <p className="text-[11px] text-text-muted mt-0.5">
                     Upload documents to populate this section.
                   </p>
-                  <Link
-                    href="/patient/records/new"
-                    className="mt-3 inline-flex items-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1 text-xs font-semibold text-white shadow-2xs"
-                  >
-                    <Plus size={12} />
-                    Add record
-                  </Link>
+                    <Link
+                      href="/patient/records/new"
+                      className="pt-btn pt-btn-primary mt-3 h-8 px-3 text-xs"
+                    >
+                      <Plus size={12} aria-hidden />
+                      Add record
+                    </Link>
                 </div>
               );
             }
@@ -191,12 +180,12 @@ export function RecentRecords({ className }: { className?: string }) {
                     <li key={r.id} data-testid="record-row">
                       <Link
                         href={`/patient/records/${r.id}`}
-                        className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 transition-all hover:border-blue-300 hover:bg-blue-50/20 hover:shadow-2xs focus-visible:outline-2 focus-visible:outline-blue-600"
+                        className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 transition-all hover:border-border-strong hover:shadow-2xs focus-visible:outline-2 focus-visible:outline-brand"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div
                             className={cn(
-                              "grid h-8 w-8 shrink-0 place-items-center rounded-lg border shadow-2xs transition-transform group-hover:scale-105",
+                              "grid h-8 w-8 shrink-0 place-items-center rounded-md shadow-2xs transition-transform group-hover:scale-105",
                               visuals.iconContainer,
                             )}
                             aria-hidden
@@ -205,7 +194,7 @@ export function RecentRecords({ className }: { className?: string }) {
                           </div>
 
                           <div className="min-w-0">
-                            <p className="truncate text-xs md:text-[13px] font-bold text-text transition-colors group-hover:text-blue-600">
+                            <p className="truncate text-xs md:text-[13px] font-bold text-text transition-colors group-hover:text-brand">
                               {r.title}
                             </p>
                             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-text-soft">
@@ -228,7 +217,7 @@ export function RecentRecords({ className }: { className?: string }) {
                         <div className="flex items-center gap-2 shrink-0">
                           <span
                             className={cn(
-                              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold shadow-2xs",
+                              "inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider shadow-2xs",
                               visuals.badge,
                             )}
                           >
@@ -236,7 +225,7 @@ export function RecentRecords({ className }: { className?: string }) {
                           </span>
                           <ChevronRight
                             size={14}
-                            className="text-border-strong transition-all group-hover:translate-x-0.5 group-hover:text-blue-600"
+                            className="text-border-strong transition-all group-hover:translate-x-0.5 group-hover:text-brand"
                             aria-hidden
                           />
                         </div>
@@ -253,7 +242,7 @@ export function RecentRecords({ className }: { className?: string }) {
       {/* ── Footer Status Strip ─────────────────────────────────────── */}
       <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <ShieldCheck size={13} className="text-emerald-600" />
+          <ShieldCheck size={13} className="text-success" />
           <span>Encrypted patient records</span>
         </span>
         <span className="text-[10px] text-text-muted">

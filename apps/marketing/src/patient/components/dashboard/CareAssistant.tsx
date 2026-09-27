@@ -61,9 +61,8 @@ export function CareAssistant({ className }: { className?: string }) {
         <Link
           href="/patient/ai/chat"
           data-testid="ask-ai-cta"
-          className="inline-flex items-center gap-1.5 bg-white px-4 py-2.5 text-sm font-bold text-ink-card transition-all hover:translate-y-[-1px]"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-4 text-sm font-bold text-ink-card transition-all hover:translate-y-[-1px]"
           style={{
-            borderRadius: "var(--radius-pill)",
             boxShadow: "var(--shadow-brand)",
           }}
         >
@@ -72,8 +71,7 @@ export function CareAssistant({ className }: { className?: string }) {
         </Link>
         <Link
           href="/patient/messages"
-          className="inline-flex items-center gap-1.5 border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10"
-          style={{ borderRadius: "var(--radius-pill)" }}
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-4 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10"
         >
           <MessageSquare size={15} aria-hidden />
           Messages
