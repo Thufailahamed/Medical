@@ -8,6 +8,8 @@ export { Skeleton } from "./Skeleton";
 export { SectionHeader } from "./SectionHeader";
 export { MetricStack } from "./MetricStack";
 export type { MetricStackItem, MetricAccent } from "./MetricStack";
+export { StatusDots } from "./StatusDots";
+export type { ClinicalStatus } from "./StatusDots";
 export { CardHeader } from "./CardHeader";
 export { Sheet } from "./Sheet";
 export { QueryBoundary } from "./QueryBoundary";
