@@ -75,19 +75,19 @@ export default function HealthPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Link
           href="/patient/health"
-          className="patient-card p-4 hover:shadow-md hover:border-sky-300 transition-all flex items-center gap-3.5 group"
+          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
         >
-          <div className="h-11 w-11 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100 group-hover:scale-105 transition-transform">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0 transition-transform group-hover:scale-105" aria-hidden>
             <HeartPulse size={20} />
           </div>
           <div className="min-w-0">
             <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
               Wellness Index
             </span>
-            <span className="text-lg font-black text-text block tracking-tight">
+            <span className="pt-metric text-lg block tracking-tight">
               {wellnessScore}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600 block truncate">
+            <span className="text-[11px] font-semibold text-success block truncate">
               {wellness.data?.level?.label ?? "Good Standing"}
             </span>
           </div>
@@ -95,15 +95,16 @@ export default function HealthPage() {
 
         <Link
           href="/patient/vitals"
-          className="patient-card p-4 hover:shadow-md hover:border-emerald-300 transition-all flex items-center gap-3.5 group"
+          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
         >
           <div
             className={cn(
-              "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border group-hover:scale-105 transition-transform",
+              "grid h-11 w-11 place-items-center rounded-md shrink-0 transition-transform group-hover:scale-105",
               alertCount > 0
-                ? "bg-amber-50 text-amber-700 border-amber-200"
-                : "bg-emerald-50 text-emerald-700 border-emerald-100",
+                ? "bg-warn-soft text-warn"
+                : "bg-success-soft text-success",
             )}
+            aria-hidden
           >
             <Activity size={20} />
           </div>
@@ -111,13 +112,13 @@ export default function HealthPage() {
             <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
               Vitals Alerts (7d)
             </span>
-            <span className="text-lg font-black text-text block tracking-tight">
+            <span className="pt-metric text-lg block tracking-tight">
               {alertCount}
             </span>
             <span
               className={cn(
                 "text-[11px] font-semibold block truncate",
-                alertCount > 0 ? "text-amber-600" : "text-emerald-600",
+                alertCount > 0 ? "text-warn" : "text-success",
               )}
             >
               {alertCount === 0 ? "All Clear" : "Attention Needed"}
@@ -127,16 +128,16 @@ export default function HealthPage() {
 
         <Link
           href="/patient/medications"
-          className="patient-card p-4 hover:shadow-md hover:border-rose-300 transition-all flex items-center gap-3.5 group"
+          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
         >
-          <div className="h-11 w-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100 group-hover:scale-105 transition-transform">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-danger-soft text-danger shrink-0 transition-transform group-hover:scale-105" aria-hidden>
             <Pill size={20} />
           </div>
           <div className="min-w-0">
             <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
               Active Meds
             </span>
-            <span className="text-lg font-black text-text block tracking-tight">
+            <span className="pt-metric text-lg block tracking-tight">
               {activeMedsCount}
             </span>
             <span className="text-[11px] font-semibold text-text-soft block truncate">
@@ -147,19 +148,19 @@ export default function HealthPage() {
 
         <Link
           href="/patient/profile"
-          className="patient-card p-4 hover:shadow-md hover:border-purple-300 transition-all flex items-center gap-3.5 group"
+          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
         >
-          <div className="h-11 w-11 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-100 group-hover:scale-105 transition-transform">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-violet-50 text-violet-600 shrink-0 transition-transform group-hover:scale-105" aria-hidden>
             <Scale size={20} />
           </div>
           <div className="min-w-0">
             <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
               Body Mass (BMI)
             </span>
-            <span className="text-lg font-black text-text block tracking-tight">
+            <span className="pt-metric text-lg block tracking-tight">
               {bmiVal}
             </span>
-            <span className="text-[11px] font-semibold text-purple-600 block truncate">
+            <span className="text-[11px] font-semibold text-brand block truncate">
               {bmiCategory}
             </span>
           </div>
@@ -173,11 +174,11 @@ export default function HealthPage() {
         </div>
 
         <div className="xl:col-span-4">
-          <div className="rounded-2xl border border-border bg-white p-5 shadow-xs flex flex-col h-full justify-between gap-4">
+          <div className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col h-full justify-between gap-4">
             <div>
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
+                  <div className="grid h-7 w-7 place-items-center rounded-md bg-warn-soft text-warn" aria-hidden>
                     <AlertTriangle size={14} />
                   </div>
                   <div>
@@ -188,10 +189,10 @@ export default function HealthPage() {
 
                 <Link
                   href="/patient/vitals"
-                  className="text-xs font-bold text-sky-700 hover:text-sky-800 flex items-center gap-1"
+                  className="text-xs font-bold text-brand hover:underline flex items-center gap-1"
                 >
                   <span>All vitals</span>
-                  <ChevronRight size={13} />
+                  <ChevronRight size={13} aria-hidden />
                 </Link>
               </div>
 
@@ -202,8 +203,8 @@ export default function HealthPage() {
                 emptyDescription="Your vitals readings are within clinically healthy target ranges."
                 className="mt-4"
                 emptyAction={
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700">
-                    <CheckCircle2 size={13} />
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-success-soft px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-success">
+                    <CheckCircle2 size={13} aria-hidden />
                     <span>Looking Good · Normal Ranges</span>
                   </span>
                 }
@@ -214,15 +215,15 @@ export default function HealthPage() {
                       <li
                         key={`${a.type}-${a.value}-${i}`}
                         className={cn(
-                          "flex items-start gap-3 rounded-xl p-3 border",
+                          "flex items-start gap-3 rounded-lg p-3",
                           a.classification?.toLowerCase().includes("low") ||
                             a.classification?.toLowerCase().includes("critical")
-                            ? "bg-rose-50 border-rose-200 text-rose-900"
-                            : "bg-amber-50 border-amber-200 text-amber-900",
+                            ? "bg-danger-soft/40 text-danger"
+                            : "bg-warn-soft/40 text-warn",
                         )}
                       >
                         <span
-                          className="mt-1.5 block h-2 w-2 shrink-0 rounded-full bg-rose-600"
+                          className="mt-1.5 block h-2 w-2 shrink-0 rounded-full bg-current"
                           aria-hidden
                         />
                         <div className="min-w-0 flex-1">
@@ -243,8 +244,8 @@ export default function HealthPage() {
 
             <div className="p-3.5 rounded-xl bg-surface-2 border border-border flex items-center justify-between gap-3 text-xs">
               <span className="text-text-soft font-medium">Automatic Wearable Sync</span>
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1 font-bold text-success">
+                <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
                 Active
               </span>
             </div>
@@ -253,10 +254,10 @@ export default function HealthPage() {
       </div>
 
       {/* ── 4. Patient Clinical Demographics Snapshot ("About You") ─────────── */}
-      <section className="rounded-2xl border border-border bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100">
+            <div className="grid h-8 w-8 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
               <UserRound size={16} />
             </div>
             <div>
@@ -267,10 +268,10 @@ export default function HealthPage() {
 
           <Link
             href="/patient/profile"
-            className="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/60 transition-colors flex items-center gap-1"
+            className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
           >
             <span>Edit Profile</span>
-            <ChevronRight size={13} />
+            <ChevronRight size={13} aria-hidden />
           </Link>
         </div>
 
@@ -311,27 +312,27 @@ export default function HealthPage() {
 
               <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
                 <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  <Droplets size={12} className="text-rose-600" />
+                  <Droplets size={12} className="text-danger" />
                   Blood Group
                 </span>
-                <p className="text-xs sm:text-sm font-bold text-rose-700">
+                <p className="text-xs sm:text-sm font-bold text-danger">
                   Type {bloodGroup}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
                 <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  <Scale size={12} className="text-sky-600" />
+                  <Scale size={12} className="text-brand" />
                   BMI Index
                 </span>
                 <p className="text-xs sm:text-sm font-bold text-text">
-                  {bmiVal} <span className="text-[11px] font-semibold text-emerald-600">({bmiCategory})</span>
+                  {bmiVal} <span className="text-[11px] font-semibold text-success">({bmiCategory})</span>
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
                 <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  <Pill size={12} className="text-rose-500" />
+                  <Pill size={12} className="text-danger" />
                   Active Meds
                 </span>
                 <p className="text-xs sm:text-sm font-bold text-text">
