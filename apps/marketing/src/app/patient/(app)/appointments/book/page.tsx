@@ -157,23 +157,24 @@ export default function BookAppointmentPage() {
                   if (isClickable) setStep(s.key);
                 }}
                 className={cn(
-                  "p-3 rounded-xl text-left transition-all flex items-center gap-2.5 cursor-pointer disabled:cursor-not-allowed",
+                  "p-3 rounded-lg text-left transition-all flex items-center gap-2.5 cursor-pointer disabled:cursor-not-allowed",
                   isCurrent
-                    ? "bg-sky-50 text-sky-950 font-bold border border-sky-300 ring-2 ring-sky-500/20 shadow-2xs"
+                    ? "bg-brand-soft/60 text-ink font-bold border border-brand"
                     : isDone
-                      ? "bg-emerald-50/60 text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-50"
+                      ? "bg-success-soft/60 text-success font-semibold border border-success/25 hover:bg-success-soft"
                       : "bg-surface-2 text-text-muted font-medium border border-border",
                 )}
               >
                 <div
                   className={cn(
-                    "h-6 w-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold",
+                    "grid h-6 w-6 place-items-center rounded-full text-xs shrink-0 font-bold",
                     isCurrent
-                      ? "bg-sky-600 text-white shadow-2xs"
+                      ? "bg-brand text-white shadow-2xs"
                       : isDone
-                        ? "bg-emerald-600 text-white"
+                        ? "bg-success text-white"
                         : "bg-surface-3 text-text-soft",
                   )}
+                  aria-hidden
                 >
                   {isDone ? <Check size={13} strokeWidth={3} /> : s.index}
                 </div>
@@ -186,11 +187,11 @@ export default function BookAppointmentPage() {
 
       {/* ── 3. Step 1: Medical Specialty ───────────────────────────────────── */}
       {step === "specialty" && (
-        <section className="rounded-2xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
+        <section className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-4">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-text flex items-center gap-2">
-                <Stethoscope size={18} className="text-sky-600" />
+              <h2 className="t-card-title text-text flex items-center gap-2">
+                <Stethoscope size={18} className="text-brand" aria-hidden />
                 <span>Select Medical Specialty</span>
               </h2>
               <p className="text-xs text-text-soft mt-0.5">
@@ -204,19 +205,19 @@ export default function BookAppointmentPage() {
                 setSpecialty("");
                 setStep("doctor");
               }}
-              className="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/60 transition-colors flex items-center gap-1 cursor-pointer"
+              className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
             >
               <span>Browse All Physicians</span>
-              <ArrowRight size={12} />
+              <ArrowRight size={12} aria-hidden />
             </button>
           </div>
 
           {specialties.isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div
                   key={i}
-                  className="h-28 rounded-2xl bg-surface-2 animate-pulse border border-border"
+                  className="h-28 rounded-xl bg-surface-2 animate-pulse border border-border"
                 />
               ))}
             </div>
@@ -235,9 +236,9 @@ export default function BookAppointmentPage() {
                       setStep("doctor");
                     }}
                     className={cn(
-                      "p-4 rounded-2xl border text-center transition-all flex flex-col items-center justify-between gap-2.5 cursor-pointer group hover:scale-[1.02]",
+                      "p-4 rounded-xl border text-center transition-all flex flex-col items-center justify-between gap-2.5 cursor-pointer group hover:-translate-y-0.5",
                       isSelected
-                        ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
+                        ? "bg-brand-soft/40 border-brand shadow-card"
                         : "bg-surface border-border hover:border-border-strong hover:bg-surface-2/80 shadow-xs",
                     )}
                   >
@@ -246,7 +247,7 @@ export default function BookAppointmentPage() {
                     </span>
 
                     <div>
-                      <h3 className="text-sm font-bold text-text group-hover:text-sky-700 transition-colors">
+                      <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
                         {s.name}
                       </h3>
                       <p className="text-[11px] font-semibold text-text-muted mt-0.5">
@@ -263,11 +264,11 @@ export default function BookAppointmentPage() {
 
       {/* ── 4. Step 2: Choose Doctor ───────────────────────────────────────── */}
       {step === "doctor" && (
-        <section className="rounded-2xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
+        <section className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-4">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-text flex items-center gap-2">
-                <User size={18} className="text-sky-600" />
+              <h2 className="t-card-title text-text flex items-center gap-2">
+                <User size={18} className="text-brand" aria-hidden />
                 <span>Choose an Attending Specialist</span>
               </h2>
               {specialty ? (
@@ -286,7 +287,7 @@ export default function BookAppointmentPage() {
               <button
                 type="button"
                 onClick={() => setStep("specialty")}
-                className="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/60 transition-colors cursor-pointer"
+                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
               >
                 Change Specialty
               </button>
@@ -325,7 +326,7 @@ export default function BookAppointmentPage() {
                 onChange={(e) => setTelemedicine(e.target.checked)}
                 className="h-3.5 w-3.5 rounded border-border text-brand focus:ring-brand"
               />
-              <Video size={13} className="text-sky-600" />
+              <Video size={13} className="text-brand" aria-hidden />
               <span>Video Consultations Only</span>
             </label>
           </div>
@@ -335,8 +336,8 @@ export default function BookAppointmentPage() {
             <div className="flex flex-col gap-2.5">
               {[1, 2, 3].map((i) => (
                 <div
-                  key={i}
-                  className="h-24 rounded-2xl bg-surface-2 animate-pulse border border-border"
+                key={i}
+                className="h-24 rounded-xl bg-surface-2 animate-pulse border border-border"
                 />
               ))}
             </div>
@@ -373,24 +374,24 @@ export default function BookAppointmentPage() {
                       setStep("schedule");
                     }}
                     className={cn(
-                      "p-4 sm:p-5 rounded-2xl border text-left transition-all flex items-start justify-between gap-3 cursor-pointer group",
+                      "p-4 sm:p-5 rounded-xl border text-left transition-all flex items-start justify-between gap-3 cursor-pointer group",
                       isSelected
-                        ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
+                        ? "bg-brand-soft/40 border-brand shadow-card"
                         : "bg-surface border-border hover:border-border-strong hover:bg-surface-2 shadow-xs",
                     )}
                   >
                     <div className="flex items-start gap-3.5 min-w-0">
-                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-sky-600 to-cyan-800 text-white flex items-center justify-center font-black text-lg shrink-0 shadow-xs">
+                      <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-brand-soft font-mono font-bold text-lg shrink-0 shadow-xs" aria-hidden>
                         {d.name?.[0]?.toUpperCase() ?? "D"}
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-sky-700 transition-colors truncate">
+                          <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
                             Dr. {d.name}
                           </h3>
                           {d.available && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
                               Available
                             </span>
                           )}
@@ -421,24 +422,24 @@ export default function BookAppointmentPage() {
                       }}
                     />
 
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      {d.rating ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                          <Star size={11} className="fill-amber-500 text-amber-500" />
-                          <span>{d.rating.toFixed(1)}</span>
-                        </span>
-                      ) : null}
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        {d.rating ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-warn bg-warn-soft px-2 py-0.5 rounded-md">
+                            <Star size={11} className="fill-warn text-warn" aria-hidden />
+                            <span>{d.rating.toFixed(1)}</span>
+                          </span>
+                        ) : null}
 
-                      {d.consultationFee ? (
-                        <span className="text-xs font-bold text-text">
-                          LKR {d.consultationFee.toLocaleString()}
-                        </span>
-                      ) : null}
+                        {d.consultationFee ? (
+                          <span className="text-xs font-bold text-text">
+                            LKR {d.consultationFee.toLocaleString()}
+                          </span>
+                        ) : null}
 
-                      <div className="h-7 w-7 rounded-xl bg-surface-2 text-text-soft flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-colors mt-1">
-                        <ChevronRight size={14} />
+                        <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 text-text-soft group-hover:bg-brand group-hover:text-white transition-colors mt-1" aria-hidden>
+                          <ChevronRight size={14} />
+                        </div>
                       </div>
-                    </div>
                   </button>
                 );
               })}
@@ -450,10 +451,10 @@ export default function BookAppointmentPage() {
       {/* ── 5. Step 3: Schedule Date, Mode & Slot ───────────────────────────── */}
       {step === "schedule" && (
         <section className="flex flex-col gap-4">
-          <div className="rounded-2xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
+          <div className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
             <div className="border-b border-border pb-4">
-              <h2 className="text-base sm:text-lg font-bold text-text flex items-center gap-2">
-                <Calendar size={18} className="text-sky-600" />
+              <h2 className="t-card-title text-text flex items-center gap-2">
+                <Calendar size={18} className="text-brand" aria-hidden />
                 <span>Select Appointment Date &amp; Consultation Mode</span>
               </h2>
               <p className="text-xs text-text-soft mt-0.5">
@@ -467,19 +468,20 @@ export default function BookAppointmentPage() {
                 type="button"
                 onClick={() => setMode("in_person")}
                 className={cn(
-                  "p-4 rounded-2xl border text-left transition-all flex items-center gap-3.5 cursor-pointer",
+                  "p-4 rounded-xl border text-left transition-all flex items-center gap-3.5 cursor-pointer",
                   mode === "in_person"
-                    ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
+                    ? "bg-brand-soft/40 border-brand shadow-card"
                     : "bg-surface border-border hover:bg-surface-2",
                 )}
               >
                 <div
                   className={cn(
-                    "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
+                    "grid h-10 w-10 place-items-center rounded-md shrink-0",
                     mode === "in_person"
-                      ? "bg-sky-600 text-white border-sky-600"
-                      : "bg-surface-2 text-text-soft border-border",
+                      ? "bg-ink text-white"
+                      : "bg-surface-2 text-text-soft",
                   )}
+                  aria-hidden
                 >
                   <Building2 size={18} />
                 </div>
@@ -493,19 +495,20 @@ export default function BookAppointmentPage() {
                 type="button"
                 onClick={() => setMode("video")}
                 className={cn(
-                  "p-4 rounded-2xl border text-left transition-all flex items-center gap-3.5 cursor-pointer",
+                  "p-4 rounded-xl border text-left transition-all flex items-center gap-3.5 cursor-pointer",
                   mode === "video"
-                    ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
+                    ? "bg-brand-soft/40 border-brand shadow-card"
                     : "bg-surface border-border hover:bg-surface-2",
                 )}
               >
                 <div
                   className={cn(
-                    "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
+                    "grid h-10 w-10 place-items-center rounded-md shrink-0",
                     mode === "video"
-                      ? "bg-sky-600 text-white border-sky-600"
-                      : "bg-surface-2 text-text-soft border-border",
+                      ? "bg-ink text-white"
+                      : "bg-surface-2 text-text-soft",
                   )}
+                  aria-hidden
                 >
                   <Video size={18} />
                 </div>
@@ -527,7 +530,7 @@ export default function BookAppointmentPage() {
                 onChange={(e) => setDate(e.target.value)}
                 min={new Date().toISOString().slice(0, 10)}
                 required
-                className="w-full h-11 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all cursor-pointer"
+                className="pt-input text-xs sm:text-sm"
               />
             </div>
 
@@ -539,8 +542,8 @@ export default function BookAppointmentPage() {
                 </label>
 
                 {availability.isLoading ? (
-                  <div className="flex items-center gap-2 text-xs text-text-soft p-4 bg-surface-2 rounded-xl">
-                    <Loader2 size={14} className="animate-spin text-sky-600" />
+                  <div className="flex items-center gap-2 text-xs text-text-soft p-4 bg-surface-2 rounded-lg">
+                    <Loader2 size={14} className="animate-spin text-brand" aria-hidden />
                     <span>Loading available physician slots for {date}…</span>
                   </div>
                 ) : availability.data?.slots?.length ? (
@@ -553,9 +556,9 @@ export default function BookAppointmentPage() {
                           type="button"
                           onClick={() => setTime(s.time)}
                           className={cn(
-                            "py-2.5 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center",
+                            "py-2.5 px-3 rounded-lg text-xs font-bold transition-all border cursor-pointer text-center",
                             time === s.time
-                              ? "bg-sky-600 text-white border-sky-600 shadow-xs"
+                              ? "bg-ink text-white border-ink shadow-xs"
                               : "bg-surface border-border text-text hover:border-border-strong hover:bg-surface-2",
                           )}
                         >
@@ -564,7 +567,7 @@ export default function BookAppointmentPage() {
                       ))}
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                  <div className="p-4 rounded-lg bg-warn-soft border border-warn/25 text-xs text-warn">
                     No available consultation slots for this date. Please select another calendar day.
                   </div>
                 )}
@@ -573,8 +576,8 @@ export default function BookAppointmentPage() {
           </div>
 
           {/* Reason & Medical Context Card */}
-          <div className="rounded-2xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-text">
+          <div className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
+            <h3 className="pt-kicker">
               Reason &amp; Clinical Background (Optional)
             </h3>
 
@@ -588,7 +591,7 @@ export default function BookAppointmentPage() {
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="e.g. Chest discomfort, post-op follow up, routine checkup…"
-                  className="w-full h-10 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                  className="pt-input text-xs sm:text-sm"
                 />
               </div>
 
@@ -601,7 +604,7 @@ export default function BookAppointmentPage() {
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   placeholder="Share any current symptoms, recent medication changes, or questions beforehand…"
-                  className="w-full p-3 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all leading-relaxed"
+                  className="pt-input h-auto py-3 text-xs sm:text-sm leading-relaxed"
                 />
               </div>
             </div>
@@ -611,10 +614,10 @@ export default function BookAppointmentPage() {
 
       {/* ── 6. Step 4: Review & Confirm ────────────────────────────────────── */}
       {step === "confirm" && (
-        <section className="rounded-2xl border-border bg-surface p-6 sm:p-7 shadow-card flex flex-col gap-6">
+        <section className="rounded-xl border-border bg-surface p-6 sm:p-7 shadow-card flex flex-col gap-6">
           <div>
-            <h2 className="text-lg font-bold text-text flex items-center gap-2">
-              <CheckCircle2 size={20} className="text-emerald-600" />
+            <h2 className="t-card-title text-text flex items-center gap-2">
+              <CheckCircle2 size={20} className="text-success" aria-hidden />
               <span>Review Appointment Summary</span>
             </h2>
             <p className="text-xs text-text-soft mt-0.5">
@@ -640,18 +643,18 @@ export default function BookAppointmentPage() {
                 Date &amp; Time
               </span>
               <p className="text-sm font-bold text-text">{date}</p>
-              <p className="text-xs font-semibold text-sky-700">{time} IST</p>
+              <p className="text-xs font-semibold text-brand">{time} IST</p>
             </div>
 
             <div className="p-4 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-              <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                {mode === "video" ? (
-                  <Video size={12} className="text-sky-600" />
-                ) : (
-                  <Building2 size={12} className="text-text-soft" />
-                )}
-                Consultation Format
-              </span>
+                <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
+                  {mode === "video" ? (
+                    <Video size={12} className="text-brand" aria-hidden />
+                  ) : (
+                    <Building2 size={12} className="text-text-soft" aria-hidden />
+                  )}
+                  Consultation Format
+                </span>
               <p className="text-sm font-bold text-text capitalize">
                 {humanize(mode)}
               </p>
@@ -671,8 +674,8 @@ export default function BookAppointmentPage() {
           </div>
 
           {error && (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-              <AlertCircle size={15} className="text-rose-600 shrink-0" />
+            <div className="p-4 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0" aria-hidden />
               <span>{error}</span>
             </div>
           )}
@@ -680,7 +683,7 @@ export default function BookAppointmentPage() {
       )}
 
       {/* ── 7. Global Navigation Bar ───────────────────────────────────────── */}
-      <footer className="flex items-center justify-between gap-3 bg-surface p-3.5 rounded-2xl shadow-card">
+      <footer className="flex items-center justify-between gap-3 bg-surface p-3.5 rounded-xl shadow-card">
         <button
           type="button"
           onClick={() => {
@@ -689,10 +692,10 @@ export default function BookAppointmentPage() {
             else if (step === "confirm") setStep("schedule");
           }}
           disabled={step === "specialty"}
-          className="px-4 py-2.5 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          className="pt-btn pt-btn-secondary h-10 px-4 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <ChevronLeft size={14} />
-          <span>Back Step</span>
+          <ChevronLeft size={14} aria-hidden />
+          Back Step
         </button>
 
         {step !== "confirm" ? (
@@ -707,33 +710,27 @@ export default function BookAppointmentPage() {
               (step === "doctor" && !doctorId) ||
               (step === "schedule" && (!date || !time))
             }
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-            }}
+            className="pt-btn pt-btn-primary h-10 px-5 text-xs disabled:opacity-50"
           >
-            <span>Proceed to Next Step</span>
-            <ChevronRight size={14} />
+            Proceed to Next Step
+            <ChevronRight size={14} aria-hidden />
           </button>
         ) : (
           <button
             type="button"
             onClick={confirm}
             disabled={book.isPending}
-            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
-            style={{
-              background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-            }}
+            className="pt-btn pt-btn-primary h-10 px-6 text-xs disabled:opacity-60"
           >
             {book.isPending ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>Finalizing Booking…</span>
+                <Loader2 size={14} className="animate-spin" aria-hidden />
+                Finalizing Booking…
               </>
             ) : (
               <>
-                <Check size={14} strokeWidth={3} />
-                <span>Confirm &amp; Book Appointment</span>
+                <Check size={14} strokeWidth={3} aria-hidden />
+                Confirm &amp; Book Appointment
               </>
             )}
           </button>
