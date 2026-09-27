@@ -15,30 +15,12 @@ const ACCENT: Record<
   Exclude<CardAccent, "none">,
   { blob: string; shine: string }
 > = {
-  brand: {
-    blob: "bg-gradient-to-br from-blue-500 to-indigo-600",
-    shine: "bg-gradient-to-r from-blue-500 to-indigo-600",
-  },
-  sky: {
-    blob: "bg-gradient-to-br from-sky-400 to-blue-600",
-    shine: "bg-gradient-to-r from-sky-400 to-blue-600",
-  },
-  violet: {
-    blob: "bg-gradient-to-br from-violet-400 to-purple-600",
-    shine: "bg-gradient-to-r from-violet-400 to-purple-600",
-  },
-  amber: {
-    blob: "bg-gradient-to-br from-amber-400 to-orange-500",
-    shine: "bg-gradient-to-r from-amber-400 to-orange-500",
-  },
-  green: {
-    blob: "bg-gradient-to-br from-emerald-400 to-teal-600",
-    shine: "bg-gradient-to-r from-emerald-400 to-teal-600",
-  },
-  rose: {
-    blob: "bg-gradient-to-br from-rose-400 to-pink-600",
-    shine: "bg-gradient-to-r from-rose-400 to-pink-600",
-  },
+  brand: { blob: "bg-brand", shine: "bg-brand" },
+  sky: { blob: "bg-sky-500", shine: "bg-sky-500" },
+  violet: { blob: "bg-violet-500", shine: "bg-violet-500" },
+  amber: { blob: "bg-amber-500", shine: "bg-amber-500" },
+  green: { blob: "bg-emerald-500", shine: "bg-emerald-500" },
+  rose: { blob: "bg-rose-500", shine: "bg-rose-500" },
 };
 
 /**

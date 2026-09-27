@@ -11,38 +11,38 @@ const TONE: Record<
   { blob: string; shine: string; lightBg: string; accent: string }
 > = {
   brand: {
-    blob: "bg-gradient-to-br from-blue-500 to-indigo-600",
-    shine: "bg-gradient-to-r from-blue-500 to-indigo-600",
+    blob: "bg-brand",
+    shine: "bg-brand",
     lightBg: "bg-blue-50",
     accent: "text-brand",
   },
   sky: {
-    blob: "bg-gradient-to-br from-sky-400 to-blue-600",
-    shine: "bg-gradient-to-r from-sky-400 to-blue-600",
+    blob: "bg-sky-500",
+    shine: "bg-sky-500",
     lightBg: "bg-sky-50",
     accent: "text-sky-600",
   },
   violet: {
-    blob: "bg-gradient-to-br from-violet-400 to-purple-600",
-    shine: "bg-gradient-to-r from-violet-400 to-purple-600",
+    blob: "bg-violet-500",
+    shine: "bg-violet-500",
     lightBg: "bg-violet-50",
     accent: "text-violet-600",
   },
   amber: {
-    blob: "bg-gradient-to-br from-amber-400 to-orange-500",
-    shine: "bg-gradient-to-r from-amber-400 to-orange-500",
+    blob: "bg-amber-500",
+    shine: "bg-amber-500",
     lightBg: "bg-amber-50",
     accent: "text-amber-600",
   },
   green: {
-    blob: "bg-gradient-to-br from-emerald-400 to-teal-600",
-    shine: "bg-gradient-to-r from-emerald-400 to-teal-600",
+    blob: "bg-emerald-500",
+    shine: "bg-emerald-500",
     lightBg: "bg-emerald-50",
     accent: "text-emerald-600",
   },
   rose: {
-    blob: "bg-gradient-to-br from-rose-400 to-pink-600",
-    shine: "bg-gradient-to-r from-rose-400 to-pink-600",
+    blob: "bg-rose-500",
+    shine: "bg-rose-500",
     lightBg: "bg-rose-50",
     accent: "text-rose-600",
   },
@@ -117,7 +117,24 @@ export function StatTile({
             <p className="mt-1 text-[11px] text-text-muted">{sublabel}</p>
           ) : null}
           {delta != null ? (
-            <p className={cn("mt-1.5 text-xs font-medium", deltaColor)}>{delta}</p>
+            <p
+              className={cn(
+                "mt-1.5 flex items-center gap-1.5 text-xs font-medium",
+                deltaColor,
+              )}
+            >
+              <span
+                className={cn(
+                  "pt-dot",
+                  deltaTone === "down"
+                    ? "bg-danger"
+                    : deltaTone === "up"
+                      ? "bg-success"
+                      : "bg-text-muted",
+                )}
+              />
+              {delta}
+            </p>
           ) : null}
         </div>
       </div>
