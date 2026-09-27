@@ -15,10 +15,10 @@ import { useInsurance, type InsuranceStatus } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
 
 const STATUS_TONE: Record<InsuranceStatus, string> = {
-  active: "text-emerald-700 bg-emerald-50 border-emerald-200/70",
-  pending: "text-amber-700 bg-amber-50 border-amber-200/70",
-  lapsed: "text-rose-700 bg-rose-50 border-rose-200/70",
-  expired: "text-rose-700 bg-rose-50 border-rose-200/70",
+  active: "text-success bg-success-soft",
+  pending: "text-warn bg-warn-soft",
+  lapsed: "text-danger bg-danger-soft",
+  expired: "text-danger bg-danger-soft",
 };
 
 function daysUntil(iso: string | null): number | null {
@@ -149,7 +149,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
               ) : null}
 
               <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-soft">
-                <FileCheck2 size={13} className="text-blue-600" />
+                <FileCheck2 size={13} className="text-brand" aria-hidden />
                 <span>
                   {claimsOpen === 0
                     ? "No open claims"
@@ -164,7 +164,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
       {/* ── Footer ─────────────────────────────────────────────────── */}
       <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <ShieldCheck size={13} className="text-emerald-600" />
+          <ShieldCheck size={13} className="text-success" aria-hidden />
           <span>Cashless hospitalization eligible</span>
         </span>
         <Link

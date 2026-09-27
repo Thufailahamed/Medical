@@ -25,9 +25,9 @@ function Tile({
   ariaLabel: string;
 }) {
   const tone =
-    badgeTone === "emerald" ? "text-emerald-600 bg-emerald-50" :
-    badgeTone === "rose" ? "text-rose-600 bg-rose-50" :
-    badgeTone === "amber" ? "text-amber-700 bg-amber-50" :
+    badgeTone === "emerald" ? "text-success bg-success-soft" :
+    badgeTone === "rose" ? "text-danger bg-danger-soft" :
+    badgeTone === "amber" ? "text-warn bg-warn-soft" :
     "text-text-muted bg-surface-2";
   return (
     <Link

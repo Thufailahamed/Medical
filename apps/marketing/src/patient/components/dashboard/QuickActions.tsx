@@ -24,7 +24,7 @@ const ACTIONS = [
     href: "/patient/medications",
     label: "Medications",
     icon: Pill,
-    accent: "bg-rose-50 text-rose-600",
+    accent: "bg-danger-soft text-danger",
   },
   {
     key: "record",
@@ -45,7 +45,7 @@ const ACTIONS = [
     href: "/patient/vitals",
     label: "Log vitals",
     icon: Activity,
-    accent: "bg-amber-50 text-amber-700",
+    accent: "bg-warn-soft text-warn",
   },
 ] as const;
 

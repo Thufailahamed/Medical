@@ -24,7 +24,7 @@ const DicomViewer = dynamic(
     ),
   {
     ssr: false,
-    loading: () => <Skeleton className="h-[480px] w-full rounded-2xl" />,
+    loading: () => <Skeleton className="h-[480px] w-full rounded-xl" />,
   }
 );
 

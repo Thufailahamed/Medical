@@ -260,7 +260,7 @@ export function RecordForm({
             <select
               value={familyMemberId ?? ""}
               onChange={(e) => setFamilyMemberId(e.target.value || null)}
-              className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer"
+              className="pt-input pl-10 text-xs sm:text-sm"
             >
               <option value="">Myself (Primary Patient)</option>
               {(family.data?.family ?? []).map((member) => (

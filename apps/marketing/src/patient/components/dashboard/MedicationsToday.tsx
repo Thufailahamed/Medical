@@ -58,7 +58,7 @@ export function MedicationsToday({ className }: { className?: string }) {
       <CardHeader
         title="Today's plan"
         caption="Prescription schedule & doses"
-        icon={<PillIcon size={16} className="text-blue-600" />}
+        icon={<PillIcon size={16} className="text-brand" aria-hidden />}
         href="/patient/medications"
         linkLabel="View all"
       />
@@ -181,13 +181,13 @@ export function MedicationsToday({ className }: { className?: string }) {
 
                       {/* Streak & Adherence strip */}
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <div className="inline-flex items-center gap-1 rounded-full border border-amber-200/70 bg-amber-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                        <div className="inline-flex items-center gap-1 rounded-full border border-warn/30 bg-warn-soft px-2.5 py-0.5 text-[11px] font-semibold text-warn">
                           <Flame size={12} className="fill-amber-500 text-amber-500" />
                           <span>{stats.data?.streakDays ?? 0}d streak</span>
                         </div>
                         {takenForMed > 0 ? (
-                          <div className="inline-flex items-center gap-1 rounded-full border border-emerald-200/70 bg-emerald-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                            <CheckCircle2 size={12} className="text-emerald-600" />
+                          <div className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success-soft px-2.5 py-0.5 text-[11px] font-semibold text-success">
+                            <CheckCircle2 size={12} className="text-success" aria-hidden />
                             <span>{takenForMed} taken today</span>
                           </div>
                         ) : null}
@@ -245,9 +245,9 @@ export function MedicationsToday({ className }: { className?: string }) {
                         </span>
                       </div>
                     ) : totalForMed > 0 && pendingForMed === 0 ? (
-                      <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50/80 border border-emerald-200/70 px-3.5 py-2.5">
+                      <div className="flex items-center justify-between gap-3 rounded-xl bg-success-soft/60 border border-success/25 px-3.5 py-2.5">
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                          <CheckCircle2 size={15} className="text-success shrink-0" aria-hidden />
                           <span className="text-xs font-semibold text-emerald-900">
                             All doses logged for this medicine today
                           </span>

@@ -81,7 +81,7 @@ export function NotificationsPreview({ className }: { className?: string }) {
           </div>
           <Link
             href="/patient/notifications"
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-brand-soft transition-colors"
           >
             <span>View all</span>
             <span aria-hidden>→</span>
@@ -116,7 +116,7 @@ export function NotificationsPreview({ className }: { className?: string }) {
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs md:text-[13px] font-bold text-text group-hover:text-blue-600 transition-colors">
+                    <span className="block truncate text-xs md:text-[13px] font-bold text-text group-hover:text-brand transition-colors">
                       {n.title}
                     </span>
                     {n.body ? (
@@ -129,7 +129,7 @@ export function NotificationsPreview({ className }: { className?: string }) {
                     {relativeTime(n.createdAt)}
                   </span>
                   {!n.read ? (
-                    <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" aria-label="unread" />
+                    <span className="h-2 w-2 rounded-full bg-brand shrink-0" aria-label="unread" />
                   ) : null}
                 </Link>
               </li>
@@ -142,7 +142,7 @@ export function NotificationsPreview({ className }: { className?: string }) {
         <span className="text-[10px] text-text-muted">Activity stream</span>
         <Link
           href="/patient/notifications"
-          className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+          className="text-xs font-semibold text-brand hover:underline"
         >
           Notification settings →
         </Link>

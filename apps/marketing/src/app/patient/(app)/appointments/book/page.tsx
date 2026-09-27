@@ -342,7 +342,7 @@ export default function BookAppointmentPage() {
               ))}
             </div>
           ) : (doctors.data?.doctors ?? []).length === 0 ? (
-            <div className="p-8 rounded-2xl bg-surface-2 border border-border text-center flex flex-col items-center gap-2.5">
+            <div className="p-8 rounded-xl bg-surface-2 border border-border text-center flex flex-col items-center gap-2.5">
               <Stethoscope size={28} className="text-text-muted" />
               <h3 className="font-bold text-text text-sm">No Physicians Found</h3>
               <p className="text-xs text-text-soft max-w-sm">

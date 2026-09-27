@@ -383,13 +383,13 @@ function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setStep("details")}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 self-start"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-soft hover:text-text self-start"
               >
                 <ChevronLeft size={14} /> Back to details
               </button>
 
               <div className="flex flex-col gap-1">
-                <h3 className="text-lg font-bold text-slate-900">
+                <h3 className="t-card-title text-text">
                   Verify your account
                 </h3>
                 <p className="text-sm text-slate-500">
