@@ -202,7 +202,7 @@ export default function HealthIdPage() {
 
       {/* ── 2. Select Verification Purpose ─────────────────────────────────── */}
       <section className="flex flex-col gap-2.5">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+        <h2 className="pt-kicker">
           Select Healthcare Verification Purpose
         </h2>
 
@@ -217,33 +217,34 @@ export default function HealthIdPage() {
                 type="button"
                 onClick={() => setPurpose(p.id)}
                 className={cn(
-                  "p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1",
+                  "p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1",
                   isSelected
-                    ? "bg-sky-50/80 border-sky-400 ring-2 ring-sky-500/20 shadow-xs"
-                    : "bg-white border-slate-200/90 hover:bg-slate-50",
+                    ? "bg-brand-soft/40 border-brand shadow-card"
+                    : "bg-surface border-border hover:border-border-strong",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
-                        "h-7 w-7 rounded-lg flex items-center justify-center shrink-0",
+                        "grid h-7 w-7 place-items-center rounded-md shrink-0",
                         isSelected
-                          ? "bg-sky-600 text-white"
-                          : "bg-slate-100 text-slate-500",
+                          ? "bg-ink text-white"
+                          : "bg-surface-2 text-text-muted",
                       )}
+                      aria-hidden
                     >
                       <Icon size={14} />
                     </div>
-                    <span className="text-xs font-bold text-slate-900">
+                    <span className="text-xs font-bold text-text">
                       {p.label}
                     </span>
                   </div>
                   {isSelected ? (
-                    <CheckCircle2 size={15} className="text-sky-600" />
+                    <CheckCircle2 size={15} className="text-brand" aria-hidden />
                   ) : null}
                 </div>
-                <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 font-medium">
+                <p className="text-[11px] text-text-soft line-clamp-2 mt-0.5 font-medium">
                   {p.desc}
                 </p>
               </button>
@@ -253,22 +254,18 @@ export default function HealthIdPage() {
       </section>
 
       {/* ── 3. Premier Digital Smart Pass Card ──────────────────────────────── */}
-      <section className="rounded-3xl border-2 border-slate-200/90 bg-white shadow-lg overflow-hidden flex flex-col md:flex-row">
+      <section className="rounded-xl border border-border bg-surface shadow-card overflow-hidden flex flex-col md:flex-row">
         {/* Left: Dynamic QR Stage */}
         <div
-          className="p-7 sm:p-8 flex flex-col items-center justify-center gap-4 text-white text-center md:w-80 shrink-0"
-          style={{
-            background:
-              "linear-gradient(145deg, #082f49 0%, #0c4a6e 50%, #0e7490 100%)",
-          }}
+          className="p-7 sm:p-8 flex flex-col items-center justify-center gap-4 text-white text-center md:w-80 shrink-0 bg-ink-card"
         >
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-bold bg-white/10 border border-white/15 text-sky-200 uppercase tracking-wider">
-            <Radio size={12} className={token ? "animate-pulse text-emerald-400" : ""} />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/10 text-white/85">
+            <Radio size={12} className={token ? "animate-pulse text-success" : ""} aria-hidden />
             <span>{token ? "Live Smart Pass" : "Standby"}</span>
           </div>
 
           {/* QR Container */}
-          <div className="p-3 bg-white rounded-2xl shadow-xl border-4 border-white/20">
+          <div className="p-3 bg-white rounded-xl shadow-xl">
             {qrUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -276,12 +273,12 @@ export default function HealthIdPage() {
                 alt="Health ID QR Pass"
                 width={200}
                 height={200}
-                className="rounded-xl"
+                className="rounded-lg"
               />
             ) : (
-              <div className="flex h-[200px] w-[200px] flex-col items-center justify-center gap-2 text-slate-400 p-4">
-                <QrCode size={40} className="text-slate-300" />
-                <p className="text-xs font-semibold text-slate-500">
+              <div className="flex h-[200px] w-[200px] flex-col items-center justify-center gap-2 text-text-muted p-4">
+                <QrCode size={40} className="text-text-muted" aria-hidden />
+                <p className="text-xs font-semibold text-text-soft">
                   Tap &ldquo;Generate Pass&rdquo; to issue rotating QR
                 </p>
               </div>
@@ -290,13 +287,13 @@ export default function HealthIdPage() {
 
           {token && secondsLeft !== null ? (
             <div className="w-full flex flex-col gap-1.5 max-w-[200px]">
-              <div className="flex items-center justify-between text-[11px] text-sky-200 font-bold">
+              <div className="flex items-center justify-between text-[11px] text-white/80 font-bold">
                 <span>Auto-Rotates:</span>
                 <span>{secondsLeft}s</span>
               </div>
               <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-400 transition-all duration-1000 rounded-full"
+                  className="h-full bg-success transition-all duration-1000 rounded-full"
                   style={{
                     width: `${Math.max(0, (secondsLeft / rotationSeconds) * 100)}%`,
                   }}
@@ -313,23 +310,23 @@ export default function HealthIdPage() {
         {/* Right: Pass Details & Identity Controls */}
         <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between gap-6">
           <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-3 flex-wrap pb-4 border-b border-slate-100">
+            <div className="flex items-start justify-between gap-3 flex-wrap pb-4 border-b border-border">
               <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
+                <span className="rounded-md bg-brand-soft px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-brand">
                   Patient Health Identity
                 </span>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-1.5 leading-tight">
+                <h3 className="t-display text-xl sm:text-2xl text-text mt-1.5 leading-tight">
                   {name}
                 </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <p className="text-xs text-text-soft font-medium mt-0.5">
                   Verified National EHR Profile · {phone}
                 </p>
               </div>
 
               {/* Blood Group Badge */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 shrink-0">
-                <Heart size={14} className="text-rose-600 fill-rose-600" />
-                <span className="text-xs font-black text-rose-900">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-danger-soft shrink-0">
+                <Heart size={14} className="text-danger fill-danger" aria-hidden />
+                <span className="text-xs font-bold text-danger">
                   Type {bloodGroup}
                 </span>
               </div>
@@ -337,55 +334,52 @@ export default function HealthIdPage() {
 
             {/* Verification Attributes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <p className="text-[10.5px] uppercase font-bold text-slate-400">
+              <div className="p-3 rounded-lg bg-surface-2 border border-border">
+                <p className="text-[10.5px] uppercase font-bold text-text-muted">
                   Target Scope
                 </p>
-                <p className="text-xs font-bold text-slate-900 mt-0.5 capitalize">
+                <p className="text-xs font-bold text-text mt-0.5 capitalize">
                   {purpose === "all" ? "Complete Clinical Access" : `${purpose} Only`}
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <p className="text-[10.5px] uppercase font-bold text-slate-400">
+              <div className="p-3 rounded-lg bg-surface-2 border border-border">
+                <p className="text-[10.5px] uppercase font-bold text-text-muted">
                   Digital Signature
                 </p>
-                <p className="text-xs font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
-                  <CheckCircle2 size={12} />
+                <p className="text-xs font-bold text-success mt-0.5 flex items-center gap-1">
+                  <CheckCircle2 size={12} aria-hidden />
                   <span>Valid &amp; Verified</span>
                 </p>
               </div>
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-                <AlertCircle size={14} className="text-rose-600 shrink-0" />
+              <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0" aria-hidden />
                 <span>{error}</span>
               </div>
             )}
           </div>
 
           {/* Action Trigger Bar */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+          <div className="pt-4 border-t border-border flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={issue.isPending}
                 onClick={handleIssue}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                style={{
-                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                }}
+                className="pt-btn pt-btn-primary h-10 px-5 text-xs disabled:opacity-50"
               >
                 {issue.isPending ? (
                   <>
-                    <Loader2 size={13} className="animate-spin" />
-                    <span>Processing…</span>
+                    <Loader2 size={13} className="animate-spin" aria-hidden />
+                    Processing…
                   </>
                 ) : (
                   <>
-                    <RefreshCw size={13} />
-                    <span>{token ? "Rotate Now" : "Issue Health Pass"}</span>
+                    <RefreshCw size={13} aria-hidden />
+                    {token ? "Rotate Now" : "Issue Health Pass"}
                   </>
                 )}
               </button>
@@ -395,15 +389,15 @@ export default function HealthIdPage() {
                   type="button"
                   disabled={revoke.isPending}
                   onClick={handleRevoke}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer disabled:opacity-50"
+                  className="pt-btn h-10 px-4 text-xs text-danger hover:bg-danger-soft disabled:opacity-50"
                 >
                   {revoke.isPending ? "Revoking…" : "Revoke Pass"}
                 </button>
               ) : null}
             </div>
 
-            <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-              <Lock size={12} />
+            <p className="text-[11px] text-text-muted font-medium flex items-center gap-1">
+              <Lock size={12} aria-hidden />
               Hospital scanners never store your raw phone passcode
             </p>
           </div>
@@ -411,39 +405,39 @@ export default function HealthIdPage() {
       </section>
 
       {/* ── 4. How Health ID Works Guide ─────────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col gap-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-          <Sparkles size={14} className="text-sky-600" />
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col gap-3">
+        <h3 className="pt-kicker flex items-center gap-2">
+          <Sparkles size={14} className="text-brand" aria-hidden />
           <span>How Digital Health ID Protects Your Care</span>
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-1.5">
-            <p className="font-bold text-slate-900 flex items-center gap-1.5">
-              <Hospital size={14} className="text-sky-600" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-text-soft">
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1.5">
+            <p className="font-bold text-text flex items-center gap-1.5">
+              <Hospital size={14} className="text-brand" aria-hidden />
               <span>Touchless Clinic Check-in</span>
             </p>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-text-soft leading-relaxed">
               Show this QR at the hospital kiosk or reception scanner to automatically pull your queue token without filling out paper registration sheets.
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-1.5">
-            <p className="font-bold text-slate-900 flex items-center gap-1.5">
-              <Pill size={14} className="text-emerald-600" />
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1.5">
+            <p className="font-bold text-text flex items-center gap-1.5">
+              <Pill size={14} className="text-success" aria-hidden />
               <span>Pharmacy Dispensing</span>
             </p>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-text-soft leading-relaxed">
               Pharmacists scan your pass to confirm prescription authorizations, preventing dosage mistakes and dispensing duplicate medications.
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-1.5">
-            <p className="font-bold text-slate-900 flex items-center gap-1.5">
-              <RotateCcw size={14} className="text-purple-600" />
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1.5">
+            <p className="font-bold text-text flex items-center gap-1.5">
+              <RotateCcw size={14} className="text-violet-600" aria-hidden />
               <span>25-Second Anti-Fraud Rotation</span>
             </p>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-text-soft leading-relaxed">
               Screenshots or stolen photos of your QR pass cannot be replayed by bad actors because the cryptographic token invalidates itself every 25 seconds.
             </p>
           </div>
