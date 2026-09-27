@@ -118,9 +118,9 @@ export default function ProfilePage() {
       />
 
       {/* ── 2. Primary Patient Identification Card ─────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+      <section className="rounded-xl border border-border bg-surface shadow-card overflow-hidden">
         {/* Identity Banner */}
-        <div className="p-6 sm:p-7 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5 border-b border-slate-100">
+        <div className="p-6 sm:p-7 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5 border-b border-border">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
             {/* Avatar */}
             {user?.photo ? (
@@ -130,31 +130,31 @@ export default function ProfilePage() {
                 alt=""
                 width={72}
                 height={72}
-                className="h-18 w-18 rounded-2xl object-cover ring-4 ring-sky-50 shadow-md shrink-0"
+                className="h-18 w-18 rounded-lg object-cover shadow-md shrink-0"
               />
             ) : (
-              <div className="h-18 w-18 rounded-2xl bg-gradient-to-br from-sky-600 via-sky-700 to-cyan-800 text-white flex items-center justify-center text-2xl font-black shadow-md shrink-0">
+              <div className="grid h-18 w-18 place-items-center rounded-lg bg-ink text-brand-soft font-mono text-2xl font-bold shadow-md shrink-0" aria-hidden>
                 {initials(user?.name) || "P"}
               </div>
             )}
 
             <div>
               <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                <h2 className="t-display text-xl sm:text-2xl text-text leading-tight">
                   {user?.name || "Patient"}
                 </h2>
                 <span
                   className={cn(
-                    "px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border",
+                    "px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
                     user?.verified
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-sky-50 text-sky-700 border-sky-200",
+                      ? "bg-success-soft text-success"
+                      : "bg-brand-soft text-brand",
                   )}
                 >
                   {user?.verified ? "Verified Patient" : "Active Profile"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-1">
+              <p className="text-xs text-text-soft font-medium mt-1">
                 {user?.email || "No email linked"} · {user?.phone || "No phone linked"}
               </p>
             </div>
@@ -162,82 +162,82 @@ export default function ProfilePage() {
 
           <Link
             href="/patient/profile/edit"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors flex items-center gap-1.5 shrink-0"
+            className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
           >
-            <Edit2 size={13} className="text-sky-700" />
-            <span>Update Demographics</span>
+            <Edit2 size={13} aria-hidden />
+            Update Demographics
           </Link>
         </div>
 
         {/* Detailed Demographics Data Grid */}
         <div className="p-6 sm:p-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <Mail size={12} className="text-slate-500" />
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
+              <Mail size={12} className="text-text-soft" aria-hidden />
               Email Address
             </span>
-            <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
+            <p className="text-xs sm:text-sm font-semibold text-text truncate">
               {user?.email || "—"}
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <Phone size={12} className="text-slate-500" />
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
+              <Phone size={12} className="text-text-soft" aria-hidden />
               Primary Phone
             </span>
-            <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
+            <p className="text-xs sm:text-sm font-semibold text-text truncate">
               {user?.phone || "—"}
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <Heart size={12} className="text-rose-600" />
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
+              <Heart size={12} className="text-danger" aria-hidden />
               Blood Group
             </span>
-            <p className="text-xs sm:text-sm font-bold text-rose-700">
+            <p className="text-xs sm:text-sm font-bold text-danger">
               Type {bloodGroup}
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <User size={12} className="text-slate-500" />
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
+              <User size={12} className="text-text-soft" aria-hidden />
               Portal Access Role
             </span>
-            <p className="text-xs sm:text-sm font-semibold text-slate-900 capitalize">
+            <p className="text-xs sm:text-sm font-semibold text-text capitalize">
               {user?.role || "patient"}
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <CheckCircle2 size={12} className="text-emerald-600" />
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
+              <CheckCircle2 size={12} className="text-success" aria-hidden />
               Account Status
             </span>
-            <p className="text-xs sm:text-sm font-semibold text-emerald-700 capitalize">
+            <p className="text-xs sm:text-sm font-semibold text-success capitalize">
               {user?.status || "active"}
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-slate-400 flex items-center justify-between">
+          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center justify-between">
               <span className="flex items-center gap-1">
-                <Key size={12} className="text-slate-500" />
+                <Key size={12} className="text-text-soft" aria-hidden />
                 Patient ID
               </span>
               {user?.id ? (
                 <button
                   type="button"
                   onClick={() => handleCopyId(user.id)}
-                  className="text-[10px] font-bold text-sky-700 hover:underline cursor-pointer"
+                  className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
                 >
                   {copiedId ? "Copied!" : "Copy"}
                 </button>
               ) : null}
             </span>
-            <p className="text-xs font-mono font-medium text-slate-700 truncate select-all">
+            <p className="text-xs font-mono font-medium text-text-soft truncate select-all">
               {user?.id || "—"}
             </p>
           </div>
@@ -248,19 +248,19 @@ export default function ProfilePage() {
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Link
           href="/patient/emergency"
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:border-rose-300 transition-all flex flex-col justify-between gap-3 group"
+          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
         >
           <div className="flex items-center justify-between">
-            <div className="h-9 w-9 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-100 group-hover:scale-105 transition-transform">
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-danger-soft text-danger transition-transform group-hover:scale-105" aria-hidden>
               <HeartPulse size={18} />
             </div>
-            <ChevronRight size={15} className="text-slate-400 group-hover:text-rose-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={15} className="text-text-muted group-hover:text-danger group-hover:translate-x-0.5 transition-all" aria-hidden />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm group-hover:text-rose-700 transition-colors">
+            <h3 className="font-bold text-text text-sm group-hover:text-danger transition-colors">
               Emergency Card
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-text-soft mt-0.5">
               Life-saving ER trauma summary &amp; QR
             </p>
           </div>
@@ -268,19 +268,19 @@ export default function ProfilePage() {
 
         <Link
           href="/patient/health-id"
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col justify-between gap-3 group"
+          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
         >
           <div className="flex items-center justify-between">
-            <div className="h-9 w-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100 group-hover:scale-105 transition-transform">
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand transition-transform group-hover:scale-105" aria-hidden>
               <QrCode size={18} />
             </div>
-            <ChevronRight size={15} className="text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={15} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all" aria-hidden />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm group-hover:text-sky-700 transition-colors">
+            <h3 className="font-bold text-text text-sm group-hover:text-brand transition-colors">
               Digital Health ID
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-text-soft mt-0.5">
               25s rotating pass for clinic check-in
             </p>
           </div>
@@ -288,19 +288,19 @@ export default function ProfilePage() {
 
         <Link
           href="/patient/family"
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all flex flex-col justify-between gap-3 group"
+          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
         >
           <div className="flex items-center justify-between">
-            <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100 group-hover:scale-105 transition-transform">
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success transition-transform group-hover:scale-105" aria-hidden>
               <Users size={18} />
             </div>
-            <ChevronRight size={15} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={15} className="text-text-muted group-hover:text-success group-hover:translate-x-0.5 transition-all" aria-hidden />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm group-hover:text-emerald-700 transition-colors">
+            <h3 className="font-bold text-text text-sm group-hover:text-success transition-colors">
               Family Locker
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-text-soft mt-0.5">
               Dependents, parents, &amp; care locks
             </p>
           </div>
@@ -308,19 +308,19 @@ export default function ProfilePage() {
 
         <Link
           href="/patient/export"
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:border-purple-300 transition-all flex flex-col justify-between gap-3 group"
+          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
         >
           <div className="flex items-center justify-between">
-            <div className="h-9 w-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 group-hover:scale-105 transition-transform">
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-violet-50 text-violet-600 transition-transform group-hover:scale-105" aria-hidden>
               <Download size={18} />
             </div>
-            <ChevronRight size={15} className="text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={15} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all" aria-hidden />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm group-hover:text-purple-700 transition-colors">
+            <h3 className="font-bold text-text text-sm group-hover:text-brand transition-colors">
               Export Records
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-text-soft mt-0.5">
               HL7 FHIR R4 &amp; JSON data archive
             </p>
           </div>
@@ -328,17 +328,17 @@ export default function ProfilePage() {
       </section>
 
       {/* ── 4. Account Security & Session Controls ──────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-surface-2 text-text-soft shrink-0" aria-hidden>
             <Lock size={20} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Active Security Session
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Signed in as <span className="font-semibold text-slate-800">{user?.email || "patient"}</span>. Terminating this session invalidates local cache tokens.
+            <p className="text-xs text-text-soft mt-0.5">
+              Signed in as <span className="font-semibold text-text">{user?.email || "patient"}</span>. Terminating this session invalidates local cache tokens.
             </p>
           </div>
         </div>
@@ -347,17 +347,17 @@ export default function ProfilePage() {
           type="button"
           onClick={onLogout}
           disabled={signingOut}
-          className="px-5 py-2.5 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shrink-0 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          className="pt-btn h-10 px-5 text-xs shrink-0 bg-danger-soft text-danger hover:bg-danger hover:text-white disabled:opacity-50"
         >
           {signingOut ? (
             <>
-              <Loader2 size={13} className="animate-spin" />
-              <span>Signing out…</span>
+              <Loader2 size={13} className="animate-spin" aria-hidden />
+              Signing out…
             </>
           ) : (
             <>
-              <LogOut size={13} />
-              <span>Sign Out Everywhere</span>
+              <LogOut size={13} aria-hidden />
+              Sign Out Everywhere
             </>
           )}
         </button>
