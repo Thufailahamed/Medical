@@ -21,6 +21,7 @@ import { usePrescriptions } from "@/patient/hooks/prescriptions";
 import { formatDayLabel, humanize } from "@/patient/lib/format";
 import { patientPaths } from "@healthcare/shared/contracts";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 
 function cleanScheduleString(val: string | null | undefined): string {
   if (!val) return "";
@@ -100,171 +101,46 @@ export default function PrescriptionsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative overflow-hidden rounded-3xl p-5 text-white shadow-xl sm:p-7"
-        style={{
-          background:
-            "linear-gradient(120deg, #082F49 0%, #075985 46%, #0F766E 100%)",
-          boxShadow:
-            "0 20px 50px rgba(3, 105, 161, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Ambient Glows */}
-        <div
-          className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(103,232,249,0.30) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(45,212,191,0.2) 0%, transparent 62%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-6">
-          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
-            <div className="min-w-0 max-w-2xl">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-100 backdrop-blur-md">
-                <ShieldCheck size={12} className="text-sky-300" />
-                Verified e-Prescriptions
-              </span>
-              <span className="text-xs font-medium text-white/65">Secure patient record</span>
-              </div>
-              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-white md:text-[32px]">
-                Medical Prescriptions &amp; Rx
-              </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75 md:text-[15px]">
-                A single, trusted place for signed prescriptions, dosage guidance, and official clinical documents.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <Link
-                href="/patient/appointments/book"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-xs font-bold text-white backdrop-blur-md transition-all hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
-              >
-                <Stethoscope size={13} />
-                <span>Consult Doctor</span>
-              </Link>
-              <Link
-                href="/patient/medications"
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-xs font-extrabold text-sky-950 shadow-lg shadow-sky-950/15 transition-all hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-white/60"
-              >
-                <Pill size={14} className="text-sky-700" />
-                <span>Dose Schedule</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 gap-2 border-t border-white/15 pt-4 text-white lg:grid-cols-4">
-            <button
-              type="button"
-              onClick={() => setActiveTab("all")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "all"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
-                <FileText size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Total Prescriptions
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {rawPrescriptions.length}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("active")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "active"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Active Treatments
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {activeList.length}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("past")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "past"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Calendar size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  History
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {pastList.length}
-                </p>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Pill size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Prescribed Medicines
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {totalMedicines}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
+      <PageHero
+        icon={<ShieldCheck size={13} />}
+        kicker="Verified e-Prescriptions · Secure patient record"
+        title="Medical Prescriptions & Rx"
+        description="A single, trusted place for signed prescriptions, dosage guidance, and official clinical documents."
+        actions={
+          <>
+            <Link href="/patient/appointments/book" className={heroSecondaryAction}>
+              <Stethoscope size={13} />
+              <span>Consult Doctor</span>
+            </Link>
+            <Link href="/patient/medications" className={heroPrimaryAction}>
+              <Pill size={14} />
+              <span>Dose Schedule</span>
+            </Link>
+          </>
+        }
+        footer={
+          <>
+            <span>{rawPrescriptions.length} total prescriptions</span>
+            <span>{activeList.length} active treatments</span>
+            <span>{pastList.length} in history</span>
+            <span>{totalMedicines} prescribed medicines</span>
+          </>
+        }
+      />
 
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Segmented Filter */}
-        <div className="inline-flex p-1 bg-slate-100 rounded-xl shrink-0">
+        <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab("all")}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeTab === "all"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             All ({rawPrescriptions.length})
@@ -275,8 +151,8 @@ export default function PrescriptionsPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeTab === "active"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             Active ({activeList.length})
@@ -287,8 +163,8 @@ export default function PrescriptionsPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeTab === "past"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             History ({pastList.length})
@@ -299,20 +175,20 @@ export default function PrescriptionsPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search diagnosis, doctor, or medicine..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="w-full h-9 pl-9 pr-8 text-xs bg-surface-2 border border-border rounded-xl font-medium text-text placeholder:text-text-muted focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand transition-all"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
             >
               <X size={13} />
             </button>
@@ -327,20 +203,20 @@ export default function PrescriptionsPage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-32 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-32 rounded-2xl patient-shimmer"
               />
             ))}
           </div>
         ) : filteredPrescriptions.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center flex flex-col items-center gap-3">
+          <div className="rounded-2xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3">
             <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
               <FileText size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">
+              <h3 className="font-bold text-text text-sm">
                 No prescriptions found
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mt-0.5">
+              <p className="text-xs text-text-soft max-w-sm mt-0.5">
                 {search
                   ? `No prescriptions match "${search}". Try another keyword or clear search.`
                   : "When your doctor prescribes medications or treatment courses, the official script will appear here."}
@@ -366,10 +242,10 @@ export default function PrescriptionsPage() {
               return (
                 <article
                   key={rx.id}
-                  className="group rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col gap-3.5"
+                  className="group patient-card p-4 sm:p-5 hover:shadow-md transition-all flex flex-col gap-3.5"
                 >
                   {/* Header Row */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border">
                     <div className="flex items-start sm:items-center gap-3 min-w-0">
                       <div className="h-10 w-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0 shadow-2xs group-hover:bg-sky-100/70 transition-colors">
                         <FileText size={18} />
@@ -378,18 +254,18 @@ export default function PrescriptionsPage() {
                       <div className="min-w-0">
                         <Link
                           href={`/patient/prescriptions/${rx.id}`}
-                          className="text-base font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate block"
+                          className="text-base font-bold text-text group-hover:text-sky-700 transition-colors truncate block"
                         >
                           {rx.diagnosis || "Medical Prescription"}
                         </Link>
 
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5 text-xs text-slate-500 font-medium">
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5 text-xs text-text-soft font-medium">
                           {rx.doctorName ? (
-                            <span className="inline-flex items-center gap-1 text-slate-700 font-semibold">
+                            <span className="inline-flex items-center gap-1 text-text font-semibold">
                               <Stethoscope size={12} className="text-sky-600" />
                               {rx.doctorName}
                               {rx.doctorSpecialization ? (
-                                <span className="text-slate-400 font-normal">
+                                <span className="text-text-muted font-normal">
                                   {" "}· {rx.doctorSpecialization}
                                 </span>
                               ) : null}
@@ -398,14 +274,14 @@ export default function PrescriptionsPage() {
 
                           <span>·</span>
 
-                          <span className="inline-flex items-center gap-1 text-slate-500">
-                            <Calendar size={12} className="text-slate-400" />
+                          <span className="inline-flex items-center gap-1 text-text-soft">
+                            <Calendar size={12} className="text-text-muted" />
                             {formatDayLabel(rx.date)}
                           </span>
 
                           <span>·</span>
 
-                          <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
+                          <span className="inline-flex items-center gap-1 text-text-soft font-medium">
                             <Pill size={12} className="text-emerald-600" />
                             {rx.medicineCount || rx.medicines?.length || 0} medicine
                             {(rx.medicineCount || rx.medicines?.length || 0) === 1 ? "" : "s"}
@@ -421,10 +297,10 @@ export default function PrescriptionsPage() {
                           "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border",
                           isSigned
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                            : "bg-slate-100 text-slate-600 border-slate-200",
+                            : "bg-surface-2 text-text-soft border-border",
                         )}
                       >
-                        <CheckCircle2 size={12} className={isSigned ? "text-emerald-600" : "text-slate-400"} />
+                        <CheckCircle2 size={12} className={isSigned ? "text-emerald-600" : "text-text-muted"} />
                         <span>{isSigned ? "Doctor Signed" : humanize(rx.status)}</span>
                       </span>
                     </div>
@@ -432,8 +308,8 @@ export default function PrescriptionsPage() {
 
                   {/* Medicines List Section */}
                   {rx.medicines && rx.medicines.length > 0 ? (
-                    <div className="bg-slate-50/70 rounded-xl p-3 border border-slate-100 flex flex-col gap-2">
-                      <p className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400">
+                    <div className="bg-surface-2/70 rounded-xl p-3 border border-border flex flex-col gap-2">
+                      <p className="text-[10.5px] uppercase font-bold tracking-wider text-text-muted">
                         Prescribed Medications
                       </p>
 
@@ -445,7 +321,7 @@ export default function PrescriptionsPage() {
                           return (
                             <div
                               key={med.id}
-                              className="bg-white rounded-lg p-2.5 border border-slate-200/80 flex items-start gap-2.5 shadow-2xs"
+                              className="bg-surface rounded-lg p-2.5 border-border flex items-start gap-2.5 shadow-2xs"
                             >
                               <div className="h-7 w-7 rounded-md bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 mt-0.5">
                                 <Pill size={14} />
@@ -453,7 +329,7 @@ export default function PrescriptionsPage() {
 
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-1">
-                                  <h4 className="text-xs font-bold text-slate-900 truncate">
+                                  <h4 className="text-xs font-bold text-text truncate">
                                     {med.name}
                                   </h4>
                                   <span className="text-[11px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded">
@@ -461,14 +337,14 @@ export default function PrescriptionsPage() {
                                   </span>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-slate-500 font-medium">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-text-soft font-medium">
                                   {freq ? <span>{freq}</span> : null}
                                   {freq && timing ? <span>·</span> : null}
-                                  {timing ? <span className="text-slate-600">{timing}</span> : null}
+                                  {timing ? <span className="text-text-soft">{timing}</span> : null}
                                 </div>
 
                                 {med.instructions ? (
-                                  <p className="text-[10.5px] text-slate-400 italic mt-0.5 truncate">
+                                  <p className="text-[10.5px] text-text-muted italic mt-0.5 truncate">
                                     {med.instructions}
                                   </p>
                                 ) : null}
@@ -482,7 +358,7 @@ export default function PrescriptionsPage() {
 
                   {/* Doctor's General Notes */}
                   {rx.notes ? (
-                    <p className="text-xs text-slate-600 bg-blue-50/50 border border-blue-100 rounded-lg p-2.5 italic">
+                    <p className="text-xs text-text-soft bg-blue-50/50 border border-blue-100 rounded-lg p-2.5 italic">
                       <span className="font-semibold text-blue-900 not-italic mr-1">
                         Doctor&apos;s Advice:
                       </span>
@@ -491,7 +367,7 @@ export default function PrescriptionsPage() {
                   ) : null}
 
                   {/* Footer Actions */}
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -514,7 +390,7 @@ export default function PrescriptionsPage() {
 
                       <Link
                         href="/patient/medications"
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors hidden sm:inline"
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-text-soft hover:bg-surface-2 transition-colors hidden sm:inline"
                       >
                         Track in Medications
                       </Link>
@@ -522,7 +398,7 @@ export default function PrescriptionsPage() {
 
                     <Link
                       href={`/patient/prescriptions/${rx.id}`}
-                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1"
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors flex items-center gap-1"
                     >
                       <span>Full Details</span>
                       <ChevronRight size={13} />
