@@ -122,7 +122,7 @@ export default function AiClinicalNotePage() {
                     {result.keyTerms.map((t) => (
                       <span
                         key={t}
-                        className="rounded-pill bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand"
+                        className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand"
                       >
                         {t}
                       </span>

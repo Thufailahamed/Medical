@@ -122,7 +122,7 @@ export const DrugInteractionCard = forwardRef<
             <button
               type="button"
               onClick={checkAll}
-              className="inline-flex items-center gap-1 rounded-pill border border-brand/30 bg-brand-soft px-2 py-1 text-[11px] font-bold text-brand transition-colors hover:bg-brand/15"
+              className="inline-flex items-center gap-1 rounded-full border border-brand/30 bg-brand-soft px-2 py-1 text-[11px] font-bold text-brand transition-colors hover:bg-brand/15"
             >
               <Zap size={11} aria-hidden />
               Check all
@@ -210,7 +210,7 @@ export const DrugInteractionCard = forwardRef<
                       </div>
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-pill px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider",
+                          "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider",
                           styles.pill,
                         )}
                       >
@@ -268,7 +268,7 @@ export const DrugInteractionCard = forwardRef<
           type="button"
           onClick={() => void run()}
           disabled={!medicines.trim() || check.isPending}
-          className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-warn px-3.5 text-xs font-bold text-white shadow-[0_8px_20px_rgba(224,138,0,0.28)] transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-text-muted disabled:shadow-none"
+          className="pt-btn h-9 px-3.5 text-xs bg-warn text-white hover:brightness-110 disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-text-muted disabled:shadow-none"
         >
           {check.isPending ? (
             <>

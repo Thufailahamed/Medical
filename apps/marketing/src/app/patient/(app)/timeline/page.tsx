@@ -72,12 +72,7 @@ export default function TimelinePage() {
                     <li key={e.id} className="flex items-start gap-3">
                       <div className="flex flex-col items-center">
                         <div
-                          className="grid h-9 w-9 place-items-center rounded-pill"
-                          style={{
-                            background:
-                              "linear-gradient(145deg, var(--color-brand-soft) 0%, rgba(124,108,255,0.18) 100%)",
-                            color: "var(--color-brand-strong)",
-                          }}
+                          className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand"
                           aria-hidden
                         >
                           <Icon size={15} />

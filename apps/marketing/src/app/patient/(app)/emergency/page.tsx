@@ -77,28 +77,24 @@ const EMERGENCY_SERVICES = [
     number: "1990",
     desc: "Free 24/7 National Pre-Hospital Care",
     badge: "Medical Emergency",
-    color: "from-rose-600 to-red-700",
   },
   {
     name: "National Police Service",
     number: "119",
     desc: "24/7 Law Enforcement Emergency",
     badge: "Police Emergency",
-    color: "from-sky-700 to-indigo-900",
   },
   {
     name: "National Hospital Colombo",
     number: "0112691111",
     desc: "Trauma & Accident Emergency Service",
     badge: "Trauma Service",
-    color: "from-emerald-700 to-teal-800",
   },
   {
     name: "National Poison Information",
     number: "0112686143",
     desc: "Toxicology & Antidote Registry",
     badge: "Poison Hotline",
-    color: "from-amber-600 to-yellow-700",
   },
 ];
 

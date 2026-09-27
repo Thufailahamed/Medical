@@ -64,9 +64,9 @@ export default function MedicinesHistoryPage() {
         <button
           type="button"
           onClick={() => setIncludeActive(true)}
-          className={`rounded-pill px-3 py-1.5 text-xs font-semibold transition-colors ${
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
             includeActive
-              ? "bg-brand text-white"
+              ? "bg-ink text-white"
               : "bg-surface-2 text-text-soft hover:bg-surface-3"
           }`}
         >
@@ -75,9 +75,9 @@ export default function MedicinesHistoryPage() {
         <button
           type="button"
           onClick={() => setIncludeActive(false)}
-          className={`rounded-pill px-3 py-1.5 text-xs font-semibold transition-colors ${
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
             !includeActive
-              ? "bg-brand text-white"
+              ? "bg-ink text-white"
               : "bg-surface-2 text-text-soft hover:bg-surface-3"
           }`}
         >
@@ -199,7 +199,7 @@ function HistoryRow({ medicine }: { medicine: MedicineRow }) {
             type="button"
             onClick={reactivate}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            className="pt-btn pt-btn-primary h-8 px-3 text-xs disabled:opacity-60"
           >
             <Play size={12} aria-hidden /> Reactivate
           </button>
@@ -208,7 +208,7 @@ function HistoryRow({ medicine }: { medicine: MedicineRow }) {
         <div className="mt-3 flex flex-wrap gap-2 border-t border-surface-3 pt-3">
           <Link
             href={`/patient/medications/${medicine.id}/edit`}
-            className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-soft"
+            className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
           >
             Edit
           </Link>
@@ -216,7 +216,7 @@ function HistoryRow({ medicine }: { medicine: MedicineRow }) {
             type="button"
             onClick={stop}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-pill border border-danger bg-danger-soft px-3 py-1.5 text-xs font-semibold text-danger disabled:opacity-60"
+            className="pt-btn h-8 px-3 text-xs text-danger hover:bg-danger-soft disabled:opacity-60"
           >
             <Pause size={12} aria-hidden /> Stop
           </button>

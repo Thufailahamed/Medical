@@ -43,7 +43,7 @@ export default function TestPackagesPage() {
                       href={`/patient/diagnostic-tests/packages/${p.slug}`}
                       className="group flex items-start gap-4 rounded-inner border border-[color:var(--color-border)] bg-surface-1 p-4 transition-all hover:border-brand hover:bg-brand-soft"
                     >
-                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-pill bg-brand-soft text-brand">
+                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
                         <FlaskConical size={20} aria-hidden />
                       </div>
                       <div className="min-w-0 flex-1">

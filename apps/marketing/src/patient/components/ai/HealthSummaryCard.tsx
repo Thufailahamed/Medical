@@ -104,7 +104,7 @@ export const HealthSummaryCard = forwardRef<
               <button
                 type="button"
                 onClick={() => void run()}
-                className="mt-2 rounded-pill border border-danger/30 bg-white px-2.5 py-1 text-[11px] font-bold text-danger hover:bg-danger-soft"
+                className="mt-2 rounded-full border border-danger/30 bg-white px-2.5 py-1 text-[11px] font-bold text-danger hover:bg-danger-soft"
               >
                 Retry
               </button>
@@ -184,7 +184,7 @@ export const HealthSummaryCard = forwardRef<
           type="button"
           onClick={() => void run()}
           disabled={generateSummary.isPending || profileLoading}
-          className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand px-3.5 text-xs font-bold text-white shadow-[var(--shadow-brand)] transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-text-muted disabled:shadow-none"
+          className="pt-btn pt-btn-primary h-9 px-3.5 text-xs disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-text-muted disabled:shadow-none"
         >
           {generateSummary.isPending ? (
             <>

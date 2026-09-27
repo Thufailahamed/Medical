@@ -258,7 +258,7 @@ export default function EditMedicinePage({
           <button
             type="submit"
             disabled={editMedication.isPending}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
           >
             <Save size={14} aria-hidden />
             {editMedication.isPending ? "Saving…" : "Save changes"}
@@ -267,14 +267,14 @@ export default function EditMedicinePage({
             type="button"
             onClick={onStop}
             disabled={stopMedication.isPending}
-            className="inline-flex items-center gap-1.5 rounded-pill border border-danger bg-danger-soft px-5 py-2.5 text-sm font-semibold text-danger disabled:opacity-60"
+            className="pt-btn h-10 px-5 text-sm text-danger hover:bg-danger-soft disabled:opacity-60"
           >
             <Trash2 size={14} aria-hidden />
             {stopMedication.isPending ? "Stopping…" : "Stop medicine"}
           </button>
           <Link
             href="/patient/medications"
-            className="inline-flex items-center gap-1.5 rounded-pill border border-border px-5 py-2.5 text-sm font-semibold text-text-soft"
+            className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
           >
             Cancel
           </Link>

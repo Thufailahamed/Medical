@@ -261,14 +261,14 @@ export default function AddMedicinePage() {
           <button
             type="submit"
             disabled={addMedication.isPending}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
           >
             <Save size={14} aria-hidden />
             {addMedication.isPending ? "Saving…" : "Add medicine"}
           </button>
           <Link
             href="/patient/medications"
-            className="inline-flex items-center gap-1.5 rounded-pill border border-border px-5 py-2.5 text-sm font-semibold text-text-soft"
+            className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
           >
             Cancel
           </Link>

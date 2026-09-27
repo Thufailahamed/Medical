@@ -154,10 +154,10 @@ export default function RecordScanPage() {
             onDrop={handleDrop}
             onClick={() => !file && fileInputRef.current?.click()}
             className={cn(
-              "flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-8 sm:p-10 text-center transition-all cursor-pointer",
+              "flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-8 sm:p-10 text-center transition-all cursor-pointer",
               file
-                ? "border-sky-400 bg-sky-50/20"
-                : "border-sky-200/90 bg-sky-50/40 hover:bg-sky-50/70 hover:border-sky-400 hover:shadow-xs",
+                ? "border-brand bg-brand-soft/30"
+                : "border-border bg-surface-2/50 hover:border-brand hover:shadow-card",
             )}
           >
             {preview ? (
@@ -176,7 +176,7 @@ export default function RecordScanPage() {
               </div>
             ) : file ? (
               <div className="flex flex-col items-center gap-3">
-                <div className="h-16 w-16 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center border border-sky-200 shadow-2xs">
+                <div className="grid h-16 w-16 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
                   <FileText size={32} />
                 </div>
                 <div>
@@ -188,7 +188,7 @@ export default function RecordScanPage() {
               </div>
             ) : (
               <>
-                <div className="h-16 w-16 rounded-2xl bg-surface border border-sky-200 text-sky-600 flex items-center justify-center shadow-xs">
+                <div className="grid h-16 w-16 place-items-center rounded-md bg-surface border border-border text-brand shadow-xs" aria-hidden>
                   <Upload size={28} />
                 </div>
                 <div className="max-w-sm">
@@ -217,7 +217,7 @@ export default function RecordScanPage() {
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-sky-700 bg-surface hover:bg-sky-50 border border-border shadow-2xs hover:border-border-strong transition-all flex items-center gap-1.5 cursor-pointer"
+                className="pt-btn pt-btn-secondary h-9 px-4 text-xs"
               >
                 <ImageIcon size={14} />
                 <span>{file ? "Choose Another File" : "Browse Files"}</span>
@@ -231,7 +231,7 @@ export default function RecordScanPage() {
                     setFile(null);
                     setPreview(null);
                   }}
-                  className="px-3 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="pt-btn h-9 px-3 text-xs text-danger hover:bg-danger-soft"
                 >
                   <X size={13} />
                   <span>Remove</span>
@@ -241,8 +241,8 @@ export default function RecordScanPage() {
           </div>
 
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-              <AlertCircle size={15} className="text-rose-600 shrink-0" />
+            <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0" aria-hidden />
               <span>{error}</span>
             </div>
           )}
@@ -251,9 +251,9 @@ export default function RecordScanPage() {
         {/* Right Column: AI Extraction Intelligence & Actions */}
         <section className="lg:col-span-5 flex flex-col gap-4">
           {/* What We Extract Card */}
-          <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+          <div className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
             <div className="flex items-center gap-2.5 border-b border-border pb-3">
-              <div className="h-8 w-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100">
+              <div className="grid h-8 w-8 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
                 <Sparkles size={16} />
               </div>
               <div>
@@ -268,7 +268,7 @@ export default function RecordScanPage() {
 
             <ul className="flex flex-col gap-2.5 text-xs text-text">
               <li className="flex items-center gap-2.5">
-                <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
+                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
                   <Check size={12} strokeWidth={3} />
                 </div>
                 <span>
@@ -276,7 +276,7 @@ export default function RecordScanPage() {
                 </span>
               </li>
               <li className="flex items-center gap-2.5">
-                <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
+                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
                   <Check size={12} strokeWidth={3} />
                 </div>
                 <span>
@@ -284,7 +284,7 @@ export default function RecordScanPage() {
                 </span>
               </li>
               <li className="flex items-center gap-2.5">
-                <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
+                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
                   <Check size={12} strokeWidth={3} />
                 </div>
                 <span>
@@ -292,7 +292,7 @@ export default function RecordScanPage() {
                 </span>
               </li>
               <li className="flex items-center gap-2.5">
-                <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
+                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
                   <Check size={12} strokeWidth={3} />
                 </div>
                 <span>
@@ -303,13 +303,13 @@ export default function RecordScanPage() {
           </div>
 
           {/* Privacy & Encryption Card */}
-          <div className="rounded-2xl border border-amber-200/90 bg-amber-50/40 p-4 sm:p-5 flex items-start gap-3 text-xs text-amber-900 shadow-2xs">
-            <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="rounded-xl border border-warn/25 bg-warn-soft p-4 sm:p-5 flex items-start gap-3 text-xs text-warn shadow-2xs">
+            <ShieldCheck size={18} className="shrink-0 mt-0.5" aria-hidden />
             <div>
-              <h4 className="font-bold text-amber-950">
+              <h4 className="font-bold">
                 End-to-End Encrypted &amp; HIPAA Protected
               </h4>
-              <p className="text-[11.5px] text-amber-800/90 mt-0.5 leading-relaxed">
+              <p className="text-[11.5px] mt-0.5 leading-relaxed opacity-80">
                 Your medical files are transmitted over TLS 1.3, processed once through private clinical OCR models, and stored in AES-256 encrypted vaults. Only you and authorized physicians can view your records.
               </p>
             </div>
@@ -320,20 +320,17 @@ export default function RecordScanPage() {
             type="button"
             onClick={onSubmit}
             disabled={!file || upload.isPending}
-            className="w-full h-12 rounded-xl text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
-            style={{
-              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-            }}
+            className="pt-btn pt-btn-primary h-12 w-full text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {upload.isPending ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
-                <span>Extracting Clinical Data &amp; Creating Record…</span>
+                <Loader2 size={16} className="animate-spin" aria-hidden />
+                Extracting Clinical Data &amp; Creating Record…
               </>
             ) : (
               <>
-                <Scan size={16} />
-                <span>Scan and Create Health Record</span>
+                <Scan size={16} aria-hidden />
+                Scan and Create Health Record
               </>
             )}
           </button>

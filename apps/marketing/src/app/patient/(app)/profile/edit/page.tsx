@@ -121,7 +121,7 @@ export default function EditProfilePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
+                  className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
                 />
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function EditProfilePage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
+                    className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
                   />
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function EditProfilePage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
+                    className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
                   />
                 </div>
               </div>
@@ -317,14 +317,14 @@ export default function EditProfilePage() {
           <button
             type="submit"
             disabled={update.isPending}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            className="pt-btn pt-btn-primary h-11 px-5 text-sm disabled:opacity-60"
           >
             <Save size={14} aria-hidden />
             {update.isPending ? "Saving…" : "Save changes"}
           </button>
           <Link
             href="/patient/profile"
-            className="inline-flex items-center gap-1.5 rounded-pill border border-border px-5 py-2.5 text-sm font-semibold text-text-soft"
+            className="pt-btn pt-btn-secondary h-11 px-5 text-sm"
           >
             Cancel
           </Link>

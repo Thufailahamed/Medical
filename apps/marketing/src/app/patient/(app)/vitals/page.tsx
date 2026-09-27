@@ -352,7 +352,7 @@ export default function VitalsPage() {
           <div className="h-20 rounded-xl patient-shimmer" />
         ) : symptomsList.length === 0 ? (
           <div className="p-8 rounded-xl bg-surface-2 border border-border text-center flex flex-col items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-surface-2 border border-border text-text-muted flex items-center justify-center shadow-2xs">
+            <div className="grid h-11 w-11 place-items-center rounded-md bg-surface-2 border border-border text-text-muted shadow-2xs" aria-hidden>
               <Activity size={20} />
             </div>
             <div className="max-w-md">

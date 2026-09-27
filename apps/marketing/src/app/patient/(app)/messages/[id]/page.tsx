@@ -90,7 +90,7 @@ export default function ConversationPage({
                         rows={3}
                         className="min-w-0 flex-1 resize-y rounded-inner border border-border bg-surface-2 px-3 py-2 text-sm text-text outline-none focus:border-brand"
                       />
-                      <button type="submit" disabled={!draft.trim() || sendMessage.isPending} className="self-end rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                      <button type="submit" disabled={!draft.trim() || sendMessage.isPending} className="pt-btn pt-btn-primary h-9 self-end px-4 text-sm disabled:opacity-60">
                         {sendMessage.isPending ? "Sending…" : "Send"}
                       </button>
                     </div>
