@@ -103,7 +103,7 @@ export default function TestResultPage({
             type="button"
             onClick={explain}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 self-start rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            className="pt-btn pt-btn-primary h-10 self-start px-5 text-sm disabled:opacity-60"
           >
             {busy ? (
               <>

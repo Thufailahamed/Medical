@@ -81,7 +81,7 @@ export default function RateTestPage({
                   onClick={() => setRating(i)}
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(0)}
-                  className="rounded-pill p-1 transition-transform hover:scale-110"
+                  className="rounded-full p-1 transition-transform hover:scale-110"
                   aria-label={`${i} star${i === 1 ? "" : "s"}`}
                 >
                   <Star
@@ -90,7 +90,7 @@ export default function RateTestPage({
                     strokeWidth={1.5}
                     className={
                       i <= (hovered || rating)
-                        ? "fill-amber-400 text-amber-400"
+                        ? "fill-warn text-warn"
                         : "text-text-muted"
                     }
                   />
@@ -98,7 +98,7 @@ export default function RateTestPage({
               ))}
             </div>
             {rating > 0 ? (
-              <p className="mt-2 text-sm font-semibold text-amber-600">
+              <p className="mt-2 text-sm font-semibold text-warn">
                 {labels[rating]}
               </p>
             ) : null}
@@ -127,7 +127,7 @@ export default function RateTestPage({
             <button
               type="submit"
               disabled={rate.isPending || rating === 0}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
             >
               {rate.isPending ? (
                 <>
@@ -143,7 +143,7 @@ export default function RateTestPage({
             </button>
             <Link
               href={`/patient/diagnostic-tests/bookings/${id}`}
-              className="inline-flex items-center gap-1.5 rounded-pill border border-border px-5 py-2.5 text-sm font-semibold text-text-soft"
+              className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
             >
               Cancel
             </Link>
