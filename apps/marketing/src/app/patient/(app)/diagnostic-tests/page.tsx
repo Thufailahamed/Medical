@@ -28,6 +28,7 @@ import { api } from "@/portal/lib/api";
 import { useAuthStore } from "@/portal/stores/auth";
 import { formatLkr } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 interface DiagnosticTest {
   id: string;
@@ -558,40 +559,34 @@ export default function DiagnosticTestsPage() {
         {/* Row 1: Segmented Switcher + Search + Sort */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           {/* Segmented Mode Switcher */}
-          <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("packages");
-                setSelectedCategory("all");
-              }}
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                activeTab === "packages"
-                  ? "bg-white text-sky-900 shadow-xs"
-                  : "text-text-soft hover:text-text",
-              )}
-            >
-              <Sparkles size={13} className="text-sky-600" />
-              <span>Packages ({allPackages.length})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("tests");
-                setSelectedCategory("all");
-              }}
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                activeTab === "tests"
-                  ? "bg-white text-sky-900 shadow-xs"
-                  : "text-text-soft hover:text-text",
-              )}
-            >
-              <FlaskConical size={13} className="text-emerald-600" />
-              <span>Individual Tests ({rawTests.length || "50+"})</span>
-            </button>
-          </div>
+          <SegmentedTabs
+            ariaLabel="Catalogue mode"
+            activeId={activeTab}
+            onChange={(id) => {
+              setActiveTab(id as "packages" | "tests");
+              setSelectedCategory("all");
+            }}
+            tabs={[
+              {
+                id: "packages",
+                label: (
+                  <>
+                    <Sparkles size={13} className="text-sky-600" aria-hidden />
+                    <span>Packages ({allPackages.length})</span>
+                  </>
+                ),
+              },
+              {
+                id: "tests",
+                label: (
+                  <>
+                    <FlaskConical size={13} className="text-emerald-600" aria-hidden />
+                    <span>Individual Tests ({rawTests.length || "50+"})</span>
+                  </>
+                ),
+              },
+            ]}
+          />
 
           {/* Search Input */}
           <div className="relative flex-1">

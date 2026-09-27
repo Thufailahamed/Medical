@@ -30,6 +30,7 @@ import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { StatTile } from "@/patient/components/primitives/StatTile";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 import { api } from "@/portal/lib/api";
 import { formatDayLabel, humanize, formatRelative } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -326,8 +327,11 @@ export default function TestBookingsPage() {
       </section>
 
       {/* ── 3. Tabs ─────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 pb-3">
-        {TABS.map((t) => {
+      <SegmentedTabs
+        ariaLabel="Booking filters"
+        activeId={tab}
+        onChange={(id) => setTab(id)}
+        tabs={TABS.map((t) => {
           const count =
             t.key === ""
               ? counts.all
@@ -336,34 +340,19 @@ export default function TestBookingsPage() {
                 : t.key === "completed"
                   ? counts.completed
                   : counts.cancelled;
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-pill px-4 h-9 text-[12.5px] font-semibold transition-all",
-                active
-                  ? "bg-brand text-white shadow-sm"
-                  : "border border-border bg-surface-1 text-text-soft hover:border-brand/40 hover:text-text",
-              )}
-            >
-              {t.label}
-              <span
-                className={cn(
-                  "inline-grid place-items-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold tracking-wide",
-                  active
-                    ? "bg-white/25 text-white"
-                    : "bg-surface-2 text-text-muted",
-                )}
-              >
-                {count}
-              </span>
-            </button>
-          );
+          return {
+            id: t.key,
+            label: (
+              <>
+                <span>{t.label}</span>
+                <span className="inline-grid min-h-[20px] min-w-[20px] place-items-center rounded-full px-1.5 text-[10px] font-bold tracking-wide">
+                  {count}
+                </span>
+              </>
+            ),
+          };
         })}
-      </div>
+      />
 
       {/* ── 4. Bookings list ────────────────────────────────────────── */}
       <Card className="!p-0 overflow-hidden">
