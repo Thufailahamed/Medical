@@ -10,6 +10,7 @@ export { MetricStack } from "./MetricStack";
 export type { MetricStackItem, MetricAccent } from "./MetricStack";
 export { StatusDots } from "./StatusDots";
 export type { ClinicalStatus } from "./StatusDots";
+export { PhotoCard } from "./PhotoCard";
 export { CardHeader } from "./CardHeader";
 export { Sheet } from "./Sheet";
 export { QueryBoundary } from "./QueryBoundary";

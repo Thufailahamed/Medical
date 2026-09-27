@@ -694,4 +694,20 @@
   color: var(--color-brand);
 }
 
+/* ── Buyer photo treatment (append-only; no token edits) ─── */
+[data-app="patient"] .pt-photo-zoom img {
+  transition: transform 500ms var(--ease-vyro);
+}
+[data-app="patient"] .pt-photo-zoom:hover img {
+  transform: scale(1.05);
+}
+[data-app="patient"] .pt-photo-overlay {
+  background: linear-gradient(to top, rgba(12, 26, 58, 0.72), transparent 60%);
+}
+[data-app="patient"] .pt-photo-fallback {
+  background: var(--color-ink-card);
+  color: var(--color-surface);
+  font-family: var(--font-patient-mono);
+}
+
 
