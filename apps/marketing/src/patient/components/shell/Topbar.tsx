@@ -401,7 +401,7 @@ function Avatar({
     <span className="relative inline-block">
       <span
         aria-hidden
-        className="grid h-9 w-9 place-items-center rounded-md bg-ink font-mono text-xs font-bold text-sky-300"
+        className="grid h-9 w-9 place-items-center rounded-md bg-ink font-mono text-xs font-bold text-brand-soft"
       >
         {initials}
       </span>
