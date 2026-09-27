@@ -33,7 +33,7 @@ const FORMATS = [
     id: "fhir-bundle" as const,
     label: "HL7 FHIR R4 Bundle",
     badge: "Hospital Standard",
-    badgeTone: "bg-sky-100 text-sky-800 border-sky-200",
+    badgeTone: "bg-brand-soft text-brand",
     desc: "Global interoperability format accepted by Epic, Cerner, Apple Health, and international hospitals.",
     icon: Hospital,
     ext: "json",
@@ -42,7 +42,7 @@ const FORMATS = [
     id: "json" as const,
     label: "Full JSON Archive",
     badge: "Complete Dataset",
-    badgeTone: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    badgeTone: "bg-success-soft text-success",
     desc: "Comprehensive machine-readable dump including vitals, lab reports, prescriptions, notes, and audits.",
     icon: FileCode2,
     ext: "json",
@@ -51,7 +51,7 @@ const FORMATS = [
     id: "txt" as const,
     label: "Clinical Summary Text",
     badge: "Human-Readable",
-    badgeTone: "bg-purple-100 text-purple-800 border-purple-200",
+    badgeTone: "bg-violet-50 text-violet-600",
     desc: "Formatted plain-text medical summary ideal for physical printing, offline viewing, or simple sharing.",
     icon: FileText,
     ext: "txt",
@@ -138,7 +138,7 @@ export default function ExportPage() {
       {/* ── 2. Format Selection Cards ───────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <h2 className="pt-kicker">
             Choose Export Format
           </h2>
         </div>
@@ -154,28 +154,29 @@ export default function ExportPage() {
                 type="button"
                 onClick={() => setFormat(f.id)}
                 className={cn(
-                  "p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-4",
+                  "p-5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-4",
                   isSelected
-                    ? "bg-sky-50/80 border-sky-400 ring-2 ring-sky-500/20 shadow-xs"
-                    : "bg-white border-slate-200/90 hover:bg-slate-50",
+                    ? "bg-brand-soft/40 border-brand shadow-card"
+                    : "bg-surface border-border hover:border-border-strong",
                 )}
               >
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <div
                       className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
+                        "grid h-10 w-10 place-items-center rounded-md shrink-0 shadow-2xs",
                         isSelected
-                          ? "bg-sky-600 text-white border-sky-600 shadow-2xs"
-                          : "bg-slate-100 text-slate-600 border-slate-200",
+                          ? "bg-ink text-white"
+                          : "bg-surface-2 text-text-soft",
                       )}
+                      aria-hidden
                     >
                       <Icon size={18} />
                     </div>
 
                     <span
                       className={cn(
-                        "px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border",
+                        "px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
                         f.badgeTone,
                       )}
                     >
@@ -183,26 +184,26 @@ export default function ExportPage() {
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base mt-1">
+                  <h3 className="t-card-title text-text mt-1">
                     {f.label}
                   </h3>
 
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  <p className="text-xs text-text-soft font-medium leading-relaxed">
                     {f.desc}
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-400 font-mono uppercase">
+                <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
+                  <span className="font-bold text-text-muted font-mono uppercase">
                     .{f.ext}
                   </span>
                   {isSelected ? (
-                    <span className="font-bold text-sky-700 flex items-center gap-1">
-                      <CheckCircle2 size={13} />
+                    <span className="font-bold text-brand flex items-center gap-1">
+                      <CheckCircle2 size={13} aria-hidden />
                       Selected
                     </span>
                   ) : (
-                    <span className="font-semibold text-slate-400">Select →</span>
+                    <span className="font-semibold text-text-muted">Select →</span>
                   )}
                 </div>
               </button>
@@ -212,13 +213,13 @@ export default function ExportPage() {
       </section>
 
       {/* ── 3. What Is Included in Your Export ──────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <Layers size={16} className="text-sky-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <Layers size={16} className="text-brand" aria-hidden />
             <span>Contents of Your Complete Medical Export</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-text-soft mt-0.5">
             Every record stored on HealthHub is compiled in full directly from the clinical database without truncation.
           </p>
         </div>
@@ -229,14 +230,14 @@ export default function ExportPage() {
             return (
               <div
                 key={cat.label}
-                className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3"
+                className="p-3.5 rounded-lg bg-surface-2 border border-border flex items-start gap-3"
               >
-                <div className="h-8 w-8 rounded-lg bg-white border border-slate-200 text-sky-700 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                <div className="grid h-8 w-8 place-items-center rounded-md bg-surface text-brand shrink-0 shadow-2xs mt-0.5" aria-hidden>
                   <Icon size={15} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-900">{cat.label}</p>
-                  <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                  <p className="text-xs font-bold text-text">{cat.label}</p>
+                  <p className="text-[11px] text-text-soft leading-snug mt-0.5">
                     {cat.desc}
                   </p>
                 </div>
@@ -247,16 +248,16 @@ export default function ExportPage() {
       </section>
 
       {/* ── 4. Download Trigger & Execution Box ─────────────────────────────── */}
-      <section className="rounded-2xl border-2 border-sky-100 bg-gradient-to-br from-white to-sky-50/40 p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
+      <section className="rounded-xl border border-brand/25 bg-brand-soft/30 p-6 shadow-card flex flex-col sm:flex-row items-center justify-between gap-5">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-md">
+          <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-white shrink-0 shadow-md" aria-hidden>
             <Download size={24} />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="t-card-title text-text">
               Ready to Download: {selectedFormatObj.label}
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Downloaded over encrypted HTTPS directly to your device storage.
             </p>
           </div>
@@ -266,20 +267,17 @@ export default function ExportPage() {
           type="button"
           onClick={download}
           disabled={loading}
-          className="px-6 py-3 rounded-xl text-xs font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
-          style={{
-            background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-          }}
+          className="pt-btn pt-btn-primary h-11 px-6 text-xs disabled:opacity-50 shrink-0"
         >
           {loading ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
-              <span>Generating Secure Archive…</span>
+              <Loader2 size={16} className="animate-spin" aria-hidden />
+              Generating Secure Archive…
             </>
           ) : (
             <>
-              <Download size={16} />
-              <span>Download Health Archive (.{selectedFormatObj.ext})</span>
+              <Download size={16} aria-hidden />
+              Download Health Archive (.{selectedFormatObj.ext})
             </>
           )}
         </button>
@@ -287,15 +285,15 @@ export default function ExportPage() {
 
       {/* Status Alerts */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-xs font-bold text-rose-900 flex items-center gap-3 shadow-xs">
-          <AlertCircle size={18} className="text-rose-600 shrink-0" />
+        <div className="p-4 rounded-xl bg-danger-soft border border-danger/25 text-xs font-bold text-danger flex items-center gap-3 shadow-xs">
+          <AlertCircle size={18} className="shrink-0" aria-hidden />
           <span>{error}</span>
         </div>
       )}
 
       {downloadSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-900 flex items-center gap-3 shadow-xs">
-          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+        <div className="p-4 rounded-xl bg-success-soft border border-success/25 text-xs font-bold text-success flex items-center gap-3 shadow-xs">
+          <CheckCircle2 size={18} className="shrink-0" aria-hidden />
           <span>
             Your medical record archive has been prepared and downloaded to your computer.
           </span>
@@ -303,16 +301,16 @@ export default function ExportPage() {
       )}
 
       {/* ── 5. GDPR & DSAR Legal Rights Notice ──────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-surface-2 text-text-soft shrink-0" aria-hidden>
             <FileLock2 size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Need a Formal Privacy Request (Erasure or Rectification)?
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Submit a Data Subject Access Request (DSAR) to rectify erroneous lab results or request permanent file erasure under applicable regulations.
             </p>
           </div>
@@ -320,10 +318,10 @@ export default function ExportPage() {
 
         <Link
           href="/patient/dsar"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <ExternalLink size={13} className="text-slate-600" />
-          <span>Data Subject Requests</span>
+          <ExternalLink size={13} aria-hidden />
+          Data Subject Requests
         </Link>
       </section>
     </div>
