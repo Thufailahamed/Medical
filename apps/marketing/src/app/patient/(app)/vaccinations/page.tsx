@@ -116,7 +116,7 @@ export default function VaccinationsPage() {
       />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
         {/* Filter Tabs */}
         <SegmentedTabs
           ariaLabel="Vaccination filters"
@@ -145,20 +145,20 @@ export default function VaccinationsPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search vaccine, disease, or provider..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
               <X size={13} />
             </button>
@@ -172,10 +172,10 @@ export default function VaccinationsPage() {
         {activeTab !== "due" && (
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-600" />
+              <h2 className="pt-kicker flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-success" aria-hidden />
                 <span>Administered Vaccinations</span>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-success">
                   {filteredAdministered.length}
                 </span>
               </h2>
@@ -186,21 +186,21 @@ export default function VaccinationsPage() {
                 {[1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                    className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
                   />
                 ))}
               </div>
             ) : filteredAdministered.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-6 rounded-xl bg-surface border border-border shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="h-11 w-11 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                  <div className="grid h-11 w-11 place-items-center rounded-md bg-surface-2 text-text-muted shrink-0" aria-hidden>
                     <Syringe size={20} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="t-card-title text-text">
                       No Administered Vaccinations Recorded
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-text-soft mt-0.5">
                       Log childhood immunisations, travel shots, or COVID-19 boosters for your personal medical record.
                     </p>
                   </div>
@@ -208,7 +208,7 @@ export default function VaccinationsPage() {
                 <button
                   type="button"
                   onClick={() => setOpen(true)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200/80 transition-colors shrink-0 cursor-pointer"
+                  className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
                 >
                   + Add First Vaccine
                 </button>
@@ -218,23 +218,23 @@ export default function VaccinationsPage() {
                 {filteredAdministered.map((v) => (
                   <article
                     key={v.id}
-                    className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all flex items-start justify-between gap-3.5"
+                    className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex items-start justify-between gap-3.5"
                   >
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-100">
+                      <div className="grid h-10 w-10 place-items-center rounded-md bg-success-soft text-success shrink-0 mt-0.5" aria-hidden>
                         <CheckCircle2 size={18} />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-bold text-slate-900 text-sm truncate">
+                        <h4 className="font-bold text-text text-sm truncate">
                           {v.vaccineName}
                         </h4>
                         {v.dose ? (
-                          <span className="inline-block text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md mt-1 border border-emerald-100">
+                          <span className="inline-block text-[11px] font-semibold text-success bg-success-soft px-2 py-0.5 rounded-md mt-1">
                             {v.dose}
                           </span>
                         ) : null}
-                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-medium">
-                          <Calendar size={12} className="text-slate-400" />
+                        <div className="flex items-center gap-2 mt-1 text-xs text-text-soft font-medium">
+                          <Calendar size={12} className="text-text-muted" />
                           <span>{formatDate(v.administeredAt)}</span>
                           {v.provider ? (
                             <>
@@ -244,13 +244,13 @@ export default function VaccinationsPage() {
                           ) : null}
                         </div>
                         {v.notes ? (
-                          <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">
+                          <p className="text-[11px] text-text-muted mt-1 line-clamp-1">
                             {v.notes}
                           </p>
                         ) : null}
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success shrink-0">
                       Administered
                     </span>
                   </article>
@@ -264,10 +264,10 @@ export default function VaccinationsPage() {
         {activeTab !== "administered" && (
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <Clock size={16} className="text-amber-600" />
+              <h2 className="pt-kicker flex items-center gap-2">
+                <Clock size={16} className="text-warn" aria-hidden />
                 <span>Due, Overdue &amp; Upcoming</span>
-                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                <span className="rounded-md bg-warn-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-warn">
                   {filteredDue.length}
                 </span>
               </h2>
@@ -278,20 +278,20 @@ export default function VaccinationsPage() {
                 {[1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                    className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
                   />
                 ))}
               </div>
             ) : filteredDue.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center gap-3.5">
-                <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <div className="p-6 rounded-xl bg-surface border border-border shadow-card flex items-center gap-3.5">
+                <div className="grid h-10 w-10 place-items-center rounded-md bg-success-soft text-success shrink-0" aria-hidden>
                   <Check size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">
+                  <h3 className="t-card-title text-text">
                     No Vaccines Due or Overdue
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-text-soft mt-0.5">
                     You are up to date on standard adult immunization and scheduled boosters.
                   </p>
                 </div>
@@ -306,38 +306,39 @@ export default function VaccinationsPage() {
                     <article
                       key={slot.id}
                       className={cn(
-                        "p-4 rounded-2xl bg-white border shadow-xs transition-all flex items-start justify-between gap-3.5",
+                        "p-4 rounded-xl bg-surface border shadow-card transition-all flex items-start justify-between gap-3.5",
                         isOverdue
-                          ? "border-rose-200 bg-rose-50/20"
+                          ? "border-danger/40 bg-danger-soft/20"
                           : isUpcoming
-                          ? "border-slate-200/90"
-                          : "border-amber-200 bg-amber-50/20",
+                          ? "border-border"
+                          : "border-warn/40 bg-warn-soft/20",
                       )}
                     >
                       <div className="flex items-start gap-3 min-w-0">
                         <div
                           className={cn(
-                            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border",
+                            "grid h-10 w-10 place-items-center rounded-md shrink-0 mt-0.5",
                             isOverdue
-                              ? "bg-rose-50 text-rose-600 border-rose-100"
+                              ? "bg-danger-soft text-danger"
                               : isUpcoming
-                              ? "bg-sky-50 text-sky-600 border-sky-100"
-                              : "bg-amber-50 text-amber-600 border-amber-100",
+                              ? "bg-brand-soft text-brand"
+                              : "bg-warn-soft text-warn",
                           )}
+                          aria-hidden
                         >
                           <Clock size={18} />
                         </div>
                         <div className="min-w-0">
-                          <h4 className="font-bold text-slate-900 text-sm truncate">
+                          <h4 className="font-bold text-text text-sm truncate">
                             {slot.vaccineName}
                           </h4>
                           {slot.doseNumber ? (
-                            <span className="inline-block text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md mt-1">
+                            <span className="inline-block text-[11px] font-semibold text-text-soft bg-surface-2 px-2 py-0.5 rounded-md mt-1">
                               Dose #{slot.doseNumber}
                             </span>
                           ) : null}
-                          <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-medium">
-                            <Calendar size={12} className="text-slate-400" />
+                          <div className="flex items-center gap-2 mt-1 text-xs text-text-soft font-medium">
+                            <Calendar size={12} className="text-text-muted" />
                             <span>Due: {formatDate(slot.dueAt)}</span>
                           </div>
                         </div>
@@ -345,12 +346,12 @@ export default function VaccinationsPage() {
 
                       <span
                         className={cn(
-                          "px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize border shrink-0",
+                          "px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider shrink-0",
                           isOverdue
-                            ? "bg-rose-100 text-rose-800 border-rose-200"
+                            ? "bg-danger-soft text-danger"
                             : isUpcoming
-                            ? "bg-slate-100 text-slate-600 border-slate-200"
-                            : "bg-amber-100 text-amber-800 border-amber-200",
+                            ? "bg-surface-2 text-text-soft"
+                            : "bg-warn-soft text-warn",
                         )}
                       >
                         {slot.status}
@@ -365,16 +366,16 @@ export default function VaccinationsPage() {
       </div>
 
       {/* ── 4. Smart Vaccination Card Scanner Callout ──────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
             <Camera size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Have a Physical Vaccination Card?
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Take a photo of your immunization card or certificate. HealthHub AI will automatically extract doses and batch numbers.
             </p>
           </div>
@@ -382,10 +383,10 @@ export default function VaccinationsPage() {
 
         <Link
           href="/patient/ai/vaccination-card"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <Sparkles size={13} className="text-sky-600" />
-          <span>Launch AI Card Scanner</span>
+          <Sparkles size={13} aria-hidden />
+          Launch AI Card Scanner
         </Link>
       </section>
 
