@@ -25,6 +25,7 @@ import {
 import { formatRelative } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 function cleanNotificationBody(body: string | null | undefined): string {
   if (!body) return "";
@@ -190,64 +191,31 @@ export default function NotificationsPage() {
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
         {/* Filter Tabs */}
-        <div className="inline-flex p-1 bg-slate-100 rounded-xl shrink-0 overflow-x-auto scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setActiveFilter("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0",
-              activeFilter === "all"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            All ({rawNotifications.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveFilter("unread")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0",
-              activeFilter === "unread"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            <span>Unread</span>
-            {unreadCount > 0 ? (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
-                {unreadCount}
-              </span>
-            ) : null}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveFilter("appointments")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0",
-              activeFilter === "appointments"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            Appointments ({appointmentCount})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveFilter("medications")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0",
-              activeFilter === "medications"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            Medications ({medCount})
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Notification filters"
+          activeId={activeFilter}
+          onChange={(id) =>
+            setActiveFilter(id as "all" | "unread" | "appointments" | "medications")
+          }
+          tabs={[
+            { id: "all", label: <>All ({rawNotifications.length})</> },
+            {
+              id: "unread",
+              label: (
+                <>
+                  <span>Unread</span>
+                  {unreadCount > 0 ? (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
+                      {unreadCount}
+                    </span>
+                  ) : null}
+                </>
+              ),
+            },
+            { id: "appointments", label: <>Appointments ({appointmentCount})</> },
+            { id: "medications", label: <>Medications ({medCount})</> },
+          ]}
+        />
 
         {/* Live Search Input */}
         <div className="relative flex-1 sm:max-w-xs">
