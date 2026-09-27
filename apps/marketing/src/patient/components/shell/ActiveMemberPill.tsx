@@ -30,8 +30,7 @@ export function ActiveMemberPill() {
         onClick={() => setOpen(true)}
         aria-label={`Acting as ${label}. Tap to switch.`}
         data-testid="active-member-pill"
-        className="inline-flex items-center gap-1.5 bg-brand-soft px-3 py-1.5 text-sm font-semibold text-brand transition-colors hover:bg-brand hover:text-white"
-        style={{ borderRadius: "var(--radius-pill)" }}
+        className="inline-flex items-center gap-1.5 rounded-md bg-brand-soft px-3 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-brand transition-colors hover:bg-brand hover:text-white"
       >
         <UserCircle2 size={14} aria-hidden />
         <span>{label}</span>

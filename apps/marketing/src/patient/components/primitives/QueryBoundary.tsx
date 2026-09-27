@@ -61,7 +61,7 @@ export function QueryBoundary<T>({
           <button
             type="button"
             onClick={() => void query.refetch?.()}
-            className="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+            className="pt-btn pt-btn-primary h-10 px-4 text-sm"
           >
             Retry
           </button>

@@ -105,31 +105,27 @@ export function Topbar({ user }: { user: AuthUser | null }) {
 
   return (
     <header
-      className="shrink-0 min-h-[64px] h-[64px] flex items-center px-4 md:px-8 bg-white border-b border-border shadow-xs z-30 transition-shadow"
+      className="z-30 flex h-16 shrink-0 items-center border-b border-ink/10 bg-surface/90 px-4 backdrop-blur-md transition-shadow md:px-8"
       data-testid="patient-topbar"
-      style={{
-        backgroundColor: "#ffffff",
-      }}
     >
       <div className="relative z-10 flex items-center justify-between w-full gap-3 sm:gap-4">
         <button
           type="button"
           aria-label="Open navigation menu"
           onClick={toggleMobileNav}
-          className="grid h-10 w-10 shrink-0 place-items-center text-text-soft transition-colors hover:bg-brand-soft hover:text-brand lg:hidden"
-          style={{ borderRadius: "var(--radius-pill)" }}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-text-soft transition-colors hover:bg-ink/5 hover:text-text lg:hidden"
         >
           <Menu size={19} aria-hidden />
         </button>
 
         {/* Page context */}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[15px] font-bold tracking-tight text-text sm:text-base">
+          <h1 className="truncate text-[15px] font-extrabold tracking-tight text-text sm:text-base">
             {page.title}
           </h1>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-text-soft">
-            <span className="inline-flex items-center gap-1">
-              <CalendarDays size={11} aria-hidden className="text-text-muted" />
+            <span className="inline-flex items-center gap-1 font-mono text-[11px] text-text-muted">
+              <CalendarDays size={11} aria-hidden />
               {today}
             </span>
             {page.subtitle ? (
@@ -163,15 +159,13 @@ export function Topbar({ user }: { user: AuthUser | null }) {
                 ? `Notifications, ${unread} unread`
                 : "Notifications"
             }
-            className="group relative grid h-10 w-10 place-items-center text-text-soft transition-colors hover:bg-brand-soft hover:text-brand"
-            style={{ borderRadius: "var(--radius-pill)" }}
+            className="group relative grid h-10 w-10 place-items-center rounded-md text-text-soft transition-colors hover:bg-ink/5 hover:text-text"
           >
             <Bell size={18} aria-hidden />
             {unread > 0 ? (
               <span
                 aria-hidden
-                className="absolute right-1.5 top-1.5 grid h-4 min-w-[16px] place-items-center bg-danger px-1 text-[10px] font-bold text-white"
-                style={{ borderRadius: "var(--radius-pill)" }}
+                className="absolute right-1.5 top-1.5 grid h-4 min-w-[16px] place-items-center rounded-sm bg-brand px-1 font-mono text-[10px] font-semibold text-white"
               >
                 {unread > 9 ? "9+" : unread}
               </span>
@@ -179,7 +173,7 @@ export function Topbar({ user }: { user: AuthUser | null }) {
           </Link>
 
           <div
-            className="mx-0.5 hidden h-6 w-px bg-border sm:block"
+            className="mx-0.5 hidden h-6 w-px bg-ink/10 sm:block"
             aria-hidden
           />
 
@@ -214,8 +208,7 @@ function IconAction({
       href={href}
       aria-label={label}
       title={label}
-      className="hidden h-10 w-10 place-items-center text-text-soft transition-colors hover:bg-brand-soft hover:text-brand sm:grid"
-      style={{ borderRadius: "var(--radius-pill)" }}
+      className="hidden h-10 w-10 place-items-center rounded-md text-text-soft transition-colors hover:bg-ink/5 hover:text-text sm:grid"
     >
       {icon}
     </Link>
@@ -237,7 +230,7 @@ function WellnessChip({ streak, score }: { streak?: number; score?: number }) {
         ·
       </span>
       <span
-        className="inline-flex items-center gap-1 rounded-pill bg-success-soft px-2 py-[2px] text-[10.5px] font-semibold text-success"
+        className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-[2px] text-[10.5px] font-semibold text-success"
         title={label}
       >
         <HeartPulse size={11} aria-hidden />
@@ -277,10 +270,9 @@ function ProfileChip({
         aria-expanded={menuOpen}
         aria-label="Open account menu"
         className={cn(
-          "group flex items-center gap-2 py-1 pl-1 pr-2.5 text-left transition-colors hover:bg-surface-2",
-          menuOpen && "bg-surface-2",
+          "group flex items-center gap-2 rounded-md py-1 pl-1 pr-2.5 text-left transition-colors hover:bg-ink/5",
+          menuOpen && "bg-ink/5",
         )}
-        style={{ borderRadius: "var(--radius-pill)" }}
       >
         <Avatar user={user} initialsSource={initialsSource} />
         <span className="hidden min-w-0 leading-tight md:flex md:flex-col">
@@ -312,27 +304,16 @@ function ProfileChip({
           />
           <div
             role="menu"
-            className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-2xl bg-white shadow-2xl"
-            style={{
-              backgroundColor: "#ffffff",
-              boxShadow:
-                "0 20px 50px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(59, 111, 245, 0.15)",
-            }}
+            className="pt-floating absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden"
           >
-            <div
-              className="border-b border-slate-100 px-4 py-3"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(59,111,245,0.06) 0%, rgba(124,108,255,0.04) 100%)",
-              }}
-            >
+            <div className="border-b border-ink/10 bg-surface-2 px-4 py-3">
               <div className="flex items-center gap-3">
                 <Avatar user={user} initialsSource={initialsSource} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-slate-900">
+                  <p className="truncate text-sm font-bold text-text">
                     {fullName}
                   </p>
-                  <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-text-muted">
                     {user?.email ?? user?.phone ?? "Patient account"}
                   </p>
                 </div>
@@ -344,15 +325,15 @@ function ProfileChip({
                 role="menuitem"
                 href="/patient/profile"
                 onClick={onClose}
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 hover:text-blue-600"
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-semibold text-text transition-colors hover:bg-ink/5"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-surface-2 text-text-soft">
                   <Settings size={14} />
                 </span>
                 <span>Profile & Settings</span>
               </Link>
 
-              <div className="my-1 border-t border-slate-100" />
+              <div className="my-1 border-t border-ink/10" />
 
               <button
                 type="button"
@@ -360,24 +341,21 @@ function ProfileChip({
                 onClick={onLogout}
                 disabled={signingOut}
                 data-testid="logout-button"
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-60"
+                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-semibold text-danger transition-colors hover:bg-danger-soft disabled:opacity-60"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-danger-soft text-danger">
                   <LogOut size={14} />
                 </span>
                 <span>{signingOut ? "Signing out…" : "Sign out"}</span>
               </button>
             </div>
 
-            <div
-              className="flex items-center gap-1.5 border-t border-slate-100 px-3.5 py-2"
-              style={{ background: "rgba(248,250,252,0.7)" }}
-            >
-              <Sparkles size={10} className="text-sky-500" />
-              <span className="text-[10px] font-bold tracking-wide text-slate-500">
-                HEALTHHUB
+            <div className="flex items-center gap-1.5 border-t border-ink/10 bg-surface-2 px-3.5 py-2">
+              <Sparkles size={10} className="text-brand" />
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                HealthHub
               </span>
-              <span className="text-[10px] text-slate-400">· Patient Portal</span>
+              <span className="text-[10px] text-text-muted">· Patient Portal</span>
             </div>
           </div>
         </>
@@ -412,8 +390,7 @@ function Avatar({
           alt=""
           width={36}
           height={36}
-          className="h-9 w-9 object-cover ring-2 ring-white"
-          style={{ borderRadius: "var(--radius-pill)" }}
+          className="h-9 w-9 rounded-md object-cover shadow-[inset_0_0_0_1px_rgba(19,32,68,0.12)]"
         />
         {online ? <OnlineDot /> : null}
       </span>
@@ -424,14 +401,7 @@ function Avatar({
     <span className="relative inline-block">
       <span
         aria-hidden
-        className="grid h-9 w-9 place-items-center text-sm font-bold text-white"
-        style={{
-          borderRadius: "var(--radius-pill)",
-          background:
-            "linear-gradient(145deg, var(--color-brand) 0%, var(--color-brand-strong) 100%)",
-          boxShadow:
-            "0 4px 10px -3px rgba(59,111,245,0.5), inset 0 0 0 1px rgba(255,255,255,0.18)",
-        }}
+        className="grid h-9 w-9 place-items-center rounded-md bg-ink font-mono text-xs font-bold text-sky-300"
       >
         {initials}
       </span>
@@ -444,7 +414,7 @@ function OnlineDot() {
   return (
     <span
       aria-hidden
-      className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-success ring-2 ring-white"
+      className="pt-dot absolute -bottom-0.5 -right-0.5 bg-success ring-2 ring-surface"
     />
   );
 }

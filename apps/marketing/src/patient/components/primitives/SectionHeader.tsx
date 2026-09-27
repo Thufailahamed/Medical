@@ -4,6 +4,8 @@ import { cn } from "@/portal/lib/utils";
 
 /**
  * Page / section title row with optional action slot.
+ * VYRO PageSection pattern: kicker eyebrow, display title,
+ * hairline rule underneath.
  */
 export function SectionHeader({
   label,
@@ -21,12 +23,12 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "anim-rise flex items-end justify-between gap-4",
+        "anim-rise flex items-end justify-between gap-4 border-b border-ink/10 pb-3",
         className
       )}
     >
       <div className="min-w-0">
-        {label ? <p className="t-label">{label}</p> : null}
+        {label ? <p className="pt-kicker">{label}</p> : null}
         <h2 className="t-page mt-1 truncate text-text">{title}</h2>
         {description ? (
           <p className="mt-1.5 max-w-xl text-sm text-text-soft">{description}</p>

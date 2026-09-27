@@ -97,7 +97,7 @@ export function StatTile({
         {icon ? (
           <div
             className={cn(
-              "grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-105",
+              "grid h-10 w-10 shrink-0 place-items-center rounded-md transition-transform duration-300 group-hover:scale-105",
               tone.lightBg,
               tone.accent
             )}
@@ -106,11 +106,9 @@ export function StatTile({
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-            {label}
-          </p>
+          <p className="pt-kicker pt-kicker-muted">{label}</p>
           <p className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-[22px] font-extrabold tabular-nums tracking-tight text-text">
+            <span className="pt-metric text-[26px] leading-none text-text">
               {value}
             </span>
             {unit ? <span className="text-sm font-medium text-text-muted">{unit}</span> : null}

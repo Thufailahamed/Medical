@@ -76,7 +76,7 @@ export function DashboardHero({ className }: { className?: string }) {
   return (
     <header
       className={cn(
-        "dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl",
+        "dashboard-hero relative rounded-card p-6 md:p-7 text-white overflow-hidden",
         className,
       )}
       style={{
@@ -145,7 +145,7 @@ export function DashboardHero({ className }: { className?: string }) {
             <div className="flex items-center gap-2.5 mt-4 flex-wrap">
               {blood ? (
                 <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm border"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white shadow-sm border border-white/20"
                   style={{
                     background: "rgba(255, 255, 255, 0.12)",
                     borderColor: "rgba(255, 255, 255, 0.18)",
@@ -159,7 +159,7 @@ export function DashboardHero({ className }: { className?: string }) {
 
               {bmi != null ? (
                 <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm border"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white shadow-sm border border-white/20"
                   style={{
                     background: "rgba(255, 255, 255, 0.12)",
                     borderColor: "rgba(255, 255, 255, 0.18)",
@@ -177,7 +177,7 @@ export function DashboardHero({ className }: { className?: string }) {
               {alertCount > 0 ? (
                 <Link
                   href="/patient/vitals"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-amber-200 border shadow-sm transition-transform hover:scale-[1.03]"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-amber-200 shadow-sm border transition-transform hover:scale-[1.03]"
                   style={{
                     background: "rgba(245, 158, 11, 0.2)",
                     borderColor: "rgba(251, 191, 36, 0.35)",
@@ -191,7 +191,7 @@ export function DashboardHero({ className }: { className?: string }) {
                 </Link>
               ) : (
                 <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-emerald-200 border shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-emerald-200 shadow-sm border"
                   style={{
                     background: "rgba(16, 185, 129, 0.18)",
                     borderColor: "rgba(52, 211, 153, 0.3)",
@@ -210,7 +210,7 @@ export function DashboardHero({ className }: { className?: string }) {
             {/* Wellness Badge Link */}
             <Link
               href="/patient/health"
-              className="group flex min-w-[13.5rem] items-center gap-4 rounded-2xl px-4 py-3.5 transition-all duration-200 hover:scale-[1.02] border focus-visible:outline-2 focus-visible:outline-white"
+              className="group flex min-w-[13.5rem] items-center gap-4 rounded-md px-4 py-3.5 transition-all duration-200 hover:scale-[1.02] border focus-visible:outline-2 focus-visible:outline-white"
               style={{
                 background: "rgba(255, 255, 255, 0.12)",
                 borderColor: "rgba(255, 255, 255, 0.2)",
@@ -219,7 +219,7 @@ export function DashboardHero({ className }: { className?: string }) {
               }}
             >
               <div
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-md transition-transform group-hover:scale-105"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-md text-white shadow-md transition-transform group-hover:scale-105"
                 style={{
                   background:
                     "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
@@ -273,7 +273,7 @@ export function DashboardHero({ className }: { className?: string }) {
             {/* Quick Action CTA */}
             <Link
               href="/patient/health"
-              className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-bold text-[#0369A1] transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-white shadow-md"
+              className="inline-flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-sm font-bold text-[#0369A1] transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-white shadow-md"
             >
               <Activity size={14} aria-hidden />
               Log vitals

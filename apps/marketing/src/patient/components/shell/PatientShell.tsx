@@ -44,7 +44,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => activeFamily.refetch()}
-            className="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+            className="pt-btn pt-btn-primary h-10 px-4 text-sm"
           >
             Retry
           </button>

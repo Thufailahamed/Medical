@@ -33,17 +33,17 @@ function Tile({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="group flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand min-h-[88px]"
+      className="group flex items-center gap-3 rounded-card bg-surface px-4 py-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand min-h-[88px]"
     >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand transition-transform group-hover:scale-105" aria-hidden>
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-sky-300 transition-transform group-hover:scale-105" aria-hidden>
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">{label}</span>
+        <span className="block pt-kicker pt-kicker-muted">{label}</span>
         <span className="flex items-baseline gap-1.5">
-          <span className="block truncate text-xl font-extrabold tracking-tight text-text">{value}</span>
+          <span className="block truncate pt-metric text-[22px] leading-none text-text">{value}</span>
           {badgeText ? (
-            <span className={cn("px-1.5 py-0.5 text-[10px] font-bold rounded", tone)}>{badgeText}</span>
+            <span className={cn("px-1.5 py-0.5 text-[10px] font-bold rounded-md", tone)}>{badgeText}</span>
           ) : null}
         </span>
         <span className="block truncate text-xs text-text-soft">{sub}</span>

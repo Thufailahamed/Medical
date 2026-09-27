@@ -56,7 +56,7 @@ export function Sheet({
       />
       <div
         className={cn(
-          "relative flex h-full w-full max-w-md flex-col gap-4 overflow-y-auto bg-white p-6 shadow-2xl border-l border-slate-200 z-10",
+          "relative z-10 flex h-full w-full max-w-md flex-col gap-4 overflow-y-auto bg-surface p-6 shadow-float",
           side === "right" ? "ml-auto" : "mr-auto",
           className
         )}
