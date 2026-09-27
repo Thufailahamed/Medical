@@ -8,49 +8,19 @@ import type { CardAccent } from "./Card";
 
 const TONE: Record<
   Exclude<CardAccent, "none">,
-  { blob: string; shine: string; lightBg: string; accent: string }
+  { fill: string; glyph: string }
 > = {
-  brand: {
-    blob: "bg-brand",
-    shine: "bg-brand",
-    lightBg: "bg-blue-50",
-    accent: "text-brand",
-  },
-  sky: {
-    blob: "bg-sky-500",
-    shine: "bg-sky-500",
-    lightBg: "bg-sky-50",
-    accent: "text-sky-600",
-  },
-  violet: {
-    blob: "bg-violet-500",
-    shine: "bg-violet-500",
-    lightBg: "bg-violet-50",
-    accent: "text-violet-600",
-  },
-  amber: {
-    blob: "bg-amber-500",
-    shine: "bg-amber-500",
-    lightBg: "bg-amber-50",
-    accent: "text-amber-600",
-  },
-  green: {
-    blob: "bg-emerald-500",
-    shine: "bg-emerald-500",
-    lightBg: "bg-emerald-50",
-    accent: "text-emerald-600",
-  },
-  rose: {
-    blob: "bg-rose-500",
-    shine: "bg-rose-500",
-    lightBg: "bg-rose-50",
-    accent: "text-rose-600",
-  },
+  brand: { fill: "bg-brand-soft", glyph: "text-brand" },
+  sky: { fill: "bg-sky-50", glyph: "text-sky-600" },
+  violet: { fill: "bg-violet-50", glyph: "text-violet-600" },
+  amber: { fill: "bg-amber-50", glyph: "text-amber-600" },
+  green: { fill: "bg-emerald-50", glyph: "text-emerald-600" },
+  rose: { fill: "bg-rose-50", glyph: "text-rose-600" },
 };
 
 /**
- * Summary tile matching the doctor portal StatCard: icon badge,
- * pastel corner blob, large number, caption.
+ * Buyer-portal metric tile (mirrors project-5 `StatTile`): tinted square
+ * icon tile, mono tabular value, uppercase micro label, tone change chip.
  */
 export function StatTile({
   label,
@@ -76,12 +46,12 @@ export function StatTile({
   className?: string;
 }) {
   const tone = TONE[accent];
-  const deltaColor =
+  const deltaStyles =
     deltaTone === "up"
-      ? "text-success"
+      ? "bg-success-soft text-success"
       : deltaTone === "down"
-        ? "text-danger"
-        : "text-text-soft";
+        ? "bg-danger-soft text-danger"
+        : "bg-surface-2 text-text-soft";
 
   const body = (
     <div
@@ -90,23 +60,21 @@ export function StatTile({
         className
       )}
     >
-      <div className={cn("patient-card-blob", tone.blob)} aria-hidden />
-      <div className={cn("patient-card-shine", tone.shine)} aria-hidden />
-
       <div className="relative z-10 flex items-start gap-3">
         {icon ? (
           <div
             className={cn(
-              "grid h-10 w-10 shrink-0 place-items-center rounded-md transition-transform duration-300 group-hover:scale-105",
-              tone.lightBg,
-              tone.accent
+              "grid size-9 shrink-0 place-items-center rounded-md transition-transform duration-300 group-hover:scale-105",
+              tone.fill,
+              tone.glyph
             )}
+            aria-hidden
           >
             {icon}
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          <p className="pt-kicker pt-kicker-muted">{label}</p>
+          <p className="t-label">{label}</p>
           <p className="mt-1.5 flex items-baseline gap-1">
             <span className="pt-metric text-[26px] leading-none text-text">
               {value}
@@ -117,23 +85,26 @@ export function StatTile({
             <p className="mt-1 text-[11px] text-text-muted">{sublabel}</p>
           ) : null}
           {delta != null ? (
-            <p
-              className={cn(
-                "mt-1.5 flex items-center gap-1.5 text-xs font-medium",
-                deltaColor,
-              )}
-            >
+            <p className="mt-1.5">
               <span
                 className={cn(
-                  "pt-dot",
-                  deltaTone === "down"
-                    ? "bg-danger"
-                    : deltaTone === "up"
-                      ? "bg-success"
-                      : "bg-text-muted",
+                  "inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                  deltaStyles,
                 )}
-              />
-              {delta}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "pt-dot",
+                    deltaTone === "down"
+                      ? "bg-danger"
+                      : deltaTone === "up"
+                        ? "bg-success"
+                        : "bg-text-muted",
+                  )}
+                />
+                {delta}
+              </span>
             </p>
           ) : null}
         </div>

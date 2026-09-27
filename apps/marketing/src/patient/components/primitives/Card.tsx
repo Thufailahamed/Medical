@@ -11,21 +11,13 @@ export type CardAccent =
   | "rose"
   | "none";
 
-const ACCENT: Record<
-  Exclude<CardAccent, "none">,
-  { blob: string; shine: string }
-> = {
-  brand: { blob: "bg-brand", shine: "bg-brand" },
-  sky: { blob: "bg-sky-500", shine: "bg-sky-500" },
-  violet: { blob: "bg-violet-500", shine: "bg-violet-500" },
-  amber: { blob: "bg-amber-500", shine: "bg-amber-500" },
-  green: { blob: "bg-emerald-500", shine: "bg-emerald-500" },
-  rose: { blob: "bg-rose-500", shine: "bg-rose-500" },
-};
-
 /**
- * Doctor-portal-style white card: thin border, pastel corner blob,
- * soft hover lift. Keeps the patient blue theme via CSS tokens.
+ * Buyer-portal surface: uniform white card, 12px radius, inset hairline,
+ * quiet hover lift. No per-card accent decor — category color lives in
+ * badges, pills and icon tiles (mirrors project-5 `Surface`).
+ *
+ * `accent` is reserved for API compatibility and intentionally renders
+ * nothing; pass tone via child primitives (Pill, StatusDots, StatTile).
  */
 export function Card({
   className,
@@ -40,8 +32,7 @@ export function Card({
   accent?: CardAccent;
   children?: React.ReactNode;
 }) {
-  const palette = accent === "none" ? null : ACCENT[accent];
-
+  void accent;
   return (
     <As
       className={cn(
@@ -50,12 +41,6 @@ export function Card({
         className
       )}
     >
-      {palette ? (
-        <>
-          <div className={cn("patient-card-blob", palette.blob)} aria-hidden />
-          <div className={cn("patient-card-shine", palette.shine)} aria-hidden />
-        </>
-      ) : null}
       <div className="relative z-10">{children}</div>
     </As>
   );

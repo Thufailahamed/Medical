@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 /* ============================================================
@@ -39,9 +39,9 @@
   --color-danger: #e0464b;
   --color-danger-soft: #fdecec;
 
-  /* Geometry — VYRO-style editorial corners: tighter cards, square-ish controls */
-  --radius-plate: 20px;
-  --radius-card: 14px;
+  /* Geometry — buyer editorial corners: 12px cards/plates, 8px controls */
+  --radius-plate: 12px;
+  --radius-card: 12px;
   --radius-inner: 10px;
   --radius-pill: 999px;
 
@@ -56,8 +56,9 @@
   /* Motion — shared VYRO easing */
   --ease-vyro: cubic-bezier(0.22, 1, 0.36, 1);
 
-  --font-patient: "Plus Jakarta Sans", "Outfit", ui-sans-serif, system-ui,
+  --font-patient: "IBM Plex Sans", ui-sans-serif, system-ui,
     -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
   --font-patient-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo,
     monospace;
   --font-mono: var(--font-patient-mono);
@@ -107,21 +108,24 @@
 
 /* ── Type scale ───────────────────────────────────────────── */
 [data-app="patient"] .t-display {
+  font-family: var(--font-display);
   font-size: clamp(36px, 4vw, 48px);
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   line-height: 1.05;
 }
 [data-app="patient"] .t-page {
+  font-family: var(--font-display);
   font-size: clamp(28px, 3vw, 36px);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
 [data-app="patient"] .t-card-title {
+  font-family: var(--font-display);
   font-size: 17px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 [data-app="patient"] .t-metric {
   font-family: var(--font-patient-mono);
@@ -277,6 +281,7 @@
   gap: 0.5rem;
   overflow: hidden;
   white-space: nowrap;
+  font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.02em;
   border-radius: 8px;
@@ -422,7 +427,7 @@
   background-position: center;
 }
 
-/* Content cards — VYRO surface: inset hairline, quiet hover lift */
+/* Content cards — buyer surface: white, 12px, inset hairline, hover lift */
 [data-app="patient"] .patient-card {
   position: relative;
   overflow: hidden;
@@ -431,44 +436,12 @@
   box-shadow: var(--shadow-card);
   transition:
     box-shadow 240ms var(--ease-vyro),
-    transform 240ms var(--ease-vyro);
+    transform 240ms var(--ease-vyro),
+    border-color 240ms var(--ease-vyro);
 }
 [data-app="patient"] .patient-card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
-}
-[data-app="patient"] .patient-card-blob {
-  pointer-events: none;
-  position: absolute;
-  top: 0.875rem;
-  right: 0.875rem;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 1px;
-  transform: rotate(45deg);
-  opacity: 0.45;
-  transition:
-    opacity 240ms var(--ease-vyro),
-    transform 240ms var(--ease-vyro);
-}
-[data-app="patient"] .patient-card:hover .patient-card-blob {
-  opacity: 0.9;
-  transform: rotate(45deg) scale(1.15);
-}
-[data-app="patient"] .patient-card-shine {
-  pointer-events: none;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  opacity: 1;
-  transform: scaleX(0.14);
-  transform-origin: left;
-  transition: transform 280ms var(--ease-vyro);
-}
-[data-app="patient"] .patient-card:hover .patient-card-shine {
-  transform: scaleX(1);
 }
 
 /* ============================================================
@@ -519,8 +492,9 @@
   color: #7eb3ff;
 }
 [data-app="patient"] .pt-hero-title {
+  font-family: var(--font-display);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   color: #ffffff;
   font-size: clamp(22px, 2.4vw, 28px);
   line-height: 1.15;

@@ -38,8 +38,14 @@ describe("Card", () => {
     expect(container.querySelector("section")).toBeTruthy();
   });
 
-  it("renders a pastel corner blob by default", () => {
-    const { container } = render(<Card>x</Card>);
-    expect(container.querySelector(".patient-card-blob")).toBeTruthy();
+  it("renders a uniform buyer surface with no decorative chrome", () => {
+    const { container } = render(
+      <Card>
+        <span data-testid="child">hi</span>
+      </Card>
+    );
+    expect(container.querySelector("[data-testid='child']")).toBeTruthy();
+    expect(container.querySelector(".patient-card-blob")).toBeNull();
+    expect(container.querySelector(".patient-card-shine")).toBeNull();
   });
 });
