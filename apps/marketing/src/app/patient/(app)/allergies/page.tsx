@@ -21,6 +21,7 @@ import { AllergyFormSheet } from "@/patient/components/allergies/AllergyFormShee
 import { useAddAllergy, useAllergies, useDeleteAllergy } from "@/patient/hooks";
 import type { AllergyRow } from "@/patient/types/patient";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 
 const COMMON_PRESETS = [
   { substance: "Penicillin", severity: "critical" as const, reaction: "Anaphylaxis" },
@@ -131,154 +132,37 @@ export default function AllergiesPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <ShieldAlert size={12} className="text-rose-300" />
-                Clinical Safety &amp; EHR Registry
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Allergies &amp; Adverse Drug Reactions
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Document confirmed drug, food, and environmental allergens to protect clinical decision-making and prevent contraindicated prescriptions.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <Link
-                href="/patient/ai"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <Bot size={13} />
-                <span>Drug Interaction AI</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02] cursor-pointer"
-              >
-                <Plus size={14} className="text-sky-700" />
-                <span>Add Known Allergy</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
+      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
+      <PageHero
+        icon={<ShieldAlert size={13} aria-hidden />}
+        kicker="Clinical Safety & EHR Registry"
+        title="Allergies & Adverse Drug Reactions"
+        description="Document confirmed drug, food, and environmental allergens to protect clinical decision-making and prevent contraindicated prescriptions."
+        actions={
+          <>
+            <Link href="/patient/ai" className={heroSecondaryAction}>
+              <Bot size={13} aria-hidden />
+              Drug Interaction AI
+            </Link>
             <button
               type="button"
-              onClick={() => setActiveTab("all")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "all"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
+              onClick={() => setOpen(true)}
+              className={heroPrimaryAction}
             >
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
-                <ShieldAlert size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Total Allergens
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {rawList.length}
-                </p>
-              </div>
+              <Plus size={14} aria-hidden />
+              Add Known Allergy
             </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("critical")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "critical"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-rose-400/30 flex items-center justify-center text-rose-200 shrink-0">
-                <AlertCircle size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-rose-200 truncate">
-                  Critical / Severe
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {criticalCount}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("moderate")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "moderate"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <AlertTriangle size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Mild / Moderate
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {moderateCount}
-                </p>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Safety System
-                </p>
-                <p className="text-base font-extrabold text-white">EHR Protected</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        footer={
+          <>
+            <span>Total Allergens · {rawList.length}</span>
+            <span>Critical / Severe · {criticalCount}</span>
+            <span>Mild / Moderate · {moderateCount}</span>
+            <span>Safety System · EHR Protected</span>
+          </>
+        }
+      />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
